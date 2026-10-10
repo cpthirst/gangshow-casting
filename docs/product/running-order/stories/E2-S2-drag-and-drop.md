@@ -2,7 +2,7 @@
 id: running-order.E2.S2
 title: Reorder items by drag and drop
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story
@@ -43,6 +43,6 @@ Then the order is saved as Draft 7, or put back to Draft 6, as with the move but
 
 - FRs: FR4
 - Depends on: running-order.E2.S1. Drags make the same unsaved changes as the move buttons, and use the same Save and Reset.
-- New dependency: a touch-capable sortable library (`vue-draggable-plus` / SortableJS is expected), recorded in an ADR in this story.
+- New dependency: SortableJS, used directly ([ADR 0009](../../../adr/0009-drag-and-drop-with-sortablejs.md)).
 - Touch dragging on a real phone is checked by hand. Tests drive the list's change events.
 - Out of scope: dragging several items at once.

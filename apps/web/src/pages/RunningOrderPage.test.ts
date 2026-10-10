@@ -1,7 +1,38 @@
 import { type RunningOrder, type RunningOrderItem, SaveRunningOrderRequest } from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import RunningOrderPage from "./RunningOrderPage.vue";
+
+// SortableJS can't drag in happy-dom, so stand in for it and fire its drop event directly.
+interface DropEvent {
+  item: HTMLElement;
+  from: HTMLElement;
+  to: HTMLElement;
+  oldIndex: number;
+  newIndex: number;
+}
+interface FakeSortable {
+  el: HTMLElement;
+  options: {
+    group?: string;
+    handle?: string;
+    draggable?: string;
+    onEnd?: (event: DropEvent) => void;
+  };
+  option: ReturnType<typeof vi.fn>;
+  destroy: ReturnType<typeof vi.fn>;
+}
+const sortables = vi.hoisted((): FakeSortable[] => []);
+vi.mock("sortablejs", () => ({
+  default: {
+    create: (el: HTMLElement, options: FakeSortable["options"]) => {
+      const sortable = { el, options, option: vi.fn(), destroy: vi.fn() };
+      sortables.push(sortable);
+      return sortable;
+    },
+    get: (el: HTMLElement) => sortables.findLast((sortable) => sortable.el === el),
+  },
+}));
 
 // Pages left mounted would keep their window listeners between tests.
 enableAutoUnmount(afterEach);
@@ -51,9 +82,11 @@ async function openPage() {
 const half = (wrapper: Awaited<ReturnType<typeof openPage>>, name: string) =>
   wrapper.get(`section[aria-labelledby="${name}"]`);
 const titlesIn = (section: ReturnType<typeof half>) =>
-  section.findAll("tbody tr").map((row) => row.get("[data-test=title]").text());
+  section.findAll("tbody tr[data-item-id]").map((row) => row.get("[data-test=title]").text());
 const rowFor = (wrapper: Awaited<ReturnType<typeof openPage>>, title: string) => {
-  const row = wrapper.findAll("tbody tr").find((r) => r.get("[data-test=title]").text() === title);
+  const row = wrapper
+    .findAll("tbody tr[data-item-id]")
+    .find((r) => r.get("[data-test=title]").text() === title);
   if (!row) throw new Error(`no row for ${title}`);
   return row;
 };
@@ -106,6 +139,20 @@ describe("Running order page", () => {
     expect(cellUnder("Leads")).toBe("Sam / Alex");
     expect(cellUnder("Comments")).toBe("Performed to track");
     expect(cellUnder("Mins")).toBe("18");
+  });
+
+  it("labels every cell with its column, for the stacked layout on narrow screens", async () => {
+    serve(aRunningOrder([anItem("Curtain Up")]));
+
+    const wrapper = await openPage();
+
+    const headers = half(wrapper, "first-half")
+      .findAll("thead th")
+      .map((th) => th.text());
+    const labels = rowFor(wrapper, "Curtain Up")
+      .findAll("td")
+      .map((cell) => cell.attributes("data-label"));
+    expect(labels).toEqual(headers);
   });
 
   it("shows the current version as a draft number", async () => {
@@ -357,6 +404,31 @@ describe("Running order page", () => {
       expect(titlesIn(half(wrapper, "second-half"))).toEqual([]);
     });
 
+    it("shows compact icon move buttons with full names and tooltips", async () => {
+      fakeApi(threeItems());
+      const wrapper = await openPage();
+
+      const row = rowFor(wrapper, "Curtain Up");
+      const buttons = row.findAll("button[data-move]");
+      expect(
+        buttons.map((b) => [b.text(), b.attributes("aria-label"), b.attributes("data-tooltip")]),
+      ).toEqual([
+        ["↑", "Move Curtain Up up", "Move up"],
+        ["↓", "Move Curtain Up down", "Move down"],
+        ["⇄", "Move Curtain Up to second half", "Move to second half"],
+      ]);
+      expect(row.get(".drag-handle").attributes("data-tooltip")).toBe("Drag to reorder");
+    });
+
+    it("tells people how to fill an empty half without relying on a symbol", async () => {
+      fakeApi(aRunningOrder([anItem("Curtain Up")], []));
+      const wrapper = await openPage();
+
+      expect(half(wrapper, "second-half").get("tbody").text()).toBe(
+        "No items. Drag one here, or use “Move to second half” on an item.",
+      );
+    });
+
     it("doesn't offer moves that would leave the half", async () => {
       fakeApi(threeItems());
       const wrapper = await openPage();
@@ -508,6 +580,173 @@ describe("Running order page", () => {
       await press(wrapper, "Move Curtain Up down");
 
       expect(leave()).toBe(true);
+    });
+  });
+
+  describe("reordering by drag and drop", () => {
+    beforeEach(() => {
+      sortables.length = 0;
+    });
+
+    const tbodyOf = (wrapper: Awaited<ReturnType<typeof openPage>>, halfId: string) =>
+      wrapper.get(`section[aria-labelledby="${halfId}"] tbody`).element;
+
+    // Moves the row in the DOM as SortableJS would, then reports the drop.
+    async function drag(
+      wrapper: Awaited<ReturnType<typeof openPage>>,
+      title: string,
+      toHalfId: string,
+      newIndex: number,
+    ) {
+      const item = rowFor(wrapper, title).element;
+      const from = item.parentElement;
+      const to = tbodyOf(wrapper, toHalfId);
+      if (!(item instanceof HTMLElement && from && to instanceof HTMLElement)) {
+        throw new Error("expected a row inside a tbody");
+      }
+      const oldIndex = [...from.children].indexOf(item);
+      const sortable = sortables.findLast((s) => s.el === from);
+      if (!sortable?.options.onEnd) throw new Error("no sortable list for this half");
+      to.insertBefore(item, [...to.children].filter((row) => row !== item)[newIndex] ?? null);
+      sortable.options.onEnd({ item, from, to, oldIndex, newIndex });
+      await flushPromises();
+    }
+
+    const threeItems = () =>
+      aRunningOrder(
+        [anItem("Curtain Up"), anItem("Pirate Panic"), anItem("Dance One")],
+        [anItem("Big Finish")],
+      );
+
+    it("makes a drag within a half an unsaved change", async () => {
+      serve(threeItems());
+      const wrapper = await openPage();
+
+      await drag(wrapper, "Dance One", "first-half", 0);
+
+      expect(titlesIn(half(wrapper, "first-half"))).toEqual([
+        "Dance One",
+        "Curtain Up",
+        "Pirate Panic",
+      ]);
+      expect(wrapper.find("[data-test=unsaved]").exists()).toBe(true);
+      expect(wrapper.get("button[data-test=save]").text()).toBe("Save as Draft 7");
+      expect(wrapper.get("[role=status]").text()).toBe(
+        "Dance One moved to position 1. Not saved yet.",
+      );
+    });
+
+    it("drags an item across the interval", async () => {
+      serve(threeItems());
+      const wrapper = await openPage();
+
+      await drag(wrapper, "Big Finish", "first-half", 1);
+
+      expect(titlesIn(half(wrapper, "first-half"))).toEqual([
+        "Curtain Up",
+        "Big Finish",
+        "Pirate Panic",
+        "Dance One",
+      ]);
+      expect(titlesIn(half(wrapper, "second-half"))).toEqual([]);
+    });
+
+    it("changes nothing when an item is dropped where it started", async () => {
+      serve(threeItems());
+      const wrapper = await openPage();
+
+      await drag(wrapper, "Pirate Panic", "first-half", 1);
+
+      expect(titlesIn(half(wrapper, "first-half"))).toEqual([
+        "Curtain Up",
+        "Pirate Panic",
+        "Dance One",
+      ]);
+      expect(wrapper.find("[data-test=unsaved]").exists()).toBe(false);
+      expect(wrapper.get("[role=status]").text()).toBe("");
+    });
+
+    it("keeps an emptied half as a place to drop items back into", async () => {
+      serve(threeItems());
+      const wrapper = await openPage();
+      await drag(wrapper, "Big Finish", "first-half", 3);
+
+      expect(half(wrapper, "second-half").get("tbody").text()).toContain("No items");
+      expect(sortables.every((s) => s.options.draggable === "[data-item-id]")).toBe(true);
+
+      await drag(wrapper, "Curtain Up", "second-half", 0);
+
+      expect(titlesIn(half(wrapper, "second-half"))).toEqual(["Curtain Up"]);
+    });
+
+    it("gives each row a labelled drag handle alongside the move buttons", async () => {
+      serve(threeItems());
+      const wrapper = await openPage();
+
+      const row = rowFor(wrapper, "Pirate Panic");
+      expect(row.get(".drag-handle").attributes("aria-label")).toBe("Drag Pirate Panic");
+      expect(row.find("button[aria-label='Move Pirate Panic up']").exists()).toBe(true);
+      const halves = sortables.filter((s) => s.el.isConnected);
+      expect(halves).toHaveLength(2);
+      expect(halves.map((s) => [s.options.group, s.options.handle])).toEqual([
+        ["running-order", ".drag-handle"],
+        ["running-order", ".drag-handle"],
+      ]);
+    });
+
+    it("saves and resets dragged changes like moves", async () => {
+      serve(threeItems());
+      const wrapper = await openPage();
+      await drag(wrapper, "Dance One", "first-half", 0);
+
+      await wrapper.get("button[data-test=reset]").trigger("click");
+      await flushPromises();
+      expect(titlesIn(half(wrapper, "first-half"))).toEqual([
+        "Curtain Up",
+        "Pirate Panic",
+        "Dance One",
+      ]);
+
+      await drag(wrapper, "Dance One", "first-half", 0);
+      const saved = aRunningOrder(
+        [anItem("Dance One"), anItem("Curtain Up"), anItem("Pirate Panic")],
+        [anItem("Big Finish")],
+        7,
+      );
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValue(new Response(JSON.stringify(saved), { status: 201 }));
+      vi.stubGlobal("fetch", fetchMock);
+      await wrapper.get("button[data-test=save]").trigger("click");
+      await flushPromises();
+
+      const sent = SaveRunningOrderRequest.parse(JSON.parse(fetchMock.mock.calls[0]?.[1]?.body));
+      expect(sent.change.halves[0].itemIds).toEqual([
+        "itm_dance-one",
+        "itm_curtain-up",
+        "itm_pirate-panic",
+      ]);
+      expect(wrapper.text()).toContain("Draft 7");
+      expect(wrapper.find("[data-test=unsaved]").exists()).toBe(false);
+    });
+
+    it("stops dragging while a save is in progress", async () => {
+      serve(threeItems());
+      const wrapper = await openPage();
+      await drag(wrapper, "Dance One", "first-half", 0);
+      vi.stubGlobal("fetch", vi.fn().mockReturnValue(new Promise(() => {})));
+
+      await wrapper.get("button[data-test=save]").trigger("click");
+      await flushPromises();
+
+      await drag(wrapper, "Curtain Up", "second-half", 0);
+      expect(titlesIn(half(wrapper, "second-half"))).toEqual(["Big Finish"]);
+
+      const live = sortables.filter((s) => s.el.isConnected);
+      expect(live).toHaveLength(2);
+      expect(live.every((s) => s.option.mock.calls.some(([k, v]) => k === "disabled" && v))).toBe(
+        true,
+      );
     });
   });
 });

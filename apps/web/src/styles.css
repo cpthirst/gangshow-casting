@@ -120,7 +120,13 @@ body {
 
 main {
   padding: 2.5rem;
+  min-width: 0;
   max-width: 60rem;
+}
+
+/* The running order uses the full width beside the sidebar, so its table has room to fit. */
+main:has(.running-order) {
+  max-width: none;
 }
 
 main:focus {
@@ -210,7 +216,12 @@ main a {
   font-weight: 900;
 }
 
-/* Wide tables scroll inside their own box, so the page itself never scrolls sideways. */
+/* Each half sizes its table to its own width (see the stacked layout below). */
+.half {
+  container-type: inline-size;
+}
+
+/* A last resort: if a table still can't fit, it scrolls inside its box, never the page. */
 .table-scroll {
   overflow-x: auto;
   background: var(--white);
@@ -219,7 +230,6 @@ main a {
 
 .running-order {
   width: 100%;
-  min-width: 48rem;
   border-collapse: collapse;
   font-size: 0.9375rem;
 }
@@ -239,7 +249,39 @@ main a {
 }
 
 .running-order .title {
+  min-width: 9rem;
   font-weight: 700;
+}
+
+/* Text columns wrap between words; short columns stay on one line and take only the
+   room they need. A single very long word widens the table (then .table-scroll scrolls). */
+.running-order td {
+  overflow-wrap: break-word;
+}
+
+.running-order td.cast,
+.running-order td.comments {
+  min-width: 9rem;
+}
+
+.running-order td.moves,
+.running-order td.starts,
+.running-order td.minutes {
+  width: 1%;
+  white-space: nowrap;
+}
+
+/* The number column is narrow; the "Not in printed programme" badge wraps inside it. */
+.running-order td.number {
+  width: 1%;
+  max-width: 6.5rem;
+}
+
+.running-order td.number .badge {
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.375rem;
+  white-space: normal;
+  text-align: center;
 }
 
 .running-order .minutes {
@@ -277,16 +319,137 @@ main a {
   white-space: nowrap;
 }
 
+.drag-handle {
+  display: inline-block;
+  margin-right: 0.25rem;
+  padding: 0.125rem 0.375rem;
+  font-size: 1.125rem;
+  line-height: 1;
+  cursor: grab;
+  user-select: none;
+  /* Let SortableJS take touch drags instead of the page scrolling. */
+  touch-action: none;
+}
+
+/* Narrow boxes (phones, tablets, split screens): each item becomes a stacked card with
+   labelled details, so nothing scrolls sideways. Same table underneath, so dragging,
+   move buttons and screen-reader cell labels all still work. */
+@container (max-width: 50rem) {
+  .running-order,
+  .running-order tbody,
+  .running-order tfoot,
+  .running-order tr,
+  .running-order td,
+  .running-order th {
+    display: block;
+    width: auto;
+  }
+
+  /* Nothing scrolls in card mode, so don't clip tooltips at the box edge. */
+  .table-scroll {
+    overflow: visible;
+  }
+
+  .running-order thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .running-order tbody tr[data-item-id] {
+    padding: 0.75rem 1rem;
+    border-bottom: 4px solid var(--surface);
+  }
+
+  .running-order td {
+    padding: 0.125rem 0;
+    border: none;
+    text-align: left;
+  }
+
+  /* Hide empty details (e.g. no leads); Vue renders an empty value as no text. */
+  .running-order td[data-label]:empty {
+    display: none;
+  }
+
+  .running-order td[data-label]::before {
+    content: attr(data-label) " ";
+    font-size: 0.75rem;
+    font-style: normal;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* No labels where the content speaks for itself. */
+  .running-order td.moves::before,
+  .running-order td.title::before {
+    content: none;
+  }
+
+  .running-order td.moves {
+    margin-bottom: 0.25rem;
+  }
+
+  .running-order td.title {
+    font-size: 1.0625rem;
+  }
+
+  /* Number, start time and minutes sit together on one line. */
+  .running-order tbody td.number,
+  .running-order tbody td.starts,
+  .running-order tbody td.minutes {
+    display: inline-block;
+    width: auto;
+    max-width: none;
+    margin-right: 1.25rem;
+    text-align: left;
+  }
+
+  .running-order tfoot tr {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+  }
+
+  .running-order tfoot th,
+  .running-order tfoot td.minutes {
+    width: auto;
+    padding: 0;
+  }
+}
+
+/* Tall enough to drop an item into once a half is empty. */
+.running-order .empty-half td {
+  padding: 1.5rem 0.75rem;
+  border: 2px dashed var(--surface);
+  text-align: center;
+  font-style: italic;
+}
+
+/* SortableJS's placeholder while dragging. */
+.running-order .sortable-ghost {
+  background: var(--surface);
+  outline: 2px dashed var(--red);
+  opacity: 0.7;
+}
+
+/* Compact icon buttons: the full name ("Move Curtain Up down") is in aria-label. */
 .moves button {
+  width: 2rem;
+  height: 2rem;
   margin: 0 0.25rem 0.25rem 0;
-  padding: 0.25rem 0.5rem;
+  padding: 0;
   border: 1px solid var(--text);
   border-radius: 0.25rem;
   background: var(--white);
   color: var(--text);
   font: inherit;
-  font-size: 0.8125rem;
+  font-size: 1rem;
   font-weight: 700;
+  line-height: 1;
   cursor: pointer;
 }
 
@@ -299,6 +462,32 @@ main a {
   border-style: dashed;
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+/* Explains an icon on hover and on keyboard focus, straight away (a native title
+   tooltip is slow and never shows on focus). Screen readers use aria-label instead.
+   Known limits: no Escape to dismiss, and touch has no hover (the icons act on tap). */
+[data-tooltip] {
+  position: relative;
+}
+
+[data-tooltip]:hover::after,
+[data-tooltip]:focus-visible::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 0.375rem);
+  /* Left-aligned, so the leftmost icons' tooltips aren't cut off at the table edge. */
+  left: 0;
+  z-index: 3;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  background: var(--text);
+  color: var(--white);
+  font-size: 0.75rem;
+  font-style: normal;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 .notice {

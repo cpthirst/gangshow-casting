@@ -3,6 +3,7 @@ import { RunningOrder } from "@app/shared";
 import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
 import { onBeforeRouteLeave } from "vue-router";
 import {
+  dropItem,
   formatTime,
   locate,
   type Move,
@@ -12,6 +13,7 @@ import {
   sameOrder,
   stageLabel,
 } from "../running-order.ts";
+import { type RowDrop, vSortableRows } from "../sortable-rows.ts";
 
 // Only one production for now (see docs/product/running-order/prd.md).
 const PRODUCTION_ID = "2027";
@@ -58,16 +60,30 @@ const notice = ref("");
 /** True while a save is in flight: everything that would change the page waits. */
 const saving = ref(false);
 
-async function move(itemId: string, title: string, direction: Move) {
+async function move(itemId: string, direction: Move) {
   if (state.value.status !== "loaded" || saving.value) return;
-  const { working } = state.value;
-  const moved = moveItem(working, itemId, direction);
+  const moved = moveItem(state.value.working, itemId, direction);
   if (!moved) return;
-  state.value = { ...state.value, working: moved };
-  notice.value = "";
-  announcement.value = `${describeMove(working, moved, itemId, title)} Not saved yet.`;
+  changeWorking(moved, itemId);
   await nextTick();
   refocus(itemId, direction);
+}
+
+function drop({ itemId, toHalf, toIndex }: RowDrop) {
+  if (state.value.status !== "loaded" || saving.value) return;
+  const { working } = state.value;
+  const dropped = dropItem(working, itemId, toHalf, toIndex);
+  if (!sameOrder(dropped, working)) changeWorking(dropped, itemId);
+}
+
+// Moves and drags both change only the working copy, until Save.
+function changeWorking(changed: RunningOrder, itemId: string) {
+  // Callers have already checked; this narrows the type.
+  if (state.value.status !== "loaded") return;
+  const before = state.value.working;
+  state.value = { ...state.value, working: changed };
+  notice.value = "";
+  announcement.value = `${describeMove(before, changed, itemId)} Not saved yet.`;
 }
 
 async function save() {
@@ -128,10 +144,11 @@ onMounted(() => {
 });
 onUnmounted(() => window.removeEventListener("beforeunload", warnBeforeUnload));
 
-function describeMove(before: RunningOrder, after: RunningOrder, itemId: string, title: string) {
+function describeMove(before: RunningOrder, after: RunningOrder, itemId: string) {
   const from = locate(before, itemId);
   const to = locate(after, itemId);
-  if (!to) return `${title} moved.`;
+  if (!to) return "";
+  const { title } = to.item;
   return from?.half.id === to.half.id
     ? `${title} moved to position ${to.position}.`
     : `${title} moved to the ${to.half.name.toLowerCase()}, position ${to.position}.`;
@@ -188,76 +205,92 @@ function refocus(itemId: string, direction: Move) {
       <section class="half" :aria-labelledby="half.id">
         <h2 :id="half.id">{{ half.name }}</h2>
         <div class="table-scroll" tabindex="0" role="region" :aria-label="`${half.name} items`">
-          <table class="running-order">
-            <thead>
-              <tr>
-                <th scope="col">Move</th>
-                <th scope="col">#</th>
-                <th scope="col">Starts</th>
-                <th scope="col">Item</th>
-                <th scope="col">Cast</th>
-                <th scope="col">Stage</th>
-                <th scope="col">Leads</th>
-                <th scope="col">Comments</th>
-                <th scope="col">Mins</th>
+          <!-- Explicit roles: card mode restyles the table as blocks, which can drop its
+               semantics in some browsers (e.g. Safari + VoiceOver). -->
+          <table class="running-order" role="table">
+            <thead role="rowgroup">
+              <tr role="row">
+                <th scope="col" role="columnheader">Move</th>
+                <th scope="col" role="columnheader">#</th>
+                <th scope="col" role="columnheader">Starts</th>
+                <th scope="col" role="columnheader">Item</th>
+                <th scope="col" role="columnheader">Cast</th>
+                <th scope="col" role="columnheader">Stage</th>
+                <th scope="col" role="columnheader">Leads</th>
+                <th scope="col" role="columnheader">Comments</th>
+                <th scope="col" role="columnheader">Mins</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody role="rowgroup" :data-half="i" v-sortable-rows="{ onDrop: drop, disabled: saving }">
               <tr
                 v-for="{ item, number, startsAt } in rows"
+                role="row"
                 :key="item.id"
                 :data-item-id="item.id"
                 :class="{ 'not-printed': number === null }"
               >
-                <td class="moves">
+                <td class="moves" data-label="Move" role="cell">
+                  <span
+                    class="drag-handle"
+                    role="img"
+                    data-tooltip="Drag to reorder"
+                    :aria-label="`Drag ${item.title}`"
+                    >⠿</span
+                  >
                   <button
                     type="button"
                     data-move="up"
                     :aria-label="`Move ${item.title} up`"
+                    data-tooltip="Move up"
                     :disabled="saving || !moveItem(loaded.working, item.id, 'up')"
-                    @click="move(item.id, item.title, 'up')"
+                    @click="move(item.id, 'up')"
                   >
-                    Up
+                    ↑
                   </button>
                   <button
                     type="button"
                     data-move="down"
                     :aria-label="`Move ${item.title} down`"
+                    data-tooltip="Move down"
                     :disabled="saving || !moveItem(loaded.working, item.id, 'down')"
-                    @click="move(item.id, item.title, 'down')"
+                    @click="move(item.id, 'down')"
                   >
-                    Down
+                    ↓
                   </button>
                   <button
                     type="button"
                     data-move="other-half"
                     :disabled="saving"
                     :aria-label="`Move ${item.title} to ${otherHalf(i)} half`"
-                    @click="move(item.id, item.title, 'other-half')"
+                    :data-tooltip="`Move to ${otherHalf(i)} half`"
+                    @click="move(item.id, 'other-half')"
                   >
-                    To {{ otherHalf(i) }} half
+                    ⇄
                   </button>
                 </td>
-                <td data-test="number">
+                <td data-test="number" class="number" data-label="#" role="cell">
                   <template v-if="number !== null">{{ number }}</template>
                   <span v-else class="badge">Not in printed programme</span>
                 </td>
-                <td data-test="starts" class="starts">{{ formatTime(startsAt) }}</td>
-                <td data-test="title" class="title">{{ item.title }}</td>
-                <td>{{ item.cast }}</td>
-                <td>{{ stageLabel(item.stage) }}</td>
-                <td>{{ item.leads }}</td>
-                <td>{{ item.comments }}</td>
-                <td data-test="minutes" class="minutes">
+                <td data-test="starts" class="starts" data-label="Starts" role="cell">{{ formatTime(startsAt) }}</td>
+                <td data-test="title" class="title" data-label="Item" role="cell">{{ item.title }}</td>
+                <td class="cast" data-label="Cast" role="cell">{{ item.cast }}</td>
+                <td data-label="Stage" role="cell">{{ stageLabel(item.stage) }}</td>
+                <td data-label="Leads" role="cell">{{ item.leads }}</td>
+                <td class="comments" data-label="Comments" role="cell">{{ item.comments }}</td>
+                <td data-test="minutes" class="minutes" data-label="Mins" role="cell">
                   <template v-if="item.minutes !== null">{{ item.minutes }}</template>
                   <span v-else class="badge">Untimed</span>
                 </td>
               </tr>
+              <tr v-if="rows.length === 0" class="empty-half" role="row">
+                <td colspan="9" role="cell">No items. Drag one here, or use “Move to {{ half.name.toLowerCase() }}” on an item.</td>
+              </tr>
             </tbody>
-            <tfoot>
-              <tr>
-                <th scope="row" colspan="8">{{ half.name }} total</th>
-                <td data-test="total" class="minutes">{{ totalMinutes }} mins</td>
+            <tfoot role="rowgroup">
+              <tr role="row">
+                <th scope="row" colspan="8" role="rowheader">{{ half.name }} total</th>
+                <td data-test="total" class="minutes" role="cell">{{ totalMinutes }} mins</td>
               </tr>
             </tfoot>
           </table>
