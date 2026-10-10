@@ -264,6 +264,6 @@ Two process lessons recur throughout. First, **watch every check fail once befor
 
 ## Origin
 
-This repo was created from the [dev-project-template-opinionated-harness](https://github.com/cpthirst/dev-project-template-opinionated-harness) template. "The journey so far" above records how that harness was built. Some template names remain in the code (`package.json`, `release-please-config.json`, `apps/web/index.html`, `apps/web/src/App.vue` and the CDK stack id in `infra/bin/app.ts`), and the example walking-skeleton story lives in `docs/product/platform/`.
+This repo was created from the [dev-project-template-opinionated-harness](https://github.com/cpthirst/dev-project-template-opinionated-harness) template. "The journey so far" above records how that harness was built. The example walking-skeleton story lives in `docs/product/platform/`.
 
 New casting features start with the `write-prd` skill.

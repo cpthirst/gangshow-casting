@@ -14,4 +14,13 @@ describe("App", () => {
     expect(wrapper.get("h1").text()).toBe("Hello");
     expect(wrapper.text()).toContain("API: unavailable");
   });
+
+  it("shows the app name as the heading when no title is given", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
+
+    const wrapper = mount(App);
+    await flushPromises();
+
+    expect(wrapper.get("h1").text()).toBe("Chester Gang Show casting");
+  });
 });

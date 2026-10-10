@@ -5,7 +5,7 @@
     ".": {
       "release-type": "node",
       "initial-version": "0.1.0",
-      "package-name": "dev-project-template-opinionated-harness",
+      "package-name": "gangshow-casting",
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": false,
       "changelog-sections": [

@@ -6,7 +6,7 @@ defineProps<{ title?: string }>();
 
 <template>
   <main>
-    <h1>{{ title ?? "dev-project-template-opinionated-harness" }}</h1>
+    <h1>{{ title ?? "Chester Gang Show casting" }}</h1>
     <HealthStatus />
   </main>
 </template>
