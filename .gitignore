@@ -8,3 +8,8 @@ cdk.out/
 !.env.example
 .DS_Store
 .claude/settings.local.json
+
+# Real production data stays local: drafts name volunteers (see CLAUDE.md safeguarding)
+docs/product/*/*.doc
+docs/product/*/*.docx
+apps/api/data/
