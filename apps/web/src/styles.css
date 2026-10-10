@@ -1,0 +1,161 @@
+/* Scouts brand, as used by other Gang Shows (see docs/product/app-shell/prd.md). */
+:root {
+  --red: #ed3f23; /* accents and large text only: white on it is 3.94:1 */
+  --red-deep: #e22e12; /* behind normal-size white text: 4.53:1 */
+  --red-darker: #b8301a;
+  --text: #404040;
+  --surface: #f1f1f1;
+  --white: #ffffff;
+  --yellow: #ffe627;
+  --sidebar-width: 15rem;
+
+  font-family: "Nunito Sans Variable", system-ui, sans-serif;
+  color: var(--text);
+  background: var(--surface);
+  line-height: 1.5;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--surface);
+}
+
+:focus-visible {
+  outline: 3px solid var(--red-deep);
+  outline-offset: 2px;
+}
+
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: -4rem;
+  z-index: 10;
+  padding: 0.5rem 1rem;
+  background: var(--white);
+  color: var(--red-deep);
+  font-weight: 700;
+}
+
+.skip-link:focus {
+  top: 1rem;
+}
+
+.shell {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) 1fr;
+  min-height: 100vh;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  background: var(--red-deep);
+  color: var(--white);
+  padding: 1.5rem 0;
+}
+
+.sidebar :focus-visible {
+  outline-color: var(--yellow);
+}
+
+.wordmark {
+  margin: 0 1.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.wordmark-name {
+  font-size: 1.375rem;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.wordmark-sub {
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.sidebar ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sidebar nav a {
+  display: block;
+  padding: 0.75rem 1.5rem;
+  border-left: 4px solid transparent;
+  color: var(--white);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.sidebar nav a:hover {
+  background: var(--red-darker);
+}
+
+.sidebar nav a[aria-current="page"] {
+  background: var(--white);
+  border-left-color: var(--yellow);
+  color: var(--red-deep);
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 0 1.5rem;
+  font-size: 0.875rem;
+}
+
+.sidebar-footer p {
+  margin: 0;
+}
+
+main {
+  padding: 2.5rem;
+  max-width: 60rem;
+}
+
+main:focus {
+  outline: none;
+}
+
+main h1 {
+  margin: 0 0 0.5rem;
+  font-size: 2rem;
+  font-weight: 900;
+  border-bottom: 4px solid var(--red);
+  display: inline-block;
+}
+
+main a {
+  color: var(--red-deep);
+  font-weight: 700;
+}
+
+.coming-soon {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  background: var(--white);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+/* The phone menu arrives in app-shell.E1.S2; until then, stack the sidebar above the page. */
+@media (max-width: 767px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  main {
+    padding: 1.5rem 1rem;
+  }
+}

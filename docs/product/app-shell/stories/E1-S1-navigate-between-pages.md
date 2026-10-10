@@ -2,7 +2,7 @@
 id: app-shell.E1.S1
 title: Navigate between placeholder pages in a branded shell
 epic: E1
-status: ready
+status: in-progress
 ---
 
 ## Story
