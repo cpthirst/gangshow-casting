@@ -43,7 +43,8 @@ onMounted(async () => {
   <template v-else-if="loaded">
     <p class="version">Draft {{ loaded.order.version }}</p>
     <template v-for="({ half, rows, totalMinutes }, i) in loaded.clock.halves" :key="half.id">
-      <p v-if="i === 1" class="interval" data-test="interval">
+      <!-- The interval sits between the two halves. -->
+      <p v-if="i > 0" class="interval" data-test="interval">
         Interval {{ formatTime(loaded.clock.interval.startsAt) }} –
         {{ formatTime(loaded.clock.interval.endsAt) }}
       </p>

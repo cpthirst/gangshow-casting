@@ -2,7 +2,7 @@
 id: running-order.E1.S2
 title: See the running clock
 epic: E1
-status: in-progress
+status: done
 ---
 
 ## Story

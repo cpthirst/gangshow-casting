@@ -6,21 +6,22 @@ export const stageLabel = (stage: Stage[]) => stage.map((part) => stageNames[par
 
 const MINUTES_PER_DAY = 24 * 60;
 
-/** "19:15" → minutes after midnight. */
+/** "19:15" → minutes after midnight. The shared schema guarantees the "HH:MM" shape. */
 function minutesOf(time: string) {
-  const [hours = 0, minutes = 0] = time.split(":").map(Number);
-  return hours * 60 + minutes;
+  const [hours, minutes] = time.split(":");
+  return Number(hours) * 60 + Number(minutes);
 }
 
 /** Minutes after midnight → UK 12-hour time, e.g. "7:15 pm". Wraps past midnight. */
 export function formatTime(minutes: number) {
-  const ofDay = ((minutes % MINUTES_PER_DAY) + MINUTES_PER_DAY) % MINUTES_PER_DAY;
+  const ofDay = minutes % MINUTES_PER_DAY;
   const hours = Math.floor(ofDay / 60);
   const hour12 = hours % 12 || 12;
   return `${hour12}:${String(ofDay % 60).padStart(2, "0")} ${hours < 12 ? "am" : "pm"}`;
 }
 
-// Printed items are numbered from 1; untimed items take no time.
+/** Numbers and start times for one half, plus its total and end time.
+ *  Printed items are numbered from 1; untimed items take no time. */
 function timeHalf(items: RunningOrderItem[], startsAt: number) {
   let clock = startsAt;
   let nextNumber = 1;
