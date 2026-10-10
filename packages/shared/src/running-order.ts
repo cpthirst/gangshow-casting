@@ -37,3 +37,29 @@ export const RunningOrder = z.object({
 export type Stage = z.infer<typeof Stage>;
 export type RunningOrderItem = z.infer<typeof RunningOrderItem>;
 export type RunningOrder = z.infer<typeof RunningOrder>;
+
+const HalfOrder = <Id extends string>(id: Id) =>
+  z.object({ id: z.literal(id), itemIds: z.array(RunningOrderItem.shape.id).max(100) });
+
+/** Every item, in its new place. The server checks it's the same set of items. */
+export const ReorderChange = z.object({
+  type: z.literal("reorder"),
+  halves: z.tuple([HalfOrder("first-half"), HalfOrder("second-half")]),
+});
+
+/** One change, applied to the latest version. Later stories add edit, add and remove. */
+export const RunningOrderChange = z.discriminatedUnion("type", [ReorderChange]);
+
+/**
+ * POST /api/productions/{productionId}/running-order/versions.
+ * 201 → the new RunningOrder; 409 → the latest RunningOrder (baseVersion was stale);
+ * 400 → the request or change was invalid.
+ */
+export const SaveRunningOrderRequest = z.object({
+  baseVersion: z.number().int().positive(),
+  change: RunningOrderChange,
+});
+
+export type ReorderChange = z.infer<typeof ReorderChange>;
+export type RunningOrderChange = z.infer<typeof RunningOrderChange>;
+export type SaveRunningOrderRequest = z.infer<typeof SaveRunningOrderRequest>;

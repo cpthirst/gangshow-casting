@@ -11,11 +11,11 @@ As a member of the production team, I want to correct an item's details in place
 
 ## Acceptance criteria
 
-### AC1: Editing an item saves a new version
-Given "Pirate Panic" has 18 minutes at version 6
-When I edit "Pirate Panic", change its minutes to 20 and save
-Then its row shows "20"
-And I see "Draft 7"
+### AC1: An edit is an unsaved change until the draft is saved
+Given "Pirate Panic" has 18 minutes at Draft 6
+When I edit "Pirate Panic", change its minutes to 20 and apply the edit
+Then its row shows "20" and I see "Unsaved changes"
+And pressing "Save as Draft 7" saves it
 
 ### AC2: Every detail can be edited
 Given I'm editing "Pirate Panic"
@@ -29,15 +29,15 @@ Then its row shows it as having no timing
 
 ### AC4: Invalid details aren't saved
 Given I'm editing "Pirate Panic"
-When I clear the title, or enter minutes of "-3" or "ten", and save
+When I clear the title, or enter minutes of "-3" or "ten", and apply the edit
 Then I see what needs fixing next to the field
-And no new version is saved
+And the item is unchanged
 
 ### AC5: Cancelling leaves the item unchanged
 Given I'm editing "Pirate Panic" and have changed its title
 When I cancel
 Then the row shows the original title
-And I still see "Draft 6"
+And the edit isn't an unsaved change
 
 ### AC6: Unprinting an item renumbers the half
 Given "Pirate Panic" is numbered 2 and "Dance One" is numbered 3
@@ -45,11 +45,10 @@ When I edit "Pirate Panic", mark it as not printed and save
 Then "Pirate Panic" is marked "Not in printed programme" and has no number
 And "Dance One" is numbered 2
 
-### AC7: Someone else's newer version isn't overwritten
-Given someone else has saved a newer version since I opened the page
-When I save an edit
-Then my edit isn't applied
-And I see the latest version with the "Someone else changed the running order" message
+### AC7: Reset discards unsaved edits
+Given I've edited "Pirate Panic" without saving the draft
+When I press "Reset"
+Then "Pirate Panic" shows its saved details
 
 ### AC8: The API validates edits
 Given version 6 is the latest
@@ -59,6 +58,7 @@ Then the response is 400 and nothing is saved
 ## Notes
 
 - FRs: FR6, FR7, FR9
-- Depends on: running-order.E2.S1. This adds an "edit item" change type to the same versions endpoint.
+- Depends on: running-order.E2.S1. Edits are unsaved changes alongside moves, saved by the same "Save as Draft N+1" and discarded by "Reset".
+- The save request then carries moves and edits together. Extend the shared contract, for example with a change type that carries the full new halves with item details, validated by the server.
 - Text limits are set in the shared schema. For example, title up to 120 characters and other text up to 500.
 - Out of scope: adding and removing items (E3.S2), and editing the start time or interval.

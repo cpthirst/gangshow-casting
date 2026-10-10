@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ProductionId, RunningOrder } from "./running-order.ts";
+import { ProductionId, RunningOrder, SaveRunningOrderRequest } from "./running-order.ts";
 
 const item = {
   id: "itm_curtain-up",
@@ -71,5 +71,34 @@ describe("ProductionId", () => {
 
   it.each(["../etc", "a/b", "", "x".repeat(41)])("rejects %j", (id) => {
     expect(ProductionId.safeParse(id).success).toBe(false);
+  });
+});
+
+describe("SaveRunningOrderRequest", () => {
+  const reorder = {
+    type: "reorder",
+    halves: [
+      { id: "first-half", itemIds: ["itm_a", "itm_b"] },
+      { id: "second-half", itemIds: [] },
+    ],
+  };
+
+  it("accepts a reorder against a base version", () => {
+    expect(SaveRunningOrderRequest.parse({ baseVersion: 6, change: reorder })).toEqual({
+      baseVersion: 6,
+      change: reorder,
+    });
+  });
+
+  it.each([
+    ["an unknown change type", { baseVersion: 6, change: { ...reorder, type: "shuffle" } }],
+    ["a zero base version", { baseVersion: 0, change: reorder }],
+    [
+      "halves in the wrong order",
+      { baseVersion: 6, change: { ...reorder, halves: [...reorder.halves].reverse() } },
+    ],
+    ["no change", { baseVersion: 6 }],
+  ])("rejects %s", (_case, request) => {
+    expect(SaveRunningOrderRequest.safeParse(request).success).toBe(false);
   });
 });

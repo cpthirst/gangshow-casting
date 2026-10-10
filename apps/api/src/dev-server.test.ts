@@ -33,6 +33,24 @@ describe("dev server", () => {
     expect((await fetch(`${baseUrl}/api/health`)).status).toBe(200);
   });
 
+  it("routes POST running order versions to the save handler", async () => {
+    const res = await fetch(`${baseUrl}/api/productions/2027/running-order/versions`, {
+      method: "POST",
+      body: "{not json",
+    });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects an oversized request body with 413", async () => {
+    const res = await fetch(`${baseUrl}/api/productions/2027/running-order/versions`, {
+      method: "POST",
+      body: "x".repeat(300 * 1024),
+    });
+
+    expect(res.status).toBe(413);
+  });
+
   it("returns 404 for routes that don't exist", async () => {
     const res = await fetch(`${baseUrl}/api/nope`);
 
@@ -57,6 +75,29 @@ describe("dev server path parameters", () => {
 
       expect(res.status).toBe(200);
       expect(await res.text()).toBe("2027");
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+});
+
+describe("dev server request bodies", () => {
+  it("passes the request body to the handler", async () => {
+    const server = createDevServer({
+      "POST /api/echo": async (event) => ({ statusCode: 201, body: event.body ?? "" }),
+    });
+    await new Promise<void>((resolve) => server.listen(0, resolve));
+    const address = server.address();
+    if (typeof address !== "object" || address === null) throw new Error("server not listening");
+
+    try {
+      const res = await fetch(`http://localhost:${address.port}/api/echo`, {
+        method: "POST",
+        body: '{"hello":"there"}',
+      });
+
+      expect(res.status).toBe(201);
+      expect(await res.text()).toBe('{"hello":"there"}');
     } finally {
       await new Promise<void>((resolve) => server.close(() => resolve()));
     }
