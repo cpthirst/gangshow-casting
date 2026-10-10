@@ -165,7 +165,8 @@ main a {
   color: var(--red-deep);
 }
 
-/* Phone: the sidebar becomes a top bar, and the menu drops down over the page. */
+/* Phone: the sidebar becomes a top bar, and the menu drops down over the page.
+   Must match PHONE_QUERY in App.vue. */
 @media (max-width: 767px) {
   .shell {
     grid-template-columns: minmax(0, 1fr);

@@ -124,13 +124,22 @@ describe("App shell", () => {
   });
 });
 
+let screenListeners: ((event: { matches: boolean }) => void)[] = [];
+
 function screenIs(size: "phone" | "laptop") {
+  screenListeners = [];
   vi.stubGlobal("matchMedia", (query: string) => ({
     matches: size === "phone",
     media: query,
-    addEventListener: () => {},
+    addEventListener: (_type: string, listener: (event: { matches: boolean }) => void) =>
+      screenListeners.push(listener),
     removeEventListener: () => {},
   }));
+}
+
+function resizeTo(size: "phone" | "laptop") {
+  for (const listener of screenListeners) listener({ matches: size === "phone" });
+  return flushPromises();
 }
 
 describe("App shell on a phone", () => {
@@ -177,6 +186,16 @@ describe("App shell on a phone", () => {
     expect(menuButton(wrapper).attributes("aria-expanded")).toBe("false");
   });
 
+  it("moves focus to the page content after choosing a page", async () => {
+    const { wrapper } = await openAppAt("/");
+    await menuButton(wrapper).trigger("click");
+
+    await wrapper.get("#main-menu a[href='/cast']").trigger("click");
+    await flushPromises();
+
+    expect(document.activeElement).toBe(wrapper.get("main").element);
+  });
+
   it("closes the menu on Escape and returns focus to the Menu button", async () => {
     const { wrapper } = await openAppAt("/");
     await menuButton(wrapper).trigger("click");
@@ -185,6 +204,28 @@ describe("App shell on a phone", () => {
 
     expect(menuIsVisible(wrapper)).toBe(false);
     expect(document.activeElement).toBe(menuButton(wrapper).element);
+  });
+
+  it("closes the menu on Escape while the Menu button has focus", async () => {
+    const { wrapper } = await openAppAt("/");
+    await menuButton(wrapper).trigger("click");
+
+    await menuButton(wrapper).trigger("keydown", { key: "Escape" });
+
+    expect(menuIsVisible(wrapper)).toBe(false);
+    expect(menuButton(wrapper).attributes("aria-expanded")).toBe("false");
+  });
+
+  it("switches to the sidebar when the screen widens, closing the phone menu", async () => {
+    const { wrapper } = await openAppAt("/");
+    await menuButton(wrapper).trigger("click");
+
+    await resizeTo("laptop");
+    expect(wrapper.find("button[aria-controls=main-menu]").exists()).toBe(false);
+    expect(menuIsVisible(wrapper)).toBe(true);
+
+    await resizeTo("phone");
+    expect(menuIsVisible(wrapper)).toBe(false);
   });
 });
 
