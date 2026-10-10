@@ -84,9 +84,12 @@ const half = (wrapper: Awaited<ReturnType<typeof openPage>>, name: string) =>
 const titlesIn = (section: ReturnType<typeof half>) =>
   section.findAll("tbody tr[data-item-id]").map((row) => row.get("[data-test=title]").text());
 const rowFor = (wrapper: Awaited<ReturnType<typeof openPage>>, title: string) => {
+  // Rows being edited show a form instead of their cells, so skip them.
   const row = wrapper
     .findAll("tbody tr[data-item-id]")
-    .find((r) => r.get("[data-test=title]").text() === title);
+    .find(
+      (r) => r.find("[data-test=title]").exists() && r.get("[data-test=title]").text() === title,
+    );
   if (!row) throw new Error(`no row for ${title}`);
   return row;
 };
@@ -301,7 +304,7 @@ describe("Running order page", () => {
   });
 
   describe("reordering with move buttons", () => {
-    // A stand-in for the API: serves the latest version and applies reorders to it.
+    // A stand-in for the API: serves the latest version and applies saved drafts to it.
     function fakeApi(initial: RunningOrder) {
       let latest = initial;
       vi.stubGlobal(
@@ -315,14 +318,12 @@ describe("Running order page", () => {
           if (baseVersion !== latest.version) {
             return new Response(JSON.stringify(latest), { status: 409 });
           }
-          const byId = new Map(latest.halves.flatMap((h) => h.items).map((i) => [i.id, i]));
-          const itemsFor = (ids: string[]) => ids.flatMap((id) => byId.get(id) ?? []);
           latest = {
             ...latest,
             version: latest.version + 1,
             halves: [
-              { ...latest.halves[0], items: itemsFor(change.halves[0].itemIds) },
-              { ...latest.halves[1], items: itemsFor(change.halves[1].itemIds) },
+              { ...latest.halves[0], items: change.halves[0].items },
+              { ...latest.halves[1], items: change.halves[1].items },
             ],
           };
           return new Response(JSON.stringify(latest), { status: 201 });
@@ -721,7 +722,7 @@ describe("Running order page", () => {
       await flushPromises();
 
       const sent = SaveRunningOrderRequest.parse(JSON.parse(fetchMock.mock.calls[0]?.[1]?.body));
-      expect(sent.change.halves[0].itemIds).toEqual([
+      expect(sent.change.halves[0].items.map((item) => item.id)).toEqual([
         "itm_dance-one",
         "itm_curtain-up",
         "itm_pirate-panic",
@@ -747,6 +748,213 @@ describe("Running order page", () => {
       expect(live.every((s) => s.option.mock.calls.some(([k, v]) => k === "disabled" && v))).toBe(
         true,
       );
+    });
+  });
+
+  describe("editing an item's details", () => {
+    let saves: SaveRunningOrderRequest[] = [];
+    function api(initial: RunningOrder) {
+      let latest = initial;
+      saves = [];
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (_url: string, init?: RequestInit) => {
+          if (init?.method !== "POST") return new Response(JSON.stringify(latest));
+          const request = SaveRunningOrderRequest.parse(JSON.parse(String(init.body)));
+          saves.push(request);
+          const [first, second] = request.change.halves;
+          latest = {
+            ...latest,
+            version: latest.version + 1,
+            halves: [
+              { ...latest.halves[0], items: first.items },
+              { ...latest.halves[1], items: second.items },
+            ],
+          };
+          return new Response(JSON.stringify(latest), { status: 201 });
+        }),
+      );
+    }
+
+    const order = () =>
+      aRunningOrder(
+        [
+          anItem("Curtain Up"),
+          anItem("Pirate Panic", {
+            cast: "Cubs + Beavers",
+            stage: ["apron", "full", "apron"],
+            leads: "Sam / Alex",
+            comments: "Performed to track",
+            minutes: 18,
+          }),
+          anItem("Dance One"),
+        ],
+        [anItem("Big Finish")],
+      );
+
+    type Page = Awaited<ReturnType<typeof openPage>>;
+    async function openEditor(wrapper: Page, title: string) {
+      await wrapper.get(`button[aria-label="Edit ${title}"]`).trigger("click");
+      await flushPromises();
+      return wrapper.get("form[data-test=item-editor]");
+    }
+    async function apply(wrapper: Page) {
+      await wrapper.get("form[data-test=item-editor]").trigger("submit");
+      await flushPromises();
+    }
+    const cell = (wrapper: Page, title: string, label: string) =>
+      rowFor(wrapper, title).get(`td[data-label="${label}"]`).text();
+    const unsaved = (wrapper: Page) => wrapper.find("[data-test=unsaved]").exists();
+
+    it("makes an edit an unsaved change that Save turns into the next draft", async () => {
+      api(order());
+      const wrapper = await openPage();
+      const form = await openEditor(wrapper, "Pirate Panic");
+
+      await form.get("input[name=minutes]").setValue("20");
+      await apply(wrapper);
+
+      expect(cell(wrapper, "Pirate Panic", "Mins")).toBe("20");
+      expect(unsaved(wrapper)).toBe(true);
+
+      await wrapper.get("button[data-test=save]").trigger("click");
+      await flushPromises();
+      expect(wrapper.text()).toContain("Draft 7");
+      expect(saves[0]?.change.halves[0].items[1]?.minutes).toBe(20);
+    });
+
+    it("edits every detail", async () => {
+      api(order());
+      const wrapper = await openPage();
+      const form = await openEditor(wrapper, "Pirate Panic");
+
+      await form.get("input[name=title]").setValue("Pirate Party");
+      await form.get("textarea[name=cast]").setValue("Whole Cub pack");
+      await form.get("select[name=stage]").setValue("Full / Apron");
+      await form.get("input[name=leads]").setValue("Jo / Max");
+      await form.get("textarea[name=comments]").setValue("New track");
+      await form.get("input[name=minutes]").setValue("12");
+      await form.get("input[name=printed]").setValue(false);
+      await apply(wrapper);
+
+      expect(cell(wrapper, "Pirate Party", "Cast")).toBe("Whole Cub pack");
+      expect(cell(wrapper, "Pirate Party", "Stage")).toBe("Full / Apron");
+      expect(cell(wrapper, "Pirate Party", "Leads")).toBe("Jo / Max");
+      expect(cell(wrapper, "Pirate Party", "Comments")).toBe("New track");
+      expect(cell(wrapper, "Pirate Party", "Mins")).toBe("12");
+      expect(cell(wrapper, "Pirate Party", "#")).toBe("Not in printed programme");
+    });
+
+    it("leaves an item untimed when its minutes are cleared", async () => {
+      api(order());
+      const wrapper = await openPage();
+      const form = await openEditor(wrapper, "Pirate Panic");
+
+      await form.get("input[name=minutes]").setValue("");
+      await apply(wrapper);
+
+      expect(cell(wrapper, "Pirate Panic", "Mins")).toBe("Untimed");
+    });
+
+    it.each([
+      ["title", "input[name=title]", "", "Enter a title (up to 120 characters)."],
+      [
+        "minutes",
+        "input[name=minutes]",
+        "-3",
+        "Enter whole minutes from 0 to 240, or leave it blank.",
+      ],
+      [
+        "minutes",
+        "input[name=minutes]",
+        "ten",
+        "Enter whole minutes from 0 to 240, or leave it blank.",
+      ],
+    ])(
+      "explains an invalid %s next to the field and changes nothing",
+      async (_f, field, value, message) => {
+        api(order());
+        const wrapper = await openPage();
+        const form = await openEditor(wrapper, "Pirate Panic");
+
+        await form.get(field).setValue(value);
+        await apply(wrapper);
+
+        const input = wrapper.get(`form[data-test=item-editor] ${field}`);
+        expect(input.attributes("aria-invalid")).toBe("true");
+        const describedBy = input.attributes("aria-describedby") ?? "";
+        expect(wrapper.get(`[id="${describedBy}"]`).text()).toBe(message);
+        expect(unsaved(wrapper)).toBe(false);
+      },
+    );
+
+    it("cancels an edit, leaving the item and the draft unchanged", async () => {
+      api(order());
+      const wrapper = await openPage();
+      const form = await openEditor(wrapper, "Pirate Panic");
+
+      await form.get("input[name=title]").setValue("Pirate Party");
+      await form.get("button[data-test=cancel]").trigger("click");
+      await flushPromises();
+
+      expect(wrapper.find("form[data-test=item-editor]").exists()).toBe(false);
+      expect(cell(wrapper, "Pirate Panic", "Item")).toBe("Pirate Panic");
+      expect(unsaved(wrapper)).toBe(false);
+    });
+
+    it("renumbers the half when an item is no longer printed", async () => {
+      api(order());
+      const wrapper = await openPage();
+      const form = await openEditor(wrapper, "Pirate Panic");
+
+      await form.get("input[name=printed]").setValue(false);
+      await apply(wrapper);
+
+      expect(cell(wrapper, "Pirate Panic", "#")).toBe("Not in printed programme");
+      expect(cell(wrapper, "Dance One", "#")).toBe("2");
+    });
+
+    it("discards unsaved edits on Reset", async () => {
+      api(order());
+      const wrapper = await openPage();
+      const form = await openEditor(wrapper, "Pirate Panic");
+      await form.get("input[name=minutes]").setValue("20");
+      await apply(wrapper);
+
+      await wrapper.get("button[data-test=reset]").trigger("click");
+      await flushPromises();
+
+      expect(cell(wrapper, "Pirate Panic", "Mins")).toBe("18");
+      expect(unsaved(wrapper)).toBe(false);
+    });
+
+    it("focuses the title when editing starts and the Edit button when it ends", async () => {
+      api(order());
+      const wrapper = await openPage();
+      await openEditor(wrapper, "Pirate Panic");
+
+      expect(document.activeElement).toBe(
+        wrapper.get("form[data-test=item-editor] input[name=title]").element,
+      );
+
+      await apply(wrapper);
+      expect(document.activeElement).toBe(
+        wrapper.get('button[aria-label="Edit Pirate Panic"]').element,
+      );
+    });
+
+    it("holds off moves, Save and Reset while an item is being edited", async () => {
+      api(order());
+      const wrapper = await openPage();
+      await wrapper.get('button[aria-label="Move Curtain Up down"]').trigger("click");
+      await openEditor(wrapper, "Dance One");
+
+      const disabled = (selector: string) =>
+        wrapper.get(selector).attributes("disabled") !== undefined;
+      expect(disabled("button[data-test=save]")).toBe(true);
+      expect(disabled("button[data-test=reset]")).toBe(true);
+      expect(disabled('button[aria-label="Move Curtain Up down"]')).toBe(true);
+      expect(disabled('button[aria-label="Edit Curtain Up"]')).toBe(true);
     });
   });
 });

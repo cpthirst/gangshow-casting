@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { RunningOrder } from "@app/shared";
+import { RunningOrder, type RunningOrderItem } from "@app/shared";
 import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
 import { onBeforeRouteLeave } from "vue-router";
 import {
@@ -8,12 +8,13 @@ import {
   locate,
   type Move,
   moveItem,
-  reorderOf,
   runningClock,
-  sameOrder,
+  sameContent,
   stageLabel,
+  updateOf,
 } from "../running-order.ts";
 import { type RowDrop, vSortableRows } from "../sortable-rows.ts";
+import ItemEditor from "./ItemEditor.vue";
 
 // Only one production for now (see docs/product/running-order/prd.md).
 const PRODUCTION_ID = "2027";
@@ -32,7 +33,7 @@ const state = ref<State>({ status: "loading" });
 const loaded = computed(() => {
   if (state.value.status !== "loaded") return undefined;
   const { saved, working } = state.value;
-  return { saved, working, clock: runningClock(working), unsaved: !sameOrder(saved, working) };
+  return { saved, working, clock: runningClock(working), unsaved: !sameContent(saved, working) };
 });
 
 const showSaved = (order: RunningOrder) => {
@@ -59,9 +60,12 @@ const announcement = ref("");
 const notice = ref("");
 /** True while a save is in flight: everything that would change the page waits. */
 const saving = ref(false);
+/** The item whose edit form is open, if any. One at a time; other changes wait. */
+const editingId = ref<string | null>(null);
+const busy = computed(() => saving.value || editingId.value !== null);
 
 async function move(itemId: string, direction: Move) {
-  if (state.value.status !== "loaded" || saving.value) return;
+  if (state.value.status !== "loaded" || busy.value) return;
   const moved = moveItem(state.value.working, itemId, direction);
   if (!moved) return;
   changeWorking(moved, itemId);
@@ -70,10 +74,44 @@ async function move(itemId: string, direction: Move) {
 }
 
 function drop({ itemId, toHalf, toIndex }: RowDrop) {
-  if (state.value.status !== "loaded" || saving.value) return;
+  if (state.value.status !== "loaded" || busy.value) return;
   const { working } = state.value;
   const dropped = dropItem(working, itemId, toHalf, toIndex);
-  if (!sameOrder(dropped, working)) changeWorking(dropped, itemId);
+  if (!sameContent(dropped, working)) changeWorking(dropped, itemId);
+}
+
+function startEdit(itemId: string) {
+  if (busy.value) return;
+  editingId.value = itemId;
+}
+
+// An applied edit is an unsaved change, like a move (PRD FR6).
+async function applyEdit(edited: RunningOrderItem) {
+  if (state.value.status !== "loaded") return;
+  const { working } = state.value;
+  const replace = (items: RunningOrderItem[]) =>
+    items.map((item) => (item.id === edited.id ? edited : item));
+  const changed: RunningOrder = {
+    ...working,
+    halves: [
+      { ...working.halves[0], items: replace(working.halves[0].items) },
+      { ...working.halves[1], items: replace(working.halves[1].items) },
+    ],
+  };
+  if (!sameContent(changed, working)) {
+    state.value = { ...state.value, working: changed };
+    notice.value = "";
+    announcement.value = `${edited.title} updated. Not saved yet.`;
+  }
+  await endEdit(edited.id);
+}
+
+async function endEdit(itemId: string) {
+  editingId.value = null;
+  await nextTick();
+  document
+    .querySelector<HTMLButtonElement>(`[data-item-id="${CSS.escape(itemId)}"] [data-edit]`)
+    ?.focus();
 }
 
 // Moves and drags both change only the working copy, until Save.
@@ -87,7 +125,7 @@ function changeWorking(changed: RunningOrder, itemId: string) {
 }
 
 async function save() {
-  if (state.value.status !== "loaded" || saving.value || !loaded.value?.unsaved) return;
+  if (state.value.status !== "loaded" || busy.value || !loaded.value?.unsaved) return;
   const { saved, working } = state.value;
   saving.value = true;
   const result = await saveDraft(saved.version, working);
@@ -107,7 +145,7 @@ async function save() {
 }
 
 function reset() {
-  if (state.value.status !== "loaded" || saving.value) return;
+  if (state.value.status !== "loaded" || busy.value) return;
   showSaved(state.value.saved);
   notice.value = "";
   announcement.value = `Changes discarded. Back to Draft ${state.value.saved.version}.`;
@@ -121,7 +159,7 @@ async function saveDraft(baseVersion: number, working: RunningOrder): Promise<Sa
     const res = await fetch(`${API_PATH}/versions`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ baseVersion, change: reorderOf(working) }),
+      body: JSON.stringify({ baseVersion, change: updateOf(working) }),
     });
     if (res.status !== 201 && res.status !== 409) return { outcome: "failed" };
     const order = RunningOrder.parse(await res.json());
@@ -180,7 +218,7 @@ function refocus(itemId: string, direction: Move) {
         type="button"
         class="primary"
         data-test="save"
-        :disabled="!loaded.unsaved || saving"
+        :disabled="!loaded.unsaved || busy"
         @click="save"
       >
         Save as Draft {{ loaded.saved.version + 1 }}
@@ -188,7 +226,7 @@ function refocus(itemId: string, direction: Move) {
       <button
         type="button"
         data-test="reset"
-        :disabled="!loaded.unsaved || saving"
+        :disabled="!loaded.unsaved || busy"
         @click="reset"
       >
         Reset
@@ -221,7 +259,7 @@ function refocus(itemId: string, direction: Move) {
                 <th scope="col" role="columnheader">Mins</th>
               </tr>
             </thead>
-            <tbody role="rowgroup" :data-half="i" v-sortable-rows="{ onDrop: drop, disabled: saving }">
+            <tbody role="rowgroup" :data-half="i" v-sortable-rows="{ onDrop: drop, disabled: busy }">
               <tr
                 v-for="{ item, number, startsAt } in rows"
                 role="row"
@@ -229,6 +267,11 @@ function refocus(itemId: string, direction: Move) {
                 :data-item-id="item.id"
                 :class="{ 'not-printed': number === null }"
               >
+                <!-- While editing, the row holds the form instead of its cells. -->
+                <td v-if="editingId === item.id" colspan="9" class="editing" role="cell">
+                  <ItemEditor :item="item" @apply="applyEdit" @cancel="endEdit(item.id)" />
+                </td>
+                <template v-else>
                 <td class="moves" data-label="Move" role="cell">
                   <span
                     class="drag-handle"
@@ -242,7 +285,7 @@ function refocus(itemId: string, direction: Move) {
                     data-move="up"
                     :aria-label="`Move ${item.title} up`"
                     data-tooltip="Move up"
-                    :disabled="saving || !moveItem(loaded.working, item.id, 'up')"
+                    :disabled="busy || !moveItem(loaded.working, item.id, 'up')"
                     @click="move(item.id, 'up')"
                   >
                     ↑
@@ -252,7 +295,7 @@ function refocus(itemId: string, direction: Move) {
                     data-move="down"
                     :aria-label="`Move ${item.title} down`"
                     data-tooltip="Move down"
-                    :disabled="saving || !moveItem(loaded.working, item.id, 'down')"
+                    :disabled="busy || !moveItem(loaded.working, item.id, 'down')"
                     @click="move(item.id, 'down')"
                   >
                     ↓
@@ -260,12 +303,22 @@ function refocus(itemId: string, direction: Move) {
                   <button
                     type="button"
                     data-move="other-half"
-                    :disabled="saving"
+                    :disabled="busy"
                     :aria-label="`Move ${item.title} to ${otherHalf(i)} half`"
                     :data-tooltip="`Move to ${otherHalf(i)} half`"
                     @click="move(item.id, 'other-half')"
                   >
                     ⇄
+                  </button>
+                  <button
+                    type="button"
+                    data-edit
+                    :disabled="busy"
+                    :aria-label="`Edit ${item.title}`"
+                    data-tooltip="Edit details"
+                    @click="startEdit(item.id)"
+                  >
+                    ✎
                   </button>
                 </td>
                 <td data-test="number" class="number" data-label="#" role="cell">
@@ -282,6 +335,7 @@ function refocus(itemId: string, direction: Move) {
                   <template v-if="item.minutes !== null">{{ item.minutes }}</template>
                   <span v-else class="badge">Untimed</span>
                 </td>
+                </template>
               </tr>
               <tr v-if="rows.length === 0" class="empty-half" role="row">
                 <td colspan="9" role="cell">No items. Drag one here, or use “Move to {{ half.name.toLowerCase() }}” on an item.</td>

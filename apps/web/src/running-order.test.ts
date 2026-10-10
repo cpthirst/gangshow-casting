@@ -1,6 +1,6 @@
 import type { RunningOrder, RunningOrderItem } from "@app/shared";
 import { describe, expect, it } from "vitest";
-import { dropItem, formatTime } from "./running-order.ts";
+import { dropItem, formatTime, formFor, type ItemForm, itemFrom } from "./running-order.ts";
 
 describe("formatTime", () => {
   it.each([
@@ -69,5 +69,44 @@ describe("dropItem", () => {
   it("leaves the order alone for an unknown item", () => {
     const before = order(["A"], ["B"]);
     expect(dropItem(before, "itm_missing", 1, 0)).toBe(before);
+  });
+});
+
+describe("item form", () => {
+  const pirates: RunningOrderItem = {
+    id: "itm_pirates",
+    title: "Pirate Panic",
+    cast: "Cubs + Beavers",
+    stage: ["apron", "full", "apron"],
+    leads: "Sam / Alex",
+    comments: "Performed to track",
+    minutes: 18,
+    printed: true,
+  };
+
+  it("round-trips an item through the form unchanged", () => {
+    expect(itemFrom(formFor(pirates), pirates.id)).toEqual({ ok: true, item: pirates });
+  });
+
+  it("reads blank minutes as untimed and trims text", () => {
+    const result = itemFrom({ ...formFor(pirates), minutes: " ", title: "  Pirate Panic " }, "id");
+
+    expect(result.ok && result.item.minutes).toBeNull();
+    expect(result.ok && result.item.title).toBe("Pirate Panic");
+  });
+
+  const badInput: [keyof ItemForm, Partial<ItemForm>, string][] = [
+    ["title", { title: " " }, "Enter a title (up to 120 characters)."],
+    ["minutes", { minutes: "-3" }, "Enter whole minutes from 0 to 240, or leave it blank."],
+    ["minutes", { minutes: "ten" }, "Enter whole minutes from 0 to 240, or leave it blank."],
+    ["minutes", { minutes: "2.5" }, "Enter whole minutes from 0 to 240, or leave it blank."],
+    ["comments", { comments: "x".repeat(501) }, "Keep this to 500 characters or fewer."],
+  ];
+
+  it.each(badInput)("explains a bad %s", (field, change, message) => {
+    const result = itemFrom({ ...formFor(pirates), ...change }, pirates.id);
+
+    expect(result.ok).toBe(false);
+    expect(!result.ok && result.errors[field]).toBe(message);
   });
 });

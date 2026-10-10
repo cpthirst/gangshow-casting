@@ -12,7 +12,7 @@ prd: ./prd.md
 |---|---|---|
 | E1 | See the running order and its timings | FR1, FR2, FR3, FR12 |
 | E2 | Reorder the show, saving each change as a version | FR4, FR5, FR6, FR7, FR8, FR11 |
-| E3 | Edit, add and remove items | FR6, FR7, FR9, FR10 |
+| E3 | Edit items (adding and removing deferred) | FR6, FR7, FR9 |
 
 ## E1: See the running order
 
@@ -32,8 +32,8 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [running-order.E3.S1](stories/E3-S1-edit-item-details.md) | Edit an item's details | FR6, FR7, FR9 | E2.S1 | ready |
-| [running-order.E3.S2](stories/E3-S2-add-and-remove-items.md) | Add and remove items | FR6, FR10 | E3.S1 | ready |
+| [running-order.E3.S1](stories/E3-S1-edit-item-details.md) | Edit an item's details | FR6, FR7, FR9 | E2.S1 | in-progress |
+| [running-order.E3.S2](stories/E3-S2-add-and-remove-items.md) | Add and remove items: **dropped for now** (deferred 2026-10-10, product owner) | FR6, FR10 | E3.S1 | dropped |
 
 ## FR coverage
 
@@ -48,6 +48,6 @@ prd: ./prd.md
 | FR7 | E2.S1, E3.S1 |
 | FR8 | E2.S1 |
 | FR9 | E3.S1 |
-| FR10 | E3.S2 |
+| FR10 | (deferred: E3.S2 dropped for now) |
 | FR11 | E2.S1 |
 | FR12 | E1.S1 |

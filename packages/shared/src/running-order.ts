@@ -38,17 +38,18 @@ export type Stage = z.infer<typeof Stage>;
 export type RunningOrderItem = z.infer<typeof RunningOrderItem>;
 export type RunningOrder = z.infer<typeof RunningOrder>;
 
-const HalfOrder = <Id extends string>(id: Id) =>
-  z.object({ id: z.literal(id), itemIds: z.array(RunningOrderItem.shape.id).max(100) });
+const HalfItems = <Id extends string>(id: Id) =>
+  z.object({ id: z.literal(id), items: z.array(RunningOrderItem).max(100) });
 
-/** Every item, in its new place. The server checks it's the same set of items. */
-export const ReorderChange = z.object({
-  type: z.literal("reorder"),
-  halves: z.tuple([HalfOrder("first-half"), HalfOrder("second-half")]),
+/** Every item, in its new place and with its (possibly edited) details. The server checks
+ *  it's the same set of items as the latest version (no item lost, duplicated or invented). */
+export const UpdateChange = z.object({
+  type: z.literal("update"),
+  halves: z.tuple([HalfItems("first-half"), HalfItems("second-half")]),
 });
 
-/** One change, applied to the latest version. Later stories add edit, add and remove. */
-export const RunningOrderChange = z.discriminatedUnion("type", [ReorderChange]);
+/** One change, applied to the latest version. */
+export const RunningOrderChange = z.discriminatedUnion("type", [UpdateChange]);
 
 /**
  * POST /api/productions/{productionId}/running-order/versions.
@@ -60,6 +61,6 @@ export const SaveRunningOrderRequest = z.object({
   change: RunningOrderChange,
 });
 
-export type ReorderChange = z.infer<typeof ReorderChange>;
+export type UpdateChange = z.infer<typeof UpdateChange>;
 export type RunningOrderChange = z.infer<typeof RunningOrderChange>;
 export type SaveRunningOrderRequest = z.infer<typeof SaveRunningOrderRequest>;

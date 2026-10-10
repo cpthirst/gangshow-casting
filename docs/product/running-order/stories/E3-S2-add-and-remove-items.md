@@ -2,7 +2,7 @@
 id: running-order.E3.S2
 title: Add and remove items
 epic: E3
-status: ready
+status: draft
 ---
 
 ## Story
@@ -52,6 +52,8 @@ When a client saves a draft with base version 6 that removes B and adds a new it
 Then the response is 201 with version 7 holding A, C and D, and D has a stable id
 
 ## Notes
+
+- **Dropped for now** (2026-10-10, product owner). Kept as a draft so the ID isn't reused. Revisit when items need adding or cutting in the app.
 
 - FRs: FR6, FR10
 - Depends on: running-order.E3.S1. This reuses its item form. Adds and removals are unsaved changes, saved or reset with everything else.

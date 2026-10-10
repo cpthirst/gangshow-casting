@@ -47,6 +47,7 @@ That process causes three problems:
 - A separate status for TBC items such as Yaputcha. "Printed in programme" plus comments is enough.
 - Undo of a single move, and restoring an earlier saved draft. Reset discards all unsaved changes at once.
 - Sharing unsaved changes between people. They live in one browser until saved.
+- Adding and removing items in the app (FR10, deferred).
 
 ## Functional requirements
 
@@ -65,7 +66,7 @@ That process causes three problems:
 - **FR7**: If someone else saved a newer version since the user's last view, the user's save must not be applied. The user is told, and shown the latest version. Their unsaved changes are discarded.
 - **FR8**: A reorder must keep exactly the same set of items: no item lost, duplicated or invented.
 - **FR9**: Users must be able to edit an item's details: title, cast, stage (a sequence of Apron or Full), leads, comments, timing and whether it's printed in the programme.
-- **FR10**: Users must be able to add a new item to either half and remove an item. Removing asks for confirmation.
+- **FR10** (deferred 2026-10-10): Users must be able to add a new item to either half and remove an item. Removing asks for confirmation. Not planned for now; items change by editing.
 - **FR11**: Every saved version must be kept, with its number and the time it was saved, so it can be recovered or viewed later.
 - **FR12**: Draft 6 of the 2027 programme must be available as the starting version, held locally and never committed to the repository.
 
