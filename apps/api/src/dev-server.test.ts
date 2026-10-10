@@ -63,6 +63,29 @@ describe("dev server path parameters", () => {
   });
 });
 
+describe("dev server request bodies", () => {
+  it("passes the request body to the handler", async () => {
+    const server = createDevServer({
+      "POST /api/echo": async (event) => ({ statusCode: 201, body: event.body ?? "" }),
+    });
+    await new Promise<void>((resolve) => server.listen(0, resolve));
+    const address = server.address();
+    if (typeof address !== "object" || address === null) throw new Error("server not listening");
+
+    try {
+      const res = await fetch(`http://localhost:${address.port}/api/echo`, {
+        method: "POST",
+        body: '{"hello":"there"}',
+      });
+
+      expect(res.status).toBe(201);
+      expect(await res.text()).toBe('{"hello":"there"}');
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+});
+
 describe("dev server when a handler fails", () => {
   it("returns 500 instead of crashing when a handler throws", async () => {
     const server = createDevServer({

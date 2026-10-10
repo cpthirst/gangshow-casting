@@ -2,7 +2,7 @@
 id: running-order.E2.S1
 title: Reorder items with move buttons, saving a new version
 epic: E2
-status: ready
+status: in-progress
 ---
 
 ## Story

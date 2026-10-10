@@ -1,10 +1,18 @@
 <script setup lang="ts">
 import { RunningOrder } from "@app/shared";
-import { computed, onMounted, ref } from "vue";
-import { formatTime, runningClock, stageLabel } from "../running-order.ts";
+import { computed, nextTick, onMounted, ref } from "vue";
+import {
+  formatTime,
+  locate,
+  type Move,
+  planMove,
+  runningClock,
+  stageLabel,
+} from "../running-order.ts";
 
 // Only one production for now (see docs/product/running-order/prd.md).
 const PRODUCTION_ID = "2027";
+const API_PATH = `/api/productions/${PRODUCTION_ID}/running-order`;
 
 type State =
   | { status: "loading" }
@@ -22,7 +30,7 @@ const loaded = computed(() =>
 
 onMounted(async () => {
   try {
-    const res = await fetch(`/api/productions/${PRODUCTION_ID}/running-order`);
+    const res = await fetch(API_PATH);
     if (res.status === 404) {
       state.value = { status: "empty" };
       return;
@@ -33,6 +41,65 @@ onMounted(async () => {
     state.value = { status: "error" };
   }
 });
+
+/** Screen-reader announcement of the last move or conflict. */
+const announcement = ref("");
+/** Visible message about a conflict or failed save. */
+const notice = ref("");
+let saving = false;
+
+// Every move is saved straight away as the next version (PRD FR6).
+async function move(itemId: string, title: string, direction: Move) {
+  if (state.value.status !== "loaded" || saving) return;
+  const { order } = state.value;
+  const change = planMove(order, itemId, direction);
+  if (!change) return;
+
+  saving = true;
+  notice.value = "";
+  try {
+    const res = await fetch(`${API_PATH}/versions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ baseVersion: order.version, change }),
+    });
+    if (res.status !== 201 && res.status !== 409) throw new Error(`HTTP ${res.status}`);
+    const latest = RunningOrder.parse(await res.json());
+    state.value = { status: "loaded", order: latest };
+    if (res.status === 409) {
+      notice.value = `Someone else changed the running order. Showing the latest (Draft ${latest.version}).`;
+      announcement.value = notice.value;
+    } else {
+      announcement.value = `${describeMove(order, latest, itemId, title)} Saved as Draft ${latest.version}.`;
+    }
+    await nextTick();
+    refocus(itemId, direction);
+  } catch {
+    notice.value = "Couldn't save that change. Try again.";
+    announcement.value = notice.value;
+  } finally {
+    saving = false;
+  }
+}
+
+function describeMove(before: RunningOrder, after: RunningOrder, itemId: string, title: string) {
+  const from = locate(before, itemId);
+  const to = locate(after, itemId);
+  if (!to) return `${title} moved.`;
+  return from?.half.id === to.half.id
+    ? `${title} moved to position ${to.position}.`
+    : `${title} moved to the ${to.half.name.toLowerCase()}, position ${to.position}.`;
+}
+
+// The row moves in the DOM, so put focus back on the same button, or another
+// move button in that row if the same move is no longer possible.
+function refocus(itemId: string, direction: Move) {
+  const row = document.querySelector(`[data-item-id="${itemId}"]`);
+  const button =
+    row?.querySelector<HTMLButtonElement>(`[data-move="${direction}"]:not(:disabled)`) ??
+    row?.querySelector<HTMLButtonElement>("[data-move]:not(:disabled)");
+  button?.focus();
+}
 </script>
 
 <template>
@@ -42,6 +109,8 @@ onMounted(async () => {
   <p v-else-if="state.status === 'error'" role="alert">Couldn't load the running order.</p>
   <template v-else-if="loaded">
     <p class="version">Draft {{ loaded.order.version }}</p>
+    <p v-if="notice" class="notice" role="alert">{{ notice }}</p>
+    <p class="visually-hidden" role="status">{{ announcement }}</p>
     <template v-for="({ half, rows, totalMinutes }, i) in loaded.clock.halves" :key="half.id">
       <!-- The interval sits between the two halves. -->
       <p v-if="i > 0" class="interval" data-test="interval">
@@ -54,6 +123,7 @@ onMounted(async () => {
           <table class="running-order">
             <thead>
               <tr>
+                <th scope="col">Move</th>
                 <th scope="col">#</th>
                 <th scope="col">Starts</th>
                 <th scope="col">Item</th>
@@ -68,8 +138,37 @@ onMounted(async () => {
               <tr
                 v-for="{ item, number, startsAt } in rows"
                 :key="item.id"
+                :data-item-id="item.id"
                 :class="{ 'not-printed': number === null }"
               >
+                <td class="moves">
+                  <button
+                    type="button"
+                    data-move="up"
+                    :aria-label="`Move ${item.title} up`"
+                    :disabled="!planMove(loaded.order, item.id, 'up')"
+                    @click="move(item.id, item.title, 'up')"
+                  >
+                    Up
+                  </button>
+                  <button
+                    type="button"
+                    data-move="down"
+                    :aria-label="`Move ${item.title} down`"
+                    :disabled="!planMove(loaded.order, item.id, 'down')"
+                    @click="move(item.id, item.title, 'down')"
+                  >
+                    Down
+                  </button>
+                  <button
+                    type="button"
+                    data-move="other-half"
+                    :aria-label="`Move ${item.title} to ${i === 0 ? 'second' : 'first'} half`"
+                    @click="move(item.id, item.title, 'other-half')"
+                  >
+                    To {{ i === 0 ? "second" : "first" }} half
+                  </button>
+                </td>
                 <td data-test="number">
                   <template v-if="number !== null">{{ number }}</template>
                   <span v-else class="badge">Not in printed programme</span>
@@ -88,7 +187,7 @@ onMounted(async () => {
             </tbody>
             <tfoot>
               <tr>
-                <th scope="row" colspan="7">{{ half.name }} total</th>
+                <th scope="row" colspan="8">{{ half.name }} total</th>
                 <td data-test="total" class="minutes">{{ totalMinutes }} mins</td>
               </tr>
             </tfoot>

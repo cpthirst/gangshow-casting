@@ -1,4 +1,4 @@
-import type { RunningOrder, RunningOrderItem, Stage } from "@app/shared";
+import type { ReorderChange, RunningOrder, RunningOrderItem, Stage } from "@app/shared";
 
 const stageNames: Record<Stage, string> = { apron: "Apron", full: "Full" };
 
@@ -50,4 +50,49 @@ export function runningClock(order: RunningOrder) {
     interval,
     finish: secondHalf.endsAt,
   };
+}
+
+export type Move = "up" | "down" | "other-half";
+
+/** The reorder that one move makes, or undefined if the move would leave the item's half.
+ *  Crossing the interval lands next to it: end of the first half, start of the second. */
+export function planMove(
+  order: RunningOrder,
+  itemId: string,
+  move: Move,
+): ReorderChange | undefined {
+  const first = order.halves[0].items.map((item) => item.id);
+  const second = order.halves[1].items.map((item) => item.id);
+  const inFirst = first.includes(itemId);
+  const list = inFirst ? first : second;
+  const index = list.indexOf(itemId);
+  if (index === -1) return undefined;
+
+  if (move === "other-half") {
+    list.splice(index, 1);
+    if (inFirst) second.unshift(itemId);
+    else first.push(itemId);
+  } else {
+    const target = move === "up" ? index - 1 : index + 1;
+    const neighbour = list[target];
+    if (neighbour === undefined) return undefined;
+    list[target] = itemId;
+    list[index] = neighbour;
+  }
+  return {
+    type: "reorder",
+    halves: [
+      { id: "first-half", itemIds: first },
+      { id: "second-half", itemIds: second },
+    ],
+  };
+}
+
+/** Which half an item is in and its 1-based position there. */
+export function locate(order: RunningOrder, itemId: string) {
+  for (const half of order.halves) {
+    const index = half.items.findIndex((item) => item.id === itemId);
+    if (index !== -1) return { half, position: index + 1 };
+  }
+  return undefined;
 }
