@@ -2,7 +2,7 @@
 :root {
   --red: #ed3f23; /* accents and large text only: white on it is 3.94:1 */
   --red-deep: #e22e12; /* behind normal-size white text: 4.53:1 */
-  --red-darker: #b8301a; /* links on the grey surface: 5.3:1 */
+  --red-darker: #b8301a; /* links on the grey surface (5.35:1); sidebar hover */
   --text: #404040;
   --surface: #f1f1f1;
   --white: #ffffff;
