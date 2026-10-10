@@ -205,28 +205,31 @@ function refocus(itemId: string, direction: Move) {
       <section class="half" :aria-labelledby="half.id">
         <h2 :id="half.id">{{ half.name }}</h2>
         <div class="table-scroll" tabindex="0" role="region" :aria-label="`${half.name} items`">
-          <table class="running-order">
-            <thead>
-              <tr>
-                <th scope="col">Move</th>
-                <th scope="col">#</th>
-                <th scope="col">Starts</th>
-                <th scope="col">Item</th>
-                <th scope="col">Cast</th>
-                <th scope="col">Stage</th>
-                <th scope="col">Leads</th>
-                <th scope="col">Comments</th>
-                <th scope="col">Mins</th>
+          <!-- Explicit roles: card mode restyles the table as blocks, which can drop its
+               semantics in some browsers (e.g. Safari + VoiceOver). -->
+          <table class="running-order" role="table">
+            <thead role="rowgroup">
+              <tr role="row">
+                <th scope="col" role="columnheader">Move</th>
+                <th scope="col" role="columnheader">#</th>
+                <th scope="col" role="columnheader">Starts</th>
+                <th scope="col" role="columnheader">Item</th>
+                <th scope="col" role="columnheader">Cast</th>
+                <th scope="col" role="columnheader">Stage</th>
+                <th scope="col" role="columnheader">Leads</th>
+                <th scope="col" role="columnheader">Comments</th>
+                <th scope="col" role="columnheader">Mins</th>
               </tr>
             </thead>
-            <tbody :data-half="i" v-sortable-rows="{ onDrop: drop, disabled: saving }">
+            <tbody role="rowgroup" :data-half="i" v-sortable-rows="{ onDrop: drop, disabled: saving }">
               <tr
                 v-for="{ item, number, startsAt } in rows"
+                role="row"
                 :key="item.id"
                 :data-item-id="item.id"
                 :class="{ 'not-printed': number === null }"
               >
-                <td class="moves" data-label="Move">
+                <td class="moves" data-label="Move" role="cell">
                   <span
                     class="drag-handle"
                     role="img"
@@ -265,29 +268,29 @@ function refocus(itemId: string, direction: Move) {
                     ⇄
                   </button>
                 </td>
-                <td data-test="number" data-label="#">
+                <td data-test="number" class="number" data-label="#" role="cell">
                   <template v-if="number !== null">{{ number }}</template>
                   <span v-else class="badge">Not in printed programme</span>
                 </td>
-                <td data-test="starts" class="starts" data-label="Starts">{{ formatTime(startsAt) }}</td>
-                <td data-test="title" class="title" data-label="Item">{{ item.title }}</td>
-                <td data-label="Cast">{{ item.cast }}</td>
-                <td data-label="Stage">{{ stageLabel(item.stage) }}</td>
-                <td data-label="Leads">{{ item.leads }}</td>
-                <td data-label="Comments">{{ item.comments }}</td>
-                <td data-test="minutes" class="minutes" data-label="Mins">
+                <td data-test="starts" class="starts" data-label="Starts" role="cell">{{ formatTime(startsAt) }}</td>
+                <td data-test="title" class="title" data-label="Item" role="cell">{{ item.title }}</td>
+                <td class="cast" data-label="Cast" role="cell">{{ item.cast }}</td>
+                <td data-label="Stage" role="cell">{{ stageLabel(item.stage) }}</td>
+                <td data-label="Leads" role="cell">{{ item.leads }}</td>
+                <td class="comments" data-label="Comments" role="cell">{{ item.comments }}</td>
+                <td data-test="minutes" class="minutes" data-label="Mins" role="cell">
                   <template v-if="item.minutes !== null">{{ item.minutes }}</template>
                   <span v-else class="badge">Untimed</span>
                 </td>
               </tr>
-              <tr v-if="rows.length === 0" class="empty-half">
-                <td colspan="9">No items. Drag one here, or use “Move to {{ half.name.toLowerCase() }}” on an item.</td>
+              <tr v-if="rows.length === 0" class="empty-half" role="row">
+                <td colspan="9" role="cell">No items. Drag one here, or use “Move to {{ half.name.toLowerCase() }}” on an item.</td>
               </tr>
             </tbody>
-            <tfoot>
-              <tr>
-                <th scope="row" colspan="8">{{ half.name }} total</th>
-                <td data-test="total" class="minutes">{{ totalMinutes }} mins</td>
+            <tfoot role="rowgroup">
+              <tr role="row">
+                <th scope="row" colspan="8" role="rowheader">{{ half.name }} total</th>
+                <td data-test="total" class="minutes" role="cell">{{ totalMinutes }} mins</td>
               </tr>
             </tfoot>
           </table>

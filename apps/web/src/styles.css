@@ -118,10 +118,15 @@ body {
   margin: 0;
 }
 
-/* Pages use the full width beside the sidebar, so tables have room to fit. */
 main {
   padding: 2.5rem;
   min-width: 0;
+  max-width: 60rem;
+}
+
+/* The running order uses the full width beside the sidebar, so its table has room to fit. */
+main:has(.running-order) {
+  max-width: none;
 }
 
 main:focus {
@@ -248,14 +253,14 @@ main a {
   font-weight: 700;
 }
 
-/* Text columns wrap between words (and only break a word that can't fit at all);
-   short columns stay on one line and take only the room they need. */
+/* Text columns wrap between words; short columns stay on one line and take only the
+   room they need. A single very long word widens the table (then .table-scroll scrolls). */
 .running-order td {
   overflow-wrap: break-word;
 }
 
-.running-order td[data-label="Cast"],
-.running-order td[data-label="Comments"] {
+.running-order td.cast,
+.running-order td.comments {
   min-width: 9rem;
 }
 
@@ -267,12 +272,12 @@ main a {
 }
 
 /* The number column is narrow; the "Not in printed programme" badge wraps inside it. */
-.running-order td[data-test="number"] {
+.running-order td.number {
   width: 1%;
   max-width: 6.5rem;
 }
 
-.running-order td[data-test="number"] .badge {
+.running-order td.number .badge {
   padding: 0.125rem 0.375rem;
   border-radius: 0.375rem;
   white-space: normal;
@@ -340,6 +345,11 @@ main a {
     width: auto;
   }
 
+  /* Nothing scrolls in card mode, so don't clip tooltips at the box edge. */
+  .table-scroll {
+    overflow: visible;
+  }
+
   .running-order thead {
     position: absolute;
     width: 1px;
@@ -359,6 +369,7 @@ main a {
     text-align: left;
   }
 
+  /* Hide empty details (e.g. no leads); Vue renders an empty value as no text. */
   .running-order td[data-label]:empty {
     display: none;
   }
@@ -387,18 +398,14 @@ main a {
   }
 
   /* Number, start time and minutes sit together on one line. */
-  .running-order td[data-test="number"],
-  .running-order td.starts,
-  .running-order td.minutes {
+  .running-order tbody td.number,
+  .running-order tbody td.starts,
+  .running-order tbody td.minutes {
     display: inline-block;
     width: auto;
     max-width: none;
     margin-right: 1.25rem;
     text-align: left;
-  }
-
-  .running-order td.moves {
-    width: auto;
   }
 
   .running-order tfoot tr {
@@ -408,7 +415,8 @@ main a {
   }
 
   .running-order tfoot th,
-  .running-order tfoot td {
+  .running-order tfoot td.minutes {
+    width: auto;
     padding: 0;
   }
 }
@@ -457,7 +465,8 @@ main a {
 }
 
 /* Explains an icon on hover and on keyboard focus, straight away (a native title
-   tooltip is slow and never shows on focus). Screen readers use aria-label instead. */
+   tooltip is slow and never shows on focus). Screen readers use aria-label instead.
+   Known limits: no Escape to dismiss, and touch has no hover (the icons act on tap). */
 [data-tooltip] {
   position: relative;
 }
@@ -467,9 +476,9 @@ main a {
   content: attr(data-tooltip);
   position: absolute;
   bottom: calc(100% + 0.375rem);
-  left: 50%;
+  /* Left-aligned, so the leftmost icons' tooltips aren't cut off at the table edge. */
+  left: 0;
   z-index: 3;
-  transform: translateX(-50%);
   padding: 0.25rem 0.5rem;
   border-radius: 0.25rem;
   background: var(--text);
