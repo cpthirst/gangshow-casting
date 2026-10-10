@@ -1,0 +1,9 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    // aws-cdk-lib's types are not compatible with this flag
+    "exactOptionalPropertyTypes": false
+  },
+  "include": ["bin", "lib"]
+}

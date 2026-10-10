@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    // hooks run directly with `node` (native type stripping)
+    "erasableSyntaxOnly": true
+  },
+  "include": ["*.ts"]
+}

@@ -1,0 +1,29 @@
+{
+  "name": "dev-project-template-opinionated-harness",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm --parallel --filter web --filter api dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck && pnpm typecheck:harness",
+    "typecheck:harness": "tsc -p .claude/hooks",
+    "test": "pnpm -r test && pnpm test:harness",
+    "test:harness": "vitest run --root .claude/hooks",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "synth": "pnpm --filter infra synth",
+    "check": "pnpm lint && pnpm lint:docs && pnpm typecheck && pnpm test && pnpm synth",
+    "prepare": "lefthook install",
+    "lint:docs": "node tooling/src/validate-docs.ts"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.15",
+    "@commitlint/cli": "^21.2.3",
+    "@commitlint/config-conventional": "^21.2.3",
+    "@types/node": "^26.6.4",
+    "lefthook": "^2.1.17",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
+  }
+}

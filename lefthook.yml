@@ -1,0 +1,26 @@
+# Git-layer backstop for humans and agents alike. Kept fast on purpose:
+# the full gate runs in the agent's Stop hook and in CI.
+pre-commit:
+  commands:
+    biome:
+      glob: "*.{ts,js,mjs,vue,json,jsonc,css}"
+      run: pnpm exec biome check --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+
+commit-msg:
+  commands:
+    commitlint:
+      run: pnpm exec commitlint --edit {1}
+
+pre-push:
+  piped: true # run in priority order; stop at the first failure
+  scripts:
+    # A script, not a command: Lefthook skips commands when it sees no changed files,
+    # which would let an already-pushed branch be pushed onto main unchecked.
+    protect-main.sh:
+      priority: 1
+      runner: sh
+      use_stdin: true
+  commands:
+    gate:
+      priority: 2
+      run: pnpm check

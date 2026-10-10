@@ -1,0 +1,9 @@
+packages:
+  - apps/*
+  - packages/*
+  - infra
+  - tooling
+
+allowBuilds:
+  esbuild: true # used by Vite
+  lefthook: true
