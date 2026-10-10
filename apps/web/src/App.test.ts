@@ -58,7 +58,7 @@ describe("App shell", () => {
     await flushPromises();
 
     expect(wrapper.get("main h1").text()).toBe("Cast");
-    expect(wrapper.get("main p").text()).not.toBe("");
+    expect(wrapper.get("main p").text()).toBe("The Scouts and Explorers in this production.");
     expect(router.currentRoute.value.fullPath).toBe("/cast");
     expect(document.title).toBe("Cast · Chester Gang Show casting");
   });
