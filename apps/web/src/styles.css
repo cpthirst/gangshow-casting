@@ -308,7 +308,7 @@ main a {
 .moves button {
   width: 2rem;
   height: 2rem;
-  margin: 0 0.125rem 0.125rem 0;
+  margin: 0 0.25rem 0.25rem 0;
   padding: 0;
   border: 1px solid var(--text);
   border-radius: 0.25rem;
@@ -330,6 +330,31 @@ main a {
   border-style: dashed;
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+/* Explains an icon on hover and on keyboard focus, straight away (a native title
+   tooltip is slow and never shows on focus). Screen readers use aria-label instead. */
+[data-tooltip] {
+  position: relative;
+}
+
+[data-tooltip]:hover::after,
+[data-tooltip]:focus-visible::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 0.375rem);
+  left: 50%;
+  z-index: 3;
+  transform: translateX(-50%);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  background: var(--text);
+  color: var(--white);
+  font-size: 0.75rem;
+  font-style: normal;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 .notice {

@@ -230,6 +230,7 @@ function refocus(itemId: string, direction: Move) {
                   <span
                     class="drag-handle"
                     role="img"
+                    data-tooltip="Drag to reorder"
                     :aria-label="`Drag ${item.title}`"
                     >⠿</span
                   >
@@ -237,7 +238,7 @@ function refocus(itemId: string, direction: Move) {
                     type="button"
                     data-move="up"
                     :aria-label="`Move ${item.title} up`"
-                    title="Move up"
+                    data-tooltip="Move up"
                     :disabled="saving || !moveItem(loaded.working, item.id, 'up')"
                     @click="move(item.id, 'up')"
                   >
@@ -247,7 +248,7 @@ function refocus(itemId: string, direction: Move) {
                     type="button"
                     data-move="down"
                     :aria-label="`Move ${item.title} down`"
-                    title="Move down"
+                    data-tooltip="Move down"
                     :disabled="saving || !moveItem(loaded.working, item.id, 'down')"
                     @click="move(item.id, 'down')"
                   >
@@ -258,7 +259,7 @@ function refocus(itemId: string, direction: Move) {
                     data-move="other-half"
                     :disabled="saving"
                     :aria-label="`Move ${item.title} to ${otherHalf(i)} half`"
-                    :title="`Move to ${otherHalf(i)} half`"
+                    :data-tooltip="`Move to ${otherHalf(i)} half`"
                     @click="move(item.id, 'other-half')"
                   >
                     ⇄
@@ -280,7 +281,7 @@ function refocus(itemId: string, direction: Move) {
                 </td>
               </tr>
               <tr v-if="rows.length === 0" class="empty-half">
-                <td colspan="9">No items. Drag one here, or use ⇄ to move one into the {{ half.name.toLowerCase() }}.</td>
+                <td colspan="9">No items. Drag one here, or use “Move to {{ half.name.toLowerCase() }}” on an item.</td>
               </tr>
             </tbody>
             <tfoot>

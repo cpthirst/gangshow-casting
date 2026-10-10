@@ -394,14 +394,25 @@ describe("Running order page", () => {
       fakeApi(threeItems());
       const wrapper = await openPage();
 
-      const buttons = rowFor(wrapper, "Curtain Up").findAll("button[data-move]");
+      const row = rowFor(wrapper, "Curtain Up");
+      const buttons = row.findAll("button[data-move]");
       expect(
-        buttons.map((b) => [b.text(), b.attributes("aria-label"), b.attributes("title")]),
+        buttons.map((b) => [b.text(), b.attributes("aria-label"), b.attributes("data-tooltip")]),
       ).toEqual([
         ["↑", "Move Curtain Up up", "Move up"],
         ["↓", "Move Curtain Up down", "Move down"],
         ["⇄", "Move Curtain Up to second half", "Move to second half"],
       ]);
+      expect(row.get(".drag-handle").attributes("data-tooltip")).toBe("Drag to reorder");
+    });
+
+    it("tells people how to fill an empty half without relying on a symbol", async () => {
+      fakeApi(aRunningOrder([anItem("Curtain Up")], []));
+      const wrapper = await openPage();
+
+      expect(half(wrapper, "second-half").get("tbody").text()).toBe(
+        "No items. Drag one here, or use “Move to second half” on an item.",
+      );
     });
 
     it("doesn't offer moves that would leave the half", async () => {
