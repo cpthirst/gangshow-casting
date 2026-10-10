@@ -26,10 +26,40 @@ describe("dev server", () => {
     expect(HealthResponse.parse(await res.json()).status).toBe("ok");
   });
 
+  it("returns 404 for a malformed path escape and keeps serving", async () => {
+    const res = await fetch(`${baseUrl}/api/productions/%E0%A4%A/running-order`);
+
+    expect(res.status).toBe(404);
+    expect((await fetch(`${baseUrl}/api/health`)).status).toBe(200);
+  });
+
   it("returns 404 for routes that don't exist", async () => {
     const res = await fetch(`${baseUrl}/api/nope`);
 
     expect(res.status).toBe(404);
+  });
+});
+
+describe("dev server path parameters", () => {
+  it("passes {placeholders} in the route to the handler as path parameters", async () => {
+    const server = createDevServer({
+      "GET /api/things/{thingId}": async (event) => ({
+        statusCode: 200,
+        body: event.pathParameters?.thingId ?? "",
+      }),
+    });
+    await new Promise<void>((resolve) => server.listen(0, resolve));
+    const address = server.address();
+    if (typeof address !== "object" || address === null) throw new Error("server not listening");
+
+    try {
+      const res = await fetch(`http://localhost:${address.port}/api/things/2027`);
+
+      expect(res.status).toBe(200);
+      expect(await res.text()).toBe("2027");
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
   });
 });
 

@@ -1,10 +1,54 @@
-import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
+import { fileURLToPath } from "node:url";
+import { createGetRunningOrder } from "./get-running-order.ts";
+import type { Handler } from "./handler.ts";
 import { handler as health } from "./health.ts";
+import { fileRunningOrderStore } from "./running-order-store.ts";
 
-// Handlers take no event yet; add the APIGatewayProxyEventV2 parameter when one needs input.
-export type Handler = () => Promise<APIGatewayProxyStructuredResultV2>;
+// Git-ignored: real production data never goes in the repo (CLAUDE.md safeguarding).
+const dataDir = process.env.DATA_DIR ?? fileURLToPath(new URL("../data", import.meta.url));
+const runningOrders = fileRunningOrderStore(dataDir);
 
-/** One entry per future API Gateway route: "<METHOD> <path>" → handler. */
+/** One entry per future API Gateway route: "<METHOD> <path>", with {name} path parameters. */
 export const routes: Record<string, Handler> = {
   "GET /api/health": health,
+  "GET /api/productions/{productionId}/running-order": createGetRunningOrder(runningOrders),
 };
+
+/** Finds the handler for a request, as API Gateway would, with any path parameters. */
+export function matchRoute(table: Record<string, Handler>, method: string, path: string) {
+  const pathSegments = path.split("/");
+  for (const [route, handler] of Object.entries(table)) {
+    const [routeMethod, routePath] = route.split(" ");
+    const routeSegments = routePath?.split("/") ?? [];
+    if (routeMethod !== method || routeSegments.length !== pathSegments.length) continue;
+    const pathParameters = matchSegments(routeSegments, pathSegments);
+    if (pathParameters) return { handler, event: { pathParameters } };
+  }
+  return undefined;
+}
+
+// "{name}" segments capture; every other segment must match exactly.
+function matchSegments(routeSegments: string[], pathSegments: string[]) {
+  const params: Record<string, string> = {};
+  for (const [i, routeSegment] of routeSegments.entries()) {
+    const segment = pathSegments[i] ?? "";
+    const name = /^\{(\w+)\}$/.exec(routeSegment)?.[1];
+    if (name === undefined) {
+      if (routeSegment !== segment) return undefined;
+      continue;
+    }
+    const value = safeDecode(segment);
+    if (value === undefined || value === "") return undefined;
+    params[name] = value;
+  }
+  return params;
+}
+
+// A malformed escape like "%E0%A4%A" is a bad request, not a crash.
+function safeDecode(segment: string) {
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return undefined;
+  }
+}

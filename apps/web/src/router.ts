@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory, type RouterHistory } from "vue-router";
 import NotFoundPage from "./pages/NotFoundPage.vue";
 import PlaceholderPage from "./pages/PlaceholderPage.vue";
+import RunningOrderPage from "./pages/RunningOrderPage.vue";
 
 declare module "vue-router" {
   interface RouteMeta {
@@ -11,11 +12,13 @@ declare module "vue-router" {
 
 const APP_NAME = "Chester Gang Show casting";
 
-// The menu lists these in order. To add a page: add an entry here.
+// The menu lists these in order. To add a page: add an entry here (pages without a
+// component yet show a placeholder).
 export const menuPages = [
   {
     path: "/",
     name: "running-order",
+    component: RunningOrderPage,
     meta: {
       title: "Running order",
       description: "The show's items in the order they're performed.",
@@ -37,7 +40,10 @@ export function createAppRouter(history: RouterHistory = createWebHistory()) {
   const router = createRouter({
     history,
     routes: [
-      ...menuPages.map((page) => ({ ...page, component: PlaceholderPage })),
+      ...menuPages.map((page) => ({
+        ...page,
+        component: "component" in page ? page.component : PlaceholderPage,
+      })),
       {
         path: "/:unknown(.*)*",
         name: "not-found",

@@ -51,6 +51,14 @@ describe("App shell", () => {
     expect(document.title).toBe("Running order · Chester Gang Show casting");
   });
 
+  it("shows the running order itself at the root URL", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 404 })));
+
+    const { wrapper } = await openAppAt("/");
+
+    expect(wrapper.get("main").text()).toContain("No running order yet");
+  });
+
   it("shows a page with its description and URL when chosen from the menu", async () => {
     const { wrapper, router } = await openAppAt("/");
 
