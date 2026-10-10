@@ -29,10 +29,11 @@ That process causes three problems:
 | Goal | Metric | Target |
 |---|---|---|
 | Reordering is quick in a meeting | Actions to move an item to a new position, including into the other half | 1 drag, or a few button presses without dragging |
+| Trying ideas out is safe | Actions to throw away unsaved changes and get back to the last saved draft | 1 (Reset) |
 | Changes are never lost | Changes silently overwritten when two people edit at once | 0. The later save is refused, and the person is told |
-| Every change is a recoverable version | Saved changes kept as a numbered version | 100% |
+| Every saved draft is recoverable | Saved drafts kept as a numbered version | 100% |
 | Timings can be trusted | Running clock for Draft 6 matches the document (interval 8:22 pm, second half 8:42 pm, finish 9:44 pm) | Exact match |
-| Feels instant | Time from drop to "saved as vN" on the local setup | Under 1 second |
+| Feels instant | Time for a move to show on screen; time for a save to complete (local setup) | Move: instant. Save: under 1 second |
 
 ## Non-goals
 
@@ -44,7 +45,8 @@ That process causes three problems:
 - Sign-in. The app is planned as open access for the production team (see Constraints).
 - Editing the show start time or interval length in the app. They're set once per production.
 - A separate status for TBC items such as Yaputcha. "Printed in programme" plus comments is enough.
-- Undo. A mistake is fixed by making the opposite change, which saves another version.
+- Undo of a single move, and restoring an earlier saved draft. Reset discards all unsaved changes at once.
+- Sharing unsaved changes between people. They live in one browser until saved.
 
 ## Functional requirements
 
@@ -59,8 +61,8 @@ That process causes three problems:
   An item with no timing counts as 0 minutes and is flagged as untimed.
 - **FR4**: Users must be able to reorder items by drag and drop, both within a half and between the two halves.
 - **FR5**: Users must be able to make the same moves without dragging: move up, move down, and move to the other half. These work by keyboard and by single taps or clicks.
-- **FR6**: Every reorder and every edit must be saved straight away as a new version (Draft 6 → 7 → 8…). The new version number is shown, and numbering and the running clock update at once.
-- **FR7**: If someone else saved a newer version since the user's last view, the user's change must not be applied. The user is told, and shown the latest version.
+- **FR6**: Reorders and edits must show at once, with numbering and the running clock updated, as **unsaved changes** clearly marked as such. They stay in the user's browser until the user chooses **Save as Draft N+1**, which saves them all as one new version (Draft 6 → 7). **Reset** must discard all unsaved changes and show the last saved draft again. Save and Reset are only available when there are unsaved changes. Leaving the page with unsaved changes asks for confirmation first.
+- **FR7**: If someone else saved a newer version since the user's last view, the user's save must not be applied. The user is told, and shown the latest version. Their unsaved changes are discarded.
 - **FR8**: A reorder must keep exactly the same set of items: no item lost, duplicated or invented.
 - **FR9**: Users must be able to edit an item's details: title, cast, stage (a sequence of Apron or Full), leads, comments, timing and whether it's printed in the programme.
 - **FR10**: Users must be able to add a new item to either half and remove an item. Removing asks for confirmation.
@@ -98,11 +100,11 @@ That process causes three problems:
 
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
-| Saving on every move makes version numbers climb fast (v6 → v40 in a meeting) | H | L | Accepted by the team. A later "named versions" or history screen can label the meaningful ones |
-| Two people editing in the same meeting refuse each other's saves | M | M | FR7 shows the latest version immediately, so the second person repeats their move on current data |
+| Unsaved changes are lost when a browser closes or someone else saves first | M | M | Changes are clearly marked as unsaved, leaving the page asks first, and saving is one click. A conflict discards only that person's unsaved moves |
+| Two people editing in the same meeting refuse each other's saves | M | M | FR7 shows the latest version immediately, so the second person repeats their moves on current data |
 | The real programme leaks into git | L | M | Git-ignore the `.doc` and the data folder, and check with `git status` in review |
-| A drag misfires on a phone and moves an item by accident | M | L | The opposite move fixes it, and the version is kept. Move buttons give precise control |
+| A drag misfires on a phone and moves an item by accident | M | L | Nothing is saved until Save, so Reset or the opposite move fixes it. Move buttons give precise control |
 
 ## Open questions
 
-- None. Resolved 2026-10-10: start time and interval aren't editable in the app, TBC items need no status of their own, and the app is open access (see Constraints).
+- None. Changed 2026-10-10: saving is now explicit (Save as Draft N+1 and Reset), not on every change. Resolved 2026-10-10: start time and interval aren't editable in the app, TBC items need no status of their own, and the app is open access (see Constraints).

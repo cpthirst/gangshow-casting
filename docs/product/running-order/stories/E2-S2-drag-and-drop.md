@@ -11,11 +11,11 @@ As a member of the production team in a casting meeting, I want to drag an item 
 
 ## Acceptance criteria
 
-### AC1: Dragging within a half saves a new version
-Given the first half is "Curtain Up", "Pirate Panic", "Dance One" at version 6
+### AC1: Dragging within a half is an unsaved change
+Given the first half is "Curtain Up", "Pirate Panic", "Dance One" at Draft 6
 When I drag "Dance One" above "Curtain Up"
 Then the first half reads "Dance One", "Curtain Up", "Pirate Panic"
-And I see "Draft 7"
+And I see "Unsaved changes", ready to save as Draft 7
 
 ### AC2: Dragging across the interval
 Given "Big Finish" is in the second half
@@ -23,10 +23,10 @@ When I drag "Big Finish" into the first half between "Curtain Up" and "Pirate Pa
 Then the first half reads "Curtain Up", "Big Finish", "Pirate Panic"
 And "Big Finish" is no longer in the second half
 
-### AC3: Dropping an item where it started saves nothing
-Given the running order is at version 6
+### AC3: Dropping an item where it started changes nothing
+Given the running order is at Draft 6 with no unsaved changes
 When I drag "Pirate Panic" and drop it back in its original place
-Then I still see "Draft 6"
+Then there are still no unsaved changes
 
 ### AC4: Each row has a labelled drag handle
 Given I'm on the Running order page
@@ -34,16 +34,15 @@ When I look at the "Pirate Panic" row
 Then it has a drag handle labelled "Drag Pirate Panic"
 And the move buttons from E2.S1 are still available
 
-### AC5: A rejected drag puts the order back
-Given someone else has saved a newer version
-When I drag an item to a new place
-Then my drag isn't kept
-And I see the latest version with the "Someone else changed the running order" message
+### AC5: Dragged changes save and reset like moves
+Given I've dragged items into a new order
+When I press "Save as Draft 7", or "Reset"
+Then the order is saved as Draft 7, or put back to Draft 6, as with the move buttons
 
 ## Notes
 
 - FRs: FR4
-- Depends on: running-order.E2.S1. It reuses the same save, versioning and conflict path.
+- Depends on: running-order.E2.S1. Drags make the same unsaved changes as the move buttons, and use the same Save and Reset.
 - New dependency: a touch-capable sortable library (`vue-draggable-plus` / SortableJS is expected), recorded in an ADR in this story.
 - Touch dragging on a real phone is checked by hand. Tests drive the list's change events.
 - Out of scope: dragging several items at once.

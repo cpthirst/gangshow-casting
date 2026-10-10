@@ -149,9 +149,53 @@ main a {
   font-weight: 700;
 }
 
+/* Draft number, unsaved marker, and Save / Reset, kept together above the tables. */
+.draft-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin: 0 0 1.5rem;
+}
+
+.draft-bar p {
+  margin: 0;
+}
+
+.draft-bar button {
+  padding: 0.5rem 1rem;
+  border: 2px solid var(--text);
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.draft-bar button.primary {
+  border-color: var(--red-deep);
+  background: var(--red-deep);
+  color: var(--white);
+}
+
+.draft-bar button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Text as well as colour, so it doesn't rely on colour alone. */
+.unsaved {
+  padding: 0.125rem 0.75rem;
+  border: 2px dashed var(--red-darker);
+  border-radius: 999px;
+  color: var(--red-darker);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
 .version {
   display: inline-block;
-  margin: 0 0 1.5rem;
   padding: 0.125rem 0.75rem;
   border-radius: 999px;
   background: var(--text);

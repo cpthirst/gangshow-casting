@@ -59,6 +59,53 @@ describe("App shell", () => {
     expect(wrapper.get("main").text()).toContain("No running order yet");
   });
 
+  it("asks before leaving the running order with unsaved changes", async () => {
+    const order = {
+      productionId: "2027",
+      title: "Gang Show 2027",
+      version: 6,
+      savedAt: "2026-10-04T00:00:00.000Z",
+      startTime: "19:15",
+      intervalMinutes: 20,
+      halves: [
+        {
+          id: "first-half",
+          name: "First half",
+          items: ["Curtain Up", "Pirate Panic"].map((title) => ({
+            id: `itm_${title.toLowerCase().replaceAll(" ", "-")}`,
+            title,
+            cast: "",
+            stage: ["full"],
+            leads: "",
+            comments: "",
+            minutes: 5,
+            printed: true,
+          })),
+        },
+        { id: "second-half", name: "Second half", items: [] },
+      ],
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify(order))),
+    );
+    const confirm = vi.fn().mockReturnValue(false);
+    vi.stubGlobal("confirm", confirm);
+    const { wrapper, router } = await openAppAt("/");
+    await wrapper.get("button[aria-label='Move Curtain Up down']").trigger("click");
+
+    await wrapper.get("nav a[href='/cast']").trigger("click");
+    await flushPromises();
+
+    expect(confirm).toHaveBeenCalledWith("Discard unsaved changes?");
+    expect(router.currentRoute.value.fullPath).toBe("/");
+
+    confirm.mockReturnValue(true);
+    await wrapper.get("nav a[href='/cast']").trigger("click");
+    await flushPromises();
+    expect(router.currentRoute.value.fullPath).toBe("/cast");
+  });
+
   it("shows a page with its description and URL when chosen from the menu", async () => {
     const { wrapper, router } = await openAppAt("/");
 

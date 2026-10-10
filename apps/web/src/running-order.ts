@@ -54,39 +54,56 @@ export function runningClock(order: RunningOrder) {
 
 export type Move = "up" | "down" | "other-half";
 
-/** The reorder that one move makes, or undefined if the move would leave the item's half.
+/** The running order after one move, or undefined if the move would leave the item's half.
  *  Crossing the interval lands next to it: end of the first half, start of the second. */
-export function planMove(
+export function moveItem(
   order: RunningOrder,
   itemId: string,
   move: Move,
-): ReorderChange | undefined {
-  const first = order.halves[0].items.map((item) => item.id);
-  const second = order.halves[1].items.map((item) => item.id);
-  const inFirst = first.includes(itemId);
+): RunningOrder | undefined {
+  const [first, second] = order.halves.map((half) => [...half.items]);
+  if (!first || !second) return undefined;
+  const inFirst = first.some((item) => item.id === itemId);
   const list = inFirst ? first : second;
-  const index = list.indexOf(itemId);
-  if (index === -1) return undefined;
+  const index = list.findIndex((item) => item.id === itemId);
+  const item = list[index];
+  if (!item) return undefined;
 
   if (move === "other-half") {
     list.splice(index, 1);
-    if (inFirst) second.unshift(itemId);
-    else first.push(itemId);
+    if (inFirst) second.unshift(item);
+    else first.push(item);
   } else {
     const target = move === "up" ? index - 1 : index + 1;
     const neighbour = list[target];
-    if (neighbour === undefined) return undefined;
-    list[target] = itemId;
+    if (!neighbour) return undefined;
+    list[target] = item;
     list[index] = neighbour;
   }
   return {
-    type: "reorder",
+    ...order,
     halves: [
-      { id: "first-half", itemIds: first },
-      { id: "second-half", itemIds: second },
+      { ...order.halves[0], items: first },
+      { ...order.halves[1], items: second },
     ],
   };
 }
+
+/** The reorder change that saves this order's item positions. */
+export function reorderOf(order: RunningOrder): ReorderChange {
+  const ids = (index: 0 | 1) => order.halves[index].items.map((item) => item.id);
+  return {
+    type: "reorder",
+    halves: [
+      { id: "first-half", itemIds: ids(0) },
+      { id: "second-half", itemIds: ids(1) },
+    ],
+  };
+}
+
+/** True when both orders have the same items in the same places. */
+export const sameOrder = (a: RunningOrder, b: RunningOrder) =>
+  JSON.stringify(reorderOf(a)) === JSON.stringify(reorderOf(b));
 
 /** Which half an item is in and its 1-based position there. */
 export function locate(order: RunningOrder, itemId: string) {

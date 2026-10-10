@@ -1,7 +1,10 @@
 import { type RunningOrder, type RunningOrderItem, SaveRunningOrderRequest } from "@app/shared";
-import { flushPromises, mount } from "@vue/test-utils";
+import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import RunningOrderPage from "./RunningOrderPage.vue";
+
+// Pages left mounted would keep their window listeners between tests.
+enableAutoUnmount(afterEach);
 
 // Made-up data only: tests never use the real programme (CLAUDE.md safeguarding).
 const anItem = (title: string, details: Partial<RunningOrderItem> = {}): RunningOrderItem => ({
@@ -293,20 +296,31 @@ describe("Running order page", () => {
       await flushPromises();
     }
 
-    it("moves an item down, saving it as the next draft and renumbering", async () => {
+    const firstHalfTitles = (wrapper: Awaited<ReturnType<typeof openPage>>) =>
+      titlesIn(half(wrapper, "first-half"));
+    const saveButton = (wrapper: Awaited<ReturnType<typeof openPage>>) =>
+      wrapper.get("button[data-test=save]");
+    const resetButton = (wrapper: Awaited<ReturnType<typeof openPage>>) =>
+      wrapper.get("button[data-test=reset]");
+    async function click(button: ReturnType<typeof saveButton>) {
+      await button.trigger("click");
+      await flushPromises();
+    }
+    const posts = () =>
+      vi.mocked(fetch).mock.calls.filter(([, init]) => init?.method === "POST").length;
+
+    it("moves an item down as an unsaved change, renumbering it", async () => {
       fakeApi(threeItems());
       const wrapper = await openPage();
 
       await press(wrapper, "Move Curtain Up down");
 
-      expect(titlesIn(half(wrapper, "first-half"))).toEqual([
-        "Pirate Panic",
-        "Curtain Up",
-        "Dance One",
-      ]);
-      expect(wrapper.text()).toContain("Draft 7");
+      expect(firstHalfTitles(wrapper)).toEqual(["Pirate Panic", "Curtain Up", "Dance One"]);
       expect(rowFor(wrapper, "Pirate Panic").get("[data-test=number]").text()).toBe("1");
       expect(rowFor(wrapper, "Curtain Up").get("[data-test=number]").text()).toBe("2");
+      expect(wrapper.text()).toContain("Draft 6");
+      expect(wrapper.find("[data-test=unsaved]").text()).toBe("Unsaved changes");
+      expect(posts()).toBe(0);
     });
 
     it("moves an item up", async () => {
@@ -315,11 +329,7 @@ describe("Running order page", () => {
 
       await press(wrapper, "Move Dance One up");
 
-      expect(titlesIn(half(wrapper, "first-half"))).toEqual([
-        "Curtain Up",
-        "Dance One",
-        "Pirate Panic",
-      ]);
+      expect(firstHalfTitles(wrapper)).toEqual(["Curtain Up", "Dance One", "Pirate Panic"]);
     });
 
     it("moves the last item of the first half to the start of the second half", async () => {
@@ -328,7 +338,7 @@ describe("Running order page", () => {
 
       await press(wrapper, "Move Dance One to second half");
 
-      expect(titlesIn(half(wrapper, "first-half"))).toEqual(["Curtain Up", "Pirate Panic"]);
+      expect(firstHalfTitles(wrapper)).toEqual(["Curtain Up", "Pirate Panic"]);
       expect(titlesIn(half(wrapper, "second-half"))).toEqual(["Dance One", "Big Finish"]);
     });
 
@@ -338,7 +348,7 @@ describe("Running order page", () => {
 
       await press(wrapper, "Move Big Finish to first half");
 
-      expect(titlesIn(half(wrapper, "first-half"))).toEqual([
+      expect(firstHalfTitles(wrapper)).toEqual([
         "Curtain Up",
         "Pirate Panic",
         "Dance One",
@@ -356,25 +366,67 @@ describe("Running order page", () => {
       expect(moveButton(wrapper, "Move Curtain Up down").attributes("disabled")).toBeUndefined();
     });
 
-    it("shows the saved order after a reload", async () => {
+    it("saves unsaved changes as the next draft", async () => {
       fakeApi(threeItems());
       const wrapper = await openPage();
       await press(wrapper, "Move Curtain Up down");
+
+      expect(saveButton(wrapper).text()).toBe("Save as Draft 7");
+      await click(saveButton(wrapper));
+
+      expect(wrapper.text()).toContain("Draft 7");
+      expect(wrapper.find("[data-test=unsaved]").exists()).toBe(false);
+      expect(firstHalfTitles(wrapper)).toEqual(["Pirate Panic", "Curtain Up", "Dance One"]);
+      expect(posts()).toBe(1);
+    });
+
+    it("resets unsaved changes back to the saved draft", async () => {
+      fakeApi(threeItems());
+      const wrapper = await openPage();
+      await press(wrapper, "Move Curtain Up down");
+      await press(wrapper, "Move Big Finish to first half");
+
+      await click(resetButton(wrapper));
+
+      expect(firstHalfTitles(wrapper)).toEqual(["Curtain Up", "Pirate Panic", "Dance One"]);
+      expect(titlesIn(half(wrapper, "second-half"))).toEqual(["Big Finish"]);
+      expect(wrapper.find("[data-test=unsaved]").exists()).toBe(false);
+      expect(posts()).toBe(0);
+    });
+
+    it("offers Save and Reset only when there's something to save", async () => {
+      fakeApi(threeItems());
+      const wrapper = await openPage();
+      const unavailable = () => [
+        saveButton(wrapper).attributes("disabled") !== undefined,
+        resetButton(wrapper).attributes("disabled") !== undefined,
+      ];
+      expect(unavailable()).toEqual([true, true]);
+
+      await press(wrapper, "Move Curtain Up down");
+      expect(unavailable()).toEqual([false, false]);
+
+      await press(wrapper, "Move Curtain Up up");
+      expect(unavailable()).toEqual([true, true]);
+    });
+
+    it("shows the saved draft after a reload", async () => {
+      fakeApi(threeItems());
+      const wrapper = await openPage();
+      await press(wrapper, "Move Curtain Up down");
+      await click(saveButton(wrapper));
       wrapper.unmount();
 
       const reloaded = await openPage();
 
-      expect(titlesIn(half(reloaded, "first-half"))).toEqual([
-        "Pirate Panic",
-        "Curtain Up",
-        "Dance One",
-      ]);
+      expect(firstHalfTitles(reloaded)).toEqual(["Pirate Panic", "Curtain Up", "Dance One"]);
       expect(reloaded.text()).toContain("Draft 7");
     });
 
-    it("shows the latest version instead of overwriting someone else's change", async () => {
+    it("shows the latest draft instead of overwriting someone else's", async () => {
       const api = fakeApi(threeItems());
       const wrapper = await openPage();
+      await press(wrapper, "Move Curtain Up down");
       api.someoneElseSaves(
         aRunningOrder(
           [anItem("Dance One"), anItem("Curtain Up"), anItem("Pirate Panic")],
@@ -383,16 +435,26 @@ describe("Running order page", () => {
         ),
       );
 
-      await press(wrapper, "Move Curtain Up down");
+      await click(saveButton(wrapper));
 
       expect(wrapper.text()).toContain(
-        "Someone else changed the running order. Showing the latest (Draft 7).",
+        "Someone else saved a newer draft. Showing the latest (Draft 7). Your unsaved changes were discarded.",
       );
-      expect(titlesIn(half(wrapper, "first-half"))).toEqual([
-        "Dance One",
-        "Curtain Up",
-        "Pirate Panic",
-      ]);
+      expect(firstHalfTitles(wrapper)).toEqual(["Dance One", "Curtain Up", "Pirate Panic"]);
+      expect(wrapper.find("[data-test=unsaved]").exists()).toBe(false);
+    });
+
+    it("keeps unsaved changes and says so when the save fails", async () => {
+      fakeApi(threeItems());
+      const wrapper = await openPage();
+      await press(wrapper, "Move Curtain Up down");
+      vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
+
+      await click(saveButton(wrapper));
+
+      expect(wrapper.text()).toContain("Couldn't save the draft. Your changes are still here.");
+      expect(firstHalfTitles(wrapper)).toEqual(["Pirate Panic", "Curtain Up", "Dance One"]);
+      expect(wrapper.find("[data-test=unsaved]").text()).toBe("Unsaved changes");
     });
 
     it("announces the move and keeps focus on the moved item", async () => {
@@ -402,7 +464,7 @@ describe("Running order page", () => {
       await press(wrapper, "Move Curtain Up down");
 
       expect(wrapper.get("[role=status]").text()).toBe(
-        "Curtain Up moved to position 2. Saved as Draft 7.",
+        "Curtain Up moved to position 2. Not saved yet.",
       );
       const focused = document.activeElement;
       expect(focused?.tagName).toBe("BUTTON");
@@ -416,24 +478,23 @@ describe("Running order page", () => {
       await press(wrapper, "Move Dance One to second half");
 
       expect(wrapper.get("[role=status]").text()).toBe(
-        "Dance One moved to the second half, position 1. Saved as Draft 7.",
+        "Dance One moved to the second half, position 1. Not saved yet.",
       );
     });
 
-    it("keeps the order and says so when the save fails", async () => {
+    it("asks the browser to confirm closing or refreshing with unsaved changes", async () => {
       fakeApi(threeItems());
       const wrapper = await openPage();
-      vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
+      const leave = () => {
+        const event = new Event("beforeunload", { cancelable: true });
+        window.dispatchEvent(event);
+        return event.defaultPrevented;
+      };
+      expect(leave()).toBe(false);
 
       await press(wrapper, "Move Curtain Up down");
 
-      expect(wrapper.text()).toContain("Couldn't save that change. Try again.");
-      expect(titlesIn(half(wrapper, "first-half"))).toEqual([
-        "Curtain Up",
-        "Pirate Panic",
-        "Dance One",
-      ]);
-      expect(wrapper.text()).toContain("Draft 6");
+      expect(leave()).toBe(true);
     });
   });
 });
