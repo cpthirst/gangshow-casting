@@ -25,7 +25,7 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [running-order.E2.S1](stories/E2-S1-reorder-with-move-buttons.md) | Reorder items with move buttons, then save as a new draft or reset | FR5, FR6, FR7, FR8, FR11 | E1.S1 | in-progress |
+| [running-order.E2.S1](stories/E2-S1-reorder-with-move-buttons.md) | Reorder items with move buttons, then save as a new draft or reset | FR5, FR6, FR7, FR8, FR11 | E1.S1 | done |
 | [running-order.E2.S2](stories/E2-S2-drag-and-drop.md) | Reorder items by drag and drop | FR4 | E2.S1 | ready |
 
 ## E3: Edit the items

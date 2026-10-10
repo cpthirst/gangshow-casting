@@ -61,8 +61,8 @@ export function moveItem(
   itemId: string,
   move: Move,
 ): RunningOrder | undefined {
-  const [first, second] = order.halves.map((half) => [...half.items]);
-  if (!first || !second) return undefined;
+  const first = [...order.halves[0].items];
+  const second = [...order.halves[1].items];
   const inFirst = first.some((item) => item.id === itemId);
   const list = inFirst ? first : second;
   const index = list.findIndex((item) => item.id === itemId);
@@ -101,7 +101,8 @@ export function reorderOf(order: RunningOrder): ReorderChange {
   };
 }
 
-/** True when both orders have the same items in the same places. */
+/** True when both orders have the same items in the same places. Compares positions only:
+ *  once item details can be edited (E3.S1), unsaved-change detection must compare those too. */
 export const sameOrder = (a: RunningOrder, b: RunningOrder) =>
   JSON.stringify(reorderOf(a)) === JSON.stringify(reorderOf(b));
 

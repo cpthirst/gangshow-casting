@@ -444,6 +444,19 @@ describe("Running order page", () => {
       expect(wrapper.find("[data-test=unsaved]").exists()).toBe(false);
     });
 
+    it("holds off Save, Reset and moves while a save is in progress", async () => {
+      fakeApi(threeItems());
+      const wrapper = await openPage();
+      await press(wrapper, "Move Curtain Up down");
+      vi.stubGlobal("fetch", vi.fn().mockReturnValue(new Promise(() => {})));
+
+      await saveButton(wrapper).trigger("click");
+
+      expect(saveButton(wrapper).attributes("disabled")).toBeDefined();
+      expect(resetButton(wrapper).attributes("disabled")).toBeDefined();
+      expect(moveButton(wrapper, "Move Dance One up").attributes("disabled")).toBeDefined();
+    });
+
     it("keeps unsaved changes and says so when the save fails", async () => {
       fakeApi(threeItems());
       const wrapper = await openPage();

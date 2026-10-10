@@ -99,6 +99,11 @@ describe("App shell", () => {
 
     expect(confirm).toHaveBeenCalledWith("Discard unsaved changes?");
     expect(router.currentRoute.value.fullPath).toBe("/");
+    expect(wrapper.find("[data-test=unsaved]").exists()).toBe(true);
+    expect(wrapper.findAll("main tbody [data-test=title]").map((cell) => cell.text())).toEqual([
+      "Pirate Panic",
+      "Curtain Up",
+    ]);
 
     confirm.mockReturnValue(true);
     await wrapper.get("nav a[href='/cast']").trigger("click");

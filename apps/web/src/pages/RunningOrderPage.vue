@@ -37,7 +37,7 @@ const showSaved = (order: RunningOrder) => {
   state.value = { status: "loaded", saved: order, working: order };
 };
 
-onMounted(async () => {
+async function load() {
   try {
     const res = await fetch(API_PATH);
     if (res.status === 404) {
@@ -49,16 +49,17 @@ onMounted(async () => {
   } catch {
     state.value = { status: "error" };
   }
-});
+}
 
 /** Screen-reader announcement of the last move, save or reset. */
 const announcement = ref("");
 /** Visible message about a conflict or failed save. */
 const notice = ref("");
-let saving = false;
+/** True while a save is in flight: everything that would change the page waits. */
+const saving = ref(false);
 
 async function move(itemId: string, title: string, direction: Move) {
-  if (state.value.status !== "loaded" || saving) return;
+  if (state.value.status !== "loaded" || saving.value) return;
   const { working } = state.value;
   const moved = moveItem(working, itemId, direction);
   if (!moved) return;
@@ -70,26 +71,27 @@ async function move(itemId: string, title: string, direction: Move) {
 }
 
 async function save() {
-  if (state.value.status !== "loaded" || saving || !loaded.value?.unsaved) return;
+  if (state.value.status !== "loaded" || saving.value || !loaded.value?.unsaved) return;
   const { saved, working } = state.value;
-  saving = true;
+  saving.value = true;
   const result = await saveDraft(saved.version, working);
-  saving = false;
+  saving.value = false;
 
   if (result.outcome === "failed") {
     notice.value = "Couldn't save the draft. Your changes are still here. Try again.";
-  } else {
-    showSaved(result.order);
-    notice.value =
-      result.outcome === "conflict"
-        ? `Someone else saved a newer draft. Showing the latest (Draft ${result.order.version}). Your unsaved changes were discarded.`
-        : "";
+    announcement.value = notice.value;
+    return;
   }
-  announcement.value = notice.value || `Saved as Draft ${loaded.value?.saved.version}.`;
+  showSaved(result.order);
+  notice.value =
+    result.outcome === "conflict"
+      ? `Someone else saved a newer draft. Showing the latest (Draft ${result.order.version}). Your unsaved changes were discarded.`
+      : "";
+  announcement.value = notice.value || `Saved as Draft ${result.order.version}.`;
 }
 
 function reset() {
-  if (state.value.status !== "loaded") return;
+  if (state.value.status !== "loaded" || saving.value) return;
   showSaved(state.value.saved);
   notice.value = "";
   announcement.value = `Changes discarded. Back to Draft ${state.value.saved.version}.`;
@@ -119,7 +121,11 @@ onBeforeRouteLeave(() => !loaded.value?.unsaved || window.confirm("Discard unsav
 function warnBeforeUnload(event: BeforeUnloadEvent) {
   if (loaded.value?.unsaved) event.preventDefault();
 }
-onMounted(() => window.addEventListener("beforeunload", warnBeforeUnload));
+
+onMounted(() => {
+  window.addEventListener("beforeunload", warnBeforeUnload);
+  load();
+});
 onUnmounted(() => window.removeEventListener("beforeunload", warnBeforeUnload));
 
 function describeMove(before: RunningOrder, after: RunningOrder, itemId: string, title: string) {
@@ -157,12 +163,17 @@ function refocus(itemId: string, direction: Move) {
         type="button"
         class="primary"
         data-test="save"
-        :disabled="!loaded.unsaved"
+        :disabled="!loaded.unsaved || saving"
         @click="save"
       >
         Save as Draft {{ loaded.saved.version + 1 }}
       </button>
-      <button type="button" data-test="reset" :disabled="!loaded.unsaved" @click="reset">
+      <button
+        type="button"
+        data-test="reset"
+        :disabled="!loaded.unsaved || saving"
+        @click="reset"
+      >
         Reset
       </button>
     </div>
@@ -203,7 +214,7 @@ function refocus(itemId: string, direction: Move) {
                     type="button"
                     data-move="up"
                     :aria-label="`Move ${item.title} up`"
-                    :disabled="!moveItem(loaded.working, item.id, 'up')"
+                    :disabled="saving || !moveItem(loaded.working, item.id, 'up')"
                     @click="move(item.id, item.title, 'up')"
                   >
                     Up
@@ -212,7 +223,7 @@ function refocus(itemId: string, direction: Move) {
                     type="button"
                     data-move="down"
                     :aria-label="`Move ${item.title} down`"
-                    :disabled="!moveItem(loaded.working, item.id, 'down')"
+                    :disabled="saving || !moveItem(loaded.working, item.id, 'down')"
                     @click="move(item.id, item.title, 'down')"
                   >
                     Down
@@ -220,6 +231,7 @@ function refocus(itemId: string, direction: Move) {
                   <button
                     type="button"
                     data-move="other-half"
+                    :disabled="saving"
                     :aria-label="`Move ${item.title} to ${otherHalf(i)} half`"
                     @click="move(item.id, item.title, 'other-half')"
                   >

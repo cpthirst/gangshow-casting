@@ -2,7 +2,7 @@
 id: running-order.E2.S1
 title: Reorder items with move buttons, then save as a new draft or reset
 epic: E2
-status: in-progress
+status: done
 ---
 
 ## Story
