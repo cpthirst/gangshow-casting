@@ -60,11 +60,11 @@ const notice = ref("");
 /** True while a save is in flight: everything that would change the page waits. */
 const saving = ref(false);
 
-async function move(itemId: string, title: string, direction: Move) {
+async function move(itemId: string, direction: Move) {
   if (state.value.status !== "loaded" || saving.value) return;
   const moved = moveItem(state.value.working, itemId, direction);
   if (!moved) return;
-  changeWorking(moved, itemId, title);
+  changeWorking(moved, itemId);
   await nextTick();
   refocus(itemId, direction);
 }
@@ -73,18 +73,17 @@ function drop({ itemId, toHalf, toIndex }: RowDrop) {
   if (state.value.status !== "loaded" || saving.value) return;
   const { working } = state.value;
   const dropped = dropItem(working, itemId, toHalf, toIndex);
-  if (sameOrder(dropped, working)) return;
-  const title = working.halves.flatMap((half) => half.items).find((i) => i.id === itemId)?.title;
-  changeWorking(dropped, itemId, title ?? "Item");
+  if (!sameOrder(dropped, working)) changeWorking(dropped, itemId);
 }
 
 // Moves and drags both change only the working copy, until Save.
-function changeWorking(changed: RunningOrder, itemId: string, title: string) {
+function changeWorking(changed: RunningOrder, itemId: string) {
+  // Callers have already checked; this narrows the type.
   if (state.value.status !== "loaded") return;
   const before = state.value.working;
   state.value = { ...state.value, working: changed };
   notice.value = "";
-  announcement.value = `${describeMove(before, changed, itemId, title)} Not saved yet.`;
+  announcement.value = `${describeMove(before, changed, itemId)} Not saved yet.`;
 }
 
 async function save() {
@@ -145,10 +144,11 @@ onMounted(() => {
 });
 onUnmounted(() => window.removeEventListener("beforeunload", warnBeforeUnload));
 
-function describeMove(before: RunningOrder, after: RunningOrder, itemId: string, title: string) {
+function describeMove(before: RunningOrder, after: RunningOrder, itemId: string) {
   const from = locate(before, itemId);
   const to = locate(after, itemId);
-  if (!to) return `${title} moved.`;
+  if (!to) return "";
+  const { title } = to.item;
   return from?.half.id === to.half.id
     ? `${title} moved to position ${to.position}.`
     : `${title} moved to the ${to.half.name.toLowerCase()}, position ${to.position}.`;
@@ -231,7 +231,6 @@ function refocus(itemId: string, direction: Move) {
                     class="drag-handle"
                     role="img"
                     :aria-label="`Drag ${item.title}`"
-                    :title="`Drag ${item.title}`"
                     >⠿</span
                   >
                   <button
@@ -239,7 +238,7 @@ function refocus(itemId: string, direction: Move) {
                     data-move="up"
                     :aria-label="`Move ${item.title} up`"
                     :disabled="saving || !moveItem(loaded.working, item.id, 'up')"
-                    @click="move(item.id, item.title, 'up')"
+                    @click="move(item.id, 'up')"
                   >
                     Up
                   </button>
@@ -248,7 +247,7 @@ function refocus(itemId: string, direction: Move) {
                     data-move="down"
                     :aria-label="`Move ${item.title} down`"
                     :disabled="saving || !moveItem(loaded.working, item.id, 'down')"
-                    @click="move(item.id, item.title, 'down')"
+                    @click="move(item.id, 'down')"
                   >
                     Down
                   </button>
@@ -257,7 +256,7 @@ function refocus(itemId: string, direction: Move) {
                     data-move="other-half"
                     :disabled="saving"
                     :aria-label="`Move ${item.title} to ${otherHalf(i)} half`"
-                    @click="move(item.id, item.title, 'other-half')"
+                    @click="move(item.id, 'other-half')"
                   >
                     To {{ otherHalf(i) }} half
                   </button>
@@ -276,6 +275,9 @@ function refocus(itemId: string, direction: Move) {
                   <template v-if="item.minutes !== null">{{ item.minutes }}</template>
                   <span v-else class="badge">Untimed</span>
                 </td>
+              </tr>
+              <tr v-if="rows.length === 0" class="empty-half">
+                <td colspan="9">No items. Drag one here, or use “To {{ otherHalf(1 - i) }} half”.</td>
               </tr>
             </tbody>
             <tfoot>

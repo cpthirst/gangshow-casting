@@ -2,7 +2,7 @@
 id: running-order.E2.S2
 title: Reorder items by drag and drop
 epic: E2
-status: in-progress
+status: done
 ---
 
 ## Story

@@ -13,7 +13,12 @@ interface DropEvent {
 }
 interface FakeSortable {
   el: HTMLElement;
-  options: { group?: string; handle?: string; onEnd?: (event: DropEvent) => void };
+  options: {
+    group?: string;
+    handle?: string;
+    draggable?: string;
+    onEnd?: (event: DropEvent) => void;
+  };
   option: ReturnType<typeof vi.fn>;
   destroy: ReturnType<typeof vi.fn>;
 }
@@ -77,9 +82,11 @@ async function openPage() {
 const half = (wrapper: Awaited<ReturnType<typeof openPage>>, name: string) =>
   wrapper.get(`section[aria-labelledby="${name}"]`);
 const titlesIn = (section: ReturnType<typeof half>) =>
-  section.findAll("tbody tr").map((row) => row.get("[data-test=title]").text());
+  section.findAll("tbody tr[data-item-id]").map((row) => row.get("[data-test=title]").text());
 const rowFor = (wrapper: Awaited<ReturnType<typeof openPage>>, title: string) => {
-  const row = wrapper.findAll("tbody tr").find((r) => r.get("[data-test=title]").text() === title);
+  const row = wrapper
+    .findAll("tbody tr[data-item-id]")
+    .find((r) => r.get("[data-test=title]").text() === title);
   if (!row) throw new Error(`no row for ${title}`);
   return row;
 };
@@ -617,6 +624,20 @@ describe("Running order page", () => {
         "Dance One",
       ]);
       expect(wrapper.find("[data-test=unsaved]").exists()).toBe(false);
+      expect(wrapper.get("[role=status]").text()).toBe("");
+    });
+
+    it("keeps an emptied half as a place to drop items back into", async () => {
+      serve(threeItems());
+      const wrapper = await openPage();
+      await drag(wrapper, "Big Finish", "first-half", 3);
+
+      expect(half(wrapper, "second-half").get("tbody").text()).toContain("No items");
+      expect(sortables.every((s) => s.options.draggable === "[data-item-id]")).toBe(true);
+
+      await drag(wrapper, "Curtain Up", "second-half", 0);
+
+      expect(titlesIn(half(wrapper, "second-half"))).toEqual(["Curtain Up"]);
     });
 
     it("gives each row a labelled drag handle alongside the move buttons", async () => {
@@ -653,13 +674,19 @@ describe("Running order page", () => {
         [anItem("Big Finish")],
         7,
       );
-      vi.stubGlobal(
-        "fetch",
-        vi.fn().mockResolvedValue(new Response(JSON.stringify(saved), { status: 201 })),
-      );
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValue(new Response(JSON.stringify(saved), { status: 201 }));
+      vi.stubGlobal("fetch", fetchMock);
       await wrapper.get("button[data-test=save]").trigger("click");
       await flushPromises();
 
+      const sent = SaveRunningOrderRequest.parse(JSON.parse(fetchMock.mock.calls[0]?.[1]?.body));
+      expect(sent.change.halves[0].itemIds).toEqual([
+        "itm_dance-one",
+        "itm_curtain-up",
+        "itm_pirate-panic",
+      ]);
       expect(wrapper.text()).toContain("Draft 7");
       expect(wrapper.find("[data-test=unsaved]").exists()).toBe(false);
     });
@@ -672,6 +699,9 @@ describe("Running order page", () => {
 
       await wrapper.get("button[data-test=save]").trigger("click");
       await flushPromises();
+
+      await drag(wrapper, "Curtain Up", "second-half", 0);
+      expect(titlesIn(half(wrapper, "second-half"))).toEqual(["Big Finish"]);
 
       const live = sortables.filter((s) => s.el.isConnected);
       expect(live).toHaveLength(2);

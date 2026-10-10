@@ -26,15 +26,18 @@ export const vSortableRows: Directive<HTMLElement, SortableRowsBinding> = {
     Sortable.create(el, {
       group: "running-order",
       handle: ".drag-handle",
+      // Only item rows move; an empty half's "No items" row is just a drop target.
+      draggable: "[data-item-id]",
       animation: 150,
       disabled: value.disabled,
       onEnd({ item, from, to, oldIndex, newIndex }) {
-        // Vue renders rows from the working order: undo SortableJS's own DOM move,
-        // then report the drop so the order changes and Vue re-renders it.
-        item.remove();
-        from.insertBefore(item, from.children[oldIndex ?? 0] ?? null);
         const itemId = item.dataset.itemId;
-        if (itemId === undefined || newIndex === undefined) return;
+        if (itemId === undefined || oldIndex === undefined || newIndex === undefined) return;
+        // Vue renders rows from the working order: undo SortableJS's own DOM move, then
+        // report the drop so the order changes and Vue re-renders it. Remove first, so
+        // children[oldIndex] is the row that originally followed this one.
+        item.remove();
+        from.insertBefore(item, from.children[oldIndex] ?? null);
         bindings
           .get(el)
           ?.onDrop({ itemId, toHalf: to.dataset.half === "1" ? 1 : 0, toIndex: newIndex });

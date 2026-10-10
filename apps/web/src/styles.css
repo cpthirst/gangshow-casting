@@ -289,6 +289,14 @@ main a {
   touch-action: none;
 }
 
+/* Tall enough to drop an item into once a half is empty. */
+.running-order .empty-half td {
+  padding: 1.5rem 0.75rem;
+  border: 2px dashed var(--surface);
+  text-align: center;
+  font-style: italic;
+}
+
 /* SortableJS's placeholder while dragging. */
 .running-order .sortable-ghost {
   background: var(--surface);

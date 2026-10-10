@@ -129,11 +129,12 @@ export function reorderOf(order: RunningOrder): ReorderChange {
 export const sameOrder = (a: RunningOrder, b: RunningOrder) =>
   JSON.stringify(reorderOf(a)) === JSON.stringify(reorderOf(b));
 
-/** Which half an item is in and its 1-based position there. */
+/** The item, which half it's in and its 1-based position there. */
 export function locate(order: RunningOrder, itemId: string) {
   for (const half of order.halves) {
     const index = half.items.findIndex((item) => item.id === itemId);
-    if (index !== -1) return { half, position: index + 1 };
+    const item = half.items[index];
+    if (item) return { half, item, position: index + 1 };
   }
   return undefined;
 }
