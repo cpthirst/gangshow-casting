@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+/** Identifies a production (e.g. "2027"); also used as a folder name, so kept to a safe alphabet. */
+export const ProductionId = z.string().regex(/^[a-z0-9-]{1,40}$/i);
+
 export const Stage = z.enum(["apron", "full"]);
 
 export const RunningOrderItem = z.object({
@@ -17,12 +20,12 @@ export const RunningOrderItem = z.object({
 });
 
 const Half = <Id extends string>(id: Id) =>
-  z.object({ id: z.literal(id), name: z.string(), items: z.array(RunningOrderItem) });
+  z.object({ id: z.literal(id), name: z.string().max(60), items: z.array(RunningOrderItem) });
 
 /** One saved version of a production's running order. Numbers and times are derived, never stored. */
 export const RunningOrder = z.object({
-  productionId: z.string(),
-  title: z.string(),
+  productionId: ProductionId,
+  title: z.string().max(120),
   version: z.number().int().positive(),
   savedAt: z.iso.datetime(),
   /** Curtain up, 24-hour "HH:MM". */

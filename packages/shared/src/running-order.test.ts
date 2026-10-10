@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { RunningOrder } from "./running-order.ts";
+import { ProductionId, RunningOrder } from "./running-order.ts";
 
 const item = {
   id: "itm_curtain-up",
@@ -61,5 +61,15 @@ describe("RunningOrder", () => {
     expect(() =>
       RunningOrder.parse({ ...runningOrder, halves: [runningOrder.halves[0]] }),
     ).toThrow();
+  });
+});
+
+describe("ProductionId", () => {
+  it("accepts a simple id", () => {
+    expect(ProductionId.parse("2027")).toBe("2027");
+  });
+
+  it.each(["../etc", "a/b", "", "x".repeat(41)])("rejects %j", (id) => {
+    expect(ProductionId.safeParse(id).success).toBe(false);
   });
 });

@@ -13,3 +13,7 @@ cdk.out/
 docs/product/*/*.doc
 docs/product/*/*.docx
 apps/api/data/
+docs/product/*/*.pdf
+docs/product/*/*.xls
+docs/product/*/*.xlsx
+docs/product/*/*.csv

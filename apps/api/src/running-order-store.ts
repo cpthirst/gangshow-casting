@@ -1,14 +1,11 @@
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { RunningOrder } from "@app/shared";
+import { ProductionId, RunningOrder } from "@app/shared";
 
 /** Where running order versions live. Each version is a complete, never-edited snapshot. */
 export interface RunningOrderStore {
   latest(productionId: string): Promise<RunningOrder | undefined>;
 }
-
-// Production ids become folder names, so keep them to a safe alphabet.
-export const isValidProductionId = (id: string) => /^[a-z0-9-]{1,40}$/i.test(id);
 
 const newest = (versions: RunningOrder[]) =>
   versions.reduce<RunningOrder | undefined>(
@@ -27,7 +24,8 @@ export function inMemoryRunningOrderStore(versions: RunningOrder[] = []): Runnin
 export function fileRunningOrderStore(dataDir: string): RunningOrderStore {
   return {
     async latest(productionId) {
-      if (!isValidProductionId(productionId)) throw new Error("Invalid production id");
+      // The id becomes a folder name: never trust callers to have checked it.
+      if (!ProductionId.safeParse(productionId).success) throw new Error("Invalid production id");
       const dir = join(dataDir, productionId, "running-order");
       const version = Math.max(0, ...versionsIn(await listFiles(dir)));
       if (version === 0) return undefined;

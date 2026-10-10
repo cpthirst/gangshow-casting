@@ -92,18 +92,14 @@ describe("Running order page", () => {
 
     const wrapper = await openPage();
 
-    const cells = rowFor(wrapper, "Pirate Panic")
-      .findAll("td")
-      .map((cell) => cell.text());
-    expect(cells).toEqual(
-      expect.arrayContaining([
-        "Cubs + Beavers",
-        "Apron / Full / Apron",
-        "Sam / Alex",
-        "Performed to track",
-        "18",
-      ]),
-    );
+    const headers = wrapper.findAll("thead th").map((th) => th.text());
+    const cells = rowFor(wrapper, "Pirate Panic").findAll("td");
+    const cellUnder = (header: string) => cells[headers.indexOf(header)]?.text();
+    expect(cellUnder("Cast")).toBe("Cubs + Beavers");
+    expect(cellUnder("Stage")).toBe("Apron / Full / Apron");
+    expect(cellUnder("Leads")).toBe("Sam / Alex");
+    expect(cellUnder("Comments")).toBe("Performed to track");
+    expect(cellUnder("Mins")).toBe("18");
   });
 
   it("shows the current version as a draft number", async () => {

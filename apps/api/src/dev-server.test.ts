@@ -26,6 +26,13 @@ describe("dev server", () => {
     expect(HealthResponse.parse(await res.json()).status).toBe("ok");
   });
 
+  it("returns 404 for a malformed path escape and keeps serving", async () => {
+    const res = await fetch(`${baseUrl}/api/productions/%E0%A4%A/running-order`);
+
+    expect(res.status).toBe(404);
+    expect((await fetch(`${baseUrl}/api/health`)).status).toBe(200);
+  });
+
   it("returns 404 for routes that don't exist", async () => {
     const res = await fetch(`${baseUrl}/api/nope`);
 
