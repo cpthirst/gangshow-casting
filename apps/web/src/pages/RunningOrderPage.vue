@@ -3,6 +3,7 @@ import { RunningOrder } from "@app/shared";
 import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
 import { onBeforeRouteLeave } from "vue-router";
 import {
+  dropItem,
   formatTime,
   locate,
   type Move,
@@ -12,6 +13,7 @@ import {
   sameOrder,
   stageLabel,
 } from "../running-order.ts";
+import { type RowDrop, vSortableRows } from "../sortable-rows.ts";
 
 // Only one production for now (see docs/product/running-order/prd.md).
 const PRODUCTION_ID = "2027";
@@ -60,14 +62,29 @@ const saving = ref(false);
 
 async function move(itemId: string, title: string, direction: Move) {
   if (state.value.status !== "loaded" || saving.value) return;
-  const { working } = state.value;
-  const moved = moveItem(working, itemId, direction);
+  const moved = moveItem(state.value.working, itemId, direction);
   if (!moved) return;
-  state.value = { ...state.value, working: moved };
-  notice.value = "";
-  announcement.value = `${describeMove(working, moved, itemId, title)} Not saved yet.`;
+  changeWorking(moved, itemId, title);
   await nextTick();
   refocus(itemId, direction);
+}
+
+function drop({ itemId, toHalf, toIndex }: RowDrop) {
+  if (state.value.status !== "loaded" || saving.value) return;
+  const { working } = state.value;
+  const dropped = dropItem(working, itemId, toHalf, toIndex);
+  if (sameOrder(dropped, working)) return;
+  const title = working.halves.flatMap((half) => half.items).find((i) => i.id === itemId)?.title;
+  changeWorking(dropped, itemId, title ?? "Item");
+}
+
+// Moves and drags both change only the working copy, until Save.
+function changeWorking(changed: RunningOrder, itemId: string, title: string) {
+  if (state.value.status !== "loaded") return;
+  const before = state.value.working;
+  state.value = { ...state.value, working: changed };
+  notice.value = "";
+  announcement.value = `${describeMove(before, changed, itemId, title)} Not saved yet.`;
 }
 
 async function save() {
@@ -202,7 +219,7 @@ function refocus(itemId: string, direction: Move) {
                 <th scope="col">Mins</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody :data-half="i" v-sortable-rows="{ onDrop: drop, disabled: saving }">
               <tr
                 v-for="{ item, number, startsAt } in rows"
                 :key="item.id"
@@ -210,6 +227,13 @@ function refocus(itemId: string, direction: Move) {
                 :class="{ 'not-printed': number === null }"
               >
                 <td class="moves">
+                  <span
+                    class="drag-handle"
+                    role="img"
+                    :aria-label="`Drag ${item.title}`"
+                    :title="`Drag ${item.title}`"
+                    >⠿</span
+                  >
                   <button
                     type="button"
                     data-move="up"

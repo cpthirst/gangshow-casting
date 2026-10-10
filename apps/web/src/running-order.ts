@@ -89,6 +89,29 @@ export function moveItem(
   };
 }
 
+/** The running order with one item dropped into a half (0 or 1) at a position there.
+ *  The item is taken out first, so the position is its final place. */
+export function dropItem(
+  order: RunningOrder,
+  itemId: string,
+  toHalf: 0 | 1,
+  toIndex: number,
+): RunningOrder {
+  const item = order.halves.flatMap((half) => half.items).find((i) => i.id === itemId);
+  if (!item) return order;
+  const without = (items: RunningOrderItem[]) => items.filter((i) => i.id !== itemId);
+  const first = without(order.halves[0].items);
+  const second = without(order.halves[1].items);
+  (toHalf === 0 ? first : second).splice(toIndex, 0, item);
+  return {
+    ...order,
+    halves: [
+      { ...order.halves[0], items: first },
+      { ...order.halves[1], items: second },
+    ],
+  };
+}
+
 /** The reorder change that saves this order's item positions. */
 export function reorderOf(order: RunningOrder): ReorderChange {
   const ids = (index: 0 | 1) => order.halves[index].items.map((item) => item.id);

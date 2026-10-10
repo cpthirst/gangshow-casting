@@ -1,7 +1,33 @@
 import { type RunningOrder, type RunningOrderItem, SaveRunningOrderRequest } from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import RunningOrderPage from "./RunningOrderPage.vue";
+
+// SortableJS can't drag in happy-dom, so stand in for it and fire its drop event directly.
+interface DropEvent {
+  item: HTMLElement;
+  from: HTMLElement;
+  to: HTMLElement;
+  oldIndex: number;
+  newIndex: number;
+}
+interface FakeSortable {
+  el: HTMLElement;
+  options: { group?: string; handle?: string; onEnd?: (event: DropEvent) => void };
+  option: ReturnType<typeof vi.fn>;
+  destroy: ReturnType<typeof vi.fn>;
+}
+const sortables = vi.hoisted((): FakeSortable[] => []);
+vi.mock("sortablejs", () => ({
+  default: {
+    create: (el: HTMLElement, options: FakeSortable["options"]) => {
+      const sortable = { el, options, option: vi.fn(), destroy: vi.fn() };
+      sortables.push(sortable);
+      return sortable;
+    },
+    get: (el: HTMLElement) => sortables.findLast((sortable) => sortable.el === el),
+  },
+}));
 
 // Pages left mounted would keep their window listeners between tests.
 enableAutoUnmount(afterEach);
@@ -508,6 +534,150 @@ describe("Running order page", () => {
       await press(wrapper, "Move Curtain Up down");
 
       expect(leave()).toBe(true);
+    });
+  });
+
+  describe("reordering by drag and drop", () => {
+    beforeEach(() => {
+      sortables.length = 0;
+    });
+
+    const tbodyOf = (wrapper: Awaited<ReturnType<typeof openPage>>, halfId: string) =>
+      wrapper.get(`section[aria-labelledby="${halfId}"] tbody`).element;
+
+    // Moves the row in the DOM as SortableJS would, then reports the drop.
+    async function drag(
+      wrapper: Awaited<ReturnType<typeof openPage>>,
+      title: string,
+      toHalfId: string,
+      newIndex: number,
+    ) {
+      const item = rowFor(wrapper, title).element;
+      const from = item.parentElement;
+      const to = tbodyOf(wrapper, toHalfId);
+      if (!(item instanceof HTMLElement && from && to instanceof HTMLElement)) {
+        throw new Error("expected a row inside a tbody");
+      }
+      const oldIndex = [...from.children].indexOf(item);
+      const sortable = sortables.findLast((s) => s.el === from);
+      if (!sortable?.options.onEnd) throw new Error("no sortable list for this half");
+      to.insertBefore(item, [...to.children].filter((row) => row !== item)[newIndex] ?? null);
+      sortable.options.onEnd({ item, from, to, oldIndex, newIndex });
+      await flushPromises();
+    }
+
+    const threeItems = () =>
+      aRunningOrder(
+        [anItem("Curtain Up"), anItem("Pirate Panic"), anItem("Dance One")],
+        [anItem("Big Finish")],
+      );
+
+    it("makes a drag within a half an unsaved change", async () => {
+      serve(threeItems());
+      const wrapper = await openPage();
+
+      await drag(wrapper, "Dance One", "first-half", 0);
+
+      expect(titlesIn(half(wrapper, "first-half"))).toEqual([
+        "Dance One",
+        "Curtain Up",
+        "Pirate Panic",
+      ]);
+      expect(wrapper.find("[data-test=unsaved]").exists()).toBe(true);
+      expect(wrapper.get("button[data-test=save]").text()).toBe("Save as Draft 7");
+      expect(wrapper.get("[role=status]").text()).toBe(
+        "Dance One moved to position 1. Not saved yet.",
+      );
+    });
+
+    it("drags an item across the interval", async () => {
+      serve(threeItems());
+      const wrapper = await openPage();
+
+      await drag(wrapper, "Big Finish", "first-half", 1);
+
+      expect(titlesIn(half(wrapper, "first-half"))).toEqual([
+        "Curtain Up",
+        "Big Finish",
+        "Pirate Panic",
+        "Dance One",
+      ]);
+      expect(titlesIn(half(wrapper, "second-half"))).toEqual([]);
+    });
+
+    it("changes nothing when an item is dropped where it started", async () => {
+      serve(threeItems());
+      const wrapper = await openPage();
+
+      await drag(wrapper, "Pirate Panic", "first-half", 1);
+
+      expect(titlesIn(half(wrapper, "first-half"))).toEqual([
+        "Curtain Up",
+        "Pirate Panic",
+        "Dance One",
+      ]);
+      expect(wrapper.find("[data-test=unsaved]").exists()).toBe(false);
+    });
+
+    it("gives each row a labelled drag handle alongside the move buttons", async () => {
+      serve(threeItems());
+      const wrapper = await openPage();
+
+      const row = rowFor(wrapper, "Pirate Panic");
+      expect(row.get(".drag-handle").attributes("aria-label")).toBe("Drag Pirate Panic");
+      expect(row.find("button[aria-label='Move Pirate Panic up']").exists()).toBe(true);
+      const halves = sortables.filter((s) => s.el.isConnected);
+      expect(halves).toHaveLength(2);
+      expect(halves.map((s) => [s.options.group, s.options.handle])).toEqual([
+        ["running-order", ".drag-handle"],
+        ["running-order", ".drag-handle"],
+      ]);
+    });
+
+    it("saves and resets dragged changes like moves", async () => {
+      serve(threeItems());
+      const wrapper = await openPage();
+      await drag(wrapper, "Dance One", "first-half", 0);
+
+      await wrapper.get("button[data-test=reset]").trigger("click");
+      await flushPromises();
+      expect(titlesIn(half(wrapper, "first-half"))).toEqual([
+        "Curtain Up",
+        "Pirate Panic",
+        "Dance One",
+      ]);
+
+      await drag(wrapper, "Dance One", "first-half", 0);
+      const saved = aRunningOrder(
+        [anItem("Dance One"), anItem("Curtain Up"), anItem("Pirate Panic")],
+        [anItem("Big Finish")],
+        7,
+      );
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue(new Response(JSON.stringify(saved), { status: 201 })),
+      );
+      await wrapper.get("button[data-test=save]").trigger("click");
+      await flushPromises();
+
+      expect(wrapper.text()).toContain("Draft 7");
+      expect(wrapper.find("[data-test=unsaved]").exists()).toBe(false);
+    });
+
+    it("stops dragging while a save is in progress", async () => {
+      serve(threeItems());
+      const wrapper = await openPage();
+      await drag(wrapper, "Dance One", "first-half", 0);
+      vi.stubGlobal("fetch", vi.fn().mockReturnValue(new Promise(() => {})));
+
+      await wrapper.get("button[data-test=save]").trigger("click");
+      await flushPromises();
+
+      const live = sortables.filter((s) => s.el.isConnected);
+      expect(live).toHaveLength(2);
+      expect(live.every((s) => s.option.mock.calls.some(([k, v]) => k === "disabled" && v))).toBe(
+        true,
+      );
     });
   });
 });
