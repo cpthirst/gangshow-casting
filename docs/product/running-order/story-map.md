@@ -18,7 +18,7 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [running-order.E1.S1](stories/E1-S1-view-running-order.md) | View the running order (walking skeleton: store → API → page) | FR1, FR2, FR12 | (none) | ready |
+| [running-order.E1.S1](stories/E1-S1-view-running-order.md) | View the running order (walking skeleton: store → API → page) | FR1, FR2, FR12 | (none) | in-progress |
 | [running-order.E1.S2](stories/E1-S2-running-clock.md) | See the running clock | FR3 | E1.S1 | ready |
 
 ## E2: Reorder the show

@@ -2,7 +2,7 @@
 id: running-order.E1.S1
 title: View the running order
 epic: E1
-status: ready
+status: in-progress
 ---
 
 ## Story
