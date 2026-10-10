@@ -1,6 +1,37 @@
-# dev-project-template-opinionated-harness
+# Chester Gang Show casting
 
-A reusable **TypeScript monorepo scaffold** with a **layered agent harness** for [Claude Code](https://claude.com/claude-code). It was extracted from a project that started as an interview-prep wiki, and is now a starting point for new projects: a small, deliberately empty app plus the instructions, skills, reviewers, hooks and pipelines that let coding agents work in it autonomously without quality slipping.
+A web app for the **Chester Gang Show production team** to plan and visualise casting: which Scouts and Explorers are in which items, and when, across the whole show. It helps the team spot clashes (such as back-to-back appearances with no time for a costume change) and see who is overused or underused, so stage time is spread fairly.
+
+Chester Gang Show is a volunteer-led Scouting variety show: comedy, music, dance, sketches and production numbers, created and performed by the local Scouting community for a family audience. The current production is the **70th anniversary show**.
+
+## The domain
+
+**The show is a sequence of items, not one play.** Production numbers, sketches, songs and dances each have their own cast, so casting is done per item.
+- Opening and finale numbers usually involve the whole cast; large ensemble numbers are normal.
+- Smaller items (sketches, featured songs, dance pieces) use a subset of the cast, and some have named or featured parts.
+- Each cast member appears in many items. *Who is in what, and when* matters more than one role per person.
+
+**The cast** is aged 10 to 25, drawn from Scouts (about 10½–14), Explorers (14–18) and Scout Network (18–25). This app focuses on **Scouts and Explorers**, so most of the cast is under 18. Age and ability vary a lot, and casting has to suit the performers.
+
+**Production realities that affect casting:**
+- **Quick changes.** A performer in two consecutive items may not have time to change costume. Back-to-back appearances are the most common clash to spot.
+- **Stage space, entrances and exits** affect who can be in adjacent items.
+- **Simple costume additions** are preferred over full changes, partly to make quick changes possible.
+- **Reliability in a live show** matters more than ambition on paper.
+- **Rehearsal availability is patchy**: many cast members and volunteers have other Scouting commitments.
+
+**Each year is a fresh production.** Items, characters, scripts, costumes and sets don't carry over unless explicitly brought back. Each production is its own self-contained set of items and casting, even when cast members return.
+
+**Who uses it:** adult volunteers on the production team (directors, item leaders, choreographers, wardrobe and stage management). They aren't necessarily technical and often work on this in the evenings around jobs and other Scouting roles, so the interface must be clear at a glance and quick to update during or after a rehearsal.
+
+### Safeguarding and data protection
+
+Most of the cast are under 18 and this is a Scouting activity, so the app is built with **youth safeguarding and UK GDPR** in mind:
+- **Store only what casting needs**: first name, surname initial, section and age band. No dates of birth, addresses, contact details, photos or medical information unless there is a clear, agreed need.
+- **Prefer age band or section** over exact age.
+- **Access is limited to the production team.** Casting data must never be publicly reachable.
+
+## Getting started
 
 ```bash
 pnpm install   # Node 26, pnpm 12 (also installs the git hooks)
@@ -8,19 +39,22 @@ pnpm dev       # web on :5173 + API dev server on :3000 (Vite proxies /api)
 pnpm check     # lint + docs lint + typecheck + tests + cdk synth: the definition of "done"
 ```
 
-Open http://localhost:5173 and you should see **"API: ok (dev)"**: the Vue app calling the API's health endpoint end to end.
+Open http://localhost:5173 and you should see **"API: ok (dev)"**: the Vue app calling the API's health endpoint end to end. That walking skeleton is where casting features start; each one arrives as a story (see [How a change flows](#how-a-change-flows)).
+
+The repo is built on an opinionated **TypeScript monorepo scaffold** with a **layered agent harness** for [Claude Code](https://claude.com/claude-code): instructions, skills, reviewers, hooks and pipelines that let coding agents work here autonomously without quality slipping. The rest of this README describes that engineering setup.
 
 ---
 
 ## Contents
 
+- [The domain](#the-domain)
 - [Repository layout](#repository-layout)
 - [The harness](#the-harness)
 - [How a change flows](#how-a-change-flows)
 - [Conventions](#conventions)
 - [The journey so far](#the-journey-so-far)
 - [Known trade-offs](#known-trade-offs)
-- [Reusing this as a template](#reusing-this-as-a-template)
+- [Origin](#origin)
 
 ---
 
@@ -228,27 +262,8 @@ Two process lessons recur throughout. First, **watch every check fail once befor
 
 ---
 
-## Reusing this as a template
+## Origin
 
-This repo is a GitHub **template repository**. To start a new project:
+This repo was created from the [dev-project-template-opinionated-harness](https://github.com/cpthirst/dev-project-template-opinionated-harness) template. "The journey so far" above records how that harness was built. Some template names remain in the code (`package.json`, `release-please-config.json`, `apps/web/index.html`, `apps/web/src/App.vue` and the CDK stack id in `infra/bin/app.ts`), and the example walking-skeleton story lives in `docs/product/platform/`.
 
-```bash
-gh repo create <new-name> --template cpthirst/dev-project-template-opinionated-harness --private --clone
-cd <new-name> && pnpm install && pnpm check
-```
-
-Or use **"Use this template"** on GitHub. The new repo starts with fresh history at version `0.0.0`.
-
-Then:
-
-1. **Rename** `dev-project-template-opinionated-harness` in `package.json`, `release-please-config.json` (`package-name`), `apps/web/index.html` and `apps/web/src/App.vue`. Also rename the CDK stack id `DevProjectTemplate` in `infra/bin/app.ts`.
-2. **Replace or delete** the example walking-skeleton story in `docs/product/platform/`.
-3. **GitHub settings:**
-   - **Actions → General**: allow GitHub Actions to create pull requests (release-please needs this).
-   - **General → Pull requests**: squash merging only, with "Pull request title" as the default commit message.
-   - **Rules**: add a ruleset for `main`, mirroring this repo's own. Rulesets are enforced on public repos, or on private ones with GitHub Pro. The ruleset should:
-     - require a pull request (0 approvals, squash only) and linear history;
-     - require the `check` and `commitlint` status checks, with the branch up to date;
-     - block force-pushes and deletion;
-     - let the **Repository admin** role bypass it, in **pull-requests-only** mode (so admins still can't push to `main` directly). Release PRs run neither required check: CI ignores `release-please--*` branches, and GitHub doesn't start the title check for PRs created with `GITHUB_TOKEN` (ADR 0004). Without the bypass, release PRs would wait for those checks forever.
-4. **Start the first feature** with the `write-prd` skill.
+New casting features start with the `write-prd` skill.
