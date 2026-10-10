@@ -159,4 +159,91 @@ describe("Running order page", () => {
 
     expect(wrapper.text()).toContain("Couldn't load the running order");
   });
+
+  describe("running clock", () => {
+    const startsAt = (wrapper: Awaited<ReturnType<typeof openPage>>, title: string) =>
+      rowFor(wrapper, title).get("[data-test=starts]").text();
+
+    it("shows when each item starts", async () => {
+      serve(
+        aRunningOrder([
+          anItem("Curtain Up", { minutes: 5 }),
+          anItem("Pirate Panic", { minutes: 18 }),
+        ]),
+      );
+
+      const wrapper = await openPage();
+
+      expect(startsAt(wrapper, "Curtain Up")).toBe("7:15 pm");
+      expect(startsAt(wrapper, "Pirate Panic")).toBe("7:20 pm");
+    });
+
+    it("shows each half's total", async () => {
+      serve(
+        aRunningOrder(
+          [anItem("Curtain Up", { minutes: 60 }), anItem("Pirate Panic", { minutes: 7 })],
+          [anItem("Big Finish", { minutes: 62 })],
+        ),
+      );
+
+      const wrapper = await openPage();
+
+      expect(half(wrapper, "first-half").get("[data-test=total]").text()).toBe("67 mins");
+      expect(half(wrapper, "second-half").get("[data-test=total]").text()).toBe("62 mins");
+    });
+
+    it("places the interval after the first half", async () => {
+      serve(
+        aRunningOrder(
+          [anItem("Curtain Up", { minutes: 60 }), anItem("Pirate Panic", { minutes: 7 })],
+          [anItem("Big Finish", { minutes: 62 })],
+        ),
+      );
+
+      const wrapper = await openPage();
+
+      expect(wrapper.get("[data-test=interval]").text()).toBe("Interval 8:22 pm – 8:42 pm");
+      expect(startsAt(wrapper, "Big Finish")).toBe("8:42 pm");
+    });
+
+    it("shows the projected finish", async () => {
+      serve(
+        aRunningOrder(
+          [anItem("Curtain Up", { minutes: 67 })],
+          [anItem("Big Finish", { minutes: 62 })],
+        ),
+      );
+
+      const wrapper = await openPage();
+
+      expect(wrapper.get("[data-test=finish]").text()).toBe("Projected finish 9:44 pm");
+    });
+
+    it("flags untimed items and counts them as zero", async () => {
+      serve(
+        aRunningOrder(
+          [anItem("Curtain Up", { minutes: 5 })],
+          [anItem("Big Finish", { minutes: null }), anItem("Encore", { minutes: 3 })],
+        ),
+      );
+
+      const wrapper = await openPage();
+
+      expect(rowFor(wrapper, "Big Finish").get("[data-test=minutes]").text()).toBe("Untimed");
+      expect(startsAt(wrapper, "Encore")).toBe(startsAt(wrapper, "Big Finish"));
+    });
+
+    it("counts items not in the printed programme towards the time", async () => {
+      serve(
+        aRunningOrder([
+          anItem("Curtain Up", { minutes: 5 }),
+          anItem("Producers' Call", { minutes: 4, printed: false }),
+        ]),
+      );
+
+      const wrapper = await openPage();
+
+      expect(half(wrapper, "first-half").get("[data-test=total]").text()).toBe("9 mins");
+    });
+  });
 });
