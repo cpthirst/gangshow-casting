@@ -123,3 +123,85 @@ describe("App shell", () => {
     expect(wrapper.text()).toContain("API: unavailable");
   });
 });
+
+function screenIs(size: "phone" | "laptop") {
+  vi.stubGlobal("matchMedia", (query: string) => ({
+    matches: size === "phone",
+    media: query,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+  }));
+}
+
+describe("App shell on a phone", () => {
+  beforeEach(() => {
+    vi.stubGlobal("fetch", respondWith(200, { status: "ok", version: "1.2.3" }));
+    screenIs("phone");
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.body.innerHTML = "";
+  });
+
+  const menuButton = (wrapper: Awaited<ReturnType<typeof openAppAt>>["wrapper"]) =>
+    wrapper.get("button[aria-controls=main-menu]");
+  const menuIsVisible = (wrapper: Awaited<ReturnType<typeof openAppAt>>["wrapper"]) =>
+    wrapper.get("#main-menu").isVisible();
+
+  it("starts with the menu closed behind a Menu button", async () => {
+    const { wrapper } = await openAppAt("/");
+
+    expect(menuButton(wrapper).text()).toBe("Menu");
+    expect(menuButton(wrapper).attributes("aria-expanded")).toBe("false");
+    expect(menuIsVisible(wrapper)).toBe(false);
+  });
+
+  it("opens the menu from the Menu button", async () => {
+    const { wrapper } = await openAppAt("/");
+
+    await menuButton(wrapper).trigger("click");
+
+    expect(menuIsVisible(wrapper)).toBe(true);
+    expect(menuButton(wrapper).attributes("aria-expanded")).toBe("true");
+  });
+
+  it("closes the menu after choosing a page", async () => {
+    const { wrapper } = await openAppAt("/");
+    await menuButton(wrapper).trigger("click");
+
+    await wrapper.get("#main-menu a[href='/cast']").trigger("click");
+    await flushPromises();
+
+    expect(wrapper.get("main h1").text()).toBe("Cast");
+    expect(menuIsVisible(wrapper)).toBe(false);
+    expect(menuButton(wrapper).attributes("aria-expanded")).toBe("false");
+  });
+
+  it("closes the menu on Escape and returns focus to the Menu button", async () => {
+    const { wrapper } = await openAppAt("/");
+    await menuButton(wrapper).trigger("click");
+
+    await wrapper.get("#main-menu a").trigger("keydown", { key: "Escape" });
+
+    expect(menuIsVisible(wrapper)).toBe(false);
+    expect(document.activeElement).toBe(menuButton(wrapper).element);
+  });
+});
+
+describe("App shell on a laptop", () => {
+  beforeEach(() => {
+    vi.stubGlobal("fetch", respondWith(200, { status: "ok", version: "1.2.3" }));
+    screenIs("laptop");
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.body.innerHTML = "";
+  });
+
+  it("keeps the menu visible with no Menu button", async () => {
+    const { wrapper } = await openAppAt("/");
+
+    expect(wrapper.find("button[aria-controls=main-menu]").exists()).toBe(false);
+    expect(wrapper.get("#main-menu").isVisible()).toBe(true);
+  });
+});

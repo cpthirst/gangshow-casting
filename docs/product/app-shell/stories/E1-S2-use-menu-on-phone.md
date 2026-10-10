@@ -2,7 +2,7 @@
 id: app-shell.E1.S2
 title: Use the menu on a phone
 epic: E1
-status: ready
+status: in-progress
 ---
 
 ## Story

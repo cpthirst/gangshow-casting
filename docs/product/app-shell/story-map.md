@@ -17,7 +17,7 @@ prd: ./prd.md
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
 | [app-shell.E1.S1](stories/E1-S1-navigate-between-pages.md) | Navigate between placeholder pages in a branded shell | FR1, FR2, FR3, FR4, FR5, FR7, FR8 | (none) | done |
-| [app-shell.E1.S2](stories/E1-S2-use-menu-on-phone.md) | Use the menu on a phone | FR6 | E1.S1 | ready |
+| [app-shell.E1.S2](stories/E1-S2-use-menu-on-phone.md) | Use the menu on a phone | FR6 | E1.S1 | in-progress |
 
 ## FR coverage
 
