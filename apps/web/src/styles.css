@@ -118,9 +118,10 @@ body {
   margin: 0;
 }
 
+/* Pages use the full width beside the sidebar, so tables have room to fit. */
 main {
   padding: 2.5rem;
-  max-width: 60rem;
+  min-width: 0;
 }
 
 main:focus {
@@ -210,7 +211,12 @@ main a {
   font-weight: 900;
 }
 
-/* Wide tables scroll inside their own box, so the page itself never scrolls sideways. */
+/* Each half sizes its table to its own width (see the stacked layout below). */
+.half {
+  container-type: inline-size;
+}
+
+/* A last resort: if a table still can't fit, it scrolls inside its box, never the page. */
 .table-scroll {
   overflow-x: auto;
   background: var(--white);
@@ -219,7 +225,6 @@ main a {
 
 .running-order {
   width: 100%;
-  min-width: 48rem;
   border-collapse: collapse;
   font-size: 0.9375rem;
 }
@@ -239,7 +244,39 @@ main a {
 }
 
 .running-order .title {
+  min-width: 9rem;
   font-weight: 700;
+}
+
+/* Text columns wrap between words (and only break a word that can't fit at all);
+   short columns stay on one line and take only the room they need. */
+.running-order td {
+  overflow-wrap: break-word;
+}
+
+.running-order td[data-label="Cast"],
+.running-order td[data-label="Comments"] {
+  min-width: 9rem;
+}
+
+.running-order td.moves,
+.running-order td.starts,
+.running-order td.minutes {
+  width: 1%;
+  white-space: nowrap;
+}
+
+/* The number column is narrow; the "Not in printed programme" badge wraps inside it. */
+.running-order td[data-test="number"] {
+  width: 1%;
+  max-width: 6.5rem;
+}
+
+.running-order td[data-test="number"] .badge {
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.375rem;
+  white-space: normal;
+  text-align: center;
 }
 
 .running-order .minutes {
@@ -287,6 +324,93 @@ main a {
   user-select: none;
   /* Let SortableJS take touch drags instead of the page scrolling. */
   touch-action: none;
+}
+
+/* Narrow boxes (phones, tablets, split screens): each item becomes a stacked card with
+   labelled details, so nothing scrolls sideways. Same table underneath, so dragging,
+   move buttons and screen-reader cell labels all still work. */
+@container (max-width: 50rem) {
+  .running-order,
+  .running-order tbody,
+  .running-order tfoot,
+  .running-order tr,
+  .running-order td,
+  .running-order th {
+    display: block;
+    width: auto;
+  }
+
+  .running-order thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .running-order tbody tr[data-item-id] {
+    padding: 0.75rem 1rem;
+    border-bottom: 4px solid var(--surface);
+  }
+
+  .running-order td {
+    padding: 0.125rem 0;
+    border: none;
+    text-align: left;
+  }
+
+  .running-order td[data-label]:empty {
+    display: none;
+  }
+
+  .running-order td[data-label]::before {
+    content: attr(data-label) " ";
+    font-size: 0.75rem;
+    font-style: normal;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* No labels where the content speaks for itself. */
+  .running-order td.moves::before,
+  .running-order td.title::before {
+    content: none;
+  }
+
+  .running-order td.moves {
+    margin-bottom: 0.25rem;
+  }
+
+  .running-order td.title {
+    font-size: 1.0625rem;
+  }
+
+  /* Number, start time and minutes sit together on one line. */
+  .running-order td[data-test="number"],
+  .running-order td.starts,
+  .running-order td.minutes {
+    display: inline-block;
+    width: auto;
+    max-width: none;
+    margin-right: 1.25rem;
+    text-align: left;
+  }
+
+  .running-order td.moves {
+    width: auto;
+  }
+
+  .running-order tfoot tr {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+  }
+
+  .running-order tfoot th,
+  .running-order tfoot td {
+    padding: 0;
+  }
 }
 
 /* Tall enough to drop an item into once a half is empty. */

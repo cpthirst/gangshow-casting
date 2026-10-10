@@ -141,6 +141,20 @@ describe("Running order page", () => {
     expect(cellUnder("Mins")).toBe("18");
   });
 
+  it("labels every cell with its column, for the stacked layout on narrow screens", async () => {
+    serve(aRunningOrder([anItem("Curtain Up")]));
+
+    const wrapper = await openPage();
+
+    const headers = half(wrapper, "first-half")
+      .findAll("thead th")
+      .map((th) => th.text());
+    const labels = rowFor(wrapper, "Curtain Up")
+      .findAll("td")
+      .map((cell) => cell.attributes("data-label"));
+    expect(labels).toEqual(headers);
+  });
+
   it("shows the current version as a draft number", async () => {
     serve(aRunningOrder([anItem("Curtain Up")], [], 6));
 

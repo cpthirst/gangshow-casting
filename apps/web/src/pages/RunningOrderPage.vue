@@ -226,7 +226,7 @@ function refocus(itemId: string, direction: Move) {
                 :data-item-id="item.id"
                 :class="{ 'not-printed': number === null }"
               >
-                <td class="moves">
+                <td class="moves" data-label="Move">
                   <span
                     class="drag-handle"
                     role="img"
@@ -265,17 +265,17 @@ function refocus(itemId: string, direction: Move) {
                     ⇄
                   </button>
                 </td>
-                <td data-test="number">
+                <td data-test="number" data-label="#">
                   <template v-if="number !== null">{{ number }}</template>
                   <span v-else class="badge">Not in printed programme</span>
                 </td>
-                <td data-test="starts" class="starts">{{ formatTime(startsAt) }}</td>
-                <td data-test="title" class="title">{{ item.title }}</td>
-                <td>{{ item.cast }}</td>
-                <td>{{ stageLabel(item.stage) }}</td>
-                <td>{{ item.leads }}</td>
-                <td>{{ item.comments }}</td>
-                <td data-test="minutes" class="minutes">
+                <td data-test="starts" class="starts" data-label="Starts">{{ formatTime(startsAt) }}</td>
+                <td data-test="title" class="title" data-label="Item">{{ item.title }}</td>
+                <td data-label="Cast">{{ item.cast }}</td>
+                <td data-label="Stage">{{ stageLabel(item.stage) }}</td>
+                <td data-label="Leads">{{ item.leads }}</td>
+                <td data-label="Comments">{{ item.comments }}</td>
+                <td data-test="minutes" class="minutes" data-label="Mins">
                   <template v-if="item.minutes !== null">{{ item.minutes }}</template>
                   <span v-else class="badge">Untimed</span>
                 </td>
