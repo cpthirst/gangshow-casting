@@ -256,8 +256,9 @@ describe("Running order page", () => {
       let latest = initial;
       vi.stubGlobal(
         "fetch",
-        vi.fn(async (_url: string, init?: RequestInit) => {
+        vi.fn(async (url: string, init?: RequestInit) => {
           if (init?.method !== "POST") return new Response(JSON.stringify(latest));
+          expect(url).toBe("/api/productions/2027/running-order/versions");
           const { baseVersion, change } = SaveRunningOrderRequest.parse(
             JSON.parse(String(init.body)),
           );
@@ -403,7 +404,9 @@ describe("Running order page", () => {
       expect(wrapper.get("[role=status]").text()).toBe(
         "Curtain Up moved to position 2. Saved as Draft 7.",
       );
-      expect(rowFor(wrapper, "Curtain Up").element.contains(document.activeElement)).toBe(true);
+      const focused = document.activeElement;
+      expect(focused?.tagName).toBe("BUTTON");
+      expect(rowFor(wrapper, "Curtain Up").element.contains(focused)).toBe(true);
     });
 
     it("announces a move into the other half with its new position", async () => {

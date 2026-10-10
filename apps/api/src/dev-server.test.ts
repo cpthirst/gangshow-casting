@@ -33,6 +33,24 @@ describe("dev server", () => {
     expect((await fetch(`${baseUrl}/api/health`)).status).toBe(200);
   });
 
+  it("routes POST running order versions to the save handler", async () => {
+    const res = await fetch(`${baseUrl}/api/productions/2027/running-order/versions`, {
+      method: "POST",
+      body: "{not json",
+    });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects an oversized request body with 413", async () => {
+    const res = await fetch(`${baseUrl}/api/productions/2027/running-order/versions`, {
+      method: "POST",
+      body: "x".repeat(300 * 1024),
+    });
+
+    expect(res.status).toBe(413);
+  });
+
   it("returns 404 for routes that don't exist", async () => {
     const res = await fetch(`${baseUrl}/api/nope`);
 

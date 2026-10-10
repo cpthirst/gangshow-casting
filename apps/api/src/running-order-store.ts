@@ -1,10 +1,12 @@
-import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import { link, mkdir, readdir, readFile, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ProductionId, RunningOrder } from "@app/shared";
 
 /** Where running order versions live. Each version is a complete, never-edited snapshot. */
 export interface RunningOrderStore {
   latest(productionId: string): Promise<RunningOrder | undefined>;
+  /** One saved version. Not used by a route yet; kept so old versions stay recoverable (FR11). */
   get(productionId: string, version: number): Promise<RunningOrder | undefined>;
   /** Saves a new version; "conflict" if that version number already exists. */
   save(order: RunningOrder): Promise<"saved" | "conflict">;
@@ -58,15 +60,18 @@ export function fileRunningOrderStore(dataDir: string): RunningOrderStore {
     async save(order) {
       const folder = folderFor(order.productionId);
       await mkdir(folder, { recursive: true });
+      // Write in full to a temp file, then link it into place: readers never see a
+      // half-written version, and link fails if the version exists, so two saves can't both win.
+      const temp = join(folder, `.${randomUUID()}.tmp`);
+      await writeFile(temp, JSON.stringify(order, null, 2));
       try {
-        // "wx" creates the file only if it doesn't exist, so two saves can't both win.
-        await writeFile(join(folder, `v${order.version}.json`), JSON.stringify(order, null, 2), {
-          flag: "wx",
-        });
+        await link(temp, join(folder, `v${order.version}.json`));
         return "saved";
       } catch (error) {
         if (hasCode(error, "EEXIST")) return "conflict";
         throw error;
+      } finally {
+        await unlink(temp);
       }
     },
   };

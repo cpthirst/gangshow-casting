@@ -18,6 +18,7 @@ function reorder(latest: RunningOrder, change: ReorderChange): ChangeResult {
     ids.length === byId.size && new Set(ids).size === ids.length && ids.every((id) => byId.has(id));
   if (!sameItems) return { ok: false, error: "A reorder must list every item exactly once" };
 
+  // Every id is known (checked above); flatMap just keeps the types honest.
   const itemsFor = (itemIds: string[]) => itemIds.flatMap((id) => byId.get(id) ?? []);
   const [first, second] = latest.halves;
   return {

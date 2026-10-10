@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { RunningOrder } from "@app/shared";
+import { type ReorderChange, RunningOrder } from "@app/shared";
 import { computed, nextTick, onMounted, ref } from "vue";
 import {
   formatTime,
@@ -57,28 +57,41 @@ async function move(itemId: string, title: string, direction: Move) {
 
   saving = true;
   notice.value = "";
+  const result = await saveChange(order.version, change);
+  saving = false;
+
+  if (result.outcome === "failed") {
+    notice.value = "Couldn't save that change. Try again.";
+  } else {
+    state.value = { status: "loaded", order: result.order };
+    if (result.outcome === "conflict") {
+      notice.value = `Someone else changed the running order. Showing the latest (Draft ${result.order.version}).`;
+    }
+  }
+  announcement.value =
+    notice.value ||
+    (result.outcome === "saved"
+      ? `${describeMove(order, result.order, itemId, title)} Saved as Draft ${result.order.version}.`
+      : "");
+  await nextTick();
+  refocus(itemId, direction);
+}
+
+type SaveResult = { outcome: "saved" | "conflict"; order: RunningOrder } | { outcome: "failed" };
+
+// 201 → saved; 409 → someone else saved first (the body is their version); anything else failed.
+async function saveChange(baseVersion: number, change: ReorderChange): Promise<SaveResult> {
   try {
     const res = await fetch(`${API_PATH}/versions`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ baseVersion: order.version, change }),
+      body: JSON.stringify({ baseVersion, change }),
     });
-    if (res.status !== 201 && res.status !== 409) throw new Error(`HTTP ${res.status}`);
-    const latest = RunningOrder.parse(await res.json());
-    state.value = { status: "loaded", order: latest };
-    if (res.status === 409) {
-      notice.value = `Someone else changed the running order. Showing the latest (Draft ${latest.version}).`;
-      announcement.value = notice.value;
-    } else {
-      announcement.value = `${describeMove(order, latest, itemId, title)} Saved as Draft ${latest.version}.`;
-    }
-    await nextTick();
-    refocus(itemId, direction);
+    if (res.status !== 201 && res.status !== 409) return { outcome: "failed" };
+    const order = RunningOrder.parse(await res.json());
+    return { outcome: res.status === 201 ? "saved" : "conflict", order };
   } catch {
-    notice.value = "Couldn't save that change. Try again.";
-    announcement.value = notice.value;
-  } finally {
-    saving = false;
+    return { outcome: "failed" };
   }
 }
 
@@ -91,10 +104,12 @@ function describeMove(before: RunningOrder, after: RunningOrder, itemId: string,
     : `${title} moved to the ${to.half.name.toLowerCase()}, position ${to.position}.`;
 }
 
+const otherHalf = (halfIndex: number) => (halfIndex === 0 ? "second" : "first");
+
 // The row moves in the DOM, so put focus back on the same button, or another
 // move button in that row if the same move is no longer possible.
 function refocus(itemId: string, direction: Move) {
-  const row = document.querySelector(`[data-item-id="${itemId}"]`);
+  const row = document.querySelector(`[data-item-id="${CSS.escape(itemId)}"]`);
   const button =
     row?.querySelector<HTMLButtonElement>(`[data-move="${direction}"]:not(:disabled)`) ??
     row?.querySelector<HTMLButtonElement>("[data-move]:not(:disabled)");
@@ -163,10 +178,10 @@ function refocus(itemId: string, direction: Move) {
                   <button
                     type="button"
                     data-move="other-half"
-                    :aria-label="`Move ${item.title} to ${i === 0 ? 'second' : 'first'} half`"
+                    :aria-label="`Move ${item.title} to ${otherHalf(i)} half`"
                     @click="move(item.id, item.title, 'other-half')"
                   >
-                    To {{ i === 0 ? "second" : "first" }} half
+                    To {{ otherHalf(i) }} half
                   </button>
                 </td>
                 <td data-test="number">
