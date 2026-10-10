@@ -8,6 +8,7 @@ import {
   locate,
   type Move,
   moveItem,
+  replaceItem,
   runningClock,
   sameContent,
   stageLabel,
@@ -89,15 +90,7 @@ function startEdit(itemId: string) {
 async function applyEdit(edited: RunningOrderItem) {
   if (state.value.status !== "loaded") return;
   const { working } = state.value;
-  const replace = (items: RunningOrderItem[]) =>
-    items.map((item) => (item.id === edited.id ? edited : item));
-  const changed: RunningOrder = {
-    ...working,
-    halves: [
-      { ...working.halves[0], items: replace(working.halves[0].items) },
-      { ...working.halves[1], items: replace(working.halves[1].items) },
-    ],
-  };
+  const changed = replaceItem(working, edited);
   if (!sameContent(changed, working)) {
     state.value = { ...state.value, working: changed };
     notice.value = "";
@@ -272,69 +265,69 @@ function refocus(itemId: string, direction: Move) {
                   <ItemEditor :item="item" @apply="applyEdit" @cancel="endEdit(item.id)" />
                 </td>
                 <template v-else>
-                <td class="moves" data-label="Move" role="cell">
-                  <span
-                    class="drag-handle"
-                    role="img"
-                    data-tooltip="Drag to reorder"
-                    :aria-label="`Drag ${item.title}`"
-                    >⠿</span
-                  >
-                  <button
-                    type="button"
-                    data-move="up"
-                    :aria-label="`Move ${item.title} up`"
-                    data-tooltip="Move up"
-                    :disabled="busy || !moveItem(loaded.working, item.id, 'up')"
-                    @click="move(item.id, 'up')"
-                  >
-                    ↑
-                  </button>
-                  <button
-                    type="button"
-                    data-move="down"
-                    :aria-label="`Move ${item.title} down`"
-                    data-tooltip="Move down"
-                    :disabled="busy || !moveItem(loaded.working, item.id, 'down')"
-                    @click="move(item.id, 'down')"
-                  >
-                    ↓
-                  </button>
-                  <button
-                    type="button"
-                    data-move="other-half"
-                    :disabled="busy"
-                    :aria-label="`Move ${item.title} to ${otherHalf(i)} half`"
-                    :data-tooltip="`Move to ${otherHalf(i)} half`"
-                    @click="move(item.id, 'other-half')"
-                  >
-                    ⇄
-                  </button>
-                  <button
-                    type="button"
-                    data-edit
-                    :disabled="busy"
-                    :aria-label="`Edit ${item.title}`"
-                    data-tooltip="Edit details"
-                    @click="startEdit(item.id)"
-                  >
-                    ✎
-                  </button>
-                </td>
-                <td data-test="number" class="number" data-label="#" role="cell">
-                  <template v-if="number !== null">{{ number }}</template>
-                  <span v-else class="badge">Not in printed programme</span>
-                </td>
-                <td data-test="starts" class="starts" data-label="Starts" role="cell">{{ formatTime(startsAt) }}</td>
-                <td data-test="title" class="title" data-label="Item" role="cell">{{ item.title }}</td>
-                <td class="cast" data-label="Cast" role="cell">{{ item.cast }}</td>
-                <td data-label="Stage" role="cell">{{ stageLabel(item.stage) }}</td>
-                <td data-label="Leads" role="cell">{{ item.leads }}</td>
-                <td class="comments" data-label="Comments" role="cell">{{ item.comments }}</td>
-                <td data-test="minutes" class="minutes" data-label="Mins" role="cell">
-                  <template v-if="item.minutes !== null">{{ item.minutes }}</template>
-                  <span v-else class="badge">Untimed</span>
-                </td>
+                  <td class="moves" data-label="Move" role="cell">
+                    <span
+                      class="drag-handle"
+                      role="img"
+                      data-tooltip="Drag to reorder"
+                      :aria-label="`Drag ${item.title}`"
+                      >⠿</span
+                    >
+                    <button
+                      type="button"
+                      data-move="up"
+                      :aria-label="`Move ${item.title} up`"
+                      data-tooltip="Move up"
+                      :disabled="busy || !moveItem(loaded.working, item.id, 'up')"
+                      @click="move(item.id, 'up')"
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      data-move="down"
+                      :aria-label="`Move ${item.title} down`"
+                      data-tooltip="Move down"
+                      :disabled="busy || !moveItem(loaded.working, item.id, 'down')"
+                      @click="move(item.id, 'down')"
+                    >
+                      ↓
+                    </button>
+                    <button
+                      type="button"
+                      data-move="other-half"
+                      :disabled="busy"
+                      :aria-label="`Move ${item.title} to ${otherHalf(i)} half`"
+                      :data-tooltip="`Move to ${otherHalf(i)} half`"
+                      @click="move(item.id, 'other-half')"
+                    >
+                      ⇄
+                    </button>
+                    <button
+                      type="button"
+                      data-edit
+                      :disabled="busy"
+                      :aria-label="`Edit ${item.title}`"
+                      data-tooltip="Edit details"
+                      @click="startEdit(item.id)"
+                    >
+                      ✎
+                    </button>
+                  </td>
+                  <td data-test="number" class="number" data-label="#" role="cell">
+                    <template v-if="number !== null">{{ number }}</template>
+                    <span v-else class="badge">Not in printed programme</span>
+                  </td>
+                  <td data-test="starts" class="starts" data-label="Starts" role="cell">{{ formatTime(startsAt) }}</td>
+                  <td data-test="title" class="title" data-label="Item" role="cell">{{ item.title }}</td>
+                  <td class="cast" data-label="Cast" role="cell">{{ item.cast }}</td>
+                  <td data-label="Stage" role="cell">{{ stageLabel(item.stage) }}</td>
+                  <td data-label="Leads" role="cell">{{ item.leads }}</td>
+                  <td class="comments" data-label="Comments" role="cell">{{ item.comments }}</td>
+                  <td data-test="minutes" class="minutes" data-label="Mins" role="cell">
+                    <template v-if="item.minutes !== null">{{ item.minutes }}</template>
+                    <span v-else class="badge">Untimed</span>
+                  </td>
                 </template>
               </tr>
               <tr v-if="rows.length === 0" class="empty-half" role="row">

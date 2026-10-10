@@ -32,7 +32,7 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [running-order.E3.S1](stories/E3-S1-edit-item-details.md) | Edit an item's details | FR6, FR7, FR9 | E2.S1 | in-progress |
+| [running-order.E3.S1](stories/E3-S1-edit-item-details.md) | Edit an item's details | FR6, FR7, FR9 | E2.S1 | done |
 | [running-order.E3.S2](stories/E3-S2-add-and-remove-items.md) | Add and remove items: **dropped for now** (deferred 2026-10-10, product owner) | FR6, FR10 | E3.S1 | dropped |
 
 ## FR coverage

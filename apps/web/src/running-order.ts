@@ -174,17 +174,17 @@ export const formFor = (item: RunningOrderItem): ItemForm => ({
   printed: item.printed,
 });
 
-const fieldMessages: Record<keyof ItemForm, string> = {
+// Every field that can fail validation (a checkbox can't).
+const fieldMessages: Record<Exclude<keyof ItemForm, "printed">, string> = {
   title: "Enter a title (up to 120 characters).",
   cast: "Keep this to 500 characters or fewer.",
   stage: "Choose where on stage this happens.",
   leads: "Keep this to 500 characters or fewer.",
   comments: "Keep this to 500 characters or fewer.",
   minutes: "Enter whole minutes from 0 to 240, or leave it blank.",
-  printed: "",
 };
 
-const isFormField = (key: unknown): key is keyof ItemForm =>
+const isFormField = (key: unknown): key is keyof typeof fieldMessages =>
   typeof key === "string" && key in fieldMessages;
 
 export type ItemFormResult =
@@ -199,7 +199,8 @@ export function itemFrom(form: ItemForm, id: string): ItemFormResult {
     id,
     title: form.title.trim(),
     cast: form.cast.trim(),
-    stage: form.stage.split("/").map((part) => part.trim().toLowerCase()),
+    // An empty label means no stage set yet.
+    stage: form.stage.trim() === "" ? [] : form.stage.split("/").map((p) => p.trim().toLowerCase()),
     leads: form.leads.trim(),
     comments: form.comments.trim(),
     // Anything but whole digits fails the schema's integer check below.
@@ -215,6 +216,19 @@ export function itemFrom(form: ItemForm, id: string): ItemFormResult {
     if (isFormField(field)) errors[field] = fieldMessages[field];
   }
   return { ok: false, errors };
+}
+
+/** The order with one item's details replaced, wherever it is. */
+export function replaceItem(order: RunningOrder, edited: RunningOrderItem): RunningOrder {
+  const replace = (items: RunningOrderItem[]) =>
+    items.map((item) => (item.id === edited.id ? edited : item));
+  return {
+    ...order,
+    halves: [
+      { ...order.halves[0], items: replace(order.halves[0].items) },
+      { ...order.halves[1], items: replace(order.halves[1].items) },
+    ],
+  };
 }
 
 /** The item, which half it's in and its 1-based position there. */

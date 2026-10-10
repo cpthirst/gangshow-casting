@@ -2,7 +2,7 @@
 id: running-order.E3.S1
 title: Edit an item's details
 epic: E3
-status: in-progress
+status: done
 ---
 
 ## Story

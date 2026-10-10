@@ -885,8 +885,23 @@ describe("Running order page", () => {
         const describedBy = input.attributes("aria-describedby") ?? "";
         expect(wrapper.get(`[id="${describedBy}"]`).text()).toBe(message);
         expect(unsaved(wrapper)).toBe(false);
+
+        await wrapper.get("form[data-test=item-editor] button[data-test=cancel]").trigger("click");
+        await flushPromises();
+        expect(cell(wrapper, "Pirate Panic", "Item")).toBe("Pirate Panic");
+        expect(cell(wrapper, "Pirate Panic", "Mins")).toBe("18");
       },
     );
+
+    it("doesn't cancel the edit when Escape closes the stage list", async () => {
+      api(order());
+      const wrapper = await openPage();
+      const form = await openEditor(wrapper, "Pirate Panic");
+
+      await form.get("select[name=stage]").trigger("keydown", { key: "Escape" });
+
+      expect(wrapper.find("form[data-test=item-editor]").exists()).toBe(true);
+    });
 
     it("cancels an edit, leaving the item and the draft unchanged", async () => {
       api(order());

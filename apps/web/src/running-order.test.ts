@@ -1,6 +1,13 @@
 import type { RunningOrder, RunningOrderItem } from "@app/shared";
 import { describe, expect, it } from "vitest";
-import { dropItem, formatTime, formFor, type ItemForm, itemFrom } from "./running-order.ts";
+import {
+  dropItem,
+  formatTime,
+  formFor,
+  type ItemForm,
+  itemFrom,
+  replaceItem,
+} from "./running-order.ts";
 
 describe("formatTime", () => {
   it.each([
@@ -88,6 +95,12 @@ describe("item form", () => {
     expect(itemFrom(formFor(pirates), pirates.id)).toEqual({ ok: true, item: pirates });
   });
 
+  it("round-trips an item with no stage set", () => {
+    const noStage = { ...pirates, stage: [] };
+
+    expect(itemFrom(formFor(noStage), noStage.id)).toEqual({ ok: true, item: noStage });
+  });
+
   it("reads blank minutes as untimed and trims text", () => {
     const result = itemFrom({ ...formFor(pirates), minutes: " ", title: "  Pirate Panic " }, "id");
 
@@ -108,5 +121,39 @@ describe("item form", () => {
 
     expect(result.ok).toBe(false);
     expect(!result.ok && result.errors[field]).toBe(message);
+  });
+});
+
+describe("replaceItem", () => {
+  const item = (title: string): RunningOrderItem => ({
+    id: `itm_${title}`,
+    title,
+    cast: "",
+    stage: ["full"],
+    leads: "",
+    comments: "",
+    minutes: 5,
+    printed: true,
+  });
+  const order: RunningOrder = {
+    productionId: "2027",
+    title: "Gang Show 2027",
+    version: 6,
+    savedAt: "2026-10-04T00:00:00.000Z",
+    startTime: "19:15",
+    intervalMinutes: 20,
+    halves: [
+      { id: "first-half", name: "First half", items: [item("A"), item("B")] },
+      { id: "second-half", name: "Second half", items: [item("C")] },
+    ],
+  };
+
+  it("swaps in the edited item, in place, in whichever half it's in", () => {
+    const edited = { ...item("C"), minutes: 9 };
+
+    const result = replaceItem(order, edited);
+
+    expect(result.halves[1].items).toEqual([edited]);
+    expect(result.halves[0].items).toEqual(order.halves[0].items);
   });
 });

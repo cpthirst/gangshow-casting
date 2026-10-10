@@ -23,6 +23,11 @@ const invalid = (field: keyof ItemForm) =>
 const titleInput = ref<HTMLInputElement>();
 onMounted(() => titleInput.value?.focus());
 
+// Escape cancels the edit, except when it's closing the stage list.
+function onEscape(event: KeyboardEvent) {
+  if (!(event.target instanceof HTMLSelectElement)) emit("cancel");
+}
+
 function submit() {
   const result = itemFrom(form.value, props.item.id);
   if (result.ok) emit("apply", result.item);
@@ -37,7 +42,7 @@ function submit() {
     :aria-label="`Edit ${item.title}`"
     novalidate
     @submit.prevent="submit"
-    @keydown.esc="emit('cancel')"
+    @keydown.esc="onEscape"
   >
     <div class="field wide">
       <label :for="idFor('title')">Title</label>
@@ -58,7 +63,9 @@ function submit() {
     <div class="field">
       <label :for="idFor('stage')">Stage</label>
       <select :id="idFor('stage')" v-model="form.stage" name="stage" v-bind="invalid('stage')">
-        <option v-for="choice in stageChoices" :key="choice" :value="choice">{{ choice }}</option>
+        <option v-for="choice in stageChoices" :key="choice" :value="choice">
+          {{ choice || "Not set" }}
+        </option>
       </select>
       <p v-if="errors.stage" :id="errorFor('stage')" class="field-error">{{ errors.stage }}</p>
     </div>
