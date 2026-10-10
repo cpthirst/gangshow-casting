@@ -1,27 +1,69 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, watch } from "vue";
 import HealthStatus from "./HealthStatus.vue";
 import { menuPages } from "./router.ts";
+import { useMediaQuery } from "./useMediaQuery.ts";
+
+// Must match the phone @media query in styles.css.
+const PHONE_QUERY = "(max-width: 767px)";
 
 const main = ref<HTMLElement>();
+const menuButton = ref<HTMLButtonElement>();
+const isPhone = useMediaQuery(PHONE_QUERY);
+const isMenuOpen = ref(false);
+
+// A menu left open on a phone shouldn't reappear after a rotate or resize.
+watch(isPhone, closeMenu);
 
 // Focus the content directly: a plain #main link would also change the URL.
-function skipToContent() {
+function focusContent() {
   main.value?.focus();
+}
+
+function toggleMenu() {
+  isMenuOpen.value = !isMenuOpen.value;
+}
+
+function closeMenu() {
+  isMenuOpen.value = false;
+}
+
+// The chosen link is about to be hidden, so move focus rather than lose it.
+function onMenuChoice() {
+  if (!isMenuOpen.value) return;
+  closeMenu();
+  focusContent();
+}
+
+function onEscape() {
+  if (!isMenuOpen.value) return;
+  closeMenu();
+  menuButton.value?.focus();
 }
 </script>
 
 <template>
-  <a class="skip-link" href="#main" data-test="skip-link" @click.prevent="skipToContent">
+  <a class="skip-link" href="#main" data-test="skip-link" @click.prevent="focusContent">
     Skip to main content
   </a>
   <div class="shell">
-    <aside class="sidebar">
+    <aside class="sidebar" @keydown.esc="onEscape">
       <p class="wordmark" data-test="wordmark">
         <span class="wordmark-name">Chester Gang Show</span>
         <span class="wordmark-sub">Casting</span>
       </p>
-      <nav aria-label="Main">
+      <button
+        v-if="isPhone"
+        ref="menuButton"
+        class="menu-button"
+        type="button"
+        aria-controls="main-menu"
+        :aria-expanded="isMenuOpen"
+        @click="toggleMenu"
+      >
+        Menu
+      </button>
+      <nav v-show="!isPhone || isMenuOpen" id="main-menu" aria-label="Main" @click="onMenuChoice">
         <ul>
           <li v-for="page in menuPages" :key="page.name">
             <RouterLink :to="page.path">{{ page.meta.title }}</RouterLink>
