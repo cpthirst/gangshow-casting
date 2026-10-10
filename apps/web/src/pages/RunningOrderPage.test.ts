@@ -390,6 +390,20 @@ describe("Running order page", () => {
       expect(titlesIn(half(wrapper, "second-half"))).toEqual([]);
     });
 
+    it("shows compact icon move buttons with full names and tooltips", async () => {
+      fakeApi(threeItems());
+      const wrapper = await openPage();
+
+      const buttons = rowFor(wrapper, "Curtain Up").findAll("button[data-move]");
+      expect(
+        buttons.map((b) => [b.text(), b.attributes("aria-label"), b.attributes("title")]),
+      ).toEqual([
+        ["↑", "Move Curtain Up up", "Move up"],
+        ["↓", "Move Curtain Up down", "Move down"],
+        ["⇄", "Move Curtain Up to second half", "Move to second half"],
+      ]);
+    });
+
     it("doesn't offer moves that would leave the half", async () => {
       fakeApi(threeItems());
       const wrapper = await openPage();

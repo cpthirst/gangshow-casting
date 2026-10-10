@@ -237,28 +237,31 @@ function refocus(itemId: string, direction: Move) {
                     type="button"
                     data-move="up"
                     :aria-label="`Move ${item.title} up`"
+                    title="Move up"
                     :disabled="saving || !moveItem(loaded.working, item.id, 'up')"
                     @click="move(item.id, 'up')"
                   >
-                    Up
+                    ↑
                   </button>
                   <button
                     type="button"
                     data-move="down"
                     :aria-label="`Move ${item.title} down`"
+                    title="Move down"
                     :disabled="saving || !moveItem(loaded.working, item.id, 'down')"
                     @click="move(item.id, 'down')"
                   >
-                    Down
+                    ↓
                   </button>
                   <button
                     type="button"
                     data-move="other-half"
                     :disabled="saving"
                     :aria-label="`Move ${item.title} to ${otherHalf(i)} half`"
+                    :title="`Move to ${otherHalf(i)} half`"
                     @click="move(item.id, 'other-half')"
                   >
-                    To {{ otherHalf(i) }} half
+                    ⇄
                   </button>
                 </td>
                 <td data-test="number">
@@ -277,7 +280,7 @@ function refocus(itemId: string, direction: Move) {
                 </td>
               </tr>
               <tr v-if="rows.length === 0" class="empty-half">
-                <td colspan="9">No items. Drag one here, or use “To {{ otherHalf(1 - i) }} half”.</td>
+                <td colspan="9">No items. Drag one here, or use ⇄ to move one into the {{ half.name.toLowerCase() }}.</td>
               </tr>
             </tbody>
             <tfoot>
