@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
 import HealthStatus from "./HealthStatus.vue";
-import { menuPages } from "./router.ts";
+import { isMenuGroup, menuPages } from "./router.ts";
 import { useMediaQuery } from "./useMediaQuery.ts";
 
 // Must match the phone @media query in styles.css.
@@ -28,9 +28,11 @@ function closeMenu() {
   isMenuOpen.value = false;
 }
 
-// The chosen link is about to be hidden, so move focus rather than lose it.
-function onMenuChoice() {
-  if (!isMenuOpen.value) return;
+// The chosen link is about to be hidden, so move focus rather than lose it. Taps on a
+// group label aren't a choice, so the menu stays open.
+function onMenuChoice(event: MouseEvent) {
+  const isLink = event.target instanceof Element && event.target.closest("a") !== null;
+  if (!isMenuOpen.value || !isLink) return;
   closeMenu();
   focusContent();
 }
@@ -65,8 +67,16 @@ function onEscape() {
       </button>
       <nav v-show="!isPhone || isMenuOpen" id="main-menu" aria-label="Main" @click="onMenuChoice">
         <ul>
-          <li v-for="page in menuPages" :key="page.name">
-            <RouterLink :to="page.path">{{ page.meta.title }}</RouterLink>
+          <li v-for="entry in menuPages" :key="entry.name">
+            <template v-if="isMenuGroup(entry)">
+              <span :id="`menu-${entry.name}`" class="menu-group">{{ entry.title }}</span>
+              <ul class="menu-group-pages" :aria-labelledby="`menu-${entry.name}`">
+                <li v-for="page in entry.pages" :key="page.name">
+                  <RouterLink :to="page.path">{{ page.meta.title }}</RouterLink>
+                </li>
+              </ul>
+            </template>
+            <RouterLink v-else :to="entry.path">{{ entry.meta.title }}</RouterLink>
           </li>
         </ul>
       </nav>
