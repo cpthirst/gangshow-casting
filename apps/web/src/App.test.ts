@@ -114,13 +114,13 @@ describe("App shell", () => {
   it("shows a page with its description and URL when chosen from the menu", async () => {
     const { wrapper, router } = await openAppAt("/");
 
-    await wrapper.get("nav a[href='/cast']").trigger("click");
+    await wrapper.get("nav a[href='/casting-grid']").trigger("click");
     await flushPromises();
 
-    expect(wrapper.get("main h1").text()).toBe("Cast");
-    expect(wrapper.get("main p").text()).toBe("The Scouts and Explorers in this production.");
-    expect(router.currentRoute.value.fullPath).toBe("/cast");
-    expect(document.title).toBe("Cast · Chester Gang Show casting");
+    expect(wrapper.get("main h1").text()).toBe("Casting grid");
+    expect(wrapper.get("main p").text()).toBe("Who is in which item, across the whole show.");
+    expect(router.currentRoute.value.fullPath).toBe("/casting-grid");
+    expect(document.title).toBe("Casting grid · Chester Gang Show casting");
   });
 
   it("loads a page directly from its URL", async () => {

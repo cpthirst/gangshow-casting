@@ -1,4 +1,6 @@
 import { fileURLToPath } from "node:url";
+import { fileCastStore } from "./cast-store.ts";
+import { createGetCast } from "./get-cast.ts";
 import { createGetRunningOrder } from "./get-running-order.ts";
 import type { Handler } from "./handler.ts";
 import { handler as health } from "./health.ts";
@@ -8,6 +10,7 @@ import { createSaveRunningOrder } from "./save-running-order.ts";
 // Git-ignored: real production data never goes in the repo (CLAUDE.md safeguarding).
 const dataDir = process.env.DATA_DIR ?? fileURLToPath(new URL("../data", import.meta.url));
 const runningOrders = fileRunningOrderStore(dataDir);
+const cast = fileCastStore(dataDir);
 
 /** One entry per future API Gateway route: "<METHOD> <path>", with {name} path parameters. */
 export const routes: Record<string, Handler> = {
@@ -15,6 +18,7 @@ export const routes: Record<string, Handler> = {
   "GET /api/productions/{productionId}/running-order": createGetRunningOrder(runningOrders),
   "POST /api/productions/{productionId}/running-order/versions":
     createSaveRunningOrder(runningOrders),
+  "GET /api/productions/{productionId}/cast": createGetCast(cast),
 };
 
 /** Finds the handler for a request, as API Gateway would, with any path parameters. */

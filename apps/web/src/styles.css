@@ -490,6 +490,35 @@ main a {
   pointer-events: none;
 }
 
+/* Cast list: a simple four-column table, in the running order's style. */
+.cast-count {
+  margin: 0 0 1rem;
+  font-weight: 700;
+}
+
+.cast-list {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.cast-list th,
+.cast-list td {
+  padding: 0.625rem 0.75rem;
+  border-bottom: 1px solid var(--surface);
+  text-align: left;
+  overflow-wrap: break-word;
+}
+
+.cast-list th {
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.cast-list .not-set {
+  font-style: italic;
+}
+
 .notice {
   margin: 0 0 1rem;
   padding: 0.75rem 1rem;

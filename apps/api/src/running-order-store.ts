@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { link, mkdir, readdir, readFile, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ProductionId, RunningOrder } from "@app/shared";
+import { hasCode, ifExists } from "./files.ts";
 
 /** Where running order versions live. Each version is a complete, never-edited snapshot. */
 export interface RunningOrderStore {
@@ -76,18 +77,6 @@ export function fileRunningOrderStore(dataDir: string): RunningOrderStore {
     },
   };
 }
-
-async function ifExists<T>(read: () => Promise<T>) {
-  try {
-    return await read();
-  } catch (error) {
-    if (hasCode(error, "ENOENT")) return undefined;
-    throw error;
-  }
-}
-
-const hasCode = (error: unknown, code: string) =>
-  error instanceof Error && "code" in error && error.code === code;
 
 function versionsIn(files: string[]) {
   return files.flatMap((file) => {

@@ -17,7 +17,7 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [cast-management.E1.S1](stories/E1-S1-view-cast-list.md) | View the cast list (walking skeleton: shared schema → local store → API → Cast page; starting list converted locally) | FR1, FR8 | (none) | ready |
+| [cast-management.E1.S1](stories/E1-S1-view-cast-list.md) | View the cast list (walking skeleton: shared schema → local store → API → Cast page; starting list converted locally) | FR1, FR8 | (none) | in-progress |
 | [cast-management.E1.S2](stories/E1-S2-filter-cast-list.md) | Filter the cast list by first name, last name and section | FR2 | E1.S1 | ready |
 
 ## E2: Keep the cast list current
