@@ -715,23 +715,35 @@ describe("Cast page", () => {
       expect(puts).toHaveLength(0);
     });
 
-    it.each([
-      ["edited", (m: CastMember) => ({ ...m, group: "Changed Group", revision: 4 })],
-      ["deleted", () => undefined],
-    ])("shows the latest list when someone else %s them first", async (_how, change) => {
+    const conflictMessage = "Someone else changed this cast member. Showing the latest list.";
+
+    it("shows the latest details when someone else edited them first", async () => {
       const list = api(cast());
       const wrapper = await openPage();
       const edit = await openEdit(wrapper, "Sam Example");
       await edit.get("[name=group]").setValue("My Group");
-      list.members = list.members.flatMap((m) => (m.firstName === "Sam" ? (change(m) ?? []) : m));
+      list.members = list.members.map((m) =>
+        m.firstName === "Sam" ? { ...m, group: "Changed Group", revision: 4 } : m,
+      );
 
       await save(wrapper);
 
-      expect(wrapper.text()).toContain(
-        "Someone else changed this cast member. Showing the latest list.",
-      );
-      expect(rows(wrapper).map((r) => r[3])).not.toContain("My Group");
+      expect(wrapper.text()).toContain(conflictMessage);
+      expect(rows(wrapper)[0]).toEqual(["Sam", "Example", "Scouts", "Changed Group"]);
       expect(wrapper.find("form[data-test=cast-member-form]").exists()).toBe(false);
+    });
+
+    it("shows the latest list when someone else deleted them first", async () => {
+      const list = api(cast());
+      const wrapper = await openPage();
+      const edit = await openEdit(wrapper, "Sam Example");
+      await edit.get("[name=group]").setValue("My Group");
+      list.members = list.members.filter((m) => m.firstName !== "Sam");
+
+      await save(wrapper);
+
+      expect(wrapper.text()).toContain(conflictMessage);
+      expect(names(wrapper)).toEqual(["Alex Sample"]);
     });
 
     it("keeps the form and says so when the save fails", async () => {

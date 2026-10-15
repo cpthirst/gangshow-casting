@@ -102,7 +102,16 @@ function startEditing(member: CastMember) {
 async function stopEditing(id: number) {
   editing.value = null;
   await nextTick();
-  document.querySelector<HTMLButtonElement>(`[data-member-id="${id}"] [data-edit]`)?.focus();
+  // The row may be filtered out of view after a rename; then focus simply stays put.
+  document.querySelector<HTMLButtonElement>(`[data-member-id="${id}"] [data-test="edit"]`)?.focus();
+}
+
+// Someone else changed or removed the member first: say so and show what's current.
+async function showConflict() {
+  notice.value = "Someone else changed this cast member. Showing the latest list.";
+  await load();
+  await nextTick();
+  addButton.value?.focus();
 }
 
 const saveEdit = (details: CastMemberDetails) => editing.value && update(editing.value, details);
@@ -122,10 +131,7 @@ async function update(member: CastMember, details: CastMemberDetails) {
   }
   if (result === "conflict") {
     editing.value = null;
-    notice.value = "Someone else changed this cast member. Showing the latest list.";
-    await load();
-    await nextTick();
-    addButton.value?.focus();
+    await showConflict();
     return;
   }
   if (result === "saved") {
@@ -181,8 +187,7 @@ async function deleteMember(member: CastMember) {
     await nextTick();
     addButton.value?.focus();
   } else if (status === 409 || status === 404) {
-    notice.value = "Someone else changed this cast member. Showing the latest list.";
-    await load();
+    await showConflict();
   } else {
     notice.value = `Couldn't delete ${fullName(member)}. Try again.`;
   }
@@ -325,7 +330,7 @@ onMounted(load);
               <button
                 type="button"
                 class="row-action"
-                data-edit
+                data-test="edit"
                 :aria-label="`Edit ${fullName(member)}`"
                 :disabled="busy"
                 @click="startEditing(member)"

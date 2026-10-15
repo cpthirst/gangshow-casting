@@ -3,9 +3,7 @@ import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import type { CastStore } from "./cast-store.ts";
 import type { ApiEvent } from "./handler.ts";
 import { parseJson } from "./json.ts";
-import { wholeNumber } from "./params.ts";
-
-const refusedWith = { stale: 409, "not-found": 404 };
+import { refusalStatus, wholeNumber } from "./params.ts";
 
 // PUT /api/productions/{productionId}/cast/{castId}: replace a cast member's details,
 // unless someone else changed them since the revision in the body. The id never changes.
@@ -20,7 +18,7 @@ export function createUpdateCastMember(store: CastStore) {
 
     const { revision, ...details } = request.data;
     const result = await store.update(productionId.data, castId, revision, details);
-    if (typeof result === "string") return { statusCode: refusedWith[result] };
+    if (typeof result === "string") return { statusCode: refusalStatus[result] };
     return {
       statusCode: 200,
       headers: { "content-type": "application/json" },

@@ -18,7 +18,7 @@ const request = (castId: string, body: unknown, productionId = "2027") => ({
 });
 
 function setUp() {
-  const store = inMemoryCastStore([aCastList([aCastMember(12, { revision: 3 })])]);
+  const store = inMemoryCastStore([aCastList([aCastMember(12, { revision: 4 })])]);
   return { store, handler: createUpdateCastMember(store) };
 }
 
@@ -29,13 +29,13 @@ describe("update cast member handler", () => {
   it("returns 200 with the updated member at the next revision", async () => {
     const { store, handler } = setUp();
 
-    const res = await handler(request("12", { ...changes, revision: 3 }));
+    const res = await handler(request("12", { ...changes, revision: 4 }));
 
     expect(res.statusCode).toBe(200);
     expect(CastMember.parse(JSON.parse(res.body ?? ""))).toEqual({
       ...changes,
       id: 12,
-      revision: 4,
+      revision: 5,
     });
     expect((await member12(store))?.section).toBe("explorers");
   });
@@ -43,29 +43,30 @@ describe("update cast member handler", () => {
   it("returns 409 for a stale revision, saving nothing", async () => {
     const { store, handler } = setUp();
 
-    expect((await handler(request("12", { ...changes, revision: 2 }))).statusCode).toBe(409);
-    expect((await member12(store))?.revision).toBe(3);
+    expect((await handler(request("12", { ...changes, revision: 3 }))).statusCode).toBe(409);
+    expect((await member12(store))?.revision).toBe(4);
   });
 
   it.each([
     ["an unknown member", request("99", { ...changes, revision: 1 })],
-    ["a production with no cast list", request("12", { ...changes, revision: 3 }, "1999")],
-  ])("returns 404 for %s", async (_case, event) => {
-    const { handler } = setUp();
+    ["a production with no cast list", request("12", { ...changes, revision: 4 }, "1999")],
+  ])("returns 404 for %s, saving nothing", async (_case, event) => {
+    const { store, handler } = setUp();
 
     expect((await handler(event)).statusCode).toBe(404);
+    expect(await member12(store)).toEqual(aCastMember(12, { revision: 4 }));
   });
 
   it.each([
-    ["an empty last name", request("12", { ...changes, lastName: "", revision: 3 })],
-    ["a changed id", request("12", { ...changes, id: 99, revision: 3 })],
+    ["an empty last name", request("12", { ...changes, lastName: "", revision: 4 })],
+    ["a changed id", request("12", { ...changes, id: 99, revision: 4 })],
     ["no revision", request("12", changes)],
-    ["a non-numeric cast id", request("twelve", { ...changes, revision: 3 })],
+    ["a non-numeric cast id", request("twelve", { ...changes, revision: 4 })],
     ["malformed JSON", request("12", "{not json")],
   ])("returns 400 for %s, saving nothing", async (_case, event) => {
     const { store, handler } = setUp();
 
     expect((await handler(event)).statusCode).toBe(400);
-    expect((await member12(store))?.revision).toBe(3);
+    expect((await member12(store))?.revision).toBe(4);
   });
 });
