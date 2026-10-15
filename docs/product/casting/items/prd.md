@@ -42,6 +42,7 @@ At a casting meeting, the team works through the show item by item. Today they h
 - **FR4**: The list must show no controls for managing the running order: no drag handles and no move buttons.
 - **FR5**: When the running order is saved as a new version, the Items page must reflect the new order and titles the next time it's opened or refreshed.
 - **FR6**: If there is no saved running order for the production, the page must say so and point the user to the Running order page.
+- **FR7**: The page must show which saved running-order version (for example "Draft 7") the list is based on, so nobody mistakes it for unsaved changes.
 
 ## Non-functional requirements
 

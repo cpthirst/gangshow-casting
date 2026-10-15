@@ -10,14 +10,14 @@ prd: ./prd.md
 
 | Epic | Capability | FRs |
 |---|---|---|
-| E1 | See the show's items for casting | FR1, FR3, FR4, FR5, FR6 |
+| E1 | See the show's items for casting | FR1, FR3, FR4, FR5, FR6, FR7 |
 | E2 | See each item's casting progress | FR2 |
 
 ## E1: See the show's items for casting
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [casting-items.E1.S1](stories/E1-S1-list-items.md) | List the latest saved running order's items in halves, with numbers and titles and no management controls (walking skeleton) | FR1, FR4, FR5 | casting-menus.E1.S1 | ready |
+| [casting-items.E1.S1](stories/E1-S1-list-items.md) | List the latest saved running order's items in halves, with numbers and titles and no management controls (walking skeleton) | FR1, FR4, FR5, FR7 | casting-menus.E1.S1 | ready |
 | [casting-items.E1.S2](stories/E1-S2-no-running-order.md) | Explain when there's no saved running order, with a link to the Running order page | FR6 | E1.S1 | ready |
 
 ## E2: See each item's casting progress
@@ -36,6 +36,7 @@ prd: ./prd.md
 | FR4 | E1.S1 |
 | FR5 | E1.S1 |
 | FR6 | E1.S2 |
+| FR7 | E1.S1 |
 
 ## Notes
 

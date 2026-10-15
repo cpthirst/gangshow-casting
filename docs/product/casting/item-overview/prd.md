@@ -65,5 +65,5 @@ Each item has its own set of parts: a few leads, some supporting and cameo parts
 
 ## Open questions
 
-- In what order are an ensemble's cast members listed? Assumed: by last name, then first name. Owner: production team.
+- In what order are an ensemble's cast members listed? Assumed: by last name, then first name, and written into casting-roles.E2.S2 on that basis. Owner: production team.
 - Should the page also show the running order's free-text "cast" and "leads" notes while casting moves into roles? Owner: production team.

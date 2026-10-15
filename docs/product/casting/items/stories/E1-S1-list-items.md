@@ -50,7 +50,7 @@ Then "Pirate Sketch" is in its last saved place
 
 ## Notes
 
-- FRs: FR1, FR4, FR5
+- FRs: FR1, FR4, FR5, FR7
 - Depends on: casting-menus.E1.S1 (replaces the Items placeholder).
 - No new API: it reads `GET /api/productions/{productionId}/running-order` (the latest saved version).
 - Numbers come from the same function as the Running order page, never a copy of it.

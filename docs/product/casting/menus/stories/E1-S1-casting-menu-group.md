@@ -33,7 +33,7 @@ And the browser tab title is "Overview · Chester Gang Show casting"
 ### AC4: Items is a placeholder page
 Given I am on any page
 When I choose "Items" from the menu
-Then I see the "Items" page heading and a one-line description
+Then I see the "Items" page heading and "The show's items, with how far each one's casting has got."
 And the URL is "/casting/items"
 
 ### AC5: Sub-pages load from their URL
@@ -56,6 +56,7 @@ And no other menu item is
 Given I open the app at "/casting"
 When the page loads
 Then I see the "Overview" page heading
+And the URL is "/casting/overview"
 
 ### AC9: Sub-pages are in the mobile menu
 Given my screen is phone width and I have opened the menu

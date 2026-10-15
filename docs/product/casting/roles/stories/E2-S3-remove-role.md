@@ -32,19 +32,25 @@ Given "Parrot" is the only role in "Pirate Sketch"
 When I remove it
 Then I see "No roles have been added yet."
 
-### AC5: Removing a role someone else changed is refused
-Given someone else has edited or removed "Parrot" since I opened "Pirate Sketch"
+### AC5: Removing a role someone else edited is refused
+Given someone else has edited "Parrot" since I opened "Pirate Sketch"
 When I confirm removing "Parrot"
 Then I'm told "Someone else changed this role. Showing the latest roles."
-And the page shows the item's current roles
+And "Parrot" is still listed, as they left it
 
-### AC6: The API removes a role and its casting
+### AC6: Removing a role someone else already removed
+Given someone else has removed "Parrot" since I opened "Pirate Sketch"
+When I confirm removing "Parrot"
+Then I'm told "Someone else changed this role. Showing the latest roles."
+And "Parrot" is no longer listed
+
+### AC7: The API removes a role and its casting
 Given role 7 is at revision 2 and has cast member 12
 When a client deletes role 7 with revision 2
 Then the response is 204
 And role 7 no longer appears anywhere in the stored roles
 
-### AC7: The API refuses stale and unknown removals
+### AC8: The API refuses stale and unknown removals
 Given role 7 is at revision 2
 When a client deletes role 7 with revision 1, or deletes a role that doesn't exist
 Then the response is 409 or 404 respectively, and nothing is removed

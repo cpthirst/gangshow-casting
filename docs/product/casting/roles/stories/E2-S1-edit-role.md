@@ -42,22 +42,33 @@ Given I'm editing "Smee" and have changed its name
 When I cancel
 Then "Smee" is unchanged
 
-### AC7: Someone else's change isn't overwritten
-Given I opened "Pirate Sketch", and someone else has since edited or removed "Smee"
+### AC7: Someone else's edit isn't overwritten
+Given I opened "Pirate Sketch", and someone else has since edited "Smee"
 When I save my edit to "Smee"
 Then my edit isn't saved
 And I see "Someone else changed this role. Showing the latest roles."
-And the page shows the item's current roles
+And the page shows "Smee" as they left it
 
-### AC8: The API updates a role
+### AC8: Editing a role someone else removed
+Given I opened "Pirate Sketch", and someone else has since removed "Smee"
+When I save my edit to "Smee"
+Then I see "Someone else changed this role. Showing the latest roles."
+And "Smee" is no longer listed
+
+### AC9: The API updates a role
 Given role 7 is at revision 2
 When a client puts a valid name, size and cast members for role 7 with revision 2
 Then the response is 200 with the updated role at revision 3
 
-### AC9: The API refuses stale, unknown and invalid updates
+### AC10: The API refuses stale and unknown updates
 Given role 7 is at revision 2
-When a client updates role 7 with revision 1, updates a role that doesn't exist, or sends an invalid role
-Then the response is 409, 404 or 400 respectively, and nothing changes
+When a client updates role 7 with revision 1, or updates a role that doesn't exist
+Then the response is 409 or 404 respectively, and nothing changes
+
+### AC11: The API refuses invalid updates
+Given role 7 is a lead at revision 2
+When a client updates role 7 with no name, a name another role in the item uses, or cast members [12, 13]
+Then the response is 400 and nothing changes
 
 ## Notes
 

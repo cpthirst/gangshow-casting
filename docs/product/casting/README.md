@@ -13,7 +13,7 @@ Later PRDs (not written yet): the **Overview** page (who is in which item across
 
 ## Build order
 
-Stories cross between these features, so build them in this order:
+Stories cross between these features. This order satisfies every story's "Depends on" (some, like casting-roles.E2.S3, could start earlier):
 
 1. casting-menus.E1.S1 → E1.S2
 2. casting-items.E1.S1 → E1.S2
@@ -22,7 +22,7 @@ Stories cross between these features, so build them in this order:
 5. casting-item-overview.E2.S1
 6. casting-roles.E1.S3
 7. casting-items.E2.S1
-8. casting-roles.E2.S1 → E2.S2, E2.S3, E3.S1
+8. casting-roles.E2.S1 → E2.S2, E2.S3, E3.S1 (E3.S1 also needs cast-management.E2.S3, which is done)
 
 ## Shared terms
 

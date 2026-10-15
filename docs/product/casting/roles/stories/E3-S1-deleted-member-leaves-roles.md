@@ -31,13 +31,23 @@ Given "Sam Example" is cast in 2 roles
 When I choose "Delete" for "Sam Example" on the Cast page
 Then I'm asked "Delete Sam Example from the cast? They'll be removed from 2 roles. This can't be undone."
 
-### AC5: No reference to the member is left in stored roles
+### AC5: The warning says "1 role" for a single role
+Given "Sam Example" is cast in 1 role
+When I choose "Delete" for "Sam Example" on the Cast page
+Then I'm asked "Delete Sam Example from the cast? They'll be removed from 1 role. This can't be undone."
+
+### AC6: The warning is unchanged for someone in no roles
+Given "Sam Example" is in no roles
+When I choose "Delete" for "Sam Example" on the Cast page
+Then I'm asked "Delete Sam Example from the cast? This can't be undone."
+
+### AC7: No reference to the member is left in stored roles
 Given cast member 12 is in roles 7 and 9
 When a client deletes cast member 12
 Then the response is 204
 And cast member 12 no longer appears anywhere in the stored roles
 
-### AC6: The member isn't deleted if their roles can't be updated
+### AC8: The member isn't deleted if their roles can't be updated
 Given cast member 12 is in role 7, and the roles can't be saved
 When a client deletes cast member 12
 Then the response is an error
@@ -47,6 +57,7 @@ And cast member 12 is still on the cast list
 
 - FRs: FR9
 - Depends on: casting-roles.E1.S3, cast-management.E2.S3 (delete a cast member).
-- Order matters (AC6): take the member out of the roles first, then delete them from the cast. If the second step fails, the member is uncast but still listed, which is safe to retry. If it were the other way round, a failure would leave roles pointing at someone who no longer exists.
+- Order matters (AC8): take the member out of the roles first, then delete them from the cast. If the second step fails, the member is uncast but still listed, which is safe to retry. If it were the other way round, a failure would leave roles pointing at someone who no longer exists.
 - The delete endpoint gets the roles store, so the cast and roles stay consistent in one request.
+- AC4 and AC5 deliberately extend cast-management.E2.S3's confirmation (its AC1, and its test in `CastPage.test.ts`). AC6 keeps that wording for people in no roles.
 - The cast member's revision is still checked first (cast-management FR7). A stale delete changes nothing in either file.

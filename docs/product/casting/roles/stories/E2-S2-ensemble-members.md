@@ -52,6 +52,11 @@ Given role 9 is an ensemble at revision 1
 When a client puts role 9 with cast members [12, 12] and revision 1
 Then the response is 400 and nothing changes
 
+### AC9: The API refuses narrowing an ensemble that has several people
+Given role 9 is an ensemble with cast members [12, 13] at revision 1
+When a client puts role 9 as a cameo with cast members [12, 13] and revision 1
+Then the response is 400 and nothing changes
+
 ## Notes
 
 - FRs: FR5, FR6

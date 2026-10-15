@@ -62,6 +62,11 @@ Given cast member 12 exists and cast member 99 doesn't
 When a client posts a lead role with cast members [99], or with cast members [12, 13]
 Then the response is 400 and nothing is stored
 
+### AC11: The API accepts an ensemble with several members
+Given cast members 12 and 13 exist
+When a client posts an ensemble role with cast members [12, 13]
+Then the response is 201 with both members in the role
+
 ## Notes
 
 - FRs: FR1 (cast member), FR2, FR10

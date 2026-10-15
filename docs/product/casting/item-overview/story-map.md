@@ -41,5 +41,5 @@ prd: ./prd.md
 ## Notes
 
 - **E1.S1 also covers** casting-items FR3 (items become links) and the item-page part of casting-menus FR5 (Items shows as current).
-- **Position** uses the same numbering as the Running order page: "Item 7 · First half", or "First half · not in the printed programme".
+- **Position** uses the same numbering as the Running order page: "Item 7 · First half", or "First half · Not in printed programme" (the Running order page's badge wording).
 - **E2.S1 follows casting-roles.E1.S1**, which shows new roles as a plain list so adding one is visible. E2.S1 turns that list into ordered cards.

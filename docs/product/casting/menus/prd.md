@@ -36,7 +36,7 @@ The menu has one placeholder for casting, "Casting grid" (app-shell FR2). The wo
 
 - **FR1**: The "Casting grid" menu entry must become **Casting**, a group in the menu with two sub-pages in this order: **Overview** and **Items**.
 - **FR2**: Overview must be a placeholder page with its title and a one-line description: who is in which item across the whole show.
-- **FR3**: Each sub-page must have its own URL, under a shared casting path, with the same rules as other menu pages: it loads directly, survives a refresh and works with back and forward. The browser tab names the page.
+- **FR3**: Each sub-page must have its own URL, under a shared casting path, with the same rules as other menu pages: it loads directly, survives a refresh and works with back and forward. The browser tab names the page. The shared casting path on its own goes to Overview.
 - **FR4**: The old "Casting grid" URL must take the user to the Overview page, so existing bookmarks still work.
 - **FR5**: The menu must show which sub-page is current, visually and to assistive technology. While the user is on a single item's page (casting-item-overview), **Items** shows as current.
 - **FR6**: On small screens, the sub-pages must appear in the same slide-out menu as the other pages (app-shell FR6), and choosing one closes the menu.
