@@ -80,6 +80,8 @@ export function createAppRouter(history: RouterHistory = createWebHistory()) {
           component: page.component ?? PlaceholderPage,
         })),
       { path: "/casting", redirect: "/casting/overview" },
+      // Bookmarks from before the Casting menu (casting-menus FR4).
+      { path: "/casting-grid", redirect: "/casting/overview" },
       {
         path: "/:unknown(.*)*",
         name: "not-found",

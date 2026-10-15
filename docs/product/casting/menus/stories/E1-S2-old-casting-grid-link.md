@@ -2,7 +2,7 @@
 id: casting-menus.E1.S2
 title: Send old Casting grid links to Overview
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story

@@ -181,6 +181,27 @@ describe("App shell", () => {
     expect(wrapper.get("main h1").text()).toBe("Running order");
   });
 
+  it("sends the old Casting grid URL to Overview", async () => {
+    const { wrapper, router } = await openAppAt("/casting-grid");
+
+    expect(wrapper.get("main h1").text()).toBe("Overview");
+    expect(router.currentRoute.value.fullPath).toBe("/casting/overview");
+  });
+
+  it("goes back past the old Casting grid URL to the page before it", async () => {
+    const { wrapper, router } = await openAppAt("/cast");
+    await router.push("/casting-grid");
+    await flushPromises();
+    expect(wrapper.get("main h1").text()).toBe("Overview");
+
+    const navigated = nextNavigation(router);
+    router.back();
+    await navigated;
+    await flushPromises();
+
+    expect(wrapper.get("main h1").text()).toBe("Cast");
+  });
+
   it("returns from Items to Overview on back", async () => {
     const { wrapper, router } = await openAppAt("/casting/overview");
     await router.push("/casting/items");
