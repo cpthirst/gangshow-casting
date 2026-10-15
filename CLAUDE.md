@@ -7,7 +7,7 @@ A casting tool for the **Chester Gang Show** production team: it shows which Sco
 - **Casting is per item.** A show is an ordered sequence of items (production numbers, sketches, songs, dances). A cast member appears in many items, sometimes in a named or featured part. Model "who is in which item", not one role per person.
 - **Running order matters.** Back-to-back appearances (no time for a costume change) and uneven stage time are the core things users need to see.
 - **Each production is self-contained.** Items and casting never carry over between years, even when cast members return. Scope data to a production.
-- **Safeguarding and UK GDPR: most of the cast are under 18.** Store only first name, surname initial, section (Scouts, Explorers) and age band. Never add date of birth, exact age, address, contact details, photos or medical data without a story and an ADR that justify it. Casting data is for the production team only and must never be publicly reachable. Don't put real cast data in tests, fixtures or seed data; use made-up names.
+- **Safeguarding and UK GDPR: most of the cast are under 18.** Store only first name, surname, section (Scouts, Explorers, Network), Scout group or Explorer unit, and age band (ADR 0010). Never add date of birth, exact age, address, contact details, photos or medical data without a story and an ADR that justify it. Casting data is for the production team only and must never be publicly reachable. Don't put real cast data in tests, fixtures or seed data; use made-up names.
 - **Users are non-technical volunteers**, often updating during or after a rehearsal. Prefer UI that is clear at a glance and quick to edit.
 
 ## Scaffold status

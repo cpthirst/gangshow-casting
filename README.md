@@ -27,7 +27,7 @@ Chester Gang Show is a volunteer-led Scouting variety show: comedy, music, dance
 ### Safeguarding and data protection
 
 Most of the cast are under 18 and this is a Scouting activity, so the app is built with **youth safeguarding and UK GDPR** in mind:
-- **Store only what casting needs**: first name, surname initial, section and age band. No dates of birth, addresses, contact details, photos or medical information unless there is a clear, agreed need.
+- **Store only what casting needs**: first name, surname, section, Scout group or Explorer unit, and age band ([ADR 0010](docs/adr/0010-cast-member-personal-data.md)). No dates of birth, addresses, contact details, photos or medical information unless there is a clear, agreed need, recorded in an ADR.
 - **Prefer age band or section** over exact age.
 - **Access is limited to the production team.** Casting data must never be publicly reachable.
 
