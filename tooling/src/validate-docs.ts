@@ -59,20 +59,34 @@ export function validateStory(path: string, text: string, opts: { feature: strin
   return errors;
 }
 
-function validateRepo(root: string): { stories: number; errors: string[] } {
+/** Folders under `dir` that hold a `stories/` folder, at any depth: `casting/items` → `casting-items`. */
+function featureFolders(dir: string, segments: string[] = []): { feature: string; dir: string }[] {
+  // docs/product itself isn't a feature, so a stray stories/ there has no id to check against.
+  const isFeature = segments.length > 0 && existsSync(join(dir, "stories"));
+  const found = isFeature ? [{ feature: segments.join("-"), dir: segments.join("/") }] : [];
+  const subfolders = readdirSync(dir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && entry.name !== "stories")
+    .map((entry) => entry.name)
+    .sort();
+  for (const name of subfolders) {
+    found.push(...featureFolders(join(dir, name), [...segments, name]));
+  }
+  return found;
+}
+
+export function validateRepo(root: string): { stories: number; errors: string[] } {
   const productDir = join(root, "docs/product");
   if (!existsSync(productDir)) return { stories: 0, errors: [] };
 
   let stories = 0;
   const errors: string[] = [];
-  for (const feature of readdirSync(productDir, { withFileTypes: true })) {
-    const storiesDir = join(productDir, feature.name, "stories");
-    if (!feature.isDirectory() || !existsSync(storiesDir)) continue;
+  for (const { feature, dir } of featureFolders(productDir)) {
+    const storiesDir = join(productDir, dir, "stories");
     for (const file of readdirSync(storiesDir).filter((f) => f.endsWith(".md"))) {
       stories++;
-      const rel = `docs/product/${feature.name}/stories/${file}`;
+      const rel = `docs/product/${dir}/stories/${file}`;
       const text = readFileSync(join(storiesDir, file), "utf8");
-      errors.push(...validateStory(rel, text, { feature: feature.name }));
+      errors.push(...validateStory(rel, text, { feature }));
     }
   }
   return { stories, errors };

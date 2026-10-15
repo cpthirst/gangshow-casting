@@ -1,5 +1,8 @@
-import { describe, expect, it } from "vitest";
-import { parseFrontmatter, validateStory } from "./validate-docs.ts";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
+import { parseFrontmatter, validateRepo, validateStory } from "./validate-docs.ts";
 
 const story = (over: { status?: string; id?: string; body?: string } = {}) => `---
 id: ${over.id ?? "capture.E1.S1"}
@@ -85,5 +88,54 @@ describe("validateStory: done stories", () => {
   // AC coverage is judged by test-auditor at review time, not by test names (ADR 0007).
   it("validates a done story on structure alone", () => {
     expect(check(story({ status: "done" }))).toEqual([]);
+  });
+});
+
+describe("validateRepo", () => {
+  const roots: string[] = [];
+  afterEach(() => {
+    for (const root of roots.splice(0)) rmSync(root, { recursive: true });
+  });
+
+  function repoWith(stories: Record<string, string>) {
+    const root = mkdtempSync(join(tmpdir(), "validate-docs-"));
+    roots.push(root);
+    for (const [path, text] of Object.entries(stories)) {
+      const file = join(root, "docs/product", path);
+      mkdirSync(join(file, ".."), { recursive: true });
+      writeFileSync(file, text);
+    }
+    return root;
+  }
+
+  it("validates stories in top-level feature folders", () => {
+    const root = repoWith({ "capture/stories/E1-S1-save-draft.md": story() });
+    expect(validateRepo(root)).toEqual({ stories: 1, errors: [] });
+  });
+
+  it("validates nested features, naming them by their path", () => {
+    const root = repoWith({
+      "casting/items/stories/E1-S1-list.md": story({ id: "casting-items.E1.S1" }),
+      "casting/roles/stories/E1-S1-add.md": story({ id: "roles.E1.S1" }),
+    });
+    const { stories, errors } = validateRepo(root);
+    expect(stories).toBe(2);
+    expect(errors).toEqual([
+      expect.stringContaining("docs/product/casting/roles/stories/E1-S1-add.md"),
+    ]);
+    expect(errors[0]).toContain("casting-roles.E<n>.S<n>");
+  });
+
+  it("finds features nested inside a feature folder", () => {
+    const root = repoWith({
+      "casting/stories/E1-S1-plan.md": story({ id: "casting.E1.S1" }),
+      "casting/items/stories/E1-S1-list.md": story({ id: "casting-items.E1.S1" }),
+    });
+    expect(validateRepo(root)).toEqual({ stories: 2, errors: [] });
+  });
+
+  it("ignores a stories folder at the root of docs/product", () => {
+    const root = repoWith({ "stories/E1-S1-stray.md": story() });
+    expect(validateRepo(root)).toEqual({ stories: 0, errors: [] });
   });
 });
