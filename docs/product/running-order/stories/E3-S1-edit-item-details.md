@@ -2,7 +2,7 @@
 id: running-order.E3.S1
 title: Edit an item's details
 epic: E3
-status: ready
+status: done
 ---
 
 ## Story
@@ -59,6 +59,8 @@ Then the response is 400 and nothing is saved
 
 - FRs: FR6, FR7, FR9
 - Depends on: running-order.E2.S1. Edits are unsaved changes alongside moves, saved by the same "Save as Draft N+1" and discarded by "Reset".
-- The save request then carries moves and edits together. Extend the shared contract, for example with a change type that carries the full new halves with item details, validated by the server.
+- The save request carries moves and edits together: an `update` change with both halves' items in their new order and with their details, replacing E2.S1's `reorder`. The server checks it's the same set of items (FR8) and validates every field with the shared schema.
+- Stage is chosen from a list of the sequences in use (Apron, Full, Apron / Full, Full / Apron, Apron / Full / Apron, Full / Apron / Full); an item's current value is always offered.
+- One item is edited at a time; moves, drags, Save and Reset wait until the edit is applied or cancelled.
 - Text limits are set in the shared schema. For example, title up to 120 characters and other text up to 500.
-- Out of scope: adding and removing items (E3.S2), and editing the start time or interval.
+- Out of scope: adding and removing items (E3.S2, dropped for now), and editing the start time or interval.

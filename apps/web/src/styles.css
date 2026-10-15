@@ -490,6 +490,92 @@ main a {
   pointer-events: none;
 }
 
+/* The edit form, shown in place of an item's row. */
+.running-order td.editing {
+  padding: 1rem;
+  background: var(--surface);
+}
+
+.item-editor {
+  font-style: normal;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.75rem 1rem;
+  max-width: 56rem;
+}
+
+.item-editor .wide {
+  grid-column: 1 / -1;
+}
+
+.item-editor .field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.item-editor label {
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.item-editor input:not([type="checkbox"]),
+.item-editor textarea,
+.item-editor select {
+  padding: 0.5rem;
+  border: 1px solid var(--text);
+  border-radius: 0.25rem;
+  background: var(--white);
+  color: var(--text);
+  font: inherit;
+}
+
+.item-editor [aria-invalid="true"] {
+  border: 2px solid var(--red-darker);
+}
+
+/* Text as well as the red border, so errors don't rely on colour alone. */
+.field-error {
+  margin: 0;
+  color: var(--red-darker);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.item-editor .checkbox {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.item-editor .checkbox input {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.editor-actions {
+  display: flex;
+  gap: 0.75rem;
+  grid-column: 1 / -1;
+}
+
+.editor-actions button {
+  padding: 0.5rem 1.25rem;
+  border: 2px solid var(--text);
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.editor-actions button.primary {
+  border-color: var(--red-deep);
+  background: var(--red-deep);
+  color: var(--white);
+}
+
 .notice {
   margin: 0 0 1rem;
   padding: 0.75rem 1rem;

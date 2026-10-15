@@ -1,4 +1,4 @@
-import type { ReorderChange, RunningOrder, RunningOrderItem, Stage } from "@app/shared";
+import { type RunningOrder, RunningOrderItem, type Stage, type UpdateChange } from "@app/shared";
 
 const stageNames: Record<Stage, string> = { apron: "Apron", full: "Full" };
 
@@ -112,22 +112,124 @@ export function dropItem(
   };
 }
 
-/** The reorder change that saves this order's item positions. */
-export function reorderOf(order: RunningOrder): ReorderChange {
-  const ids = (index: 0 | 1) => order.halves[index].items.map((item) => item.id);
+/** The change that saves this order: every item, in place, with its details. */
+export function updateOf(order: RunningOrder): UpdateChange {
   return {
-    type: "reorder",
+    type: "update",
     halves: [
-      { id: "first-half", itemIds: ids(0) },
-      { id: "second-half", itemIds: ids(1) },
+      { id: "first-half", items: order.halves[0].items },
+      { id: "second-half", items: order.halves[1].items },
     ],
   };
 }
 
-/** True when both orders have the same items in the same places. Compares positions only:
- *  once item details can be edited (E3.S1), unsaved-change detection must compare those too. */
-export const sameOrder = (a: RunningOrder, b: RunningOrder) =>
-  JSON.stringify(reorderOf(a)) === JSON.stringify(reorderOf(b));
+// Field by field in a fixed order, so object key order never matters.
+const contentOf = (order: RunningOrder) =>
+  JSON.stringify(
+    order.halves.map((half) =>
+      half.items.map((i) => [
+        i.id,
+        i.title,
+        i.cast,
+        i.stage,
+        i.leads,
+        i.comments,
+        i.minutes,
+        i.printed,
+      ]),
+    ),
+  );
+
+/** True when both orders have the same items, in the same places, with the same details. */
+export const sameContent = (a: RunningOrder, b: RunningOrder) => contentOf(a) === contentOf(b);
+
+/** The edit form's fields, as typed. Stage is a label like "Apron / Full". */
+export interface ItemForm {
+  title: string;
+  cast: string;
+  stage: string;
+  leads: string;
+  comments: string;
+  minutes: string;
+  printed: boolean;
+}
+
+/** Stage sequences in use; the item being edited may add its own. */
+export const STAGE_CHOICES = [
+  "Apron",
+  "Full",
+  "Apron / Full",
+  "Full / Apron",
+  "Apron / Full / Apron",
+  "Full / Apron / Full",
+];
+
+export const formFor = (item: RunningOrderItem): ItemForm => ({
+  title: item.title,
+  cast: item.cast,
+  stage: stageLabel(item.stage),
+  leads: item.leads,
+  comments: item.comments,
+  minutes: item.minutes === null ? "" : String(item.minutes),
+  printed: item.printed,
+});
+
+// Every field that can fail validation (a checkbox can't).
+const fieldMessages: Record<Exclude<keyof ItemForm, "printed">, string> = {
+  title: "Enter a title (up to 120 characters).",
+  cast: "Keep this to 500 characters or fewer.",
+  stage: "Choose where on stage this happens.",
+  leads: "Keep this to 500 characters or fewer.",
+  comments: "Keep this to 500 characters or fewer.",
+  minutes: "Enter whole minutes from 0 to 240, or leave it blank.",
+};
+
+const isFormField = (key: unknown): key is keyof typeof fieldMessages =>
+  typeof key === "string" && key in fieldMessages;
+
+export type ItemFormResult =
+  | { ok: true; item: RunningOrderItem }
+  | { ok: false; errors: Partial<Record<keyof ItemForm, string>> };
+
+/** The item the form describes, or a friendly message for each field that needs fixing.
+ *  Limits come from the shared schema, so the page and the API agree. */
+export function itemFrom(form: ItemForm, id: string): ItemFormResult {
+  const minutes = form.minutes.trim();
+  const candidate = {
+    id,
+    title: form.title.trim(),
+    cast: form.cast.trim(),
+    // An empty label means no stage set yet.
+    stage: form.stage.trim() === "" ? [] : form.stage.split("/").map((p) => p.trim().toLowerCase()),
+    leads: form.leads.trim(),
+    comments: form.comments.trim(),
+    // Anything but whole digits fails the schema's integer check below.
+    minutes: minutes === "" ? null : /^\d+$/.test(minutes) ? Number(minutes) : Number.NaN,
+    printed: form.printed,
+  };
+  const parsed = RunningOrderItem.safeParse(candidate);
+  if (parsed.success) return { ok: true, item: parsed.data };
+
+  const errors: Partial<Record<keyof ItemForm, string>> = {};
+  for (const issue of parsed.error.issues) {
+    const field = issue.path[0];
+    if (isFormField(field)) errors[field] = fieldMessages[field];
+  }
+  return { ok: false, errors };
+}
+
+/** The order with one item's details replaced, wherever it is. */
+export function replaceItem(order: RunningOrder, edited: RunningOrderItem): RunningOrder {
+  const replace = (items: RunningOrderItem[]) =>
+    items.map((item) => (item.id === edited.id ? edited : item));
+  return {
+    ...order,
+    halves: [
+      { ...order.halves[0], items: replace(order.halves[0].items) },
+      { ...order.halves[1], items: replace(order.halves[1].items) },
+    ],
+  };
+}
 
 /** The item, which half it's in and its 1-based position there. */
 export function locate(order: RunningOrder, itemId: string) {
