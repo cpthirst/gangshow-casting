@@ -2,7 +2,7 @@
 id: cast-management.E2.S3
 title: Delete a cast member
 epic: E2
-status: in-progress
+status: done
 ---
 
 ## Story
@@ -51,4 +51,5 @@ Then the response is 409 or 404 respectively, and nothing is removed
 - Depends on: cast-management.E1.S1.
 - Expected route: `DELETE /api/productions/{productionId}/cast/{castId}?revision=N`.
 - Permanent by design (PRD FR5, ADR 0010). The file is rewritten without the member; no copy or history is kept. A deleted member's ID is never reused (see E2.S1).
+- Deletion removes the member from the app's file, and saves sweep away any temp copies left by a crash. It isn't a secure disk wipe, and copies outside the app (such as backups of the data folder) are outside its control.
 - Out of scope: undo, and an archive of past cast members.

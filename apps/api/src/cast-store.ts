@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { CastList, CastMember, type CastMemberDetails, ProductionId } from "@app/shared";
 import { ifExists } from "./files.ts";
@@ -88,6 +88,7 @@ export function fileCastStore(dataDir: string): CastStore {
     const path = fileFor(file.productionId);
     const temp = join(dirname(path), `.cast-${randomUUID()}.tmp`);
     await mkdir(dirname(path), { recursive: true });
+    await sweepTempFiles(dirname(path));
     try {
       // Owner-only: the file holds children's names.
       await writeFile(temp, JSON.stringify(CastFile.parse(file), null, 2), { mode: 0o600 });
@@ -137,4 +138,11 @@ function parseCastFile(text: string, productionId: string): CastFile {
     throw new Error(`Cast file for production ${productionId} is invalid`);
   }
   return parsed.data;
+}
+
+// A crash between writing and renaming can leave a temp copy of the list, which may hold
+// someone later deleted. Clear any such leftovers before each save (ADR 0010: no copies).
+async function sweepTempFiles(folder: string) {
+  const leftovers = (await readdir(folder)).filter((name) => /^\.cast-.*\.tmp$/.test(name));
+  await Promise.all(leftovers.map((name) => rm(join(folder, name), { force: true })));
 }

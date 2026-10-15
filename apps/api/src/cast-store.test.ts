@@ -185,4 +185,13 @@ describe("file cast store", () => {
     expect(await fileCastStore(dataDir).remove("2027", 2, 3)).toBe("stale");
     expect((await fileCastStore(dataDir).list("2027"))?.members).toHaveLength(1);
   });
+
+  it("sweeps away temp copies left by an earlier crash when it next saves", async () => {
+    await writeCast("2027", aCastList([aCastMember(1)]));
+    await writeFile(join(dataDir, "2027", ".cast-leftover.tmp"), "an old copy with names");
+
+    await fileCastStore(dataDir).add("2027", { ...jo });
+
+    expect(await readdir(join(dataDir, "2027"))).toEqual(["cast.json"]);
+  });
 });

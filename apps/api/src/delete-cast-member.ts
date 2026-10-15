@@ -5,7 +5,8 @@ import type { ApiEvent } from "./handler.ts";
 
 const statusFor: Record<RemoveResult, number> = { removed: 204, stale: 409, "not-found": 404 };
 
-// Ids and revisions are positive whole numbers; anything else is a bad request.
+// Ids and revisions are positive whole numbers (up to 9 digits, safely within a JS number);
+// anything else is a bad request.
 const wholeNumber = (text: string | undefined) =>
   text !== undefined && /^[1-9]\d{0,8}$/.test(text) ? Number(text) : undefined;
 

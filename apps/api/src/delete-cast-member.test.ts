@@ -38,10 +38,11 @@ describe("delete cast member handler", () => {
     ["an unknown member", request("99", "1")],
     ["a production with no cast list", request("12", "4", "1999")],
     ["a malformed production id", request("12", "4", "../etc")],
-  ])("returns 404 for %s", async (_case, event) => {
-    const { handler } = setUp();
+  ])("returns 404 for %s, removing nothing", async (_case, event) => {
+    const { store, handler } = setUp();
 
     expect((await handler(event)).statusCode).toBe(404);
+    expect(await ids(store)).toEqual([1, 12]);
   });
 
   it.each([

@@ -528,6 +528,51 @@ describe("Cast page", () => {
       expect(names(wrapper)).toEqual(["Sam Changed", "Alex Sample"]);
     });
 
+    it("shows the latest list when someone else already deleted them", async () => {
+      const list = api(cast());
+      vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
+      const wrapper = await openPage();
+      list.members = list.members.filter((m) => m.firstName !== "Sam");
+
+      await deleteMember(wrapper, "Sam Example");
+
+      expect(wrapper.text()).toContain(
+        "Someone else changed this cast member. Showing the latest list.",
+      );
+      expect(names(wrapper)).toEqual(["Alex Sample"]);
+    });
+
+    it("still explains the conflict when the latest list turns out to be empty", async () => {
+      const list = api(cast([sam()]));
+      vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
+      const wrapper = await openPage();
+      list.members = [];
+      vi.mocked(fetch).mockImplementation(async (_url, init) =>
+        init?.method === "DELETE"
+          ? new Response(null, { status: 404 })
+          : new Response(null, { status: 404 }),
+      );
+
+      await deleteMember(wrapper, "Sam Example");
+
+      expect(wrapper.text()).toContain("No cast members yet");
+      expect(wrapper.text()).toContain(
+        "Someone else changed this cast member. Showing the latest list.",
+      );
+    });
+
+    it("clears an old message once a later change succeeds", async () => {
+      const list = api(cast());
+      vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
+      const wrapper = await openPage();
+      list.members = list.members.filter((m) => m.firstName !== "Sam");
+      await deleteMember(wrapper, "Sam Example");
+
+      await deleteMember(wrapper, "Alex Sample");
+
+      expect(wrapper.text()).not.toContain("Someone else changed this cast member");
+    });
+
     it("says so when the delete fails, keeping them on the list", async () => {
       api(cast());
       vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));

@@ -23,11 +23,13 @@ export function createDevServer(table: Record<string, Handler>) {
     }
     try {
       const body = await readBody(req);
-      const query = Object.fromEntries(url.searchParams);
+      // Like API Gateway, leave out body and queryStringParameters when there are none.
       const event = {
         ...route.event,
         ...(body === undefined ? {} : { body }),
-        ...(url.search === "" ? {} : { queryStringParameters: query }),
+        ...(url.search === ""
+          ? {}
+          : { queryStringParameters: Object.fromEntries(url.searchParams) }),
       };
       const { statusCode = 200, headers = {}, body: responseBody } = await route.handler(event);
       // Lambda allows boolean/number header values; node:http wants strings.

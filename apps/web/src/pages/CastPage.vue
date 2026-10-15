@@ -51,6 +51,7 @@ const addButton = ref<HTMLButtonElement>();
 
 function startAdding() {
   formError.value = "";
+  notice.value = "";
   adding.value = true;
 }
 
@@ -113,7 +114,6 @@ async function deleteMember(member: CastMember) {
   } else {
     notice.value = `Couldn't delete ${fullName(member)}. Try again.`;
   }
-  if (notice.value) announcement.value = notice.value;
 }
 
 // The status code, or undefined if the request didn't get an answer.
@@ -161,12 +161,13 @@ onMounted(load);
 
 <template>
   <h1>Cast</h1>
+  <!-- Outside the state switch: a conflict can leave the list empty, and it still needs explaining. -->
+  <p v-if="notice" class="notice" role="alert">{{ notice }}</p>
   <p v-if="state.status === 'loading'">Loading…</p>
   <p v-else-if="state.status === 'empty'">No cast members yet.</p>
   <p v-else-if="state.status === 'error'" role="alert">Couldn't load the cast list.</p>
   <template v-else>
     <p class="visually-hidden" role="status" data-test="announcement">{{ announcement }}</p>
-    <p v-if="notice" class="notice" role="alert">{{ notice }}</p>
     <div class="cast-actions">
       <button
         ref="addButton"
