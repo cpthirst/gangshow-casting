@@ -496,6 +496,51 @@ main a {
   font-weight: 700;
 }
 
+.cast-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem 1rem;
+  margin: 0 0 1rem;
+}
+
+.cast-filters .field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.cast-filters label {
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.cast-filters input,
+.cast-filters select {
+  padding: 0.5rem;
+  border: 1px solid var(--text);
+  border-radius: 0.25rem;
+  background: var(--white);
+  color: var(--text);
+  font: inherit;
+}
+
+.cast-filters button {
+  padding: 0.5rem 1rem;
+  border: 2px solid var(--text);
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cast-filters button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .cast-list {
   width: 100%;
   border-collapse: collapse;

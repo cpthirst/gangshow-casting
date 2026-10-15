@@ -1,7 +1,15 @@
 <script setup lang="ts">
 import { CastList } from "@app/shared";
-import { computed, onMounted, ref } from "vue";
-import { countLabel, sectionLabel, sortCast } from "../cast.ts";
+import { computed, onMounted, ref, useId } from "vue";
+import {
+  type CastFilters,
+  filterCast,
+  hasFilters,
+  matchesLabel,
+  NO_FILTERS,
+  sectionLabel,
+  sortCast,
+} from "../cast.ts";
 
 // Only one production for now (see docs/product/cast-management/prd.md).
 const PRODUCTION_ID = "2027";
@@ -18,6 +26,16 @@ const state = ref<State>({ status: "loading" });
 const members = computed(() =>
   state.value.status === "loaded" ? sortCast(state.value.list.members) : [],
 );
+
+// Filtering happens here, in the browser, on the loaded list (PRD FR2).
+const filters = ref<CastFilters>({ ...NO_FILTERS });
+const filtered = computed(() => hasFilters(filters.value));
+const shown = computed(() => filterCast(members.value, filters.value));
+const clearFilters = () => {
+  filters.value = { ...NO_FILTERS };
+};
+
+const uid = useId();
 
 onMounted(async () => {
   try {
@@ -40,8 +58,35 @@ onMounted(async () => {
   <p v-else-if="state.status === 'empty'">No cast members yet.</p>
   <p v-else-if="state.status === 'error'" role="alert">Couldn't load the cast list.</p>
   <template v-else>
-    <p class="cast-count" data-test="count">{{ countLabel(members.length) }}</p>
-    <div class="table-scroll" tabindex="0" role="region" aria-label="Cast members">
+    <form class="cast-filters" role="search" aria-label="Filter the cast" @submit.prevent>
+      <div class="field">
+        <label :for="`${uid}-first`">First name</label>
+        <input :id="`${uid}-first`" v-model="filters.firstName" name="firstName" type="search" />
+      </div>
+      <div class="field">
+        <label :for="`${uid}-last`">Last name</label>
+        <input :id="`${uid}-last`" v-model="filters.lastName" name="lastName" type="search" />
+      </div>
+      <div class="field">
+        <label :for="`${uid}-section`">Section</label>
+        <select :id="`${uid}-section`" v-model="filters.section" name="section">
+          <option value="all">All</option>
+          <option value="scouts">Scouts</option>
+          <option value="explorers">Explorers</option>
+          <option value="network">Network</option>
+          <option value="not-set">Not set</option>
+        </select>
+      </div>
+      <button type="button" data-test="clear-filters" :disabled="!filtered" @click="clearFilters">
+        Clear filters
+      </button>
+    </form>
+    <!-- A live region, so screen readers hear the new count as the filters change. -->
+    <p class="cast-count" data-test="count" role="status">
+      {{ matchesLabel(shown.length, members.length, filtered) }}
+    </p>
+    <p v-if="shown.length === 0">No cast members match these filters.</p>
+    <div v-else class="table-scroll" tabindex="0" role="region" aria-label="Cast members">
       <table class="cast-list">
         <thead>
           <tr>
@@ -52,7 +97,7 @@ onMounted(async () => {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="member in members" :key="member.id">
+          <tr v-for="member in shown" :key="member.id">
             <td>{{ member.firstName }}</td>
             <td>{{ member.lastName }}</td>
             <td :class="{ 'not-set': member.section === null }">

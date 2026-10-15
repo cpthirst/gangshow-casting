@@ -136,4 +136,122 @@ describe("Cast page", () => {
 
     expect(wrapper.text()).toContain("Couldn't load the cast list");
   });
+
+  describe("filtering", () => {
+    const cast = () =>
+      aCast([
+        aMember("Sam", "Example", { section: "scouts" }),
+        aMember("Samira", "Sample", { section: "explorers" }),
+        aMember("Alex", "Other", { section: "explorers" }),
+        aMember("Zoë", "Smith", { section: null }),
+      ]);
+    const firstName = (wrapper: Page) => wrapper.get("input[name=firstName]");
+    const lastName = (wrapper: Page) => wrapper.get("input[name=lastName]");
+    const section = (wrapper: Page) => wrapper.get("select[name=section]");
+
+    it("filters by first name", async () => {
+      serve(cast());
+      const wrapper = await openPage();
+
+      await firstName(wrapper).setValue("sam");
+
+      expect(names(wrapper)).toEqual(["Sam Example", "Samira Sample"]);
+    });
+
+    it("filters by last name, ignoring case", async () => {
+      serve(cast());
+      const wrapper = await openPage();
+
+      await lastName(wrapper).setValue("SAMP");
+
+      expect(names(wrapper)).toEqual(["Samira Sample"]);
+    });
+
+    it("matches names regardless of accents", async () => {
+      serve(cast());
+      const wrapper = await openPage();
+
+      await firstName(wrapper).setValue("zoe");
+
+      expect(names(wrapper)).toEqual(["Zoë Smith"]);
+    });
+
+    it("filters by section, including members with no section", async () => {
+      serve(cast());
+      const wrapper = await openPage();
+
+      await section(wrapper).setValue("explorers");
+      expect(names(wrapper)).toEqual(["Alex Other", "Samira Sample"]);
+
+      await section(wrapper).setValue("not-set");
+      expect(names(wrapper)).toEqual(["Zoë Smith"]);
+    });
+
+    it("offers All, Scouts, Explorers, Network and Not set", async () => {
+      serve(cast());
+      const wrapper = await openPage();
+
+      expect(
+        section(wrapper)
+          .findAll("option")
+          .map((o) => o.text()),
+      ).toEqual(["All", "Scouts", "Explorers", "Network", "Not set"]);
+    });
+
+    it("combines filters", async () => {
+      serve(cast());
+      const wrapper = await openPage();
+
+      await firstName(wrapper).setValue("sam");
+      await section(wrapper).setValue("scouts");
+
+      expect(names(wrapper)).toEqual(["Sam Example"]);
+    });
+
+    it("shows matches out of the total, in a live region for screen readers", async () => {
+      serve(cast());
+      const wrapper = await openPage();
+
+      await section(wrapper).setValue("explorers");
+
+      const count = wrapper.get("[data-test=count]");
+      expect(count.text()).toBe("2 of 4 cast members");
+      expect(count.attributes("role")).toBe("status");
+    });
+
+    it("says when nothing matches", async () => {
+      serve(cast());
+      const wrapper = await openPage();
+
+      await firstName(wrapper).setValue("nobody");
+
+      expect(wrapper.text()).toContain("No cast members match these filters");
+      expect(wrapper.find("table").exists()).toBe(false);
+    });
+
+    it("clears every filter in one go", async () => {
+      serve(cast());
+      const wrapper = await openPage();
+      await firstName(wrapper).setValue("sam");
+      await section(wrapper).setValue("scouts");
+
+      await wrapper.get("button[data-test=clear-filters]").trigger("click");
+
+      expect(firstName(wrapper).element).toHaveProperty("value", "");
+      expect(lastName(wrapper).element).toHaveProperty("value", "");
+      expect(section(wrapper).element).toHaveProperty("value", "all");
+      expect(names(wrapper)).toHaveLength(4);
+      expect(wrapper.get("[data-test=count]").text()).toBe("4 cast members");
+    });
+
+    it("labels each filter for screen readers", async () => {
+      serve(cast());
+      const wrapper = await openPage();
+
+      for (const field of [firstName(wrapper), lastName(wrapper), section(wrapper)]) {
+        const id = field.attributes("id");
+        expect(wrapper.find(`label[for="${id}"]`).exists()).toBe(true);
+      }
+    });
+  });
 });
