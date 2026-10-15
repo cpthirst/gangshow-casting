@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { parseFrontmatter } from "./validate-docs.ts";
@@ -31,5 +32,36 @@ describe("harness: skills", () => {
     const fm = read(`skills/${dir}/SKILL.md`);
     expect(fm.name).toBe(dir);
     expect(fm.description?.length).toBeGreaterThan(40);
+  });
+});
+
+describe("harness: committed permissions", () => {
+  // Read from the last commit, not the working tree: batch mode (the batch-stories skill)
+  // edits the working copy on purpose, but that override must never be committed. A
+  // committed override fails here at pre-push and in CI, before it reaches the remote.
+  const committed: { permissions: { ask: string[]; deny: string[] } } = JSON.parse(
+    execFileSync("git", ["show", "HEAD:.claude/settings.json"], { encoding: "utf8" }),
+  );
+
+  it("asks before pushing or touching pull requests", () => {
+    expect(committed.permissions.ask).toEqual(
+      expect.arrayContaining(["Bash(git push:*)", "Bash(gh pr:*)"]),
+    );
+  });
+
+  it("never allows force-pushing or pushing to main", () => {
+    expect(committed.permissions.deny).toEqual(
+      expect.arrayContaining([
+        "Bash(git push --force:*)",
+        "Bash(git push -f:*)",
+        "Bash(git push origin main:*)",
+      ]),
+    );
+  });
+});
+
+describe("harness: batch-stories", () => {
+  it("can only be started by the user, never by the model on its own", () => {
+    expect(read("skills/batch-stories/SKILL.md")["disable-model-invocation"]).toBe("true");
   });
 });
