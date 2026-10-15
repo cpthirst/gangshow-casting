@@ -108,6 +108,20 @@ body {
   color: var(--red-deep);
 }
 
+/* A group label (Casting) isn't a link: quieter than the pages, which sit indented beneath it. */
+.menu-group {
+  display: block;
+  padding: 1rem 1.5rem 0.25rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.sidebar nav .menu-group-pages a {
+  padding-left: 2.5rem;
+}
+
 .sidebar-footer {
   margin-top: auto;
   padding: 0 1.5rem;

@@ -16,7 +16,7 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [casting-menus.E1.S1](stories/E1-S1-casting-menu-group.md) | "Casting grid" becomes a Casting group with Overview and Items (placeholders), on desktop and the mobile menu | FR1, FR2, FR3, FR5, FR6 | (none) | ready |
+| [casting-menus.E1.S1](stories/E1-S1-casting-menu-group.md) | "Casting grid" becomes a Casting group with Overview and Items (placeholders), on desktop and the mobile menu | FR1, FR2, FR3, FR5, FR6 | (none) | done |
 | [casting-menus.E1.S2](stories/E1-S2-old-casting-grid-link.md) | Old "Casting grid" links go to Overview | FR4 | E1.S1 | ready |
 
 ## FR coverage

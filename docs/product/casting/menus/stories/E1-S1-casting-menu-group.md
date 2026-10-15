@@ -2,7 +2,7 @@
 id: casting-menus.E1.S1
 title: Show a Casting group with Overview and Items
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story

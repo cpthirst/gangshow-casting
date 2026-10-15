@@ -40,8 +40,28 @@ describe("App shell", () => {
       "Chester Gang Show",
       "Casting",
     ]);
-    const menu = wrapper.get("nav[aria-label=Main]").findAll("a");
-    expect(menu.map((link) => link.text())).toEqual(["Running order", "Cast", "Casting grid"]);
+    const menu = wrapper.get("nav[aria-label=Main]");
+    const topLevel = menu.findAll(":scope > ul > li").map((item) => item.text());
+    expect(topLevel).toEqual(["Running order", "Cast", expect.stringMatching(/^Casting/)]);
+    expect(menu.findAll("a").map((link) => link.text())).toEqual([
+      "Running order",
+      "Cast",
+      "Overview",
+      "Items",
+    ]);
+    expect(menu.text()).not.toContain("Casting grid");
+  });
+
+  it("lists Overview and Items as a list inside Casting", async () => {
+    const { wrapper } = await openAppAt("/");
+
+    const subList = wrapper.get("nav[aria-label=Main] > ul > li:nth-child(3) > ul");
+    const label = document.getElementById(subList.attributes("aria-labelledby") ?? "");
+    expect(label?.textContent).toBe("Casting");
+    expect(subList.findAll(":scope > li > a").map((link) => link.text())).toEqual([
+      "Overview",
+      "Items",
+    ]);
   });
 
   it("opens the Running order page at the root URL", async () => {
@@ -111,22 +131,42 @@ describe("App shell", () => {
     expect(router.currentRoute.value.fullPath).toBe("/cast");
   });
 
-  it("shows a page with its description and URL when chosen from the menu", async () => {
+  it("shows the Overview placeholder with its description and URL when chosen", async () => {
     const { wrapper, router } = await openAppAt("/");
 
-    await wrapper.get("nav a[href='/casting-grid']").trigger("click");
+    await wrapper.get("nav a[href='/casting/overview']").trigger("click");
     await flushPromises();
 
-    expect(wrapper.get("main h1").text()).toBe("Casting grid");
+    expect(wrapper.get("main h1").text()).toBe("Overview");
     expect(wrapper.get("main p").text()).toBe("Who is in which item, across the whole show.");
-    expect(router.currentRoute.value.fullPath).toBe("/casting-grid");
-    expect(document.title).toBe("Casting grid · Chester Gang Show casting");
+    expect(router.currentRoute.value.fullPath).toBe("/casting/overview");
+    expect(document.title).toBe("Overview · Chester Gang Show casting");
   });
 
-  it("loads a page directly from its URL", async () => {
-    const { wrapper } = await openAppAt("/casting-grid");
+  it("shows the Items placeholder with its description and URL when chosen", async () => {
+    const { wrapper, router } = await openAppAt("/");
 
-    expect(wrapper.get("main h1").text()).toBe("Casting grid");
+    await wrapper.get("nav a[href='/casting/items']").trigger("click");
+    await flushPromises();
+
+    expect(wrapper.get("main h1").text()).toBe("Items");
+    expect(wrapper.get("main p").text()).toBe(
+      "The show's items, with how far each one's casting has got.",
+    );
+    expect(router.currentRoute.value.fullPath).toBe("/casting/items");
+  });
+
+  it("loads a casting sub-page directly from its URL", async () => {
+    const { wrapper } = await openAppAt("/casting/items");
+
+    expect(wrapper.get("main h1").text()).toBe("Items");
+  });
+
+  it("opens Overview from the casting path on its own", async () => {
+    const { wrapper, router } = await openAppAt("/casting");
+
+    expect(wrapper.get("main h1").text()).toBe("Overview");
+    expect(router.currentRoute.value.fullPath).toBe("/casting/overview");
   });
 
   it("returns to the previous page on back", async () => {
@@ -139,6 +179,25 @@ describe("App shell", () => {
     await flushPromises();
 
     expect(wrapper.get("main h1").text()).toBe("Running order");
+  });
+
+  it("returns from Items to Overview on back", async () => {
+    const { wrapper, router } = await openAppAt("/casting/overview");
+    await router.push("/casting/items");
+
+    const navigated = nextNavigation(router);
+    router.back();
+    await navigated;
+    await flushPromises();
+
+    expect(wrapper.get("main h1").text()).toBe("Overview");
+  });
+
+  it("marks only the current casting sub-page in the menu", async () => {
+    const { wrapper } = await openAppAt("/casting/items");
+
+    const current = wrapper.findAll("nav a[aria-current=page]");
+    expect(current.map((link) => link.text())).toEqual(["Items"]);
   });
 
   it("marks only the current page in the menu", async () => {
@@ -244,6 +303,26 @@ describe("App shell on a phone", () => {
     expect(wrapper.get("main h1").text()).toBe("Cast");
     expect(menuIsVisible(wrapper)).toBe(false);
     expect(menuButton(wrapper).attributes("aria-expanded")).toBe("false");
+  });
+
+  it("closes the menu after choosing a casting sub-page", async () => {
+    const { wrapper } = await openAppAt("/");
+    await menuButton(wrapper).trigger("click");
+
+    await wrapper.get("#main-menu a[href='/casting/items']").trigger("click");
+    await flushPromises();
+
+    expect(wrapper.get("main h1").text()).toBe("Items");
+    expect(menuIsVisible(wrapper)).toBe(false);
+  });
+
+  it("keeps the menu open when the Casting label is tapped", async () => {
+    const { wrapper } = await openAppAt("/");
+    await menuButton(wrapper).trigger("click");
+
+    await wrapper.get("#main-menu .menu-group").trigger("click");
+
+    expect(menuIsVisible(wrapper)).toBe(true);
   });
 
   it("moves focus to the page content after choosing a page", async () => {
