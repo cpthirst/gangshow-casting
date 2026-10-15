@@ -8,6 +8,7 @@ import {
   locate,
   type Move,
   moveItem,
+  RUNNING_ORDER_PATH,
   replaceItem,
   runningClock,
   sameContent,
@@ -16,10 +17,6 @@ import {
 } from "../running-order.ts";
 import { type RowDrop, vSortableRows } from "../sortable-rows.ts";
 import ItemEditor from "./ItemEditor.vue";
-
-// Only one production for now (see docs/product/running-order/prd.md).
-const PRODUCTION_ID = "2027";
-const API_PATH = `/api/productions/${PRODUCTION_ID}/running-order`;
 
 // Moves change the working copy only; "Save as Draft N+1" turns it into the next
 // saved version, and "Reset" goes back to the saved one (PRD FR6).
@@ -43,7 +40,7 @@ const showSaved = (order: RunningOrder) => {
 
 async function load() {
   try {
-    const res = await fetch(API_PATH);
+    const res = await fetch(RUNNING_ORDER_PATH);
     if (res.status === 404) {
       state.value = { status: "empty" };
       return;
@@ -149,7 +146,7 @@ type SaveResult = { outcome: "saved" | "conflict"; order: RunningOrder } | { out
 // 201 → saved; 409 → someone else saved first (the body is their version); anything else failed.
 async function saveDraft(baseVersion: number, working: RunningOrder): Promise<SaveResult> {
   try {
-    const res = await fetch(`${API_PATH}/versions`, {
+    const res = await fetch(`${RUNNING_ORDER_PATH}/versions`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ baseVersion, change: updateOf(working) }),

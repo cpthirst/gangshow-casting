@@ -143,7 +143,7 @@ describe("App shell", () => {
     expect(document.title).toBe("Overview · Chester Gang Show casting");
   });
 
-  it("shows the Items placeholder with its description and URL when chosen", async () => {
+  it("shows the Items page with its description and URL when chosen", async () => {
     const { wrapper, router } = await openAppAt("/");
 
     await wrapper.get("nav a[href='/casting/items']").trigger("click");
@@ -154,6 +154,20 @@ describe("App shell", () => {
       "The show's items, with how far each one's casting has got.",
     );
     expect(router.currentRoute.value.fullPath).toBe("/casting/items");
+  });
+
+  it("goes from the Items page to the Running order page when there's no running order", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(null, { status: 404 })),
+    );
+    const { wrapper, router } = await openAppAt("/casting/items");
+
+    await wrapper.get("main a[href='/']").trigger("click");
+    await flushPromises();
+
+    expect(router.currentRoute.value.fullPath).toBe("/");
+    expect(wrapper.get("main h1").text()).toBe("Running order");
   });
 
   it("loads a casting sub-page directly from its URL", async () => {

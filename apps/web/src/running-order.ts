@@ -1,5 +1,11 @@
 import { type RunningOrder, RunningOrderItem, type Stage, type UpdateChange } from "@app/shared";
 
+// Only one production for now (see docs/product/running-order/prd.md).
+const PRODUCTION_ID = "2027";
+
+/** The production's running order: GET answers with the latest saved version. */
+export const RUNNING_ORDER_PATH = `/api/productions/${PRODUCTION_ID}/running-order`;
+
 const stageNames: Record<Stage, string> = { apron: "Apron", full: "Full" };
 
 export const stageLabel = (stage: Stage[]) => stage.map((part) => stageNames[part]).join(" / ");

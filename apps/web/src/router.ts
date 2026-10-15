@@ -1,5 +1,6 @@
 import type { Component } from "vue";
 import { createRouter, createWebHistory, type RouterHistory } from "vue-router";
+import CastingItemsPage from "./pages/CastingItemsPage.vue";
 import CastPage from "./pages/CastPage.vue";
 import NotFoundPage from "./pages/NotFoundPage.vue";
 import PlaceholderPage from "./pages/PlaceholderPage.vue";
@@ -58,6 +59,7 @@ export const menuPages: (MenuPage | MenuGroup)[] = [
       {
         path: "/casting/items",
         name: "casting-items",
+        component: CastingItemsPage,
         meta: {
           title: "Items",
           description: "The show's items, with how far each one's casting has got.",
