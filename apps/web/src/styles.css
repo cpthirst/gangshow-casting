@@ -541,6 +541,103 @@ main a {
   cursor: not-allowed;
 }
 
+.cast-actions {
+  margin: 0 0 1rem;
+}
+
+.cast-actions button {
+  padding: 0.5rem 1.25rem;
+  border: 2px solid var(--red-deep);
+  border-radius: 999px;
+  background: var(--red-deep);
+  color: var(--white);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cast-actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* The add/edit form: same look as the running order's item editor. */
+.cast-member-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.75rem 1rem;
+  max-width: 48rem;
+  margin: 0 0 1.5rem;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  background: var(--white);
+}
+
+.cast-member-form .field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.cast-member-form label {
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.cast-member-form input,
+.cast-member-form select {
+  padding: 0.5rem;
+  border: 1px solid var(--text);
+  border-radius: 0.25rem;
+  background: var(--white);
+  color: var(--text);
+  font: inherit;
+}
+
+.cast-member-form [aria-invalid="true"] {
+  border: 2px solid var(--red-darker);
+}
+
+/* Text as well as the red border, so errors don't rely on colour alone. */
+.cast-member-form .field-error {
+  margin: 0;
+  color: var(--red-darker);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.cast-member-form .form-error {
+  grid-column: 1 / -1;
+}
+
+.cast-member-form .editor-actions {
+  display: flex;
+  gap: 0.75rem;
+  grid-column: 1 / -1;
+}
+
+.cast-member-form .editor-actions button {
+  padding: 0.5rem 1.25rem;
+  border: 2px solid var(--text);
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cast-member-form .editor-actions button.primary {
+  border-color: var(--red-deep);
+  background: var(--red-deep);
+  color: var(--white);
+}
+
+.cast-member-form .editor-actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .cast-list {
   width: 100%;
   border-collapse: collapse;

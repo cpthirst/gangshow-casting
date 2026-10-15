@@ -1,6 +1,7 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { CastMemberDetails } from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { aCastList, aCastMember } from "./cast.fixture.ts";
 import { fileCastStore, inMemoryCastStore } from "./cast-store.ts";
@@ -14,6 +15,23 @@ describe("in-memory cast store", () => {
 
   it("returns nothing for a production with no cast", async () => {
     expect(await inMemoryCastStore().list("2027")).toBeUndefined();
+  });
+});
+
+const jo: CastMemberDetails = { firstName: "Jo", lastName: "Newcomer", section: null, group: "" };
+
+describe("in-memory cast store adding", () => {
+  it("adds a member with the next id and revision 1", async () => {
+    const store = inMemoryCastStore([aCastList([aCastMember(1), aCastMember(56)])]);
+
+    const added = await store.add("2027", { ...jo });
+
+    expect(added).toEqual({ ...jo, id: 57, revision: 1 });
+    expect((await store.list("2027"))?.members).toHaveLength(3);
+  });
+
+  it("adds nothing to a production with no cast list", async () => {
+    expect(await inMemoryCastStore().add("2027", { ...jo })).toBeUndefined();
   });
 });
 
@@ -69,5 +87,48 @@ describe("file cast store", () => {
     await writeCast("2027", aCastList([aCastMember(1)], "2026"));
 
     await expect(fileCastStore(dataDir).list("2027")).rejects.toThrow();
+  });
+
+  it("adds a member with the next id, saved to the file", async () => {
+    await writeCast("2027", aCastList([aCastMember(1), aCastMember(56)]));
+    const store = fileCastStore(dataDir);
+
+    const added = await store.add("2027", { ...jo });
+
+    expect(added?.id).toBe(57);
+    expect((await fileCastStore(dataDir).list("2027"))?.members.map((m) => m.id)).toEqual([
+      1, 56, 57,
+    ]);
+  });
+
+  it("never reuses an id: it carries on from the stored next id", async () => {
+    await writeCast("2027", { ...aCastList([aCastMember(1)]), nextId: 60 });
+
+    expect((await fileCastStore(dataDir).add("2027", { ...jo }))?.id).toBe(60);
+    expect((await fileCastStore(dataDir).add("2027", { ...jo }))?.id).toBe(61);
+  });
+
+  it("gives simultaneous adds different ids and keeps both", async () => {
+    await writeCast("2027", aCastList([aCastMember(1)]));
+    const store = fileCastStore(dataDir);
+
+    const [a, b] = await Promise.all([store.add("2027", { ...jo }), store.add("2027", { ...jo })]);
+
+    expect(new Set([a?.id, b?.id]).size).toBe(2);
+    expect((await store.list("2027"))?.members).toHaveLength(3);
+  });
+
+  it("leaves no temporary files behind", async () => {
+    await writeCast("2027", aCastList([aCastMember(1)]));
+
+    await fileCastStore(dataDir).add("2027", { ...jo });
+
+    const file = await readFile(join(dataDir, "2027", "cast.json"), "utf8");
+    expect(JSON.parse(file).members).toHaveLength(2);
+    expect(await readdir(join(dataDir, "2027"))).toEqual(["cast.json"]);
+  });
+
+  it("adds nothing to a production with no cast file", async () => {
+    expect(await fileCastStore(dataDir).add("1999", { ...jo })).toBeUndefined();
   });
 });

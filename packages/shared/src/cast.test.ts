@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CastList, CastMember } from "./cast.ts";
+import { CastList, CastMember, CastMemberDetails } from "./cast.ts";
 
 // Made-up names only: tests never use the real cast (CLAUDE.md safeguarding).
 const sam = {
@@ -44,5 +44,25 @@ describe("CastList", () => {
 
   it("rejects an unsafe production id", () => {
     expect(CastList.safeParse({ productionId: "../x", members: [] }).success).toBe(false);
+  });
+});
+
+describe("CastMemberDetails", () => {
+  const details = { firstName: "Jo", lastName: "Newcomer", section: null, group: "" };
+
+  it("accepts the editable details of a cast member", () => {
+    expect(CastMemberDetails.parse(details)).toEqual(details);
+  });
+
+  it("trims names", () => {
+    expect(CastMemberDetails.parse({ ...details, firstName: "  Jo " }).firstName).toBe("Jo");
+  });
+
+  it.each([
+    ["an id (the app assigns it)", { id: 9 }],
+    ["a revision", { revision: 1 }],
+    ["a date of birth", { dateOfBirth: "2012-01-01" }],
+  ])("rejects %s", (_case, extra) => {
+    expect(CastMemberDetails.safeParse({ ...details, ...extra }).success).toBe(false);
   });
 });

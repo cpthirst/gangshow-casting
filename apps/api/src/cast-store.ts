@@ -1,17 +1,46 @@
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
-import { CastList, ProductionId } from "@app/shared";
+import { randomUUID } from "node:crypto";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import { CastList, CastMember, type CastMemberDetails, ProductionId } from "@app/shared";
 import { ifExists } from "./files.ts";
+import { parseJson } from "./json.ts";
 
 /** Where each production's cast list lives: one mutable document, no history (ADR 0010). */
 export interface CastStore {
   list(productionId: string): Promise<CastList | undefined>;
+  /** Adds a member with the next unused id; undefined if the production has no cast list. */
+  add(productionId: string, details: CastMemberDetails): Promise<CastMember | undefined>;
+}
+
+// The stored file also remembers the next id, so a deleted member's id is never reused.
+const CastFile = CastList.extend({ nextId: CastMember.shape.id.optional() });
+type CastFile = ReturnType<typeof CastFile.parse>;
+
+const nextIdOf = (file: CastFile) =>
+  file.nextId ?? Math.max(0, ...file.members.map((member) => member.id)) + 1;
+
+const listOf = ({ productionId, members }: CastFile): CastList => ({ productionId, members });
+
+/** The file with a new member added under the next id. */
+function withNewMember(file: CastFile, details: CastMemberDetails) {
+  const member: CastMember = { ...details, id: nextIdOf(file), revision: 1 };
+  return { member, file: { ...file, members: [...file.members, member], nextId: member.id + 1 } };
 }
 
 export function inMemoryCastStore(initial: CastList[] = []): CastStore {
-  const lists = [...initial];
+  const files = new Map<string, CastFile>(initial.map((list) => [list.productionId, list]));
   return {
-    list: async (productionId) => lists.find((list) => list.productionId === productionId),
+    list: async (productionId) => {
+      const file = files.get(productionId);
+      return file && listOf(file);
+    },
+    async add(productionId, details) {
+      const file = files.get(productionId);
+      if (!file) return undefined;
+      const added = withNewMember(file, details);
+      files.set(productionId, added.file);
+      return added.member;
+    },
   };
 }
 
@@ -23,28 +52,51 @@ export function fileCastStore(dataDir: string): CastStore {
     return join(dataDir, productionId, "cast.json");
   };
 
+  async function read(productionId: string) {
+    const text = await ifExists(() => readFile(fileFor(productionId), "utf8"));
+    return text === undefined ? undefined : parseCastFile(text, productionId);
+  }
+
+  // Write the whole file to a temp file, then rename it into place: a crash never
+  // leaves a half-written cast list.
+  async function write(file: CastFile) {
+    const path = fileFor(file.productionId);
+    const temp = join(dirname(path), `.cast-${randomUUID()}.tmp`);
+    await mkdir(dirname(path), { recursive: true });
+    await writeFile(temp, JSON.stringify(CastFile.parse(file), null, 2));
+    await rename(temp, path);
+  }
+
+  // One change at a time, so two simultaneous saves can't overwrite each other.
+  let queue: Promise<unknown> = Promise.resolve();
+  const oneAtATime = <T>(change: () => Promise<T>): Promise<T> => {
+    const result = queue.then(change);
+    queue = result.catch(() => undefined);
+    return result;
+  };
+
   return {
-    async list(productionId) {
-      const text = await ifExists(() => readFile(fileFor(productionId), "utf8"));
-      return text === undefined ? undefined : parseCastFile(text, productionId);
+    list: async (productionId) => {
+      const file = await read(productionId);
+      return file && listOf(file);
     },
+    add: (productionId, details) =>
+      oneAtATime(async () => {
+        const file = await read(productionId);
+        if (!file) return undefined;
+        const added = withNewMember(file, details);
+        await write(added.file);
+        return added.member;
+      }),
   };
 }
 
 // Parse errors can quote the file, and the file holds children's names, so any problem
 // becomes one fixed message with no cause attached: nothing from the file reaches a log.
-function parseCastFile(text: string, productionId: string): CastList {
-  const parsed = CastList.safeParse(parseJson(text));
+function parseCastFile(text: string, productionId: string): CastFile {
+  const parsed = CastFile.safeParse(parseJson(text));
   if (!parsed.success || parsed.data.productionId !== productionId) {
     throw new Error(`Cast file for production ${productionId} is invalid`);
   }
   return parsed.data;
-}
-
-function parseJson(text: string): unknown {
-  try {
-    return JSON.parse(text);
-  } catch {
-    return undefined;
-  }
 }

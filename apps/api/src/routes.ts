@@ -1,4 +1,5 @@
 import { fileURLToPath } from "node:url";
+import { createAddCastMember } from "./add-cast-member.ts";
 import { fileCastStore } from "./cast-store.ts";
 import { createGetCast } from "./get-cast.ts";
 import { createGetRunningOrder } from "./get-running-order.ts";
@@ -19,6 +20,7 @@ export const routes: Record<string, Handler> = {
   "POST /api/productions/{productionId}/running-order/versions":
     createSaveRunningOrder(runningOrders),
   "GET /api/productions/{productionId}/cast": createGetCast(cast),
+  "POST /api/productions/{productionId}/cast": createAddCastMember(cast),
 };
 
 /** Finds the handler for a request, as API Gateway would, with any path parameters. */

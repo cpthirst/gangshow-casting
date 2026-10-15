@@ -1,4 +1,4 @@
-import type { CastMember, Section } from "@app/shared";
+import { type CastMember, CastMemberDetails, type Section } from "@app/shared";
 
 const sectionNames: Record<Section, string> = {
   scouts: "Scouts",
@@ -57,4 +57,57 @@ export function filterCast(members: CastMember[], filters: CastFilters) {
       plain(m.lastName).includes(last) &&
       sectionMatches(filters.section, m.section),
   );
+}
+
+/** The add/edit form's fields, as typed. A blank section means not set. */
+export interface CastForm {
+  firstName: string;
+  lastName: string;
+  section: Section | "";
+  group: string;
+}
+
+export const castFormFor = (member?: CastMember): CastForm => ({
+  firstName: member?.firstName ?? "",
+  lastName: member?.lastName ?? "",
+  section: member?.section ?? "",
+  group: member?.group ?? "",
+});
+
+const messages: Record<keyof CastForm, { missing: string; tooLong: string }> = {
+  firstName: {
+    missing: "Enter a first name",
+    tooLong: "Keep the first name to 40 characters or fewer",
+  },
+  lastName: {
+    missing: "Enter a last name",
+    tooLong: "Keep the last name to 40 characters or fewer",
+  },
+  section: { missing: "Choose a section", tooLong: "Choose a section" },
+  group: { missing: "", tooLong: "Keep the group to 60 characters or fewer" },
+};
+
+const isFormField = (key: unknown): key is keyof CastForm =>
+  typeof key === "string" && key in messages;
+
+export type CastFormResult =
+  | { ok: true; details: CastMemberDetails }
+  | { ok: false; errors: Partial<Record<keyof CastForm, string>> };
+
+/** The details the form describes, or a message for each field that needs fixing.
+ *  Limits come from the shared schema, so the page and the API agree. */
+export function detailsFrom(form: CastForm): CastFormResult {
+  const parsed = CastMemberDetails.safeParse({
+    ...form,
+    section: form.section === "" ? null : form.section,
+  });
+  if (parsed.success) return { ok: true, details: parsed.data };
+
+  const errors: Partial<Record<keyof CastForm, string>> = {};
+  for (const issue of parsed.error.issues) {
+    const field = issue.path[0];
+    if (!isFormField(field)) continue;
+    errors[field] = issue.code === "too_big" ? messages[field].tooLong : messages[field].missing;
+  }
+  return { ok: false, errors };
 }

@@ -1,6 +1,6 @@
 import type { CastMember } from "@app/shared";
 import { describe, expect, it } from "vitest";
-import { type CastFilters, filterCast, NO_FILTERS } from "./cast.ts";
+import { type CastFilters, type CastForm, detailsFrom, filterCast, NO_FILTERS } from "./cast.ts";
 
 // Made-up names only: tests never use the real cast (CLAUDE.md safeguarding).
 let nextId = 1;
@@ -51,5 +51,35 @@ describe("filterCast", () => {
 
   it("combines filters", () => {
     expect(filter({ firstName: "sam", section: "scouts" })).toEqual(["Sam Example"]);
+  });
+});
+
+describe("detailsFrom", () => {
+  const form: CastForm = { firstName: "Jo", lastName: "Newcomer", section: "", group: "" };
+
+  it("turns a filled form into cast member details, trimmed, with blank section as not set", () => {
+    expect(detailsFrom({ ...form, firstName: " Jo ", section: "scouts" })).toEqual({
+      ok: true,
+      details: { firstName: "Jo", lastName: "Newcomer", section: "scouts", group: "" },
+    });
+    expect(detailsFrom(form)).toEqual({
+      ok: true,
+      details: { firstName: "Jo", lastName: "Newcomer", section: null, group: "" },
+    });
+  });
+
+  const badInput: [keyof CastForm, Partial<CastForm>, string][] = [
+    ["firstName", { firstName: "  " }, "Enter a first name"],
+    ["lastName", { lastName: "" }, "Enter a last name"],
+    ["firstName", { firstName: "x".repeat(41) }, "Keep the first name to 40 characters or fewer"],
+    ["lastName", { lastName: "x".repeat(41) }, "Keep the last name to 40 characters or fewer"],
+    ["group", { group: "x".repeat(61) }, "Keep the group to 60 characters or fewer"],
+  ];
+
+  it.each(badInput)("explains a bad %s", (field, change, message) => {
+    const result = detailsFrom({ ...form, ...change });
+
+    expect(result.ok).toBe(false);
+    expect(!result.ok && result.errors[field]).toBe(message);
   });
 });

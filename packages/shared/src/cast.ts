@@ -20,6 +20,17 @@ export const CastMember = z.strictObject({
   revision: z.number().int().positive(),
 });
 
+/**
+ * The details people can set: everything but the app-managed id and revision.
+ * POST /api/productions/{productionId}/cast takes these; 201 returns the new CastMember.
+ */
+export const CastMemberDetails = CastMember.pick({
+  firstName: true,
+  lastName: true,
+  section: true,
+  group: true,
+});
+
 /** GET /api/productions/{productionId}/cast: the production's cast members. */
 export const CastList = z.strictObject({
   productionId: ProductionId,
@@ -28,4 +39,5 @@ export const CastList = z.strictObject({
 
 export type Section = z.infer<typeof Section>;
 export type CastMember = z.infer<typeof CastMember>;
+export type CastMemberDetails = z.infer<typeof CastMemberDetails>;
 export type CastList = z.infer<typeof CastList>;

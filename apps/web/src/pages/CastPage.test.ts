@@ -1,4 +1,4 @@
-import type { CastList, CastMember } from "@app/shared";
+import { type CastList, type CastMember, CastMemberDetails } from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import CastPage from "./CastPage.vue";
@@ -262,6 +262,152 @@ describe("Cast page", () => {
         const id = field.attributes("id");
         expect(wrapper.find(`label[for="${id}"]`).exists()).toBe(true);
       }
+    });
+  });
+
+  describe("adding a cast member", () => {
+    let posts: unknown[] = [];
+    // A stand-in for the API: serves the list and adds members with the next id.
+    function api(initial: CastList) {
+      const list = { ...initial, members: [...initial.members] };
+      posts = [];
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (_url: string, init?: RequestInit) => {
+          if (init?.method !== "POST") return new Response(JSON.stringify(list));
+          const details = CastMemberDetails.parse(JSON.parse(String(init.body)));
+          posts.push(details);
+          const member = {
+            ...details,
+            id: Math.max(0, ...list.members.map((m) => m.id)) + 1,
+            revision: 1,
+          };
+          list.members.push(member);
+          return new Response(JSON.stringify(member), { status: 201 });
+        }),
+      );
+    }
+
+    const cast = () => aCast([aMember("Sam", "Example"), aMember("Alex", "Sample")]);
+    async function openForm(wrapper: Page) {
+      await wrapper.get("button[data-test=add-member]").trigger("click");
+      await flushPromises();
+      return wrapper.get("form[data-test=cast-member-form]");
+    }
+    async function save(wrapper: Page) {
+      await wrapper.get("form[data-test=cast-member-form]").trigger("submit");
+      await flushPromises();
+    }
+    async function fill(form: ReturnType<Page["get"]>, values: Record<string, string>) {
+      for (const [name, value] of Object.entries(values)) {
+        await form.get(`[name=${name}]`).setValue(value);
+      }
+    }
+
+    it("adds a cast member in surname order and updates the count", async () => {
+      api(cast());
+      const wrapper = await openPage();
+      const form = await openForm(wrapper);
+
+      await fill(form, {
+        firstName: "Jo",
+        lastName: "Newcomer",
+        section: "scouts",
+        group: "1st Somewhere",
+      });
+      await save(wrapper);
+
+      expect(names(wrapper)).toEqual(["Sam Example", "Jo Newcomer", "Alex Sample"]);
+      expect(rows(wrapper)[1]).toEqual(["Jo", "Newcomer", "Scouts", "1st Somewhere"]);
+      expect(wrapper.get("[data-test=count]").text()).toBe("3 cast members");
+      expect(wrapper.find("form[data-test=cast-member-form]").exists()).toBe(false);
+    });
+
+    it("leaves section and group optional", async () => {
+      api(cast());
+      const wrapper = await openPage();
+      const form = await openForm(wrapper);
+
+      await fill(form, { firstName: "Jo", lastName: "Newcomer" });
+      await save(wrapper);
+
+      expect(rows(wrapper)[1]).toEqual(["Jo", "Newcomer", "Not set", ""]);
+    });
+
+    it.each([
+      ["first name", { lastName: "Newcomer" }, "firstName", "Enter a first name"],
+      ["last name", { firstName: "Jo" }, "lastName", "Enter a last name"],
+    ])("requires a %s, explaining next to the field", async (_f, values, field, message) => {
+      api(cast());
+      const wrapper = await openPage();
+      const form = await openForm(wrapper);
+
+      await fill(form, values);
+      await save(wrapper);
+
+      const input = wrapper.get(`form[data-test=cast-member-form] [name=${field}]`);
+      expect(input.attributes("aria-invalid")).toBe("true");
+      expect(wrapper.get(`[id="${input.attributes("aria-describedby")}"]`).text()).toBe(message);
+      expect(posts).toHaveLength(0);
+      expect(rows(wrapper)).toHaveLength(2);
+    });
+
+    it.each([
+      ["first name", "firstName", "x".repeat(41), "Keep the first name to 40 characters or fewer"],
+      ["group", "group", "x".repeat(61), "Keep the group to 60 characters or fewer"],
+    ])("refuses a %s over the limit", async (_f, field, value, message) => {
+      api(cast());
+      const wrapper = await openPage();
+      const form = await openForm(wrapper);
+
+      await fill(form, { firstName: "Jo", lastName: "Newcomer", [field]: value });
+      await save(wrapper);
+
+      const input = wrapper.get(`form[data-test=cast-member-form] [name=${field}]`);
+      expect(wrapper.get(`[id="${input.attributes("aria-describedby")}"]`).text()).toBe(message);
+      expect(posts).toHaveLength(0);
+    });
+
+    it("adds nobody when cancelled", async () => {
+      api(cast());
+      const wrapper = await openPage();
+      const form = await openForm(wrapper);
+      await fill(form, { firstName: "Jo", lastName: "Newcomer" });
+
+      await form.get("button[data-test=cancel]").trigger("click");
+      await flushPromises();
+
+      expect(wrapper.find("form[data-test=cast-member-form]").exists()).toBe(false);
+      expect(rows(wrapper)).toHaveLength(2);
+      expect(posts).toHaveLength(0);
+    });
+
+    it("keeps the form and says so when the add fails", async () => {
+      api(cast());
+      const wrapper = await openPage();
+      const form = await openForm(wrapper);
+      await fill(form, { firstName: "Jo", lastName: "Newcomer" });
+      vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
+
+      await save(wrapper);
+
+      expect(wrapper.text()).toContain("Couldn't add the cast member. Try again.");
+      expect(wrapper.find("form[data-test=cast-member-form]").exists()).toBe(true);
+      expect(rows(wrapper)).toHaveLength(2);
+    });
+
+    it("announces the new member and returns focus to the Add button", async () => {
+      api(cast());
+      const wrapper = await openPage();
+      const form = await openForm(wrapper);
+
+      expect(document.activeElement).toBe(form.get("[name=firstName]").element);
+
+      await fill(form, { firstName: "Jo", lastName: "Newcomer" });
+      await save(wrapper);
+
+      expect(wrapper.get("[data-test=announcement]").text()).toBe("Jo Newcomer added.");
+      expect(document.activeElement).toBe(wrapper.get("button[data-test=add-member]").element);
     });
   });
 });

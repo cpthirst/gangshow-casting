@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { CastList } from "@app/shared";
-import { computed, onMounted, ref, useId } from "vue";
+import { CastList, CastMember, type CastMemberDetails } from "@app/shared";
+import { computed, nextTick, onMounted, ref, useId } from "vue";
 import {
   type CastFilters,
   filterCast,
@@ -10,6 +10,7 @@ import {
   sectionLabel,
   sortCast,
 } from "../cast.ts";
+import CastMemberForm from "./CastMemberForm.vue";
 
 // Only one production for now (see docs/product/cast-management/prd.md).
 const PRODUCTION_ID = "2027";
@@ -41,6 +42,57 @@ const clearFilters = () => {
 
 const uid = useId();
 
+/** Screen-reader announcement of the last add, edit or delete. */
+const announcement = ref("");
+const adding = ref(false);
+const saving = ref(false);
+const formError = ref("");
+const addButton = ref<HTMLButtonElement>();
+
+function startAdding() {
+  formError.value = "";
+  adding.value = true;
+}
+
+async function stopAdding() {
+  adding.value = false;
+  await nextTick();
+  addButton.value?.focus();
+}
+
+async function add(details: CastMemberDetails) {
+  if (state.value.status !== "loaded" || saving.value) return;
+  saving.value = true;
+  formError.value = "";
+  const member = await postMember(details);
+  saving.value = false;
+  if (!member) {
+    formError.value = "Couldn't add the cast member. Try again.";
+    return;
+  }
+  // The list may have been replaced while saving, so add to whatever is current.
+  if (state.value.status === "loaded") {
+    const { list } = state.value;
+    state.value = { status: "loaded", list: { ...list, members: [...list.members, member] } };
+  }
+  announcement.value = `${member.firstName} ${member.lastName} added.`;
+  await stopAdding();
+}
+
+// 201 → the saved member, with the id the app gave it; anything else failed.
+async function postMember(details: CastMemberDetails) {
+  try {
+    const res = await fetch(API_PATH, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(details),
+    });
+    return res.status === 201 ? CastMember.parse(await res.json()) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 onMounted(async () => {
   try {
     const res = await fetch(API_PATH);
@@ -62,6 +114,26 @@ onMounted(async () => {
   <p v-else-if="state.status === 'empty'">No cast members yet.</p>
   <p v-else-if="state.status === 'error'" role="alert">Couldn't load the cast list.</p>
   <template v-else>
+    <p class="visually-hidden" role="status" data-test="announcement">{{ announcement }}</p>
+    <div class="cast-actions">
+      <button
+        ref="addButton"
+        type="button"
+        class="primary"
+        data-test="add-member"
+        :disabled="adding"
+        @click="startAdding"
+      >
+        Add cast member
+      </button>
+    </div>
+    <CastMemberForm
+      v-if="adding"
+      :saving="saving"
+      :error="formError"
+      @save="add"
+      @cancel="stopAdding"
+    />
     <form class="cast-filters" role="search" aria-label="Filter the cast" @submit.prevent>
       <div class="field">
         <label :for="`${uid}-first`">First name</label>
