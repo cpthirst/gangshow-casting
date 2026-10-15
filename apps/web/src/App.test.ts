@@ -143,7 +143,7 @@ describe("App shell", () => {
     expect(document.title).toBe("Overview · Chester Gang Show casting");
   });
 
-  it("shows the Items placeholder with its description and URL when chosen", async () => {
+  it("shows the Items page with its description and URL when chosen", async () => {
     const { wrapper, router } = await openAppAt("/");
 
     await wrapper.get("nav a[href='/casting/items']").trigger("click");

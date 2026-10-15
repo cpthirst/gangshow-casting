@@ -840,6 +840,33 @@ main a {
   color: var(--red-deep);
 }
 
+/* Casting items: the running order's numbers and titles, with no management controls. */
+.based-on {
+  font-size: 0.875rem;
+}
+
+.casting-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--white);
+  border-radius: 0.5rem;
+}
+
+.casting-items li {
+  display: flex;
+  gap: 1rem;
+  align-items: baseline;
+  padding: 0.625rem 0.75rem;
+  border-bottom: 1px solid var(--surface);
+}
+
+.casting-item-number {
+  flex: 0 0 auto;
+  min-width: 2rem;
+  font-weight: 700;
+}
+
 /* Phone: the sidebar becomes a top bar, and the menu drops down over the page.
    Must match PHONE_QUERY in App.vue. */
 @media (max-width: 767px) {

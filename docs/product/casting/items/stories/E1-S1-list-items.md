@@ -2,7 +2,7 @@
 id: casting-items.E1.S1
 title: List the show's items for casting
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story
