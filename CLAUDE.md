@@ -55,6 +55,7 @@ Rules:
 ## Skills (`.claude/skills/`)
 
 Delivery chain: **write-prd → story-map → write-story → implement-story → open-pr**, plus **adr** for decisions.
+**batch-stories** (`on <feature>` / `off` / `status`) is a user-only toggle: it temporarily lets you commit and push each story of one feature to one branch and open a single PR, then restores the harness. Never turn it on yourself.
 New feature work starts from a story with Given/When/Then ACs. If there isn't one, offer the chain rather than coding from a vague request. Every AC needs at least one test: `test-auditor` checks the mapping at review, and the PR lists which test covers each AC.
 
 ## Review loop (subagents, `.claude/agents/`)
@@ -95,7 +96,7 @@ Trunk-based. `main` is always releasable.
 
 You may, without asking: edit code, add/upgrade dev dependencies, run any `pnpm` script, `cdk synth`/`cdk diff`, create branches and commits.
 
-Ask first: `git push`, opening/merging PRs, `cdk deploy`/`destroy`, anything touching real AWS accounts, deleting files you didn't create, changing CI or harness config (`.claude/`, `.github/`).
+Ask first: `git push`, opening/merging PRs, `cdk deploy`/`destroy`, anything touching real AWS accounts, deleting files you didn't create, changing CI or harness config (`.claude/`, `.github/`). Exception: while the user has switched on `batch-stories` for a feature, push and open its single PR without asking, and run `/batch-stories off` once the PR is open.
 
 Never: commit secrets or read `.env*` files, force-push, push to `main`, bypass hooks (`--no-verify`).
 
