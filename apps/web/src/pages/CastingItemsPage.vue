@@ -47,11 +47,18 @@ onMounted(async () => {
       <h2 :id="half.id">{{ half.name }}</h2>
       <ol class="casting-items">
         <li v-for="{ item, number } in rows" :key="item.id" data-test="item">
-          <span class="casting-item-number" data-test="number">
-            <template v-if="number !== null">{{ number }}</template>
-            <span v-else class="badge">Not in printed programme</span>
-          </span>
-          <span data-test="title">{{ item.title }}</span>
+          <RouterLink
+            class="casting-item-link"
+            :to="{ name: 'casting-item', params: { itemId: item.id } }"
+          >
+            <span class="casting-item-number" data-test="number">
+              <template v-if="number !== null">{{ number }}</template>
+              <span v-else class="badge">Not in printed programme</span>
+            </span>
+            <!-- A real space, so the link reads "2 Pirate Sketch" rather than "2Pirate Sketch". -->
+            {{ " " }}
+            <span data-test="title">{{ item.title }}</span>
+          </RouterLink>
         </li>
       </ol>
     </section>

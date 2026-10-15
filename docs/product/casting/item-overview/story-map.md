@@ -17,7 +17,7 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [casting-item-overview.E1.S1](stories/E1-S1-open-item-page.md) | Open an item from the Items list: its name, position, empty state, own URL and a way back | FR1, FR2, FR5, FR7 | casting-items.E1.S1 | ready |
+| [casting-item-overview.E1.S1](stories/E1-S1-open-item-page.md) | Open an item from the Items list: its name, position, empty state, own URL and a way back | FR1, FR2, FR5, FR7 | casting-items.E1.S1 | done |
 | [casting-item-overview.E1.S2](stories/E1-S2-unknown-item.md) | An item that isn't in the running order shows "not found" | FR6 | E1.S1 | ready |
 
 ## E2: Read an item's roles at a glance

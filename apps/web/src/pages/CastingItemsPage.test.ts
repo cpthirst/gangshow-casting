@@ -1,42 +1,13 @@
-import type { RunningOrder, RunningOrderItem } from "@app/shared";
+import type { RunningOrder } from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory } from "vue-router";
 import { createAppRouter } from "../router.ts";
+import { anItem, aRunningOrder } from "../running-order.fixture.ts";
 import { RUNNING_ORDER_PATH } from "../running-order.ts";
 import CastingItemsPage from "./CastingItemsPage.vue";
 
 enableAutoUnmount(afterEach);
-
-// Made-up data only: tests never use the real programme (CLAUDE.md safeguarding).
-const anItem = (title: string, details: Partial<RunningOrderItem> = {}): RunningOrderItem => ({
-  id: title.toLowerCase().replaceAll(" ", "-"),
-  title,
-  cast: "",
-  stage: ["full"],
-  leads: "",
-  comments: "",
-  minutes: 5,
-  printed: true,
-  ...details,
-});
-
-const aRunningOrder = (
-  first: RunningOrderItem[],
-  second: RunningOrderItem[] = [],
-  version = 7,
-): RunningOrder => ({
-  productionId: "2027",
-  title: "Gang Show 2027",
-  version,
-  savedAt: "2026-10-04T00:00:00.000Z",
-  startTime: "19:15",
-  intervalMinutes: 20,
-  halves: [
-    { id: "first-half", name: "First half", items: first },
-    { id: "second-half", name: "Second half", items: second },
-  ],
-});
 
 function savedRunningOrderIs(order: RunningOrder) {
   const fetch = vi.fn(async () => new Response(JSON.stringify(order)));
@@ -181,5 +152,15 @@ describe("Casting items page", () => {
 
     expect(wrapper.get("[role=alert]").text()).toBe("Couldn't load the items.");
     expect(wrapper.text()).not.toContain("There's no saved running order yet.");
+  });
+
+  it("links each item to its page, named by its number and title", async () => {
+    savedRunningOrderIs(aRunningOrder([anItem("Opening Number"), anItem("Pirate Sketch")]));
+
+    const wrapper = await openItemsPage();
+
+    const link = rowFor(wrapper, "Pirate Sketch")?.get("a");
+    expect(link?.attributes("href")).toBe("/casting/items/pirate-sketch");
+    expect(link?.text().replace(/\s+/g, " ")).toBe("2 Pirate Sketch");
   });
 });

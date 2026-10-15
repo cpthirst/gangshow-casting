@@ -854,11 +854,25 @@ main a {
 }
 
 .casting-items li {
+  border-bottom: 1px solid var(--surface);
+}
+
+/* The whole row is the link to the item's page. */
+.casting-item-link {
   display: flex;
   gap: 1rem;
   align-items: baseline;
   padding: 0.625rem 0.75rem;
-  border-bottom: 1px solid var(--surface);
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 0.5rem;
+}
+
+.item-position {
+  margin-top: 0;
+  font-weight: 700;
 }
 
 .casting-item-number {

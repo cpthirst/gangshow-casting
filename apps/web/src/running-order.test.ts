@@ -1,11 +1,13 @@
 import type { RunningOrder, RunningOrderItem } from "@app/shared";
 import { describe, expect, it } from "vitest";
+import { anItem, aRunningOrder } from "./running-order.fixture.ts";
 import {
   dropItem,
   formatTime,
   formFor,
   type ItemForm,
   itemFrom,
+  placeOf,
   replaceItem,
 } from "./running-order.ts";
 
@@ -155,5 +157,32 @@ describe("replaceItem", () => {
 
     expect(result.halves[1].items).toEqual([edited]);
     expect(result.halves[0].items).toEqual(order.halves[0].items);
+  });
+});
+
+describe("placeOf", () => {
+  const order = aRunningOrder(
+    [anItem("Opening Number"), anItem("Mystery Act", { printed: false }), anItem("Pirate Sketch")],
+    [anItem("Campfire Song")],
+  );
+
+  it("gives an item's programme number and half", () => {
+    expect(placeOf(order, "pirate-sketch")).toMatchObject({
+      item: { title: "Pirate Sketch" },
+      half: { name: "First half" },
+      number: 2,
+    });
+    expect(placeOf(order, "campfire-song")).toMatchObject({
+      half: { name: "Second half" },
+      number: 1,
+    });
+  });
+
+  it("gives no number to an item that isn't in the printed programme", () => {
+    expect(placeOf(order, "mystery-act")?.number).toBeNull();
+  });
+
+  it("finds nothing for an item that isn't in the running order", () => {
+    expect(placeOf(order, "no-such-item")).toBeUndefined();
   });
 });

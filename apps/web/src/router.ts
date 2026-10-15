@@ -1,5 +1,6 @@
 import type { Component } from "vue";
 import { createRouter, createWebHistory, type RouterHistory } from "vue-router";
+import CastingItemPage from "./pages/CastingItemPage.vue";
 import CastingItemsPage from "./pages/CastingItemsPage.vue";
 import CastPage from "./pages/CastPage.vue";
 import NotFoundPage from "./pages/NotFoundPage.vue";
@@ -10,10 +11,17 @@ declare module "vue-router" {
   interface RouteMeta {
     title: string;
     description?: string;
+    /** The menu page to mark as current, for a page that isn't in the menu itself. */
+    menuPage?: string;
   }
 }
 
 const APP_NAME = "Chester Gang Show casting";
+
+/** Names the page in the browser tab, e.g. once a page knows which item it shows. */
+export function showPageTitle(title: string) {
+  document.title = `${title} · ${APP_NAME}`;
+}
 
 interface MenuPage {
   path: string;
@@ -81,6 +89,12 @@ export function createAppRouter(history: RouterHistory = createWebHistory()) {
           ...page,
           component: page.component ?? PlaceholderPage,
         })),
+      {
+        path: "/casting/items/:itemId",
+        name: "casting-item",
+        component: CastingItemPage,
+        meta: { title: "Item", menuPage: "casting-items" },
+      },
       { path: "/casting", redirect: "/casting/overview" },
       // Bookmarks from before the Casting menu (casting-menus FR4).
       { path: "/casting-grid", redirect: "/casting/overview" },
@@ -93,9 +107,7 @@ export function createAppRouter(history: RouterHistory = createWebHistory()) {
     ],
   });
 
-  router.afterEach((to) => {
-    document.title = `${to.meta.title} · ${APP_NAME}`;
-  });
+  router.afterEach((to) => showPageTitle(to.meta.title));
 
   return router;
 }

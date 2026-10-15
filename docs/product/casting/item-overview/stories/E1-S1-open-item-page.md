@@ -2,7 +2,7 @@
 id: casting-item-overview.E1.S1
 title: Open an item's casting page
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story

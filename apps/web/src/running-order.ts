@@ -246,3 +246,14 @@ export function locate(order: RunningOrder, itemId: string) {
   }
   return undefined;
 }
+
+/** An item with its half and programme number (null if it isn't printed), or undefined if
+ *  it isn't in this running order. Unlike `locate`, which gives the row position for moves,
+ *  this gives the printed-programme number. */
+export function placeOf(order: RunningOrder, itemId: string) {
+  for (const { half, rows } of runningClock(order).halves) {
+    const row = rows.find(({ item }) => item.id === itemId);
+    if (row) return { item: row.item, half, number: row.number };
+  }
+  return undefined;
+}
