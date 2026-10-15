@@ -35,8 +35,11 @@ async function openPage() {
 }
 
 type Page = Awaited<ReturnType<typeof openPage>>;
+// The data cells of each row (the last cell holds the row's action buttons).
 const rows = (wrapper: Page) =>
-  wrapper.findAll("tbody tr").map((row) => row.findAll("td").map((cell) => cell.text()));
+  wrapper
+    .findAll("tbody tr")
+    .map((row) => row.findAll("td:not(.actions)").map((cell) => cell.text()));
 const names = (wrapper: Page) => rows(wrapper).map(([first, last]) => `${first} ${last}`);
 
 describe("Cast page", () => {
@@ -52,7 +55,7 @@ describe("Cast page", () => {
 
     const wrapper = await openPage();
 
-    expect(wrapper.findAll("thead th").map((th) => th.text())).toEqual([
+    expect(wrapper.findAll("thead th:not(.actions)").map((th) => th.text())).toEqual([
       "First name",
       "Last name",
       "Section",
@@ -429,6 +432,122 @@ describe("Cast page", () => {
       await save(wrapper);
 
       expect(wrapper.get("[data-test=announcement]").text()).toBe("Jo Newcomer added.");
+      expect(document.activeElement).toBe(wrapper.get("button[data-test=add-member]").element);
+    });
+  });
+
+  describe("deleting a cast member", () => {
+    let deletes: string[] = [];
+    // A stand-in for the API: serves the list and deletes at the right revision.
+    function api(initial: CastList) {
+      const list = { ...initial, members: [...initial.members] };
+      deletes = [];
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (url: string, init?: RequestInit) => {
+          if (init?.method !== "DELETE") return new Response(JSON.stringify(list));
+          deletes.push(url);
+          const { pathname, searchParams } = new URL(url, "http://localhost");
+          const id = Number(pathname.split("/").at(-1));
+          const member = list.members.find((m) => m.id === id);
+          if (!member) return new Response(null, { status: 404 });
+          if (String(member.revision) !== searchParams.get("revision")) {
+            return new Response(null, { status: 409 });
+          }
+          list.members = list.members.filter((m) => m.id !== id);
+          return new Response(null, { status: 204 });
+        }),
+      );
+      return list;
+    }
+
+    const sam = () => aMember("Sam", "Example", { revision: 4 });
+    const cast = (members: CastMember[] = [sam(), aMember("Alex", "Sample")]) => aCast(members);
+    const deleteButton = (wrapper: Page, name: string) =>
+      wrapper.get(`button[aria-label="Delete ${name}"]`);
+    async function deleteMember(wrapper: Page, name: string) {
+      await deleteButton(wrapper, name).trigger("click");
+      await flushPromises();
+    }
+
+    it("asks first, naming the person", async () => {
+      api(cast());
+      const confirm = vi.fn().mockReturnValue(false);
+      vi.stubGlobal("confirm", confirm);
+      const wrapper = await openPage();
+
+      await deleteMember(wrapper, "Sam Example");
+
+      expect(confirm).toHaveBeenCalledWith(
+        "Delete Sam Example from the cast? This can't be undone.",
+      );
+    });
+
+    it("removes them for good once confirmed", async () => {
+      const member = sam();
+      api(cast([member, aMember("Alex", "Sample")]));
+      vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
+      const wrapper = await openPage();
+
+      await deleteMember(wrapper, "Sam Example");
+
+      expect(names(wrapper)).toEqual(["Alex Sample"]);
+      expect(wrapper.get("[data-test=count]").text()).toBe("1 cast member");
+      expect(deletes).toEqual([`/api/productions/2027/cast/${member.id}?revision=4`]);
+
+      wrapper.unmount();
+      const reloaded = await openPage();
+      expect(names(reloaded)).toEqual(["Alex Sample"]);
+    });
+
+    it("keeps them when the confirmation is cancelled", async () => {
+      api(cast());
+      vi.stubGlobal("confirm", vi.fn().mockReturnValue(false));
+      const wrapper = await openPage();
+
+      await deleteMember(wrapper, "Sam Example");
+
+      expect(names(wrapper)).toEqual(["Sam Example", "Alex Sample"]);
+      expect(deletes).toHaveLength(0);
+    });
+
+    it("shows the latest list when someone else changed them first", async () => {
+      const list = api(cast());
+      vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
+      const wrapper = await openPage();
+      // Someone else edits Sam after the page loaded.
+      list.members = list.members.map((m) =>
+        m.firstName === "Sam" ? { ...m, lastName: "Changed", revision: 5 } : m,
+      );
+
+      await deleteMember(wrapper, "Sam Example");
+
+      expect(wrapper.text()).toContain(
+        "Someone else changed this cast member. Showing the latest list.",
+      );
+      expect(names(wrapper)).toEqual(["Sam Changed", "Alex Sample"]);
+    });
+
+    it("says so when the delete fails, keeping them on the list", async () => {
+      api(cast());
+      vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
+      const wrapper = await openPage();
+      vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
+
+      await deleteMember(wrapper, "Sam Example");
+
+      expect(wrapper.text()).toContain("Couldn't delete Sam Example. Try again.");
+      expect(names(wrapper)).toEqual(["Sam Example", "Alex Sample"]);
+    });
+
+    it("announces the deletion and keeps keyboard focus on the page", async () => {
+      api(cast());
+      vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
+      const wrapper = await openPage();
+
+      await deleteMember(wrapper, "Sam Example");
+
+      expect(wrapper.get("[data-test=announcement]").text()).toBe("Sam Example deleted.");
       expect(document.activeElement).toBe(wrapper.get("button[data-test=add-member]").element);
     });
   });

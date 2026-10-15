@@ -657,6 +657,29 @@ main a {
   letter-spacing: 0.05em;
 }
 
+.cast-list .actions {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.cast-list .row-action {
+  padding: 0.25rem 0.75rem;
+  border: 1px solid var(--text);
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cast-list .row-action:hover:not(:disabled) {
+  border-color: var(--red-darker);
+  color: var(--red-darker);
+}
+
 .cast-list .not-set {
   font-style: italic;
 }

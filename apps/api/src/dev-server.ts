@@ -10,7 +10,8 @@ export function createDevServer(table: Record<string, Handler>) {
       res.writeHead(refused).end();
       return;
     }
-    const path = new URL(req.url ?? "/", "http://localhost").pathname;
+    const url = new URL(req.url ?? "/", "http://localhost");
+    const path = url.pathname;
     const route = matchRoute(table, req.method ?? "", path);
     if (!route) {
       res.writeHead(404).end();
@@ -22,7 +23,12 @@ export function createDevServer(table: Record<string, Handler>) {
     }
     try {
       const body = await readBody(req);
-      const event = body === undefined ? route.event : { ...route.event, body };
+      const query = Object.fromEntries(url.searchParams);
+      const event = {
+        ...route.event,
+        ...(body === undefined ? {} : { body }),
+        ...(url.search === "" ? {} : { queryStringParameters: query }),
+      };
       const { statusCode = 200, headers = {}, body: responseBody } = await route.handler(event);
       // Lambda allows boolean/number header values; node:http wants strings.
       const outgoing = Object.fromEntries(Object.entries(headers).map(([k, v]) => [k, String(v)]));

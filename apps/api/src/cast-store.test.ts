@@ -35,6 +35,24 @@ describe("in-memory cast store adding", () => {
   });
 });
 
+describe("in-memory cast store removing", () => {
+  it("removes a member at the given revision", async () => {
+    const store = inMemoryCastStore([aCastList([aCastMember(1), aCastMember(2, { revision: 4 })])]);
+
+    expect(await store.remove("2027", 2, 4)).toBe("removed");
+    expect((await store.list("2027"))?.members.map((m) => m.id)).toEqual([1]);
+  });
+
+  it("refuses a stale revision, an unknown member and a production with no list", async () => {
+    const store = inMemoryCastStore([aCastList([aCastMember(2, { revision: 4 })])]);
+
+    expect(await store.remove("2027", 2, 3)).toBe("stale");
+    expect(await store.remove("2027", 9, 1)).toBe("not-found");
+    expect(await store.remove("1999", 2, 4)).toBe("not-found");
+    expect((await store.list("2027"))?.members).toHaveLength(1);
+  });
+});
+
 describe("file cast store", () => {
   let dataDir: string;
   const writeCast = async (productionId: string, content: unknown) => {
@@ -136,5 +154,35 @@ describe("file cast store", () => {
     await writeCast("2027", { ...aCastList([aCastMember(1), aCastMember(56)]), nextId: 10 });
 
     expect((await fileCastStore(dataDir).add("2027", { ...jo }))?.id).toBe(57);
+  });
+
+  it("removes a member's details from the file entirely", async () => {
+    await writeCast(
+      "2027",
+      aCastList([aCastMember(1), aCastMember(2, { firstName: "Zed", lastName: "Gone" })]),
+    );
+
+    expect(await fileCastStore(dataDir).remove("2027", 2, 1)).toBe("removed");
+
+    const file = await readFile(join(dataDir, "2027", "cast.json"), "utf8");
+    expect(file).not.toMatch(/Zed|Gone/);
+    expect(await readdir(join(dataDir, "2027"))).toEqual(["cast.json"]);
+  });
+
+  it("never gives a deleted member's id to someone new", async () => {
+    await writeCast("2027", aCastList([aCastMember(1), aCastMember(2)]));
+    const store = fileCastStore(dataDir);
+
+    await store.remove("2027", 2, 1);
+    const added = await store.add("2027", { ...jo });
+
+    expect(added?.id).toBe(3);
+  });
+
+  it("refuses to remove at a stale revision, keeping the member", async () => {
+    await writeCast("2027", aCastList([aCastMember(2, { revision: 4 })]));
+
+    expect(await fileCastStore(dataDir).remove("2027", 2, 3)).toBe("stale");
+    expect((await fileCastStore(dataDir).list("2027"))?.members).toHaveLength(1);
   });
 });

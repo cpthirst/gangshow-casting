@@ -133,6 +133,30 @@ describe("dev server request bodies", () => {
   });
 });
 
+describe("dev server query strings", () => {
+  it("passes query string parameters to the handler", async () => {
+    const server = createDevServer({
+      "DELETE /api/things/{thingId}": async (event) => ({
+        statusCode: 200,
+        body: event.queryStringParameters?.revision ?? "none",
+      }),
+    });
+    await new Promise<void>((resolve) => server.listen(0, resolve));
+    const address = server.address();
+    if (typeof address !== "object" || address === null) throw new Error("server not listening");
+
+    try {
+      const res = await fetch(`http://localhost:${address.port}/api/things/12?revision=4`, {
+        method: "DELETE",
+      });
+
+      expect(await res.text()).toBe("4");
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+});
+
 describe("dev server when a handler fails", () => {
   it("returns 500 instead of crashing when a handler throws", async () => {
     const server = createDevServer({

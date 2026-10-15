@@ -2,7 +2,7 @@
 id: cast-management.E2.S3
 title: Delete a cast member
 epic: E2
-status: ready
+status: in-progress
 ---
 
 ## Story

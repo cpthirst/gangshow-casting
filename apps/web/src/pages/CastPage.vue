@@ -83,6 +83,49 @@ async function add(details: CastMemberDetails) {
   await stopAdding();
 }
 
+/** Visible message about a conflict or a failed change. */
+const notice = ref("");
+
+const fullName = (member: CastMember) => `${member.firstName} ${member.lastName}`;
+
+// Permanent by design (PRD FR5, ADR 0010), so always confirm first, naming the person.
+async function deleteMember(member: CastMember) {
+  if (saving.value) return;
+  if (!window.confirm(`Delete ${fullName(member)} from the cast? This can't be undone.`)) return;
+  saving.value = true;
+  notice.value = "";
+  const status = await sendDelete(member);
+  saving.value = false;
+
+  if (status === 204) {
+    if (state.value.status === "loaded") {
+      const { list } = state.value;
+      const members = list.members.filter((m) => m.id !== member.id);
+      state.value = { status: "loaded", list: { ...list, members } };
+    }
+    announcement.value = `${fullName(member)} deleted.`;
+    // The row (and its button) is gone, so keep keyboard focus on the page.
+    await nextTick();
+    addButton.value?.focus();
+  } else if (status === 409 || status === 404) {
+    notice.value = "Someone else changed this cast member. Showing the latest list.";
+    await load();
+  } else {
+    notice.value = `Couldn't delete ${fullName(member)}. Try again.`;
+  }
+  if (notice.value) announcement.value = notice.value;
+}
+
+// The status code, or undefined if the request didn't get an answer.
+async function sendDelete(member: CastMember) {
+  try {
+    const url = `${API_PATH}/${member.id}?revision=${member.revision}`;
+    return (await fetch(url, { method: "DELETE" })).status;
+  } catch {
+    return undefined;
+  }
+}
+
 // 201 → the saved member (or "saved" if its reply can't be read); anything else failed.
 async function postMember(details: CastMemberDetails): Promise<CastMember | "saved" | "failed"> {
   try {
@@ -123,6 +166,7 @@ onMounted(load);
   <p v-else-if="state.status === 'error'" role="alert">Couldn't load the cast list.</p>
   <template v-else>
     <p class="visually-hidden" role="status" data-test="announcement">{{ announcement }}</p>
+    <p v-if="notice" class="notice" role="alert">{{ notice }}</p>
     <div class="cast-actions">
       <button
         ref="addButton"
@@ -184,6 +228,7 @@ onMounted(load);
             <th scope="col">Last name</th>
             <th scope="col">Section</th>
             <th scope="col">Group</th>
+            <th scope="col" class="actions"><span class="visually-hidden">Actions</span></th>
           </tr>
         </thead>
         <tbody>
@@ -194,6 +239,17 @@ onMounted(load);
               {{ sectionLabel(member.section) }}
             </td>
             <td>{{ member.group }}</td>
+            <td class="actions">
+              <button
+                type="button"
+                class="row-action"
+                :aria-label="`Delete ${fullName(member)}`"
+                :disabled="saving"
+                @click="deleteMember(member)"
+              >
+                Delete
+              </button>
+            </td>
           </tr>
         </tbody>
       </table>

@@ -10,7 +10,11 @@ export interface CastStore {
   list(productionId: string): Promise<CastList | undefined>;
   /** Adds a member with the next unused id; undefined if the production has no cast list. */
   add(productionId: string, details: CastMemberDetails): Promise<CastMember | undefined>;
+  /** Removes a member for good, if they're still at the given revision. */
+  remove(productionId: string, id: number, revision: number): Promise<RemoveResult>;
 }
+
+export type RemoveResult = "removed" | "stale" | "not-found";
 
 // The stored file also remembers the next id, so a deleted member's id is never reused.
 const CastFile = CastList.extend({ nextId: CastMember.shape.id.optional() });
@@ -28,6 +32,21 @@ function withNewMember(file: CastFile, details: CastMemberDetails) {
   return { member, file: { ...file, members: [...file.members, member], nextId: member.id + 1 } };
 }
 
+type Removal =
+  | { result: "removed"; file: CastFile }
+  | { result: "stale" | "not-found"; file?: undefined };
+
+/** The file without the member, or why not. Keeps nextId, so their id is never reused. */
+function withoutMember(file: CastFile | undefined, id: number, revision: number): Removal {
+  const member = file?.members.find((m) => m.id === id);
+  if (!file || !member) return { result: "not-found" };
+  if (member.revision !== revision) return { result: "stale" };
+  return {
+    result: "removed",
+    file: { ...file, members: file.members.filter((m) => m.id !== id), nextId: nextIdOf(file) },
+  };
+}
+
 export function inMemoryCastStore(initial: CastList[] = []): CastStore {
   const files = new Map<string, CastFile>(initial.map((list) => [list.productionId, list]));
   return {
@@ -41,6 +60,11 @@ export function inMemoryCastStore(initial: CastList[] = []): CastStore {
       const added = withNewMember(file, details);
       files.set(productionId, added.file);
       return added.member;
+    },
+    async remove(productionId, id, revision) {
+      const removed = withoutMember(files.get(productionId), id, revision);
+      if (removed.file) files.set(productionId, removed.file);
+      return removed.result;
     },
   };
 }
@@ -94,6 +118,13 @@ export function fileCastStore(dataDir: string): CastStore {
         const added = withNewMember(file, details);
         await write(added.file);
         return added.member;
+      }),
+    remove: (productionId, id, revision) =>
+      oneAtATime(async () => {
+        // The file is rewritten without them: no copy or history is kept (ADR 0010).
+        const removed = withoutMember(await read(productionId), id, revision);
+        if (removed.file) await write(removed.file);
+        return removed.result;
       }),
   };
 }
