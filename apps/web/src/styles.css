@@ -573,6 +573,17 @@ main a {
   background: var(--white);
 }
 
+.cast-member-form .member-id {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.cast-list .row-action + .row-action {
+  margin-left: 0.5rem;
+}
+
 .cast-member-form .field {
   display: flex;
   flex-direction: column;

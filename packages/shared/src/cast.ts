@@ -31,6 +31,15 @@ export const CastMemberDetails = CastMember.pick({
   group: true,
 });
 
+/**
+ * PUT /api/productions/{productionId}/cast/{castId}: new details plus the revision they
+ * were based on (stale → 409). The id comes from the URL, so a body with one is refused.
+ * 200 returns the updated CastMember.
+ */
+export const UpdateCastMemberRequest = CastMemberDetails.extend({
+  revision: CastMember.shape.revision,
+});
+
 /** GET /api/productions/{productionId}/cast: the production's cast members. */
 export const CastList = z.strictObject({
   productionId: ProductionId,
@@ -40,4 +49,5 @@ export const CastList = z.strictObject({
 export type Section = z.infer<typeof Section>;
 export type CastMember = z.infer<typeof CastMember>;
 export type CastMemberDetails = z.infer<typeof CastMemberDetails>;
+export type UpdateCastMemberRequest = z.infer<typeof UpdateCastMemberRequest>;
 export type CastList = z.infer<typeof CastList>;

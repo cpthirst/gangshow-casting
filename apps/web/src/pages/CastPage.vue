@@ -45,7 +45,11 @@ const uid = useId();
 /** Screen-reader announcement of the last change to the list. */
 const announcement = ref("");
 const adding = ref(false);
+/** The member whose edit form is open, if any. One form at a time. */
+const editing = ref<CastMember | null>(null);
 const saving = ref(false);
+// While a form is open or a change is saving, other changes wait.
+const busy = computed(() => saving.value || adding.value || editing.value !== null);
 const formError = ref("");
 const addButton = ref<HTMLButtonElement>();
 
@@ -89,9 +93,77 @@ const notice = ref("");
 
 const fullName = (member: CastMember) => `${member.firstName} ${member.lastName}`;
 
+function startEditing(member: CastMember) {
+  formError.value = "";
+  notice.value = "";
+  editing.value = member;
+}
+
+async function stopEditing(id: number) {
+  editing.value = null;
+  await nextTick();
+  document.querySelector<HTMLButtonElement>(`[data-member-id="${id}"] [data-edit]`)?.focus();
+}
+
+const saveEdit = (details: CastMemberDetails) => editing.value && update(editing.value, details);
+const cancelEdit = () => editing.value && stopEditing(editing.value.id);
+
+// Saves straight away (PRD FR7); refused if someone else changed the member first.
+async function update(member: CastMember, details: CastMemberDetails) {
+  if (saving.value) return;
+  saving.value = true;
+  formError.value = "";
+  const result = await putMember(member, details);
+  saving.value = false;
+
+  if (result === "failed") {
+    formError.value = "Couldn't save the changes. Try again.";
+    return;
+  }
+  if (result === "conflict") {
+    editing.value = null;
+    notice.value = "Someone else changed this cast member. Showing the latest list.";
+    await load();
+    await nextTick();
+    addButton.value?.focus();
+    return;
+  }
+  if (result === "saved") {
+    // Saved, but the reply couldn't be read: reload to show what was stored.
+    await load();
+  } else if (state.value.status === "loaded") {
+    const { list } = state.value;
+    const members = list.members.map((m) => (m.id === result.id ? result : m));
+    state.value = { status: "loaded", list: { ...list, members } };
+  }
+  announcement.value = `${details.firstName} ${details.lastName} updated.`;
+  await stopEditing(member.id);
+}
+
+// 200 → the updated member (or "saved" if its reply can't be read); 409/404 → someone
+// else changed or removed them; anything else failed.
+async function putMember(
+  member: CastMember,
+  details: CastMemberDetails,
+): Promise<CastMember | "saved" | "conflict" | "failed"> {
+  try {
+    const res = await fetch(`${API_PATH}/${member.id}`, {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ...details, revision: member.revision }),
+    });
+    if (res.status === 409 || res.status === 404) return "conflict";
+    if (res.status !== 200) return "failed";
+    const updated = CastMember.safeParse(await res.json().catch(() => undefined));
+    return updated.success ? updated.data : "saved";
+  } catch {
+    return "failed";
+  }
+}
+
 // Permanent by design (PRD FR5, ADR 0010), so always confirm first, naming the person.
 async function deleteMember(member: CastMember) {
-  if (saving.value) return;
+  if (busy.value) return;
   if (!window.confirm(`Delete ${fullName(member)} from the cast? This can't be undone.`)) return;
   saving.value = true;
   notice.value = "";
@@ -174,7 +246,7 @@ onMounted(load);
         type="button"
         class="primary"
         data-test="add-member"
-        :disabled="adding"
+        :disabled="busy"
         @click="startAdding"
       >
         Add cast member
@@ -186,6 +258,15 @@ onMounted(load);
       :error="formError"
       @save="add"
       @cancel="stopAdding"
+    />
+    <CastMemberForm
+      v-else-if="editing"
+      :key="editing.id"
+      :member="editing"
+      :saving="saving"
+      :error="formError"
+      @save="saveEdit"
+      @cancel="cancelEdit"
     />
     <form class="cast-filters" role="search" aria-label="Filter the cast" @submit.prevent>
       <div class="field">
@@ -233,7 +314,7 @@ onMounted(load);
           </tr>
         </thead>
         <tbody>
-          <tr v-for="member in shown" :key="member.id">
+          <tr v-for="member in shown" :key="member.id" :data-member-id="member.id">
             <td>{{ member.firstName }}</td>
             <td>{{ member.lastName }}</td>
             <td :class="{ 'not-set': member.section === null }">
@@ -244,8 +325,18 @@ onMounted(load);
               <button
                 type="button"
                 class="row-action"
+                data-edit
+                :aria-label="`Edit ${fullName(member)}`"
+                :disabled="busy"
+                @click="startEditing(member)"
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                class="row-action"
                 :aria-label="`Delete ${fullName(member)}`"
-                :disabled="saving"
+                :disabled="busy"
                 @click="deleteMember(member)"
               >
                 Delete

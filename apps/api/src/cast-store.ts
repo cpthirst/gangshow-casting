@@ -10,11 +10,19 @@ export interface CastStore {
   list(productionId: string): Promise<CastList | undefined>;
   /** Adds a member with the next unused id; undefined if the production has no cast list. */
   add(productionId: string, details: CastMemberDetails): Promise<CastMember | undefined>;
+  /** Replaces a member's details, if they're still at the given revision. */
+  update(
+    productionId: string,
+    id: number,
+    revision: number,
+    details: CastMemberDetails,
+  ): Promise<CastMember | Refusal>;
   /** Removes a member for good, if they're still at the given revision. */
-  remove(productionId: string, id: number, revision: number): Promise<RemoveResult>;
+  remove(productionId: string, id: number, revision: number): Promise<"removed" | Refusal>;
 }
 
-export type RemoveResult = "removed" | "stale" | "not-found";
+/** Why a change to one member was refused: it's gone, or someone else changed it first. */
+export type Refusal = "stale" | "not-found";
 
 // The stored file also remembers the next id, so a deleted member's id is never reused.
 const CastFile = CastList.extend({ nextId: CastMember.shape.id.optional() });
@@ -32,9 +40,25 @@ function withNewMember(file: CastFile, details: CastMemberDetails) {
   return { member, file: { ...file, members: [...file.members, member], nextId: member.id + 1 } };
 }
 
-type Removal =
-  | { result: "removed"; file: CastFile }
-  | { result: "stale" | "not-found"; file?: undefined };
+type Removal = { result: "removed"; file: CastFile } | { result: Refusal; file?: undefined };
+type Update = { result: CastMember; file: CastFile } | { result: Refusal; file?: undefined };
+
+/** The file with the member's details replaced (revision + 1), or why not. */
+function withUpdatedMember(
+  file: CastFile | undefined,
+  id: number,
+  revision: number,
+  details: CastMemberDetails,
+): Update {
+  const member = file?.members.find((m) => m.id === id);
+  if (!file || !member) return { result: "not-found" };
+  if (member.revision !== revision) return { result: "stale" };
+  const updated: CastMember = { ...details, id, revision: revision + 1 };
+  return {
+    result: updated,
+    file: { ...file, members: file.members.map((m) => (m.id === id ? updated : m)) },
+  };
+}
 
 /** The file without the member, or why not. Keeps nextId, so their id is never reused. */
 function withoutMember(file: CastFile | undefined, id: number, revision: number): Removal {
@@ -60,6 +84,11 @@ export function inMemoryCastStore(initial: CastList[] = []): CastStore {
       const added = withNewMember(file, details);
       files.set(productionId, added.file);
       return added.member;
+    },
+    async update(productionId, id, revision, details) {
+      const updated = withUpdatedMember(files.get(productionId), id, revision, details);
+      if (updated.file) files.set(productionId, updated.file);
+      return updated.result;
     },
     async remove(productionId, id, revision) {
       const removed = withoutMember(files.get(productionId), id, revision);
@@ -119,6 +148,12 @@ export function fileCastStore(dataDir: string): CastStore {
         const added = withNewMember(file, details);
         await write(added.file);
         return added.member;
+      }),
+    update: (productionId, id, revision, details) =>
+      oneAtATime(async () => {
+        const updated = withUpdatedMember(await read(productionId), id, revision, details);
+        if (updated.file) await write(updated.file);
+        return updated.result;
       }),
     remove: (productionId, id, revision) =>
       oneAtATime(async () => {

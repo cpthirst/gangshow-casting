@@ -3,7 +3,7 @@ import { type CastMember, type CastMemberDetails, Section } from "@app/shared";
 import { onMounted, ref, useId } from "vue";
 import { type CastForm, castFormFor, detailsFrom, sectionLabel } from "../cast.ts";
 
-// Used to add (no member) and, later, to edit (a member) a cast member.
+// Adds a cast member (no member given) or edits one (member given; its ID is fixed).
 const props = defineProps<{ member?: CastMember; saving: boolean; error: string }>();
 const emit = defineEmits<{ save: [details: CastMemberDetails]; cancel: [] }>();
 
@@ -41,6 +41,7 @@ function submit() {
     @submit.prevent="submit"
     @keydown.esc="onEscape"
   >
+    <p v-if="member" class="member-id" data-test="member-id">ID {{ member.id }}</p>
     <div class="field">
       <label :for="idFor('firstName')">First name</label>
       <input

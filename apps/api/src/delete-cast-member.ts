@@ -1,14 +1,14 @@
 import { ProductionId } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
-import type { CastStore, RemoveResult } from "./cast-store.ts";
+import type { CastStore, Refusal } from "./cast-store.ts";
 import type { ApiEvent } from "./handler.ts";
+import { wholeNumber } from "./params.ts";
 
-const statusFor: Record<RemoveResult, number> = { removed: 204, stale: 409, "not-found": 404 };
-
-// Ids and revisions are positive whole numbers (up to 9 digits, safely within a JS number);
-// anything else is a bad request.
-const wholeNumber = (text: string | undefined) =>
-  text !== undefined && /^[1-9]\d{0,8}$/.test(text) ? Number(text) : undefined;
+const statusFor: Record<"removed" | Refusal, number> = {
+  removed: 204,
+  stale: 409,
+  "not-found": 404,
+};
 
 // DELETE /api/productions/{productionId}/cast/{castId}?revision=N: remove a cast member
 // for good, unless someone else changed them since revision N.

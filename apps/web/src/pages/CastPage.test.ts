@@ -1,4 +1,9 @@
-import { type CastList, type CastMember, CastMemberDetails } from "@app/shared";
+import {
+  type CastList,
+  type CastMember,
+  CastMemberDetails,
+  UpdateCastMemberRequest,
+} from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import CastPage from "./CastPage.vue";
@@ -594,6 +599,177 @@ describe("Cast page", () => {
 
       expect(wrapper.get("[data-test=announcement]").text()).toBe("Sam Example deleted.");
       expect(document.activeElement).toBe(wrapper.get("button[data-test=add-member]").element);
+    });
+  });
+
+  describe("editing a cast member", () => {
+    let puts: { url: string; body: UpdateCastMemberRequest }[] = [];
+    // A stand-in for the API: serves the list and applies updates at the right revision.
+    function api(initial: CastList) {
+      const list = { ...initial, members: [...initial.members] };
+      puts = [];
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (url: string, init?: RequestInit) => {
+          if (init?.method !== "PUT") return new Response(JSON.stringify(list));
+          const body = UpdateCastMemberRequest.parse(JSON.parse(String(init.body)));
+          puts.push({ url, body });
+          const id = Number(url.split("/").at(-1));
+          const member = list.members.find((m) => m.id === id);
+          if (!member) return new Response(null, { status: 404 });
+          if (member.revision !== body.revision) return new Response(null, { status: 409 });
+          const { revision, ...details } = body;
+          const updated = { ...details, id, revision: revision + 1 };
+          list.members = list.members.map((m) => (m.id === id ? updated : m));
+          return new Response(JSON.stringify(updated));
+        }),
+      );
+      return list;
+    }
+
+    const sam = () =>
+      aMember("Sam", "Example", { section: "scouts", group: "1st Somewhere", revision: 3 });
+    const cast = () => aCast([sam(), aMember("Alex", "Sample", { section: "explorers" })]);
+    const form = (wrapper: Page) => wrapper.get("form[data-test=cast-member-form]");
+    async function openEdit(wrapper: Page, name: string) {
+      await wrapper.get(`button[aria-label="Edit ${name}"]`).trigger("click");
+      await flushPromises();
+      return form(wrapper);
+    }
+    async function save(wrapper: Page) {
+      await form(wrapper).trigger("submit");
+      await flushPromises();
+    }
+
+    it("saves new details to the row", async () => {
+      api(cast());
+      const wrapper = await openPage();
+      const edit = await openEdit(wrapper, "Sam Example");
+
+      await edit.get("[name=section]").setValue("explorers");
+      await edit.get("[name=group]").setValue("Riverside ESU");
+      await save(wrapper);
+
+      expect(rows(wrapper)[0]).toEqual(["Sam", "Example", "Explorers", "Riverside ESU"]);
+      expect(puts[0]?.body).toEqual({
+        firstName: "Sam",
+        lastName: "Example",
+        section: "explorers",
+        group: "Riverside ESU",
+        revision: 3,
+      });
+      expect(wrapper.find("form[data-test=cast-member-form]").exists()).toBe(false);
+    });
+
+    it("shows every field but the ID as editable, with the ID shown", async () => {
+      const member = sam();
+      api(aCast([member]));
+      const wrapper = await openPage();
+      const edit = await openEdit(wrapper, "Sam Example");
+
+      expect(edit.get("[data-test=member-id]").text()).toBe(`ID ${member.id}`);
+      expect(edit.find("[name=id]").exists()).toBe(false);
+      expect(edit.get<HTMLInputElement>("[name=firstName]").element.value).toBe("Sam");
+      expect(edit.get<HTMLInputElement>("[name=lastName]").element.value).toBe("Example");
+      expect(edit.get<HTMLSelectElement>("[name=section]").element.value).toBe("scouts");
+      expect(edit.get<HTMLInputElement>("[name=group]").element.value).toBe("1st Somewhere");
+    });
+
+    it("moves a renamed member to their new place in the list", async () => {
+      api(cast());
+      const wrapper = await openPage();
+      const edit = await openEdit(wrapper, "Sam Example");
+
+      await edit.get("[name=lastName]").setValue("Toms");
+      await save(wrapper);
+
+      expect(names(wrapper)).toEqual(["Alex Sample", "Sam Toms"]);
+    });
+
+    it("explains invalid details and saves nothing", async () => {
+      api(cast());
+      const wrapper = await openPage();
+      const edit = await openEdit(wrapper, "Sam Example");
+
+      await edit.get("[name=firstName]").setValue("");
+      await save(wrapper);
+
+      const input = form(wrapper).get("[name=firstName]");
+      expect(wrapper.get(`[id="${input.attributes("aria-describedby")}"]`).text()).toBe(
+        "Enter a first name",
+      );
+      expect(puts).toHaveLength(0);
+      expect(rows(wrapper)[0]).toEqual(["Sam", "Example", "Scouts", "1st Somewhere"]);
+    });
+
+    it("leaves the member unchanged when cancelled", async () => {
+      api(cast());
+      const wrapper = await openPage();
+      const edit = await openEdit(wrapper, "Sam Example");
+      await edit.get("[name=group]").setValue("Somewhere Else");
+
+      await edit.get("button[data-test=cancel]").trigger("click");
+      await flushPromises();
+
+      expect(rows(wrapper)[0]).toEqual(["Sam", "Example", "Scouts", "1st Somewhere"]);
+      expect(puts).toHaveLength(0);
+    });
+
+    it.each([
+      ["edited", (m: CastMember) => ({ ...m, group: "Changed Group", revision: 4 })],
+      ["deleted", () => undefined],
+    ])("shows the latest list when someone else %s them first", async (_how, change) => {
+      const list = api(cast());
+      const wrapper = await openPage();
+      const edit = await openEdit(wrapper, "Sam Example");
+      await edit.get("[name=group]").setValue("My Group");
+      list.members = list.members.flatMap((m) => (m.firstName === "Sam" ? (change(m) ?? []) : m));
+
+      await save(wrapper);
+
+      expect(wrapper.text()).toContain(
+        "Someone else changed this cast member. Showing the latest list.",
+      );
+      expect(rows(wrapper).map((r) => r[3])).not.toContain("My Group");
+      expect(wrapper.find("form[data-test=cast-member-form]").exists()).toBe(false);
+    });
+
+    it("keeps the form and says so when the save fails", async () => {
+      api(cast());
+      const wrapper = await openPage();
+      await openEdit(wrapper, "Sam Example");
+      vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
+
+      await save(wrapper);
+
+      expect(wrapper.text()).toContain("Couldn't save the changes. Try again.");
+      expect(wrapper.find("form[data-test=cast-member-form]").exists()).toBe(true);
+    });
+
+    it("announces the change and returns focus to the member's Edit button", async () => {
+      api(cast());
+      const wrapper = await openPage();
+      const edit = await openEdit(wrapper, "Sam Example");
+      await edit.get("[name=group]").setValue("Riverside ESU");
+
+      await save(wrapper);
+
+      expect(wrapper.get("[data-test=announcement]").text()).toBe("Sam Example updated.");
+      expect(document.activeElement).toBe(
+        wrapper.get('button[aria-label="Edit Sam Example"]').element,
+      );
+    });
+
+    it("holds off other changes while a form is open", async () => {
+      api(cast());
+      const wrapper = await openPage();
+      await openEdit(wrapper, "Sam Example");
+
+      const disabled = (selector: string) =>
+        wrapper.get(selector).attributes("disabled") !== undefined;
+      expect(disabled("button[data-test=add-member]")).toBe(true);
+      expect(disabled('button[aria-label="Edit Alex Sample"]')).toBe(true);
+      expect(disabled('button[aria-label="Delete Alex Sample"]')).toBe(true);
     });
   });
 });

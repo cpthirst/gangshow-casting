@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CastList, CastMember, CastMemberDetails } from "./cast.ts";
+import { CastList, CastMember, CastMemberDetails, UpdateCastMemberRequest } from "./cast.ts";
 
 // Made-up names only: tests never use the real cast (CLAUDE.md safeguarding).
 const sam = {
@@ -64,5 +64,27 @@ describe("CastMemberDetails", () => {
     ["a date of birth", { dateOfBirth: "2012-01-01" }],
   ])("rejects %s", (_case, extra) => {
     expect(CastMemberDetails.safeParse({ ...details, ...extra }).success).toBe(false);
+  });
+});
+
+describe("UpdateCastMemberRequest", () => {
+  const update = {
+    firstName: "Sam",
+    lastName: "Example",
+    section: "explorers",
+    group: "Riverside ESU",
+    revision: 3,
+  };
+
+  it("accepts new details with the revision they were based on", () => {
+    expect(UpdateCastMemberRequest.parse(update)).toEqual(update);
+  });
+
+  it.each([
+    ["no revision", { revision: undefined }],
+    ["an id (it comes from the URL and can't change)", { id: 99 }],
+    ["an empty last name", { lastName: "" }],
+  ])("rejects %s", (_case, change) => {
+    expect(UpdateCastMemberRequest.safeParse({ ...update, ...change }).success).toBe(false);
   });
 });

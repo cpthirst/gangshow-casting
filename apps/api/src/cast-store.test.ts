@@ -53,6 +53,26 @@ describe("in-memory cast store removing", () => {
   });
 });
 
+describe("in-memory cast store updating", () => {
+  it("updates a member at the given revision, bumping the revision", async () => {
+    const store = inMemoryCastStore([aCastList([aCastMember(12, { revision: 3 })])]);
+
+    const result = await store.update("2027", 12, 3, { ...jo });
+
+    expect(result).toEqual({ ...jo, id: 12, revision: 4 });
+    expect((await store.list("2027"))?.members).toEqual([{ ...jo, id: 12, revision: 4 }]);
+  });
+
+  it("refuses a stale revision, an unknown member and a production with no list", async () => {
+    const store = inMemoryCastStore([aCastList([aCastMember(12, { revision: 4 })])]);
+
+    expect(await store.update("2027", 12, 3, { ...jo })).toBe("stale");
+    expect(await store.update("2027", 99, 1, { ...jo })).toBe("not-found");
+    expect(await store.update("1999", 12, 4, { ...jo })).toBe("not-found");
+    expect((await store.list("2027"))?.members[0]?.revision).toBe(4);
+  });
+});
+
 describe("file cast store", () => {
   let dataDir: string;
   const writeCast = async (productionId: string, content: unknown) => {
@@ -193,5 +213,22 @@ describe("file cast store", () => {
     await fileCastStore(dataDir).add("2027", { ...jo });
 
     expect(await readdir(join(dataDir, "2027"))).toEqual(["cast.json"]);
+  });
+
+  it("saves an update to the file, keeping the id", async () => {
+    await writeCast("2027", aCastList([aCastMember(12, { revision: 3 }), aCastMember(13)]));
+
+    await fileCastStore(dataDir).update("2027", 12, 3, { ...jo });
+
+    const members = (await fileCastStore(dataDir).list("2027"))?.members;
+    expect(members?.find((m) => m.id === 12)).toEqual({ ...jo, id: 12, revision: 4 });
+    expect(members).toHaveLength(2);
+  });
+
+  it("refuses a stale update, leaving the file alone", async () => {
+    await writeCast("2027", aCastList([aCastMember(12, { revision: 4 })]));
+
+    expect(await fileCastStore(dataDir).update("2027", 12, 3, { ...jo })).toBe("stale");
+    expect((await fileCastStore(dataDir).list("2027"))?.members[0]?.firstName).toBe("Sam");
   });
 });
