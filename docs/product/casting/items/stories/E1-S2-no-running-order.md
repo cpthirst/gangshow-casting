@@ -2,7 +2,7 @@
 id: casting-items.E1.S2
 title: Explain when there's no saved running order
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story

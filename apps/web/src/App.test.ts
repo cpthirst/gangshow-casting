@@ -156,6 +156,20 @@ describe("App shell", () => {
     expect(router.currentRoute.value.fullPath).toBe("/casting/items");
   });
 
+  it("goes from the Items page to the Running order page when there's no running order", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(null, { status: 404 })),
+    );
+    const { wrapper, router } = await openAppAt("/casting/items");
+
+    await wrapper.get("main a[href='/']").trigger("click");
+    await flushPromises();
+
+    expect(router.currentRoute.value.fullPath).toBe("/");
+    expect(wrapper.get("main h1").text()).toBe("Running order");
+  });
+
   it("loads a casting sub-page directly from its URL", async () => {
     const { wrapper } = await openAppAt("/casting/items");
 

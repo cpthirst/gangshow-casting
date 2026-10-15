@@ -18,7 +18,7 @@ prd: ./prd.md
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
 | [casting-items.E1.S1](stories/E1-S1-list-items.md) | List the latest saved running order's items in halves, with numbers and titles and no management controls (walking skeleton) | FR1, FR4, FR5, FR7 | casting-menus.E1.S1 | done |
-| [casting-items.E1.S2](stories/E1-S2-no-running-order.md) | Explain when there's no saved running order, with a link to the Running order page | FR6 | E1.S1 | ready |
+| [casting-items.E1.S2](stories/E1-S2-no-running-order.md) | Explain when there's no saved running order, with a link to the Running order page | FR6 | E1.S1 | done |
 
 ## E2: See each item's casting progress
 
