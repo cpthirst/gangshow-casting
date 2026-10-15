@@ -61,6 +61,7 @@ onMounted(async () => {
               :key="item.id"
               role="row"
               data-test="item"
+              :data-item-id="item.id"
               :class="{ 'not-printed': number === null }"
             >
               <td class="moves" data-label="Cast" role="cell">

@@ -372,6 +372,8 @@ main a {
     clip-path: inset(50%);
   }
 
+  /* Each item becomes a padded card with a thick separator. Any page reusing this table
+     must put data-item-id on its item rows (Running order, casting Items). */
   .running-order tbody tr[data-item-id] {
     padding: 0.75rem 1rem;
     border-bottom: 4px solid var(--surface);

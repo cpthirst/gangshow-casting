@@ -169,6 +169,15 @@ describe("Casting items page", () => {
     );
   });
 
+  // The Running order's stacked phone layout pads and separates rows by data-item-id.
+  it("marks each row with its item, so small screens separate items as on the Running order", async () => {
+    savedRunningOrderIs(aRunningOrder([anItem("Opening Number"), anItem("Pirate Sketch")]));
+
+    const wrapper = await openItemsPage();
+
+    expect(rowFor(wrapper, "Pirate Sketch")?.attributes("data-item-id")).toBe("pirate-sketch");
+  });
+
   it("lays the items out in Cast, number and item columns", async () => {
     savedRunningOrderIs(aRunningOrder([anItem("Opening Number")]));
 
