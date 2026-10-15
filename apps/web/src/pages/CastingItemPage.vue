@@ -50,7 +50,9 @@ onMounted(async () => {
 </script>
 
 <template>
-  <RouterLink :to="{ name: 'casting-items' }" class="back-link">All items</RouterLink>
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <RouterLink :to="{ name: 'casting-items' }" class="back-link">All items</RouterLink>
+  </nav>
   <p v-if="status === 'error'" role="alert">Couldn't load the item.</p>
   <template v-else-if="place">
     <h1>{{ place.item.title }}</h1>

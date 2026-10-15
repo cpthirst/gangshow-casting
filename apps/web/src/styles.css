@@ -450,8 +450,10 @@ main a {
   opacity: 0.7;
 }
 
-/* Compact icon buttons: the full name ("Move Curtain Up down") is in aria-label. */
-.moves button {
+/* Compact icon buttons: the full name ("Move Curtain Up down") is in aria-label.
+   An icon link (Cast on the Items page) looks the same. */
+.moves button,
+.moves .icon-button {
   width: 2rem;
   height: 2rem;
   margin: 0 0.25rem 0.25rem 0;
@@ -467,7 +469,15 @@ main a {
   cursor: pointer;
 }
 
-.moves button:hover:not(:disabled) {
+.moves .icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.moves button:hover:not(:disabled),
+.moves .icon-button:hover {
   border-color: var(--red-darker);
   color: var(--red-darker);
 }
@@ -840,44 +850,40 @@ main a {
   color: var(--red-deep);
 }
 
-/* Casting items: the running order's numbers and titles, with no management controls. */
+/* Casting items and item pages. The list itself reuses the Running order table. */
 .based-on {
   font-size: 0.875rem;
 }
 
-.casting-items {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  background: var(--white);
-  border-radius: 0.5rem;
+/* Navigation above a page's title, back to the list it came from. */
+.breadcrumb {
+  margin-bottom: 0.25rem;
+  font-size: 0.875rem;
 }
 
-.casting-items li {
-  border-bottom: 1px solid var(--surface);
+.breadcrumb .back-link {
+  display: inline-flex;
+  gap: 0.375rem;
+  align-items: center;
+  padding: 0.25rem 0;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-/* The whole row is the link to the item's page. */
-.casting-item-link {
-  display: flex;
-  gap: 1rem;
-  align-items: baseline;
-  padding: 0.625rem 0.75rem;
+/* A back chevron that screen readers skip: the link is just "All items". */
+.breadcrumb .back-link::before {
+  content: "‹" / "";
+  font-size: 1.25rem;
+  line-height: 1;
 }
 
-.back-link {
-  display: inline-block;
-  margin-bottom: 0.5rem;
+.breadcrumb .back-link:hover {
+  text-decoration: underline;
 }
 
 .item-position {
   margin-top: 0;
-  font-weight: 700;
-}
-
-.casting-item-number {
-  flex: 0 0 auto;
-  min-width: 2rem;
   font-weight: 700;
 }
 

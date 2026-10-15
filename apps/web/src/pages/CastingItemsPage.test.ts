@@ -154,13 +154,31 @@ describe("Casting items page", () => {
     expect(wrapper.text()).not.toContain("There's no saved running order yet.");
   });
 
-  it("links each item to its page, named by its number and title", async () => {
+  it("gives each item a Cast button that opens its page", async () => {
     savedRunningOrderIs(aRunningOrder([anItem("Opening Number"), anItem("Pirate Sketch")]));
 
     const wrapper = await openItemsPage();
 
-    const link = rowFor(wrapper, "Pirate Sketch")?.get("a");
-    expect(link?.attributes("href")).toBe("/casting/items/pirate-sketch");
-    expect(link?.text().replace(/\s+/g, " ")).toBe("2 Pirate Sketch");
+    const cast = rowFor(wrapper, "Pirate Sketch")?.get("[data-test=cast]");
+    expect(cast?.attributes("href")).toBe("/casting/items/pirate-sketch");
+    expect(cast?.attributes("aria-label")).toBe("Cast Pirate Sketch");
+    expect(cast?.attributes("data-tooltip")).toBe("Cast this item");
+    // In the first column, where the Running order has its move and edit buttons.
+    expect(rowFor(wrapper, "Pirate Sketch")?.get("td").find("[data-test=cast]").exists()).toBe(
+      true,
+    );
+  });
+
+  it("lays the items out in Cast, number and item columns", async () => {
+    savedRunningOrderIs(aRunningOrder([anItem("Opening Number")]));
+
+    const wrapper = await openItemsPage();
+
+    expect(
+      wrapper
+        .get("section")
+        .findAll("thead th")
+        .map((th) => th.text()),
+    ).toEqual(["Cast", "#", "Item"]);
   });
 });

@@ -88,6 +88,19 @@ describe("Casting item page", () => {
     expect(current.map((link) => link.text())).toEqual(["Items"]);
   });
 
+  it("puts All items in a breadcrumb above the item's title", async () => {
+    savedRunningOrderIs(show);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    const breadcrumb = wrapper.get("main nav[aria-label=Breadcrumb]");
+    expect(breadcrumb.get("a").text()).toBe("All items");
+    // compareDocumentPosition sets FOLLOWING when the heading comes after the breadcrumb.
+    const heading = wrapper.get("main h1").element;
+    expect(
+      breadcrumb.element.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
   it("goes back to the Items list from All items", async () => {
     savedRunningOrderIs(show);
     const { wrapper, router } = await openAppAt("/casting/items/pirate-sketch");
@@ -105,7 +118,7 @@ describe("Casting item page", () => {
     const { wrapper } = await openAppAt("/casting/items/no-such-item");
 
     expect(wrapper.get("main h1").text()).toBe("Item not found");
-    expect(wrapper.get("main a.back-link").text()).toBe("All items");
+    expect(wrapper.get("main nav[aria-label=Breadcrumb] a").text()).toBe("All items");
     expect(document.title).toBe("Item not found · Chester Gang Show casting");
   });
 
