@@ -99,4 +99,57 @@ describe("Casting item page", () => {
     expect(router.currentRoute.value.fullPath).toBe("/casting/items");
     expect(wrapper.get("main h1").text()).toBe("Items");
   });
+
+  it("shows not found for an item that isn't in the running order", async () => {
+    savedRunningOrderIs(show);
+    const { wrapper } = await openAppAt("/casting/items/no-such-item");
+
+    expect(wrapper.get("main h1").text()).toBe("Item not found");
+    expect(wrapper.get("main a.back-link").text()).toBe("All items");
+    expect(document.title).toBe("Item not found · Chester Gang Show casting");
+  });
+
+  it("shows not found when there's no saved running order at all", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(null, { status: 404 })),
+    );
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    expect(wrapper.get("main h1").text()).toBe("Item not found");
+  });
+
+  it("goes back to the Items list from an item that isn't found", async () => {
+    savedRunningOrderIs(show);
+    const { wrapper, router } = await openAppAt("/casting/items/no-such-item");
+
+    await wrapper.get("main a.back-link").trigger("click");
+    await flushPromises();
+
+    expect(router.currentRoute.value.fullPath).toBe("/casting/items");
+    expect(wrapper.get("main h1").text()).toBe("Items");
+  });
+
+  it("reports a failed load rather than not found", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new TypeError("Failed to fetch");
+      }),
+    );
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    expect(wrapper.get("main [role=alert]").text()).toBe("Couldn't load the item.");
+    expect(wrapper.get("main").text()).not.toContain("Item not found");
+  });
+
+  it("reports a server error as a failed load, not as not found", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(null, { status: 500 })),
+    );
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    expect(wrapper.get("main [role=alert]").text()).toBe("Couldn't load the item.");
+  });
 });
