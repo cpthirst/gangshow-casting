@@ -2,7 +2,7 @@
 id: cast-management.E1.S2
 title: Filter the cast list by name and section
 epic: E1
-status: in-progress
+status: done
 ---
 
 ## Story

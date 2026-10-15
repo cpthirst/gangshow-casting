@@ -29,7 +29,7 @@ function serve(list: CastList) {
 }
 
 async function openPage() {
-  const wrapper = mount(CastPage);
+  const wrapper = mount(CastPage, { attachTo: document.body });
   await flushPromises();
   return wrapper;
 }
@@ -242,6 +242,16 @@ describe("Cast page", () => {
       expect(section(wrapper).element).toHaveProperty("value", "all");
       expect(names(wrapper)).toHaveLength(4);
       expect(wrapper.get("[data-test=count]").text()).toBe("4 cast members");
+    });
+
+    it("moves focus to the first name filter after clearing, so keyboard users keep their place", async () => {
+      serve(cast());
+      const wrapper = await openPage();
+      await section(wrapper).setValue("scouts");
+
+      await wrapper.get("button[data-test=clear-filters]").trigger("click");
+
+      expect(document.activeElement).toBe(firstName(wrapper).element);
     });
 
     it("labels each filter for screen readers", async () => {

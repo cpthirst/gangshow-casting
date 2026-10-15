@@ -31,8 +31,12 @@ const members = computed(() =>
 const filters = ref<CastFilters>({ ...NO_FILTERS });
 const filtered = computed(() => hasFilters(filters.value));
 const shown = computed(() => filterCast(members.value, filters.value));
+const firstNameInput = ref<HTMLInputElement>();
+// The Clear button disables itself once nothing is filtered, so hand focus to the first
+// filter rather than losing it.
 const clearFilters = () => {
   filters.value = { ...NO_FILTERS };
+  firstNameInput.value?.focus();
 };
 
 const uid = useId();
@@ -61,7 +65,13 @@ onMounted(async () => {
     <form class="cast-filters" role="search" aria-label="Filter the cast" @submit.prevent>
       <div class="field">
         <label :for="`${uid}-first`">First name</label>
-        <input :id="`${uid}-first`" v-model="filters.firstName" name="firstName" type="search" />
+        <input
+          :id="`${uid}-first`"
+          ref="firstNameInput"
+          v-model="filters.firstName"
+          name="firstName"
+          type="search"
+        />
       </div>
       <div class="field">
         <label :for="`${uid}-last`">Last name</label>
