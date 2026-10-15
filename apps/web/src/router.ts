@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory, type RouterHistory } from "vue-router";
+import CastPage from "./pages/CastPage.vue";
 import NotFoundPage from "./pages/NotFoundPage.vue";
 import PlaceholderPage from "./pages/PlaceholderPage.vue";
 import RunningOrderPage from "./pages/RunningOrderPage.vue";
@@ -27,6 +28,7 @@ export const menuPages = [
   {
     path: "/cast",
     name: "cast",
+    component: CastPage,
     meta: { title: "Cast", description: "The Scouts and Explorers in this production." },
   },
   {

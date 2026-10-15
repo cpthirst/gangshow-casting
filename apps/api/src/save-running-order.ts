@@ -1,6 +1,7 @@
 import { ProductionId, type RunningOrder, SaveRunningOrderRequest } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import type { ApiEvent } from "./handler.ts";
+import { parseJson } from "./json.ts";
 import { applyChange } from "./running-order-changes.ts";
 import type { RunningOrderStore } from "./running-order-store.ts";
 
@@ -34,12 +35,4 @@ export function createSaveRunningOrder(store: RunningOrderStore, now = () => new
     }
     return json(201, next);
   };
-}
-
-function parseJson(body: string | undefined) {
-  try {
-    return JSON.parse(body ?? "");
-  } catch {
-    return undefined;
-  }
 }

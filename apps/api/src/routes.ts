@@ -1,13 +1,19 @@
 import { fileURLToPath } from "node:url";
+import { createAddCastMember } from "./add-cast-member.ts";
+import { fileCastStore } from "./cast-store.ts";
+import { createDeleteCastMember } from "./delete-cast-member.ts";
+import { createGetCast } from "./get-cast.ts";
 import { createGetRunningOrder } from "./get-running-order.ts";
 import type { Handler } from "./handler.ts";
 import { handler as health } from "./health.ts";
 import { fileRunningOrderStore } from "./running-order-store.ts";
 import { createSaveRunningOrder } from "./save-running-order.ts";
+import { createUpdateCastMember } from "./update-cast-member.ts";
 
 // Git-ignored: real production data never goes in the repo (CLAUDE.md safeguarding).
 const dataDir = process.env.DATA_DIR ?? fileURLToPath(new URL("../data", import.meta.url));
 const runningOrders = fileRunningOrderStore(dataDir);
+const cast = fileCastStore(dataDir);
 
 /** One entry per future API Gateway route: "<METHOD> <path>", with {name} path parameters. */
 export const routes: Record<string, Handler> = {
@@ -15,6 +21,10 @@ export const routes: Record<string, Handler> = {
   "GET /api/productions/{productionId}/running-order": createGetRunningOrder(runningOrders),
   "POST /api/productions/{productionId}/running-order/versions":
     createSaveRunningOrder(runningOrders),
+  "GET /api/productions/{productionId}/cast": createGetCast(cast),
+  "POST /api/productions/{productionId}/cast": createAddCastMember(cast),
+  "PUT /api/productions/{productionId}/cast/{castId}": createUpdateCastMember(cast),
+  "DELETE /api/productions/{productionId}/cast/{castId}": createDeleteCastMember(cast),
 };
 
 /** Finds the handler for a request, as API Gateway would, with any path parameters. */
