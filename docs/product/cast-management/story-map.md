@@ -25,7 +25,7 @@ prd: ./prd.md
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
 | [cast-management.E2.S1](stories/E2-S1-add-cast-member.md) | Add a cast member (app-assigned ID, validation) | FR3, FR6, FR7 | E1.S1 | done |
-| [cast-management.E2.S2](stories/E2-S2-edit-cast-member.md) | Edit a cast member's details (all but the ID; refuses stale edits) | FR4, FR6, FR7 | E2.S1 | in-progress |
+| [cast-management.E2.S2](stories/E2-S2-edit-cast-member.md) | Edit a cast member's details (all but the ID; refuses stale edits) | FR4, FR6, FR7 | E2.S1 | done |
 | [cast-management.E2.S3](stories/E2-S3-delete-cast-member.md) | Delete a cast member after confirming | FR5, FR7 | E1.S1 | done |
 
 ## FR coverage

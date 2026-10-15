@@ -2,7 +2,7 @@
 id: cast-management.E2.S2
 title: Edit a cast member's details
 epic: E2
-status: in-progress
+status: done
 ---
 
 ## Story
