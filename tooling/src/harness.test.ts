@@ -37,8 +37,9 @@ describe("harness: skills", () => {
 
 describe("harness: committed permissions", () => {
   // Read from the last commit, not the working tree: batch mode (the batch-stories skill)
-  // edits the working copy on purpose, but that override must never be committed.
-  const committed = JSON.parse(
+  // edits the working copy on purpose, but that override must never be committed. A
+  // committed override fails here at pre-push and in CI, before it reaches the remote.
+  const committed: { permissions: { ask: string[]; deny: string[] } } = JSON.parse(
     execFileSync("git", ["show", "HEAD:.claude/settings.json"], { encoding: "utf8" }),
   );
 

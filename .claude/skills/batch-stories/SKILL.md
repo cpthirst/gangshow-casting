@@ -16,7 +16,7 @@ Arguments: `on <feature> [story IDs…]`, `off`, or `status`.
 
 In `.claude/settings.json`, batch mode:
 - **removes** two entries from `"ask"`: `"Bash(git push:*)"` and `"Bash(gh pr:*)"`;
-- **adds** these to `"deny"`, because without the ask rule nothing else stops them, and deny always wins:
+- **adds** these to `"deny"` (deny always wins), so the most common destructive commands stay blocked once the ask rule is gone:
 
   ```
   "Bash(gh pr merge:*)",
@@ -33,7 +33,9 @@ Nothing else changes. These stay in force throughout:
 - every hook: the guard, post-edit, the stop gate, and the pre-push gate that blocks `main`;
 - the review loop.
 
-Merging stays the user's decision, and the deny rules above enforce it. A harness test checks the *committed* settings, so the override can't slip into a commit unnoticed.
+**What's enforced and what isn't.** Deny rules match the start of a command, so they block the forms listed but not every variant: for example, flags after the branch name, `--mirror`, refspec deletes like `origin :branch`, or `gh pr edit` / `review --approve`. The pre-push hook still blocks any push to `main`, whatever its form. Beyond that, keeping to this feature's branch and never merging, editing or approving PRs is **instruction, not enforcement**. Don't run those commands while batch mode is on. (Narrow *allow* rules can't do the job instead: an **ask** rule outranks an allow, which is why the two ask entries have to be removed.)
+
+A harness test reads the *committed* settings, so an override that's accidentally committed fails the pre-push gate and CI before it can reach the remote.
 
 ## `status`
 
@@ -65,8 +67,6 @@ Merging stays the user's decision, and the deny rules above enforce it. A harnes
    ---
 
    Batch mode turned on <YYYY-MM-DD> at the user's request for feature `<feature>`, branch `feat/<feature>`, stories <IDs>.
-
-   **Why:** the user authorised one commit and push per story, and one PR at the end, without push/PR prompts. The harness MUST return to its committed state afterwards.
 
    **How to apply:**
    - Never stage or commit `.claude/settings.json` while batch mode is on.
