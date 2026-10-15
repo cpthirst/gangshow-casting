@@ -60,13 +60,16 @@ export function validateStory(path: string, text: string, opts: { feature: strin
 }
 
 /** Folders under `dir` that hold a `stories/` folder, at any depth: `casting/items` → `casting-items`. */
-function featureFolders(dir: string, path: string[] = []): { feature: string; path: string }[] {
-  const found = existsSync(join(dir, "stories"))
-    ? [{ feature: path.join("-"), path: path.join("/") }]
-    : [];
-  for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    if (!entry.isDirectory() || entry.name === "stories") continue;
-    found.push(...featureFolders(join(dir, entry.name), [...path, entry.name]));
+function featureFolders(dir: string, segments: string[] = []): { feature: string; dir: string }[] {
+  // docs/product itself isn't a feature, so a stray stories/ there has no id to check against.
+  const isFeature = segments.length > 0 && existsSync(join(dir, "stories"));
+  const found = isFeature ? [{ feature: segments.join("-"), dir: segments.join("/") }] : [];
+  const subfolders = readdirSync(dir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && entry.name !== "stories")
+    .map((entry) => entry.name)
+    .sort();
+  for (const name of subfolders) {
+    found.push(...featureFolders(join(dir, name), [...segments, name]));
   }
   return found;
 }
@@ -77,11 +80,11 @@ export function validateRepo(root: string): { stories: number; errors: string[] 
 
   let stories = 0;
   const errors: string[] = [];
-  for (const { feature, path } of featureFolders(productDir)) {
-    const storiesDir = join(productDir, path, "stories");
+  for (const { feature, dir } of featureFolders(productDir)) {
+    const storiesDir = join(productDir, dir, "stories");
     for (const file of readdirSync(storiesDir).filter((f) => f.endsWith(".md"))) {
       stories++;
-      const rel = `docs/product/${path}/stories/${file}`;
+      const rel = `docs/product/${dir}/stories/${file}`;
       const text = readFileSync(join(storiesDir, file), "utf8");
       errors.push(...validateStory(rel, text, { feature }));
     }
