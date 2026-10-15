@@ -2,7 +2,7 @@
 id: cast-management.E2.S1
 title: Add a cast member
 epic: E2
-status: in-progress
+status: done
 ---
 
 ## Story
@@ -62,4 +62,4 @@ Then the response is 400 and nothing is saved
 - The form is a reusable component for E2.S2. Validation uses the shared schema, with a friendly message next to each field (as in the running order's item editor).
 - The schema rejects unknown fields rather than stripping them, so no extra personal data can be stored by accident (ADR 0010).
 - To stop deleted IDs being reused, the store keeps the next ID to assign, not just the highest current one.
-- Out of scope: a duplicate-name warning (an open question in the PRD), and mass upload.
+- Out of scope: a duplicate-name warning (an open question in the PRD), mass upload, and starting a cast list for a production that has none (the API adds only to an existing list; 2027 has one). Follow-up if new productions need it.

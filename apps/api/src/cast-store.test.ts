@@ -131,4 +131,10 @@ describe("file cast store", () => {
   it("adds nothing to a production with no cast file", async () => {
     expect(await fileCastStore(dataDir).add("1999", { ...jo })).toBeUndefined();
   });
+
+  it("never gives out an id that's already taken, even if the stored next id is stale", async () => {
+    await writeCast("2027", { ...aCastList([aCastMember(1), aCastMember(56)]), nextId: 10 });
+
+    expect((await fileCastStore(dataDir).add("2027", { ...jo }))?.id).toBe(57);
+  });
 });

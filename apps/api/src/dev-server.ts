@@ -5,6 +5,11 @@ import { matchRoute, routes } from "./routes.ts";
 
 export function createDevServer(table: Record<string, Handler>) {
   return createServer(async (req, res) => {
+    const refused = refusal(req);
+    if (refused) {
+      res.writeHead(refused).end();
+      return;
+    }
     const path = new URL(req.url ?? "/", "http://localhost").pathname;
     const route = matchRoute(table, req.method ?? "", path);
     if (!route) {
@@ -31,6 +36,29 @@ export function createDevServer(table: Record<string, Handler>) {
       res.writeHead(500).end();
     }
   });
+}
+
+// The dev API serves real cast data with no sign-in, so only the local web app may use it:
+// - Host must be local, which stops DNS rebinding (another site's name pointed at 127.0.0.1);
+// - Origin, when a browser sends one, must be local, so other sites' pages can't call it;
+// - writes must be JSON, which a cross-site form or "simple" text/plain post can't send.
+const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
+function hostnameOf(url: string) {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return "";
+  }
+}
+
+function refusal(req: IncomingMessage): 403 | 415 | undefined {
+  if (!LOCAL_HOSTS.has(hostnameOf(`http://${req.headers.host ?? ""}`))) return 403;
+  const { origin } = req.headers;
+  if (origin !== undefined && !LOCAL_HOSTS.has(hostnameOf(origin))) return 403;
+  const sendsBody = req.method === "POST" || req.method === "PUT" || req.method === "PATCH";
+  const isJson = (req.headers["content-type"] ?? "").startsWith("application/json");
+  return sendsBody && !isJson ? 415 : undefined;
 }
 
 // API Gateway caps payloads too; a running order is a few KB.

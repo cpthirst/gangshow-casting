@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { CastList, CastMember, type CastMemberDetails, ProductionId } from "@app/shared";
 import { ifExists } from "./files.ts";
@@ -16,8 +16,9 @@ export interface CastStore {
 const CastFile = CastList.extend({ nextId: CastMember.shape.id.optional() });
 type CastFile = ReturnType<typeof CastFile.parse>;
 
+// The stored next id, but never one that's already taken (e.g. after a hand edit).
 const nextIdOf = (file: CastFile) =>
-  file.nextId ?? Math.max(0, ...file.members.map((member) => member.id)) + 1;
+  Math.max(file.nextId ?? 0, Math.max(0, ...file.members.map((member) => member.id)) + 1);
 
 const listOf = ({ productionId, members }: CastFile): CastList => ({ productionId, members });
 
@@ -63,11 +64,17 @@ export function fileCastStore(dataDir: string): CastStore {
     const path = fileFor(file.productionId);
     const temp = join(dirname(path), `.cast-${randomUUID()}.tmp`);
     await mkdir(dirname(path), { recursive: true });
-    await writeFile(temp, JSON.stringify(CastFile.parse(file), null, 2));
-    await rename(temp, path);
+    try {
+      // Owner-only: the file holds children's names.
+      await writeFile(temp, JSON.stringify(CastFile.parse(file), null, 2), { mode: 0o600 });
+      await rename(temp, path);
+    } finally {
+      await rm(temp, { force: true });
+    }
   }
 
-  // One change at a time, so two simultaneous saves can't overwrite each other.
+  // One change at a time, so two simultaneous saves can't overwrite each other. This only
+  // holds within one process (the dev server); a hosted store needs its own guarantee.
   let queue: Promise<unknown> = Promise.resolve();
   const oneAtATime = <T>(change: () => Promise<T>): Promise<T> => {
     const result = queue.then(change);

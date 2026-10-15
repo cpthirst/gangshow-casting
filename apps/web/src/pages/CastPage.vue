@@ -42,7 +42,7 @@ const clearFilters = () => {
 
 const uid = useId();
 
-/** Screen-reader announcement of the last add, edit or delete. */
+/** Screen-reader announcement of the last change to the list. */
 const announcement = ref("");
 const adding = ref(false);
 const saving = ref(false);
@@ -64,36 +64,42 @@ async function add(details: CastMemberDetails) {
   if (state.value.status !== "loaded" || saving.value) return;
   saving.value = true;
   formError.value = "";
-  const member = await postMember(details);
+  const result = await postMember(details);
   saving.value = false;
-  if (!member) {
+  if (result === "failed") {
     formError.value = "Couldn't add the cast member. Try again.";
     return;
   }
-  // The list may have been replaced while saving, so add to whatever is current.
-  if (state.value.status === "loaded") {
+  const name = `${details.firstName} ${details.lastName}`;
+  if (result === "saved") {
+    // Saved, but the reply couldn't be read: reload rather than invite a duplicate retry.
+    await load();
+  } else if (state.value.status === "loaded") {
+    // Re-checked after the await: the list could have changed while saving.
     const { list } = state.value;
-    state.value = { status: "loaded", list: { ...list, members: [...list.members, member] } };
+    state.value = { status: "loaded", list: { ...list, members: [...list.members, result] } };
   }
-  announcement.value = `${member.firstName} ${member.lastName} added.`;
+  announcement.value = `${name} added.`;
   await stopAdding();
 }
 
-// 201 → the saved member, with the id the app gave it; anything else failed.
-async function postMember(details: CastMemberDetails) {
+// 201 → the saved member (or "saved" if its reply can't be read); anything else failed.
+async function postMember(details: CastMemberDetails): Promise<CastMember | "saved" | "failed"> {
   try {
     const res = await fetch(API_PATH, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(details),
     });
-    return res.status === 201 ? CastMember.parse(await res.json()) : undefined;
+    if (res.status !== 201) return "failed";
+    const member = CastMember.safeParse(await res.json().catch(() => undefined));
+    return member.success ? member.data : "saved";
   } catch {
-    return undefined;
+    return "failed";
   }
 }
 
-onMounted(async () => {
+async function load() {
   try {
     const res = await fetch(API_PATH);
     if (res.status === 404) {
@@ -105,7 +111,9 @@ onMounted(async () => {
   } catch {
     state.value = { status: "error" };
   }
-});
+}
+
+onMounted(load);
 </script>
 
 <template>

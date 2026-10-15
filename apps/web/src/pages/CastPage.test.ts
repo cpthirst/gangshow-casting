@@ -396,6 +396,28 @@ describe("Cast page", () => {
       expect(rows(wrapper)).toHaveLength(2);
     });
 
+    it("reloads the list, rather than saying it failed, when the add saved but its reply is unreadable", async () => {
+      api(cast());
+      const wrapper = await openPage();
+      const form = await openForm(wrapper);
+      await fill(form, { firstName: "Jo", lastName: "Newcomer" });
+      const afterSave = aCast([...cast().members, aMember("Jo", "Newcomer", { section: null })]);
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (_url: string, init?: RequestInit) =>
+          init?.method === "POST"
+            ? new Response("not the member", { status: 201 })
+            : new Response(JSON.stringify(afterSave)),
+        ),
+      );
+
+      await save(wrapper);
+
+      expect(wrapper.text()).not.toContain("Couldn't add the cast member");
+      expect(names(wrapper)).toContain("Jo Newcomer");
+      expect(wrapper.find("form[data-test=cast-member-form]").exists()).toBe(false);
+    });
+
     it("announces the new member and returns focus to the Add button", async () => {
       api(cast());
       const wrapper = await openPage();

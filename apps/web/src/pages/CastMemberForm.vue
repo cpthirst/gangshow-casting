@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import type { CastMember, CastMemberDetails } from "@app/shared";
+import { type CastMember, type CastMemberDetails, Section } from "@app/shared";
 import { onMounted, ref, useId } from "vue";
-import { type CastForm, castFormFor, detailsFrom } from "../cast.ts";
+import { type CastForm, castFormFor, detailsFrom, sectionLabel } from "../cast.ts";
 
 // Used to add (no member) and, later, to edit (a member) a cast member.
 const props = defineProps<{ member?: CastMember; saving: boolean; error: string }>();
@@ -72,9 +72,9 @@ function submit() {
       <label :for="idFor('section')">Section</label>
       <select :id="idFor('section')" v-model="form.section" name="section">
         <option value="">Not set</option>
-        <option value="scouts">Scouts</option>
-        <option value="explorers">Explorers</option>
-        <option value="network">Network</option>
+        <option v-for="choice in Section.options" :key="choice" :value="choice">
+          {{ sectionLabel(choice) }}
+        </option>
       </select>
     </div>
     <div class="field">
