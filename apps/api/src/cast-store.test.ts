@@ -50,4 +50,24 @@ describe("file cast store", () => {
 
     await expect(fileCastStore(dataDir).list("2027")).rejects.toThrow();
   });
+
+  it("never echoes a corrupt file's contents (which could include names) in its error", async () => {
+    await mkdir(join(dataDir, "2027"), { recursive: true });
+    // Not JSON at all: Node's parse error would quote this text.
+    await writeFile(join(dataDir, "2027", "cast.json"), "Sam Example, 1st Somewhere");
+
+    const error = await fileCastStore(dataDir)
+      .list("2027")
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(Error);
+    expect(String(error)).not.toMatch(/Sam|Exampl/);
+    expect(error instanceof Error && error.cause).toBeUndefined();
+  });
+
+  it("refuses a cast file that belongs to a different production", async () => {
+    await writeCast("2027", aCastList([aCastMember(1)], "2026"));
+
+    await expect(fileCastStore(dataDir).list("2027")).rejects.toThrow();
+  });
 });

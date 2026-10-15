@@ -26,7 +26,25 @@ export function fileCastStore(dataDir: string): CastStore {
   return {
     async list(productionId) {
       const text = await ifExists(() => readFile(fileFor(productionId), "utf8"));
-      return text === undefined ? undefined : CastList.parse(JSON.parse(text));
+      return text === undefined ? undefined : parseCastFile(text, productionId);
     },
   };
+}
+
+// Parse errors can quote the file, and the file holds children's names, so any problem
+// becomes one fixed message with no cause attached: nothing from the file reaches a log.
+function parseCastFile(text: string, productionId: string): CastList {
+  const parsed = CastList.safeParse(parseJson(text));
+  if (!parsed.success || parsed.data.productionId !== productionId) {
+    throw new Error(`Cast file for production ${productionId} is invalid`);
+  }
+  return parsed.data;
+}
+
+function parseJson(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return undefined;
+  }
 }
