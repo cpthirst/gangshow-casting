@@ -75,27 +75,37 @@ describe("ProductionId", () => {
 });
 
 describe("SaveRunningOrderRequest", () => {
-  const reorder = {
-    type: "reorder",
+  const update = {
+    type: "update",
     halves: [
-      { id: "first-half", itemIds: ["itm_a", "itm_b"] },
-      { id: "second-half", itemIds: [] },
+      { id: "first-half", items: [item] },
+      { id: "second-half", items: [] },
     ],
   };
 
-  it("accepts a reorder against a base version", () => {
-    expect(SaveRunningOrderRequest.parse({ baseVersion: 6, change: reorder })).toEqual({
+  it("accepts an update carrying every item, in order, with its details", () => {
+    expect(SaveRunningOrderRequest.parse({ baseVersion: 6, change: update })).toEqual({
       baseVersion: 6,
-      change: reorder,
+      change: update,
     });
   });
 
   it.each([
-    ["an unknown change type", { baseVersion: 6, change: { ...reorder, type: "shuffle" } }],
-    ["a zero base version", { baseVersion: 0, change: reorder }],
+    ["an unknown change type", { baseVersion: 6, change: { ...update, type: "shuffle" } }],
+    ["a zero base version", { baseVersion: 0, change: update }],
     [
       "halves in the wrong order",
-      { baseVersion: 6, change: { ...reorder, halves: [...reorder.halves].reverse() } },
+      { baseVersion: 6, change: { ...update, halves: [...update.halves].reverse() } },
+    ],
+    [
+      "an item with an empty title",
+      {
+        baseVersion: 6,
+        change: {
+          ...update,
+          halves: [{ id: "first-half", items: [{ ...item, title: " " }] }, update.halves[1]],
+        },
+      },
     ],
     ["no change", { baseVersion: 6 }],
   ])("rejects %s", (_case, request) => {
