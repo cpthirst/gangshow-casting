@@ -1,0 +1,38 @@
+{
+  "productionId": "2027",
+  "roles": [
+    {
+      "id": 1,
+      "itemId": "itm-2",
+      "name": "Captain Hook",
+      "size": "lead",
+      "castMemberIds": [1],
+      "revision": 1
+    },
+    {
+      "id": 2,
+      "itemId": "itm-2",
+      "name": "Smee the Bumbling Boatswain's Mate",
+      "size": "support",
+      "castMemberIds": [2],
+      "revision": 1
+    },
+    {
+      "id": 3,
+      "itemId": "itm-2",
+      "name": "Parrot",
+      "size": "cameo",
+      "castMemberIds": [],
+      "revision": 1
+    },
+    {
+      "id": 4,
+      "itemId": "itm-2",
+      "name": "Pirates",
+      "size": "ensemble",
+      "castMemberIds": [1, 2, 3, 4],
+      "revision": 1
+    }
+  ],
+  "nextId": 5
+}

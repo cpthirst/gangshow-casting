@@ -18,7 +18,7 @@ Input: a story file in `docs/product/<feature>/stories/`. Done means: every AC h
    2. **Green**: write the minimum code to pass it.
    3. **Refactor** with all tests green.
 6. **Gate.** Run `pnpm check` and get it green.
-7. **Review.** Run the review loop in CLAUDE.md. `test-auditor` always runs for a story; give it the story path. Keep the non-blocking findings for the PR.
+7. **Review.** Run the review loop in CLAUDE.md. `test-auditor` always runs for a story; give it the story path. Keep the non-blocking findings for the PR. If `ux-reviewer` ran, ask the user what to do with its findings (CLAUDE.md, review loop step 5). If the story adds a page or form the browser layout tests don't walk, ask whether to add one.
 8. **Close out.** Set `status: done` in the story and the story map, then run `pnpm lint:docs` (it checks the story's structure).
 9. **Commit**: `feat(<package>): <story title> (<story id>)`. Offer the `open-pr` skill, passing along the review notes.
 

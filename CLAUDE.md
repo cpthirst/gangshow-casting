@@ -22,6 +22,7 @@ pnpm dev                         # web (vite :5173) + api dev server (:3000); vi
 pnpm check                       # lint + typecheck + test + cdk synth — the definition of done
 pnpm format                      # biome autofix (format + lint + import order)
 pnpm lint:docs                   # validate story structure (part of check)
+pnpm test:e2e                    # browser layout tests at phone widths (CI job, not in check)
 pnpm --filter <pkg> test         # one package: web | api | infra | @app/shared
 pnpm --filter <pkg> exec vitest run <file> -t "<name>"   # one test
 ```
@@ -30,7 +31,7 @@ pnpm --filter <pkg> exec vitest run <file> -t "<name>"   # one test
 
 | Path | What | Notes |
 |---|---|---|
-| `apps/web` | Vue 3 + Vite SPA | Vitest + `@vue/test-utils` + happy-dom |
+| `apps/web` | Vue 3 + Vite SPA | Vitest + `@vue/test-utils` + happy-dom; Playwright layout tests in `e2e/` |
 | `apps/api` | Lambda-shaped handlers, no framework | One handler per route, listed in `routes.ts`; `dev-server.ts` (node:http) runs them locally (ADR 0006) |
 | `packages/shared` | zod schemas + inferred types | The API contract. Imported from source, no build step |
 | `infra` | CDK v2 app, one empty `AppStack` | Run directly by Node (`cdk.json`); add resources as stories need them |
@@ -52,6 +53,13 @@ Rules:
 - Test behaviour through public interfaces: call handlers directly (and the dev server over HTTP) for the API, `mount()` for components, `Template.fromStack()` assertions for infra.
 - API request/response shapes are defined once in `packages/shared` as zod schemas; the API and web both import them. Change the schema first.
 
+### Browser layout tests (`apps/web/e2e`, ADR 0011)
+
+Playwright walks each page and its forms at 320px and 360px, checking nothing scrolls sideways. CI runs them as a separate job; locally run `pnpm test:e2e` (once: `pnpm --filter web exec playwright install chromium`). They are a regression net, not AC coverage, and sit outside the Red/Green loop above.
+- **Ask the user before adding any browser test**: a new page or form to walk, or a new kind of check (desktop widths, keyboard flows, anything beyond sideways scrolling). When a change adds a page, form or layout the walks don't cover, offer to add one. Don't add it unasked.
+- Run `pnpm test:e2e` before a PR that changes `apps/web` layout or CSS, and fix what it finds.
+- Use only the made-up data in `apps/web/e2e/data`. The tests start their own servers on :3100/:5180 and never touch `pnpm dev`'s real data.
+
 ## Skills (`.claude/skills/`)
 
 Delivery chain: **write-prd → story-map → write-story → implement-story → open-pr**, plus **adr** for decisions.
@@ -69,11 +77,13 @@ Run after the gate is green, before a story is `done` or a PR is opened. Launch 
 | `test-auditor` | a story is being implemented |
 | `security-reviewer` | `apps/api`, `apps/web`, `packages/shared`, or any `package.json` / `pnpm-workspace.yaml` |
 | `infra-reviewer` | `infra/`, or anything that changes how the API is packaged or deployed |
+| `ux-reviewer` | `apps/web` (advisory: never blocks) |
 
 1. Fix every `blocker`, re-run `pnpm check`, then re-run **only the reviewers that blocked**.
 2. Allow at most **2 rounds**. If blockers remain, stop and show the user the findings. Don't keep looping.
 3. `should-fix` and `nit` findings don't block. List them under "Review notes" in the PR.
 4. If you disagree with a blocker, don't ignore it. Tell the user why.
+5. `ux-reviewer` checks UI and UX consistency across the whole web app. Its findings never block and you don't act on them yourself. When the loop is done, list them and **ask the user** (one multi-select question) which to fix now, which to note in the PR, and which to leave. Batch mode asks too. Findings you fix go through the gate again; the rest go under "Review notes".
 
 ## Conventions
 

@@ -1,0 +1,72 @@
+{
+  "productionId": "2027",
+  "title": "Gang Show 2027",
+  "version": 1,
+  "savedAt": "2026-10-04T00:00:00.000Z",
+  "startTime": "19:15",
+  "intervalMinutes": 20,
+  "halves": [
+    {
+      "id": "first-half",
+      "name": "First half",
+      "items": [
+        {
+          "id": "itm-1",
+          "title": "Opening Number",
+          "cast": "Full Senior Gang",
+          "stage": ["full"],
+          "leads": "",
+          "comments": "",
+          "minutes": 5,
+          "printed": true
+        },
+        {
+          "id": "itm-2",
+          "title": "The Extraordinarily Long Pirate Sketch Title",
+          "cast": "Full Senior Gang",
+          "stage": ["full"],
+          "leads": "",
+          "comments": "",
+          "minutes": 5,
+          "printed": true
+        },
+        {
+          "id": "itm-3",
+          "title": "Mystery Act",
+          "cast": "Full Senior Gang",
+          "stage": ["full"],
+          "leads": "",
+          "comments": "",
+          "minutes": 5,
+          "printed": false
+        }
+      ]
+    },
+    {
+      "id": "second-half",
+      "name": "Second half",
+      "items": [
+        {
+          "id": "itm-4",
+          "title": "Campfire Song",
+          "cast": "Full Senior Gang",
+          "stage": ["full"],
+          "leads": "",
+          "comments": "",
+          "minutes": 5,
+          "printed": true
+        },
+        {
+          "id": "itm-5",
+          "title": "Finale",
+          "cast": "Full Senior Gang",
+          "stage": ["full"],
+          "leads": "",
+          "comments": "",
+          "minutes": 5,
+          "printed": true
+        }
+      ]
+    }
+  ]
+}
