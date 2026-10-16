@@ -47,12 +47,16 @@ Casting decisions are made in meetings and rehearsals, and the parts in an item 
   - a missing role size;
   - a role name already used by another role in the same item, ignoring case.
 - **FR4**: Users must be able to **edit a role**: change its name and size, cast someone in an uncast role, change who is cast, or make it uncast. The same validation applies (FR3).
-- **FR5**: For an **ensemble** role, editing must let users add and remove cast members. Each person can be in an ensemble role only once. The add form (FR1) still takes at most one person, the first.
+- **FR5**: For an **ensemble** role, editing must let users add and remove cast members. Each person can be in an ensemble role only once. The add form (FR1) still takes at most one person, the first, unless Add All Cast is used (FR11).
 - **FR6**: Changing a role from ensemble to lead, support or cameo must be refused while it holds more than one cast member, with an explanation.
 - **FR7**: Users must be able to **remove a role** after confirming. The confirmation names the role. Removing it also removes who was cast in it.
 - **FR8**: Adding, editing and removing must each save straight away and show on the item's page and the Items counts (casting-items FR2). If someone else changed or removed that role since the page was loaded, the change isn't applied. The user is told, and shown the item's current roles.
 - **FR9**: When a cast member is deleted from the cast list (cast-management FR5), they must also be removed from every role they were in, leaving those roles uncast if nobody else is in them.
 - **FR10**: A cast member may be cast in more than one role in the same item, and in any number of items.
+- **FR11**: When adding or editing an **ensemble** role, an **Add All Cast** button beside Save and Cancel must add to the ensemble everyone on the cast list who isn't already in a role in this item. Parts in other items don't matter.
+  - It only fills the form. The user can still remove people before pressing Save, and Cancel leaves the role as it was.
+  - It checks no casting rules. It's a quick way to fill an ensemble, and any clashes it causes show afterwards as usual (casting-rules).
+  - (Added on 2026-10-16 at the user's request.)
 
 ## Non-functional requirements
 

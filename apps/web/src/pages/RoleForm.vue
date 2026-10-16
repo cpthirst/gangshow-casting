@@ -4,17 +4,25 @@ import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, nextTick, onMounted, ref, useId, watch } from "vue";
 import { sortCast } from "../cast.ts";
 import { icons } from "../icons.ts";
-import { type RoleForm, roleDetailsFrom, roleSizeLabel, type TakenNames } from "../roles.ts";
+import {
+  type RoleForm,
+  remainingCast,
+  roleDetailsFrom,
+  roleSizeLabel,
+  type TakenNames,
+} from "../roles.ts";
 import CastMemberPicker from "./CastMemberPicker.vue";
 
 // Adds a role (no role given) or edits one (role given, with who's cast in it named).
 // taken: the item's other role names, which this one can't repeat.
 // cast: the production's cast, to choose who plays the part.
+// inOtherRoles: who's in the item's other roles, whom Add All Cast leaves out (FR11).
 const props = defineProps<{
   saving: boolean;
   error: string;
   taken: TakenNames;
   cast: CastMember[];
+  inOtherRoles: number[];
   role?: Role | undefined;
   castName?: string | undefined;
 }>();
@@ -36,6 +44,24 @@ const form = ref<RoleForm>({
 });
 
 const fullName = (member: CastMember) => `${member.firstName} ${member.lastName}`;
+// The members list shows while editing an ensemble, or once Add All Cast has filled one.
+const showsMembers = computed(() => form.value.members !== undefined);
+
+/** Who Add All Cast would add: everyone not in another role in this item (FR11). */
+const remaining = computed(() =>
+  remainingCast(props.cast, props.inOtherRoles, form.value.members ?? []),
+);
+
+// Fills the ensemble without saving: people can still be removed, and Cancel undoes it.
+// Anyone already chosen in the search stays in.
+function addAllCast() {
+  const chosen = form.value.castMember.id;
+  const kept = form.value.members ?? (chosen === null ? [] : [chosen]);
+  form.value.members = [...kept, ...remainingCast(props.cast, props.inOtherRoles, kept)];
+  form.value.castMember = { query: "", id: null };
+  announcement.value = "Added everyone not already in a role in this item.";
+}
+
 /** The ensemble's members, by last name; anyone no longer on the cast isn't shown. */
 const memberList = computed(() =>
   sortCast(props.cast.filter((member) => form.value.members?.includes(member.id))),
@@ -127,14 +153,14 @@ function submit() {
       <p v-if="errors.size" :id="errorFor('size')" class="field-error">{{ errors.size }}</p>
     </div>
     <div class="field">
-      <template v-if="editsEnsemble">
+      <template v-if="showsMembers">
         <p :id="idFor('members')" class="field-label">Members</p>
         <ul class="members row-icons" :aria-labelledby="idFor('members')">
           <li v-for="member in memberList" :key="member.id" data-test="member">
             <button
               type="button"
               class="icon-button"
-              :aria-label="`Remove ${fullName(member)} from ${role?.name}`"
+              :aria-label="`Remove ${fullName(member)} from ${role?.name ?? 'the ensemble'}`"
               data-tooltip="Remove from the ensemble"
               @click="removeMember(member.id)"
             >
@@ -147,12 +173,12 @@ function submit() {
         <p class="visually-hidden" role="status">{{ announcement }}</p>
       </template>
       <label :for="idFor('castMember')">
-        <template v-if="editsEnsemble">Add a member</template>
+        <template v-if="showsMembers">Add a member</template>
         <template v-else>Cast member <span class="optional">(optional)</span></template>
       </label>
       <CastMemberPicker
         v-model="form.castMember"
-        :cast="editsEnsemble ? addable : cast"
+        :cast="showsMembers ? addable : cast"
         :input-id="idFor('castMember')"
         :described-by="errors.castMember ? errorFor('castMember') : undefined"
       />
@@ -165,6 +191,15 @@ function submit() {
       <button type="submit" class="primary" :disabled="saving">Save</button>
       <button type="button" data-test="cancel" :disabled="saving" @click="emit('cancel')">
         Cancel
+      </button>
+      <button
+        v-if="form.size === 'ensemble'"
+        type="button"
+        data-test="add-all-cast"
+        :disabled="saving || remaining.length === 0"
+        @click="addAllCast"
+      >
+        Add All Cast
       </button>
     </div>
   </form>
