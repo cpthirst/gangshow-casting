@@ -26,7 +26,7 @@ prd: ./prd.md
 |---|---|---|---|---|
 | [casting-rules.E2.S1](stories/E2-S1-back-to-back-errors.md) | Back-to-back errors (walking skeleton): named parts in two items in a row get an Error icon by the person's name on both item pages, described on hover and focus, written out on phones | FR1, FR2, FR7, FR10, FR11 (error), FR12, FR13 | (none) | done |
 | [casting-rules.E2.S2](stories/E2-S2-back-to-back-warnings.md) | Back-to-back warnings when either part is ensemble; one icon at the worst severity, with every clash described | FR3, FR7 (worst and all), FR11 (warning) | E2.S1 | done |
-| [casting-rules.E2.S3](stories/E2-S3-timing-and-quick-changes.md) | Timing warnings (gap under 5 minutes) and quick-change info (5 to under 8), counting the items and interval between, comparing only next appearances | FR4, FR5, FR6, FR11 (info) | E2.S2 | in-progress |
+| [casting-rules.E2.S3](stories/E2-S3-timing-and-quick-changes.md) | Timing warnings (gap under 5 minutes) and quick-change info (5 to under 8), counting the items and interval between, comparing only next appearances | FR4, FR5, FR6, FR11 (info) | E2.S2 | done |
 
 ## E3: See clashes from the summary pages
 

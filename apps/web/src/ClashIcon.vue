@@ -5,11 +5,11 @@ import { type Clash, describeClash } from "./clashes.ts";
 // One icon for all of a person's clashes in an item, describing each one (casting-rules
 // FR7, FR10, FR11); nothing when they have none. The icon carries the words for screen
 // readers; the written-out text is for sighted users: on hover or focus, always on phones.
-const props = defineProps<{ clashes: Clash[]; itemId: string }>();
+const props = defineProps<{ clashes: Clash[] }>();
 
 // The clashes come worst first (clashesOf), so the first sets the icon.
 const severity = computed(() => props.clashes[0]?.severity);
-const descriptions = computed(() => props.clashes.map((c) => describeClash(c, props.itemId)));
+const descriptions = computed(() => props.clashes.map(describeClash));
 </script>
 
 <template>
@@ -46,9 +46,11 @@ const descriptions = computed(() => props.clashes.map((c) => describeClash(c, pr
       </svg>
     </span>
     <span class="clash-description" aria-hidden="true" data-test="clash-description">
-      <span v-for="(description, i) in descriptions" :key="i" class="clash-line">{{
-        description
-      }}</span>
+      <span
+        v-for="(clash, i) in clashes"
+        :key="i"
+        :class="['clash-line', `clash-line-${clash.severity}`]"
+        >{{ describeClash(clash) }}</span>
     </span>
   </span>
 </template>

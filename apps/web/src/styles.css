@@ -1101,6 +1101,11 @@ main a {
     background: none;
     color: inherit;
   }
+
+  /* Quick changes are for planning, and there are usually many: quieter than the problems. */
+  .clash-line-info {
+    font-weight: 400;
+  }
 }
 
 /* A person's pills on the Overview, together after their name like on a role card. */

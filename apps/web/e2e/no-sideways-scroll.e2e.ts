@@ -92,7 +92,9 @@ test("a clash's description is written out on phones and fits the screen", async
     .locator("[data-test=cast-name]", { hasText: "Featherstonehaugh-Smythe" })
     .first();
 
-  await expect(clash.getByText("Error: back-to-back. Also Lead in 'Opening Number'")).toBeVisible();
+  await expect(
+    clash.getByText("Error: back-to-back. Lead in 'Opening Number', then Support"),
+  ).toBeVisible();
   await expectNoSidewaysScroll(page);
 });
 

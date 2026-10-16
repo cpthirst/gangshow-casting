@@ -359,8 +359,7 @@ async function postRole(itemId: string, details: AddRoleRequest) {
                 ><span class="cast-name" data-test="cast-name"
                   >{{ fullName(member)
                   }}<ClashIcon
-                    :clashes="clashesHere(member, place.item.id)"
-                    :item-id="place.item.id" /></span
+                    :clashes="clashesHere(member, place.item.id)" /></span
               ></template>
             </span>
           </template>

@@ -86,7 +86,7 @@ function problem(first: Slot, second: Slot): Pick<Clash, "kind" | "severity"> | 
       kind: "back-to-back",
       severity: involvesEnsemble(first, second) ? "warning" : "error",
     };
-  const gap = second.starts - first.ends;
+  const gap = gapBetween(first, second);
   if (gap < MIN_GAP) return { kind: "timing", severity: "warning" };
   if (gap < QUICK_CHANGE_GAP) return { kind: "quick-change", severity: "info" };
   return undefined;
@@ -119,19 +119,22 @@ export function findClashes(order: RunningOrder, roles: Role[]): Clash[] {
     const inOrder = [...theirs.values()].sort((a, b) => a.position - b.position);
     for (const [i, first] of inOrder.entries()) {
       const second = inOrder[i + 1];
-      const found = second && problem(first, second);
-      if (!second || !found) continue;
+      if (!second) continue;
+      const found = problem(first, second);
+      if (!found) continue;
       clashes.push({
         castMemberId,
         ...found,
         first: appearance(first),
         second: appearance(second),
-        gapMinutes: second.starts - first.ends,
+        gapMinutes: gapBetween(first, second),
       });
     }
   }
   return clashes;
 }
+
+const gapBetween = (first: Place, second: Place) => second.starts - first.ends;
 
 const involvesEnsemble = (first: Slot, second: Slot) =>
   first.part === "ensemble" || second.part === "ensemble";
@@ -151,15 +154,16 @@ export const clashesOf = (clashes: Clash[], castMemberId: number, itemId: string
     // A stable sort: clashes of the same severity stay in running order.
     .sort((a, b) => rank(a.severity) - rank(b.severity));
 
-/** What a clash means, seen from one of its items, as plain text (never HTML). For example
- *  "Error: back-to-back. Also Lead in 'Opening Number', straight before this item" (FR7). */
-export function describeClash(clash: Clash, itemId: string) {
-  const label = severityLabel(clash.severity);
-  const between = `${clash.gapMinutes} minutes between '${clash.first.title}' and '${clash.second.title}'`;
-  if (clash.kind === "timing") return `${label}: only ${between} (needs ${MIN_GAP})`;
-  if (clash.kind === "quick-change") return `${label}: quick change. ${between}`;
-  const isFirst = clash.first.itemId === itemId;
-  const other = isFirst ? clash.second : clash.first;
-  const when = isFirst ? "straight after" : "straight before";
-  return `${label}: back-to-back. Also ${roleSizeLabel(other.part)} in '${other.title}', ${when} this item`;
+/** What a clash means, as plain text (never HTML) (FR7): the severity, what kind, then
+ *  both items, so it reads the same on either item's page. For example "Error: back-to-back.
+ *  Lead in 'Opening Number', then Support in 'Pirate Sketch'". */
+export function describeClash({ kind, severity, first, second, gapMinutes }: Clash) {
+  const label = severityLabel(severity);
+  const between = `${gapMinutes} minutes between '${first.title}' and '${second.title}'`;
+  if (kind === "timing") {
+    return `${label}: short gap. Only ${between} (needs at least ${MIN_GAP} minutes)`;
+  }
+  if (kind === "quick-change") return `${label}: quick change. ${between}`;
+  const partIn = ({ part, title }: Appearance) => `${roleSizeLabel(part)} in '${title}'`;
+  return `${label}: back-to-back. ${partIn(first)}, then ${partIn(second)}`;
 }

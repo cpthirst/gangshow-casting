@@ -3,6 +3,8 @@ import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { CastList, RoleList, RunningOrder } from "@app/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+// Deliberately the web app's own rules, so the demo guide can't drift from them. clashes.ts
+// must stay plain TypeScript (no Vue or browser imports) for this to load under node.
 import { type Clash, findClashes } from "../../apps/web/src/clashes.ts";
 import { DEMO_API_PORT, DEMO_WEB_PORT, demoServers, freshDemoData } from "./demo.ts";
 

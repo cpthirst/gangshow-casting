@@ -104,8 +104,8 @@ describe("back-to-back with an ensemble", () => {
       role("pirate-sketch", "ensemble", [SAM]),
     ]);
 
-    expect(clash && describeClash(clash, "pirate-sketch")).toBe(
-      "Warning: back-to-back. Also Lead in 'Opening Number', straight before this item",
+    expect(clash && describeClash(clash)).toBe(
+      "Warning: back-to-back. Lead in 'Opening Number', then Ensemble in 'Pirate Sketch'",
     );
   });
 
@@ -142,13 +142,13 @@ describe("time between appearances", () => {
   });
   const samIn = (...itemIds: string[]) => itemIds.map((itemId) => role(itemId, "lead", [SAM]));
   const described = (clashes: Clash[], itemId: string) =>
-    clashesOf(clashes, SAM, itemId).map((clash) => describeClash(clash, itemId));
+    clashesOf(clashes, SAM, itemId).map(describeClash);
 
   it("warns about a gap under 5 minutes", () => {
     const clashes = findClashes(timed(), samIn("opening-number", "dance-one"));
 
     expect(described(clashes, "dance-one")).toEqual([
-      "Warning: only 4 minutes between 'Opening Number' and 'Dance One' (needs 5)",
+      "Warning: short gap. Only 4 minutes between 'Opening Number' and 'Dance One' (needs at least 5 minutes)",
     ]);
     expect(described(clashes, "opening-number")).toEqual(described(clashes, "dance-one"));
   });
@@ -179,7 +179,7 @@ describe("time between appearances", () => {
     const clashes = findClashes(timed(4), samIn("sketch-two", "campfire-song"));
 
     expect(described(clashes, "campfire-song")).toEqual([
-      "Warning: only 4 minutes between 'Sketch Two' and 'Campfire Song' (needs 5)",
+      "Warning: short gap. Only 4 minutes between 'Sketch Two' and 'Campfire Song' (needs at least 5 minutes)",
     ]);
   });
 
@@ -191,7 +191,7 @@ describe("time between appearances", () => {
     const clashes = findClashes(timed(), samIn("opening-number", "pirate-sketch", "dance-one"));
 
     expect(described(clashes, "opening-number")).toEqual([
-      "Error: back-to-back. Also Lead in 'Pirate Sketch', straight after this item",
+      "Error: back-to-back. Lead in 'Opening Number', then Lead in 'Pirate Sketch'",
     ]);
   });
 
@@ -226,17 +226,14 @@ describe("a person's clashes in an item", () => {
     expect(clashesOf(clashes, ALEX, "pirate-sketch")).toEqual([]);
   });
 
-  it("are described from the later item, naming the earlier one", () => {
-    const [clash] = clashesOf(clashes, SAM, "pirate-sketch");
-    expect(clash && describeClash(clash, "pirate-sketch")).toBe(
-      "Error: back-to-back. Also Lead in 'Opening Number', straight before this item",
+  it("are described naming both items and parts, the same from either item", () => {
+    const fromEach = ["opening-number", "pirate-sketch"].map((itemId) =>
+      clashesOf(clashes, SAM, itemId).map(describeClash),
     );
-  });
 
-  it("are described from the earlier item, naming the later one", () => {
-    const [clash] = clashesOf(clashes, SAM, "opening-number");
-    expect(clash && describeClash(clash, "opening-number")).toBe(
-      "Error: back-to-back. Also Support in 'Pirate Sketch', straight after this item",
-    );
+    expect(fromEach).toEqual([
+      ["Error: back-to-back. Lead in 'Opening Number', then Support in 'Pirate Sketch'"],
+      ["Error: back-to-back. Lead in 'Opening Number', then Support in 'Pirate Sketch'"],
+    ]);
   });
 });

@@ -21,7 +21,7 @@ Then Sam's name shows an Error icon
 ### AC2: The description says what the clash is and with which item
 Given Sam has the back-to-back error in AC1
 When I hover over or focus the icon on the "Pirate Sketch" page
-Then I see "Error: back-to-back. Also Lead in 'Opening Number', straight before this item"
+Then I see "Error: back-to-back. Lead in 'Opening Number', then Support in 'Pirate Sketch'"
 
 ### AC3: The icon is read out in words
 Given Sam's name shows the Error icon
@@ -73,6 +73,7 @@ And no clash icons are shown
 
 ## Notes
 
+- Wording changed on 2026-10-16 at the user's request (ux-reviewer, during casting-rules.E2.S3): every description is "Severity: kind. detail" and names both items, so it reads the same on either item's page.
 - FRs: FR1, FR2, FR7, FR10, FR11 (error), FR12, FR13
 - Depends on: none.
 - Walking skeleton: builds the clash calculation (a plain, unit-tested function over the saved running order and the roles) and the shared icon with its description, which E2.S2–E3.S2 reuse.

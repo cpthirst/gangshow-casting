@@ -1271,7 +1271,7 @@ describe("Clashes on an item's page", () => {
     const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
 
     expect(clashOf(wrapper, "Sam Example")?.get("[data-test=clash-description]").text()).toBe(
-      "Error: back-to-back. Also Lead in 'Opening Number', straight before this item",
+      "Error: back-to-back. Lead in 'Opening Number', then Support in 'Pirate Sketch'",
     );
   });
 
@@ -1286,7 +1286,7 @@ describe("Clashes on an item's page", () => {
     expect(icon?.attributes("tabindex")).toBe("0");
     expect(icon?.attributes("role")).toBe("img");
     expect(icon?.attributes("aria-label")).toBe(
-      "Error: back-to-back. Also Lead in 'Opening Number', straight before this item",
+      "Error: back-to-back. Lead in 'Opening Number', then Support in 'Pirate Sketch'",
     );
   });
 
@@ -1405,7 +1405,7 @@ describe("Clashes on an item's page", () => {
     const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
 
     expect(clashOf(wrapper, "Sam Example")?.get("[data-test=clash-description]").text()).toBe(
-      "Warning: back-to-back. Also Lead in 'Opening Number', straight before this item",
+      "Warning: back-to-back. Lead in 'Opening Number', then Ensemble in 'Pirate Sketch'",
     );
   });
 
@@ -1438,8 +1438,8 @@ describe("Clashes on an item's page", () => {
     expect(sam?.findAll("[data-test=clash]")).toHaveLength(1);
     expect(sam?.get("[data-test=clash]").attributes("data-severity")).toBe("error");
     expect(sam?.findAll(".clash-line").map((line) => line.text())).toEqual([
-      "Error: back-to-back. Also Lead in 'Dance One', straight after this item",
-      "Warning: back-to-back. Also Ensemble in 'Opening Number', straight before this item",
+      "Error: back-to-back. Support in 'Pirate Sketch', then Lead in 'Dance One'",
+      "Warning: back-to-back. Ensemble in 'Opening Number', then Support in 'Pirate Sketch'",
     ]);
   });
 
@@ -1471,7 +1471,7 @@ describe("Clashes on an item's page", () => {
       const { wrapper } = await openAppAt(`/casting/items/${item}`);
       expect(clashOf(wrapper, "Sam Example")?.attributes("data-severity")).toBe("warning");
       expect(linesOf(wrapper, "Sam Example")).toEqual([
-        "Warning: only 4 minutes between 'Opening Number' and 'Dance One' (needs 5)",
+        "Warning: short gap. Only 4 minutes between 'Opening Number' and 'Dance One' (needs at least 5 minutes)",
       ]);
       wrapper.unmount();
     }
@@ -1510,7 +1510,7 @@ describe("Clashes on an item's page", () => {
     const { wrapper } = await openAppAt("/casting/items/campfire-song");
 
     expect(linesOf(wrapper, "Sam Example")).toEqual([
-      "Warning: only 4 minutes between 'Sketch Two' and 'Campfire Song' (needs 5)",
+      "Warning: short gap. Only 4 minutes between 'Sketch Two' and 'Campfire Song' (needs at least 5 minutes)",
     ]);
   });
 
@@ -1519,7 +1519,7 @@ describe("Clashes on an item's page", () => {
     const { wrapper } = await openAppAt("/casting/items/opening-number");
 
     expect(linesOf(wrapper, "Sam Example")).toEqual([
-      "Error: back-to-back. Also Lead in 'Pirate Sketch', straight after this item",
+      "Error: back-to-back. Lead in 'Opening Number', then Lead in 'Pirate Sketch'",
     ]);
   });
 
@@ -1528,7 +1528,7 @@ describe("Clashes on an item's page", () => {
     const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
 
     expect(linesOf(wrapper, "Sam Example")).toEqual([
-      "Error: back-to-back. Also Lead in 'Opening Number', straight before this item",
+      "Error: back-to-back. Lead in 'Opening Number', then Lead in 'Pirate Sketch'",
     ]);
   });
 
@@ -1558,8 +1558,19 @@ describe("Clashes on an item's page", () => {
 
     expect(clashOf(wrapper, "Sam Example")?.attributes("data-severity")).toBe("warning");
     expect(linesOf(wrapper, "Sam Example")).toEqual([
-      "Warning: only 3 minutes between 'Sketch Two' and 'Campfire Song' (needs 5)",
+      "Warning: short gap. Only 3 minutes between 'Sketch Two' and 'Campfire Song' (needs at least 5 minutes)",
       "Info: quick change. 5 minutes between 'Pirate Sketch' and 'Sketch Two'",
+    ]);
+  });
+
+  it("marks each line with its severity, so quick changes can be quieter on phones", async () => {
+    savedRunningOrderIs(timedShow(3), samIn("pirate-sketch", "sketch-two", "campfire-song"));
+    const { wrapper } = await openAppAt("/casting/items/sketch-two");
+
+    const lines = namesOf(wrapper, "Sam Example")[0]?.findAll(".clash-line") ?? [];
+    expect(lines.map((line) => line.classes())).toEqual([
+      ["clash-line", "clash-line-warning"],
+      ["clash-line", "clash-line-info"],
     ]);
   });
 
