@@ -85,6 +85,17 @@ test("an item's add-role and edit-role forms fit the screen", async ({ page }) =
   await expectNoSidewaysScroll(page);
 });
 
+test("a clash's description is written out on phones and fits the screen", async ({ page }) => {
+  // e2e/data gives the longest name a back-to-back clash: Narrator, then Smee.
+  await page.goto("/casting/items/itm-2");
+  const clash = page
+    .locator("[data-test=cast-name]", { hasText: "Featherstonehaugh-Smythe" })
+    .first();
+
+  await expect(clash.getByText("Error: back-to-back. Also Lead in 'Opening Number'")).toBeVisible();
+  await expectNoSidewaysScroll(page);
+});
+
 test("the casting overview fits the screen", async ({ page }) => {
   await page.goto("/casting/overview");
   await expect(page.getByRole("heading", { name: /Explorers/ })).toBeVisible();

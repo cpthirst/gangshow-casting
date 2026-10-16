@@ -1219,3 +1219,166 @@ describe("Role card buttons", () => {
     expect(remove.attributes("data-tooltip")).toBe("Remove from the ensemble");
   });
 });
+
+describe("Clashes on an item's page", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.body.innerHTML = "";
+  });
+
+  // First half: Opening Number, Pirate Sketch, Dance One. Second half: Campfire Song, Finale.
+  const clashShow = aRunningOrder(
+    [anItem("Opening Number"), anItem("Pirate Sketch"), anItem("Dance One")],
+    [anItem("Campfire Song"), anItem("Finale")],
+  );
+  let nextRoleId = 100;
+  const cast = (itemId: string, size: Role["size"], castMemberIds: number[], name?: string) => ({
+    ...aRole(itemId, name ?? `Role ${nextRoleId}`, size),
+    id: nextRoleId++,
+    castMemberIds,
+  });
+  const SAM = 12;
+  const ALEX = 13;
+
+  type Page = Awaited<ReturnType<typeof openAppAt>>["wrapper"];
+  /** Every place a person's name appears on the page. */
+  const namesOf = (wrapper: Page, name: string) =>
+    wrapper.findAll("[data-test=cast-name]").filter((el) => el.text().startsWith(name));
+  const clashOf = (wrapper: Page, name: string) =>
+    namesOf(wrapper, name)[0]?.find("[data-test=clash]");
+
+  it("shows an error by someone in named parts in two items in a row, on both items", async () => {
+    savedRunningOrderIs(clashShow, [
+      cast("opening-number", "lead", [SAM]),
+      cast("pirate-sketch", "support", [SAM]),
+    ]);
+
+    for (const item of ["opening-number", "pirate-sketch"]) {
+      const { wrapper } = await openAppAt(`/casting/items/${item}`);
+      expect(clashOf(wrapper, "Sam Example")?.attributes("data-severity")).toBe("error");
+      wrapper.unmount();
+    }
+  });
+
+  it("says what the clash is and with which item", async () => {
+    savedRunningOrderIs(clashShow, [
+      cast("opening-number", "lead", [SAM]),
+      cast("pirate-sketch", "support", [SAM]),
+    ]);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    expect(clashOf(wrapper, "Sam Example")?.get("[data-test=clash-description]").text()).toBe(
+      "Error: back-to-back. Also Lead in 'Opening Number', straight before this item",
+    );
+  });
+
+  it("can be reached by keyboard and is read out in words", async () => {
+    savedRunningOrderIs(clashShow, [
+      cast("opening-number", "lead", [SAM]),
+      cast("pirate-sketch", "support", [SAM]),
+    ]);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    const icon = clashOf(wrapper, "Sam Example")?.get("[data-test=clash-icon]");
+    expect(icon?.attributes("tabindex")).toBe("0");
+    expect(icon?.attributes("role")).toBe("img");
+    expect(icon?.attributes("aria-label")).toBe(
+      "Error: back-to-back. Also Lead in 'Opening Number', straight before this item",
+    );
+  });
+
+  it("marks someone wherever their name appears, by their biggest part", async () => {
+    savedRunningOrderIs(clashShow, [
+      cast("pirate-sketch", "lead", [SAM], "Captain Hook"),
+      cast("pirate-sketch", "ensemble", [SAM, ALEX], "Pirates"),
+      cast("opening-number", "cameo", [SAM]),
+    ]);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    const sam = namesOf(wrapper, "Sam Example");
+    expect(sam).toHaveLength(2);
+    for (const name of sam) {
+      expect(name.find("[data-test=clash]").attributes("data-severity")).toBe("error");
+    }
+    expect(clashOf(wrapper, "Alex Sample")?.exists()).toBe(false);
+  });
+
+  it("doesn't count items with another item between them", async () => {
+    savedRunningOrderIs(clashShow, [
+      cast("opening-number", "lead", [SAM]),
+      cast("dance-one", "lead", [SAM]),
+    ]);
+    const { wrapper } = await openAppAt("/casting/items/opening-number");
+
+    expect(clashOf(wrapper, "Sam Example")?.exists()).toBe(false);
+  });
+
+  it("doesn't count items either side of the interval", async () => {
+    savedRunningOrderIs(clashShow, [
+      cast("dance-one", "lead", [SAM]),
+      cast("campfire-song", "lead", [SAM]),
+    ]);
+    const { wrapper } = await openAppAt("/casting/items/dance-one");
+
+    expect(clashOf(wrapper, "Sam Example")?.exists()).toBe(false);
+  });
+
+  it("shows no icon for someone without a clash", async () => {
+    savedRunningOrderIs(clashShow, [
+      cast("opening-number", "lead", [ALEX]),
+      cast("opening-number", "support", [SAM]),
+      cast("pirate-sketch", "support", [SAM]),
+    ]);
+    const { wrapper } = await openAppAt("/casting/items/opening-number");
+
+    expect(namesOf(wrapper, "Alex Sample")).toHaveLength(1);
+    expect(clashOf(wrapper, "Alex Sample")?.exists()).toBe(false);
+  });
+
+  it("clears the error once the clashing role is removed", async () => {
+    vi.stubGlobal("confirm", () => true);
+    savedRunningOrderIs(clashShow, [
+      cast("opening-number", "lead", [SAM]),
+      cast("pirate-sketch", "support", [SAM], "First Mate"),
+    ]);
+    const { wrapper, router } = await openAppAt("/casting/items/pirate-sketch");
+    await wrapper.get("button[aria-label='Remove First Mate']").trigger("click");
+    await flushPromises();
+
+    await router.push("/casting/items/opening-number");
+    await flushPromises();
+
+    expect(namesOf(wrapper, "Sam Example")).toHaveLength(1);
+    expect(clashOf(wrapper, "Sam Example")?.exists()).toBe(false);
+  });
+
+  it("clears the error once a running order moving the items apart is saved", async () => {
+    const roles = [cast("opening-number", "lead", [SAM]), cast("pirate-sketch", "support", [SAM])];
+    savedRunningOrderIs(
+      aRunningOrder(
+        [anItem("Opening Number"), anItem("Dance One"), anItem("Pirate Sketch")],
+        [anItem("Campfire Song"), anItem("Finale")],
+        8,
+      ),
+      roles,
+    );
+    const { wrapper } = await openAppAt("/casting/items/opening-number");
+
+    expect(clashOf(wrapper, "Sam Example")?.exists()).toBe(false);
+  });
+
+  it("shows no icons when the roles can't be loaded", async () => {
+    savedRunningOrderIs(clashShow);
+    const fetchShow = vi.mocked(fetch);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string, init?: RequestInit) =>
+        url === ROLES_PATH ? new Response(null, { status: 500 }) : fetchShow(url, init),
+      ),
+    );
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    expect(wrapper.find("[role=alert]").text()).toContain("Couldn't load");
+    expect(wrapper.find("[data-test=clash]").exists()).toBe(false);
+  });
+});

@@ -1029,6 +1029,57 @@ main a {
   font-weight: 700;
 }
 
+/* Casting clashes (casting-rules): one icon by a person's name, its shape and colour set by
+   the worst severity. The description pops up on hover or keyboard focus; on phones it's
+   written out under the name instead (see the phone rules below). */
+.clash {
+  position: relative;
+}
+
+.clash-icon {
+  display: inline-flex;
+  margin-left: 0.25rem;
+  vertical-align: -0.2em;
+  border-radius: 50%;
+}
+
+.clash-error {
+  color: var(--red-darker);
+}
+
+.clash-warning {
+  color: #8a5a00;
+}
+
+.clash-info {
+  color: #1f5f8b;
+}
+
+.clash-description {
+  display: none;
+  position: absolute;
+  top: calc(100% + 0.375rem);
+  left: 0;
+  z-index: 3;
+  width: max-content;
+  max-width: 20rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  background: var(--text);
+  color: var(--white);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.clash:hover .clash-description,
+.clash-icon:focus-visible + .clash-description {
+  display: block;
+}
+
+.clash-line {
+  display: block;
+}
+
 /* A person's pills on the Overview, together after their name like on a role card. */
 .person-parts {
   display: inline-flex;
@@ -1182,6 +1233,18 @@ main a {
 
   .wordmark-name {
     font-size: 1.125rem;
+  }
+
+  /* No hover on a phone, so a clash's description is always written out under the name. */
+  .clash-description,
+  .clash:hover .clash-description {
+    display: block;
+    position: static;
+    width: auto;
+    max-width: none;
+    padding: 0.125rem 0 0;
+    background: none;
+    color: inherit;
   }
 
   /* Its own line under the wordmark and Menu button. */
