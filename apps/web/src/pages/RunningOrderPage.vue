@@ -248,7 +248,7 @@ function refocus(itemId: string, direction: Move) {
                 <th scope="col" role="columnheader">Stage</th>
                 <th scope="col" role="columnheader">Leads</th>
                 <th scope="col" role="columnheader">Comments</th>
-                <th scope="col" role="columnheader">Mins</th>
+                <th scope="col" role="columnheader" class="minutes">Mins</th>
               </tr>
             </thead>
             <tbody role="rowgroup" :data-half="i" v-sortable-rows="{ onDrop: drop, disabled: busy }">

@@ -169,7 +169,7 @@ async function loadRunningOrder() {
                   <span class="visually-hidden">{{ spokenCounts(counts) }}</span>
                 </template>
               </td>
-              <!-- The item's running time, as on the Running order page; blank if unknown. -->
+              <!-- Left empty when unknown, so the phone card hides the row. -->
               <td data-test="minutes" class="minutes" data-label="Mins" role="cell">
                 <template v-if="item.minutes !== null">{{ item.minutes }}</template>
               </td>
