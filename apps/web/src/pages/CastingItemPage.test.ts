@@ -202,6 +202,16 @@ describe("Casting item page", () => {
     ]);
   });
 
+  it("gives Previous and Next the full title on hover, for titles cut short", async () => {
+    savedRunningOrderIs(show);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    const tooltips = ["prev", "next"].map((rel) =>
+      wrapper.get(`main a[rel=${rel}]`).attributes("data-tooltip"),
+    );
+    expect(tooltips).toEqual(["Opening Number", "Campfire Song"]);
+  });
+
   it("steps across the interval like the show", async () => {
     savedRunningOrderIs(show);
     const { wrapper } = await openAppAt("/casting/items/campfire-song");
