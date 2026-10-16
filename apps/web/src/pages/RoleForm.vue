@@ -169,6 +169,39 @@ function submit() {
       <p v-if="errors.size" :id="errorFor('size')" class="field-error">{{ errors.size }}</p>
     </div>
     <div class="field">
+      <!-- Adding comes first, then the members so far (casting-roles FR5, FR11). -->
+      <div v-if="showsMembers" class="add-all-cast">
+        <button
+          type="button"
+          data-test="add-all-cast"
+          :disabled="saving || remaining.length === 0"
+          :aria-describedby="remaining.length === 0 ? addAllHintId : undefined"
+          @click="addAllCast"
+        >
+          Add all cast
+        </button>
+        <p
+          v-if="remaining.length === 0"
+          :id="addAllHintId"
+          class="hint"
+          data-test="add-all-cast-hint"
+        >
+          Everyone is already in a role in this item
+        </p>
+      </div>
+      <label :for="idFor('castMember')">
+        <template v-if="showsMembers">Add a member</template>
+        <template v-else>Cast member <span class="optional">(optional)</span></template>
+      </label>
+      <CastMemberPicker
+        v-model="form.castMember"
+        :cast="showsMembers ? addable : cast"
+        :input-id="idFor('castMember')"
+        :described-by="errors.castMember ? errorFor('castMember') : undefined"
+      />
+      <p v-if="errors.castMember" :id="errorFor('castMember')" class="field-error">
+        {{ errors.castMember }}
+      </p>
       <div v-if="showsMembers" class="members-block" data-test="members">
         <p :id="idFor('members')" class="field-label">Members</p>
         <ul class="members row-icons" :aria-labelledby="idFor('members')">
@@ -187,39 +220,7 @@ function submit() {
           <li v-if="memberList.length === 0" class="uncast">Nobody yet</li>
         </ul>
         <p class="visually-hidden" role="status">{{ announcement }}</p>
-        <div class="add-all-cast">
-          <button
-            type="button"
-            data-test="add-all-cast"
-            :disabled="saving || remaining.length === 0"
-            :aria-describedby="remaining.length === 0 ? addAllHintId : undefined"
-            @click="addAllCast"
-          >
-            Add all cast
-          </button>
-          <p
-            v-if="remaining.length === 0"
-            :id="addAllHintId"
-            class="hint"
-            data-test="add-all-cast-hint"
-          >
-            Everyone is already in a role in this item
-          </p>
-        </div>
       </div>
-      <label :for="idFor('castMember')">
-        <template v-if="showsMembers">Add a member</template>
-        <template v-else>Cast member <span class="optional">(optional)</span></template>
-      </label>
-      <CastMemberPicker
-        v-model="form.castMember"
-        :cast="showsMembers ? addable : cast"
-        :input-id="idFor('castMember')"
-        :described-by="errors.castMember ? errorFor('castMember') : undefined"
-      />
-      <p v-if="errors.castMember" :id="errorFor('castMember')" class="field-error">
-        {{ errors.castMember }}
-      </p>
     </div>
     <p v-if="error" class="field-error form-error" role="alert">{{ error }}</p>
     <div class="editor-actions">

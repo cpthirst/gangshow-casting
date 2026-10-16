@@ -1720,13 +1720,29 @@ describe("Add All Cast", () => {
     await editRole(wrapper, "Pirates");
 
     const form = formFor(wrapper, "Edit Pirates");
-    expect(form.get("[data-test=members] button[data-test=add-all-cast]").text()).toBe(
-      "Add all cast",
-    );
+    expect(form.get("button[data-test=add-all-cast]").text()).toBe("Add all cast");
     expect(form.findAll(".editor-actions button").map((button) => button.text())).toEqual([
       "Save",
       "Cancel",
     ]);
+  });
+
+  it("puts Add all cast and the member search above the Members heading", async () => {
+    const wrapper = await open();
+    await editRole(wrapper, "Pirates");
+    const form = formFor(wrapper, "Edit Pirates").element;
+
+    const heading = [...form.querySelectorAll(".field-label")].find(
+      (label) => label.textContent === "Members",
+    );
+    const button = form.querySelector("[data-test=add-all-cast]");
+    const search = form.querySelector("input[name=castMember]");
+    // compareDocumentPosition sets FOLLOWING when the heading comes after the element.
+    for (const element of [button, search]) {
+      expect(heading && element?.compareDocumentPosition(heading)).toBe(
+        Node.DOCUMENT_POSITION_FOLLOWING,
+      );
+    }
   });
 
   it("isn't offered for a lead, support or cameo", async () => {

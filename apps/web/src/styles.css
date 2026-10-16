@@ -824,13 +824,18 @@ main a {
   cursor: not-allowed;
 }
 
-/* Add all cast sits with the ensemble's members, not among Save and Cancel. */
+/* An ensemble's form: Add all cast and the member search come first, then the members so
+   far. Not among Save and Cancel. */
 .add-all-cast {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.25rem 0.75rem;
-  margin: 0.25rem 0 0.75rem;
+  margin: 0 0 0.75rem;
+}
+
+.members-block {
+  margin-top: 0.75rem;
 }
 
 .add-all-cast .hint {
