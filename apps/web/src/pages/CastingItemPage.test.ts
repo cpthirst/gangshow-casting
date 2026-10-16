@@ -182,6 +182,16 @@ describe("Casting item page", () => {
       href: link.attributes("href"),
     }));
 
+  it("marks All items, Previous and Next with chevrons screen readers skip", async () => {
+    savedRunningOrderIs(show);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    const icons = wrapper
+      .findAll("main nav[aria-label='Item navigation'] a")
+      .map((link) => link.get("svg[aria-hidden=true]").attributes("data-icon"));
+    expect(icons).toEqual(["chevron-left", "chevron-left", "chevron-right"]);
+  });
+
   it("links to the previous and next items, named by title", async () => {
     savedRunningOrderIs(show);
     const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
@@ -1253,10 +1263,10 @@ describe("Role card buttons", () => {
     const edit = wrapper.get("button[aria-label='Edit Parrot']");
     const remove = wrapper.get("button[aria-label='Remove Parrot']");
     expect(edit.classes()).toContain("icon-button");
-    expect(edit.text()).toBe("✎");
+    expect(edit.get("svg[aria-hidden=true]").attributes("data-icon")).toBe("pen");
     expect(edit.attributes("data-tooltip")).toBe("Edit role");
     expect(remove.classes()).toContain("icon-button");
-    expect(remove.find("svg[aria-hidden=true]").exists()).toBe(true);
+    expect(remove.get("svg[aria-hidden=true]").attributes("data-icon")).toBe("trash-can");
     expect(remove.attributes("data-tooltip")).toBe("Remove role");
   });
 
@@ -1270,7 +1280,7 @@ describe("Role card buttons", () => {
 
     const remove = wrapper.get("button[aria-label='Remove Sam Example from Pirates']");
     expect(remove.classes()).toContain("icon-button");
-    expect(remove.find("svg[aria-hidden=true]").exists()).toBe(true);
+    expect(remove.get("svg[aria-hidden=true]").attributes("data-icon")).toBe("trash-can");
     expect(remove.attributes("data-tooltip")).toBe("Remove from the ensemble");
   });
 });
@@ -1475,7 +1485,8 @@ describe("Clashes on an item's page", () => {
 
     const error = clashOf(wrapper, "Sam Example")?.get("[data-test=clash-icon]");
     const warning = clashOf(wrapper, "Alex Sample")?.get("[data-test=clash-icon]");
-    expect(error?.get("path").attributes("d")).not.toBe(warning?.get("path").attributes("d"));
+    expect(error?.get("svg").attributes("data-icon")).toBe("square-xmark");
+    expect(warning?.get("svg").attributes("data-icon")).toBe("triangle-exclamation");
     expect(error?.attributes("aria-label")).toMatch(/^Error: /);
     expect(warning?.attributes("aria-label")).toMatch(/^Warning: /);
   });
@@ -1599,10 +1610,17 @@ describe("Clashes on an item's page", () => {
 
     const shapes = ["Sam Example", "Alex Sample", "Zoë Adams"].map((name) => {
       const icon = clashOf(wrapper, name)?.get("[data-test=clash-icon]");
-      return [icon?.attributes("aria-label")?.split(":")[0], icon?.get("path").attributes("d")];
+      return [
+        icon?.attributes("aria-label")?.split(":")[0],
+        icon?.get("svg").attributes("data-icon"),
+      ];
     });
     expect(shapes.map(([label]) => label)).toEqual(["Info", "Warning", "Error"]);
-    expect(new Set(shapes.map(([, shape]) => shape)).size).toBe(3);
+    expect(shapes.map(([, shape]) => shape)).toEqual([
+      "circle-info",
+      "triangle-exclamation",
+      "square-xmark",
+    ]);
   });
 
   it("shows a timing warning over a quick change, describing both", async () => {

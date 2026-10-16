@@ -970,23 +970,9 @@ main a {
   text-decoration: none;
 }
 
-/* Chevrons that screen readers skip: the links read "All items", "Previous Pirate Sketch". */
-.step-nav .back-link::before,
-.step-previous .step-label::before {
-  content: "‹" / "";
-  font-size: 1.25rem;
-  line-height: 1;
-}
-
-.step-previous .step-label::before {
-  margin-right: 0.375rem;
-}
-
-.step-next .step-label::after {
-  content: "›" / "";
-  margin-left: 0.375rem;
-  font-size: 1.25rem;
-  line-height: 1;
+/* Chevrons (decorative icons): the links read "All items", "Previous Pirate Sketch". */
+.step-nav svg {
+  font-size: 0.75rem;
 }
 
 .step-link {
@@ -1010,6 +996,7 @@ main a {
 
 .step-label {
   display: inline-flex;
+  gap: 0.375rem;
   align-items: center;
 }
 
@@ -1106,6 +1093,7 @@ main a {
 
 .clash-icon {
   display: inline-flex;
+  font-size: 1.125em;
   margin-left: 0.25rem;
   vertical-align: -0.2em;
   border-radius: 50%;

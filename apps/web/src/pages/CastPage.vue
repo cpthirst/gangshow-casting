@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { CastList, CastMember, type CastMemberDetails, RoleList } from "@app/shared";
+import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, nextTick, onMounted, ref, useId } from "vue";
-import BinIcon from "../BinIcon.vue";
 import {
   CAST_PATH,
   type CastFilters,
@@ -13,6 +13,7 @@ import {
   sectionLabel,
   sortCast,
 } from "../cast.ts";
+import { icons } from "../icons.ts";
 import { ROLES_PATH } from "../roles.ts";
 import CastMemberForm from "./CastMemberForm.vue";
 
@@ -357,7 +358,7 @@ onMounted(load);
                 :disabled="busy"
                 @click="startEditing(member)"
               >
-                ✎
+                <FontAwesomeIcon :icon="icons.edit" />
               </button>
               <button
                 type="button"
@@ -367,7 +368,7 @@ onMounted(load);
                 :disabled="busy"
                 @click="deleteMember(member)"
               >
-                <BinIcon />
+                <FontAwesomeIcon :icon="icons.remove" />
               </button>
             </td>
             <td class="first-name" data-label="First name">{{ member.firstName }}</td>

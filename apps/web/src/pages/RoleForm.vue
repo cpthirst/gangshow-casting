@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { type AddRoleRequest, type CastMember, type Role, RoleSize } from "@app/shared";
+import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, nextTick, onMounted, ref, useId, watch } from "vue";
-import BinIcon from "../BinIcon.vue";
 import { sortCast } from "../cast.ts";
+import { icons } from "../icons.ts";
 import { type RoleForm, roleDetailsFrom, roleSizeLabel, type TakenNames } from "../roles.ts";
 import CastMemberPicker from "./CastMemberPicker.vue";
 
@@ -137,7 +138,7 @@ function submit() {
               data-tooltip="Remove from the ensemble"
               @click="removeMember(member.id)"
             >
-              <BinIcon />
+              <FontAwesomeIcon :icon="icons.remove" />
             </button>
             <span class="member-name">{{ fullName(member) }}</span>
           </li>

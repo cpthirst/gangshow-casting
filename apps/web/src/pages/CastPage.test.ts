@@ -167,10 +167,11 @@ describe("Cast page", () => {
       const edit = wrapper.get("button[aria-label='Edit Sam Example']");
       const remove = wrapper.get("button[aria-label='Delete Sam Example']");
       expect(edit.classes()).toContain("icon-button");
-      expect(edit.text()).toBe("✎");
+      expect(edit.get("svg[aria-hidden=true]").attributes("data-icon")).toBe("pen");
+      expect(edit.text()).toBe("");
       expect(edit.attributes("data-tooltip")).toBe("Edit details");
       expect(remove.classes()).toContain("icon-button");
-      expect(remove.find("svg[aria-hidden=true]").exists()).toBe(true);
+      expect(remove.get("svg[aria-hidden=true]").attributes("data-icon")).toBe("trash-can");
       expect(remove.text()).toBe("");
       expect(remove.attributes("data-tooltip")).toBe("Delete from the cast");
     });

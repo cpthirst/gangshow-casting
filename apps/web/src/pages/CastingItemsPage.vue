@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { type Role, RoleList, RunningOrder } from "@app/shared";
+import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, onMounted, ref } from "vue";
+import { icons } from "../icons.ts";
 import { ROLES_PATH, roleCounts, spokenCounts } from "../roles.ts";
 import { RUNNING_ORDER_PATH, runningClock } from "../running-order.ts";
 
@@ -99,13 +101,7 @@ async function loadRunningOrder() {
                   :aria-label="`Cast ${item.title}`"
                   data-tooltip="Cast this item"
                 >
-                  <!-- Two people: who's cast in the item. -->
-                  <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
-                    <circle cx="9" cy="8" r="3.5" fill="currentColor" />
-                    <path d="M2 20c0-3.9 3.1-7 7-7s7 3.1 7 7z" fill="currentColor" />
-                    <circle cx="17" cy="9" r="2.75" fill="currentColor" />
-                    <path d="M17 13.5c2.8 0 5 2.2 5 5.5h-4.5c0-2.1-.7-4-1.9-5.4.5-.1.9-.1 1.4-.1z" fill="currentColor" />
-                  </svg>
+                  <FontAwesomeIcon :icon="icons.cast" />
                 </RouterLink>
               </td>
               <td data-test="number" class="number" data-label="#" role="cell">

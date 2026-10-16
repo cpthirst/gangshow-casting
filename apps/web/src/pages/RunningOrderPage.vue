@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { RunningOrder, type RunningOrderItem } from "@app/shared";
+import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
 import { onBeforeRouteLeave } from "vue-router";
+import { icons } from "../icons.ts";
 import {
   dropItem,
   formatTime,
@@ -268,8 +270,8 @@ function refocus(itemId: string, direction: Move) {
                       role="img"
                       data-tooltip="Drag to reorder"
                       :aria-label="`Drag ${item.title}`"
-                      >⠿</span
-                    >
+                      ><FontAwesomeIcon :icon="icons.drag"
+                    /></span>
                     <button
                       type="button"
                       data-move="up"
@@ -278,7 +280,7 @@ function refocus(itemId: string, direction: Move) {
                       :disabled="busy || !moveItem(loaded.working, item.id, 'up')"
                       @click="move(item.id, 'up')"
                     >
-                      ↑
+                      <FontAwesomeIcon :icon="icons.moveUp" />
                     </button>
                     <button
                       type="button"
@@ -288,7 +290,7 @@ function refocus(itemId: string, direction: Move) {
                       :disabled="busy || !moveItem(loaded.working, item.id, 'down')"
                       @click="move(item.id, 'down')"
                     >
-                      ↓
+                      <FontAwesomeIcon :icon="icons.moveDown" />
                     </button>
                     <button
                       type="button"
@@ -298,7 +300,7 @@ function refocus(itemId: string, direction: Move) {
                       :data-tooltip="`Move to ${otherHalf(i)} half`"
                       @click="move(item.id, 'other-half')"
                     >
-                      ⇄
+                      <FontAwesomeIcon :icon="icons.moveToOtherHalf" />
                     </button>
                     <button
                       type="button"
@@ -308,7 +310,7 @@ function refocus(itemId: string, direction: Move) {
                       data-tooltip="Edit details"
                       @click="startEdit(item.id)"
                     >
-                      ✎
+                      <FontAwesomeIcon :icon="icons.edit" />
                     </button>
                   </td>
                   <td data-test="number" class="number" data-label="#" role="cell">
