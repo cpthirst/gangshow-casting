@@ -2,7 +2,7 @@
 id: casting-rules.E3.S2
 title: Show clash icons on the Overview
 epic: E3
-status: in-progress
+status: done
 ---
 
 ## Story

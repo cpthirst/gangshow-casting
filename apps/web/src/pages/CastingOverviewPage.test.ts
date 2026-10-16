@@ -379,14 +379,10 @@ describe("Clashes on the Overview", () => {
   const alex = person("Alex", "Sample", "scouts");
   const jo = person("Jo", "Newcomer", "explorers");
   let nextRoleId = 1;
-  const role = (itemId: string, castMemberIds: number[], size: Role["size"] = "lead"): Role => ({
-    id: nextRoleId++,
-    itemId,
-    name: `Role ${nextRoleId}`,
-    size,
-    castMemberIds,
-    revision: 1,
-  });
+  const role = (itemId: string, castMemberIds: number[], size: Role["size"] = "lead"): Role => {
+    const id = nextRoleId++;
+    return { id, itemId, name: `Role ${id}`, size, castMemberIds, revision: 1 };
+  };
   // Sam: back-to-back Opening Number → Pirate Sketch (error), and a 5-minute quick change
   // Campfire Song → Encore (Interlude between). Alex: one item. Jo: ensembles in Opening
   // Number and Dance One, 5 minutes apart: a quick change only.

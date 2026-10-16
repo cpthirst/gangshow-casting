@@ -33,7 +33,7 @@ prd: ./prd.md
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
 | [casting-rules.E3.S1](stories/E3-S1-items-list-icons.md) | The Items list shows an icon on each item with a clash, at its worst severity, saying how many of each and who | FR8, FR10, FR13 | E2.S3 | done |
-| [casting-rules.E3.S2](stories/E3-S2-overview-icons.md) | The Overview shows an icon on each person with a clash anywhere, at their worst severity, listing each clash and its items | FR9, FR10, FR13 | E2.S3 | in-progress |
+| [casting-rules.E3.S2](stories/E3-S2-overview-icons.md) | The Overview shows an icon on each person with a clash anywhere, at their worst severity, listing each clash and its items | FR9, FR10, FR13 | E2.S3 | done |
 
 ## FR coverage
 

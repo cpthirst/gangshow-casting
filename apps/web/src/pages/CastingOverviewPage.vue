@@ -60,10 +60,11 @@ async function loadParts() {
     }
     if (!orderRes.ok) throw new Error(`HTTP ${orderRes.status}`);
     const order = RunningOrder.parse(await orderRes.json());
-    parts.value = partsByMember(roles, itemIdsInOrder(order));
     clashes.value = findClashes(order, roles);
+    parts.value = partsByMember(roles, itemIdsInOrder(order));
   } catch {
     parts.value = "error";
+    clashes.value = [];
   }
 }
 
@@ -104,7 +105,7 @@ async function loadCast() {
         <li v-for="{ member, counts, clashLines } in section.people" :key="member.id" class="role-card" data-test="person">
           <!-- Name and clash icon together, so the icon stays beside the name, as on an
                item's page, with any written-out clashes beneath. -->
-          <span>
+          <span class="person-who">
             <span class="person-name role-name">{{ member.firstName }} {{ member.lastName }}</span>
             <ClashIcon :lines="clashLines" />
           </span>

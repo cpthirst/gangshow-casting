@@ -1170,6 +1170,13 @@ main a {
     color: inherit;
   }
 
+  /* On the Overview, a person's name and written-out clashes take the full row, so their
+     pills sit underneath in the same place for everyone. */
+  .person-who {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
   /* Quick changes are for planning, and there are usually many: quieter than the problems. */
   .clash-line-info {
     font-weight: 400;
