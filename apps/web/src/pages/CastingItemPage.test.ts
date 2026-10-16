@@ -161,17 +161,72 @@ describe("Casting item page", () => {
     expect(current.map((link) => link.text())).toEqual(["Items"]);
   });
 
-  it("puts All items in a breadcrumb above the item's title", async () => {
+  it("puts All items first in a nav above the item's title", async () => {
     savedRunningOrderIs(show);
     const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
 
-    const breadcrumb = wrapper.get("main nav[aria-label=Breadcrumb]");
-    expect(breadcrumb.get("a").text()).toBe("All items");
-    // compareDocumentPosition sets FOLLOWING when the heading comes after the breadcrumb.
+    const nav = wrapper.get("main nav[aria-label='Item navigation']");
+    expect(nav.get("a").text()).toBe("All items");
+    // compareDocumentPosition sets FOLLOWING when the heading comes after the nav.
     const heading = wrapper.get("main h1").element;
     expect(
-      breadcrumb.element.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING,
+      nav.element.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+
+  // The page's items, in show order: Opening Number, Pirate Sketch | Campfire Song, Mystery Act.
+  const stepLinks = (wrapper: Awaited<ReturnType<typeof openAppAt>>["wrapper"]) =>
+    wrapper.findAll("main nav[aria-label='Item navigation'] a[rel]").map((link) => ({
+      rel: link.attributes("rel"),
+      text: link.text().replace(/\s+/g, " "),
+      href: link.attributes("href"),
+    }));
+
+  it("links to the previous and next items, named by title", async () => {
+    savedRunningOrderIs(show);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    expect(stepLinks(wrapper)).toEqual([
+      { rel: "prev", text: "Previous Opening Number", href: "/casting/items/opening-number" },
+      { rel: "next", text: "Next Campfire Song", href: "/casting/items/campfire-song" },
+    ]);
+  });
+
+  it("steps across the interval like the show", async () => {
+    savedRunningOrderIs(show);
+    const { wrapper } = await openAppAt("/casting/items/campfire-song");
+
+    expect(stepLinks(wrapper).map((link) => link.text)).toEqual([
+      "Previous Pirate Sketch",
+      "Next Mystery Act",
+    ]);
+  });
+
+  it("has no Previous on the first item, and no Next on the last", async () => {
+    savedRunningOrderIs(show);
+    const first = await openAppAt("/casting/items/opening-number");
+    expect(stepLinks(first.wrapper).map((link) => link.rel)).toEqual(["next"]);
+    first.wrapper.unmount();
+
+    const { wrapper } = await openAppAt("/casting/items/mystery-act");
+    expect(stepLinks(wrapper).map((link) => link.rel)).toEqual(["prev"]);
+  });
+
+  it("opens the next item, with its own roles and links", async () => {
+    savedRunningOrderIs(show, [{ ...aRole("campfire-song", "Song Leader"), id: 5 }]);
+    const { wrapper, router } = await openAppAt("/casting/items/pirate-sketch");
+
+    await wrapper.get("main a[rel=next]").trigger("click");
+    await flushPromises();
+
+    expect(router.currentRoute.value.fullPath).toBe("/casting/items/campfire-song");
+    expect(wrapper.get("main h1").text()).toBe("Campfire Song");
+    expect(wrapper.text()).toContain("Song Leader");
+    expect(stepLinks(wrapper).map((link) => link.text)).toEqual([
+      "Previous Pirate Sketch",
+      "Next Mystery Act",
+    ]);
+    expect(document.title).toBe("Campfire Song · Chester Gang Show casting");
   });
 
   it("goes back to the Items list from All items", async () => {
@@ -191,7 +246,7 @@ describe("Casting item page", () => {
     const { wrapper } = await openAppAt("/casting/items/no-such-item");
 
     expect(wrapper.get("main h1").text()).toBe("Item not found");
-    expect(wrapper.get("main nav[aria-label=Breadcrumb] a").text()).toBe("All items");
+    expect(wrapper.get("main nav[aria-label='Item navigation'] a").text()).toBe("All items");
     expect(document.title).toBe("Item not found · Chester Gang Show casting");
   });
 
@@ -744,7 +799,7 @@ describe("Role counts on the Items list", () => {
     await wrapper.get("select[name=size]").setValue("support");
     await wrapper.get("form[aria-label='Add role']").trigger("submit");
     await flushPromises();
-    await wrapper.get("main nav[aria-label=Breadcrumb] a").trigger("click");
+    await wrapper.get("main nav[aria-label='Item navigation'] a.back-link").trigger("click");
     await flushPromises();
 
     expect(counts()?.get("[aria-hidden=true]").text()).toBe("Roles 1 · Cast 0");

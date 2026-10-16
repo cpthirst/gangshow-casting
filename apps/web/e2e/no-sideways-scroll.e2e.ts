@@ -98,6 +98,18 @@ test("a clash's description is written out on phones and fits the screen", async
   await expectNoSidewaysScroll(page);
 });
 
+test("an item's Previous and Next share a row, cutting a long title short", async ({ page }) => {
+  // Item 3's Previous is the e2e data's long Pirate Sketch title, beside a Next link.
+  await page.goto("/casting/items/itm-3");
+  const title = page.locator("a[rel=prev] .step-title");
+
+  await expect(title).toHaveText(PIRATE_SKETCH);
+  await expect(page.locator("a[rel=next]")).toBeVisible();
+  const isCutShort = await title.evaluate((el) => el.scrollWidth > el.clientWidth);
+  expect(isCutShort).toBe(true);
+  await expectNoSidewaysScroll(page);
+});
+
 test("the casting overview fits the screen", async ({ page }) => {
   await page.goto("/casting/overview");
   await expect(page.getByRole("heading", { name: /Explorers/ })).toBeVisible();

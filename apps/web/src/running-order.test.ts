@@ -7,6 +7,7 @@ import {
   formFor,
   type ItemForm,
   itemFrom,
+  neighboursOf,
   placeOf,
   replaceItem,
 } from "./running-order.ts";
@@ -184,5 +185,33 @@ describe("placeOf", () => {
 
   it("finds nothing for an item that isn't in the running order", () => {
     expect(placeOf(order, "no-such-item")).toBeUndefined();
+  });
+});
+
+describe("neighboursOf", () => {
+  const order = aRunningOrder(
+    [anItem("Opening Number"), anItem("Pirate Sketch")],
+    [anItem("Campfire Song"), anItem("Finale")],
+  );
+  const titles = (itemId: string) => {
+    const { previous, next } = neighboursOf(order, itemId);
+    return [previous?.title, next?.title];
+  };
+
+  it("gives the items either side, in running order", () => {
+    expect(titles("pirate-sketch")).toEqual(["Opening Number", "Campfire Song"]);
+  });
+
+  it("carries on across the interval", () => {
+    expect(titles("campfire-song")).toEqual(["Pirate Sketch", "Finale"]);
+  });
+
+  it("has nothing before the first item or after the last", () => {
+    expect(titles("opening-number")).toEqual([undefined, "Pirate Sketch"]);
+    expect(titles("finale")).toEqual(["Campfire Song", undefined]);
+  });
+
+  it("has no neighbours for an item that isn't in the running order", () => {
+    expect(titles("no-such-item")).toEqual([undefined, undefined]);
   });
 });
