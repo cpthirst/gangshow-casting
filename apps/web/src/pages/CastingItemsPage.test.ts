@@ -69,6 +69,24 @@ describe("Casting items page", () => {
     expect(rowFor(wrapper, "Pirate Sketch")?.get("[data-test=number]").text()).toBe("2");
   });
 
+  it("shows each item's running time in minutes as the last column, blank if unknown", async () => {
+    savedRunningOrderIs(
+      aRunningOrder([
+        anItem("Opening Number", { minutes: 6 }),
+        anItem("Pirate Sketch", { minutes: null }),
+      ]),
+    );
+
+    const wrapper = await openItemsPage();
+
+    const headings = wrapper.findAll("thead th").map((th) => th.text());
+    expect(headings.at(-1)).toBe("Mins");
+    const lastCell = (title: string) => rowFor(wrapper, title)?.findAll("td").at(-1);
+    expect(lastCell("Opening Number")?.text()).toBe("6");
+    expect(lastCell("Pirate Sketch")?.text()).toBe("");
+    expect(lastCell("Opening Number")?.attributes("data-label")).toBe("Mins");
+  });
+
   it("lists items not in the printed programme without a number", async () => {
     savedRunningOrderIs(
       aRunningOrder([
@@ -189,7 +207,7 @@ describe("Casting items page", () => {
     expect(rowFor(wrapper, "Pirate Sketch")?.attributes("data-item-id")).toBe("pirate-sketch");
   });
 
-  it("lays the items out in Cast, number, item and roles columns", async () => {
+  it("lays the items out in Cast, number, item, roles and minutes columns", async () => {
     savedRunningOrderIs(aRunningOrder([anItem("Opening Number")]));
 
     const wrapper = await openItemsPage();
@@ -199,7 +217,7 @@ describe("Casting items page", () => {
         .get("section")
         .findAll("thead th")
         .map((th) => th.text()),
-    ).toEqual(["Cast", "#", "Item", "Roles"]);
+    ).toEqual(["Cast", "#", "Item", "Roles", "Mins"]);
   });
 });
 
