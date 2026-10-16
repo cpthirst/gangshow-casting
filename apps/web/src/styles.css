@@ -337,6 +337,10 @@ main a {
   width: 11rem;
 }
 
+.items-list .col-minutes {
+  width: 5rem;
+}
+
 .running-order tr.not-printed {
   background: var(--surface);
   font-style: italic;

@@ -121,6 +121,7 @@ async function loadRunningOrder() {
             <col class="col-number" />
             <col />
             <col class="col-counts" />
+            <col class="col-minutes" />
           </colgroup>
           <thead role="rowgroup">
             <tr role="row">
@@ -128,6 +129,7 @@ async function loadRunningOrder() {
               <th scope="col" role="columnheader">#</th>
               <th scope="col" role="columnheader">Item</th>
               <th scope="col" role="columnheader">Roles</th>
+              <th scope="col" role="columnheader" class="minutes">Mins</th>
             </tr>
           </thead>
           <tbody role="rowgroup">
@@ -166,6 +168,10 @@ async function loadRunningOrder() {
                   <span aria-hidden="true">Roles {{ counts.total }} · Cast {{ counts.cast }}</span>
                   <span class="visually-hidden">{{ spokenCounts(counts) }}</span>
                 </template>
+              </td>
+              <!-- Left empty when unknown, so the phone card hides the row. -->
+              <td data-test="minutes" class="minutes" data-label="Mins" role="cell">
+                <template v-if="item.minutes !== null">{{ item.minutes }}</template>
               </td>
             </tr>
           </tbody>
