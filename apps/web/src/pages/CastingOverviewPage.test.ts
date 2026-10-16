@@ -464,3 +464,129 @@ describe("Clashes on the Overview", () => {
     },
   );
 });
+
+describe("Timeline on the Overview", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.body.innerHTML = "";
+  });
+
+  // First half: Opening Number, Pirate Sketch, Dance One. Second half: Entr'acte (not in the
+  // printed programme), Campfire Song, Finale.
+  const show = aRunningOrder(
+    [anItem("Opening Number"), anItem("Pirate Sketch"), anItem("Dance One")],
+    [anItem("Entr'acte", { printed: false }), anItem("Campfire Song"), anItem("Finale")],
+  );
+  const sam = person("Sam", "Example", "scouts");
+  const alex = person("Alex", "Sample", "scouts");
+  const jo = person("Jo", "Newcomer", "explorers");
+  let nextRoleId = 1;
+  const role = (itemId: string, castMemberIds: number[], size: Role["size"] = "lead"): Role => {
+    const id = nextRoleId++;
+    return { id, itemId, name: `Role ${id}`, size, castMemberIds, revision: 1 };
+  };
+  const roles = [
+    role("pirate-sketch", [sam.id]),
+    role("entr'acte", [sam.id], "cameo"),
+    role("finale", [sam.id], "support"),
+    role("opening-number", [alex.id, sam.id + 100], "ensemble"),
+  ];
+
+  function showIs({
+    order = show,
+    failing = {},
+  }: {
+    order?: RunningOrder | null;
+    failing?: Record<string, number>;
+  } = {}) {
+    const answers: Record<string, unknown> = {
+      [CAST_PATH]: { productionId: "2027", members: [sam, alex, jo] },
+      [ROLES_PATH]: { productionId: "2027", roles },
+      ...(order ? { [RUNNING_ORDER_PATH]: order } : {}),
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        const code = failing[url] ?? (url === RUNNING_ORDER_PATH && !order ? 404 : undefined);
+        if (code) return new Response(null, { status: code });
+        if (url in answers) return new Response(JSON.stringify(answers[url]));
+        return new Response(JSON.stringify({ status: "ok", version: "dev" }));
+      }),
+    );
+  }
+
+  const cardOf = (wrapper: VueWrapper, name: string) =>
+    wrapper.findAll("[data-test=person]").find((card) => card.get(".person-name").text() === name);
+  /** A person's dots, half by half: "in" (green circle-dot) or "out" (grey circle). */
+  const dotsOf = (wrapper: VueWrapper, name: string) =>
+    cardOf(wrapper, name)
+      ?.findAll("[data-test=timeline-half]")
+      .map((half) =>
+        half.findAll("[data-test=dot]").map((dot) => {
+          const icon = dot.get("svg").attributes("data-icon");
+          return dot.classes().includes("timeline-in") && icon === "circle-dot"
+            ? "in"
+            : icon === "circle"
+              ? "out"
+              : `unexpected ${icon}`;
+        }),
+      );
+
+  it("shows a dot per item, half by half in show order, green where they appear", async () => {
+    showIs();
+    const wrapper = await openOverview();
+
+    expect(dotsOf(wrapper, "Sam Example")).toEqual([
+      ["out", "in", "out"],
+      ["in", "out", "in"],
+    ]);
+  });
+
+  it("counts any part, however small", async () => {
+    showIs();
+    const wrapper = await openOverview();
+
+    expect(dotsOf(wrapper, "Alex Sample")).toEqual([
+      ["in", "out", "out"],
+      ["out", "out", "out"],
+    ]);
+  });
+
+  it("shows all grey dots, with No parts yet, for someone in no roles", async () => {
+    showIs();
+    const wrapper = await openOverview();
+
+    expect(dotsOf(wrapper, "Jo Newcomer")).toEqual([
+      ["out", "out", "out"],
+      ["out", "out", "out"],
+    ]);
+    expect(cardOf(wrapper, "Jo Newcomer")?.text()).toContain("No parts yet");
+  });
+
+  it("puts the dots last on the card, below the name and pills", async () => {
+    showIs();
+    const wrapper = await openOverview();
+
+    const card = cardOf(wrapper, "Sam Example")?.element;
+    expect(card?.lastElementChild?.getAttribute("data-test")).toBe("timeline");
+  });
+
+  it("shows no dots without a saved running order", async () => {
+    showIs({ order: null });
+    const wrapper = await openOverview();
+
+    expect(wrapper.text()).toContain("Sam Example");
+    expect(wrapper.find("[data-test=timeline]").exists()).toBe(false);
+  });
+
+  it.each([ROLES_PATH, RUNNING_ORDER_PATH])(
+    "shows no dots when %s can't be loaded",
+    async (path) => {
+      showIs({ failing: { [path]: 500 } });
+      const wrapper = await openOverview();
+
+      expect(wrapper.get("[role=alert]").text()).toBe("Couldn't load the casting.");
+      expect(wrapper.find("[data-test=timeline]").exists()).toBe(false);
+    },
+  );
+});

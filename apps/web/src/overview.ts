@@ -1,5 +1,7 @@
 import { type CastMember, type Role, RoleSize, type RunningOrder, Section } from "@app/shared";
 import { sectionLabel, sortCast } from "./cast.ts";
+import { biggerPart } from "./roles.ts";
+import { runningClock } from "./running-order.ts";
 
 /** One section of the Overview: its people, in display order. */
 export interface OverviewSection {
@@ -93,3 +95,41 @@ function byCastingScore(members: CastMember[], parts: ReadonlyMap<number, PartCo
     return castingScore(second) - castingScore(first) || totalRoles(second) - totalRoles(first);
   });
 }
+
+/** Each person's biggest part in each item they're in: person → item id → part. */
+export function biggestParts(roles: Role[]) {
+  const parts = new Map<number, Map<string, RoleSize>>();
+  for (const role of roles) {
+    for (const id of role.castMemberIds) {
+      const theirs = parts.get(id) ?? new Map<string, RoleSize>();
+      const part = theirs.get(role.itemId);
+      theirs.set(role.itemId, part ? biggerPart(part, role.size) : role.size);
+      parts.set(id, theirs);
+    }
+  }
+  return parts;
+}
+
+/** One item on a person's timeline: their biggest part in it, if they're in it. */
+export interface TimelineSlot {
+  itemId: string;
+  title: string;
+  /** Programme number; null for an item left out of the printed programme. */
+  number: number | null;
+  part: RoleSize | undefined;
+}
+
+/** A person's evening, half by half, one slot per item in show order (casting-overview-
+ *  timeline FR1–FR4). Every item counts, printed or not. */
+export const timelineOf = (
+  order: RunningOrder,
+  theirParts: ReadonlyMap<string, RoleSize> | undefined,
+): TimelineSlot[][] =>
+  runningClock(order).halves.map(({ rows }) =>
+    rows.map(({ item, number }) => ({
+      itemId: item.id,
+      title: item.title,
+      number,
+      part: theirParts?.get(item.id),
+    })),
+  );

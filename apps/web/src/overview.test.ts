@@ -1,12 +1,15 @@
 import type { CastMember, Role } from "@app/shared";
 import { describe, expect, it } from "vitest";
 import {
+  biggestParts,
   castBySection,
   castingScore,
   type PartCounts,
   partsByMember,
   spokenParts,
+  timelineOf,
 } from "./overview.ts";
+import { anItem, aRunningOrder } from "./running-order.fixture.ts";
 
 // Made-up names only: tests never use the real cast (CLAUDE.md safeguarding).
 let nextId = 1;
@@ -246,5 +249,54 @@ describe("castBySection ordered by casting score", () => {
       ["Zoe Zulu", "Sam Adams"],
       ["Kim Young", "Alex Abbott"],
     ]);
+  });
+});
+
+describe("a person's timeline", () => {
+  // First half: Opening Number, Pirate Sketch, Dance One. Second half: Entr'acte (not in the
+  // printed programme), Finale.
+  const show = aRunningOrder(
+    [anItem("Opening Number"), anItem("Pirate Sketch"), anItem("Dance One")],
+    [anItem("Entr'acte", { printed: false }), anItem("Finale")],
+  );
+  let roleId = 1;
+  const role = (itemId: string, size: Role["size"], castMemberIds: number[]): Role => ({
+    id: roleId++,
+    itemId,
+    name: `Role ${roleId}`,
+    size,
+    castMemberIds,
+    revision: 1,
+  });
+  const SAM = 12;
+  const parts = biggestParts([
+    role("pirate-sketch", "ensemble", [SAM]),
+    role("pirate-sketch", "lead", [SAM]),
+    role("entr'acte", "cameo", [SAM]),
+    role("opening-number", "ensemble", [13]),
+  ]);
+  const slots = (halves: ReturnType<typeof timelineOf>) =>
+    halves.map((half) => half.map(({ title, number, part }) => [title, number, part]));
+
+  it("has a slot per item, by half, in show order, with their biggest part where they appear", () => {
+    expect(slots(timelineOf(show, parts.get(SAM)))).toEqual([
+      [
+        ["Opening Number", 1, undefined],
+        ["Pirate Sketch", 2, "lead"],
+        ["Dance One", 3, undefined],
+      ],
+      [
+        ["Entr'acte", null, "cameo"],
+        // Numbers start again in each half, as in the printed programme.
+        ["Finale", 1, undefined],
+      ],
+    ]);
+  });
+
+  it("is all empty for someone in no roles", () => {
+    const halves = timelineOf(show, parts.get(99));
+
+    expect(halves.flat().every((slot) => slot.part === undefined)).toBe(true);
+    expect(halves.flat()).toHaveLength(5);
   });
 });
