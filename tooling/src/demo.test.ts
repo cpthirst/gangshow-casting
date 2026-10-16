@@ -1,5 +1,5 @@
 import { type ChildProcess, spawn } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { CastList, RoleList, RunningOrder } from "@app/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -14,6 +14,17 @@ const cast = CastList.parse(withoutNextId(committed("cast.json"))).members;
 const roles = RoleList.parse(withoutNextId(committed("roles.json"))).roles;
 const order = RunningOrder.parse(committed("running-order/v1.json"));
 const items = order.halves.flatMap((half) => half.items);
+
+// Each test's copy of the demo show, removed once the tests are done.
+const copies: string[] = [];
+function copyOfDemo() {
+  const dir = freshDemoData();
+  copies.push(dir);
+  return dir;
+}
+afterAll(() => {
+  for (const dir of copies) rmSync(dir, { recursive: true, force: true });
+});
 
 describe("the demo show", () => {
   it("is a realistic full show in two halves with an interval", () => {
@@ -69,21 +80,24 @@ describe("the demo guide", () => {
 });
 
 describe("pnpm demo", () => {
+  const files = ["cast.json", "roles.json", "running-order/v1.json"];
+  const read = (dir: string, file: string) =>
+    JSON.parse(readFileSync(join(dir, "2027", file), "utf8"));
+
   it("starts each run from its own fresh copy of the demo show", () => {
-    const first = freshDemoData();
-    const second = freshDemoData();
+    const first = copyOfDemo();
+    const second = copyOfDemo();
 
     expect(first).not.toBe(second);
-    expect(JSON.parse(readFileSync(join(first, "2027", "cast.json"), "utf8"))).toEqual(
-      committed("cast.json"),
-    );
+    for (const file of files) expect(read(first, file)).toEqual(committed(file));
   });
 
   it("never changes the committed demo show", () => {
-    const copy = freshDemoData();
-    writeFileSync(join(copy, "2027", "cast.json"), "{}");
+    const before = files.map(committed);
+    const copy = copyOfDemo();
+    for (const file of files) writeFileSync(join(copy, "2027", file), "{}");
 
-    expect(committed("cast.json").members).toHaveLength(60);
+    expect(files.map(committed)).toEqual(before);
   });
 
   it("runs on its own ports, apart from pnpm dev, and labels the app as a demo", () => {
@@ -107,16 +121,18 @@ describe("the demo API", () => {
   let server: ChildProcess;
 
   beforeAll(async () => {
-    const [spec] = demoServers(freshDemoData());
+    const [spec] = demoServers(copyOfDemo());
     if (!spec) throw new Error("no API server");
     server = spawn(spec.command, spec.args, {
       cwd: spec.cwd,
       env: { ...process.env, ...spec.env, PORT: String(port) },
     });
-    await waitFor(`http://127.0.0.1:${port}/api/health`);
+    await waitFor(api);
   });
-  afterAll(() => {
+  afterAll(async () => {
+    const stopped = new Promise((resolve) => server.once("exit", resolve));
     server.kill();
+    await stopped;
   });
 
   it("serves the demo show's cast", async () => {

@@ -1,7 +1,7 @@
 // `pnpm demo`: the whole app on a made-up show (tooling/demo), for trying the casting rules
 // without real data. It runs beside `pnpm dev` on its own ports, from a fresh copy each start.
 import { spawn } from "node:child_process";
-import { cpSync, mkdtempSync } from "node:fs";
+import { cpSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -38,8 +38,9 @@ export function demoServers(dataDir: string): Server[] {
     },
     {
       name: "web",
-      command: "pnpm",
-      args: ["exec", "vite", "--port", String(DEMO_WEB_PORT), "--strictPort"],
+      // Vite itself, not through pnpm, so stopping it can't leave a server behind.
+      command: process.execPath,
+      args: ["node_modules/vite/bin/vite.js", "--port", String(DEMO_WEB_PORT), "--strictPort"],
       cwd: join(repo, "apps/web"),
       env: { API_URL: `http://127.0.0.1:${DEMO_API_PORT}`, VITE_DEMO: "true" },
     },
@@ -47,7 +48,8 @@ export function demoServers(dataDir: string): Server[] {
 }
 
 if (import.meta.main) {
-  const servers = demoServers(freshDemoData()).map((server) =>
+  const dataDir = freshDemoData();
+  const servers = demoServers(dataDir).map((server) =>
     spawn(server.command, server.args, {
       cwd: server.cwd,
       env: { ...process.env, ...server.env },
@@ -59,6 +61,7 @@ if (import.meta.main) {
   for (const server of servers) server.on("exit", () => process.exit());
   process.on("exit", () => {
     for (const server of servers) server.kill();
+    rmSync(dataDir, { recursive: true, force: true });
   });
-  process.on("SIGINT", () => process.exit());
+  for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => process.exit());
 }
