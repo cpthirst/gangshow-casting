@@ -2,7 +2,7 @@
 id: casting-overview-timeline.E1.S3
 title: Keep each timeline on one line on every phone
 epic: E1
-status: ready
+status: in-progress
 ---
 
 ## Story

@@ -1189,19 +1189,28 @@ main a {
    a dot per item and a wider gap where the interval falls. */
 .timeline-wrap {
   flex-basis: 100%;
+  container-type: inline-size;
 }
 
+/* Sized in em, so dots and gaps shrink together. A row of N dots is N × 1em, plus
+   0.4em between dots and 1.4em at the interval: about N × 1.4em + 0.6em. The dots stay at
+   full size when that fits, and shrink to the card's width when it doesn't (FR9).
+   --dots is set by the component. */
 .timeline {
   display: flex;
   justify-content: center;
-  gap: 1.25rem;
+  gap: 1.4em;
   margin-top: 0.75rem;
-  font-size: 0.875rem;
+  font-size: min(0.875rem, calc(100cqi / (var(--dots, 20) * 1.4 + 0.6)));
 }
 
 .timeline-half {
   display: inline-flex;
-  gap: 0.375rem;
+  gap: 0.4em;
+}
+
+.timeline-dot svg {
+  width: 1em;
 }
 
 .timeline-in {

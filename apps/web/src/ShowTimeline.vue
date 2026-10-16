@@ -13,7 +13,13 @@ defineProps<{ halves: TimelineSlot[][] }>();
 <template>
   <div class="timeline-wrap">
     <p class="visually-hidden" data-test="timeline-summary">{{ timelineSummary(halves) }}</p>
-    <div class="timeline" aria-hidden="true" data-test="timeline">
+    <!-- How many dots, so the row can shrink to fit (styles.css, .timeline). -->
+    <div
+      class="timeline"
+      :style="{ '--dots': halves.flat().length }"
+      aria-hidden="true"
+      data-test="timeline"
+    >
       <span v-for="(half, h) in halves" :key="h" class="timeline-half" data-test="timeline-half">
         <span
           v-for="slot in half"

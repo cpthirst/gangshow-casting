@@ -115,3 +115,60 @@ test("the casting overview fits the screen", async ({ page }) => {
   await expect(page.getByRole("heading", { name: /Explorers/ })).toBeVisible();
   await expectNoSidewaysScroll(page);
 });
+
+/** For each person's timeline: whether its dots sit on one line, and whether the gap at the
+ *  interval is wider than any gap between items. */
+async function timelineLayout(page: Page) {
+  return page.locator("[data-test=timeline]").evaluateAll((timelines) =>
+    timelines.map((timeline) => {
+      const halves = [...timeline.querySelectorAll("[data-test=timeline-half]")].map((half) =>
+        [...half.querySelectorAll("[data-test=dot]")].map((dot) => dot.getBoundingClientRect()),
+      );
+      const dots = halves.flat();
+      const gaps = (boxes: DOMRect[]) =>
+        boxes.slice(1).map((box, i) => box.left - (boxes[i]?.right ?? box.left));
+      const [first = [], second = []] = halves;
+      const interval = (second[0]?.left ?? 0) - (first.at(-1)?.right ?? 0);
+      return {
+        oneLine: new Set(dots.map((dot) => Math.round(dot.top))).size === 1,
+        intervalWider: interval > Math.max(...gaps(first), ...gaps(second)),
+      };
+    }),
+  );
+}
+
+test("each person's timeline stays on one line, with the interval gap", async ({ page }) => {
+  await page.goto("/casting/overview");
+  await expect(page.locator("[data-test=timeline]").first()).toBeVisible();
+
+  const layouts = await timelineLayout(page);
+  expect(layouts.every((layout) => layout.oneLine && layout.intervalWider)).toBe(true);
+  await expectNoSidewaysScroll(page);
+});
+
+test("a 30-item show's timelines still fit on one line", async ({ page }) => {
+  // The made-up data has 5 items; stand in a made-up 30-item running order for this walk.
+  const item = (n: number) => ({
+    id: `big-${n}`,
+    title: `Made-up Item ${n}`,
+    cast: "",
+    stage: ["full"],
+    leads: "",
+    comments: "",
+    minutes: 3,
+    printed: true,
+  });
+  await page.route("**/api/productions/2027/running-order", async (route) => {
+    const response = await route.fetch();
+    const order = await response.json();
+    order.halves[0].items = Array.from({ length: 15 }, (_, i) => item(i + 1));
+    order.halves[1].items = Array.from({ length: 15 }, (_, i) => item(i + 16));
+    await route.fulfill({ response, json: order });
+  });
+  await page.goto("/casting/overview");
+  await expect(page.locator("[data-test=timeline]").first()).toBeVisible();
+
+  const layouts = await timelineLayout(page);
+  expect(layouts.every((layout) => layout.oneLine && layout.intervalWider)).toBe(true);
+  await expectNoSidewaysScroll(page);
+});
