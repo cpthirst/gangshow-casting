@@ -2,7 +2,7 @@
 id: casting-roles.E4.S1
 title: Add all the remaining cast to an ensemble
 epic: E4
-status: in-progress
+status: done
 ---
 
 ## Story

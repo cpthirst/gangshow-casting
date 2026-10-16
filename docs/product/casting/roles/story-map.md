@@ -41,7 +41,7 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [casting-roles.E4.S1](stories/E4-S1-add-all-cast.md) | An "Add all cast" button, beside the members when adding or editing an ensemble, fills it with everyone not already in a role in this item; Save commits, no checks | FR11 | E2.S2 | in-progress |
+| [casting-roles.E4.S1](stories/E4-S1-add-all-cast.md) | An "Add all cast" button, beside the members when adding or editing an ensemble, fills it with everyone not already in a role in this item; Save commits, no checks | FR11 | E2.S2 | done |
 
 ## FR coverage
 
