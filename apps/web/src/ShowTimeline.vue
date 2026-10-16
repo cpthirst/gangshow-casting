@@ -14,17 +14,17 @@ defineProps<{ halves: TimelineSlot[][] }>();
   <div class="timeline-wrap">
     <p class="visually-hidden" data-test="timeline-summary">{{ timelineSummary(halves) }}</p>
     <div class="timeline" aria-hidden="true" data-test="timeline">
-    <span v-for="(half, h) in halves" :key="h" class="timeline-half" data-test="timeline-half">
-      <span
-        v-for="slot in half"
-        :key="slot.itemId"
-        :class="['timeline-dot', slot.part ? 'timeline-in' : 'timeline-out']"
-        :data-tooltip="dotLabel(slot)"
-        data-test="dot"
-      >
-        <FontAwesomeIcon :icon="slot.part ? icons.inItem : icons.notInItem" />
+      <span v-for="(half, h) in halves" :key="h" class="timeline-half" data-test="timeline-half">
+        <span
+          v-for="slot in half"
+          :key="slot.itemId"
+          :class="['timeline-dot', slot.part ? 'timeline-in' : 'timeline-out']"
+          :data-tooltip="dotLabel(slot)"
+          data-test="dot"
+        >
+          <FontAwesomeIcon :icon="slot.part ? icons.inItem : icons.notInItem" />
+        </span>
       </span>
-    </span>
     </div>
   </div>
 </template>

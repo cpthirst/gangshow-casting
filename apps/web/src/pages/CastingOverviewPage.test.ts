@@ -488,8 +488,8 @@ describe("Timeline on the Overview", () => {
     return { id, itemId, name: `Role ${id}`, size, castMemberIds, revision: 1 };
   };
   const roles = [
-    role("pirate-sketch", [sam.id]),
     role("pirate-sketch", [sam.id], "ensemble"),
+    role("pirate-sketch", [sam.id]),
     role("entr'acte", [sam.id], "cameo"),
     role("finale", [sam.id], "support"),
     role("opening-number", [alex.id, ben.id], "ensemble"),
@@ -591,11 +591,19 @@ describe("Timeline on the Overview", () => {
     ]);
   });
 
+  it("names an item not in the printed programme, for someone not in it", async () => {
+    showIs();
+    const wrapper = await openOverview();
+
+    const entracte = cardOf(wrapper, "Jo Newcomer")?.findAll("[data-test=dot]")[3];
+    expect(entracte?.attributes("data-tooltip")).toBe("Entr'acte (not in printed programme)");
+  });
+
   it("gives a person's biggest part in an item", async () => {
     showIs();
     const wrapper = await openOverview();
 
-    // Sam is a lead and in the ensemble in Pirate Sketch.
+    // Sam is in the ensemble (listed first) and a lead in Pirate Sketch.
     const pirate = cardOf(wrapper, "Sam Example")?.findAll("[data-test=dot]")[1];
     expect(pirate?.attributes("data-tooltip")).toBe("2 · Pirate Sketch: Lead");
   });
@@ -612,6 +620,7 @@ describe("Timeline on the Overview", () => {
     expect(cardOf(wrapper, "Jo Newcomer")?.get("[data-test=timeline-summary]").text()).toBe(
       "In none of the 6 items",
     );
+    expect(sam?.get("[data-test=timeline-summary]").attributes("aria-hidden")).toBeUndefined();
   });
 
   it("keeps the dots out of the tab order", async () => {
