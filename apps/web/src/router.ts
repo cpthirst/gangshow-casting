@@ -2,6 +2,7 @@ import type { Component } from "vue";
 import { createRouter, createWebHistory, type RouterHistory } from "vue-router";
 import CastingItemPage from "./pages/CastingItemPage.vue";
 import CastingItemsPage from "./pages/CastingItemsPage.vue";
+import CastingOverviewPage from "./pages/CastingOverviewPage.vue";
 import CastPage from "./pages/CastPage.vue";
 import NotFoundPage from "./pages/NotFoundPage.vue";
 import PlaceholderPage from "./pages/PlaceholderPage.vue";
@@ -62,7 +63,11 @@ export const menuPages: (MenuPage | MenuGroup)[] = [
       {
         path: "/casting/overview",
         name: "casting-overview",
-        meta: { title: "Overview", description: "Who is in which item, across the whole show." },
+        component: CastingOverviewPage,
+        meta: {
+          title: "Overview",
+          description: "Everyone in the cast, by section, and how much they're cast.",
+        },
       },
       {
         path: "/casting/items",

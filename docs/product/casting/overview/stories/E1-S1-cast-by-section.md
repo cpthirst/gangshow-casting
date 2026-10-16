@@ -2,7 +2,7 @@
 id: casting-overview.E1.S1
 title: List the whole cast by section
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story

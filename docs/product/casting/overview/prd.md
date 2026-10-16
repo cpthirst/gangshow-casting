@@ -39,7 +39,7 @@ Casting is now recorded item by item, but nobody can see the whole cast at once.
 ## Functional requirements
 
 - **FR1**: The Overview page must list every cast member in the production, grouped into sections in this order: **Scouts**, **Explorers**, **Network**, then **Not set** for people with no section. A section with nobody in it isn't shown. Each section shows how many people are in it.
-- **FR2**: Each person's entry must show their name and, for each role size they're cast in, one **pill** with the size and how many roles of that size they have (for example "Lead ×1", "Ensemble ×3"). Pills use the same labels and colours as the role cards on an item's page and appear biggest size first (lead, support, cameo, ensemble). Sizes they have no roles of aren't shown.
+- **FR2**: Each person's entry must show their name and, for each role size they're cast in, one **pill** with the size and how many roles of that size they have (for example "Lead · 1", "Ensemble · 3"). Pills use the same labels and colours as the role cards on an item's page and appear biggest size first (lead, support, cameo, ensemble). Sizes they have no roles of aren't shown.
 - **FR3**: Within each section, people must be ordered by a **casting score**, highest first. Each role scores by its size: **lead 8, support 3, cameo 2, ensemble 1**. A person's score is the sum over all their roles. So one lead (8) ranks above two supports (6) or three cameos (6), while three supports (9) rank above one lead.
 - **FR4**: People with the same score must be ordered by their total number of roles (more first), then by last name and first name.
 - **FR5**: People with no roles must be listed at the bottom of their section, marked "No parts yet".
