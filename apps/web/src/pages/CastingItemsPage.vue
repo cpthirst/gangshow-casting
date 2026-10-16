@@ -1,11 +1,19 @@
 <script setup lang="ts">
-import { CastList, type CastMember, type Role, RoleList, RunningOrder } from "@app/shared";
+import {
+  CastList,
+  type CastMember,
+  ItemNoteList,
+  type Role,
+  RoleList,
+  RunningOrder,
+} from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, onMounted, ref } from "vue";
 import ClashIcon from "../ClashIcon.vue";
 import { CAST_PATH } from "../cast.ts";
 import { clashesInItem, findClashes, summariseClashes } from "../clashes.ts";
 import { icons } from "../icons.ts";
+import { ITEM_NOTES_PATH } from "../item-notes.ts";
 import { ROLES_PATH, roleCounts, spokenCounts } from "../roles.ts";
 import { RUNNING_ORDER_PATH, runningClock } from "../running-order.ts";
 
@@ -20,6 +28,10 @@ const state = ref<State>({ status: "loading" });
 const roles = ref<Role[] | "error">();
 // Only needed to name who clashes; if it fails, the counts still show.
 const cast = ref<CastMember[] | "error">();
+// Each item's notes, by item id (casting-item-overview FR9); cleared notes are left out.
+const notes = ref<Map<string, string> | "error">();
+const notesOf = (itemId: string) =>
+  notes.value instanceof Map ? notes.value.get(itemId) : undefined;
 
 // Clashes need the order and the roles, and the cast to say who (casting-rules FR8, FR13).
 const clashes = computed(() =>
@@ -51,7 +63,19 @@ const halves = computed(() => {
   }));
 });
 
-onMounted(() => Promise.all([loadRunningOrder(), loadRoles(), loadCast()]));
+onMounted(() => Promise.all([loadRunningOrder(), loadRoles(), loadCast(), loadNotes()]));
+
+async function loadNotes() {
+  try {
+    const res = await fetch(ITEM_NOTES_PATH);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const list = ItemNoteList.parse(await res.json()).notes;
+    notes.value = new Map(list.filter((n) => n.text !== "").map((n) => [n.itemId, n.text]));
+  } catch {
+    // The items still show; only their notes are missing.
+    notes.value = "error";
+  }
+}
 
 async function loadCast() {
   try {
@@ -110,6 +134,7 @@ async function loadRunningOrder() {
     <p v-else-if="cast === 'error'" class="notice" role="alert">
       Couldn't check the casting for clashes.
     </p>
+    <p v-if="notes === 'error'" class="notice" role="alert">Couldn't load the notes.</p>
     <section v-for="{ half, rows } in halves" :key="half.id" class="half" :aria-labelledby="half.id">
       <h2 :id="half.id">{{ half.name }}</h2>
       <div class="table-scroll" tabindex="0" role="region" :aria-label="`${half.name} items`">
@@ -133,9 +158,8 @@ async function loadRunningOrder() {
             </tr>
           </thead>
           <tbody role="rowgroup">
+            <template v-for="{ item, number, counts } in rows" :key="item.id">
             <tr
-              v-for="{ item, number, counts } in rows"
-              :key="item.id"
               role="row"
               data-test="item"
               :data-item-id="item.id"
@@ -174,6 +198,19 @@ async function loadRunningOrder() {
                 <template v-if="item.minutes !== null">{{ item.minutes }}</template>
               </td>
             </tr>
+            <!-- The item's notes, in full, across the table under its row (FR9). -->
+            <tr
+              v-if="notesOf(item.id)"
+              role="row"
+              class="item-notes-row"
+              :class="{ 'not-printed': number === null }"
+              data-test="item-notes"
+            >
+              <td colspan="5" class="item-notes-text" data-label="Notes" role="cell">
+                {{ notesOf(item.id) }}
+              </td>
+            </tr>
+            </template>
           </tbody>
         </table>
       </div>

@@ -387,6 +387,23 @@ main a {
 /* Narrow boxes (phones, tablets, split screens): each item becomes a stacked card with
    labelled details, so nothing scrolls sideways. Same table underneath, so dragging,
    move buttons and screen-reader cell labels all still work. */
+/* An item's notes on the Items list: a row of their own straight under the item's, read
+   as part of it (casting-item-overview FR9). */
+.running-order td.item-notes-text {
+  padding-top: 0;
+  font-size: 0.875rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.running-order td.item-notes-text::before {
+  content: "Notes ";
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
 @container (max-width: 50rem) {
   .running-order,
   .running-order tbody,
@@ -415,6 +432,17 @@ main a {
      must put data-item-id on its item rows (Running order, casting Items). */
   .running-order tbody tr[data-item-id] {
     padding: 0.75rem 1rem;
+    border-bottom: 4px solid var(--surface);
+  }
+
+  /* Notes close the item's card: its separator moves below them. */
+  .running-order tbody tr[data-item-id]:has(+ .item-notes-row) {
+    padding-bottom: 0.25rem;
+    border-bottom: none;
+  }
+
+  .running-order tbody tr.item-notes-row {
+    padding: 0 1rem 0.75rem;
     border-bottom: 4px solid var(--surface);
   }
 
@@ -1525,4 +1553,10 @@ main a {
   main {
     padding: 1.5rem 1rem;
   }
+}
+
+/* An item followed by its notes on the Items list loses its bottom line, so the notes read
+   as part of it. Last in the file: it outranks the table's own cell borders. */
+.running-order tr:has(+ .item-notes-row) td {
+  border-bottom: none;
 }

@@ -1,8 +1,9 @@
-import type { CastMember, Role, RunningOrder } from "@app/shared";
+import type { CastMember, ItemNote, Role, RunningOrder } from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory } from "vue-router";
 import { CAST_PATH } from "../cast.ts";
+import { ITEM_NOTES_PATH } from "../item-notes.ts";
 import { ROLES_PATH } from "../roles.ts";
 import { createAppRouter } from "../router.ts";
 import { anItem, aRunningOrder } from "../running-order.fixture.ts";
@@ -13,9 +14,17 @@ enableAutoUnmount(afterEach);
 
 /** A stand-in API: the saved running order, the production's roles and its cast (none by
  *  default). */
-function savedRunningOrderIs(order: RunningOrder, roles: Role[] = [], cast: CastMember[] = []) {
+function savedRunningOrderIs(
+  order: RunningOrder,
+  roles: Role[] = [],
+  cast: CastMember[] = [],
+  notes: ItemNote[] = [],
+) {
   const fetch = vi.fn(async (url: string) => {
     if (url === ROLES_PATH) return new Response(JSON.stringify({ productionId: "2027", roles }));
+    if (url === ITEM_NOTES_PATH) {
+      return new Response(JSON.stringify({ productionId: "2027", notes }));
+    }
     if (url === CAST_PATH) {
       return new Response(JSON.stringify({ productionId: "2027", members: cast }));
     }
@@ -440,5 +449,57 @@ describe("Clashes on the Items list", () => {
     expect(wrapper.get("[role=alert]").text()).toBe("Couldn't check the casting for clashes.");
     expect(wrapper.find("[data-test=clash]").exists()).toBe(false);
     expect(rowFor(wrapper, "Pirate Sketch")?.get("[data-test=counts]").text()).toContain("Roles 2");
+  });
+});
+
+describe("Notes on the Items list", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  const show = aRunningOrder(
+    [anItem("Opening Number"), anItem("Pirate Sketch")],
+    [anItem("Campfire Song")],
+  );
+  const note = (itemId: string, text: string): ItemNote => ({ itemId, text, revision: 1 });
+  /** The notes shown for an item: in the row straight after the item's own row. */
+  const notesFor = (wrapper: VueWrapper, title: string) => {
+    const row = rowFor(wrapper, title)?.element.nextElementSibling;
+    return row?.matches("[data-test=item-notes]") ? row : undefined;
+  };
+
+  it("shows an item's notes in full, under its row and across the table", async () => {
+    savedRunningOrderIs(
+      show,
+      [],
+      [],
+      [note("pirate-sketch", "Hook needs a hat change before the finale")],
+    );
+    const wrapper = await openItemsPage();
+
+    const notes = notesFor(wrapper, "Pirate Sketch");
+    expect(notes?.textContent?.trim()).toBe("Hook needs a hat change before the finale");
+    expect(notes?.querySelector("td")?.getAttribute("colspan")).toBe("5");
+  });
+
+  it("shows nothing extra for items without notes, or with notes cleared", async () => {
+    savedRunningOrderIs(show, [], [], [note("opening-number", "")]);
+    const wrapper = await openItemsPage();
+
+    expect(notesFor(wrapper, "Opening Number")).toBeUndefined();
+    expect(notesFor(wrapper, "Campfire Song")).toBeUndefined();
+    expect(wrapper.findAll("[data-test=item-notes]")).toEqual([]);
+  });
+
+  it("still lists the items, and says so, when the notes can't be loaded", async () => {
+    const answer = savedRunningOrderIs(show);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) =>
+        url === ITEM_NOTES_PATH ? new Response(null, { status: 500 }) : answer(url),
+      ),
+    );
+    const wrapper = await openItemsPage();
+
+    expect(titlesIn(wrapper, "First half")).toEqual(["Opening Number", "Pirate Sketch"]);
+    expect(wrapper.get("[role=alert]").text()).toBe("Couldn't load the notes.");
   });
 });
