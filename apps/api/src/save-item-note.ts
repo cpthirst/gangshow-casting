@@ -1,4 +1,4 @@
-import { ProductionId, SaveItemNoteRequest } from "@app/shared";
+import { ProductionId, RunningOrderItem, SaveItemNoteRequest } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import type { ApiEvent } from "./handler.ts";
 import type { ItemNoteStore } from "./item-note-store.ts";
@@ -10,19 +10,18 @@ import type { RunningOrderStore } from "./running-order-store.ts";
 export function createSaveItemNote(notes: ItemNoteStore, runningOrders: RunningOrderStore) {
   return async (event: ApiEvent): Promise<APIGatewayProxyStructuredResultV2> => {
     const productionId = ProductionId.safeParse(event.pathParameters?.productionId);
-    const itemId = event.pathParameters?.itemId;
-    if (!productionId.success || !itemId) return { statusCode: 404 };
-    // Strict: any unknown field in the body is refused.
+    const itemId = RunningOrderItem.shape.id.safeParse(event.pathParameters?.itemId);
+    if (!productionId.success || !itemId.success) return { statusCode: 404 };
     const request = SaveItemNoteRequest.safeParse(parseJson(event.body));
     if (!request.success) return { statusCode: 400 };
 
     // Only items in the latest saved running order can have notes.
     const order = await runningOrders.latest(productionId.data);
-    const inShow = order?.halves.some((half) => half.items.some((item) => item.id === itemId));
+    const inShow = order?.halves.some((half) => half.items.some((item) => item.id === itemId.data));
     if (!inShow) return { statusCode: 404 };
 
     const { revision, text } = request.data;
-    const saved = await notes.save(productionId.data, itemId, revision, text);
+    const saved = await notes.save(productionId.data, itemId.data, revision, text);
     if (saved === "stale") return { statusCode: 409 };
     return {
       statusCode: 200,

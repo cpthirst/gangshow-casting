@@ -1,12 +1,15 @@
 import { z } from "zod";
 import { ProductionId, RunningOrderItem } from "./running-order.ts";
 
+/** The most an item's notes can hold, in characters (casting-item-overview FR8). */
+export const MAX_NOTE_LENGTH = 500;
+
 /** Casting notes on one item (casting-item-overview FR8): kept by the item's id, apart from
  *  the running order's Comments, so they survive new running-order versions. */
 export const ItemNote = z.strictObject({
   itemId: RunningOrderItem.shape.id,
   /** Free text; "" once cleared. */
-  text: z.string().max(500),
+  text: z.string().max(MAX_NOTE_LENGTH),
   /** Goes up on every save, so a stale save can be refused (FR10). */
   revision: z.number().int().min(1),
 });
@@ -23,7 +26,7 @@ export const ItemNoteList = z.strictObject({
  * 200 returns the saved ItemNote; 409 means someone else saved first.
  */
 export const SaveItemNoteRequest = z.strictObject({
-  text: z.string().trim().max(500),
+  text: z.string().trim().max(MAX_NOTE_LENGTH),
   revision: z.number().int().min(0),
 });
 

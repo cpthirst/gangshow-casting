@@ -23,7 +23,12 @@ export interface ItemNoteStore {
 const empty = (productionId: string): ItemNoteList => ({ productionId, notes: [] });
 
 /** The list with one item's notes saved, or "stale" if they've moved on since `revision`. */
-function withNote(list: ItemNoteList, itemId: string, revision: number, text: string) {
+function withNote(
+  list: ItemNoteList,
+  itemId: string,
+  revision: number,
+  text: string,
+): { note: ItemNote; list: ItemNoteList } | "stale" {
   const current = list.notes.find((note) => note.itemId === itemId);
   if ((current?.revision ?? 0) !== revision) return "stale";
   const note: ItemNote = { itemId, text, revision: revision + 1 };

@@ -409,7 +409,8 @@ async function postRole(itemId: string, details: AddRoleRequest) {
       </li>
     </ul>
     <p v-else>No roles have been added yet.</p>
-    <ItemNotes :item-id="place.item.id" />
+    <!-- A fresh instance per item, so stepping to another never mixes their notes. -->
+    <ItemNotes :key="place.item.id" :item-id="place.item.id" />
   </template>
   <template v-else-if="notFound">
     <h1>Item not found</h1>

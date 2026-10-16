@@ -606,7 +606,8 @@ main a {
 
 .item-editor input:not([type="checkbox"]),
 .item-editor textarea,
-.item-editor select {
+.item-editor select,
+.item-notes textarea {
   padding: 0.5rem;
   border: 1px solid var(--text);
   border-radius: 0.25rem;
@@ -1088,7 +1089,7 @@ main a {
   text-decoration: underline;
 }
 
-/* An item's notes, below its roles: a plain text field, like the item editor's. */
+/* An item's notes, below its roles: the item editor's text field, full width. */
 .item-notes {
   margin-top: 2rem;
 }
@@ -1097,20 +1098,19 @@ main a {
   box-sizing: border-box;
   width: 100%;
   max-width: 40rem;
-  padding: 0.5rem;
-  border: 1px solid var(--text);
-  border-radius: 0.25rem;
-  background: var(--white);
-  color: var(--text);
-  font: inherit;
+}
+
+.item-notes .hint {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+}
+
+.item-notes [aria-invalid="true"] {
+  border: 2px solid var(--red-darker);
 }
 
 .item-notes .editor-actions {
   margin-top: 0.75rem;
-}
-
-.notes-message:empty {
-  display: none;
 }
 
 .item-position {

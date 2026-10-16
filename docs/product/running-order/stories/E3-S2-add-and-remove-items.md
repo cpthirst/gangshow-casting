@@ -53,6 +53,8 @@ Then the response is 201 with version 7 holding A, C and D, and D has a stable i
 
 ## Notes
 
+- Removing an item should also delete its casting notes (casting-item-overview FR8) and its roles, so nothing about a removed item is kept (agreed with the user on 2026-10-16 during the item-notes review).
+
 - **Dropped for now** (2026-10-10, product owner). Kept as a draft so the ID isn't reused. Revisit when items need adding or cutting in the app.
 - FRs: FR6, FR10
 - Depends on: running-order.E3.S1. This reuses its item form. Adds and removals are unsaved changes, saved or reset with everything else.

@@ -1936,7 +1936,8 @@ describe("Item notes", () => {
   type Page = Awaited<ReturnType<typeof openAppAt>>["wrapper"];
   const notesSection = (wrapper: Page) => wrapper.get("section[aria-labelledby=notes-heading]");
   const field = (wrapper: Page) => notesSection(wrapper).get<HTMLTextAreaElement>("textarea");
-  const message = (wrapper: Page) => notesSection(wrapper).find("[data-test=notes-message]");
+  const error = (wrapper: Page) => notesSection(wrapper).find("[data-test=notes-error]");
+  const status = (wrapper: Page) => notesSection(wrapper).get("[data-test=notes-status]");
 
   async function saveNotes(wrapper: Page, text: string) {
     await field(wrapper).setValue(text);
@@ -1958,11 +1959,77 @@ describe("Item notes", () => {
     expect(notesSection(wrapper).get("button[type=submit]").text()).toBe("Save notes");
   });
 
+  it("labels the field by its heading, and says the limit up front", async () => {
+    savedRunningOrderIs(show);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    expect(field(wrapper).attributes("aria-labelledby")).toBe("notes-heading");
+    expect(notesSection(wrapper).findAll("label")).toEqual([]);
+    const hint = notesSection(wrapper).get("[data-test=notes-hint]");
+    expect(hint.text()).toBe("Up to 500 characters");
+    expect(field(wrapper).attributes("aria-describedby")).toContain(hint.attributes("id"));
+    expect(field(wrapper).attributes("maxlength")).toBe("500");
+  });
+
+  it("asks before stepping to another item with unsaved notes", async () => {
+    savedRunningOrderIs(show);
+    const confirm = vi.fn(() => false);
+    vi.stubGlobal("confirm", confirm);
+    const { wrapper, router } = await openAppAt("/casting/items/pirate-sketch");
+    await field(wrapper).setValue("Not saved yet");
+
+    await wrapper.get("main a[rel=next]").trigger("click");
+    await flushPromises();
+
+    expect(confirm).toHaveBeenCalledWith("Discard your unsaved notes?");
+    expect(router.currentRoute.value.fullPath).toBe("/casting/items/pirate-sketch");
+    expect(field(wrapper).element.value).toBe("Not saved yet");
+  });
+
+  it("asks before leaving the page with unsaved notes", async () => {
+    savedRunningOrderIs(show);
+    const confirm = vi.fn(() => true);
+    vi.stubGlobal("confirm", confirm);
+    const { wrapper, router } = await openAppAt("/casting/items/pirate-sketch");
+    await field(wrapper).setValue("Not saved yet");
+
+    await router.push("/casting/items");
+    await flushPromises();
+
+    expect(confirm).toHaveBeenCalledWith("Discard your unsaved notes?");
+    expect(router.currentRoute.value.fullPath).toBe("/casting/items");
+  });
+
+  it("doesn't ask once the notes are saved", async () => {
+    savedRunningOrderIs(show);
+    const confirm = vi.fn(() => false);
+    vi.stubGlobal("confirm", confirm);
+    const { wrapper, router } = await openAppAt("/casting/items/pirate-sketch");
+    await saveNotes(wrapper, "Hat change");
+
+    await router.push("/casting/items/opening-number");
+    await flushPromises();
+
+    expect(confirm).not.toHaveBeenCalled();
+    expect(router.currentRoute.value.fullPath).toBe("/casting/items/opening-number");
+  });
+
+  it("clears an old message once the notes are changed again", async () => {
+    savedRunningOrderIs(show);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+    await saveNotes(wrapper, "Hat change");
+
+    await field(wrapper).setValue("Hat change, and a coat");
+
+    expect(status(wrapper).text()).toBe("");
+  });
+
   it("keeps saved notes for the next visit", async () => {
     savedRunningOrderIs(show);
     const first = await openAppAt("/casting/items/pirate-sketch");
     await saveNotes(first.wrapper, "Hook needs a hat change before the finale");
-    expect(message(first.wrapper).text()).toBe("Notes saved.");
+    expect(status(first.wrapper).text()).toBe("Notes saved.");
+    expect(status(first.wrapper).attributes("role")).toBe("status");
     first.wrapper.unmount();
 
     const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
@@ -2008,7 +2075,9 @@ describe("Item notes", () => {
 
     await saveNotes(wrapper, "x".repeat(501));
 
-    expect(message(wrapper).text()).toBe("Notes can be up to 500 characters.");
+    expect(error(wrapper).text()).toBe("Notes can be up to 500 characters.");
+    expect(error(wrapper).attributes("role")).toBe("alert");
+    expect(field(wrapper).attributes("aria-invalid")).toBe("true");
     expect(notePuts()).toEqual([]);
   });
 
@@ -2032,7 +2101,7 @@ describe("Item notes", () => {
 
     await saveNotes(wrapper, "Mine");
 
-    expect(message(wrapper).text()).toBe(
+    expect(error(wrapper).text()).toBe(
       "Someone else changed these notes. Here they are now; your text wasn't saved.",
     );
     expect(field(wrapper).element.value).toBe("Theirs");
@@ -2049,7 +2118,7 @@ describe("Item notes", () => {
 
     await saveNotes(wrapper, "Hat change");
 
-    expect(message(wrapper).text()).toBe("Couldn't save the notes. Try again.");
+    expect(error(wrapper).text()).toBe("Couldn't save the notes. Try again.");
     expect(field(wrapper).element.value).toBe("Hat change");
   });
 });
