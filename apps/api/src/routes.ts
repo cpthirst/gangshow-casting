@@ -28,7 +28,7 @@ export const routes: Record<string, Handler> = {
   "GET /api/productions/{productionId}/cast": createGetCast(cast),
   "POST /api/productions/{productionId}/cast": createAddCastMember(cast),
   "PUT /api/productions/{productionId}/cast/{castId}": createUpdateCastMember(cast),
-  "DELETE /api/productions/{productionId}/cast/{castId}": createDeleteCastMember(cast),
+  "DELETE /api/productions/{productionId}/cast/{castId}": createDeleteCastMember(cast, roles),
   "GET /api/productions/{productionId}/roles": createGetRoles(roles),
   "POST /api/productions/{productionId}/items/{itemId}/roles": createAddRole(
     roles,

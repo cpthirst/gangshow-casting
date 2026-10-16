@@ -2,10 +2,12 @@ import {
   type CastList,
   type CastMember,
   CastMemberDetails,
+  type Role,
   UpdateCastMemberRequest,
 } from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { ROLES_PATH } from "../roles.ts";
 import CastPage from "./CastPage.vue";
 
 enableAutoUnmount(afterEach);
@@ -443,13 +445,15 @@ describe("Cast page", () => {
 
   describe("deleting a cast member", () => {
     let deletes: string[] = [];
-    // A stand-in for the API: serves the list and deletes at the right revision.
-    function api(initial: CastList) {
+    // A stand-in for the API: serves the list and the roles, and deletes at the right revision.
+    function api(initial: CastList, roles: Role[] = []) {
       const list = { ...initial, members: [...initial.members] };
       deletes = [];
       vi.stubGlobal(
         "fetch",
         vi.fn(async (url: string, init?: RequestInit) => {
+          if (url === ROLES_PATH)
+            return new Response(JSON.stringify({ productionId: "2027", roles }));
           if (init?.method !== "DELETE") return new Response(JSON.stringify(list));
           deletes.push(url);
           const { pathname, searchParams } = new URL(url, "http://localhost");
@@ -485,6 +489,66 @@ describe("Cast page", () => {
 
       expect(confirm).toHaveBeenCalledWith(
         "Delete Sam Example from the cast? This can't be undone.",
+      );
+    });
+
+    const castIn = (memberId: number, count: number): Role[] =>
+      Array.from({ length: count }, (_, i) => ({
+        id: i + 1,
+        itemId: "pirate-sketch",
+        name: `Role ${i + 1}`,
+        size: "lead",
+        castMemberIds: [memberId],
+        revision: 1,
+      }));
+
+    it.each([
+      [2, "They'll be removed from 2 roles."],
+      [1, "They'll be removed from 1 role."],
+    ])("says how many roles they'll be removed from (%i)", async (count, sentence) => {
+      const member = sam();
+      api(cast([member, aMember("Alex", "Sample")]), castIn(member.id, count));
+      const confirm = vi.fn().mockReturnValue(false);
+      vi.stubGlobal("confirm", confirm);
+      const wrapper = await openPage();
+
+      await deleteMember(wrapper, "Sam Example");
+
+      expect(confirm).toHaveBeenCalledWith(
+        `Delete Sam Example from the cast? ${sentence} This can't be undone.`,
+      );
+    });
+
+    it("doesn't count other people's roles", async () => {
+      const member = sam();
+      api(cast([member, aMember("Alex", "Sample")]), castIn(member.id + 1000, 2));
+      const confirm = vi.fn().mockReturnValue(false);
+      vi.stubGlobal("confirm", confirm);
+      const wrapper = await openPage();
+
+      await deleteMember(wrapper, "Sam Example");
+
+      expect(confirm).toHaveBeenCalledWith(
+        "Delete Sam Example from the cast? This can't be undone.",
+      );
+    });
+
+    it("still warns about roles when they can't be counted", async () => {
+      api(cast());
+      const answer = vi.mocked(fetch).getMockImplementation();
+      vi.mocked(fetch).mockImplementation(async (url, init) =>
+        url === ROLES_PATH
+          ? new Response(null, { status: 500 })
+          : (answer?.(url, init) ?? new Response(null)),
+      );
+      const confirm = vi.fn().mockReturnValue(false);
+      vi.stubGlobal("confirm", confirm);
+      const wrapper = await openPage();
+
+      await deleteMember(wrapper, "Sam Example");
+
+      expect(confirm).toHaveBeenCalledWith(
+        "Delete Sam Example from the cast? They'll be removed from any roles they're in. This can't be undone.",
       );
     });
 

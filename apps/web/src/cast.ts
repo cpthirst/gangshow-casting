@@ -124,3 +124,14 @@ export function searchCast(members: CastMember[], text: string) {
     members.filter((m) => plain(m.firstName).includes(query) || plain(m.lastName).includes(query)),
   );
 }
+
+/** The delete confirmation. Deleting also takes them out of every role, so say how many;
+ *  roleCount is undefined when the roles couldn't be counted. */
+export const deleteWarning = (name: string, roleCount: number | undefined) =>
+  `Delete ${name} from the cast?${rolesNote(roleCount)} This can't be undone.`;
+
+function rolesNote(roleCount: number | undefined) {
+  if (roleCount === undefined) return " They'll be removed from any roles they're in.";
+  if (roleCount === 0) return "";
+  return ` They'll be removed from ${roleCount} role${roleCount === 1 ? "" : "s"}.`;
+}

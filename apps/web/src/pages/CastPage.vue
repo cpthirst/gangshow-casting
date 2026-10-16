@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { CastList, CastMember, type CastMemberDetails } from "@app/shared";
+import { CastList, CastMember, type CastMemberDetails, RoleList } from "@app/shared";
 import { computed, nextTick, onMounted, ref, useId } from "vue";
 import {
   CAST_PATH,
   type CastFilters,
+  deleteWarning,
   filterCast,
   hasFilters,
   matchesLabel,
@@ -11,6 +12,7 @@ import {
   sectionLabel,
   sortCast,
 } from "../cast.ts";
+import { ROLES_PATH } from "../roles.ts";
 import CastMemberForm from "./CastMemberForm.vue";
 
 type State =
@@ -164,11 +166,17 @@ async function putMember(
   }
 }
 
-// Permanent by design (PRD FR5, ADR 0010), so always confirm first, naming the person.
+// Permanent by design (PRD FR5, ADR 0010), so always confirm first, naming the person and
+// how many roles they'll leave (casting-roles FR9).
 async function deleteMember(member: CastMember) {
   if (busy.value) return;
-  if (!window.confirm(`Delete ${fullName(member)} from the cast? This can't be undone.`)) return;
+  // Busy while the roles are counted, so a second click can't open a second confirmation.
   saving.value = true;
+  const warning = deleteWarning(fullName(member), await rolesOf(member));
+  if (!window.confirm(warning)) {
+    saving.value = false;
+    return;
+  }
   notice.value = "";
   const status = await sendDelete(member);
   saving.value = false;
@@ -187,6 +195,19 @@ async function deleteMember(member: CastMember) {
     await showConflict();
   } else {
     notice.value = `Couldn't delete ${fullName(member)}. Try again.`;
+  }
+}
+
+/** How many roles the member is cast in now, or undefined if the roles can't be loaded. */
+async function rolesOf(member: CastMember) {
+  try {
+    const res = await fetch(ROLES_PATH);
+    if (!res.ok) return undefined;
+    const list = RoleList.safeParse(await res.json());
+    if (!list.success) return undefined;
+    return list.data.roles.filter((role) => role.castMemberIds.includes(member.id)).length;
+  } catch {
+    return undefined;
   }
 }
 

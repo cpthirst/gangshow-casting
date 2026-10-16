@@ -34,7 +34,7 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [casting-roles.E3.S1](stories/E3-S1-deleted-member-leaves-roles.md) | Deleting a cast member removes them from every role | FR9 | E1.S3 | ready |
+| [casting-roles.E3.S1](stories/E3-S1-deleted-member-leaves-roles.md) | Deleting a cast member removes them from every role | FR9 | E1.S3 | done |
 
 ## FR coverage
 
