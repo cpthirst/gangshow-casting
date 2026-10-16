@@ -5,6 +5,7 @@ import ClashIcon from "../ClashIcon.vue";
 import { CAST_PATH } from "../cast.ts";
 import { type Clash, clashesOfPerson, describeEach, findClashes } from "../clashes.ts";
 import {
+  biggestParts,
   castBySection,
   itemIdsInOrder,
   type PartCounts,
@@ -12,9 +13,11 @@ import {
   peopleCount,
   sizesHeld,
   spokenParts,
+  timelineOf,
 } from "../overview.ts";
 import { ROLES_PATH, roleSizeLabel } from "../roles.ts";
 import { RUNNING_ORDER_PATH } from "../running-order.ts";
+import ShowTimeline from "../ShowTimeline.vue";
 
 const state = ref<
   { status: "loading" } | { status: "error" } | { status: "loaded"; cast: CastMember[] }
@@ -28,6 +31,8 @@ const parts = ref<Map<number, PartCounts> | "error">();
 // From the same roles and running order, so they fail together: no icons then
 // (casting-rules FR9, FR13).
 const clashes = ref<Clash[]>([]);
+// The show and everyone's parts in it, for each person's timeline; none until both load.
+const timeline = ref<{ order: RunningOrder; parts: ReturnType<typeof biggestParts> }>();
 
 // Each person carries their part counts: undefined while loading or unavailable, or
 // when they have no parts in the show.
@@ -41,6 +46,9 @@ const sections = computed(() => {
       member,
       counts: counts?.get(member.id),
       clashLines: describeEach(clashesOfPerson(clashes.value, member.id)),
+      halves: timeline.value
+        ? timelineOf(timeline.value.order, timeline.value.parts.get(member.id))
+        : undefined,
     })),
   }));
 });
@@ -61,10 +69,12 @@ async function loadParts() {
     if (!orderRes.ok) throw new Error(`HTTP ${orderRes.status}`);
     const order = RunningOrder.parse(await orderRes.json());
     clashes.value = findClashes(order, roles);
+    timeline.value = { order, parts: biggestParts(roles) };
     parts.value = partsByMember(roles, itemIdsInOrder(order));
   } catch {
     parts.value = "error";
     clashes.value = [];
+    timeline.value = undefined;
   }
 }
 
@@ -102,7 +112,7 @@ async function loadCast() {
       <!-- Cards like an item's role cards (casting-overview UI consistency). An explicit
            list role: Safari drops list semantics once bullets are styled away. -->
       <ul class="role-cards" role="list" :aria-labelledby="`section-${section.key}`">
-        <li v-for="{ member, counts, clashLines } in section.people" :key="member.id" class="role-card" data-test="person">
+        <li v-for="{ member, counts, clashLines, halves } in section.people" :key="member.id" class="role-card" data-test="person">
           <!-- Name and clash icon together, so the icon stays beside the name, as on an
                item's page, with any written-out clashes beneath. -->
           <span class="person-who">
@@ -123,6 +133,7 @@ async function loadCast() {
             <span class="visually-hidden">{{ spokenParts(counts) }}</span>
           </template>
           <span v-else-if="parts instanceof Map" class="uncast" data-test="no-parts">No parts yet</span>
+          <ShowTimeline v-if="halves" :halves="halves" />
         </li>
       </ul>
     </section>

@@ -1,6 +1,6 @@
-import { type CastMember, type Role, RoleSize, type RunningOrder } from "@app/shared";
+import type { CastMember, Role, RoleSize, RunningOrder } from "@app/shared";
 import { sortCast } from "./cast.ts";
-import { roleSizeLabel } from "./roles.ts";
+import { biggerPart, roleSizeLabel } from "./roles.ts";
 
 /** How serious a clash can be (casting-rules FR11). Most serious first: `rank` relies on
  *  this order. */
@@ -38,10 +38,6 @@ const severityLabels: Record<Severity, string> = {
 };
 
 const severityLabel = (severity: Severity) => severityLabels[severity];
-
-// RoleSize is declared biggest first, so a lower index is a bigger part.
-const biggest = (a: RoleSize, b: RoleSize) =>
-  RoleSize.options.indexOf(a) <= RoleSize.options.indexOf(b) ? a : b;
 
 /** Where an item falls in the show, and when, in minutes from curtain up. */
 interface Place {
@@ -109,7 +105,7 @@ export function findClashes(order: RunningOrder, roles: Role[]): Clash[] {
       theirs.set(role.itemId, {
         ...place,
         itemId: role.itemId,
-        part: part ? biggest(part, role.size) : role.size,
+        part: part ? biggerPart(part, role.size) : role.size,
       });
       slots.set(id, theirs);
     }

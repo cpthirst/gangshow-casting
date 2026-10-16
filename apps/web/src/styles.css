@@ -9,6 +9,8 @@
   --yellow: #ffe627;
   --warning: #8a5a00; /* clash warnings: 5.93:1 on white, 5.25:1 on the grey surface */
   --info: #1f5f8b; /* clash info: 6.8:1 on white, 6.0:1 on the grey surface */
+  --in-item: #2e7d32; /* timeline dot, in the item: 5.1:1 on white */
+  --not-in-item: #8a8a8a; /* timeline dot, not in it: 3.45:1 on white (3:1 needed) */
   --sidebar-width: 15rem;
 
   font-family: "Nunito Sans Variable", system-ui, sans-serif;
@@ -1181,6 +1183,51 @@ main a {
   .clash-line-info {
     font-weight: 400;
   }
+}
+
+/* A person's timeline on the Overview: their own row at the bottom of the card, centred, with
+   a dot per item and a wider gap where the interval falls. */
+.timeline-wrap {
+  flex-basis: 100%;
+  container-type: inline-size;
+}
+
+/* Sized in em, so dots and gaps shrink together. A row of N dots is N × 1em, plus
+   0.4em between dots and 1.4em at the interval: about N × 1.4em + 0.6em. The dots stay at
+   full size when that fits, and shrink to the card's width when it doesn't, but never below
+   8px; a show too big for one line at 8px wraps half by half (FR9). --dots is set by the
+   component. */
+.timeline {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4em 1.4em;
+  margin-top: 0.75rem;
+  font-size: min(0.875rem, max(8px, calc(100cqi / (var(--dots) * 1.4 + 0.6))));
+}
+
+.timeline-half {
+  display: inline-flex;
+  gap: 0.4em;
+}
+
+.timeline-dot svg {
+  width: 1em;
+}
+
+.timeline-in {
+  color: var(--in-item);
+}
+
+.timeline-out {
+  color: var(--not-in-item);
+}
+
+/* A dot's item opens rightwards in the first half and leftwards in the second, so it stays
+   within the row however narrow the screen. */
+.timeline-half:last-child .timeline-dot[data-tooltip]:hover::after {
+  right: 0;
+  left: auto;
 }
 
 /* A person's pills on the Overview, together after their name like on a role card. */

@@ -24,7 +24,7 @@ The Overview shows how much each person is cast (role-size pills) and whether th
 |---|---|---|
 | Each person's appearances are visible at a glance | Clicks from the Overview to see which items someone is in | 0 |
 | The picture matches the show | People whose dots differ from their casting in the latest saved running order | 0 |
-| It works on every screen | Overview pages that scroll sideways at 320px because of the timeline | 0 |
+| It works on every screen | Overview pages that scroll sideways at 320px because of the timeline, or dots smaller than about 8px | 0 |
 | It never relies on colour alone | Dots told apart by colour only | 0 |
 
 ## Non-goals
@@ -46,7 +46,7 @@ The Overview shows how much each person is cast (role-size pills) and whether th
 - **FR6**: Screen readers must hear each person's timeline as one sentence, not dot by dot. For example "In 5 of 20 items: Opening Number, Pirate Sketch, Campfire Song, Night Hike, Grand Finale", or "In none of the 20 items". The dots themselves are hidden from screen readers.
 - **FR7**: Someone in no items shows a timeline of all grey dots, alongside the existing "No parts yet".
 - **FR8**: With no saved running order, no timeline is shown. If the roles or running order can't be loaded, no timeline is shown, and the existing "Couldn't load the casting." message stands.
-- **FR9**: Each timeline must stay on one line per person, with no sideways scrolling. On narrow screens the dots and gaps shrink to fit, down to 320px wide, for a show of up to about 30 items.
+- **FR9**: Each timeline must never scroll sideways. On narrow screens the dots and gaps shrink to fit on one line, but never below about 8px, so in and out can still be told apart. If a show is too big for one line even at that size, each half wraps onto its own line, and the line break marks the interval. (Changed on 2026-10-16 at the user's request, after review: it was "always one line, however small".)
 
 ## Non-functional requirements
 

@@ -1,5 +1,7 @@
 import { type CastMember, type Role, RoleSize, type RunningOrder, Section } from "@app/shared";
 import { sectionLabel, sortCast } from "./cast.ts";
+import { biggerPart, roleSizeLabel } from "./roles.ts";
+import { runningClock } from "./running-order.ts";
 
 /** One section of the Overview: its people, in display order. */
 export interface OverviewSection {
@@ -92,4 +94,60 @@ function byCastingScore(members: CastMember[], parts: ReadonlyMap<number, PartCo
     const [first, second] = [countsOf(a), countsOf(b)];
     return castingScore(second) - castingScore(first) || totalRoles(second) - totalRoles(first);
   });
+}
+
+/** Each person's biggest part in each item they're in: person → item id → part. */
+export function biggestParts(roles: Role[]) {
+  const parts = new Map<number, Map<string, RoleSize>>();
+  for (const role of roles) {
+    for (const id of role.castMemberIds) {
+      const theirs = parts.get(id) ?? new Map<string, RoleSize>();
+      const part = theirs.get(role.itemId);
+      theirs.set(role.itemId, part ? biggerPart(part, role.size) : role.size);
+      parts.set(id, theirs);
+    }
+  }
+  return parts;
+}
+
+/** One item on a person's timeline: their biggest part in it, if they're in it. */
+export interface TimelineSlot {
+  itemId: string;
+  title: string;
+  /** Programme number; null for an item left out of the printed programme. */
+  number: number | null;
+  part: RoleSize | undefined;
+}
+
+/** A person's evening, half by half, one slot per item in show order (casting-overview-
+ *  timeline FR1–FR4). Every item counts, printed or not. */
+export const timelineOf = (
+  order: RunningOrder,
+  theirParts: ReadonlyMap<string, RoleSize> | undefined,
+): TimelineSlot[][] =>
+  runningClock(order).halves.map(({ rows }) =>
+    rows.map(({ item, number }) => ({
+      itemId: item.id,
+      title: item.title,
+      number,
+      part: theirParts?.get(item.id),
+    })),
+  );
+
+/** What a dot stands for, on hover (FR5): "3 · Dance One: Support", or "1 · Opening Number"
+ *  when they're not in it. Plain text, never HTML. */
+export function dotLabel({ title, number, part }: TimelineSlot) {
+  const item = number === null ? `${title} (not in printed programme)` : `${number} · ${title}`;
+  return part ? `${item}: ${roleSizeLabel(part)}` : item;
+}
+
+/** A timeline as one sentence for screen readers (FR6): "In 2 of 5 items: Pirate Sketch,
+ *  Finale", or "In none of the 5 items". */
+export function timelineSummary(halves: TimelineSlot[][]) {
+  const slots = halves.flat();
+  const total = `${slots.length} item${slots.length === 1 ? "" : "s"}`;
+  const theirs = slots.filter((slot) => slot.part).map((slot) => slot.title);
+  return theirs.length === 0
+    ? `In none of the ${total}`
+    : `In ${theirs.length} of ${total}: ${theirs.join(", ")}`;
 }

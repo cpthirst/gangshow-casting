@@ -7,6 +7,8 @@ import {
   faArrowUp,
   faChevronLeft,
   faChevronRight,
+  faCircle,
+  faCircleDot,
   faCircleInfo,
   faGripVertical,
   faList,
@@ -32,4 +34,8 @@ export const icons = {
   error: faSquareXmark,
   warning: faTriangleExclamation,
   info: faCircleInfo,
+  // A person's timeline on the Overview: in an item, or not. Different shapes, so it never
+  // relies on colour alone.
+  inItem: faCircleDot,
+  notInItem: faCircle,
 };

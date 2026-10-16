@@ -28,6 +28,10 @@ export const roleSizeLabel = (size: RoleSize) => sizeLabels[size];
 // RoleSize is declared biggest first (packages/shared), so its order is the ranking.
 const sizeRank = (size: RoleSize) => RoleSize.options.indexOf(size);
 
+/** The bigger of two parts: someone with both a lead and an ensemble role in an item counts
+ *  as a lead there. */
+export const biggerPart = (a: RoleSize, b: RoleSize) => (sizeRank(a) <= sizeRank(b) ? a : b);
+
 /** An item's roles in reading order: biggest first (lead → ensemble), then by name,
  *  ignoring case (PRD FR4). Returns a new array. */
 export const sortRoles = (roles: Role[]) =>
