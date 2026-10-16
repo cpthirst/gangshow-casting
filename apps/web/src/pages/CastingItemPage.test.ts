@@ -61,6 +61,15 @@ function savedRunningOrderIs(order: RunningOrder, roles: Role[] = []) {
         stored.push(role);
         return json(role, 201);
       }
+      const removal = /\/roles\/(\d+)\?revision=(\d+)$/.exec(url);
+      if (removal && init?.method === "DELETE") {
+        const index = stored.findIndex((r) => r.id === Number(removal[1]));
+        const current = stored[index];
+        if (!current) return new Response(null, { status: 404 });
+        if (current.revision !== Number(removal[2])) return new Response(null, { status: 409 });
+        stored.splice(index, 1);
+        return new Response(null, { status: 204 });
+      }
       const editId = Number(/\/roles\/(\d+)$/.exec(url)?.[1]);
       if (editId && init?.method === "PUT") {
         const { revision, ...details } = UpdateRoleRequest.parse(JSON.parse(String(init.body)));
@@ -916,5 +925,102 @@ describe("Editing a role", () => {
       "Someone else changed this role. Showing the latest roles.",
     );
     expect(cardNames(wrapper)).not.toContain("Smee");
+  });
+});
+
+describe("Removing a role", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.body.innerHTML = "";
+  });
+
+  type Page = Awaited<ReturnType<typeof openAppAt>>["wrapper"];
+
+  const parrot = () => ({
+    ...aRole("pirate-sketch", "Parrot", "cameo"),
+    id: 3,
+    castMemberIds: [12],
+  });
+  const smee = () => ({ ...aRole("pirate-sketch", "Smee", "support"), id: 2 });
+  const cardNames = (wrapper: Page) =>
+    wrapper.findAll("[data-test=role] .role-name").map((name) => name.text());
+
+  async function remove(wrapper: Page, name: string) {
+    await wrapper.get(`button[aria-label='Remove ${name}']`).trigger("click");
+    await flushPromises();
+  }
+
+  it("asks first, naming the role and the item", async () => {
+    savedRunningOrderIs(show, [smee(), parrot()]);
+    const confirm = vi.fn().mockReturnValue(false);
+    vi.stubGlobal("confirm", confirm);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    await remove(wrapper, "Parrot");
+
+    expect(confirm).toHaveBeenCalledWith(
+      "Remove the role Parrot from Pirate Sketch? Anyone cast in it will be uncast.",
+    );
+  });
+
+  it("removes the role for good once confirmed", async () => {
+    savedRunningOrderIs(show, [smee(), parrot()]);
+    vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
+    const first = await openAppAt("/casting/items/pirate-sketch");
+
+    await remove(first.wrapper, "Parrot");
+
+    expect(cardNames(first.wrapper)).toEqual(["Smee"]);
+    first.wrapper.unmount();
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+    expect(cardNames(wrapper)).toEqual(["Smee"]);
+  });
+
+  it("keeps the role when cancelled", async () => {
+    savedRunningOrderIs(show, [smee(), parrot()]);
+    vi.stubGlobal("confirm", vi.fn().mockReturnValue(false));
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    await remove(wrapper, "Parrot");
+
+    expect(cardNames(wrapper)).toEqual(["Smee", "Parrot"]);
+  });
+
+  it("shows the empty state when the last role is removed", async () => {
+    savedRunningOrderIs(show, [parrot()]);
+    vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    await remove(wrapper, "Parrot");
+
+    expect(wrapper.text()).toContain("No roles have been added yet.");
+  });
+
+  it("refuses to remove a role someone else edited, showing it as they left it", async () => {
+    const stored = savedRunningOrderIs(show, [smee(), parrot()]);
+    vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+    stored[1] = { ...parrot(), name: "Polly", revision: 2 };
+
+    await remove(wrapper, "Parrot");
+
+    expect(wrapper.get("main [role=alert]").text()).toBe(
+      "Someone else changed this role. Showing the latest roles.",
+    );
+    expect(cardNames(wrapper)).toEqual(["Smee", "Polly"]);
+  });
+
+  it("explains when someone else already removed the role", async () => {
+    const stored = savedRunningOrderIs(show, [smee(), parrot()]);
+    vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+    stored.splice(1, 1);
+
+    await remove(wrapper, "Parrot");
+
+    expect(wrapper.get("main [role=alert]").text()).toBe(
+      "Someone else changed this role. Showing the latest roles.",
+    );
+    expect(cardNames(wrapper)).toEqual(["Smee"]);
   });
 });

@@ -955,7 +955,8 @@ main a {
 }
 
 /* Edit sits at the end of the card, like the Cast page's row actions. */
-.role-card [data-test="edit"] {
+.role-card [data-test="edit"],
+.role-card [data-test="remove"] {
   margin-left: auto;
   padding: 0.25rem 0.75rem;
   border: 1px solid var(--text);
@@ -968,13 +969,18 @@ main a {
   cursor: pointer;
 }
 
-.role-card [data-test="edit"]:disabled {
+.role-card [data-test="edit"]:disabled,
+.role-card [data-test="remove"]:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
 
 /* When "Uncast" is shown, it takes the push to the right and Edit sits just after it. */
 .role-card .uncast + [data-test="edit"] {
+  margin-left: 0;
+}
+
+.role-card [data-test="edit"] + [data-test="remove"] {
   margin-left: 0;
 }
 

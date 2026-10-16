@@ -9,6 +9,9 @@ export const ROLES_PATH = `/api/productions/${PRODUCTION_ID}/roles`;
 /** Where an edited role is put. */
 export const updateRolePath = (roleId: number) => `${ROLES_PATH}/${roleId}`;
 
+/** Where a role is removed, if it's still at the revision shown. */
+export const removeRolePath = (role: Role) => `${ROLES_PATH}/${role.id}?revision=${role.revision}`;
+
 /** Where a new role for this item is posted. */
 export const addRolePath = (itemId: string) =>
   `/api/productions/${PRODUCTION_ID}/items/${encodeURIComponent(itemId)}/roles`;

@@ -289,3 +289,39 @@ function editRoles(): Role[] {
     aRole(3, { itemId: "campfire-song", name: "Mr Smee" }),
   ];
 }
+
+describe.each([
+  ["in-memory", async () => inMemoryRoleStore([{ productionId: "2027", roles: editRoles() }])],
+  ["file", () => fileRoleStoreWith(editRoles())],
+])("%s role store removing", (_kind, makeStore) => {
+  beforeEach(async () => {
+    dataDirForNames = await mkdtemp(join(tmpdir(), "role-remove-"));
+  });
+  afterEach(() => rm(dataDirForNames, { recursive: true, force: true }));
+
+  it("removes a role at the given revision, keeping the others", async () => {
+    const store = await makeStore();
+
+    expect(await store.remove("2027", 2, 1)).toBe("removed");
+    expect((await store.list("2027")).roles.map((role) => role.id)).toEqual([1, 3]);
+  });
+
+  it("refuses a stale revision or an unknown role, removing nothing", async () => {
+    const store = await makeStore();
+
+    expect(await store.remove("2027", 2, 9)).toBe("stale");
+    expect(await store.remove("2027", 99, 1)).toBe("not-found");
+    expect((await store.list("2027")).roles).toEqual(editRoles());
+  });
+
+  it("never gives a removed role's id to a new one", async () => {
+    const store = await makeStore();
+
+    await store.remove("2027", 3, 1);
+    const added = roleFrom(
+      await store.add("2027", "pirate-sketch", { name: "Bosun", size: "cameo", castMemberIds: [] }),
+    );
+
+    expect(added.id).toBe(4);
+  });
+});

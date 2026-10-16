@@ -15,6 +15,7 @@ import {
   addRolePath,
   nameTakenMessage,
   ROLES_PATH,
+  removeRolePath,
   roleSizeLabel,
   sortRoles,
   updateRolePath,
@@ -138,8 +139,7 @@ async function saveEdit(details: AddRoleRequest) {
   }
   if (result === "conflict") {
     editing.value = null;
-    await loadRoles();
-    notice.value = "Someone else changed this role. Showing the latest roles.";
+    await showConflict();
     return;
   }
   if (!result) {
@@ -163,6 +163,42 @@ async function putRole(role: Role, details: AddRoleRequest) {
       return "name-taken";
     }
     return undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+// Someone else changed or removed the role first: say so and show what's current.
+async function showConflict() {
+  await loadRoles();
+  notice.value = "Someone else changed this role. Showing the latest roles.";
+}
+
+// Permanent (no history: roles link children to parts, ADR 0010), so confirm first.
+async function removeRole(role: Role) {
+  if (busy.value || !place.value) return;
+  const question = `Remove the role ${role.name} from ${place.value.item.title}? Anyone cast in it will be uncast.`;
+  if (!window.confirm(question)) return;
+  saving.value = true;
+  notice.value = "";
+  const status = await sendRemove(role);
+  saving.value = false;
+  if (status === 204) {
+    roles.value = roles.value.filter((r) => r.id !== role.id);
+    // Its buttons are gone, so keep keyboard focus on the page.
+    await nextTick();
+    addButton.value?.focus();
+  } else if (status === 409 || status === 404) {
+    await showConflict();
+  } else {
+    notice.value = `Couldn't remove ${role.name}. Try again.`;
+  }
+}
+
+// The status code, or undefined if the request didn't get an answer.
+async function sendRemove(role: Role) {
+  try {
+    return (await fetch(removeRolePath(role), { method: "DELETE" })).status;
   } catch {
     return undefined;
   }
@@ -298,6 +334,17 @@ async function postRole(itemId: string, details: AddRoleRequest) {
             @click="startEditing(role)"
           >
             Edit
+          </button>
+          {{ " " }}
+          <button
+            type="button"
+            class="row-action"
+            data-test="remove"
+            :aria-label="`Remove ${role.name}`"
+            :disabled="busy"
+            @click="removeRole(role)"
+          >
+            Remove
           </button>
         </template>
       </li>
