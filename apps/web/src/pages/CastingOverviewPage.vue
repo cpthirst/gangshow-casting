@@ -16,7 +16,9 @@ import { RUNNING_ORDER_PATH } from "../running-order.ts";
 
 const state = ref<
   { status: "loading" } | { status: "error" } | { status: "loaded"; cast: CastMember[] }
->({ status: "loading" });
+>({
+  status: "loading",
+});
 
 // Loaded separately from the cast: if the casting fails, the cast still shows, without
 // counts, and nobody is wrongly marked "No parts yet" (casting-overview FR8).
@@ -27,7 +29,7 @@ const parts = ref<Map<number, PartCounts> | "error">();
 const sections = computed(() => {
   if (state.value.status !== "loaded") return [];
   const counts = parts.value instanceof Map ? parts.value : undefined;
-  return castBySection(state.value.cast).map(({ key, label, members }) => ({
+  return castBySection(state.value.cast, counts).map(({ key, label, members }) => ({
     key,
     label,
     people: members.map((member) => ({ member, counts: counts?.get(member.id) })),
@@ -88,12 +90,7 @@ async function loadCast() {
       <!-- Cards like an item's role cards (casting-overview UI consistency). An explicit
            list role: Safari drops list semantics once bullets are styled away. -->
       <ul class="role-cards" role="list" :aria-labelledby="`section-${section.key}`">
-        <li
-          v-for="{ member, counts } in section.people"
-          :key="member.id"
-          class="role-card"
-          data-test="person"
-        >
+        <li v-for="{ member, counts } in section.people" :key="member.id" class="role-card" data-test="person">
           <span class="person-name role-name">{{ member.firstName }} {{ member.lastName }}</span>
           <template v-if="counts">
             <!-- Seen as pills; heard as "1 lead, 3 ensemble". -->
@@ -102,9 +99,9 @@ async function loadCast() {
                 v-for="{ size, count } in sizesHeld(counts)"
                 :key="size"
                 :class="['pill', `pill-${size}`]"
-                data-test="size"
-                >{{ roleSizeLabel(size) }} ×{{ count }}</span
-              >
+                data-test="size">
+                {{ roleSizeLabel(size) }} · {{ count }}
+              </span>
             </span>
             <span class="visually-hidden">{{ spokenParts(counts) }}</span>
           </template>

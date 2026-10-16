@@ -11,14 +11,18 @@ export interface OverviewSection {
 // Scouts, Explorers, Network, then anyone with no section (casting-overview FR1).
 const SECTION_ORDER = [...Section.options, null] as const;
 
-/** The cast grouped by section, empty sections left out. Each section is in surname
- *  order (casting-overview.E2.S2 orders it by casting score instead). */
-export function castBySection(members: CastMember[]): OverviewSection[] {
+/** The cast grouped by section, empty sections left out. Each section is ordered by
+ *  casting score once the parts are known (casting-overview FR3–FR5), else by surname. */
+export function castBySection(
+  members: CastMember[],
+  parts?: ReadonlyMap<number, PartCounts>,
+): OverviewSection[] {
+  const order = (group: CastMember[]) => (parts ? byCastingScore(group, parts) : sortCast(group));
   return SECTION_ORDER.map(
     (section): OverviewSection => ({
       key: section ?? "not-set",
       label: sectionLabel(section),
-      members: sortCast(members.filter((member) => member.section === section)),
+      members: order(members.filter((member) => member.section === section)),
     }),
   ).filter((group) => group.members.length > 0);
 }
@@ -66,3 +70,26 @@ export const spokenParts = (counts: PartCounts) =>
 /** The ids of the items in a saved running order: the only items whose roles count. */
 export const itemIdsInOrder = (order: RunningOrder) =>
   new Set(order.halves.flatMap((half) => half.items.map((item) => item.id)));
+
+/** Points per role, by size: one lead (8) outweighs two supports (6) or three cameos (6),
+ *  but three supports (9) outweigh one lead. Agreed in the casting-overview PRD (FR3). */
+const POINTS: Record<RoleSize, number> = { lead: 8, support: 3, cameo: 2, ensemble: 1 };
+
+/** A person's casting score: the points for every role they're in. Used only to order the
+ *  Overview, never shown. */
+export const castingScore = (counts: PartCounts) =>
+  RoleSize.options.reduce((score, size) => score + counts[size] * POINTS[size], 0);
+
+const totalRoles = (counts: PartCounts) =>
+  RoleSize.options.reduce((total, size) => total + counts[size], 0);
+
+/** Highest casting score first, then more roles, then surname order (FR3, FR4). People with
+ *  no parts score 0 with 0 roles, so they end up last (FR5). */
+function byCastingScore(members: CastMember[], parts: ReadonlyMap<number, PartCounts>) {
+  const countsOf = (member: CastMember) => parts.get(member.id) ?? noParts();
+  // Sorting is stable, so starting from surname order keeps it for equal scores and roles.
+  return sortCast(members).sort((a, b) => {
+    const [first, second] = [countsOf(a), countsOf(b)];
+    return castingScore(second) - castingScore(first) || totalRoles(second) - totalRoles(first);
+  });
+}

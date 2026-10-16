@@ -239,7 +239,7 @@ describe("Casting overview parts", () => {
 
     const wrapper = await openOverview();
 
-    expect(pills(wrapper, "Sam Example")).toEqual(["Lead ×1", "Ensemble ×3"]);
+    expect(pills(wrapper, "Sam Example")).toEqual(["Lead · 1", "Ensemble · 3"]);
   });
 
   it("uses the role cards' pills, biggest size first", async () => {
@@ -255,7 +255,7 @@ describe("Casting overview parts", () => {
 
     const wrapper = await openOverview();
 
-    expect(pills(wrapper, "Alex Sample")).toEqual(["Lead ×1", "Support ×1", "Cameo ×1"]);
+    expect(pills(wrapper, "Alex Sample")).toEqual(["Lead · 1", "Support · 1", "Cameo · 1"]);
     const classes = cardFor(wrapper, "Alex Sample")
       ?.findAll("[data-test=size]")
       .map((pill) => pill.classes().join(" "));
@@ -268,7 +268,7 @@ describe("Casting overview parts", () => {
 
     const wrapper = await openOverview();
 
-    expect(pills(wrapper, "Sam Example")).toEqual(["Lead ×1"]);
+    expect(pills(wrapper, "Sam Example")).toEqual(["Lead · 1"]);
   });
 
   it("marks someone in no roles, like Uncast on a role card", async () => {
@@ -332,5 +332,33 @@ describe("Casting overview parts", () => {
 
     expect(cardFor(wrapper, "Sam Example")?.text()).toContain("No parts yet");
     expect(wrapper.find("main [role=alert]").exists()).toBe(false);
+  });
+
+  it("orders each section by casting score, without showing the score", async () => {
+    // Score order differs from surname order, so a broken score sort fails.
+    const kit = person("Kit", "Abel", "scouts");
+    const sam = person("Sam", "Example", "scouts");
+    const zoe = person("Zoe", "Young", "scouts");
+    const jo = person("Jo", "Newcomer", "scouts");
+    theShowIs(
+      [jo, kit, sam, zoe],
+      [
+        role("pirate-sketch", "ensemble", [kit.id]),
+        role("pirate-sketch", "lead", [sam.id]),
+        role("pirate-sketch", "support", [zoe.id]),
+        role("campfire-song", "support", [zoe.id]),
+        role("campfire-song", "support", [zoe.id]),
+      ],
+    );
+
+    const wrapper = await openOverview();
+
+    expect(sections(wrapper)[0]?.people).toEqual([
+      "Zoe Young",
+      "Sam Example",
+      "Kit Abel",
+      "Jo Newcomer",
+    ]);
+    expect(cardFor(wrapper, "Sam Example")?.text()).not.toMatch(/\b8\b/);
   });
 });

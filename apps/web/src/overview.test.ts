@@ -1,6 +1,12 @@
 import type { CastMember, Role } from "@app/shared";
 import { describe, expect, it } from "vitest";
-import { castBySection, partsByMember, spokenParts } from "./overview.ts";
+import {
+  castBySection,
+  castingScore,
+  type PartCounts,
+  partsByMember,
+  spokenParts,
+} from "./overview.ts";
 
 // Made-up names only: tests never use the real cast (CLAUDE.md safeguarding).
 let nextId = 1;
@@ -106,5 +112,139 @@ describe("partsByMember", () => {
 describe("spokenParts", () => {
   it("reads the counts in words, biggest size first", () => {
     expect(spokenParts({ lead: 1, support: 0, cameo: 0, ensemble: 3 })).toBe("1 lead, 3 ensemble");
+  });
+});
+
+describe("castingScore", () => {
+  const counts = (over: Partial<PartCounts>): PartCounts => ({
+    lead: 0,
+    support: 0,
+    cameo: 0,
+    ensemble: 0,
+    ...over,
+  });
+
+  it.each([
+    [{ lead: 1 }, 8],
+    [{ support: 2 }, 6],
+    [{ cameo: 3 }, 6],
+    [{ support: 3 }, 9],
+    [{ ensemble: 4 }, 4],
+    [{ lead: 1, support: 1, cameo: 1, ensemble: 1 }, 14],
+  ])("scores %j as %i (lead 8, support 3, cameo 2, ensemble 1)", (over, score) => {
+    expect(castingScore(counts(over))).toBe(score);
+  });
+});
+
+describe("castBySection ordered by casting score", () => {
+  // Names are chosen so score order and surname order disagree: a broken score sort fails.
+  const scout = (firstName: string, lastName: string) => person(firstName, lastName, "scouts");
+  const names = (sections: ReturnType<typeof castBySection>) =>
+    sections.map(({ members }) => members.map((m) => `${m.firstName} ${m.lastName}`));
+  const parts = (entries: [CastMember, Partial<PartCounts>][]) =>
+    new Map(
+      entries.map(([member, over]) => [
+        member.id,
+        { lead: 0, support: 0, cameo: 0, ensemble: 0, ...over },
+      ]),
+    );
+
+  it("puts the highest score first", () => {
+    const kit = scout("Kit", "Abel");
+    const sam = scout("Sam", "Example");
+    const zoe = scout("Zoe", "Young");
+
+    const sections = castBySection(
+      [kit, sam, zoe],
+      parts([
+        [kit, { ensemble: 4 }],
+        [sam, { lead: 1 }],
+        [zoe, { support: 3 }],
+      ]),
+    );
+
+    expect(names(sections)).toEqual([["Zoe Young", "Sam Example", "Kit Abel"]]);
+  });
+
+  it("puts one lead above two supports or three cameos", () => {
+    const sam = scout("Sam", "Young");
+    const alex = scout("Alex", "Abel");
+    const ben = scout("Ben", "Carter");
+
+    const sections = castBySection(
+      [alex, ben, sam],
+      parts([
+        [sam, { lead: 1 }],
+        [alex, { support: 2 }],
+        [ben, { cameo: 3 }],
+      ]),
+    );
+
+    expect(names(sections)[0]?.[0]).toBe("Sam Young");
+  });
+
+  it("breaks a tied score by total roles, more first", () => {
+    const ann = scout("Ann", "Adams");
+    const ben = scout("Ben", "Young");
+
+    const sections = castBySection(
+      [ann, ben],
+      parts([
+        [ann, { support: 2 }],
+        [ben, { cameo: 3 }],
+      ]),
+    );
+
+    expect(names(sections)).toEqual([["Ben Young", "Ann Adams"]]);
+  });
+
+  it("then by last name and first name", () => {
+    const amy = scout("Amy", "Carter");
+    const zoe = scout("Zoe", "Adams");
+    const ben = scout("Ben", "Carter");
+
+    const sections = castBySection(
+      [ben, amy, zoe],
+      parts([
+        [amy, { lead: 1 }],
+        [zoe, { lead: 1 }],
+        [ben, { lead: 1 }],
+      ]),
+    );
+
+    expect(names(sections)).toEqual([["Zoe Adams", "Amy Carter", "Ben Carter"]]);
+  });
+
+  it("puts people with no parts at the bottom", () => {
+    const jo = scout("Jo", "Adams");
+    const sam = scout("Sam", "Example");
+
+    const sections = castBySection([jo, sam], parts([[sam, { ensemble: 1 }]]));
+
+    expect(names(sections)).toEqual([["Sam Example", "Jo Adams"]]);
+  });
+
+  it("orders each section on its own, keeping the sections' order", () => {
+    const samAdams = scout("Sam", "Adams");
+    const zoeZulu = scout("Zoe", "Zulu");
+    const alexAbbott = person("Alex", "Abbott", "explorers");
+    const kimYoung = person("Kim", "Young", "explorers");
+
+    const sections = castBySection(
+      [kimYoung, samAdams, alexAbbott, zoeZulu],
+      parts([
+        [samAdams, { ensemble: 1 }],
+        [zoeZulu, { lead: 1 }],
+        [alexAbbott, { cameo: 1 }],
+        // Outscores every Scout, but is only ordered among the Explorers.
+        [kimYoung, { lead: 3 }],
+      ]),
+    );
+
+    expect(sections.map(({ label }) => label)).toEqual(["Scouts", "Explorers"]);
+    expect(names(sections)).toEqual([
+      ["Zoe Zulu", "Sam Adams"],
+      ["Kim Young", "Alex Abbott"],
+    ]);
   });
 });

@@ -2,7 +2,7 @@
 id: casting-overview.E2.S2
 title: Order each section by casting score
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story
