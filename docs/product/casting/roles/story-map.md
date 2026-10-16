@@ -13,6 +13,7 @@ prd: ./prd.md
 | E1 | Add roles to an item | FR1, FR2, FR3, FR8, FR10 |
 | E2 | Change and remove roles | FR4, FR5, FR6, FR7, FR8 |
 | E3 | Keep casting in step with the cast list | FR9 |
+| E4 | Fill an ensemble quickly | FR11 |
 
 ## E1: Add roles to an item
 
@@ -36,6 +37,12 @@ prd: ./prd.md
 |---|---|---|---|---|
 | [casting-roles.E3.S1](stories/E3-S1-deleted-member-leaves-roles.md) | Deleting a cast member removes them from every role | FR9 | E1.S3 | done |
 
+## E4: Fill an ensemble quickly
+
+| ID | Story | FRs | Depends on | Status |
+|---|---|---|---|---|
+| [casting-roles.E4.S1](stories/E4-S1-add-all-cast.md) | An "Add all cast" button, beside the members when adding or editing an ensemble, fills it with everyone not already in a role in this item; Save commits, no checks | FR11 | E2.S2 | done |
+
 ## FR coverage
 
 | FR | Stories |
@@ -50,6 +57,7 @@ prd: ./prd.md
 | FR8 | E1.S1 (saves straight away), E2.S1 and E2.S3 (stale changes refused) |
 | FR9 | E3.S1 |
 | FR10 | E1.S3 |
+| FR11 | E4.S1 |
 
 ## Notes
 

@@ -1,4 +1,5 @@
-import { AddRoleRequest, type Role, RoleSize, sameRoleName } from "@app/shared";
+import { AddRoleRequest, type CastMember, type Role, RoleSize, sameRoleName } from "@app/shared";
+import { sortCast } from "./cast.ts";
 
 // Only one production for now (see docs/product/running-order/prd.md).
 const PRODUCTION_ID = "2027";
@@ -99,6 +100,10 @@ export function roleDetailsFrom(form: RoleForm, taken: TakenNames): RoleFormResu
     if (issue.path[0] === "size") errors.size = "Choose a role size";
     // Only an ensemble holds several people (PRD FR6).
     const singleSize = form.size !== "" && form.size !== "ensemble" ? form.size : undefined;
+    // Add All Cast can fill an ensemble past the shared limit on a big cast (FR11).
+    if (issue.path[0] === "castMemberIds" && !singleSize && issue.code === "too_big") {
+      errors.castMember = "An ensemble can hold up to 200 people. Remove some to save it.";
+    }
     if (issue.path[0] === "castMemberIds" && singleSize && (members?.length ?? 0) > 1) {
       errors.size = `Leave one person in this ensemble before making it a ${roleSizeLabel(singleSize)} role`;
     }
@@ -119,3 +124,15 @@ export function roleCounts(roles: Role[], itemId: string) {
 /** "5 roles, 3 cast": the counts as a screen reader should hear them. */
 export const spokenCounts = ({ total, cast }: { total: number; cast: number }) =>
   `${total} role${total === 1 ? "" : "s"}, ${cast} cast`;
+
+/** Who "Add All Cast" puts in an ensemble (casting-roles FR11): everyone on the cast list who
+ *  isn't in another role in the item, nor already in the ensemble, in surname order. Parts
+ *  in other items don't matter, and no casting rules are checked. */
+export const remainingCast = (
+  cast: CastMember[],
+  inOtherRoles: readonly number[],
+  inEnsemble: readonly number[],
+) =>
+  sortCast(cast)
+    .map((member) => member.id)
+    .filter((id) => !inOtherRoles.includes(id) && !inEnsemble.includes(id));

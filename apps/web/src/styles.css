@@ -634,13 +634,17 @@ main a {
   height: 1.25rem;
 }
 
+/* Buttons wrap onto another row on a narrow screen rather than squashing their labels. */
 .editor-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.75rem;
   grid-column: 1 / -1;
 }
 
-.editor-actions button {
+.editor-actions button,
+.add-all-cast button {
+  white-space: nowrap;
   padding: 0.5rem 1.25rem;
   border: 2px solid var(--text);
   border-radius: 999px;
@@ -816,6 +820,29 @@ main a {
 }
 
 .cast-member-form .editor-actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Add all cast sits above the member search and list, not among Save and Cancel. */
+.add-all-cast {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.75rem;
+  margin: 0 0 0.75rem;
+}
+
+.members-block {
+  margin-top: 0.75rem;
+}
+
+.add-all-cast .hint {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.cast-member-form .add-all-cast button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }

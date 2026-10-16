@@ -1676,3 +1676,238 @@ describe("Clashes on an item's page", () => {
     expect(wrapper.find("[data-test=clash]").exists()).toBe(false);
   });
 });
+
+describe("Add All Cast", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.body.innerHTML = "";
+  });
+
+  type Page = Awaited<ReturnType<typeof openAppAt>>["wrapper"];
+
+  // Pirate Sketch: Captain Hook (lead, Sam) and the Pirates ensemble (Alex). The cast list is
+  // Sam Example, Alex Sample, Jo Newcomer and Zoë Adams.
+  const pirateSketch = () => [
+    { ...aRole("pirate-sketch", "Captain Hook", "lead"), id: 1, castMemberIds: [12] },
+    { ...aRole("pirate-sketch", "Pirates", "ensemble"), id: 2, castMemberIds: [13] },
+  ];
+  const formFor = (wrapper: Page, label: string) => wrapper.get(`form[aria-label='${label}']`);
+  const addAllCast = (wrapper: Page, label: string) =>
+    formFor(wrapper, label).find("button[data-test=add-all-cast]");
+  const members = (wrapper: Page, label: string) =>
+    formFor(wrapper, label)
+      .findAll("[data-test=member] .member-name")
+      .map((name) => name.text());
+  const castOn = (wrapper: Page, roleName: string) =>
+    wrapper
+      .findAll("[data-test=role]")
+      .find((card) => card.find(".role-name").text() === roleName)
+      ?.find("[data-test=cast]")
+      .text();
+
+  async function open(roles: Role[] = pirateSketch()) {
+    savedRunningOrderIs(show, roles);
+    return (await openAppAt("/casting/items/pirate-sketch")).wrapper;
+  }
+
+  async function editRole(wrapper: Page, name: string) {
+    await wrapper.get(`button[aria-label='Edit ${name}']`).trigger("click");
+    await flushPromises();
+  }
+
+  it("is offered beside the members when editing an ensemble, not among Save and Cancel", async () => {
+    const wrapper = await open();
+    await editRole(wrapper, "Pirates");
+
+    const form = formFor(wrapper, "Edit Pirates");
+    expect(form.get("button[data-test=add-all-cast]").text()).toBe("Add all cast");
+    expect(form.findAll(".editor-actions button").map((button) => button.text())).toEqual([
+      "Save",
+      "Cancel",
+    ]);
+  });
+
+  it("puts Add all cast and the member search above the Members heading", async () => {
+    const wrapper = await open();
+    await editRole(wrapper, "Pirates");
+    const form = formFor(wrapper, "Edit Pirates").element;
+
+    const heading = [...form.querySelectorAll(".field-label")].find(
+      (label) => label.textContent === "Members",
+    );
+    const button = form.querySelector("[data-test=add-all-cast]");
+    const search = form.querySelector("input[name=castMember]");
+    // compareDocumentPosition sets FOLLOWING when the heading comes after the element.
+    for (const element of [button, search]) {
+      expect(heading && element?.compareDocumentPosition(heading)).toBe(
+        Node.DOCUMENT_POSITION_FOLLOWING,
+      );
+    }
+  });
+
+  it("isn't offered for a lead, support or cameo", async () => {
+    const wrapper = await open();
+    await editRole(wrapper, "Captain Hook");
+
+    expect(addAllCast(wrapper, "Edit Captain Hook").exists()).toBe(false);
+  });
+
+  it("is offered when adding a role once Ensemble is chosen, and only then", async () => {
+    const wrapper = await open();
+    await wrapper.get("button[data-test=add-role]").trigger("click");
+    await flushPromises();
+    const size = formFor(wrapper, "Add role").get("select[name=size]");
+
+    await size.setValue("ensemble");
+    expect(addAllCast(wrapper, "Add role").exists()).toBe(true);
+    await size.setValue("lead");
+    expect(addAllCast(wrapper, "Add role").exists()).toBe(false);
+  });
+
+  it("adds everyone not already in a role in this item", async () => {
+    const wrapper = await open();
+    await editRole(wrapper, "Pirates");
+
+    await addAllCast(wrapper, "Edit Pirates").trigger("click");
+
+    // Sam is Captain Hook, so isn't added; Alex was already in.
+    expect(members(wrapper, "Edit Pirates")).toEqual(["Zoë Adams", "Jo Newcomer", "Alex Sample"]);
+  });
+
+  it("adds people whatever their parts in other items", async () => {
+    const wrapper = await open([
+      ...pirateSketch(),
+      { ...aRole("opening-number", "Narrator", "lead"), id: 3, castMemberIds: [14] },
+    ]);
+    await editRole(wrapper, "Pirates");
+
+    await addAllCast(wrapper, "Edit Pirates").trigger("click");
+
+    expect(members(wrapper, "Edit Pirates")).toContain("Jo Newcomer");
+  });
+
+  it("saves nothing until Save: Cancel leaves the ensemble as it was", async () => {
+    const wrapper = await open();
+    await editRole(wrapper, "Pirates");
+
+    await addAllCast(wrapper, "Edit Pirates").trigger("click");
+    await formFor(wrapper, "Edit Pirates").get("[data-test=cancel]").trigger("click");
+    await flushPromises();
+
+    expect(castOn(wrapper, "Pirates")).toBe("Alex Sample");
+  });
+
+  it("lets people be removed before saving", async () => {
+    const wrapper = await open();
+    await editRole(wrapper, "Pirates");
+
+    await addAllCast(wrapper, "Edit Pirates").trigger("click");
+    await formFor(wrapper, "Edit Pirates")
+      .get("button[aria-label='Remove Zoë Adams from Pirates']")
+      .trigger("click");
+    await formFor(wrapper, "Edit Pirates").trigger("submit");
+    await flushPromises();
+
+    expect(castOn(wrapper, "Pirates")).toBe("Jo Newcomer, Alex Sample");
+  });
+
+  it("fills a new ensemble the same way", async () => {
+    const wrapper = await open();
+    await wrapper.get("button[data-test=add-role]").trigger("click");
+    await flushPromises();
+    const add = formFor(wrapper, "Add role");
+    await add.get("input[name=name]").setValue("Crowd");
+    await add.get("select[name=size]").setValue("ensemble");
+
+    await addAllCast(wrapper, "Add role").trigger("click");
+    await add.trigger("submit");
+    await flushPromises();
+
+    // Sam and Alex are already in Captain Hook and Pirates.
+    expect(castOn(wrapper, "Crowd")).toBe("Zoë Adams, Jo Newcomer");
+  });
+
+  it("can't be pressed, and says why, when everyone is already in a role in this item", async () => {
+    const wrapper = await open([
+      ...pirateSketch(),
+      { ...aRole("pirate-sketch", "Parrots", "ensemble"), id: 3, castMemberIds: [14, 15] },
+    ]);
+    await editRole(wrapper, "Pirates");
+
+    const button = addAllCast(wrapper, "Edit Pirates");
+    expect(button.attributes("disabled")).toBeDefined();
+    const hint = formFor(wrapper, "Edit Pirates").get("[data-test=add-all-cast-hint]");
+    expect(hint.text()).toBe("Everyone is already in a role in this item");
+    expect(button.attributes("aria-describedby")).toBe(hint.attributes("id"));
+  });
+
+  it("shows the members list as soon as Ensemble is chosen when adding a role", async () => {
+    const wrapper = await open();
+    await wrapper.get("button[data-test=add-role]").trigger("click");
+    await flushPromises();
+    const add = formFor(wrapper, "Add role");
+
+    await add.get("select[name=size]").setValue("ensemble");
+
+    expect(add.find("[data-test=members]").exists()).toBe(true);
+    expect(add.text()).toContain("Add a member");
+  });
+
+  it("goes back to one cast member when a one-person ensemble is made a lead", async () => {
+    const wrapper = await open();
+    await wrapper.get("button[data-test=add-role]").trigger("click");
+    await flushPromises();
+    const add = formFor(wrapper, "Add role");
+    await add.get("input[name=name]").setValue("Bosun");
+    const size = add.get("select[name=size]");
+    await size.setValue("ensemble");
+    const search = add.get("input[name=castMember]");
+    await search.setValue("newcomer");
+    await search.trigger("keydown", { key: "ArrowDown" });
+    await search.trigger("keydown", { key: "Enter" });
+
+    await size.setValue("lead");
+    expect(add.find("[data-test=members]").exists()).toBe(false);
+    await add.trigger("submit");
+    await flushPromises();
+
+    expect(castOn(wrapper, "Bosun")).toBe("Jo Newcomer");
+  });
+
+  it("explains, rather than saving, a filled ensemble made a lead", async () => {
+    const wrapper = await open();
+    await wrapper.get("button[data-test=add-role]").trigger("click");
+    await flushPromises();
+    const add = formFor(wrapper, "Add role");
+    await add.get("input[name=name]").setValue("Crowd");
+    const size = add.get("select[name=size]");
+    await size.setValue("ensemble");
+    await addAllCast(wrapper, "Add role").trigger("click");
+
+    await size.setValue("lead");
+    await add.trigger("submit");
+    await flushPromises();
+
+    expect(add.text()).toContain("Leave one person in this ensemble before making it a Lead role");
+    expect(castOn(wrapper, "Crowd")).toBeUndefined();
+  });
+
+  it("checks no casting rules: the save goes through, and clashes show as usual", async () => {
+    // Jo is a lead in Opening Number, straight before Pirate Sketch.
+    const wrapper = await open([
+      ...pirateSketch(),
+      { ...aRole("opening-number", "Narrator", "lead"), id: 3, castMemberIds: [14] },
+    ]);
+    await editRole(wrapper, "Pirates");
+
+    await addAllCast(wrapper, "Edit Pirates").trigger("click");
+    await formFor(wrapper, "Edit Pirates").trigger("submit");
+    await flushPromises();
+
+    expect(castOn(wrapper, "Pirates")).toContain("Jo Newcomer");
+    const jo = wrapper
+      .findAll("[data-test=cast-name]")
+      .find((name) => name.text().startsWith("Jo Newcomer"));
+    expect(jo?.find("[data-test=clash]").exists()).toBe(true);
+  });
+});

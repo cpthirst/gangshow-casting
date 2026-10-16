@@ -50,6 +50,10 @@ const place = computed(() => {
 // (casting-rules FR1).
 const clashes = computed(() => (order.value ? findClashes(order.value, roles.value) : []));
 
+/** Who's in this item's roles other than one, for Add All Cast (casting-roles FR11). */
+const inOtherRoles = (roleId?: number) =>
+  itemRoles.value.filter((role) => role.id !== roleId).flatMap((role) => role.castMemberIds);
+
 const clashesHere = (member: CastMember, itemId: string) =>
   describeEach(clashesOf(clashes.value, member.id, itemId));
 
@@ -325,6 +329,7 @@ async function postRole(itemId: string, details: AddRoleRequest) {
       :error="formError"
       :taken="takenNames"
       :cast="cast"
+      :in-other-roles="inOtherRoles()"
       @save="add"
       @cancel="stopAdding"
     />
@@ -347,6 +352,7 @@ async function postRole(itemId: string, details: AddRoleRequest) {
           :error="formError"
           :taken="takenNames"
           :cast="cast"
+          :in-other-roles="inOtherRoles(role.id)"
           @save="saveEdit"
           @cancel="stopEditing(role.id)"
         />

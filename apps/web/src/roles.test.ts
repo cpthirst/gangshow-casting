@@ -1,6 +1,6 @@
-import type { Role } from "@app/shared";
+import type { CastMember, Role } from "@app/shared";
 import { describe, expect, it } from "vitest";
-import { roleDetailsFrom, roleSizeLabel, sortRoles } from "./roles.ts";
+import { remainingCast, roleDetailsFrom, roleSizeLabel, sortRoles } from "./roles.ts";
 
 const noneTaken = { itemTitle: "Pirate Sketch", names: [] };
 const nobody = { query: "", id: null };
@@ -171,5 +171,45 @@ describe("roleDetailsFrom for an ensemble's members", () => {
       ok: true,
       details: { size: "cameo", castMemberIds: [12] },
     });
+  });
+});
+
+describe("roleDetailsFrom for a very big ensemble", () => {
+  it("explains that an ensemble holds at most 200 people", () => {
+    const members = Array.from({ length: 201 }, (_, i) => i + 1);
+
+    expect(
+      roleDetailsFrom({ name: "Crowd", size: "ensemble", castMember: nobody, members }, noneTaken),
+    ).toEqual({
+      ok: false,
+      errors: { castMember: "An ensemble can hold up to 200 people. Remove some to save it." },
+    });
+  });
+});
+
+describe("remainingCast", () => {
+  // Made-up names only (CLAUDE.md safeguarding).
+  const member = (id: number, firstName: string, lastName: string): CastMember => ({
+    id,
+    firstName,
+    lastName,
+    section: null,
+    group: "",
+    revision: 1,
+  });
+  const cast = [
+    member(1, "Sam", "Example"),
+    member(2, "Alex", "Sample"),
+    member(3, "Jo", "Newcomer"),
+    member(4, "Zoë", "Adams"),
+  ];
+
+  it("is everyone not in another role in the item, nor already in the ensemble", () => {
+    // Sam is in another role; Alex is already in the ensemble.
+    expect(remainingCast(cast, [1], [2])).toEqual([4, 3]);
+  });
+
+  it("is nobody when everyone is already in a role in the item", () => {
+    expect(remainingCast(cast, [1, 2], [3, 4])).toEqual([]);
   });
 });
