@@ -2,6 +2,7 @@
 import { CastList, CastMember, type CastMemberDetails } from "@app/shared";
 import { computed, nextTick, onMounted, ref, useId } from "vue";
 import {
+  CAST_PATH,
   type CastFilters,
   filterCast,
   hasFilters,
@@ -11,10 +12,6 @@ import {
   sortCast,
 } from "../cast.ts";
 import CastMemberForm from "./CastMemberForm.vue";
-
-// Only one production for now (see docs/product/cast-management/prd.md).
-const PRODUCTION_ID = "2027";
-const API_PATH = `/api/productions/${PRODUCTION_ID}/cast`;
 
 type State =
   | { status: "loading" }
@@ -153,7 +150,7 @@ async function putMember(
   details: CastMemberDetails,
 ): Promise<CastMember | "saved" | "conflict" | "failed"> {
   try {
-    const res = await fetch(`${API_PATH}/${member.id}`, {
+    const res = await fetch(`${CAST_PATH}/${member.id}`, {
       method: "PUT",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ ...details, revision: member.revision }),
@@ -196,7 +193,7 @@ async function deleteMember(member: CastMember) {
 // The status code, or undefined if the request didn't get an answer.
 async function sendDelete(member: CastMember) {
   try {
-    const url = `${API_PATH}/${member.id}?revision=${member.revision}`;
+    const url = `${CAST_PATH}/${member.id}?revision=${member.revision}`;
     return (await fetch(url, { method: "DELETE" })).status;
   } catch {
     return undefined;
@@ -206,7 +203,7 @@ async function sendDelete(member: CastMember) {
 // 201 → the saved member (or "saved" if its reply can't be read); anything else failed.
 async function postMember(details: CastMemberDetails): Promise<CastMember | "saved" | "failed"> {
   try {
-    const res = await fetch(API_PATH, {
+    const res = await fetch(CAST_PATH, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(details),
@@ -221,7 +218,7 @@ async function postMember(details: CastMemberDetails): Promise<CastMember | "sav
 
 async function load() {
   try {
-    const res = await fetch(API_PATH);
+    const res = await fetch(CAST_PATH);
     if (res.status === 404) {
       state.value = { status: "empty" };
       return;

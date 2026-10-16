@@ -5,7 +5,7 @@ import type { AddRoleRequest, Role } from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { fileRoleStore, inMemoryRoleStore } from "./role-store.ts";
 
-const hook: AddRoleRequest = { name: "Captain Hook", size: "lead" };
+const hook: AddRoleRequest = { name: "Captain Hook", size: "lead", castMemberIds: [] };
 let dataDirForNames: string;
 
 /** The added role, failing the test if the name was refused. */
@@ -53,6 +53,19 @@ describe("in-memory role store", () => {
   });
 });
 
+describe("role store casting", () => {
+  it("keeps the cast member ids a new role is given", async () => {
+    const store = inMemoryRoleStore();
+
+    const added = roleFrom(
+      await store.add("2027", "pirate-sketch", { ...hook, castMemberIds: [12] }),
+    );
+
+    expect(added.castMemberIds).toEqual([12]);
+    expect((await store.list("2027")).roles[0]?.castMemberIds).toEqual([12]);
+  });
+});
+
 describe("file role store", () => {
   let dataDir: string;
   const rolesFile = (productionId = "2027") => join(dataDir, productionId, "roles.json");
@@ -97,7 +110,7 @@ describe("file role store", () => {
 
     const [a, b] = await Promise.all([
       store.add("2027", "pirate-sketch", hook),
-      store.add("2027", "pirate-sketch", { name: "Smee", size: "support" }),
+      store.add("2027", "pirate-sketch", { name: "Smee", size: "support", castMemberIds: [] }),
     ]);
 
     expect(roleFrom(a).id).not.toBe(roleFrom(b).id);
@@ -133,16 +146,28 @@ describe.each([
     await store.add("2027", "pirate-sketch", hook);
 
     expect(
-      await store.add("2027", "pirate-sketch", { name: " captain HOOK ", size: "cameo" }),
+      await store.add("2027", "pirate-sketch", {
+        name: " captain HOOK ",
+        size: "cameo",
+        castMemberIds: [],
+      }),
     ).toBe("name-taken");
     expect((await store.list("2027")).roles).toHaveLength(1);
   });
 
   it("allows the same name in a different item", async () => {
     const store = makeStore();
-    await store.add("2027", "pirate-sketch", { name: "Narrator", size: "support" });
+    await store.add("2027", "pirate-sketch", {
+      name: "Narrator",
+      size: "support",
+      castMemberIds: [],
+    });
 
-    const added = await store.add("2027", "campfire-song", { name: "Narrator", size: "support" });
+    const added = await store.add("2027", "campfire-song", {
+      name: "Narrator",
+      size: "support",
+      castMemberIds: [],
+    });
 
     expect(added).toMatchObject({ itemId: "campfire-song", name: "Narrator" });
   });

@@ -23,11 +23,25 @@ export const Role = z.strictObject({
   revision: z.number().int().positive(),
 });
 
+/** Lead, support and cameo parts are played by one person; an ensemble by many. */
+const fitsSize = ({ size, castMemberIds }: { size: RoleSize; castMemberIds: number[] }) =>
+  size === "ensemble" || castMemberIds.length <= 1;
+
+const noRepeats = (ids: number[]) => new Set(ids).size === ids.length;
+
 /**
- * POST /api/productions/{productionId}/items/{itemId}/roles: a new, uncast role.
- * 201 returns the Role; 404 if the item isn't in the latest saved running order.
+ * POST /api/productions/{productionId}/items/{itemId}/roles: a new role, uncast unless
+ * cast member ids are given (each a member of this production's cast).
+ * 201 returns the Role; 400 for an invalid role or unknown cast member; 404 if the item
+ * isn't in the latest saved running order.
  */
-export const AddRoleRequest = Role.pick({ name: true, size: true });
+export const AddRoleRequest = Role.pick({ name: true, size: true })
+  .extend({ castMemberIds: Role.shape.castMemberIds.default([]) })
+  .refine(fitsSize, { path: ["castMemberIds"], message: "Only an ensemble has several people" })
+  .refine(({ castMemberIds }) => noRepeats(castMemberIds), {
+    path: ["castMemberIds"],
+    message: "Someone is listed twice",
+  });
 
 /** 400 from adding a role: the item already has a role with that name. */
 export const AddRoleRefusal = z.strictObject({ error: z.literal("name-taken") });

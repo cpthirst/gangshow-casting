@@ -1,12 +1,14 @@
 import { type AddRoleRefusal, AddRoleRequest, ProductionId } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
+import type { CastStore } from "./cast-store.ts";
 import type { ApiEvent } from "./handler.ts";
 import { parseJson } from "./json.ts";
 import type { RoleStore } from "./role-store.ts";
 import type { RunningOrderStore } from "./running-order-store.ts";
 
-// POST /api/productions/{productionId}/items/{itemId}/roles: add an uncast role to an item.
-export function createAddRole(roles: RoleStore, runningOrders: RunningOrderStore) {
+// POST /api/productions/{productionId}/items/{itemId}/roles: add a role to an item,
+// optionally casting members of this production's cast in it.
+export function createAddRole(roles: RoleStore, runningOrders: RunningOrderStore, cast: CastStore) {
   return async (event: ApiEvent): Promise<APIGatewayProxyStructuredResultV2> => {
     const productionId = ProductionId.safeParse(event.pathParameters?.productionId);
     const itemId = event.pathParameters?.itemId;
@@ -20,6 +22,11 @@ export function createAddRole(roles: RoleStore, runningOrders: RunningOrderStore
     const order = await runningOrders.latest(productionId.data);
     const inShow = order?.halves.some((half) => half.items.some((item) => item.id === itemId));
     if (!inShow) return { statusCode: 404 };
+
+    // Only people on this production's cast list can be cast.
+    const members = (await cast.list(productionId.data))?.members ?? [];
+    const known = new Set(members.map((member) => member.id));
+    if (!details.data.castMemberIds.every((id) => known.has(id))) return { statusCode: 400 };
 
     const role = await roles.add(productionId.data, itemId, details.data);
     if (role === "name-taken") {

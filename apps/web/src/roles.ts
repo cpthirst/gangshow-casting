@@ -31,10 +31,17 @@ export const sortRoles = (roles: Role[]) =>
       a.name.localeCompare(b.name, "en", { sensitivity: "base" }),
   );
 
+/** The cast member field: what's typed, and who was chosen from the list (if anyone). */
+export interface CastMemberChoice {
+  query: string;
+  id: number | null;
+}
+
 /** The add-role form's fields, as typed. A blank size means none chosen yet. */
 export interface RoleForm {
   name: string;
   size: RoleSize | "";
+  castMember: CastMemberChoice;
 }
 
 export type RoleFormResult =
@@ -53,16 +60,25 @@ export const nameTakenMessage = (itemTitle: string, name: string) =>
 /** The role the form describes, or a message for each field that needs fixing.
  *  Limits come from the shared schema, so the page and the API agree. */
 export function roleDetailsFrom(form: RoleForm, taken: TakenNames): RoleFormResult {
-  const parsed = AddRoleRequest.safeParse(form);
+  const { castMember } = form;
+  const parsed = AddRoleRequest.safeParse({
+    name: form.name,
+    size: form.size,
+    castMemberIds: castMember.id === null ? [] : [castMember.id],
+  });
+  const errors: Partial<Record<keyof RoleForm, string>> = {};
+  // Typed but not chosen: the text alone doesn't say who, so it isn't guessed.
+  if (castMember.id === null && castMember.query.trim() !== "") {
+    errors.castMember = "Choose a cast member from the list, or clear the field";
+  }
   if (parsed.success) {
     const existing = taken.names.find((name) => sameRoleName(name, parsed.data.name));
-    if (existing) {
-      return { ok: false, errors: { name: nameTakenMessage(taken.itemTitle, existing) } };
-    }
-    return { ok: true, details: parsed.data };
+    if (existing) errors.name = nameTakenMessage(taken.itemTitle, existing);
+    return Object.keys(errors).length > 0
+      ? { ok: false, errors }
+      : { ok: true, details: parsed.data };
   }
 
-  const errors: Partial<Record<keyof RoleForm, string>> = {};
   for (const issue of parsed.error.issues) {
     if (issue.path[0] === "name") {
       errors.name =

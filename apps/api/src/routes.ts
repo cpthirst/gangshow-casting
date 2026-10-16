@@ -30,7 +30,11 @@ export const routes: Record<string, Handler> = {
   "PUT /api/productions/{productionId}/cast/{castId}": createUpdateCastMember(cast),
   "DELETE /api/productions/{productionId}/cast/{castId}": createDeleteCastMember(cast),
   "GET /api/productions/{productionId}/roles": createGetRoles(roles),
-  "POST /api/productions/{productionId}/items/{itemId}/roles": createAddRole(roles, runningOrders),
+  "POST /api/productions/{productionId}/items/{itemId}/roles": createAddRole(
+    roles,
+    runningOrders,
+    cast,
+  ),
 };
 
 /** Finds the handler for a request, as API Gateway would, with any path parameters. */
