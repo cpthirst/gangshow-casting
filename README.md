@@ -267,3 +267,7 @@ Two process lessons recur throughout. First, **watch every check fail once befor
 This repo was created from the [dev-project-template-opinionated-harness](https://github.com/cpthirst/dev-project-template-opinionated-harness) template. "The journey so far" above records how that harness was built. The example walking-skeleton story lives in `docs/product/platform/`.
 
 New casting features start with the `write-prd` skill.
+
+## Credits
+
+The web app's icons are from [Font Awesome Free](https://fontawesome.com) by Fonticons, Inc., licensed under [CC BY 4.0](https://fontawesome.com/license/free) (icons) and MIT (code). See ADR 0013.

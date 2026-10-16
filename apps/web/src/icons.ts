@@ -9,6 +9,7 @@ import {
   faChevronRight,
   faCircleInfo,
   faGripVertical,
+  faList,
   faPen,
   faSquareXmark,
   faTrashCan,
@@ -24,6 +25,7 @@ export const icons = {
   moveUp: faArrowUp,
   moveDown: faArrowDown,
   moveToOtherHalf: faArrowRightArrowLeft,
+  allItems: faList,
   back: faChevronLeft,
   forward: faChevronRight,
   // A different shape for each clash severity, so it never relies on colour alone.

@@ -182,14 +182,14 @@ describe("Casting item page", () => {
       href: link.attributes("href"),
     }));
 
-  it("marks All items, Previous and Next with chevrons screen readers skip", async () => {
+  it("shows a list icon on All items and chevrons on Previous and Next, all decorative", async () => {
     savedRunningOrderIs(show);
     const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
 
     const icons = wrapper
       .findAll("main nav[aria-label='Item navigation'] a")
       .map((link) => link.get("svg[aria-hidden=true]").attributes("data-icon"));
-    expect(icons).toEqual(["chevron-left", "chevron-left", "chevron-right"]);
+    expect(icons).toEqual(["list", "chevron-left", "chevron-right"]);
   });
 
   it("links to the previous and next items, named by title", async () => {

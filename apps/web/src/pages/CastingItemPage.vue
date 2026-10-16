@@ -275,9 +275,9 @@ async function postRole(itemId: string, details: AddRoleRequest) {
 
 <template>
   <nav class="step-nav" aria-label="Item navigation">
-    <RouterLink :to="{ name: 'casting-items' }" class="back-link"
-      ><FontAwesomeIcon :icon="icons.back" /> All items</RouterLink
-    >
+    <RouterLink :to="{ name: 'casting-items' }" class="back-link">
+      <span class="step-label"><FontAwesomeIcon :icon="icons.allItems" /> All items</span>
+    </RouterLink>
     <RouterLink
       v-if="neighbours.previous"
       :to="{ name: 'casting-item', params: { itemId: neighbours.previous.id } }"
