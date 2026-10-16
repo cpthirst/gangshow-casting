@@ -1163,3 +1163,59 @@ describe("Ensemble members", () => {
     expect(castOnCard(wrapper)).toBe("Sam Example");
   });
 });
+
+describe("Role card buttons", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.body.innerHTML = "";
+  });
+
+  it("puts the icons first on each card, like the Running order and Items pages", async () => {
+    savedRunningOrderIs(show, [{ ...aRole("pirate-sketch", "Parrot", "cameo"), id: 3 }]);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    const first = wrapper.get("[data-test=role] > *");
+    expect(first.classes()).toContain("role-actions");
+    expect(first.find("button[aria-label='Edit Parrot']").exists()).toBe(true);
+  });
+
+  it("puts each ensemble member's remove icon before their name", async () => {
+    savedRunningOrderIs(show, [
+      { ...aRole("pirate-sketch", "Pirates", "ensemble"), id: 9, castMemberIds: [12] },
+    ]);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+    await wrapper.get("button[aria-label='Edit Pirates']").trigger("click");
+    await flushPromises();
+
+    const member = wrapper.get("[data-test=member]");
+    expect(member.get(":scope > *").element.tagName).toBe("BUTTON");
+  });
+
+  it("uses icon buttons like the Running order, each named and explained", async () => {
+    savedRunningOrderIs(show, [{ ...aRole("pirate-sketch", "Parrot", "cameo"), id: 3 }]);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    const edit = wrapper.get("button[aria-label='Edit Parrot']");
+    const remove = wrapper.get("button[aria-label='Remove Parrot']");
+    expect(edit.classes()).toContain("icon-button");
+    expect(edit.text()).toBe("✎");
+    expect(edit.attributes("data-tooltip")).toBe("Edit role");
+    expect(remove.classes()).toContain("icon-button");
+    expect(remove.find("svg[aria-hidden=true]").exists()).toBe(true);
+    expect(remove.attributes("data-tooltip")).toBe("Remove role");
+  });
+
+  it("uses an icon button to remove an ensemble member", async () => {
+    savedRunningOrderIs(show, [
+      { ...aRole("pirate-sketch", "Pirates", "ensemble"), id: 9, castMemberIds: [12] },
+    ]);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+    await wrapper.get("button[aria-label='Edit Pirates']").trigger("click");
+    await flushPromises();
+
+    const remove = wrapper.get("button[aria-label='Remove Sam Example from Pirates']");
+    expect(remove.classes()).toContain("icon-button");
+    expect(remove.find("svg[aria-hidden=true]").exists()).toBe(true);
+    expect(remove.attributes("data-tooltip")).toBe("Remove from the ensemble");
+  });
+});

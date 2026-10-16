@@ -147,6 +147,44 @@ describe("Cast page", () => {
     expect(wrapper.text()).toContain("Couldn't load the cast list");
   });
 
+  describe("row buttons", () => {
+    it("puts the icons in the first column, like the Running order and Items pages", async () => {
+      serve(aCast([aMember("Sam", "Example")]));
+
+      const wrapper = await openPage();
+
+      expect(wrapper.findAll("thead th").map((th) => th.text())[0]).toBe("Actions");
+      const firstCell = wrapper.get("tbody tr td");
+      expect(firstCell.find("button[aria-label='Edit Sam Example']").exists()).toBe(true);
+      expect(firstCell.find("button[aria-label='Delete Sam Example']").exists()).toBe(true);
+    });
+
+    it("uses icon buttons like the Running order, each named and explained", async () => {
+      serve(aCast([aMember("Sam", "Example")]));
+
+      const wrapper = await openPage();
+
+      const edit = wrapper.get("button[aria-label='Edit Sam Example']");
+      const remove = wrapper.get("button[aria-label='Delete Sam Example']");
+      expect(edit.classes()).toContain("icon-button");
+      expect(edit.text()).toBe("✎");
+      expect(edit.attributes("data-tooltip")).toBe("Edit details");
+      expect(remove.classes()).toContain("icon-button");
+      expect(remove.find("svg[aria-hidden=true]").exists()).toBe(true);
+      expect(remove.text()).toBe("");
+      expect(remove.attributes("data-tooltip")).toBe("Delete from the cast");
+    });
+
+    it("labels each cell, so small screens can show the list as cards", async () => {
+      serve(aCast([aMember("Sam", "Example")]));
+
+      const wrapper = await openPage();
+
+      const labels = wrapper.findAll("tbody td").map((td) => td.attributes("data-label"));
+      expect(labels).toEqual(["Actions", "First name", "Last name", "Section", "Group"]);
+    });
+  });
+
   describe("filtering", () => {
     const cast = () =>
       aCast([

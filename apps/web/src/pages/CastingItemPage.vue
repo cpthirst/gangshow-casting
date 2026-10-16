@@ -10,6 +10,7 @@ import {
 } from "@app/shared";
 import { computed, nextTick, onMounted, ref, watchEffect } from "vue";
 import { useRoute } from "vue-router";
+import BinIcon from "../BinIcon.vue";
 import { CAST_PATH, sortCast } from "../cast.ts";
 import {
   addRolePath,
@@ -310,6 +311,31 @@ async function postRole(itemId: string, details: AddRoleRequest) {
           @cancel="stopEditing(role.id)"
         />
         <template v-else>
+          <!-- Icons first, as on the Running order and Items pages; above the role on phones. -->
+          <span class="role-actions row-icons">
+            <button
+              type="button"
+              class="icon-button"
+              data-test="edit"
+              :aria-label="`Edit ${role.name}`"
+              data-tooltip="Edit role"
+              :disabled="busy"
+              @click="startEditing(role)"
+            >
+              ✎
+            </button>
+            <button
+              type="button"
+              class="icon-button"
+              data-test="remove"
+              :aria-label="`Remove ${role.name}`"
+              data-tooltip="Remove role"
+              :disabled="busy"
+              @click="removeRole(role)"
+            >
+              <BinIcon />
+            </button>
+          </span>
           <span class="role-name">{{ role.name }}</span>
           <!-- Real spaces, so a screen reader hears "Captain Hook Lead Uncast", not one word. -->
           {{ " " }}
@@ -324,28 +350,6 @@ async function postRole(itemId: string, details: AddRoleRequest) {
             {{ " " }}
             <span class="uncast" data-test="uncast">Uncast</span>
           </template>
-          {{ " " }}
-          <button
-            type="button"
-            class="row-action"
-            data-test="edit"
-            :aria-label="`Edit ${role.name}`"
-            :disabled="busy"
-            @click="startEditing(role)"
-          >
-            Edit
-          </button>
-          {{ " " }}
-          <button
-            type="button"
-            class="row-action"
-            data-test="remove"
-            :aria-label="`Remove ${role.name}`"
-            :disabled="busy"
-            @click="removeRole(role)"
-          >
-            Remove
-          </button>
         </template>
       </li>
     </ul>
