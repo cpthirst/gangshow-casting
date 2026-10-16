@@ -27,7 +27,7 @@ prd: ./prd.md
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
 | [casting-roles.E2.S1](stories/E2-S1-edit-role.md) | Edit a role: rename, resize, cast, recast or uncast; refuses stale edits | FR4, FR8 | E1.S3 | done |
-| [casting-roles.E2.S2](stories/E2-S2-ensemble-members.md) | Add and remove ensemble members; refuse narrowing an ensemble that has several people | FR5, FR6 | E2.S1 | ready |
+| [casting-roles.E2.S2](stories/E2-S2-ensemble-members.md) | Add and remove ensemble members; refuse narrowing an ensemble that has several people | FR5, FR6 | E2.S1 | done |
 | [casting-roles.E2.S3](stories/E2-S3-remove-role.md) | Remove a role after confirming; refuses stale removals | FR7, FR8 | E1.S1 | done |
 
 ## E3: Keep casting in step with the cast list

@@ -984,6 +984,30 @@ main a {
   margin-left: 0;
 }
 
+/* An ensemble's members, each removable, above the search to add one more. */
+.field-label {
+  margin: 0;
+  font-weight: 700;
+}
+
+.members {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.25rem 0 0.75rem;
+  padding: 0;
+  list-style: none;
+}
+
+.members li {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.25rem 0.25rem 0.25rem 0.75rem;
+  border-radius: 999px;
+  background: var(--white);
+}
+
 /* A card being edited holds the form at full width. */
 .role-card.editing {
   display: block;

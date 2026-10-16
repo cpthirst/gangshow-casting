@@ -2,7 +2,7 @@
 id: casting-roles.E2.S2
 title: Add and remove ensemble members
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story

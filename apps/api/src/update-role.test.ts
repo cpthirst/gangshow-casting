@@ -89,3 +89,31 @@ describe("update role handler", () => {
     expect((await handler(request("abc", mrSmee))).statusCode).toBe(404);
   });
 });
+
+describe("update role handler for ensembles", () => {
+  const pirates = (castMemberIds: number[]): RoleList => ({
+    productionId: "2027",
+    roles: [{ ...role(9, "Pirates"), size: "ensemble", castMemberIds }],
+  });
+  const handlerFor = (initial: RoleList) => {
+    const roles = inMemoryRoleStore([initial]);
+    const cast = inMemoryCastStore([aCastList([aCastMember(12), aCastMember(13)])]);
+    return { roles, handler: createUpdateRole(roles, cast) };
+  };
+
+  it("refuses the same member twice, changing nothing", async () => {
+    const { roles, handler } = handlerFor(pirates([12]));
+    const body = { name: "Pirates", size: "ensemble", castMemberIds: [12, 12], revision: 1 };
+
+    expect((await handler(request("9", body))).statusCode).toBe(400);
+    expect(await roles.list("2027")).toEqual(pirates([12]));
+  });
+
+  it("refuses narrowing an ensemble that has several people, changing nothing", async () => {
+    const { roles, handler } = handlerFor(pirates([12, 13]));
+    const body = { name: "Pirates", size: "cameo", castMemberIds: [12, 13], revision: 1 };
+
+    expect((await handler(request("9", body))).statusCode).toBe(400);
+    expect(await roles.list("2027")).toEqual(pirates([12, 13]));
+  });
+});

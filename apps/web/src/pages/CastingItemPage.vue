@@ -10,7 +10,7 @@ import {
 } from "@app/shared";
 import { computed, nextTick, onMounted, ref, watchEffect } from "vue";
 import { useRoute } from "vue-router";
-import { CAST_PATH } from "../cast.ts";
+import { CAST_PATH, sortCast } from "../cast.ts";
 import {
   addRolePath,
   nameTakenMessage,
@@ -29,11 +29,11 @@ const order = ref<RunningOrder>();
 const roles = ref<Role[]>([]);
 const cast = ref<CastMember[]>([]);
 
-// Roles hold ids; names come from the cast list (ADR 0010). Someone no longer on it shows nothing.
+// Roles hold ids; names come from the cast list (ADR 0010), by last name (an ensemble's
+// members, casting-roles FR5). Someone no longer on the cast shows nothing.
 const castNames = (role: Role) =>
-  role.castMemberIds
-    .map((id) => cast.value.find((member) => member.id === id))
-    .flatMap((member) => (member ? [`${member.firstName} ${member.lastName}`] : []))
+  sortCast(cast.value.filter((member) => role.castMemberIds.includes(member.id)))
+    .map((member) => `${member.firstName} ${member.lastName}`)
     .join(", ");
 const status = ref<"loading" | "loaded" | "error">("loading");
 

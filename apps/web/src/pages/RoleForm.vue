@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { type AddRoleRequest, type CastMember, type Role, RoleSize } from "@app/shared";
-import { onMounted, ref, useId } from "vue";
+import { computed, nextTick, onMounted, ref, useId, watch } from "vue";
+import { sortCast } from "../cast.ts";
 import { type RoleForm, roleDetailsFrom, roleSizeLabel, type TakenNames } from "../roles.ts";
 import CastMemberPicker from "./CastMemberPicker.vue";
 
@@ -17,16 +18,58 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{ save: [details: AddRoleRequest]; cancel: [] }>();
 
+// Editing an ensemble lists its members, each removable, and searches for one more
+// (casting-roles FR5). Otherwise the field holds the one person cast, if any. The form
+// stays this way even if the size is changed, so narrowing an ensemble means leaving one
+// person in it first (FR6).
+const editsEnsemble = props.role?.size === "ensemble";
 const castMemberId = props.role?.castMemberIds[0];
 const form = ref<RoleForm>({
   name: props.role?.name ?? "",
   size: props.role?.size ?? "",
-  castMember: { query: props.castName ?? "", id: castMemberId ?? null },
+  castMember: editsEnsemble
+    ? { query: "", id: null }
+    : { query: props.castName ?? "", id: castMemberId ?? null },
+  ...(editsEnsemble && props.role ? { members: [...props.role.castMemberIds] } : {}),
 });
 
-// An ensemble's members are changed elsewhere (casting-roles.E2.S2), so editing one here
-// keeps whoever is in it.
-const keepsEnsemble = props.role?.size === "ensemble";
+const fullName = (member: CastMember) => `${member.firstName} ${member.lastName}`;
+/** The ensemble's members, by last name; anyone no longer on the cast isn't shown. */
+const memberList = computed(() =>
+  sortCast(props.cast.filter((member) => form.value.members?.includes(member.id))),
+);
+/** Only people not already in the ensemble can be added (each is in it once). */
+const addable = computed(() =>
+  props.cast.filter((member) => !form.value.members?.includes(member.id)),
+);
+
+/** Screen-reader announcement of the last member added or removed. */
+const announcement = ref("");
+const nameOf = (id: number) => {
+  const member = props.cast.find((m) => m.id === id);
+  return member ? fullName(member) : "";
+};
+
+// Choosing someone in the search adds them, ready for the next.
+watch(
+  () => form.value.castMember.id,
+  (id) => {
+    if (id === null || !form.value.members) return;
+    form.value.members = [...form.value.members, id];
+    form.value.castMember = { query: "", id: null };
+    announcement.value = `Added ${nameOf(id)}.`;
+  },
+);
+
+// The Remove button disappears with the member, so focus moves to the search.
+async function removeMember(id: number) {
+  const { members } = form.value;
+  if (!members) return;
+  form.value.members = members.filter((member) => member !== id);
+  announcement.value = `Removed ${nameOf(id)}.`;
+  await nextTick();
+  document.getElementById(idFor("castMember"))?.focus();
+}
 const errors = ref<Partial<Record<keyof RoleForm, string>>>({});
 
 const uid = useId();
@@ -45,15 +88,9 @@ function onEscape(event: KeyboardEvent) {
 }
 
 function submit() {
-  // Editing an ensemble has no picker, so its (absent) choice isn't validated; the
-  // members it already has are sent back unchanged.
-  const choice = keepsEnsemble ? { query: "", id: null } : form.value.castMember;
-  const result = roleDetailsFrom({ ...form.value, castMember: choice }, props.taken);
+  const result = roleDetailsFrom(form.value, props.taken);
   errors.value = result.ok ? {} : result.errors;
-  if (!result.ok) return;
-  const castMemberIds =
-    keepsEnsemble && props.role ? props.role.castMemberIds : result.details.castMemberIds;
-  emit("save", { ...result.details, castMemberIds });
+  if (result.ok) emit("save", result.details);
 }
 </script>
 
@@ -87,11 +124,32 @@ function submit() {
       </select>
       <p v-if="errors.size" :id="errorFor('size')" class="field-error">{{ errors.size }}</p>
     </div>
-    <div v-if="!keepsEnsemble" class="field">
-      <label :for="idFor('castMember')">Cast member <span class="optional">(optional)</span></label>
+    <div class="field">
+      <template v-if="editsEnsemble">
+        <p :id="idFor('members')" class="field-label">Members</p>
+        <ul class="members" :aria-labelledby="idFor('members')">
+          <li v-for="member in memberList" :key="member.id" data-test="member">
+            <span class="member-name">{{ fullName(member) }}</span>
+            <button
+              type="button"
+              class="row-action"
+              :aria-label="`Remove ${fullName(member)} from ${role?.name}`"
+              @click="removeMember(member.id)"
+            >
+              Remove
+            </button>
+          </li>
+          <li v-if="memberList.length === 0" class="uncast">Nobody yet</li>
+        </ul>
+        <p class="visually-hidden" role="status">{{ announcement }}</p>
+      </template>
+      <label :for="idFor('castMember')">
+        <template v-if="editsEnsemble">Add a member</template>
+        <template v-else>Cast member <span class="optional">(optional)</span></template>
+      </label>
       <CastMemberPicker
         v-model="form.castMember"
-        :cast="cast"
+        :cast="editsEnsemble ? addable : cast"
         :input-id="idFor('castMember')"
         :described-by="errors.castMember ? errorFor('castMember') : undefined"
       />

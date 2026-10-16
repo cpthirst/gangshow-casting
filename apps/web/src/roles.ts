@@ -43,11 +43,13 @@ export interface CastMemberChoice {
   id: number | null;
 }
 
-/** The add-role form's fields, as typed. A blank size means none chosen yet. */
+/** The role form's fields, as typed. A blank size means none chosen yet. When editing an
+ *  ensemble, members lists who's in it, and castMember is the search for one more. */
 export interface RoleForm {
   name: string;
   size: RoleSize | "";
   castMember: CastMemberChoice;
+  members?: number[];
 }
 
 export type RoleFormResult =
@@ -66,11 +68,11 @@ export const nameTakenMessage = (itemTitle: string, name: string) =>
 /** The role the form describes, or a message for each field that needs fixing.
  *  Limits come from the shared schema, so the page and the API agree. */
 export function roleDetailsFrom(form: RoleForm, taken: TakenNames): RoleFormResult {
-  const { castMember } = form;
+  const { castMember, members } = form;
   const parsed = AddRoleRequest.safeParse({
     name: form.name,
     size: form.size,
-    castMemberIds: castMember.id === null ? [] : [castMember.id],
+    castMemberIds: members ?? (castMember.id === null ? [] : [castMember.id]),
   });
   const errors: Partial<Record<keyof RoleForm, string>> = {};
   // Typed but not chosen: the text alone doesn't say who, so it isn't guessed.
@@ -91,6 +93,11 @@ export function roleDetailsFrom(form: RoleForm, taken: TakenNames): RoleFormResu
         issue.code === "too_big" ? "Role names can be up to 60 characters" : "Enter a role name";
     }
     if (issue.path[0] === "size") errors.size = "Choose a role size";
+    // Only an ensemble holds several people (PRD FR6).
+    const singleSize = form.size !== "" && form.size !== "ensemble" ? form.size : undefined;
+    if (issue.path[0] === "castMemberIds" && singleSize && (members?.length ?? 0) > 1) {
+      errors.size = `Leave one person in this ensemble before making it a ${roleSizeLabel(singleSize)} role`;
+    }
   }
   return { ok: false, errors };
 }
