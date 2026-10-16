@@ -319,6 +319,24 @@ main a {
   text-align: right;
 }
 
+/* The Items list: fixed column widths, so a "Not in printed programme" badge can't widen
+   one half's number column and push its other columns out of line with the other half. */
+.items-list {
+  table-layout: fixed;
+}
+
+.items-list .col-cast {
+  width: 4.5rem;
+}
+
+.items-list .col-number {
+  width: 7.5rem;
+}
+
+.items-list .col-counts {
+  width: 11rem;
+}
+
 .running-order tr.not-printed {
   background: var(--surface);
   font-style: italic;
@@ -738,6 +756,13 @@ main a {
 .cast-member-form label {
   font-size: 0.8125rem;
   font-weight: 700;
+}
+
+/* Dropdowns are as wide as their options, so the arrow sits by the choice, not at the far
+   side of a wide field. */
+.cast-member-form select {
+  align-self: flex-start;
+  min-width: 8rem;
 }
 
 .cast-member-form input,
