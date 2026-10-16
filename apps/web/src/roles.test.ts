@@ -174,6 +174,19 @@ describe("roleDetailsFrom for an ensemble's members", () => {
   });
 });
 
+describe("roleDetailsFrom for a very big ensemble", () => {
+  it("explains that an ensemble holds at most 200 people", () => {
+    const members = Array.from({ length: 201 }, (_, i) => i + 1);
+
+    expect(
+      roleDetailsFrom({ name: "Crowd", size: "ensemble", castMember: nobody, members }, noneTaken),
+    ).toEqual({
+      ok: false,
+      errors: { castMember: "An ensemble can hold up to 200 people. Remove some to save it." },
+    });
+  });
+});
+
 describe("remainingCast", () => {
   // Made-up names only (CLAUDE.md safeguarding).
   const member = (id: number, firstName: string, lastName: string): CastMember => ({

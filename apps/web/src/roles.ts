@@ -100,6 +100,10 @@ export function roleDetailsFrom(form: RoleForm, taken: TakenNames): RoleFormResu
     if (issue.path[0] === "size") errors.size = "Choose a role size";
     // Only an ensemble holds several people (PRD FR6).
     const singleSize = form.size !== "" && form.size !== "ensemble" ? form.size : undefined;
+    // Add All Cast can fill an ensemble past the shared limit on a big cast (FR11).
+    if (issue.path[0] === "castMemberIds" && !singleSize && issue.code === "too_big") {
+      errors.castMember = "An ensemble can hold up to 200 people. Remove some to save it.";
+    }
     if (issue.path[0] === "castMemberIds" && singleSize && (members?.length ?? 0) > 1) {
       errors.size = `Leave one person in this ensemble before making it a ${roleSizeLabel(singleSize)} role`;
     }

@@ -28,10 +28,10 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{ save: [details: AddRoleRequest]; cancel: [] }>();
 
-// Editing an ensemble lists its members, each removable, and searches for one more
-// (casting-roles FR5). Otherwise the field holds the one person cast, if any. The form
-// stays this way even if the size is changed, so narrowing an ensemble means leaving one
-// person in it first (FR6).
+// An ensemble lists its members, each removable, and searches for one more (casting-roles
+// FR5). Otherwise the field holds the one person cast, if any. Choosing Ensemble switches
+// to the members list; choosing another size switches back while it holds one person at
+// most. With more, the list stays, and saving explains that it must be narrowed first (FR6).
 const editsEnsemble = props.role?.size === "ensemble";
 const castMemberId = props.role?.castMemberIds[0];
 const form = ref<RoleForm>({
@@ -44,8 +44,27 @@ const form = ref<RoleForm>({
 });
 
 const fullName = (member: CastMember) => `${member.firstName} ${member.lastName}`;
-// The members list shows while editing an ensemble, or once Add All Cast has filled one.
 const showsMembers = computed(() => form.value.members !== undefined);
+
+watch(
+  () => form.value.size,
+  (size) => {
+    const { members, castMember } = form.value;
+    if (size === "ensemble" && !members) {
+      form.value.members = castMember.id === null ? [] : [castMember.id];
+      form.value.castMember = { query: "", id: null };
+    } else if (size !== "ensemble" && members && members.length <= 1) {
+      const [only] = members;
+      // Rebuilt without members, so the form holds one cast member again.
+      form.value = {
+        name: form.value.name,
+        size,
+        castMember:
+          only === undefined ? { query: "", id: null } : { query: nameOf(only), id: only },
+      };
+    }
+  },
+);
 
 /** Who Add All Cast would add: everyone not in another role in this item (FR11). */
 const remaining = computed(() =>
@@ -53,12 +72,8 @@ const remaining = computed(() =>
 );
 
 // Fills the ensemble without saving: people can still be removed, and Cancel undoes it.
-// Anyone already chosen in the search stays in.
 function addAllCast() {
-  const chosen = form.value.castMember.id;
-  const kept = form.value.members ?? (chosen === null ? [] : [chosen]);
-  form.value.members = [...kept, ...remainingCast(props.cast, props.inOtherRoles, kept)];
-  form.value.castMember = { query: "", id: null };
+  form.value.members = [...(form.value.members ?? []), ...remaining.value];
   announcement.value = "Added everyone not already in a role in this item.";
 }
 
@@ -102,6 +117,7 @@ const errors = ref<Partial<Record<keyof RoleForm, string>>>({});
 
 const uid = useId();
 const idFor = (field: keyof RoleForm) => `${uid}-${field}`;
+const addAllHintId = `${uid}-add-all-hint`;
 const errorFor = (field: keyof RoleForm) => `${uid}-${field}-error`;
 // Wires a field to its error message, if it has one.
 const invalid = (field: keyof RoleForm) =>
@@ -153,7 +169,7 @@ function submit() {
       <p v-if="errors.size" :id="errorFor('size')" class="field-error">{{ errors.size }}</p>
     </div>
     <div class="field">
-      <template v-if="showsMembers">
+      <div v-if="showsMembers" class="members-block" data-test="members">
         <p :id="idFor('members')" class="field-label">Members</p>
         <ul class="members row-icons" :aria-labelledby="idFor('members')">
           <li v-for="member in memberList" :key="member.id" data-test="member">
@@ -171,7 +187,26 @@ function submit() {
           <li v-if="memberList.length === 0" class="uncast">Nobody yet</li>
         </ul>
         <p class="visually-hidden" role="status">{{ announcement }}</p>
-      </template>
+        <div class="add-all-cast">
+          <button
+            type="button"
+            data-test="add-all-cast"
+            :disabled="saving || remaining.length === 0"
+            :aria-describedby="remaining.length === 0 ? addAllHintId : undefined"
+            @click="addAllCast"
+          >
+            Add all cast
+          </button>
+          <p
+            v-if="remaining.length === 0"
+            :id="addAllHintId"
+            class="hint"
+            data-test="add-all-cast-hint"
+          >
+            Everyone is already in a role in this item
+          </p>
+        </div>
+      </div>
       <label :for="idFor('castMember')">
         <template v-if="showsMembers">Add a member</template>
         <template v-else>Cast member <span class="optional">(optional)</span></template>
@@ -191,15 +226,6 @@ function submit() {
       <button type="submit" class="primary" :disabled="saving">Save</button>
       <button type="button" data-test="cancel" :disabled="saving" @click="emit('cancel')">
         Cancel
-      </button>
-      <button
-        v-if="form.size === 'ensemble'"
-        type="button"
-        data-test="add-all-cast"
-        :disabled="saving || remaining.length === 0"
-        @click="addAllCast"
-      >
-        Add All Cast
       </button>
     </div>
   </form>
