@@ -8,12 +8,13 @@ import {
   RoleList,
   RunningOrder,
 } from "@app/shared";
+import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, nextTick, onMounted, ref, watchEffect } from "vue";
 import { useRoute } from "vue-router";
-import BinIcon from "../BinIcon.vue";
 import ClashIcon from "../ClashIcon.vue";
 import { CAST_PATH, sortCast } from "../cast.ts";
 import { clashesOf, findClashes } from "../clashes.ts";
+import { icons } from "../icons.ts";
 import {
   addRolePath,
   nameTakenMessage,
@@ -274,14 +275,16 @@ async function postRole(itemId: string, details: AddRoleRequest) {
 
 <template>
   <nav class="step-nav" aria-label="Item navigation">
-    <RouterLink :to="{ name: 'casting-items' }" class="back-link">All items</RouterLink>
+    <RouterLink :to="{ name: 'casting-items' }" class="back-link">
+      <span class="step-label"><FontAwesomeIcon :icon="icons.allItems" /> All items</span>
+    </RouterLink>
     <RouterLink
       v-if="neighbours.previous"
       :to="{ name: 'casting-item', params: { itemId: neighbours.previous.id } }"
       rel="prev"
       class="step-link step-previous"
     >
-      <span class="step-label">Previous</span>
+      <span class="step-label"><FontAwesomeIcon :icon="icons.back" /> Previous</span>
       <!-- A real space, so the link reads "Previous Pirate Sketch", not one word. -->
       {{ " " }}
       <span class="step-title">{{ neighbours.previous.title }}</span>
@@ -292,7 +295,7 @@ async function postRole(itemId: string, details: AddRoleRequest) {
       rel="next"
       class="step-link step-next"
     >
-      <span class="step-label">Next</span>
+      <span class="step-label">Next <FontAwesomeIcon :icon="icons.forward" /></span>
       {{ " " }}
       <span class="step-title">{{ neighbours.next.title }}</span>
     </RouterLink>
@@ -357,7 +360,7 @@ async function postRole(itemId: string, details: AddRoleRequest) {
               :disabled="busy"
               @click="startEditing(role)"
             >
-              ✎
+              <FontAwesomeIcon :icon="icons.edit" />
             </button>
             <button
               type="button"
@@ -368,7 +371,7 @@ async function postRole(itemId: string, details: AddRoleRequest) {
               :disabled="busy"
               @click="removeRole(role)"
             >
-              <BinIcon />
+              <FontAwesomeIcon :icon="icons.remove" />
             </button>
           </span>
           <span class="role-name">{{ role.name }}</span>

@@ -412,13 +412,19 @@ describe("Running order page", () => {
       const row = rowFor(wrapper, "Curtain Up");
       const buttons = row.findAll("button[data-move]");
       expect(
-        buttons.map((b) => [b.text(), b.attributes("aria-label"), b.attributes("data-tooltip")]),
+        buttons.map((b) => [
+          b.get("svg[aria-hidden=true]").attributes("data-icon"),
+          b.attributes("aria-label"),
+          b.attributes("data-tooltip"),
+        ]),
       ).toEqual([
-        ["↑", "Move Curtain Up up", "Move up"],
-        ["↓", "Move Curtain Up down", "Move down"],
-        ["⇄", "Move Curtain Up to second half", "Move to second half"],
+        ["arrow-up", "Move Curtain Up up", "Move up"],
+        ["arrow-down", "Move Curtain Up down", "Move down"],
+        ["arrow-right-arrow-left", "Move Curtain Up to second half", "Move to second half"],
       ]);
-      expect(row.get(".drag-handle").attributes("data-tooltip")).toBe("Drag to reorder");
+      const handle = row.get(".drag-handle");
+      expect(handle.attributes("data-tooltip")).toBe("Drag to reorder");
+      expect(handle.get("svg[aria-hidden=true]").attributes("data-icon")).toBe("grip-vertical");
     });
 
     it("tells people how to fill an empty half without relying on a symbol", async () => {

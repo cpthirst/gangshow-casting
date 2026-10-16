@@ -352,7 +352,7 @@ main a {
   display: inline-block;
   margin-right: 0.25rem;
   padding: 0.125rem 0.375rem;
-  font-size: 1.125rem;
+  font-size: 1rem;
   line-height: 1;
   cursor: grab;
   user-select: none;
@@ -488,11 +488,12 @@ main a {
   cursor: pointer;
 }
 
+/* Icons centred in their buttons, and buttons lined up side by side. */
+.moves button,
 .icon-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  /* A glyph (✎) and an icon (bin) line up side by side. */
   vertical-align: middle;
   /* Never squashed by a long name beside it. */
   flex-shrink: 0;
@@ -970,23 +971,10 @@ main a {
   text-decoration: none;
 }
 
-/* Chevrons that screen readers skip: the links read "All items", "Previous Pirate Sketch". */
-.step-nav .back-link::before,
-.step-previous .step-label::before {
-  content: "‹" / "";
-  font-size: 1.25rem;
-  line-height: 1;
-}
-
-.step-previous .step-label::before {
-  margin-right: 0.375rem;
-}
-
-.step-next .step-label::after {
-  content: "›" / "";
-  margin-left: 0.375rem;
-  font-size: 1.25rem;
-  line-height: 1;
+/* Smaller icons in the item navigation; they're decorative, so the links read "All items"
+   and "Previous Pirate Sketch". */
+.step-nav svg {
+  font-size: 0.75rem;
 }
 
 .step-link {
@@ -1010,6 +998,7 @@ main a {
 
 .step-label {
   display: inline-flex;
+  gap: 0.375rem;
   align-items: center;
 }
 
@@ -1106,6 +1095,7 @@ main a {
 
 .clash-icon {
   display: inline-flex;
+  font-size: 1.125em;
   margin-left: 0.25rem;
   vertical-align: -0.2em;
   border-radius: 50%;

@@ -169,6 +169,7 @@ describe("Casting items page", () => {
     expect(cast?.attributes("href")).toBe("/casting/items/pirate-sketch");
     expect(cast?.attributes("aria-label")).toBe("Cast Pirate Sketch");
     expect(cast?.attributes("data-tooltip")).toBe("Cast this item");
+    expect(cast?.get("svg[aria-hidden=true]").attributes("data-icon")).toBe("users");
     // In the first column, where the Running order has its move and edit buttons.
     expect(rowFor(wrapper, "Pirate Sketch")?.get("td").find("[data-test=cast]").exists()).toBe(
       true,
