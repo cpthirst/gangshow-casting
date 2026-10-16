@@ -384,6 +384,25 @@ main a {
   touch-action: none;
 }
 
+/* An item's notes on the Items list: a row of their own straight under the item's, read
+   as part of it (casting-item-overview FR9). The line above them is removed by a rule at
+   the end of this file, which has to outrank the table's own cell borders. */
+.running-order td.item-notes-text {
+  padding-top: 0;
+  font-size: 0.875rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* The same "Notes" label as on a phone card, from the cell's data-label. */
+.running-order td.item-notes-text::before {
+  content: attr(data-label) " ";
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
 /* Narrow boxes (phones, tablets, split screens): each item becomes a stacked card with
    labelled details, so nothing scrolls sideways. Same table underneath, so dragging,
    move buttons and screen-reader cell labels all still work. */
@@ -415,6 +434,17 @@ main a {
      must put data-item-id on its item rows (Running order, casting Items). */
   .running-order tbody tr[data-item-id] {
     padding: 0.75rem 1rem;
+    border-bottom: 4px solid var(--surface);
+  }
+
+  /* Notes close the item's card: its separator moves below them. */
+  .running-order tbody tr[data-item-id]:has(+ .item-notes-row) {
+    padding-bottom: 0.25rem;
+    border-bottom: none;
+  }
+
+  .running-order tbody tr.item-notes-row {
+    padding: 0 1rem 0.75rem;
     border-bottom: 4px solid var(--surface);
   }
 
@@ -606,7 +636,8 @@ main a {
 
 .item-editor input:not([type="checkbox"]),
 .item-editor textarea,
-.item-editor select {
+.item-editor select,
+.item-notes textarea {
   padding: 0.5rem;
   border: 1px solid var(--text);
   border-radius: 0.25rem;
@@ -1088,6 +1119,46 @@ main a {
   text-decoration: underline;
 }
 
+/* An item's notes, below its roles: the item editor's text field, full width. */
+.item-notes {
+  margin-top: 2rem;
+}
+
+.item-notes textarea {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 40rem;
+}
+
+.item-notes .hint {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+}
+
+.item-notes [aria-invalid="true"] {
+  border: 2px solid var(--red-darker);
+}
+
+.item-notes .editor-actions {
+  align-items: center;
+  margin-top: 0.75rem;
+}
+
+/* Beside Save once the notes are saved; gone when they're changed again. */
+.notes-saved {
+  margin: 0;
+  color: var(--in-item);
+  font-weight: 700;
+}
+
+.notes-saved::before {
+  content: "✓ " / "";
+}
+
+.notes-saved:empty {
+  display: none;
+}
+
 .item-position {
   margin-top: 0;
   font-weight: 700;
@@ -1500,4 +1571,10 @@ main a {
   main {
     padding: 1.5rem 1rem;
   }
+}
+
+/* An item followed by its notes on the Items list loses its bottom line, so the notes read
+   as part of it. Last in the file: it outranks the table's own cell borders. */
+.running-order tr:has(+ .item-notes-row) td {
+  border-bottom: none;
 }

@@ -12,6 +12,7 @@ prd: ./prd.md
 |---|---|---|
 | E1 | Open an item's casting page | FR1, FR2, FR5, FR6, FR7 |
 | E2 | Read an item's roles at a glance | FR3, FR4 |
+| E3 | Keep notes on an item | FR8, FR9, FR10 |
 
 ## E1: Open an item's casting page
 
@@ -26,6 +27,13 @@ prd: ./prd.md
 |---|---|---|---|---|
 | [casting-item-overview.E2.S1](stories/E2-S1-role-cards.md) | Role cards with a size pill and an uncast marker, ordered by size then name | FR3, FR4 | casting-roles.E1.S1 | done |
 
+## E3: Keep notes on an item
+
+| ID | Story | FRs | Depends on | Status |
+|---|---|---|---|---|
+| [casting-item-overview.E3.S1](stories/E3-S1-edit-item-notes.md) | Edit and save an item's notes on its page (shared schema → notes store → API → item page); refuses stale saves | FR8, FR10 | E1.S1 | done |
+| [casting-item-overview.E3.S2](stories/E3-S2-notes-on-items-list.md) | Show each item's saved notes in full on the Items list, under its row or at the bottom of its card | FR9 | E3.S1 | done |
+
 ## FR coverage
 
 | FR | Stories |
@@ -37,6 +45,9 @@ prd: ./prd.md
 | FR5 | E1.S1 |
 | FR6 | E1.S2 |
 | FR7 | E1.S1 |
+| FR8 | E3.S1 |
+| FR9 | E3.S2 |
+| FR10 | E3.S1 |
 
 ## Notes
 

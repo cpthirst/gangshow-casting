@@ -26,6 +26,7 @@ import {
 } from "../roles.ts";
 import { showPageTitle } from "../router.ts";
 import { neighboursOf, placeOf, RUNNING_ORDER_PATH } from "../running-order.ts";
+import ItemNotes from "./ItemNotes.vue";
 import RoleForm from "./RoleForm.vue";
 
 const route = useRoute();
@@ -408,6 +409,8 @@ async function postRole(itemId: string, details: AddRoleRequest) {
       </li>
     </ul>
     <p v-else>No roles have been added yet.</p>
+    <!-- A fresh instance per item, so stepping to another never mixes their notes. -->
+    <ItemNotes :key="place.item.id" :item-id="place.item.id" />
   </template>
   <template v-else-if="notFound">
     <h1>Item not found</h1>
