@@ -10,6 +10,7 @@ Putting cast members into roles within the show's items. This is the app's core 
 | `casting-roles` | [roles/prd.md](roles/prd.md) | Adding, editing and removing roles, and casting people in them | casting-item-overview, cast-management |
 | `casting-overview` | [overview/prd.md](overview/prd.md) | The whole cast by section, ordered by how much (and how big) their parts are | casting-roles |
 | `casting-rules` | [rules/prd.md](rules/prd.md) | Back-to-back and timing clashes, flagged as errors and warnings on the item, Items and Overview pages; a `pnpm demo` show to try them | casting-overview |
+| `casting-overview-timeline` | [overview/timeline/prd.md](overview/timeline/prd.md) | A row of dots on each Overview card: one per item, green where the person appears, with a gap for the interval | casting-overview |
 
 A later PRD (not written yet): **uneven stage time**, a further casting rule.
 
