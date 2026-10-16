@@ -2,7 +2,7 @@
 id: casting-items.E2.S1
 title: Show each item's role counts
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story

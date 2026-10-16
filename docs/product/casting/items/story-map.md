@@ -24,7 +24,7 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [casting-items.E2.S1](stories/E2-S1-role-counts.md) | Show each item's total roles and roles cast | FR2 | E1.S1, casting-roles.E1.S3 | ready |
+| [casting-items.E2.S1](stories/E2-S1-role-counts.md) | Show each item's total roles and roles cast | FR2 | E1.S1, casting-roles.E1.S3 | done |
 
 ## FR coverage
 

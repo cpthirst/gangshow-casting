@@ -401,7 +401,8 @@ main a {
 
   /* No labels where the content speaks for itself. */
   .running-order td.moves::before,
-  .running-order td.title::before {
+  .running-order td.title::before,
+  .running-order td.counts::before {
     content: none;
   }
 
@@ -855,6 +856,10 @@ main a {
 /* Casting items and item pages. The list itself reuses the Running order table. */
 .based-on {
   font-size: 0.875rem;
+}
+
+.running-order td.counts {
+  white-space: nowrap;
 }
 
 /* Navigation above a page's title, back to the list it came from. */

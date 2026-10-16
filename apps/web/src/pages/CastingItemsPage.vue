@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { RunningOrder } from "@app/shared";
+import { type Role, RoleList, RunningOrder } from "@app/shared";
 import { computed, onMounted, ref } from "vue";
+import { ROLES_PATH, roleCounts, spokenCounts } from "../roles.ts";
 import { RUNNING_ORDER_PATH, runningClock } from "../running-order.ts";
 
 type State =
@@ -10,13 +11,37 @@ type State =
   | { status: "loaded"; order: RunningOrder };
 
 const state = ref<State>({ status: "loading" });
+// Loaded separately: if the roles fail, the items still show, just without counts.
+const roles = ref<Role[] | "error">();
 
-// Numbers come from the running clock, so they always match the Running order page.
-const halves = computed(() =>
-  state.value.status === "loaded" ? runningClock(state.value.order).halves : [],
-);
+// Numbers come from the running clock, so they always match the Running order page. Each
+// row also carries its role counts: undefined while the roles are loading or unavailable.
+const halves = computed(() => {
+  if (state.value.status !== "loaded") return [];
+  const allRoles = Array.isArray(roles.value) ? roles.value : undefined;
+  return runningClock(state.value.order).halves.map(({ half, rows }) => ({
+    half,
+    rows: rows.map((row) => ({
+      ...row,
+      counts: allRoles ? roleCounts(allRoles, row.item.id) : undefined,
+    })),
+  }));
+});
 
-onMounted(async () => {
+onMounted(() => Promise.all([loadRunningOrder(), loadRoles()]));
+
+async function loadRoles() {
+  try {
+    const res = await fetch(ROLES_PATH);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    roles.value = RoleList.parse(await res.json()).roles;
+  } catch {
+    // Never shown as "No roles yet": that would hide work still to do (PRD FR2).
+    roles.value = "error";
+  }
+}
+
+async function loadRunningOrder() {
   try {
     // The latest saved version: unsaved moves live only on the Running order page (PRD FR1).
     const res = await fetch(RUNNING_ORDER_PATH);
@@ -30,7 +55,7 @@ onMounted(async () => {
     // A failed load must never look like "no running order yet" (PRD FR6).
     state.value = { status: "error" };
   }
-});
+}
 </script>
 
 <template>
@@ -43,6 +68,7 @@ onMounted(async () => {
   <p v-else-if="state.status === 'error'" role="alert">Couldn't load the items.</p>
   <template v-else-if="state.status === 'loaded'">
     <p class="based-on" data-test="version">Based on Draft {{ state.order.version }}</p>
+    <p v-if="roles === 'error'" class="notice" role="alert">Couldn't load the role counts.</p>
     <section v-for="{ half, rows } in halves" :key="half.id" class="half" :aria-labelledby="half.id">
       <h2 :id="half.id">{{ half.name }}</h2>
       <div class="table-scroll" tabindex="0" role="region" :aria-label="`${half.name} items`">
@@ -53,11 +79,12 @@ onMounted(async () => {
               <th scope="col" role="columnheader">Cast</th>
               <th scope="col" role="columnheader">#</th>
               <th scope="col" role="columnheader">Item</th>
+              <th scope="col" role="columnheader">Roles</th>
             </tr>
           </thead>
           <tbody role="rowgroup">
             <tr
-              v-for="{ item, number } in rows"
+              v-for="{ item, number, counts } in rows"
               :key="item.id"
               role="row"
               data-test="item"
@@ -86,6 +113,15 @@ onMounted(async () => {
                 <span v-else class="badge">Not in printed programme</span>
               </td>
               <td data-test="title" class="title" data-label="Item" role="cell">{{ item.title }}</td>
+              <!-- Seen as "Roles 5 · Cast 3", heard as "5 roles, 3 cast". Empty while the
+                   counts are loading or unavailable. -->
+              <td data-test="counts" class="counts" data-label="Roles" role="cell">
+                <template v-if="counts?.total === 0">No roles yet</template>
+                <template v-else-if="counts">
+                  <span aria-hidden="true">Roles {{ counts.total }} · Cast {{ counts.cast }}</span>
+                  <span class="visually-hidden">{{ spokenCounts(counts) }}</span>
+                </template>
+              </td>
             </tr>
           </tbody>
         </table>
