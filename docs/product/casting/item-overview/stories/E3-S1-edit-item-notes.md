@@ -2,7 +2,7 @@
 id: casting-item-overview.E3.S1
 title: Edit and save an item's notes
 epic: E3
-status: in-progress
+status: done
 ---
 
 ## Story

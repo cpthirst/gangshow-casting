@@ -2,7 +2,7 @@
 id: casting-item-overview.E3.S2
 title: Show an item's notes on the Items list
 epic: E3
-status: ready
+status: in-progress
 ---
 
 ## Story

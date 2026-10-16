@@ -31,8 +31,8 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [casting-item-overview.E3.S1](stories/E3-S1-edit-item-notes.md) | Edit and save an item's notes on its page (shared schema → notes store → API → item page); refuses stale saves | FR8, FR10 | E1.S1 | in-progress |
-| [casting-item-overview.E3.S2](stories/E3-S2-notes-on-items-list.md) | Show each item's saved notes in full on the Items list, under its row or at the bottom of its card | FR9 | E3.S1 | ready |
+| [casting-item-overview.E3.S1](stories/E3-S1-edit-item-notes.md) | Edit and save an item's notes on its page (shared schema → notes store → API → item page); refuses stale saves | FR8, FR10 | E1.S1 | done |
+| [casting-item-overview.E3.S2](stories/E3-S2-notes-on-items-list.md) | Show each item's saved notes in full on the Items list, under its row or at the bottom of its card | FR9 | E3.S1 | in-progress |
 
 ## FR coverage
 
