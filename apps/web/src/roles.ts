@@ -1,4 +1,4 @@
-import { AddRoleRequest, type RoleSize } from "@app/shared";
+import { AddRoleRequest, type RoleSize, sameRoleName } from "@app/shared";
 
 // Only one production for now (see docs/product/running-order/prd.md).
 const PRODUCTION_ID = "2027";
@@ -29,11 +29,26 @@ export type RoleFormResult =
   | { ok: true; details: AddRoleRequest }
   | { ok: false; errors: Partial<Record<keyof RoleForm, string>> };
 
+/** The names an item's roles already use, so a new one can't repeat them. */
+export interface TakenNames {
+  itemTitle: string;
+  names: string[];
+}
+
+export const nameTakenMessage = (itemTitle: string, name: string) =>
+  `${itemTitle} already has a role called ${name.trim()}`;
+
 /** The role the form describes, or a message for each field that needs fixing.
  *  Limits come from the shared schema, so the page and the API agree. */
-export function roleDetailsFrom(form: RoleForm): RoleFormResult {
+export function roleDetailsFrom(form: RoleForm, taken: TakenNames): RoleFormResult {
   const parsed = AddRoleRequest.safeParse(form);
-  if (parsed.success) return { ok: true, details: parsed.data };
+  if (parsed.success) {
+    const existing = taken.names.find((name) => sameRoleName(name, parsed.data.name));
+    if (existing) {
+      return { ok: false, errors: { name: nameTakenMessage(taken.itemTitle, existing) } };
+    }
+    return { ok: true, details: parsed.data };
+  }
 
   const errors: Partial<Record<keyof RoleForm, string>> = {};
   for (const issue of parsed.error.issues) {

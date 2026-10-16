@@ -14,7 +14,7 @@ export const Role = z.strictObject({
   id: z.number().int().positive(),
   /** The running-order item it belongs to. */
   itemId: RunningOrderItem.shape.id,
-  /** The character name, e.g. "Captain Hook". Unique within its item (casting-roles.E1.S2). */
+  /** The character name, e.g. "Captain Hook". Unique within its item (see sameRoleName). */
   name: z.string().trim().min(1).max(60),
   size: RoleSize,
   /** Who plays it: empty while uncast. */
@@ -29,6 +29,13 @@ export const Role = z.strictObject({
  */
 export const AddRoleRequest = Role.pick({ name: true, size: true });
 
+/** 400 from adding a role: the item already has a role with that name. */
+export const AddRoleRefusal = z.strictObject({ error: z.literal("name-taken") });
+
+/** Role names match ignoring case and surrounding spaces ("captain hook " = "Captain Hook"). */
+export const sameRoleName = (a: string, b: string) =>
+  a.trim().toLowerCase() === b.trim().toLowerCase();
+
 /** GET /api/productions/{productionId}/roles: every role in the production. */
 export const RoleList = z.strictObject({
   productionId: ProductionId,
@@ -38,4 +45,5 @@ export const RoleList = z.strictObject({
 export type RoleSize = z.infer<typeof RoleSize>;
 export type Role = z.infer<typeof Role>;
 export type AddRoleRequest = z.infer<typeof AddRoleRequest>;
+export type AddRoleRefusal = z.infer<typeof AddRoleRefusal>;
 export type RoleList = z.infer<typeof RoleList>;

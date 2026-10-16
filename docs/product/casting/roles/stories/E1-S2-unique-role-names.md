@@ -2,7 +2,7 @@
 id: casting-roles.E1.S2
 title: Refuse a role name already used in the item
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story

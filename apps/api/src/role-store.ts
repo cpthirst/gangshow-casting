@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { type AddRoleRequest, ProductionId, Role, RoleList } from "@app/shared";
+import { type AddRoleRequest, ProductionId, Role, RoleList, sameRoleName } from "@app/shared";
 import { ifExists } from "./files.ts";
 import { parseJson } from "./json.ts";
 import { oneAtATime, writePrivateFile } from "./private-file.ts";
@@ -9,8 +9,9 @@ import { oneAtATime, writePrivateFile } from "./private-file.ts";
 export interface RoleStore {
   /** Every role in the production; none until the first is added. */
   list(productionId: string): Promise<RoleList>;
-  /** Adds an uncast role to an item, with the next unused id. */
-  add(productionId: string, itemId: string, details: AddRoleRequest): Promise<Role>;
+  /** Adds an uncast role to an item, with the next unused id, unless the item already has
+   *  a role with that name. */
+  add(productionId: string, itemId: string, details: AddRoleRequest): Promise<Role | "name-taken">;
 }
 
 // The stored file also remembers the next id, so a removed role's id is never reused.
@@ -25,8 +26,10 @@ const nextIdOf = (file: RoleFile) =>
 
 const listOf = ({ productionId, roles }: RoleFile): RoleList => ({ productionId, roles });
 
-/** The file with a new, uncast role added to the item under the next id. */
+/** The file with a new, uncast role added to the item under the next id, or why not. */
 function withNewRole(file: RoleFile, itemId: string, details: AddRoleRequest) {
+  const taken = file.roles.some((r) => r.itemId === itemId && sameRoleName(r.name, details.name));
+  if (taken) return "name-taken";
   const role: Role = { ...details, id: nextIdOf(file), itemId, castMemberIds: [], revision: 1 };
   return { role, file: { ...file, roles: [...file.roles, role], nextId: role.id + 1 } };
 }
@@ -38,6 +41,7 @@ export function inMemoryRoleStore(initial: RoleList[] = []): RoleStore {
     list: async (productionId) => listOf(fileOf(productionId)),
     async add(productionId, itemId, details) {
       const added = withNewRole(fileOf(productionId), itemId, details);
+      if (added === "name-taken") return added;
       files.set(productionId, added.file);
       return added.role;
     },
@@ -64,8 +68,10 @@ export function fileRoleStore(dataDir: string): RoleStore {
   return {
     list: async (productionId) => listOf(await read(productionId)),
     add: (productionId, itemId, details) =>
+      // Checked and saved in one turn, so two adds of the same name can't both succeed.
       inTurn(async () => {
         const added = withNewRole(await read(productionId), itemId, details);
+        if (added === "name-taken") return added;
         await write(added.file);
         return added.role;
       }),

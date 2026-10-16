@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { type AddRoleRequest, RoleSize } from "@app/shared";
 import { onMounted, ref, useId } from "vue";
-import { type RoleForm, roleDetailsFrom, roleSizeLabel } from "../roles.ts";
+import { type RoleForm, roleDetailsFrom, roleSizeLabel, type TakenNames } from "../roles.ts";
 
-defineProps<{ saving: boolean; error: string }>();
+// taken: the item's existing role names, which a new role can't repeat.
+const props = defineProps<{ saving: boolean; error: string; taken: TakenNames }>();
 const emit = defineEmits<{ save: [details: AddRoleRequest]; cancel: [] }>();
 
 const form = ref<RoleForm>({ name: "", size: "" });
@@ -25,7 +26,7 @@ function onEscape(event: KeyboardEvent) {
 }
 
 function submit() {
-  const result = roleDetailsFrom(form.value);
+  const result = roleDetailsFrom(form.value, props.taken);
   errors.value = result.ok ? {} : result.errors;
   if (result.ok) emit("save", result.details);
 }

@@ -1,4 +1,4 @@
-import { AddRoleRequest, ProductionId } from "@app/shared";
+import { type AddRoleRefusal, AddRoleRequest, ProductionId } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import type { ApiEvent } from "./handler.ts";
 import { parseJson } from "./json.ts";
@@ -22,6 +22,13 @@ export function createAddRole(roles: RoleStore, runningOrders: RunningOrderStore
     if (!inShow) return { statusCode: 404 };
 
     const role = await roles.add(productionId.data, itemId, details.data);
+    if (role === "name-taken") {
+      return {
+        statusCode: 400,
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ error: "name-taken" } satisfies AddRoleRefusal),
+      };
+    }
     return {
       statusCode: 201,
       headers: { "content-type": "application/json" },

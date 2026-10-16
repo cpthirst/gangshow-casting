@@ -1,4 +1,4 @@
-import { Role } from "@app/shared";
+import { AddRoleRefusal, Role } from "@app/shared";
 import { describe, expect, it } from "vitest";
 import { createAddRole } from "./add-role.ts";
 import { inMemoryRoleStore } from "./role-store.ts";
@@ -68,5 +68,18 @@ describe("add role handler", () => {
 
     expect((await handler(request(hook, pirateSketch, "1999"))).statusCode).toBe(404);
     expect((await handler(request(hook, pirateSketch, "../etc"))).statusCode).toBe(404);
+  });
+});
+
+describe("add role handler with a name already used", () => {
+  it("refuses a repeated name in the same item with 400 and name-taken, storing nothing", async () => {
+    const { roles, handler } = setUp();
+    await handler(request({ name: "Captain Hook", size: "lead" }));
+
+    const res = await handler(request({ name: "CAPTAIN HOOK", size: "cameo" }));
+
+    expect(res.statusCode).toBe(400);
+    expect(AddRoleRefusal.parse(JSON.parse(res.body ?? ""))).toEqual({ error: "name-taken" });
+    expect((await roles.list("2027")).roles).toHaveLength(1);
   });
 });

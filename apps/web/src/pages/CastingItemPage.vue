@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { type AddRoleRequest, Role, RoleList, RunningOrder } from "@app/shared";
+import { AddRoleRefusal, type AddRoleRequest, Role, RoleList, RunningOrder } from "@app/shared";
 import { computed, nextTick, onMounted, ref, watchEffect } from "vue";
 import { useRoute } from "vue-router";
-import { addRolePath, ROLES_PATH, roleSizeLabel } from "../roles.ts";
+import { addRolePath, nameTakenMessage, ROLES_PATH, roleSizeLabel } from "../roles.ts";
 import { showPageTitle } from "../router.ts";
 import { placeOf, RUNNING_ORDER_PATH } from "../running-order.ts";
 import RoleForm from "./RoleForm.vue";
@@ -20,6 +20,12 @@ const place = computed(() => {
 const itemRoles = computed(() =>
   roles.value.filter((role) => role.itemId === place.value?.item.id),
 );
+
+// A new role can't repeat a name the item already has (PRD FR3).
+const takenNames = computed(() => ({
+  itemTitle: place.value?.item.title ?? "",
+  names: itemRoles.value.map((role) => role.name),
+}));
 
 // Loaded, but the item isn't in the latest saved running order (PRD FR6).
 const notFound = computed(() => status.value === "loaded" && !place.value);
@@ -80,6 +86,11 @@ async function add(details: AddRoleRequest) {
   formError.value = "";
   const role = await postRole(place.value.item.id, details);
   saving.value = false;
+  if (role === "name-taken") {
+    // Someone else added a role with this name since the page loaded.
+    formError.value = nameTakenMessage(place.value.item.title, details.name);
+    return;
+  }
   if (!role) {
     formError.value = "Couldn't add the role. Try again.";
     return;
@@ -95,7 +106,11 @@ async function postRole(itemId: string, details: AddRoleRequest) {
       headers: { "content-type": "application/json" },
       body: JSON.stringify(details),
     });
-    return res.status === 201 ? Role.parse(await res.json()) : undefined;
+    if (res.status === 201) return Role.parse(await res.json());
+    if (res.status === 400 && AddRoleRefusal.safeParse(await res.json()).success) {
+      return "name-taken";
+    }
+    return undefined;
   } catch {
     return undefined;
   }
@@ -122,7 +137,14 @@ async function postRole(itemId: string, details: AddRoleRequest) {
         Add role
       </button>
     </div>
-    <RoleForm v-if="adding" :saving="saving" :error="formError" @save="add" @cancel="stopAdding" />
+    <RoleForm
+      v-if="adding"
+      :saving="saving"
+      :error="formError"
+      :taken="takenNames"
+      @save="add"
+      @cancel="stopAdding"
+    />
     <ul v-if="itemRoles.length > 0" class="roles">
       <li v-for="role in itemRoles" :key="role.id" data-test="role">
         <span class="role-name">{{ role.name }}</span>

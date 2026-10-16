@@ -19,7 +19,7 @@ prd: ./prd.md
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
 | [casting-roles.E1.S1](stories/E1-S1-add-role.md) | Add an uncast role with a name and size, with required and length checks (walking skeleton: shared schema → roles store → API → item page) | FR1, FR3, FR8 | casting-item-overview.E1.S1 | done |
-| [casting-roles.E1.S2](stories/E1-S2-unique-role-names.md) | Refuse a role name already used in the same item | FR3 | E1.S1 | ready |
+| [casting-roles.E1.S2](stories/E1-S2-unique-role-names.md) | Refuse a role name already used in the same item | FR3 | E1.S1 | done |
 | [casting-roles.E1.S3](stories/E1-S3-cast-when-adding.md) | Cast someone when adding a role, picked from a filterable search of the cast | FR1, FR2, FR10 | E1.S1, casting-item-overview.E2.S1 | ready |
 
 ## E2: Change and remove roles

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { AddRoleRequest, Role, RoleList } from "./role.ts";
+import { AddRoleRefusal, AddRoleRequest, Role, RoleList, sameRoleName } from "./role.ts";
 
 const captainHook = {
   id: 1,
@@ -52,5 +52,25 @@ describe("AddRoleRequest", () => {
 describe("RoleList", () => {
   it("accepts a production's roles", () => {
     expect(RoleList.parse({ productionId: "2027", roles: [captainHook] }).roles).toHaveLength(1);
+  });
+});
+
+describe("sameRoleName", () => {
+  it.each([
+    ["Captain Hook", "Captain Hook"],
+    ["Captain Hook", "captain hook"],
+    ["Captain Hook", "  CAPTAIN HOOK "],
+  ])("treats %j and %j as the same name", (a, b) => {
+    expect(sameRoleName(a, b)).toBe(true);
+  });
+
+  it("tells different names apart", () => {
+    expect(sameRoleName("Captain Hook", "Captain Cook")).toBe(false);
+  });
+});
+
+describe("AddRoleRefusal", () => {
+  it("says the name is already taken in the item", () => {
+    expect(AddRoleRefusal.parse({ error: "name-taken" })).toEqual({ error: "name-taken" });
   });
 });

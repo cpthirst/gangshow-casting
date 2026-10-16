@@ -344,3 +344,75 @@ describe("Adding roles to an item", () => {
     expect(wrapper.get<HTMLInputElement>("input[name=name]").element.value).toBe("Captain Hook");
   });
 });
+
+describe("Role names within an item", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.body.innerHTML = "";
+  });
+
+  type Page = Awaited<ReturnType<typeof openAppAt>>["wrapper"];
+
+  const nameError = (wrapper: Page) => {
+    const id = wrapper.get("[name=name]").attributes("aria-describedby");
+    return id ? document.getElementById(id)?.textContent?.trim() : undefined;
+  };
+
+  const roleNames = (wrapper: Page) =>
+    wrapper.findAll("[data-test=role] .role-name").map((name) => name.text());
+
+  async function addRole(wrapper: Page, name: string, size = "cameo") {
+    await wrapper.get("[data-test=add-role]").trigger("click");
+    await wrapper.get("input[name=name]").setValue(name);
+    await wrapper.get("select[name=size]").setValue(size);
+    await wrapper.get("form[aria-label='Add role']").trigger("submit");
+    await flushPromises();
+  }
+
+  it("refuses a name the item already has, saying so next to the role name", async () => {
+    savedRunningOrderIs(show, [aRole("pirate-sketch", "Captain Hook")]);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    await addRole(wrapper, "Captain Hook");
+
+    expect(nameError(wrapper)).toBe("Pirate Sketch already has a role called Captain Hook");
+    expect(roleNames(wrapper)).toEqual(["Captain Hook"]);
+  });
+
+  it("treats case and surrounding spaces as the same name", async () => {
+    savedRunningOrderIs(show, [aRole("pirate-sketch", "Captain Hook")]);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    await addRole(wrapper, " captain hook ");
+
+    expect(nameError(wrapper)).toBe("Pirate Sketch already has a role called Captain Hook");
+    expect(roleNames(wrapper)).toEqual(["Captain Hook"]);
+  });
+
+  it("allows the same name in a different item", async () => {
+    savedRunningOrderIs(show, [aRole("pirate-sketch", "Narrator")]);
+    const { wrapper } = await openAppAt("/casting/items/campfire-song");
+
+    await addRole(wrapper, "Narrator", "support");
+
+    expect(roleNames(wrapper)).toEqual(["Narrator"]);
+  });
+
+  it("explains when someone else has just added the same name", async () => {
+    savedRunningOrderIs(show);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+    const fetch = vi.mocked(globalThis.fetch);
+    const answer = fetch.getMockImplementation();
+    fetch.mockImplementation(async (url, init) =>
+      init?.method === "POST"
+        ? json({ error: "name-taken" }, 400)
+        : (answer?.(url, init) ?? json({})),
+    );
+
+    await addRole(wrapper, "Captain Hook");
+
+    expect(wrapper.get("form [role=alert]").text()).toBe(
+      "Pirate Sketch already has a role called Captain Hook",
+    );
+  });
+});
