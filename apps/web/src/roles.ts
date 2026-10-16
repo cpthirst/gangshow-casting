@@ -88,3 +88,17 @@ export function roleDetailsFrom(form: RoleForm, taken: TakenNames): RoleFormResu
   }
   return { ok: false, errors };
 }
+
+/** An item's role counts: every role, and those with anyone in them (an ensemble counts as
+ *  cast once it has one person). PRD casting-items FR2. */
+export function roleCounts(roles: Role[], itemId: string) {
+  const itemRoles = roles.filter((role) => role.itemId === itemId);
+  return {
+    total: itemRoles.length,
+    cast: itemRoles.filter((role) => role.castMemberIds.length > 0).length,
+  };
+}
+
+/** "5 roles, 3 cast": the counts as a screen reader should hear them. */
+export const spokenCounts = ({ total, cast }: { total: number; cast: number }) =>
+  `${total} role${total === 1 ? "" : "s"}, ${cast} cast`;

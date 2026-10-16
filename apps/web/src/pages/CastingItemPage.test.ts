@@ -686,3 +686,33 @@ describe("Casting someone when adding a role", () => {
     expect(castOn(wrapper, "Parrot")).toBe("Sam Example");
   });
 });
+
+describe("Role counts on the Items list", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.body.innerHTML = "";
+  });
+
+  it("includes a role added on an item's page when you go back to the list", async () => {
+    savedRunningOrderIs(show);
+    const { wrapper } = await openAppAt("/casting/items");
+    const counts = () =>
+      wrapper
+        .findAll("[data-test=item]")
+        .find((row) => row.get("[data-test=title]").text() === "Campfire Song")
+        ?.get("[data-test=counts]");
+    expect(counts()?.text()).toBe("No roles yet");
+
+    await wrapper.get("main a[href='/casting/items/campfire-song']").trigger("click");
+    await flushPromises();
+    await wrapper.get("[data-test=add-role]").trigger("click");
+    await wrapper.get("input[name=name]").setValue("Narrator");
+    await wrapper.get("select[name=size]").setValue("support");
+    await wrapper.get("form[aria-label='Add role']").trigger("submit");
+    await flushPromises();
+    await wrapper.get("main nav[aria-label=Breadcrumb] a").trigger("click");
+    await flushPromises();
+
+    expect(counts()?.get("[aria-hidden=true]").text()).toBe("Roles 1 · Cast 0");
+  });
+});
