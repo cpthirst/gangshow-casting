@@ -114,7 +114,14 @@ async function loadRunningOrder() {
       <h2 :id="half.id">{{ half.name }}</h2>
       <div class="table-scroll" tabindex="0" role="region" :aria-label="`${half.name} items`">
         <!-- The Running order table, with a Cast button where the moves are. -->
-        <table class="running-order" role="table">
+        <table class="running-order items-list" role="table">
+          <!-- The same column widths in both halves, so they line up. -->
+          <colgroup>
+            <col class="col-cast" />
+            <col class="col-number" />
+            <col />
+            <col class="col-counts" />
+          </colgroup>
           <thead role="rowgroup">
             <tr role="row">
               <th scope="col" role="columnheader">Cast</th>
