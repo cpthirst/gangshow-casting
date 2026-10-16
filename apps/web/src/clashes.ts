@@ -155,6 +155,10 @@ const involves = (clash: Clash, itemId: string) =>
 export const clashesInItem = (clashes: Clash[], itemId: string) =>
   worstFirst(clashes.filter((clash) => involves(clash, itemId)));
 
+/** All of a person's clashes in the show, worst first (FR9). */
+export const clashesOfPerson = (clashes: Clash[], castMemberId: number) =>
+  worstFirst(clashes.filter((clash) => clash.castMemberId === castMemberId));
+
 /** A person's clashes that involve an item, worst first (FR7). */
 export const clashesOf = (clashes: Clash[], castMemberId: number, itemId: string) =>
   clashesInItem(clashes, itemId).filter((clash) => clash.castMemberId === castMemberId);

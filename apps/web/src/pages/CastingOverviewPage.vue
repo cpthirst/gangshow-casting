@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { CastList, type CastMember, RoleList, RunningOrder } from "@app/shared";
 import { computed, onMounted, ref } from "vue";
+import ClashIcon from "../ClashIcon.vue";
 import { CAST_PATH } from "../cast.ts";
+import { type Clash, clashesOfPerson, describeEach, findClashes } from "../clashes.ts";
 import {
   castBySection,
   itemIdsInOrder,
@@ -23,6 +25,9 @@ const state = ref<
 // Loaded separately from the cast: if the casting fails, the cast still shows, without
 // counts, and nobody is wrongly marked "No parts yet" (casting-overview FR8).
 const parts = ref<Map<number, PartCounts> | "error">();
+// From the same roles and running order, so they fail together: no icons then
+// (casting-rules FR9, FR13).
+const clashes = ref<Clash[]>([]);
 
 // Each person carries their part counts: undefined while loading or unavailable, or
 // when they have no parts in the show.
@@ -32,7 +37,11 @@ const sections = computed(() => {
   return castBySection(state.value.cast, counts).map(({ key, label, members }) => ({
     key,
     label,
-    people: members.map((member) => ({ member, counts: counts?.get(member.id) })),
+    people: members.map((member) => ({
+      member,
+      counts: counts?.get(member.id),
+      clashLines: describeEach(clashesOfPerson(clashes.value, member.id)),
+    })),
   }));
 });
 
@@ -50,7 +59,9 @@ async function loadParts() {
       return;
     }
     if (!orderRes.ok) throw new Error(`HTTP ${orderRes.status}`);
-    parts.value = partsByMember(roles, itemIdsInOrder(RunningOrder.parse(await orderRes.json())));
+    const order = RunningOrder.parse(await orderRes.json());
+    parts.value = partsByMember(roles, itemIdsInOrder(order));
+    clashes.value = findClashes(order, roles);
   } catch {
     parts.value = "error";
   }
@@ -90,8 +101,13 @@ async function loadCast() {
       <!-- Cards like an item's role cards (casting-overview UI consistency). An explicit
            list role: Safari drops list semantics once bullets are styled away. -->
       <ul class="role-cards" role="list" :aria-labelledby="`section-${section.key}`">
-        <li v-for="{ member, counts } in section.people" :key="member.id" class="role-card" data-test="person">
-          <span class="person-name role-name">{{ member.firstName }} {{ member.lastName }}</span>
+        <li v-for="{ member, counts, clashLines } in section.people" :key="member.id" class="role-card" data-test="person">
+          <!-- Name and clash icon together, so the icon stays beside the name, as on an
+               item's page, with any written-out clashes beneath. -->
+          <span>
+            <span class="person-name role-name">{{ member.firstName }} {{ member.lastName }}</span>
+            <ClashIcon :lines="clashLines" />
+          </span>
           <template v-if="counts">
             <!-- Seen as pills; heard as "1 lead, 3 ensemble". -->
             <span class="person-parts" aria-hidden="true">

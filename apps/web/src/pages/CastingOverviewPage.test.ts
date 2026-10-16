@@ -362,3 +362,109 @@ describe("Casting overview parts", () => {
     expect(cardFor(wrapper, "Sam Example")?.text()).not.toMatch(/\b8\b/);
   });
 });
+
+describe("Clashes on the Overview", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.body.innerHTML = "";
+  });
+
+  // Every item is 5 minutes. First half: Opening Number, Pirate Sketch, Dance One. Second
+  // half: Campfire Song, Interlude, Encore.
+  const show = aRunningOrder(
+    [anItem("Opening Number"), anItem("Pirate Sketch"), anItem("Dance One")],
+    [anItem("Campfire Song"), anItem("Interlude"), anItem("Encore")],
+  );
+  const sam = person("Sam", "Example", "scouts");
+  const alex = person("Alex", "Sample", "scouts");
+  const jo = person("Jo", "Newcomer", "explorers");
+  let nextRoleId = 1;
+  const role = (itemId: string, castMemberIds: number[], size: Role["size"] = "lead"): Role => ({
+    id: nextRoleId++,
+    itemId,
+    name: `Role ${nextRoleId}`,
+    size,
+    castMemberIds,
+    revision: 1,
+  });
+  // Sam: back-to-back Opening Number → Pirate Sketch (error), and a 5-minute quick change
+  // Campfire Song → Encore (Interlude between). Alex: one item. Jo: ensembles in Opening
+  // Number and Dance One, 5 minutes apart: a quick change only.
+  const roles = [
+    role("opening-number", [sam.id]),
+    role("pirate-sketch", [sam.id], "support"),
+    role("campfire-song", [sam.id]),
+    role("encore", [sam.id]),
+    role("interlude", [alex.id]),
+    role("opening-number", [jo.id], "ensemble"),
+    role("dance-one", [jo.id], "ensemble"),
+  ];
+
+  function showIs(failing: Record<string, number> = {}) {
+    const answers: Record<string, unknown> = {
+      [CAST_PATH]: { productionId: "2027", members: [sam, alex, jo] },
+      [ROLES_PATH]: { productionId: "2027", roles },
+      [RUNNING_ORDER_PATH]: show,
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        const code = failing[url];
+        if (code) return new Response(null, { status: code });
+        if (url in answers) return new Response(JSON.stringify(answers[url]));
+        return new Response(JSON.stringify({ status: "ok", version: "dev" }));
+      }),
+    );
+  }
+
+  const clashOf = (wrapper: VueWrapper, name: string) =>
+    wrapper
+      .findAll("[data-test=person]")
+      .find((card) => card.get(".person-name").text() === name)
+      ?.find("[data-test=clash]");
+
+  it("shows an icon at a person's worst severity", async () => {
+    showIs();
+    const wrapper = await openOverview();
+
+    expect(clashOf(wrapper, "Sam Example")?.attributes("data-severity")).toBe("error");
+  });
+
+  it("lists each of their clashes with its items, worst first", async () => {
+    showIs();
+    const wrapper = await openOverview();
+
+    const clash = clashOf(wrapper, "Sam Example");
+    expect(clash?.findAll(".clash-line").map((line) => line.text())).toEqual([
+      "Error: back-to-back. Lead in 'Opening Number', then Support in 'Pirate Sketch'",
+      "Info: quick change. 5 minutes between 'Campfire Song' and 'Encore'",
+    ]);
+    expect(clash?.get("[data-test=clash-icon]").attributes("tabindex")).toBe("0");
+  });
+
+  it("shows no icon for someone without clashes", async () => {
+    showIs();
+    const wrapper = await openOverview();
+
+    expect(clashOf(wrapper, "Alex Sample")?.exists()).toBe(false);
+    expect(wrapper.text()).toContain("Alex Sample");
+  });
+
+  it("shows Info for someone whose only clash is a quick change", async () => {
+    showIs();
+    const wrapper = await openOverview();
+
+    expect(clashOf(wrapper, "Jo Newcomer")?.attributes("data-severity")).toBe("info");
+  });
+
+  it.each([ROLES_PATH, RUNNING_ORDER_PATH])(
+    "shows no icons when %s can't be loaded",
+    async (failing) => {
+      showIs({ [failing]: 500 });
+      const wrapper = await openOverview();
+
+      expect(wrapper.get("[role=alert]").text()).toBe("Couldn't load the casting.");
+      expect(wrapper.find("[data-test=clash]").exists()).toBe(false);
+    },
+  );
+});

@@ -4,6 +4,7 @@ import {
   type Clash,
   clashesInItem,
   clashesOf,
+  clashesOfPerson,
   describeClash,
   findClashes,
   summariseClashes,
@@ -217,6 +218,25 @@ describe("time between appearances", () => {
       "warning",
       "info",
     ]);
+  });
+});
+
+describe("a person's clashes across the show, for the Overview", () => {
+  it("are all their clashes, worst first, and nobody else's", () => {
+    // Sam: a quick change (Opening Number → Dance One, Pirate Sketch's 5 minutes between),
+    // then back-to-back Campfire Song → Finale. The quick change comes first in the show.
+    const clashes = findClashes(show, [
+      role("opening-number", "lead", [SAM]),
+      role("dance-one", "lead", [SAM]),
+      role("campfire-song", "lead", [SAM, ALEX]),
+      role("finale", "cameo", [SAM]),
+    ]);
+
+    expect(clashesOfPerson(clashes, SAM).map((clash) => [clash.kind, clash.severity])).toEqual([
+      ["back-to-back", "error"],
+      ["quick-change", "info"],
+    ]);
+    expect(clashesOfPerson(clashes, ALEX)).toEqual([]);
   });
 });
 

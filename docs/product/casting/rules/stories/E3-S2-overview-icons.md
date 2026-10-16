@@ -2,7 +2,7 @@
 id: casting-rules.E3.S2
 title: Show clash icons on the Overview
 epic: E3
-status: ready
+status: in-progress
 ---
 
 ## Story
@@ -19,7 +19,7 @@ Then Sam's card shows an Error icon
 ### AC2: The description lists each clash and its items
 Given Sam has the clashes in AC1
 When I hover over or focus the icon
-Then I see each clash with its items, for example "Error: back-to-back, 'Opening Number' then 'Pirate Sketch'" and "Info: quick change, 6 minutes between 'Song Two' and 'Campfire Song'"
+Then I see each clash with its items, worst first, for example "Error: back-to-back. Lead in 'Opening Number', then Support in 'Pirate Sketch'" and "Info: quick change. 6 minutes between 'Song Two' and 'Campfire Song'"
 
 ### AC3: People without clashes have no icon
 Given "Alex Sample" has no clashes
@@ -45,6 +45,7 @@ And no clash icons are shown
 
 ## Notes
 
+- AC2's example wording updated on 2026-10-16 to the description wording the user agreed during casting-rules.E2.S3.
 - FRs: FR9, FR10, FR13
 - Depends on: casting-rules.E2.S3.
 - Uses the same icons and the same clash calculation as the item page.
