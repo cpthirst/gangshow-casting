@@ -143,3 +143,33 @@ describe("sortRoles", () => {
     expect(roles.map((r) => r.name)).toEqual(["Pirates", "Captain Hook"]);
   });
 });
+
+describe("roleDetailsFrom for an ensemble's members", () => {
+  const ensemble = (size: Role["size"], members: number[]) => ({
+    name: "Pirates",
+    size,
+    castMember: { query: "", id: null },
+    members,
+  });
+
+  it("casts every member listed", () => {
+    expect(roleDetailsFrom(ensemble("ensemble", [12, 13]), noneTaken)).toEqual({
+      ok: true,
+      details: { name: "Pirates", size: "ensemble", castMemberIds: [12, 13] },
+    });
+  });
+
+  it("refuses a single-person size while several people are in it", () => {
+    expect(roleDetailsFrom(ensemble("cameo", [12, 13]), noneTaken)).toEqual({
+      ok: false,
+      errors: { size: "Leave one person in this ensemble before making it a Cameo role" },
+    });
+  });
+
+  it("allows a single-person size once one person is left", () => {
+    expect(roleDetailsFrom(ensemble("cameo", [12]), noneTaken)).toMatchObject({
+      ok: true,
+      details: { size: "cameo", castMemberIds: [12] },
+    });
+  });
+});

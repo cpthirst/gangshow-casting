@@ -954,6 +954,66 @@ main a {
   font-weight: 700;
 }
 
+/* Edit sits at the end of the card, like the Cast page's row actions. */
+.role-card [data-test="edit"],
+.role-card [data-test="remove"] {
+  margin-left: auto;
+  padding: 0.25rem 0.75rem;
+  border: 1px solid var(--text);
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.role-card [data-test="edit"]:disabled,
+.role-card [data-test="remove"]:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* When "Uncast" is shown, it takes the push to the right and Edit sits just after it. */
+.role-card .uncast + [data-test="edit"] {
+  margin-left: 0;
+}
+
+.role-card [data-test="edit"] + [data-test="remove"] {
+  margin-left: 0;
+}
+
+/* An ensemble's members, each removable, above the search to add one more. */
+.field-label {
+  margin: 0;
+  font-weight: 700;
+}
+
+.members {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.25rem 0 0.75rem;
+  padding: 0;
+  list-style: none;
+}
+
+.members li {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.25rem 0.25rem 0.25rem 0.75rem;
+  border-radius: 999px;
+  background: var(--white);
+}
+
+/* A card being edited holds the form at full width. */
+.role-card.editing {
+  display: block;
+  background: var(--surface);
+}
+
 /* The cast member search: a list of choices drops down under the field as you type. */
 .combobox {
   position: relative;

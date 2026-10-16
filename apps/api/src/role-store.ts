@@ -12,9 +12,27 @@ export interface RoleStore {
   /** Adds a role to an item, with the next unused id, unless the item already has a role
    *  with that name. */
   add(productionId: string, itemId: string, details: AddRoleRequest): Promise<Role | "name-taken">;
+  /** Replaces a role's details (revision + 1), if it's still at the given revision and no
+   *  other role in its item has the new name. */
+  update(
+    productionId: string,
+    id: number,
+    revision: number,
+    details: AddRoleRequest,
+  ): Promise<Role | RoleRefusal>;
+  /** Removes a role for good, with who was cast in it, if it's still at the given revision. */
+  remove(
+    productionId: string,
+    id: number,
+    revision: number,
+  ): Promise<"removed" | Exclude<RoleRefusal, "name-taken">>;
   /** Takes a cast member out of every role (e.g. they've left the cast). The roles stay. */
   uncastMember(productionId: string, castMemberId: number): Promise<void>;
 }
+
+/** Why a change to one role was refused: it's gone, someone else changed it first, or
+ *  another role in the item already has the name. */
+export type RoleRefusal = "not-found" | "stale" | "name-taken";
 
 // The stored file also remembers the next id, so a removed role's id is never reused.
 const RoleFile = RoleList.extend({ nextId: Role.shape.id.optional() });
@@ -34,6 +52,31 @@ function withNewRole(file: RoleFile, itemId: string, details: AddRoleRequest) {
   if (taken) return "name-taken";
   const role: Role = { ...details, id: nextIdOf(file), itemId, revision: 1 };
   return { role, file: { ...file, roles: [...file.roles, role], nextId: role.id + 1 } };
+}
+
+/** The file with one role's details replaced, or why not. */
+function withUpdatedRole(file: RoleFile, id: number, revision: number, details: AddRoleRequest) {
+  const role = file.roles.find((r) => r.id === id);
+  if (!role) return "not-found";
+  if (role.revision !== revision) return "stale";
+  const taken = file.roles.some(
+    (r) => r.id !== id && r.itemId === role.itemId && sameRoleName(r.name, details.name),
+  );
+  if (taken) return "name-taken";
+  const updated: Role = { ...role, ...details, revision: revision + 1 };
+  return {
+    role: updated,
+    file: { ...file, roles: file.roles.map((r) => (r.id === id ? updated : r)) },
+  };
+}
+
+/** The file without the role, or why not. Keeps nextId, so its id is never reused. */
+function withoutRole(file: RoleFile, id: number, revision: number) {
+  const role = file.roles.find((r) => r.id === id);
+  if (!role) return "not-found";
+  if (role.revision !== revision) return "stale";
+  // nextId is worked out before filtering, so the removed id stays taken.
+  return { ...file, roles: file.roles.filter((r) => r.id !== id), nextId: nextIdOf(file) };
 }
 
 /** The file with the member taken out of every role; each role that changes is bumped. */
@@ -60,6 +103,18 @@ export function inMemoryRoleStore(initial: RoleList[] = []): RoleStore {
       if (added === "name-taken") return added;
       files.set(productionId, added.file);
       return added.role;
+    },
+    async update(productionId, id, revision, details) {
+      const updated = withUpdatedRole(fileOf(productionId), id, revision, details);
+      if (typeof updated === "string") return updated;
+      files.set(productionId, updated.file);
+      return updated.role;
+    },
+    async remove(productionId, id, revision) {
+      const removed = withoutRole(fileOf(productionId), id, revision);
+      if (typeof removed === "string") return removed;
+      files.set(productionId, removed);
+      return "removed";
     },
     async uncastMember(productionId, castMemberId) {
       files.set(productionId, withoutMember(fileOf(productionId), castMemberId));
@@ -93,6 +148,21 @@ export function fileRoleStore(dataDir: string): RoleStore {
         if (added === "name-taken") return added;
         await write(added.file);
         return added.role;
+      }),
+    update: (productionId, id, revision, details) =>
+      inTurn(async () => {
+        const updated = withUpdatedRole(await read(productionId), id, revision, details);
+        if (typeof updated === "string") return updated;
+        await write(updated.file);
+        return updated.role;
+      }),
+    remove: (productionId, id, revision) =>
+      inTurn(async () => {
+        // The file is rewritten without it: no copy or history is kept (ADR 0010).
+        const removed = withoutRole(await read(productionId), id, revision);
+        if (typeof removed === "string") return removed;
+        await write(removed);
+        return "removed";
       }),
     uncastMember: (productionId, castMemberId) =>
       inTurn(async () => {

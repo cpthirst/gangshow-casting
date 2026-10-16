@@ -2,7 +2,7 @@
 id: casting-roles.E2.S3
 title: Remove a role
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story

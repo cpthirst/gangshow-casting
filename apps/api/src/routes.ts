@@ -8,10 +8,12 @@ import { createGetRoles } from "./get-roles.ts";
 import { createGetRunningOrder } from "./get-running-order.ts";
 import type { Handler } from "./handler.ts";
 import { handler as health } from "./health.ts";
+import { createRemoveRole } from "./remove-role.ts";
 import { fileRoleStore } from "./role-store.ts";
 import { fileRunningOrderStore } from "./running-order-store.ts";
 import { createSaveRunningOrder } from "./save-running-order.ts";
 import { createUpdateCastMember } from "./update-cast-member.ts";
+import { createUpdateRole } from "./update-role.ts";
 
 // Git-ignored: real production data never goes in the repo (CLAUDE.md safeguarding).
 const dataDir = process.env.DATA_DIR ?? fileURLToPath(new URL("../data", import.meta.url));
@@ -35,6 +37,8 @@ export const routes: Record<string, Handler> = {
     runningOrders,
     cast,
   ),
+  "PUT /api/productions/{productionId}/roles/{roleId}": createUpdateRole(roles, cast),
+  "DELETE /api/productions/{productionId}/roles/{roleId}": createRemoveRole(roles),
 };
 
 /** Finds the handler for a request, as API Gateway would, with any path parameters. */

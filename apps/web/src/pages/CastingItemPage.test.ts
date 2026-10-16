@@ -1,4 +1,11 @@
-import { AddRoleRequest, type CastMember, type Role, type RunningOrder } from "@app/shared";
+import {
+  AddRoleRequest,
+  type CastMember,
+  type Role,
+  type RunningOrder,
+  sameRoleName,
+  UpdateRoleRequest,
+} from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory } from "vue-router";
@@ -54,9 +61,36 @@ function savedRunningOrderIs(order: RunningOrder, roles: Role[] = []) {
         stored.push(role);
         return json(role, 201);
       }
+      const removal = /\/roles\/(\d+)\?revision=(\d+)$/.exec(url);
+      if (removal && init?.method === "DELETE") {
+        const index = stored.findIndex((r) => r.id === Number(removal[1]));
+        const current = stored[index];
+        if (!current) return new Response(null, { status: 404 });
+        if (current.revision !== Number(removal[2])) return new Response(null, { status: 409 });
+        stored.splice(index, 1);
+        return new Response(null, { status: 204 });
+      }
+      const editId = Number(/\/roles\/(\d+)$/.exec(url)?.[1]);
+      if (editId && init?.method === "PUT") {
+        const { revision, ...details } = UpdateRoleRequest.parse(JSON.parse(String(init.body)));
+        const index = stored.findIndex((r) => r.id === editId);
+        const current = stored[index];
+        if (!current) return new Response(null, { status: 404 });
+        if (current.revision !== revision) return new Response(null, { status: 409 });
+        const taken = stored.some(
+          (r) =>
+            r.id !== editId && r.itemId === current.itemId && sameRoleName(r.name, details.name),
+        );
+        if (taken) return json({ error: "name-taken" }, 400);
+        const updated = { ...current, ...details, revision: revision + 1 };
+        stored[index] = updated;
+        return json(updated);
+      }
       return json(order);
     }),
   );
+  // The live roles, so a test can play someone else changing them.
+  return stored;
 }
 
 // The whole app, so routing, the menu and the tab title are real.
@@ -714,5 +748,418 @@ describe("Role counts on the Items list", () => {
     await flushPromises();
 
     expect(counts()?.get("[aria-hidden=true]").text()).toBe("Roles 1 · Cast 0");
+  });
+});
+
+describe("Editing a role", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.body.innerHTML = "";
+  });
+
+  type Page = Awaited<ReturnType<typeof openAppAt>>["wrapper"];
+
+  const roleWith = (
+    id: number,
+    name: string,
+    size: Role["size"],
+    castMemberIds: number[] = [],
+  ) => ({
+    ...aRole("pirate-sketch", name, size),
+    id,
+    castMemberIds,
+  });
+  const pirates = () => [
+    roleWith(1, "Captain Hook", "lead", [12]),
+    roleWith(2, "Smee", "support"),
+    roleWith(3, "Parrot", "cameo"),
+  ];
+
+  const card = (wrapper: Page, name: string) =>
+    wrapper.findAll("[data-test=role]").find((c) => c.get(".role-name").text() === name);
+  const cardNames = (wrapper: Page) =>
+    wrapper.findAll("[data-test=role] .role-name").map((name) => name.text());
+  const castOn = (wrapper: Page, name: string) =>
+    card(wrapper, name)?.find("[data-test=cast]").text();
+  const editForm = (wrapper: Page, name: string) => wrapper.get(`form[aria-label='Edit ${name}']`);
+  const search = (wrapper: Page) => wrapper.get<HTMLInputElement>("input[name=castMember]");
+
+  async function startEditing(wrapper: Page, name: string) {
+    await wrapper.get(`button[aria-label='Edit ${name}']`).trigger("click");
+    await flushPromises();
+  }
+
+  async function choose(wrapper: Page, typed: string) {
+    await search(wrapper).setValue(typed);
+    await search(wrapper).trigger("keydown", { key: "ArrowDown" });
+    await search(wrapper).trigger("keydown", { key: "Enter" });
+  }
+
+  async function save(wrapper: Page, name: string) {
+    await editForm(wrapper, name).trigger("submit");
+    await flushPromises();
+  }
+
+  it("casts someone in an uncast role", async () => {
+    savedRunningOrderIs(show, pirates());
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    await startEditing(wrapper, "Parrot");
+    await choose(wrapper, "sample");
+    await save(wrapper, "Parrot");
+
+    expect(castOn(wrapper, "Parrot")).toBe("Alex Sample");
+  });
+
+  it("starts the form with the role's details and who's cast", async () => {
+    savedRunningOrderIs(show, pirates());
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    await startEditing(wrapper, "Captain Hook");
+
+    const form = editForm(wrapper, "Captain Hook");
+    expect(form.get<HTMLInputElement>("input[name=name]").element.value).toBe("Captain Hook");
+    expect(form.get<HTMLSelectElement>("select[name=size]").element.value).toBe("lead");
+    expect(search(wrapper).element.value).toBe("Sam Example");
+  });
+
+  it("recasts a role", async () => {
+    savedRunningOrderIs(show, pirates());
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    await startEditing(wrapper, "Captain Hook");
+    await choose(wrapper, "newcomer");
+    await save(wrapper, "Captain Hook");
+
+    expect(castOn(wrapper, "Captain Hook")).toBe("Jo Newcomer");
+  });
+
+  it("makes a role uncast when the cast member is cleared", async () => {
+    savedRunningOrderIs(show, pirates());
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    await startEditing(wrapper, "Captain Hook");
+    await search(wrapper).setValue("");
+    await save(wrapper, "Captain Hook");
+
+    expect(card(wrapper, "Captain Hook")?.get("[data-test=uncast]").text()).toBe("Uncast");
+  });
+
+  it("renames and resizes a role, moving it to its new place", async () => {
+    savedRunningOrderIs(show, [...pirates(), roleWith(4, "Wendy", "lead")]);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    await startEditing(wrapper, "Smee");
+    await editForm(wrapper, "Smee").get("input[name=name]").setValue("Mr Smee");
+    await editForm(wrapper, "Smee").get("select[name=size]").setValue("lead");
+    await save(wrapper, "Smee");
+
+    expect(cardNames(wrapper)).toEqual(["Captain Hook", "Mr Smee", "Wendy", "Parrot"]);
+  });
+
+  it.each([
+    ["", "Enter a role name"],
+    ["captain hook", "Pirate Sketch already has a role called Captain Hook"],
+  ])(
+    "checks the edit like a new role (name %j), leaving the role unchanged",
+    async (name, message) => {
+      savedRunningOrderIs(show, pirates());
+      const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+      await startEditing(wrapper, "Smee");
+      await editForm(wrapper, "Smee").get("input[name=name]").setValue(name);
+      await save(wrapper, "Smee");
+
+      const describedBy = editForm(wrapper, "Smee")
+        .get("input[name=name]")
+        .attributes("aria-describedby");
+      expect(describedBy && document.getElementById(describedBy)?.textContent?.trim()).toBe(
+        message,
+      );
+      // The form holds the card while open; once closed, Smee is as it was.
+      await editForm(wrapper, "Smee").get("[data-test=cancel]").trigger("click");
+      await flushPromises();
+      expect(cardNames(wrapper)).toContain("Smee");
+    },
+  );
+
+  it("leaves the role unchanged when cancelled", async () => {
+    savedRunningOrderIs(show, pirates());
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    await startEditing(wrapper, "Smee");
+    await editForm(wrapper, "Smee").get("input[name=name]").setValue("Mr Smee");
+    await editForm(wrapper, "Smee").get("[data-test=cancel]").trigger("click");
+    await flushPromises();
+
+    expect(wrapper.find("form[aria-label='Edit Smee']").exists()).toBe(false);
+    expect(cardNames(wrapper)).toContain("Smee");
+  });
+
+  it("doesn't overwrite someone else's edit, showing the latest roles", async () => {
+    const stored = savedRunningOrderIs(show, pirates());
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+    await startEditing(wrapper, "Smee");
+    // Someone else renames Smee after this page loaded.
+    stored[1] = { ...roleWith(2, "Bosun", "support"), revision: 2 };
+
+    await editForm(wrapper, "Smee").get("input[name=name]").setValue("Mr Smee");
+    await save(wrapper, "Smee");
+
+    expect(wrapper.get("main [role=alert]").text()).toBe(
+      "Someone else changed this role. Showing the latest roles.",
+    );
+    expect(cardNames(wrapper)).toContain("Bosun");
+    expect(cardNames(wrapper)).not.toContain("Mr Smee");
+  });
+
+  it("explains when someone else removed the role being edited", async () => {
+    const stored = savedRunningOrderIs(show, pirates());
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+    await startEditing(wrapper, "Smee");
+    stored.splice(1, 1);
+
+    await save(wrapper, "Smee");
+
+    expect(wrapper.get("main [role=alert]").text()).toBe(
+      "Someone else changed this role. Showing the latest roles.",
+    );
+    expect(cardNames(wrapper)).not.toContain("Smee");
+  });
+});
+
+describe("Removing a role", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.body.innerHTML = "";
+  });
+
+  type Page = Awaited<ReturnType<typeof openAppAt>>["wrapper"];
+
+  const parrot = () => ({
+    ...aRole("pirate-sketch", "Parrot", "cameo"),
+    id: 3,
+    castMemberIds: [12],
+  });
+  const smee = () => ({ ...aRole("pirate-sketch", "Smee", "support"), id: 2 });
+  const cardNames = (wrapper: Page) =>
+    wrapper.findAll("[data-test=role] .role-name").map((name) => name.text());
+
+  async function remove(wrapper: Page, name: string) {
+    await wrapper.get(`button[aria-label='Remove ${name}']`).trigger("click");
+    await flushPromises();
+  }
+
+  it("asks first, naming the role and the item", async () => {
+    savedRunningOrderIs(show, [smee(), parrot()]);
+    const confirm = vi.fn().mockReturnValue(false);
+    vi.stubGlobal("confirm", confirm);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    await remove(wrapper, "Parrot");
+
+    expect(confirm).toHaveBeenCalledWith(
+      "Remove the role Parrot from Pirate Sketch? Anyone cast in it will be uncast.",
+    );
+  });
+
+  it("removes the role for good once confirmed", async () => {
+    savedRunningOrderIs(show, [smee(), parrot()]);
+    vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
+    const first = await openAppAt("/casting/items/pirate-sketch");
+
+    await remove(first.wrapper, "Parrot");
+
+    expect(cardNames(first.wrapper)).toEqual(["Smee"]);
+    first.wrapper.unmount();
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+    expect(cardNames(wrapper)).toEqual(["Smee"]);
+  });
+
+  it("keeps the role when cancelled", async () => {
+    savedRunningOrderIs(show, [smee(), parrot()]);
+    vi.stubGlobal("confirm", vi.fn().mockReturnValue(false));
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    await remove(wrapper, "Parrot");
+
+    expect(cardNames(wrapper)).toEqual(["Smee", "Parrot"]);
+  });
+
+  it("shows the empty state when the last role is removed", async () => {
+    savedRunningOrderIs(show, [parrot()]);
+    vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    await remove(wrapper, "Parrot");
+
+    expect(wrapper.text()).toContain("No roles have been added yet.");
+  });
+
+  it("refuses to remove a role someone else edited, showing it as they left it", async () => {
+    const stored = savedRunningOrderIs(show, [smee(), parrot()]);
+    vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+    stored[1] = { ...parrot(), name: "Polly", revision: 2 };
+
+    await remove(wrapper, "Parrot");
+
+    expect(wrapper.get("main [role=alert]").text()).toBe(
+      "Someone else changed this role. Showing the latest roles.",
+    );
+    expect(cardNames(wrapper)).toEqual(["Smee", "Polly"]);
+  });
+
+  it("explains when someone else already removed the role", async () => {
+    const stored = savedRunningOrderIs(show, [smee(), parrot()]);
+    vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+    stored.splice(1, 1);
+
+    await remove(wrapper, "Parrot");
+
+    expect(wrapper.get("main [role=alert]").text()).toBe(
+      "Someone else changed this role. Showing the latest roles.",
+    );
+    expect(cardNames(wrapper)).toEqual(["Smee"]);
+  });
+});
+
+describe("Ensemble members", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.body.innerHTML = "";
+  });
+
+  type Page = Awaited<ReturnType<typeof openAppAt>>["wrapper"];
+
+  const pirates = (castMemberIds: number[]) => [
+    { ...aRole("pirate-sketch", "Pirates", "ensemble"), id: 9, castMemberIds },
+  ];
+  const form = (wrapper: Page) => wrapper.get("form[aria-label='Edit Pirates']");
+  const castOnCard = (wrapper: Page) => wrapper.get("[data-test=role] [data-test=cast]").text();
+  const members = (wrapper: Page) =>
+    form(wrapper)
+      .findAll("[data-test=member] .member-name")
+      .map((name) => name.text());
+
+  async function edit(wrapper: Page) {
+    await wrapper.get("button[aria-label='Edit Pirates']").trigger("click");
+    await flushPromises();
+  }
+
+  async function addMember(wrapper: Page, typed: string) {
+    const search = form(wrapper).get("input[name=castMember]");
+    await search.setValue(typed);
+    await search.trigger("keydown", { key: "ArrowDown" });
+    await search.trigger("keydown", { key: "Enter" });
+  }
+
+  async function save(wrapper: Page) {
+    await form(wrapper).trigger("submit");
+    await flushPromises();
+  }
+
+  it("adds a member to an ensemble", async () => {
+    savedRunningOrderIs(show, pirates([12]));
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    await edit(wrapper);
+    await addMember(wrapper, "sample");
+    expect(members(wrapper)).toEqual(["Sam Example", "Alex Sample"]);
+    await save(wrapper);
+
+    expect(castOnCard(wrapper)).toBe("Sam Example, Alex Sample");
+  });
+
+  it("lists an ensemble's members by last name on the card", async () => {
+    savedRunningOrderIs(show, pirates([12, 15, 14]));
+
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    expect(castOnCard(wrapper)).toBe("Zoë Adams, Sam Example, Jo Newcomer");
+  });
+
+  it("removes a member from an ensemble", async () => {
+    savedRunningOrderIs(show, pirates([12, 13]));
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    await edit(wrapper);
+    await form(wrapper)
+      .get("button[aria-label='Remove Alex Sample from Pirates']")
+      .trigger("click");
+    await save(wrapper);
+
+    expect(castOnCard(wrapper)).toBe("Sam Example");
+  });
+
+  it("leaves the ensemble uncast when its last member is removed", async () => {
+    savedRunningOrderIs(show, pirates([12]));
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    await edit(wrapper);
+    await form(wrapper)
+      .get("button[aria-label='Remove Sam Example from Pirates']")
+      .trigger("click");
+    await save(wrapper);
+
+    expect(wrapper.get("[data-test=role] [data-test=uncast]").text()).toBe("Uncast");
+  });
+
+  it("doesn't offer someone already in the ensemble", async () => {
+    savedRunningOrderIs(show, pirates([12]));
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    await edit(wrapper);
+    await form(wrapper).get("input[name=castMember]").setValue("sam");
+
+    const offered = form(wrapper)
+      .findAll("[role=option] .choice-name")
+      .map((name) => name.text());
+    expect(offered).toEqual(["Alex Sample"]);
+  });
+
+  it("refuses to narrow an ensemble that has several people, saying so by the size", async () => {
+    savedRunningOrderIs(show, pirates([12, 13]));
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    await edit(wrapper);
+    await form(wrapper).get("select[name=size]").setValue("cameo");
+    await save(wrapper);
+
+    const describedBy = form(wrapper).get("select[name=size]").attributes("aria-describedby");
+    expect(describedBy && document.getElementById(describedBy)?.textContent?.trim()).toBe(
+      "Leave one person in this ensemble before making it a Cameo role",
+    );
+    // Nothing was saved: the form is still open and nothing was sent.
+    const puts = vi.mocked(fetch).mock.calls.filter(([, init]) => init?.method === "PUT");
+    expect(puts).toEqual([]);
+    expect(wrapper.find("form[aria-label='Edit Pirates']").exists()).toBe(true);
+  });
+
+  it("keeps focus in the form and says who was removed", async () => {
+    savedRunningOrderIs(show, pirates([12, 13]));
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    await edit(wrapper);
+    await form(wrapper)
+      .get("button[aria-label='Remove Alex Sample from Pirates']")
+      .trigger("click");
+    await flushPromises();
+
+    expect(document.activeElement).toBe(form(wrapper).get("input[name=castMember]").element);
+    expect(form(wrapper).get(".members + [role=status]").text()).toBe("Removed Alex Sample.");
+  });
+
+  it("lets an ensemble with one person become a single-person role", async () => {
+    savedRunningOrderIs(show, pirates([12]));
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    await edit(wrapper);
+    await form(wrapper).get("select[name=size]").setValue("cameo");
+    await save(wrapper);
+
+    expect(wrapper.get("[data-test=role] [data-test=size]").text()).toBe("Cameo");
+    expect(castOnCard(wrapper)).toBe("Sam Example");
   });
 });

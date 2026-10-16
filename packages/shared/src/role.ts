@@ -29,19 +29,39 @@ const fitsSize = ({ size, castMemberIds }: { size: RoleSize; castMemberIds: numb
 
 const noRepeats = (ids: number[]) => new Set(ids).size === ids.length;
 
+/** What people set on a role: everything but the app-managed id, item and revision. */
+const RoleDetails = Role.pick({ name: true, size: true }).extend({
+  castMemberIds: Role.shape.castMemberIds.default([]),
+});
+
+/** The casting rules every role change follows, whether adding or editing. */
+const withCastingRules = <T extends z.ZodType<{ size: RoleSize; castMemberIds: number[] }>>(
+  schema: T,
+) =>
+  schema
+    .refine(fitsSize, { path: ["castMemberIds"], message: "Only an ensemble has several people" })
+    .refine(({ castMemberIds }) => noRepeats(castMemberIds), {
+      path: ["castMemberIds"],
+      message: "Someone is listed twice",
+    });
+
 /**
  * POST /api/productions/{productionId}/items/{itemId}/roles: a new role, uncast unless
  * cast member ids are given (each a member of this production's cast).
  * 201 returns the Role; 400 for an invalid role or unknown cast member; 404 if the item
  * isn't in the latest saved running order.
  */
-export const AddRoleRequest = Role.pick({ name: true, size: true })
-  .extend({ castMemberIds: Role.shape.castMemberIds.default([]) })
-  .refine(fitsSize, { path: ["castMemberIds"], message: "Only an ensemble has several people" })
-  .refine(({ castMemberIds }) => noRepeats(castMemberIds), {
-    path: ["castMemberIds"],
-    message: "Someone is listed twice",
-  });
+export const AddRoleRequest = withCastingRules(RoleDetails);
+
+/**
+ * PUT /api/productions/{productionId}/roles/{roleId}: new details plus the revision they
+ * were based on. 200 returns the updated Role; 409 if someone else changed it first (stale
+ * revision); 404 if it's gone; 400 if invalid, a name the item already uses, or an unknown
+ * cast member. The id comes from the URL, so a body with one is refused.
+ */
+export const UpdateRoleRequest = withCastingRules(
+  RoleDetails.extend({ revision: Role.shape.revision }),
+);
 
 /** 400 from adding a role: the item already has a role with that name. */
 export const AddRoleRefusal = z.strictObject({ error: z.literal("name-taken") });
@@ -59,5 +79,6 @@ export const RoleList = z.strictObject({
 export type RoleSize = z.infer<typeof RoleSize>;
 export type Role = z.infer<typeof Role>;
 export type AddRoleRequest = z.infer<typeof AddRoleRequest>;
+export type UpdateRoleRequest = z.infer<typeof UpdateRoleRequest>;
 export type AddRoleRefusal = z.infer<typeof AddRoleRefusal>;
 export type RoleList = z.infer<typeof RoleList>;
