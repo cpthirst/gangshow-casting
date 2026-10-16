@@ -17,7 +17,7 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [casting-overview.E1.S1](stories/E1-S1-cast-by-section.md) | The Overview lists every cast member as a card, grouped Scouts, Explorers, Network, Not set, with counts; reports a failed load (walking skeleton, replaces the placeholder) | FR1, FR8, FR9 | (none) | ready |
+| [casting-overview.E1.S1](stories/E1-S1-cast-by-section.md) | The Overview lists every cast member as a card, grouped Scouts, Explorers, Network, Not set, with counts; reports a failed load (walking skeleton, replaces the placeholder) | FR1, FR8, FR9 | (none) | done |
 
 ## E2: See and rank how much each person is cast
 

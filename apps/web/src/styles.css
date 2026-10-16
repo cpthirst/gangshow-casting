@@ -224,7 +224,9 @@ main a {
   font-weight: 700;
 }
 
-.half h2 {
+/* Section headings: the Running order's halves, and the Casting overview's sections. */
+.half h2,
+.overview-section h2 {
   margin: 1.5rem 0 0.5rem;
   font-size: 1.375rem;
   font-weight: 900;
@@ -1013,6 +1015,12 @@ main a {
   color: var(--red-darker);
   font-size: 0.875rem;
   font-style: italic;
+  font-weight: 700;
+}
+
+/* Casting overview: each section heading also says how many people are in it. */
+.section-count {
+  font-size: 0.875rem;
   font-weight: 700;
 }
 

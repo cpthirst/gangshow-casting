@@ -131,14 +131,16 @@ describe("App shell", () => {
     expect(router.currentRoute.value.fullPath).toBe("/cast");
   });
 
-  it("shows the Overview placeholder with its description and URL when chosen", async () => {
+  it("shows the Overview page with its description and URL when chosen", async () => {
     const { wrapper, router } = await openAppAt("/");
 
     await wrapper.get("nav a[href='/casting/overview']").trigger("click");
     await flushPromises();
 
     expect(wrapper.get("main h1").text()).toBe("Overview");
-    expect(wrapper.get("main p").text()).toBe("Who is in which item, across the whole show.");
+    expect(wrapper.get("main p").text()).toBe(
+      "Everyone in the cast, by section, and how much they're cast.",
+    );
     expect(router.currentRoute.value.fullPath).toBe("/casting/overview");
     expect(document.title).toBe("Overview · Chester Gang Show casting");
   });
