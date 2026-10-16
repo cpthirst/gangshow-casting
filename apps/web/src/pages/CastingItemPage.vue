@@ -24,7 +24,7 @@ import {
   updateRolePath,
 } from "../roles.ts";
 import { showPageTitle } from "../router.ts";
-import { placeOf, RUNNING_ORDER_PATH } from "../running-order.ts";
+import { neighboursOf, placeOf, RUNNING_ORDER_PATH } from "../running-order.ts";
 import RoleForm from "./RoleForm.vue";
 
 const route = useRoute();
@@ -62,6 +62,11 @@ const takenNames = computed(() => ({
   itemTitle: place.value?.item.title ?? "",
   names: itemRoles.value.filter((role) => role.id !== editing.value?.id).map((role) => role.name),
 }));
+
+// Step through the items in show order without going back to the list.
+const neighbours = computed(() =>
+  order.value && place.value ? neighboursOf(order.value, place.value.item.id) : {},
+);
 
 // Loaded, but the item isn't in the latest saved running order (PRD FR6).
 const notFound = computed(() => status.value === "loaded" && !place.value);
@@ -268,8 +273,23 @@ async function postRole(itemId: string, details: AddRoleRequest) {
 </script>
 
 <template>
-  <nav class="breadcrumb" aria-label="Breadcrumb">
+  <nav class="item-nav" aria-label="Items">
     <RouterLink :to="{ name: 'casting-items' }" class="back-link">All items</RouterLink>
+    <RouterLink
+      v-if="neighbours.previous"
+      :to="{ name: 'casting-item', params: { itemId: neighbours.previous.id } }"
+      rel="prev"
+      class="step-link step-previous"
+    >
+      <span class="step-label">Previous</span>
+      {{ " " }}
+      <span class="step-title">{{ neighbours.previous.title }}</span>
+    </RouterLink>
+    <RouterLink v-if="neighbours.next" :to="{ name: 'casting-item', params: { itemId: neighbours.next.id } }" rel="next" class="step-link step-next">
+      <span class="step-label">Next</span>
+      {{ " " }}
+      <span class="step-title">{{ neighbours.next.title }}</span>
+    </RouterLink>
   </nav>
   <p v-if="status === 'error'" role="alert">Couldn't load the item.</p>
   <template v-else-if="place">

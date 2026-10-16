@@ -257,3 +257,12 @@ export function placeOf(order: RunningOrder, itemId: string) {
   }
   return undefined;
 }
+
+/** The items either side of one, in performance order: across the interval too, so the
+ *  item pages can be stepped through like the show. */
+export function neighboursOf(order: RunningOrder, itemId: string) {
+  const items = order.halves.flatMap((half) => half.items);
+  const index = items.findIndex((item) => item.id === itemId);
+  if (index === -1) return {};
+  return { previous: items[index - 1], next: items[index + 1] };
+}
