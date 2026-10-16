@@ -1140,7 +1140,23 @@ main a {
 }
 
 .item-notes .editor-actions {
+  align-items: center;
   margin-top: 0.75rem;
+}
+
+/* Beside Save once the notes are saved; gone when they're changed again. */
+.notes-saved {
+  margin: 0;
+  color: var(--in-item);
+  font-weight: 700;
+}
+
+.notes-saved::before {
+  content: "✓ " / "";
+}
+
+.notes-saved:empty {
+  display: none;
 }
 
 .item-position {

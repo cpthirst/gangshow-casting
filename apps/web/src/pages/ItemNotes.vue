@@ -16,7 +16,7 @@ const status = ref<"loading" | "ready" | "error">("loading");
 const saving = ref(false);
 /** A failed or refused save, or the length limit: shown as an error. */
 const error = ref("");
-/** "Notes saved.": announced quietly, as other saves are. */
+/** "Notes saved.": shown beside the Save button, and announced, until the text changes. */
 const announcement = ref("");
 
 const unsaved = computed(() => status.value === "ready" && text.value !== saved.value.text);
@@ -120,8 +120,8 @@ onUnmounted(() => window.removeEventListener("beforeunload", warnBeforeUnload));
         <button type="submit" class="primary" :disabled="saving || status === 'loading'">
           Save notes
         </button>
+        <p class="notes-saved" role="status" data-test="notes-status">{{ announcement }}</p>
       </div>
-      <p class="visually-hidden" role="status" data-test="notes-status">{{ announcement }}</p>
     </form>
   </section>
 </template>

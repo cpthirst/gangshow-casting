@@ -2030,6 +2030,8 @@ describe("Item notes", () => {
     await saveNotes(first.wrapper, "Hook needs a hat change before the finale");
     expect(status(first.wrapper).text()).toBe("Notes saved.");
     expect(status(first.wrapper).attributes("role")).toBe("status");
+    // Shown, not just announced, so it's clear the save worked.
+    expect(status(first.wrapper).classes()).not.toContain("visually-hidden");
     first.wrapper.unmount();
 
     const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
