@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { type AddRoleRequest, type CastMember, type Role, RoleSize } from "@app/shared";
 import { computed, nextTick, onMounted, ref, useId, watch } from "vue";
+import BinIcon from "../BinIcon.vue";
 import { sortCast } from "../cast.ts";
 import { type RoleForm, roleDetailsFrom, roleSizeLabel, type TakenNames } from "../roles.ts";
 import CastMemberPicker from "./CastMemberPicker.vue";
@@ -127,16 +128,17 @@ function submit() {
     <div class="field">
       <template v-if="editsEnsemble">
         <p :id="idFor('members')" class="field-label">Members</p>
-        <ul class="members" :aria-labelledby="idFor('members')">
+        <ul class="members row-icons" :aria-labelledby="idFor('members')">
           <li v-for="member in memberList" :key="member.id" data-test="member">
             <span class="member-name">{{ fullName(member) }}</span>
             <button
               type="button"
-              class="row-action"
+              class="icon-button"
               :aria-label="`Remove ${fullName(member)} from ${role?.name}`"
+              data-tooltip="Remove from the ensemble"
               @click="removeMember(member.id)"
             >
-              Remove
+              <BinIcon />
             </button>
           </li>
           <li v-if="memberList.length === 0" class="uncast">Nobody yet</li>

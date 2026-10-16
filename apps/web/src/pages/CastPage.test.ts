@@ -147,6 +147,33 @@ describe("Cast page", () => {
     expect(wrapper.text()).toContain("Couldn't load the cast list");
   });
 
+  describe("row buttons", () => {
+    it("uses icon buttons like the Running order, each named and explained", async () => {
+      serve(aCast([aMember("Sam", "Example")]));
+
+      const wrapper = await openPage();
+
+      const edit = wrapper.get("button[aria-label='Edit Sam Example']");
+      const remove = wrapper.get("button[aria-label='Delete Sam Example']");
+      expect(edit.classes()).toContain("icon-button");
+      expect(edit.text()).toBe("✎");
+      expect(edit.attributes("data-tooltip")).toBe("Edit details");
+      expect(remove.classes()).toContain("icon-button");
+      expect(remove.find("svg[aria-hidden=true]").exists()).toBe(true);
+      expect(remove.text()).toBe("");
+      expect(remove.attributes("data-tooltip")).toBe("Delete from the cast");
+    });
+
+    it("labels each cell, so small screens can show the list as cards", async () => {
+      serve(aCast([aMember("Sam", "Example")]));
+
+      const wrapper = await openPage();
+
+      const labels = wrapper.findAll("tbody td").map((td) => td.attributes("data-label"));
+      expect(labels).toEqual(["First name", "Last name", "Section", "Group", "Actions"]);
+    });
+  });
+
   describe("filtering", () => {
     const cast = () =>
       aCast([

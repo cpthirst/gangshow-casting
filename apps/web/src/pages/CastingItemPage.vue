@@ -10,6 +10,7 @@ import {
 } from "@app/shared";
 import { computed, nextTick, onMounted, ref, watchEffect } from "vue";
 import { useRoute } from "vue-router";
+import BinIcon from "../BinIcon.vue";
 import { CAST_PATH, sortCast } from "../cast.ts";
 import {
   addRolePath,
@@ -320,32 +321,35 @@ async function postRole(itemId: string, details: AddRoleRequest) {
             {{ " " }}
             <span class="role-cast" data-test="cast">{{ castNames(role) }}</span>
           </template>
-          <template v-if="role.castMemberIds.length === 0">
-            {{ " " }}
-            <span class="uncast" data-test="uncast">Uncast</span>
-          </template>
           {{ " " }}
-          <button
-            type="button"
-            class="row-action"
-            data-test="edit"
-            :aria-label="`Edit ${role.name}`"
-            :disabled="busy"
-            @click="startEditing(role)"
-          >
-            Edit
-          </button>
-          {{ " " }}
-          <button
-            type="button"
-            class="row-action"
-            data-test="remove"
-            :aria-label="`Remove ${role.name}`"
-            :disabled="busy"
-            @click="removeRole(role)"
-          >
-            Remove
-          </button>
+          <!-- "Uncast" and the buttons stay together at the card's end, wrapping as one. -->
+          <span class="role-actions row-icons">
+            <span v-if="role.castMemberIds.length === 0" class="uncast" data-test="uncast"
+              >Uncast</span
+            >
+            <button
+              type="button"
+              class="icon-button"
+              data-test="edit"
+              :aria-label="`Edit ${role.name}`"
+              data-tooltip="Edit role"
+              :disabled="busy"
+              @click="startEditing(role)"
+            >
+              ✎
+            </button>
+            <button
+              type="button"
+              class="icon-button"
+              data-test="remove"
+              :aria-label="`Remove ${role.name}`"
+              data-tooltip="Remove role"
+              :disabled="busy"
+              @click="removeRole(role)"
+            >
+              <BinIcon />
+            </button>
+          </span>
         </template>
       </li>
     </ul>

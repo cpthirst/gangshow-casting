@@ -1163,3 +1163,38 @@ describe("Ensemble members", () => {
     expect(castOnCard(wrapper)).toBe("Sam Example");
   });
 });
+
+describe("Role card buttons", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.body.innerHTML = "";
+  });
+
+  it("uses icon buttons like the Running order, each named and explained", async () => {
+    savedRunningOrderIs(show, [{ ...aRole("pirate-sketch", "Parrot", "cameo"), id: 3 }]);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    const edit = wrapper.get("button[aria-label='Edit Parrot']");
+    const remove = wrapper.get("button[aria-label='Remove Parrot']");
+    expect(edit.classes()).toContain("icon-button");
+    expect(edit.text()).toBe("✎");
+    expect(edit.attributes("data-tooltip")).toBe("Edit role");
+    expect(remove.classes()).toContain("icon-button");
+    expect(remove.find("svg[aria-hidden=true]").exists()).toBe(true);
+    expect(remove.attributes("data-tooltip")).toBe("Remove role");
+  });
+
+  it("uses an icon button to remove an ensemble member", async () => {
+    savedRunningOrderIs(show, [
+      { ...aRole("pirate-sketch", "Pirates", "ensemble"), id: 9, castMemberIds: [12] },
+    ]);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+    await wrapper.get("button[aria-label='Edit Pirates']").trigger("click");
+    await flushPromises();
+
+    const remove = wrapper.get("button[aria-label='Remove Sam Example from Pirates']");
+    expect(remove.classes()).toContain("icon-button");
+    expect(remove.find("svg[aria-hidden=true]").exists()).toBe(true);
+    expect(remove.attributes("data-tooltip")).toBe("Remove from the ensemble");
+  });
+});

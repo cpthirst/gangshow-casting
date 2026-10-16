@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { CastList, CastMember, type CastMemberDetails, RoleList } from "@app/shared";
 import { computed, nextTick, onMounted, ref, useId } from "vue";
+import BinIcon from "../BinIcon.vue";
 import {
   CAST_PATH,
   type CastFilters,
@@ -325,7 +326,13 @@ onMounted(load);
       {{ matchesLabel(shown.length, members.length, filtered) }}
     </p>
     <p v-if="shown.length === 0">No cast members match these filters.</p>
-    <div v-else class="table-scroll" tabindex="0" role="region" aria-label="Cast members">
+    <div
+      v-else
+      class="table-scroll cast-table"
+      tabindex="0"
+      role="region"
+      aria-label="Cast members"
+    >
       <table class="cast-list">
         <thead>
           <tr>
@@ -338,31 +345,34 @@ onMounted(load);
         </thead>
         <tbody>
           <tr v-for="member in shown" :key="member.id" :data-member-id="member.id">
-            <td>{{ member.firstName }}</td>
-            <td>{{ member.lastName }}</td>
-            <td :class="{ 'not-set': member.section === null }">
+            <!-- data-label names each cell when small screens show rows as cards. -->
+            <td class="first-name" data-label="First name">{{ member.firstName }}</td>
+            <td class="last-name" data-label="Last name">{{ member.lastName }}</td>
+            <td data-label="Section" :class="{ 'not-set': member.section === null }">
               {{ sectionLabel(member.section) }}
             </td>
-            <td>{{ member.group }}</td>
-            <td class="actions">
+            <td data-label="Group">{{ member.group }}</td>
+            <td class="actions row-icons" data-label="Actions">
               <button
                 type="button"
-                class="row-action"
+                class="icon-button"
                 data-test="edit"
                 :aria-label="`Edit ${fullName(member)}`"
+                data-tooltip="Edit details"
                 :disabled="busy"
                 @click="startEditing(member)"
               >
-                Edit
+                ✎
               </button>
               <button
                 type="button"
-                class="row-action"
+                class="icon-button"
                 :aria-label="`Delete ${fullName(member)}`"
+                data-tooltip="Delete from the cast"
                 :disabled="busy"
                 @click="deleteMember(member)"
               >
-                Delete
+                <BinIcon />
               </button>
             </td>
           </tr>
