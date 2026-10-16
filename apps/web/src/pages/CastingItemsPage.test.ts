@@ -1,42 +1,13 @@
-import type { RunningOrder, RunningOrderItem } from "@app/shared";
+import type { RunningOrder } from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory } from "vue-router";
 import { createAppRouter } from "../router.ts";
+import { anItem, aRunningOrder } from "../running-order.fixture.ts";
 import { RUNNING_ORDER_PATH } from "../running-order.ts";
 import CastingItemsPage from "./CastingItemsPage.vue";
 
 enableAutoUnmount(afterEach);
-
-// Made-up data only: tests never use the real programme (CLAUDE.md safeguarding).
-const anItem = (title: string, details: Partial<RunningOrderItem> = {}): RunningOrderItem => ({
-  id: title.toLowerCase().replaceAll(" ", "-"),
-  title,
-  cast: "",
-  stage: ["full"],
-  leads: "",
-  comments: "",
-  minutes: 5,
-  printed: true,
-  ...details,
-});
-
-const aRunningOrder = (
-  first: RunningOrderItem[],
-  second: RunningOrderItem[] = [],
-  version = 7,
-): RunningOrder => ({
-  productionId: "2027",
-  title: "Gang Show 2027",
-  version,
-  savedAt: "2026-10-04T00:00:00.000Z",
-  startTime: "19:15",
-  intervalMinutes: 20,
-  halves: [
-    { id: "first-half", name: "First half", items: first },
-    { id: "second-half", name: "Second half", items: second },
-  ],
-});
 
 function savedRunningOrderIs(order: RunningOrder) {
   const fetch = vi.fn(async () => new Response(JSON.stringify(order)));
@@ -181,5 +152,42 @@ describe("Casting items page", () => {
 
     expect(wrapper.get("[role=alert]").text()).toBe("Couldn't load the items.");
     expect(wrapper.text()).not.toContain("There's no saved running order yet.");
+  });
+
+  it("gives each item a Cast button that opens its page", async () => {
+    savedRunningOrderIs(aRunningOrder([anItem("Opening Number"), anItem("Pirate Sketch")]));
+
+    const wrapper = await openItemsPage();
+
+    const cast = rowFor(wrapper, "Pirate Sketch")?.get("[data-test=cast]");
+    expect(cast?.attributes("href")).toBe("/casting/items/pirate-sketch");
+    expect(cast?.attributes("aria-label")).toBe("Cast Pirate Sketch");
+    expect(cast?.attributes("data-tooltip")).toBe("Cast this item");
+    // In the first column, where the Running order has its move and edit buttons.
+    expect(rowFor(wrapper, "Pirate Sketch")?.get("td").find("[data-test=cast]").exists()).toBe(
+      true,
+    );
+  });
+
+  // The Running order's stacked phone layout pads and separates rows by data-item-id.
+  it("marks each row with its item, so small screens separate items as on the Running order", async () => {
+    savedRunningOrderIs(aRunningOrder([anItem("Opening Number"), anItem("Pirate Sketch")]));
+
+    const wrapper = await openItemsPage();
+
+    expect(rowFor(wrapper, "Pirate Sketch")?.attributes("data-item-id")).toBe("pirate-sketch");
+  });
+
+  it("lays the items out in Cast, number and item columns", async () => {
+    savedRunningOrderIs(aRunningOrder([anItem("Opening Number")]));
+
+    const wrapper = await openItemsPage();
+
+    expect(
+      wrapper
+        .get("section")
+        .findAll("thead th")
+        .map((th) => th.text()),
+    ).toEqual(["Cast", "#", "Item"]);
   });
 });

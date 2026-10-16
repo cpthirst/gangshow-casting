@@ -1,11 +1,19 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
+import { useRoute } from "vue-router";
 import HealthStatus from "./HealthStatus.vue";
 import { isMenuGroup, menuPages } from "./router.ts";
 import { useMediaQuery } from "./useMediaQuery.ts";
 
 // Must match the phone @media query in styles.css.
 const PHONE_QUERY = "(max-width: 767px)";
+
+const route = useRoute();
+
+// Replaces RouterLink's own aria-current (an explicit attribute wins), so a page outside
+// the menu, such as an item, can mark its menu page (Items) as current.
+const ariaCurrent = (pageName: string) =>
+  route.name === pageName || route.meta.menuPage === pageName ? "page" : undefined;
 
 const main = ref<HTMLElement>();
 const menuButton = ref<HTMLButtonElement>();
@@ -72,11 +80,15 @@ function onEscape() {
               <span :id="`menu-${entry.name}`" class="menu-group">{{ entry.title }}</span>
               <ul class="menu-group-pages" :aria-labelledby="`menu-${entry.name}`">
                 <li v-for="page in entry.pages" :key="page.name">
-                  <RouterLink :to="page.path">{{ page.meta.title }}</RouterLink>
+                  <RouterLink :to="page.path" :aria-current="ariaCurrent(page.name)">{{
+                    page.meta.title
+                  }}</RouterLink>
                 </li>
               </ul>
             </template>
-            <RouterLink v-else :to="entry.path">{{ entry.meta.title }}</RouterLink>
+            <RouterLink v-else :to="entry.path" :aria-current="ariaCurrent(entry.name)">{{
+              entry.meta.title
+            }}</RouterLink>
           </li>
         </ul>
       </nav>

@@ -45,15 +45,51 @@ onMounted(async () => {
     <p class="based-on" data-test="version">Based on Draft {{ state.order.version }}</p>
     <section v-for="{ half, rows } in halves" :key="half.id" class="half" :aria-labelledby="half.id">
       <h2 :id="half.id">{{ half.name }}</h2>
-      <ol class="casting-items">
-        <li v-for="{ item, number } in rows" :key="item.id" data-test="item">
-          <span class="casting-item-number" data-test="number">
-            <template v-if="number !== null">{{ number }}</template>
-            <span v-else class="badge">Not in printed programme</span>
-          </span>
-          <span data-test="title">{{ item.title }}</span>
-        </li>
-      </ol>
+      <div class="table-scroll" tabindex="0" role="region" :aria-label="`${half.name} items`">
+        <!-- The Running order table, with a Cast button where the moves are. -->
+        <table class="running-order" role="table">
+          <thead role="rowgroup">
+            <tr role="row">
+              <th scope="col" role="columnheader">Cast</th>
+              <th scope="col" role="columnheader">#</th>
+              <th scope="col" role="columnheader">Item</th>
+            </tr>
+          </thead>
+          <tbody role="rowgroup">
+            <tr
+              v-for="{ item, number } in rows"
+              :key="item.id"
+              role="row"
+              data-test="item"
+              :data-item-id="item.id"
+              :class="{ 'not-printed': number === null }"
+            >
+              <td class="moves" data-label="Cast" role="cell">
+                <RouterLink
+                  class="icon-button"
+                  data-test="cast"
+                  :to="{ name: 'casting-item', params: { itemId: item.id } }"
+                  :aria-label="`Cast ${item.title}`"
+                  data-tooltip="Cast this item"
+                >
+                  <!-- Two people: who's cast in the item. -->
+                  <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+                    <circle cx="9" cy="8" r="3.5" fill="currentColor" />
+                    <path d="M2 20c0-3.9 3.1-7 7-7s7 3.1 7 7z" fill="currentColor" />
+                    <circle cx="17" cy="9" r="2.75" fill="currentColor" />
+                    <path d="M17 13.5c2.8 0 5 2.2 5 5.5h-4.5c0-2.1-.7-4-1.9-5.4.5-.1.9-.1 1.4-.1z" fill="currentColor" />
+                  </svg>
+                </RouterLink>
+              </td>
+              <td data-test="number" class="number" data-label="#" role="cell">
+                <template v-if="number !== null">{{ number }}</template>
+                <span v-else class="badge">Not in printed programme</span>
+              </td>
+              <td data-test="title" class="title" data-label="Item" role="cell">{{ item.title }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </section>
   </template>
 </template>

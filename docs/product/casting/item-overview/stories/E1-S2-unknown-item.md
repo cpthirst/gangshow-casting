@@ -2,7 +2,7 @@
 id: casting-item-overview.E1.S2
 title: Show not found for an item that isn't in the running order
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story
