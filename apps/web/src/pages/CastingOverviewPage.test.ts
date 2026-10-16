@@ -480,6 +480,8 @@ describe("Timeline on the Overview", () => {
   const sam = person("Sam", "Example", "scouts");
   const alex = person("Alex", "Sample", "scouts");
   const jo = person("Jo", "Newcomer", "explorers");
+  // In the ensemble with Alex, but not on the cast list shown.
+  const ben = person("Ben", "Other", "scouts");
   let nextRoleId = 1;
   const role = (itemId: string, castMemberIds: number[], size: Role["size"] = "lead"): Role => {
     const id = nextRoleId++;
@@ -489,7 +491,7 @@ describe("Timeline on the Overview", () => {
     role("pirate-sketch", [sam.id]),
     role("entr'acte", [sam.id], "cameo"),
     role("finale", [sam.id], "support"),
-    role("opening-number", [alex.id, sam.id + 100], "ensemble"),
+    role("opening-number", [alex.id, ben.id], "ensemble"),
   ];
 
   function showIs({
