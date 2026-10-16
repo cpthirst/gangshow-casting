@@ -1,6 +1,8 @@
 import { AddRoleRefusal, Role } from "@app/shared";
 import { describe, expect, it } from "vitest";
 import { createAddRole } from "./add-role.ts";
+import { aCastList, aCastMember } from "./cast.fixture.ts";
+import { inMemoryCastStore } from "./cast-store.ts";
 import { inMemoryRoleStore } from "./role-store.ts";
 import { aRunningOrder, itemId } from "./running-order.fixture.ts";
 import { inMemoryRunningOrderStore } from "./running-order-store.ts";
@@ -17,7 +19,8 @@ function setUp() {
   const runningOrders = inMemoryRunningOrderStore([
     aRunningOrder(7, { first: ["Opening Number", "Pirate Sketch"] }),
   ]);
-  return { roles, handler: createAddRole(roles, runningOrders) };
+  const cast = inMemoryCastStore([aCastList([aCastMember(12), aCastMember(13)])]);
+  return { roles, handler: createAddRole(roles, runningOrders, cast) };
 }
 
 describe("add role handler", () => {
@@ -81,5 +84,37 @@ describe("add role handler with a name already used", () => {
     expect(res.statusCode).toBe(400);
     expect(AddRoleRefusal.parse(JSON.parse(res.body ?? ""))).toEqual({ error: "name-taken" });
     expect((await roles.list("2027")).roles).toHaveLength(1);
+  });
+});
+
+describe("add role handler casting", () => {
+  it("casts the given member in the new role", async () => {
+    const { handler } = setUp();
+
+    const res = await handler(request({ name: "Captain Hook", size: "lead", castMemberIds: [12] }));
+
+    expect(res.statusCode).toBe(201);
+    expect(Role.parse(JSON.parse(res.body ?? "")).castMemberIds).toEqual([12]);
+  });
+
+  it.each([
+    ["an unknown cast member", { name: "Captain Hook", size: "lead", castMemberIds: [99] }],
+    ["two people in a lead role", { name: "Captain Hook", size: "lead", castMemberIds: [12, 13] }],
+  ])("refuses %s with 400, storing nothing", async (_case, body) => {
+    const { roles, handler } = setUp();
+
+    expect((await handler(request(body))).statusCode).toBe(400);
+    expect((await roles.list("2027")).roles).toEqual([]);
+  });
+
+  it("accepts an ensemble with several members", async () => {
+    const { handler } = setUp();
+
+    const res = await handler(
+      request({ name: "Pirates", size: "ensemble", castMemberIds: [12, 13] }),
+    );
+
+    expect(res.statusCode).toBe(201);
+    expect(Role.parse(JSON.parse(res.body ?? "")).castMemberIds).toEqual([12, 13]);
   });
 });

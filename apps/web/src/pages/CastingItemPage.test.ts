@@ -1,8 +1,9 @@
-import { AddRoleRequest, type Role, type RunningOrder } from "@app/shared";
+import { AddRoleRequest, type CastMember, type Role, type RunningOrder } from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory } from "vue-router";
 import App from "../App.vue";
+import { CAST_PATH } from "../cast.ts";
 import { ROLES_PATH } from "../roles.ts";
 import { createAppRouter } from "../router.ts";
 import { anItem, aRunningOrder } from "../running-order.fixture.ts";
@@ -16,23 +17,40 @@ const show = aRunningOrder(
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 
-/** A stand-in API holding one saved running order and the roles added so far. */
+// Made-up names only: tests never use the real cast (CLAUDE.md safeguarding).
+const member = (
+  id: number,
+  firstName: string,
+  lastName: string,
+  more: Partial<CastMember> = {},
+) => ({
+  id,
+  firstName,
+  lastName,
+  section: null,
+  group: "",
+  revision: 1,
+  ...more,
+});
+const theCast: CastMember[] = [
+  member(12, "Sam", "Example", { section: "scouts", group: "1st Somewhere" }),
+  member(13, "Alex", "Sample", { section: "explorers", group: "Riverside ESU" }),
+  member(14, "Jo", "Newcomer"),
+  member(15, "Zoë", "Adams"),
+];
+
+/** A stand-in API holding one saved running order, the cast and the roles added so far. */
 function savedRunningOrderIs(order: RunningOrder, roles: Role[] = []) {
   const stored = [...roles];
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init?: RequestInit) => {
       if (url === ROLES_PATH) return json({ productionId: "2027", roles: stored });
+      if (url === CAST_PATH) return json({ productionId: "2027", members: theCast });
       const addTo = /\/items\/([^/]+)\/roles$/.exec(url)?.[1];
       if (addTo && init?.method === "POST") {
         const details = AddRoleRequest.parse(JSON.parse(String(init.body)));
-        const role = {
-          ...details,
-          id: stored.length + 1,
-          itemId: addTo,
-          castMemberIds: [],
-          revision: 1,
-        };
+        const role = { ...details, id: stored.length + 1, itemId: addTo, revision: 1 };
         stored.push(role);
         return json(role, 201);
       }
@@ -513,5 +531,158 @@ describe("Role cards", () => {
     // An explicit role: Safari drops list semantics from unstyled lists.
     const list = wrapper.get("ul[role=list][aria-label=Roles]");
     expect(list.findAll(":scope > li")).toHaveLength(4);
+  });
+});
+
+describe("Casting someone when adding a role", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.body.innerHTML = "";
+  });
+
+  type Page = Awaited<ReturnType<typeof openAppAt>>["wrapper"];
+
+  const search = (wrapper: Page) =>
+    wrapper.get<HTMLInputElement>("input[role=combobox][name=castMember]");
+  const offered = (wrapper: Page) =>
+    wrapper.findAll("[role=listbox] [role=option] .choice-name").map((name) => name.text());
+
+  async function startRole(wrapper: Page, name: string, size: string) {
+    await wrapper.get("[data-test=add-role]").trigger("click");
+    await wrapper.get("input[name=name]").setValue(name);
+    await wrapper.get("select[name=size]").setValue(size);
+  }
+
+  async function type(wrapper: Page, text: string) {
+    await search(wrapper).setValue(text);
+    await flushPromises();
+  }
+
+  async function save(wrapper: Page) {
+    await wrapper.get("form[aria-label='Add role']").trigger("submit");
+    await flushPromises();
+  }
+
+  const castOn = (wrapper: Page, roleName: string) =>
+    wrapper
+      .findAll("[data-test=role]")
+      .find((card) => card.get(".role-name").text() === roleName)
+      ?.find("[data-test=cast]")
+      .text();
+
+  it("casts the member chosen from the search, showing them on the card", async () => {
+    savedRunningOrderIs(show);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+    await startRole(wrapper, "Captain Hook", "lead");
+
+    await type(wrapper, "sam");
+    const sam = wrapper.findAll("[role=option]").find((o) => o.text().includes("Sam Example"));
+    await sam?.trigger("mousedown");
+    await save(wrapper);
+
+    expect(castOn(wrapper, "Captain Hook")).toBe("Sam Example");
+    expect(wrapper.find("[data-test=role] [data-test=uncast]").exists()).toBe(false);
+  });
+
+  it("narrows the choices by first or last name as you type", async () => {
+    savedRunningOrderIs(show);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+    await startRole(wrapper, "Captain Hook", "lead");
+
+    await type(wrapper, "samp");
+
+    expect(offered(wrapper)).toEqual(["Alex Sample"]);
+  });
+
+  it("matches names ignoring case and accents", async () => {
+    savedRunningOrderIs(show);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+    await startRole(wrapper, "Captain Hook", "lead");
+
+    await type(wrapper, "zoe");
+
+    expect(offered(wrapper)).toEqual(["Zoë Adams"]);
+  });
+
+  it("shows each choice's section and group alongside the name", async () => {
+    savedRunningOrderIs(show);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+    await startRole(wrapper, "Captain Hook", "lead");
+
+    await type(wrapper, "example");
+
+    const choice = wrapper.get("[role=option]");
+    expect(choice.get(".choice-name").text()).toBe("Sam Example");
+    expect(choice.get(".choice-details").text()).toBe("Scouts · 1st Somewhere");
+  });
+
+  it("chooses with the down arrow and Enter", async () => {
+    savedRunningOrderIs(show);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+    await startRole(wrapper, "Captain Hook", "lead");
+    await type(wrapper, "example");
+
+    await search(wrapper).trigger("keydown", { key: "ArrowDown" });
+    const active = search(wrapper).attributes("aria-activedescendant");
+    expect(active && document.getElementById(active)?.textContent).toContain("Sam Example");
+    await search(wrapper).trigger("keydown", { key: "Enter" });
+
+    expect(search(wrapper).element.value).toBe("Sam Example");
+    expect(search(wrapper).attributes("aria-expanded")).toBe("false");
+    expect(wrapper.find("[data-test=role]").exists()).toBe(false);
+
+    await save(wrapper);
+    expect(castOn(wrapper, "Captain Hook")).toBe("Sam Example");
+  });
+
+  it("says when no cast members match", async () => {
+    savedRunningOrderIs(show);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+    await startRole(wrapper, "Captain Hook", "lead");
+
+    await type(wrapper, "xyz");
+
+    expect(offered(wrapper)).toEqual([]);
+    expect(wrapper.get("form [role=status]").text()).toBe("No cast members match");
+    expect(search(wrapper).attributes("aria-expanded")).toBe("false");
+  });
+
+  it("adds the role uncast when the cast member is left blank", async () => {
+    savedRunningOrderIs(show);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+    await startRole(wrapper, "Captain Hook", "lead");
+
+    await save(wrapper);
+
+    expect(wrapper.get("[data-test=role] [data-test=uncast]").text()).toBe("Uncast");
+  });
+
+  it("refuses typed text that wasn't chosen, saying so next to the field", async () => {
+    savedRunningOrderIs(show);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+    await startRole(wrapper, "Captain Hook", "lead");
+    await type(wrapper, "sam");
+
+    await save(wrapper);
+
+    const id = search(wrapper).attributes("aria-describedby");
+    expect(id && document.getElementById(id)?.textContent?.trim()).toBe(
+      "Choose a cast member from the list, or clear the field",
+    );
+    expect(wrapper.find("[data-test=role]").exists()).toBe(false);
+  });
+
+  it("lets one person play several roles in an item", async () => {
+    savedRunningOrderIs(show, [{ ...aRole("pirate-sketch", "Captain Hook"), castMemberIds: [12] }]);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+    await startRole(wrapper, "Parrot", "cameo");
+    await type(wrapper, "example");
+    await search(wrapper).trigger("keydown", { key: "ArrowDown" });
+    await search(wrapper).trigger("keydown", { key: "Enter" });
+
+    await save(wrapper);
+
+    expect(castOn(wrapper, "Captain Hook")).toBe("Sam Example");
+    expect(castOn(wrapper, "Parrot")).toBe("Sam Example");
   });
 });

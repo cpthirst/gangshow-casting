@@ -1,5 +1,8 @@
 import { type CastMember, CastMemberDetails, type Section } from "@app/shared";
 
+// Only one production for now (see docs/product/running-order/prd.md).
+export const CAST_PATH = "/api/productions/2027/cast";
+
 const sectionNames: Record<Section, string> = {
   scouts: "Scouts",
   explorers: "Explorers",
@@ -110,4 +113,14 @@ export function detailsFrom(form: CastForm): CastFormResult {
     errors[field] = issue.code === "too_big" ? messages[field].tooLong : messages[field].missing;
   }
   return { ok: false, errors };
+}
+
+/** Members whose first or last name contains the text, ignoring case and accents, in
+ *  surname order: the cast member search when casting a role. One box searches either
+ *  name, so it can't reuse filterCast, whose separate name filters must both match. */
+export function searchCast(members: CastMember[], text: string) {
+  const query = plain(text);
+  return sortCast(
+    members.filter((m) => plain(m.firstName).includes(query) || plain(m.lastName).includes(query)),
+  );
 }

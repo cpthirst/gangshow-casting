@@ -1,7 +1,16 @@
 <script setup lang="ts">
-import { AddRoleRefusal, type AddRoleRequest, Role, RoleList, RunningOrder } from "@app/shared";
+import {
+  AddRoleRefusal,
+  type AddRoleRequest,
+  CastList,
+  type CastMember,
+  Role,
+  RoleList,
+  RunningOrder,
+} from "@app/shared";
 import { computed, nextTick, onMounted, ref, watchEffect } from "vue";
 import { useRoute } from "vue-router";
+import { CAST_PATH } from "../cast.ts";
 import { addRolePath, nameTakenMessage, ROLES_PATH, roleSizeLabel, sortRoles } from "../roles.ts";
 import { showPageTitle } from "../router.ts";
 import { placeOf, RUNNING_ORDER_PATH } from "../running-order.ts";
@@ -10,6 +19,14 @@ import RoleForm from "./RoleForm.vue";
 const route = useRoute();
 const order = ref<RunningOrder>();
 const roles = ref<Role[]>([]);
+const cast = ref<CastMember[]>([]);
+
+// Roles hold ids; names come from the cast list (ADR 0010). Someone no longer on it shows nothing.
+const castNames = (role: Role) =>
+  role.castMemberIds
+    .map((id) => cast.value.find((member) => member.id === id))
+    .flatMap((member) => (member ? [`${member.firstName} ${member.lastName}`] : []))
+    .join(", ");
 const status = ref<"loading" | "loaded" | "error">("loading");
 
 const place = computed(() => {
@@ -48,7 +65,11 @@ watchEffect(() => {
 onMounted(async () => {
   try {
     // Name and position come from the latest saved running order, like the Items list.
-    const [orderRes, rolesRes] = await Promise.all([fetch(RUNNING_ORDER_PATH), fetch(ROLES_PATH)]);
+    const [orderRes, rolesRes, castRes] = await Promise.all([
+      fetch(RUNNING_ORDER_PATH),
+      fetch(ROLES_PATH),
+      fetch(CAST_PATH),
+    ]);
     // No saved running order at all: no item can be in it.
     if (orderRes.status !== 404) {
       if (!orderRes.ok) throw new Error(`HTTP ${orderRes.status}`);
@@ -56,6 +77,11 @@ onMounted(async () => {
     }
     if (!rolesRes.ok) throw new Error(`HTTP ${rolesRes.status}`);
     roles.value = RoleList.parse(await rolesRes.json()).roles;
+    // No cast list yet just means nobody can be cast.
+    if (castRes.status !== 404) {
+      if (!castRes.ok) throw new Error(`HTTP ${castRes.status}`);
+      cast.value = CastList.parse(await castRes.json()).members;
+    }
     status.value = "loaded";
   } catch {
     // A failed load must never look like "not found".
@@ -142,6 +168,7 @@ async function postRole(itemId: string, details: AddRoleRequest) {
       :saving="saving"
       :error="formError"
       :taken="takenNames"
+      :cast="cast"
       @save="add"
       @cancel="stopAdding"
     />
@@ -155,6 +182,10 @@ async function postRole(itemId: string, details: AddRoleRequest) {
         <span :class="['pill', `pill-${role.size}`]" data-test="size">{{
           roleSizeLabel(role.size)
         }}</span>
+        <template v-if="castNames(role)">
+          {{ " " }}
+          <span class="role-cast" data-test="cast">{{ castNames(role) }}</span>
+        </template>
         <template v-if="role.castMemberIds.length === 0">
           {{ " " }}
           <span class="uncast" data-test="uncast">Uncast</span>

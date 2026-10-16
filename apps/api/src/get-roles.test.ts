@@ -6,7 +6,11 @@ import { inMemoryRoleStore } from "./role-store.ts";
 describe("get roles handler", () => {
   it("returns 200 with every role in the production", async () => {
     const store = inMemoryRoleStore();
-    await store.add("2027", "itm_pirate-sketch", { name: "Captain Hook", size: "lead" });
+    await store.add("2027", "itm_pirate-sketch", {
+      name: "Captain Hook",
+      size: "lead",
+      castMemberIds: [],
+    });
 
     const res = await createGetRoles(store)({ pathParameters: { productionId: "2027" } });
 

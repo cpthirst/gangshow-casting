@@ -9,8 +9,8 @@ import { oneAtATime, writePrivateFile } from "./private-file.ts";
 export interface RoleStore {
   /** Every role in the production; none until the first is added. */
   list(productionId: string): Promise<RoleList>;
-  /** Adds an uncast role to an item, with the next unused id, unless the item already has
-   *  a role with that name. */
+  /** Adds a role to an item, with the next unused id, unless the item already has a role
+   *  with that name. */
   add(productionId: string, itemId: string, details: AddRoleRequest): Promise<Role | "name-taken">;
 }
 
@@ -26,11 +26,11 @@ const nextIdOf = (file: RoleFile) =>
 
 const listOf = ({ productionId, roles }: RoleFile): RoleList => ({ productionId, roles });
 
-/** The file with a new, uncast role added to the item under the next id, or why not. */
+/** The file with a new role added to the item under the next id, or why not. */
 function withNewRole(file: RoleFile, itemId: string, details: AddRoleRequest) {
   const taken = file.roles.some((r) => r.itemId === itemId && sameRoleName(r.name, details.name));
   if (taken) return "name-taken";
-  const role: Role = { ...details, id: nextIdOf(file), itemId, castMemberIds: [], revision: 1 };
+  const role: Role = { ...details, id: nextIdOf(file), itemId, revision: 1 };
   return { role, file: { ...file, roles: [...file.roles, role], nextId: role.id + 1 } };
 }
 

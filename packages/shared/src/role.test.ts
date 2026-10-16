@@ -35,11 +35,32 @@ describe("Role", () => {
 });
 
 describe("AddRoleRequest", () => {
-  it("takes a name and size, trimming the name", () => {
+  it("takes a name and size, trimming the name, with nobody cast by default", () => {
     expect(AddRoleRequest.parse({ name: "  Captain Hook ", size: "lead" })).toEqual({
       name: "Captain Hook",
       size: "lead",
+      castMemberIds: [],
     });
+  });
+
+  it.each(["lead", "support", "cameo"])("lets a %s role have one cast member", (size) => {
+    const request = { name: "Captain Hook", size, castMemberIds: [12] };
+    expect(AddRoleRequest.parse(request).castMemberIds).toEqual([12]);
+  });
+
+  it.each(["lead", "support", "cameo"])("refuses a %s role with two cast members", (size) => {
+    const request = { name: "Captain Hook", size, castMemberIds: [12, 13] };
+    expect(AddRoleRequest.safeParse(request).success).toBe(false);
+  });
+
+  it("lets an ensemble have several cast members", () => {
+    const request = { name: "Pirates", size: "ensemble", castMemberIds: [12, 13] };
+    expect(AddRoleRequest.parse(request).castMemberIds).toEqual([12, 13]);
+  });
+
+  it("refuses the same cast member twice in a role", () => {
+    const request = { name: "Pirates", size: "ensemble", castMemberIds: [12, 12] };
+    expect(AddRoleRequest.safeParse(request).success).toBe(false);
   });
 
   it("refuses an id, which the app assigns", () => {

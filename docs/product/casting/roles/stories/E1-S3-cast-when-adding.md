@@ -2,7 +2,7 @@
 id: casting-roles.E1.S3
 title: Cast someone when adding a role
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story

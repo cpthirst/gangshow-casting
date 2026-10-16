@@ -3,12 +3,15 @@ import { describe, expect, it } from "vitest";
 import { roleDetailsFrom, roleSizeLabel, sortRoles } from "./roles.ts";
 
 const noneTaken = { itemTitle: "Pirate Sketch", names: [] };
+const nobody = { query: "", id: null };
 
 describe("roleDetailsFrom", () => {
   it("gives the role's details, trimming the name", () => {
-    expect(roleDetailsFrom({ name: "  Captain Hook ", size: "lead" }, noneTaken)).toEqual({
+    expect(
+      roleDetailsFrom({ name: "  Captain Hook ", size: "lead", castMember: nobody }, noneTaken),
+    ).toEqual({
       ok: true,
-      details: { name: "Captain Hook", size: "lead" },
+      details: { name: "Captain Hook", size: "lead", castMemberIds: [] },
     });
   });
 
@@ -17,14 +20,16 @@ describe("roleDetailsFrom", () => {
     ["a name of only spaces", "   ", "Enter a role name"],
     ["a name over 60 characters", "x".repeat(61), "Role names can be up to 60 characters"],
   ])("explains %s", (_case, name, message) => {
-    expect(roleDetailsFrom({ name, size: "lead" }, noneTaken)).toEqual({
+    expect(roleDetailsFrom({ name, size: "lead", castMember: nobody }, noneTaken)).toEqual({
       ok: false,
       errors: { name: message },
     });
   });
 
   it("asks for a role size when none is chosen", () => {
-    expect(roleDetailsFrom({ name: "Captain Hook", size: "" }, noneTaken)).toEqual({
+    expect(
+      roleDetailsFrom({ name: "Captain Hook", size: "", castMember: nobody }, noneTaken),
+    ).toEqual({
       ok: false,
       errors: { size: "Choose a role size" },
     });
@@ -46,14 +51,59 @@ describe("roleDetailsFrom with the item's existing roles", () => {
   const taken = { itemTitle: "Pirate Sketch", names: ["Captain Hook"] };
 
   it("refuses a name the item already has, ignoring case and spaces", () => {
-    expect(roleDetailsFrom({ name: " captain hook ", size: "cameo" }, taken)).toEqual({
+    expect(
+      roleDetailsFrom({ name: " captain hook ", size: "cameo", castMember: nobody }, taken),
+    ).toEqual({
       ok: false,
       errors: { name: "Pirate Sketch already has a role called Captain Hook" },
     });
   });
 
   it("allows a new name", () => {
-    expect(roleDetailsFrom({ name: "Smee", size: "support" }, taken).ok).toBe(true);
+    expect(roleDetailsFrom({ name: "Smee", size: "support", castMember: nobody }, taken).ok).toBe(
+      true,
+    );
+  });
+});
+
+describe("roleDetailsFrom with a cast member", () => {
+  it("casts the chosen member", () => {
+    const form = {
+      name: "Captain Hook",
+      size: "lead" as const,
+      castMember: { query: "Sam Example", id: 12 },
+    };
+
+    expect(roleDetailsFrom(form, noneTaken)).toEqual({
+      ok: true,
+      details: { name: "Captain Hook", size: "lead", castMemberIds: [12] },
+    });
+  });
+
+  it("refuses typed text that wasn't chosen from the list", () => {
+    const form = {
+      name: "Captain Hook",
+      size: "lead" as const,
+      castMember: { query: "sam", id: null },
+    };
+
+    expect(roleDetailsFrom(form, noneTaken)).toEqual({
+      ok: false,
+      errors: { castMember: "Choose a cast member from the list, or clear the field" },
+    });
+  });
+
+  it("adds the role uncast when the field is left blank", () => {
+    const form = {
+      name: "Captain Hook",
+      size: "lead" as const,
+      castMember: { query: "  ", id: null },
+    };
+
+    expect(roleDetailsFrom(form, noneTaken)).toMatchObject({
+      ok: true,
+      details: { castMemberIds: [] },
+    });
   });
 });
 
