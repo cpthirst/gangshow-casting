@@ -24,7 +24,7 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [casting-item-overview.E2.S1](stories/E2-S1-role-cards.md) | Role cards with a size pill and an uncast marker, ordered by size then name | FR3, FR4 | casting-roles.E1.S1 | ready |
+| [casting-item-overview.E2.S1](stories/E2-S1-role-cards.md) | Role cards with a size pill and an uncast marker, ordered by size then name | FR3, FR4 | casting-roles.E1.S1 | done |
 
 ## FR coverage
 

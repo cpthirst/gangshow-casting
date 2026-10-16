@@ -215,8 +215,11 @@ describe("Adding roles to an item", () => {
     return id ? document.getElementById(id)?.textContent?.trim() : undefined;
   };
 
+  // Each role as "<name> <size>", read from its card.
   const rolesShown = (wrapper: Awaited<ReturnType<typeof openAppAt>>["wrapper"]) =>
-    wrapper.findAll("[data-test=role]").map((role) => role.text().replace(/\s+/g, " "));
+    wrapper
+      .findAll("[data-test=role]")
+      .map((role) => `${role.get(".role-name").text()} ${role.get("[data-test=size]").text()}`);
 
   async function addRole(
     wrapper: Awaited<ReturnType<typeof openAppAt>>["wrapper"],
@@ -414,5 +417,101 @@ describe("Role names within an item", () => {
     expect(wrapper.get("form [role=alert]").text()).toBe(
       "Pirate Sketch already has a role called Captain Hook",
     );
+  });
+});
+
+describe("Role cards", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.body.innerHTML = "";
+  });
+
+  const roleWith = (
+    id: number,
+    name: string,
+    size: Role["size"],
+    castMemberIds: number[] = [],
+  ) => ({
+    ...aRole("pirate-sketch", name, size),
+    id,
+    castMemberIds,
+  });
+
+  const cardNames = (wrapper: Awaited<ReturnType<typeof openAppAt>>["wrapper"]) =>
+    wrapper.findAll("[data-test=role] .role-name").map((name) => name.text());
+
+  it("shows each role as a card with a pill for its size", async () => {
+    savedRunningOrderIs(show, [roleWith(1, "Captain Hook", "lead")]);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    const card = wrapper.get("[data-test=role]");
+    expect(card.classes()).toContain("role-card");
+    expect(card.get(".role-name").text()).toBe("Captain Hook");
+    expect(card.get("[data-test=size]").text()).toBe("Lead");
+    expect(card.get("[data-test=size]").classes()).toContain("pill");
+  });
+
+  it("orders roles by size: lead, support, cameo, then ensemble", async () => {
+    savedRunningOrderIs(show, [
+      roleWith(1, "Pirates", "ensemble"),
+      roleWith(2, "Parrot", "cameo"),
+      roleWith(3, "Captain Hook", "lead"),
+      roleWith(4, "Smee", "support"),
+    ]);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    expect(cardNames(wrapper)).toEqual(["Captain Hook", "Smee", "Parrot", "Pirates"]);
+  });
+
+  it("orders roles of the same size alphabetically, ignoring case", async () => {
+    savedRunningOrderIs(show, [
+      roleWith(1, "smee", "support"),
+      roleWith(2, "Bosun", "support"),
+      roleWith(3, "Cook", "support"),
+    ]);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    expect(cardNames(wrapper)).toEqual(["Bosun", "Cook", "smee"]);
+  });
+
+  it("marks a role nobody is cast in as uncast", async () => {
+    savedRunningOrderIs(show, [roleWith(1, "Parrot", "cameo")]);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    expect(wrapper.get("[data-test=role] [data-test=uncast]").text()).toBe("Uncast");
+  });
+
+  it("doesn't mark a role with someone in it as uncast", async () => {
+    savedRunningOrderIs(show, [roleWith(1, "Captain Hook", "lead", [12])]);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    expect(wrapper.find("[data-test=role] [data-test=uncast]").exists()).toBe(false);
+  });
+
+  it("names every size in words, not only by colour", async () => {
+    savedRunningOrderIs(show, [
+      roleWith(1, "Captain Hook", "lead"),
+      roleWith(2, "Smee", "support"),
+      roleWith(3, "Parrot", "cameo"),
+      roleWith(4, "Pirates", "ensemble"),
+    ]);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    const sizes = wrapper.findAll("[data-test=role] [data-test=size]").map((pill) => pill.text());
+    expect(sizes).toEqual(["Lead", "Support", "Cameo", "Ensemble"]);
+  });
+
+  it("presents the roles as a list, so screen readers announce how many", async () => {
+    savedRunningOrderIs(show, [
+      roleWith(1, "Captain Hook", "lead"),
+      roleWith(2, "Smee", "support"),
+      roleWith(3, "Parrot", "cameo"),
+      roleWith(4, "Pirates", "ensemble"),
+    ]);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    // An explicit role: Safari drops list semantics from unstyled lists.
+    const list = wrapper.get("ul[role=list][aria-label=Roles]");
+    expect(list.findAll(":scope > li")).toHaveLength(4);
   });
 });

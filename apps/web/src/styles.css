@@ -889,24 +889,63 @@ main a {
   font-weight: 700;
 }
 
-/* An item's roles. Casting-item-overview.E2.S1 turns these into ordered cards. */
-.roles {
+/* An item's roles as cards, biggest first. Size is always written on the pill, so
+   colour only helps; every pill keeps dark text on a light tint for contrast. */
+.role-cards {
+  display: grid;
+  gap: 0.5rem;
   margin: 1rem 0;
   padding: 0;
   list-style: none;
-  background: var(--white);
-  border-radius: 0.5rem;
 }
 
-.roles li {
+.role-card {
   display: flex;
-  gap: 0.75rem;
-  align-items: baseline;
-  padding: 0.625rem 0.75rem;
-  border-bottom: 1px solid var(--surface);
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  background: var(--white);
 }
 
 .role-name {
+  font-weight: 700;
+}
+
+.pill {
+  padding: 0.125rem 0.625rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  color: var(--text);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.pill-lead {
+  background: #fde2dc;
+}
+
+.pill-support {
+  background: #fff6b8;
+}
+
+.pill-cameo {
+  background: #dcecf8;
+}
+
+.pill-ensemble {
+  background: var(--surface);
+}
+
+/* Uncast stands out at a glance: the gaps the team still has to fill. */
+.uncast {
+  margin-left: auto;
+  color: var(--red-darker);
+  font-size: 0.875rem;
+  font-style: italic;
   font-weight: 700;
 }
 

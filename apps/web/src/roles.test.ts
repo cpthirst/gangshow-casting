@@ -1,5 +1,6 @@
+import type { Role } from "@app/shared";
 import { describe, expect, it } from "vitest";
-import { roleDetailsFrom, roleSizeLabel } from "./roles.ts";
+import { roleDetailsFrom, roleSizeLabel, sortRoles } from "./roles.ts";
 
 const noneTaken = { itemTitle: "Pirate Sketch", names: [] };
 
@@ -53,5 +54,42 @@ describe("roleDetailsFrom with the item's existing roles", () => {
 
   it("allows a new name", () => {
     expect(roleDetailsFrom({ name: "Smee", size: "support" }, taken).ok).toBe(true);
+  });
+});
+
+describe("sortRoles", () => {
+  const role = (name: string, size: Role["size"]): Role => ({
+    id: 1,
+    itemId: "pirate-sketch",
+    name,
+    size,
+    castMemberIds: [],
+    revision: 1,
+  });
+
+  it("puts bigger roles first, then sorts by name ignoring case", () => {
+    const sorted = sortRoles([
+      role("Pirates", "ensemble"),
+      role("smee", "support"),
+      role("Parrot", "cameo"),
+      role("Bosun", "support"),
+      role("Captain Hook", "lead"),
+    ]);
+
+    expect(sorted.map((r) => r.name)).toEqual([
+      "Captain Hook",
+      "Bosun",
+      "smee",
+      "Parrot",
+      "Pirates",
+    ]);
+  });
+
+  it("leaves the roles it was given in their original order", () => {
+    const roles = [role("Pirates", "ensemble"), role("Captain Hook", "lead")];
+
+    sortRoles(roles);
+
+    expect(roles.map((r) => r.name)).toEqual(["Pirates", "Captain Hook"]);
   });
 });
