@@ -9,6 +9,7 @@ import { defineConfig } from "@playwright/test";
 const API_PORT = 3100;
 const WEB_PORT = 5180;
 
+// Left in the OS temp folder after the run (a few KB), so a failure can be inspected.
 function freshTestData() {
   const dir = mkdtempSync(join(tmpdir(), "gangshow-e2e-"));
   cpSync(new URL("e2e/data", import.meta.url), dir, { recursive: true });
@@ -28,7 +29,6 @@ export default defineConfig({
   testDir: "e2e",
   testMatch: "*.e2e.ts",
   forbidOnly: true,
-  retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? "github" : "list",
   use: { baseURL: `http://localhost:${WEB_PORT}` },
   // The smallest phones we support, and a common Android width.
