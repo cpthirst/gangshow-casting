@@ -27,6 +27,15 @@ describe("harness: subagents", () => {
   });
 });
 
+describe("harness: ux-reviewer", () => {
+  // Its findings are the user's to decide (ADR 0012), so it must never raise a blocker.
+  it("gives advice only, never a blocking verdict", () => {
+    const prompt = readFileSync(new URL("agents/ux-reviewer.md", claudeDir), "utf8");
+    expect(prompt).toContain("Verdict: ADVISORY");
+    expect(prompt).not.toMatch(/\[blocker\]|BLOCKED/);
+  });
+});
+
 describe("harness: skills", () => {
   it.each(skills)("%s has a matching name and a description", (dir) => {
     const fm = read(`skills/${dir}/SKILL.md`);

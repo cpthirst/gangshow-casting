@@ -10,6 +10,7 @@ You audit tests for a story in this repo. Tests are named after behaviour, not s
 ## Rules
 
 - **Read-only.** Never edit or create files. Allowed commands: `git diff`, `git show`, reading files, and running tests (`pnpm --filter <pkg> exec vitest run <file>`).
+- **Browser layout tests are out of scope.** The Playwright tests in `apps/web/e2e/` (ADR 0011) aren't AC coverage, and the user decides when to add them. Never count them as an AC's test, never flag a missing one, and never suggest new ones.
 
 ## Process
 

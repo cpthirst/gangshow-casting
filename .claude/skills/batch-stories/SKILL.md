@@ -82,7 +82,7 @@ A harness test reads the *committed* settings, so an override that's accidentall
 
 For each story, in story-map order (respecting `Depends on`):
 1. Follow the `implement-story` skill on `feat/<feature>`. Don't create a branch per story.
-2. Work test-first, get `pnpm check` green, then run the CLAUDE.md review loop: fix blockers, at most 2 rounds.
+2. Work test-first, get `pnpm check` green, then run the CLAUDE.md review loop: fix blockers, at most 2 rounds. Batch mode doesn't skip the user's say on `ux-reviewer` findings: ask about them after each story's review, as CLAUDE.md describes.
 3. Mark the story `done` in the story and the map, then commit. **Stage only the story's files**, never `.claude/settings.json` and never unrelated work: `git add -A -- . ':!.claude/settings.json'`, or explicit paths. Check with `git diff --cached --name-only`. Never use `git commit -a`. Format only the files you changed, not the whole repo.
 4. Push: `git push -u origin feat/<feature>` the first time, then `git push`. The pre-push hook re-runs the gate.
 

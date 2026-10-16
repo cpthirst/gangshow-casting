@@ -1,0 +1,38 @@
+{
+  "productionId": "2027",
+  "members": [
+    {
+      "id": 1,
+      "firstName": "Sam",
+      "lastName": "Example",
+      "section": "scouts",
+      "group": "1st Somewhere",
+      "revision": 1
+    },
+    {
+      "id": 2,
+      "firstName": "Alexandra-Rose",
+      "lastName": "Featherstonehaugh-Smythe",
+      "section": "explorers",
+      "group": "Riverside on the Marsh Explorer Scout Unit",
+      "revision": 1
+    },
+    {
+      "id": 3,
+      "firstName": "Jo",
+      "lastName": "Newcomer",
+      "section": null,
+      "group": "",
+      "revision": 1
+    },
+    {
+      "id": 4,
+      "firstName": "Zo\u00eb",
+      "lastName": "Adams",
+      "section": "network",
+      "group": "Nowhere Network",
+      "revision": 1
+    }
+  ],
+  "nextId": 5
+}

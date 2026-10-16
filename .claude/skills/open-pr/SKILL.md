@@ -15,7 +15,7 @@ description: Push the current branch and open a GitHub pull request using the re
 3. **Review.** If the review loop in CLAUDE.md hasn't already run on this branch's current commit in this session (e.g. a quick fix that skipped `implement-story`), run it now. Never push with an unresolved `blocker`.
 4. **Write the PR.**
    - **Title**: a Conventional Commit, e.g. `feat(api): save story drafts (story-capture.E1.S2)`.
-   - **Body**: fill in [.github/pull_request_template.md](../../../.github/pull_request_template.md). Link the story file(s) and any ADRs, and summarise *why*, not just what (the diff shows what). Base it on `git log main..HEAD` and the diff. Put the reviewers' `should-fix` and `nit` findings under "Review notes".
+   - **Body**: fill in [.github/pull_request_template.md](../../../.github/pull_request_template.md). Link the story file(s) and any ADRs, and summarise *why*, not just what (the diff shows what). Base it on `git log main..HEAD` and the diff. Put the reviewers' `should-fix` and `nit` findings, and any `ux-reviewer` findings the user chose to note or leave, under "Review notes".
 5. **Push**: `git push -u origin <branch>`. This asks the user for permission; that's intended.
 6. **Create the PR.**
    - If `gh` is installed: write the body to a scratch file and run `gh pr create --title "<title>" --body-file <file>`.
