@@ -758,9 +758,10 @@ main a {
   font-weight: 700;
 }
 
-/* Dropdowns are as wide as their options, so the arrow sits by the choice, not at the far
-   side of a wide field. */
-.cast-member-form select {
+/* Dropdowns in every form are as wide as their options, so the arrow sits by the choice,
+   not at the far side of a wide field. */
+.cast-member-form select,
+.item-editor select {
   align-self: flex-start;
   min-width: 8rem;
 }
