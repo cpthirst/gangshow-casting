@@ -1,0 +1,81 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+import { type ItemNote, ItemNoteList, ProductionId } from "@app/shared";
+import { ifExists } from "./files.ts";
+import { parseJson } from "./json.ts";
+import { oneAtATime, writePrivateFile } from "./private-file.ts";
+
+/** Where each production's item notes live: one mutable document, no history
+ *  (casting-item-overview FR8). */
+export interface ItemNoteStore {
+  /** Every item's notes; none until the first is saved. */
+  list(productionId: string): Promise<ItemNoteList>;
+  /** Replaces an item's notes (revision + 1), if they're still at the given revision (0 for
+   *  an item with none yet). Cleared notes are kept as "", so stale saves are still caught. */
+  save(
+    productionId: string,
+    itemId: string,
+    revision: number,
+    text: string,
+  ): Promise<ItemNote | "stale">;
+}
+
+const empty = (productionId: string): ItemNoteList => ({ productionId, notes: [] });
+
+/** The list with one item's notes saved, or "stale" if they've moved on since `revision`. */
+function withNote(list: ItemNoteList, itemId: string, revision: number, text: string) {
+  const current = list.notes.find((note) => note.itemId === itemId);
+  if ((current?.revision ?? 0) !== revision) return "stale";
+  const note: ItemNote = { itemId, text, revision: revision + 1 };
+  const notes = current
+    ? list.notes.map((n) => (n.itemId === itemId ? note : n))
+    : [...list.notes, note];
+  return { note, list: { ...list, notes } };
+}
+
+export function inMemoryItemNoteStore(): ItemNoteStore {
+  const lists = new Map<string, ItemNoteList>();
+  const listOf = (productionId: string) => lists.get(productionId) ?? empty(productionId);
+  return {
+    list: async (productionId) => listOf(productionId),
+    async save(productionId, itemId, revision, text) {
+      const saved = withNote(listOf(productionId), itemId, revision, text);
+      if (saved === "stale") return saved;
+      lists.set(productionId, saved.list);
+      return saved.note;
+    },
+  };
+}
+
+/** Local file: `<dataDir>/<productionId>/item-notes.json` (git-ignored), created with the
+ *  first notes. Free text about a production of young people, so kept owner-only. */
+export function fileItemNoteStore(dataDir: string): ItemNoteStore {
+  // The id becomes a folder name: never trust callers to have checked it.
+  const fileFor = (productionId: string) => {
+    if (!ProductionId.safeParse(productionId).success) throw new Error("Invalid production id");
+    return join(dataDir, productionId, "item-notes.json");
+  };
+
+  async function read(productionId: string) {
+    const text = await ifExists(() => readFile(fileFor(productionId), "utf8"));
+    if (text === undefined) return empty(productionId);
+    const parsed = ItemNoteList.safeParse(parseJson(text));
+    if (!parsed.success || parsed.data.productionId !== productionId) {
+      throw new Error(`Item notes file for production ${productionId} is invalid`);
+    }
+    return parsed.data;
+  }
+
+  const inTurn = oneAtATime();
+  return {
+    list: read,
+    save: (productionId, itemId, revision, text) =>
+      // Checked and saved in one turn, so two saves from the same revision can't both win.
+      inTurn(async () => {
+        const saved = withNote(await read(productionId), itemId, revision, text);
+        if (saved === "stale") return saved;
+        await writePrivateFile(fileFor(productionId), JSON.stringify(saved.list, null, 2));
+        return saved.note;
+      }),
+  };
+}

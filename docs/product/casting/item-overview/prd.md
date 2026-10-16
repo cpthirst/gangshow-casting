@@ -42,10 +42,13 @@ Each item has its own set of parts: a few leads, some supporting and cameo parts
 - **FR5**: Each item's page must have its own URL, so it loads directly and survives a refresh. The browser tab names the item.
 - **FR6**: An item that isn't in the latest saved running order must show a "not found" message with a link back to the Items list.
 - **FR7**: The page must offer a way back to the Items list.
+- **FR8**: Each item's page must have a **Notes** section: a free-text field, up to 500 characters, that the team can edit and save. Saved notes are kept with the item, by its id, so they survive new running-order versions. They are separate from the running order's Comments. Clearing the text and saving removes the notes. (Added on 2026-10-16 at the user's request.)
+- **FR9**: An item's saved notes must also appear on the Items list, in full, under that item: under its row on larger screens, and at the bottom of its card on phones. Items without notes show nothing extra.
+- **FR10**: If someone else saved the item's notes since the page was loaded, saving must be refused, telling the user and showing the current notes. If saving fails, the user is told and their text is kept.
 
 ## Non-functional requirements
 
-- **Security and safeguarding**: this page shows young people's names next to parts. The data stays local and git-ignored, and the API listens on loopback only. Before casting data is served from anywhere shared, access must be limited to the production team, with its own story and ADR (CLAUDE.md). No names in server logs. Tests use made-up names.
+- **Security and safeguarding**: this page shows young people's names next to parts. Notes (FR8) are free text, so they could hold personal details about the cast. The user chose not to add a hint against that. Notes stay in the same local, git-ignored data, and tests use made-up text. The data stays local and git-ignored, and the API listens on loopback only. Before casting data is served from anywhere shared, access must be limited to the production team, with its own story and ADR (CLAUDE.md). No names in server logs. Tests use made-up names.
 - **Accessibility**: WCAG 2.2 AA. The role-size pill has text, not only colour, and the four sizes are distinguishable without colour. Roles are a list, so screen readers announce how many there are. The page is usable at 360px width.
 - **Performance**: an item with up to about 40 roles loads in under 1 second locally.
 

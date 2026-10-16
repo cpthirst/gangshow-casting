@@ -1,8 +1,10 @@
 import {
   AddRoleRequest,
   type CastMember,
+  type ItemNote,
   type Role,
   type RunningOrder,
+  SaveItemNoteRequest,
   sameRoleName,
   UpdateRoleRequest,
 } from "@app/shared";
@@ -11,6 +13,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory } from "vue-router";
 import App from "../App.vue";
 import { CAST_PATH } from "../cast.ts";
+import { ITEM_NOTES_PATH } from "../item-notes.ts";
 import { ROLES_PATH } from "../roles.ts";
 import { createAppRouter } from "../router.ts";
 import { anItem, aRunningOrder } from "../running-order.fixture.ts";
@@ -46,13 +49,25 @@ const theCast: CastMember[] = [
   member(15, "Zoë", "Adams"),
 ];
 
-/** A stand-in API holding one saved running order, the cast and the roles added so far. */
-function savedRunningOrderIs(order: RunningOrder, roles: Role[] = []) {
+/** A stand-in API holding one saved running order, the cast, the roles added so far and
+ *  any item notes. */
+function savedRunningOrderIs(order: RunningOrder, roles: Role[] = [], notes: ItemNote[] = []) {
   const stored = [...roles];
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init?: RequestInit) => {
       if (url === ROLES_PATH) return json({ productionId: "2027", roles: stored });
+      if (url === ITEM_NOTES_PATH) return json({ productionId: "2027", notes });
+      const notesOf = /\/items\/([^/]+)\/notes$/.exec(url)?.[1];
+      if (notesOf && init?.method === "PUT") {
+        const { text, revision } = SaveItemNoteRequest.parse(JSON.parse(String(init.body)));
+        const index = notes.findIndex((n) => n.itemId === notesOf);
+        if ((notes[index]?.revision ?? 0) !== revision) return new Response(null, { status: 409 });
+        const saved = { itemId: notesOf, text, revision: revision + 1 };
+        if (index === -1) notes.push(saved);
+        else notes[index] = saved;
+        return json(saved);
+      }
       if (url === CAST_PATH) return json({ productionId: "2027", members: theCast });
       const addTo = /\/items\/([^/]+)\/roles$/.exec(url)?.[1];
       if (addTo && init?.method === "POST") {
@@ -1909,5 +1924,132 @@ describe("Add All Cast", () => {
       .findAll("[data-test=cast-name]")
       .find((name) => name.text().startsWith("Jo Newcomer"));
     expect(jo?.find("[data-test=clash]").exists()).toBe(true);
+  });
+});
+
+describe("Item notes", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.body.innerHTML = "";
+  });
+
+  type Page = Awaited<ReturnType<typeof openAppAt>>["wrapper"];
+  const notesSection = (wrapper: Page) => wrapper.get("section[aria-labelledby=notes-heading]");
+  const field = (wrapper: Page) => notesSection(wrapper).get<HTMLTextAreaElement>("textarea");
+  const message = (wrapper: Page) => notesSection(wrapper).find("[data-test=notes-message]");
+
+  async function saveNotes(wrapper: Page, text: string) {
+    await field(wrapper).setValue(text);
+    await notesSection(wrapper).get("form").trigger("submit");
+    await flushPromises();
+  }
+
+  const notePuts = () =>
+    vi
+      .mocked(fetch)
+      .mock.calls.filter(([url, init]) => String(url).endsWith("/notes") && init?.method === "PUT");
+
+  it("has a Notes section with a text field and a Save button", async () => {
+    savedRunningOrderIs(show);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    expect(notesSection(wrapper).get("h2").text()).toBe("Notes");
+    expect(field(wrapper).element.value).toBe("");
+    expect(notesSection(wrapper).get("button[type=submit]").text()).toBe("Save notes");
+  });
+
+  it("keeps saved notes for the next visit", async () => {
+    savedRunningOrderIs(show);
+    const first = await openAppAt("/casting/items/pirate-sketch");
+    await saveNotes(first.wrapper, "Hook needs a hat change before the finale");
+    expect(message(first.wrapper).text()).toBe("Notes saved.");
+    first.wrapper.unmount();
+
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    expect(field(wrapper).element.value).toBe("Hook needs a hat change before the finale");
+  });
+
+  it("shows notes after the running order is saved with the item moved", async () => {
+    const moved = aRunningOrder(
+      [anItem("Pirate Sketch"), anItem("Opening Number")],
+      [anItem("Campfire Song")],
+      8,
+    );
+    savedRunningOrderIs(moved, [], [{ itemId: "pirate-sketch", text: "Hat change", revision: 1 }]);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    expect(field(wrapper).element.value).toBe("Hat change");
+  });
+
+  it("keeps notes apart from the running order's Comments", async () => {
+    savedRunningOrderIs(
+      aRunningOrder([
+        anItem("Opening Number"),
+        anItem("Pirate Sketch", { comments: "Smoke machine" }),
+      ]),
+    );
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+    expect(field(wrapper).element.value).toBe("");
+
+    await saveNotes(wrapper, "Hat change");
+
+    const savedOrders = vi
+      .mocked(fetch)
+      .mock.calls.filter(
+        ([url, init]) => String(url).includes("running-order") && init?.method === "POST",
+      );
+    expect(savedOrders).toEqual([]);
+  });
+
+  it("refuses notes over 500 characters, saving nothing", async () => {
+    savedRunningOrderIs(show);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    await saveNotes(wrapper, "x".repeat(501));
+
+    expect(message(wrapper).text()).toBe("Notes can be up to 500 characters.");
+    expect(notePuts()).toEqual([]);
+  });
+
+  it("removes the notes when they're cleared and saved", async () => {
+    savedRunningOrderIs(show, [], [{ itemId: "pirate-sketch", text: "Hat change", revision: 1 }]);
+    const first = await openAppAt("/casting/items/pirate-sketch");
+    await saveNotes(first.wrapper, "");
+    first.wrapper.unmount();
+
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    expect(field(wrapper).element.value).toBe("");
+  });
+
+  it("refuses a stale save and shows the current notes", async () => {
+    const notes: ItemNote[] = [];
+    savedRunningOrderIs(show, [], notes);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+    // Someone else saves after this page loaded.
+    notes.push({ itemId: "pirate-sketch", text: "Theirs", revision: 1 });
+
+    await saveNotes(wrapper, "Mine");
+
+    expect(message(wrapper).text()).toBe(
+      "Someone else changed these notes. Here they are now; your text wasn't saved.",
+    );
+    expect(field(wrapper).element.value).toBe("Theirs");
+    expect(notes[0]?.text).toBe("Theirs");
+  });
+
+  it("keeps the text when the notes can't be saved", async () => {
+    savedRunningOrderIs(show);
+    const api = vi.mocked(fetch);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+    api.mockImplementation(async () => {
+      throw new TypeError("Failed to fetch");
+    });
+
+    await saveNotes(wrapper, "Hat change");
+
+    expect(message(wrapper).text()).toBe("Couldn't save the notes. Try again.");
+    expect(field(wrapper).element.value).toBe("Hat change");
   });
 });

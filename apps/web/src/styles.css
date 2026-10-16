@@ -1088,6 +1088,31 @@ main a {
   text-decoration: underline;
 }
 
+/* An item's notes, below its roles: a plain text field, like the item editor's. */
+.item-notes {
+  margin-top: 2rem;
+}
+
+.item-notes textarea {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 40rem;
+  padding: 0.5rem;
+  border: 1px solid var(--text);
+  border-radius: 0.25rem;
+  background: var(--white);
+  color: var(--text);
+  font: inherit;
+}
+
+.item-notes .editor-actions {
+  margin-top: 0.75rem;
+}
+
+.notes-message:empty {
+  display: none;
+}
+
 .item-position {
   margin-top: 0;
   font-weight: 700;

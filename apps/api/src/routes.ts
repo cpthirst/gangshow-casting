@@ -4,13 +4,16 @@ import { createAddRole } from "./add-role.ts";
 import { fileCastStore } from "./cast-store.ts";
 import { createDeleteCastMember } from "./delete-cast-member.ts";
 import { createGetCast } from "./get-cast.ts";
+import { createGetItemNotes } from "./get-item-notes.ts";
 import { createGetRoles } from "./get-roles.ts";
 import { createGetRunningOrder } from "./get-running-order.ts";
 import type { Handler } from "./handler.ts";
 import { handler as health } from "./health.ts";
+import { fileItemNoteStore } from "./item-note-store.ts";
 import { createRemoveRole } from "./remove-role.ts";
 import { fileRoleStore } from "./role-store.ts";
 import { fileRunningOrderStore } from "./running-order-store.ts";
+import { createSaveItemNote } from "./save-item-note.ts";
 import { createSaveRunningOrder } from "./save-running-order.ts";
 import { createUpdateCastMember } from "./update-cast-member.ts";
 import { createUpdateRole } from "./update-role.ts";
@@ -20,6 +23,7 @@ const dataDir = process.env.DATA_DIR ?? fileURLToPath(new URL("../data", import.
 const runningOrders = fileRunningOrderStore(dataDir);
 const cast = fileCastStore(dataDir);
 const roles = fileRoleStore(dataDir);
+const itemNotes = fileItemNoteStore(dataDir);
 
 /** One entry per future API Gateway route: "<METHOD> <path>", with {name} path parameters. */
 export const routes: Record<string, Handler> = {
@@ -32,6 +36,11 @@ export const routes: Record<string, Handler> = {
   "PUT /api/productions/{productionId}/cast/{castId}": createUpdateCastMember(cast),
   "DELETE /api/productions/{productionId}/cast/{castId}": createDeleteCastMember(cast, roles),
   "GET /api/productions/{productionId}/roles": createGetRoles(roles),
+  "GET /api/productions/{productionId}/item-notes": createGetItemNotes(itemNotes),
+  "PUT /api/productions/{productionId}/items/{itemId}/notes": createSaveItemNote(
+    itemNotes,
+    runningOrders,
+  ),
   "POST /api/productions/{productionId}/items/{itemId}/roles": createAddRole(
     roles,
     runningOrders,
