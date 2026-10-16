@@ -236,3 +236,56 @@ async function fileRoleStoreWith(roles: Role[]) {
   );
   return fileRoleStore(dataDirForNames);
 }
+
+describe.each([
+  ["in-memory", async () => inMemoryRoleStore([{ productionId: "2027", roles: editRoles() }])],
+  ["file", () => fileRoleStoreWith(editRoles())],
+])("%s role store updating", (_kind, makeStore) => {
+  beforeEach(async () => {
+    dataDirForNames = await mkdtemp(join(tmpdir(), "role-update-"));
+  });
+  afterEach(() => rm(dataDirForNames, { recursive: true, force: true }));
+
+  const smee = { name: "Mr Smee", size: "lead" as const, castMemberIds: [12] };
+
+  it("updates a role at the given revision, bumping the revision", async () => {
+    const store = await makeStore();
+
+    const result = await store.update("2027", 2, 1, smee);
+
+    expect(result).toEqual({ ...smee, id: 2, itemId: "pirate-sketch", revision: 2 });
+    expect((await store.list("2027")).roles.find((role) => role.id === 2)).toEqual(result);
+  });
+
+  it("refuses a stale revision or an unknown role, changing nothing", async () => {
+    const store = await makeStore();
+
+    expect(await store.update("2027", 2, 9, smee)).toBe("stale");
+    expect(await store.update("2027", 99, 1, smee)).toBe("not-found");
+    expect((await store.list("2027")).roles).toEqual(editRoles());
+  });
+
+  it("refuses a name another role in the item uses, ignoring case", async () => {
+    const store = await makeStore();
+
+    expect(await store.update("2027", 2, 1, { ...smee, name: "captain hook" })).toBe("name-taken");
+    expect((await store.list("2027")).roles).toEqual(editRoles());
+  });
+
+  it("lets a role keep its own name", async () => {
+    const store = await makeStore();
+
+    const result = await store.update("2027", 1, 1, { ...smee, name: "CAPTAIN HOOK" });
+
+    expect(result).toMatchObject({ id: 1, name: "CAPTAIN HOOK" });
+  });
+});
+
+/** Two roles in Pirate Sketch, and one with the same name in another item. */
+function editRoles(): Role[] {
+  return [
+    aRole(1, { name: "Captain Hook" }),
+    aRole(2, { name: "Smee" }),
+    aRole(3, { itemId: "campfire-song", name: "Mr Smee" }),
+  ];
+}

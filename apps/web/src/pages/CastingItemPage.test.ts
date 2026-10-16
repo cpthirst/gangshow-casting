@@ -1,4 +1,11 @@
-import { AddRoleRequest, type CastMember, type Role, type RunningOrder } from "@app/shared";
+import {
+  AddRoleRequest,
+  type CastMember,
+  type Role,
+  type RunningOrder,
+  sameRoleName,
+  UpdateRoleRequest,
+} from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory } from "vue-router";
@@ -54,9 +61,27 @@ function savedRunningOrderIs(order: RunningOrder, roles: Role[] = []) {
         stored.push(role);
         return json(role, 201);
       }
+      const editId = Number(/\/roles\/(\d+)$/.exec(url)?.[1]);
+      if (editId && init?.method === "PUT") {
+        const { revision, ...details } = UpdateRoleRequest.parse(JSON.parse(String(init.body)));
+        const index = stored.findIndex((r) => r.id === editId);
+        const current = stored[index];
+        if (!current) return new Response(null, { status: 404 });
+        if (current.revision !== revision) return new Response(null, { status: 409 });
+        const taken = stored.some(
+          (r) =>
+            r.id !== editId && r.itemId === current.itemId && sameRoleName(r.name, details.name),
+        );
+        if (taken) return json({ error: "name-taken" }, 400);
+        const updated = { ...current, ...details, revision: revision + 1 };
+        stored[index] = updated;
+        return json(updated);
+      }
       return json(order);
     }),
   );
+  // The live roles, so a test can play someone else changing them.
+  return stored;
 }
 
 // The whole app, so routing, the menu and the tab title are real.
@@ -714,5 +739,182 @@ describe("Role counts on the Items list", () => {
     await flushPromises();
 
     expect(counts()?.get("[aria-hidden=true]").text()).toBe("Roles 1 · Cast 0");
+  });
+});
+
+describe("Editing a role", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.body.innerHTML = "";
+  });
+
+  type Page = Awaited<ReturnType<typeof openAppAt>>["wrapper"];
+
+  const roleWith = (
+    id: number,
+    name: string,
+    size: Role["size"],
+    castMemberIds: number[] = [],
+  ) => ({
+    ...aRole("pirate-sketch", name, size),
+    id,
+    castMemberIds,
+  });
+  const pirates = () => [
+    roleWith(1, "Captain Hook", "lead", [12]),
+    roleWith(2, "Smee", "support"),
+    roleWith(3, "Parrot", "cameo"),
+  ];
+
+  const card = (wrapper: Page, name: string) =>
+    wrapper.findAll("[data-test=role]").find((c) => c.get(".role-name").text() === name);
+  const cardNames = (wrapper: Page) =>
+    wrapper.findAll("[data-test=role] .role-name").map((name) => name.text());
+  const castOn = (wrapper: Page, name: string) =>
+    card(wrapper, name)?.find("[data-test=cast]").text();
+  const editForm = (wrapper: Page, name: string) => wrapper.get(`form[aria-label='Edit ${name}']`);
+  const search = (wrapper: Page) => wrapper.get<HTMLInputElement>("input[name=castMember]");
+
+  async function startEditing(wrapper: Page, name: string) {
+    await wrapper.get(`button[aria-label='Edit ${name}']`).trigger("click");
+    await flushPromises();
+  }
+
+  async function choose(wrapper: Page, typed: string) {
+    await search(wrapper).setValue(typed);
+    await search(wrapper).trigger("keydown", { key: "ArrowDown" });
+    await search(wrapper).trigger("keydown", { key: "Enter" });
+  }
+
+  async function save(wrapper: Page, name: string) {
+    await editForm(wrapper, name).trigger("submit");
+    await flushPromises();
+  }
+
+  it("casts someone in an uncast role", async () => {
+    savedRunningOrderIs(show, pirates());
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    await startEditing(wrapper, "Parrot");
+    await choose(wrapper, "sample");
+    await save(wrapper, "Parrot");
+
+    expect(castOn(wrapper, "Parrot")).toBe("Alex Sample");
+  });
+
+  it("starts the form with the role's details and who's cast", async () => {
+    savedRunningOrderIs(show, pirates());
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    await startEditing(wrapper, "Captain Hook");
+
+    const form = editForm(wrapper, "Captain Hook");
+    expect(form.get<HTMLInputElement>("input[name=name]").element.value).toBe("Captain Hook");
+    expect(form.get<HTMLSelectElement>("select[name=size]").element.value).toBe("lead");
+    expect(search(wrapper).element.value).toBe("Sam Example");
+  });
+
+  it("recasts a role", async () => {
+    savedRunningOrderIs(show, pirates());
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    await startEditing(wrapper, "Captain Hook");
+    await choose(wrapper, "newcomer");
+    await save(wrapper, "Captain Hook");
+
+    expect(castOn(wrapper, "Captain Hook")).toBe("Jo Newcomer");
+  });
+
+  it("makes a role uncast when the cast member is cleared", async () => {
+    savedRunningOrderIs(show, pirates());
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    await startEditing(wrapper, "Captain Hook");
+    await search(wrapper).setValue("");
+    await save(wrapper, "Captain Hook");
+
+    expect(card(wrapper, "Captain Hook")?.get("[data-test=uncast]").text()).toBe("Uncast");
+  });
+
+  it("renames and resizes a role, moving it to its new place", async () => {
+    savedRunningOrderIs(show, [...pirates(), roleWith(4, "Wendy", "lead")]);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    await startEditing(wrapper, "Smee");
+    await editForm(wrapper, "Smee").get("input[name=name]").setValue("Mr Smee");
+    await editForm(wrapper, "Smee").get("select[name=size]").setValue("lead");
+    await save(wrapper, "Smee");
+
+    expect(cardNames(wrapper)).toEqual(["Captain Hook", "Mr Smee", "Wendy", "Parrot"]);
+  });
+
+  it.each([
+    ["", "Enter a role name"],
+    ["captain hook", "Pirate Sketch already has a role called Captain Hook"],
+  ])(
+    "checks the edit like a new role (name %j), leaving the role unchanged",
+    async (name, message) => {
+      savedRunningOrderIs(show, pirates());
+      const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+      await startEditing(wrapper, "Smee");
+      await editForm(wrapper, "Smee").get("input[name=name]").setValue(name);
+      await save(wrapper, "Smee");
+
+      const describedBy = editForm(wrapper, "Smee")
+        .get("input[name=name]")
+        .attributes("aria-describedby");
+      expect(describedBy && document.getElementById(describedBy)?.textContent?.trim()).toBe(
+        message,
+      );
+      // The form holds the card while open; once closed, Smee is as it was.
+      await editForm(wrapper, "Smee").get("[data-test=cancel]").trigger("click");
+      await flushPromises();
+      expect(cardNames(wrapper)).toContain("Smee");
+    },
+  );
+
+  it("leaves the role unchanged when cancelled", async () => {
+    savedRunningOrderIs(show, pirates());
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    await startEditing(wrapper, "Smee");
+    await editForm(wrapper, "Smee").get("input[name=name]").setValue("Mr Smee");
+    await editForm(wrapper, "Smee").get("[data-test=cancel]").trigger("click");
+    await flushPromises();
+
+    expect(wrapper.find("form[aria-label='Edit Smee']").exists()).toBe(false);
+    expect(cardNames(wrapper)).toContain("Smee");
+  });
+
+  it("doesn't overwrite someone else's edit, showing the latest roles", async () => {
+    const stored = savedRunningOrderIs(show, pirates());
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+    await startEditing(wrapper, "Smee");
+    // Someone else renames Smee after this page loaded.
+    stored[1] = { ...roleWith(2, "Bosun", "support"), revision: 2 };
+
+    await editForm(wrapper, "Smee").get("input[name=name]").setValue("Mr Smee");
+    await save(wrapper, "Smee");
+
+    expect(wrapper.get("main [role=alert]").text()).toBe(
+      "Someone else changed this role. Showing the latest roles.",
+    );
+    expect(cardNames(wrapper)).toContain("Bosun");
+    expect(cardNames(wrapper)).not.toContain("Mr Smee");
+  });
+
+  it("explains when someone else removed the role being edited", async () => {
+    const stored = savedRunningOrderIs(show, pirates());
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+    await startEditing(wrapper, "Smee");
+    stored.splice(1, 1);
+
+    await save(wrapper, "Smee");
+
+    expect(wrapper.get("main [role=alert]").text()).toBe(
+      "Someone else changed this role. Showing the latest roles.",
+    );
+    expect(cardNames(wrapper)).not.toContain("Smee");
   });
 });

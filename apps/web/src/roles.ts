@@ -6,6 +6,9 @@ const PRODUCTION_ID = "2027";
 /** Every role in the production. */
 export const ROLES_PATH = `/api/productions/${PRODUCTION_ID}/roles`;
 
+/** Where an edited role is put. */
+export const updateRolePath = (roleId: number) => `${ROLES_PATH}/${roleId}`;
+
 /** Where a new role for this item is posted. */
 export const addRolePath = (itemId: string) =>
   `/api/productions/${PRODUCTION_ID}/items/${encodeURIComponent(itemId)}/roles`;

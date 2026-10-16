@@ -11,7 +11,14 @@ import {
 import { computed, nextTick, onMounted, ref, watchEffect } from "vue";
 import { useRoute } from "vue-router";
 import { CAST_PATH } from "../cast.ts";
-import { addRolePath, nameTakenMessage, ROLES_PATH, roleSizeLabel, sortRoles } from "../roles.ts";
+import {
+  addRolePath,
+  nameTakenMessage,
+  ROLES_PATH,
+  roleSizeLabel,
+  sortRoles,
+  updateRolePath,
+} from "../roles.ts";
 import { showPageTitle } from "../router.ts";
 import { placeOf, RUNNING_ORDER_PATH } from "../running-order.ts";
 import RoleForm from "./RoleForm.vue";
@@ -38,10 +45,11 @@ const itemRoles = computed(() =>
   sortRoles(roles.value.filter((role) => role.itemId === place.value?.item.id)),
 );
 
-// A new role can't repeat a name the item already has (PRD FR3).
+// A role can't repeat a name another role in the item has (PRD FR3); the role being edited
+// keeps its own.
 const takenNames = computed(() => ({
   itemTitle: place.value?.item.title ?? "",
-  names: itemRoles.value.map((role) => role.name),
+  names: itemRoles.value.filter((role) => role.id !== editing.value?.id).map((role) => role.name),
 }));
 
 // Loaded, but the item isn't in the latest saved running order (PRD FR6).
@@ -90,13 +98,83 @@ onMounted(async () => {
 });
 
 const adding = ref(false);
+/** The role whose edit form is open, if any. One form at a time. */
+const editing = ref<Role | null>(null);
 const saving = ref(false);
 const formError = ref("");
+const notice = ref("");
 const addButton = ref<HTMLButtonElement>();
+const busy = computed(() => adding.value || editing.value !== null || saving.value);
 
 function startAdding() {
   formError.value = "";
+  notice.value = "";
   adding.value = true;
+}
+
+function startEditing(role: Role) {
+  formError.value = "";
+  notice.value = "";
+  editing.value = role;
+}
+
+async function stopEditing(id: number) {
+  editing.value = null;
+  await nextTick();
+  document.querySelector<HTMLButtonElement>(`[data-role-id="${id}"] [data-test=edit]`)?.focus();
+}
+
+// Saves straight away (PRD FR8), unless someone else changed or removed the role first.
+async function saveEdit(details: AddRoleRequest) {
+  const role = editing.value;
+  if (!role || !place.value || saving.value) return;
+  saving.value = true;
+  formError.value = "";
+  const result = await putRole(role, details);
+  saving.value = false;
+  if (result === "name-taken") {
+    formError.value = nameTakenMessage(place.value.item.title, details.name);
+    return;
+  }
+  if (result === "conflict") {
+    editing.value = null;
+    await loadRoles();
+    notice.value = "Someone else changed this role. Showing the latest roles.";
+    return;
+  }
+  if (!result) {
+    formError.value = "Couldn't save the role. Try again.";
+    return;
+  }
+  roles.value = roles.value.map((r) => (r.id === result.id ? result : r));
+  await stopEditing(result.id);
+}
+
+async function putRole(role: Role, details: AddRoleRequest) {
+  try {
+    const res = await fetch(updateRolePath(role.id), {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ...details, revision: role.revision }),
+    });
+    if (res.ok) return Role.parse(await res.json());
+    if (res.status === 409 || res.status === 404) return "conflict";
+    if (res.status === 400 && AddRoleRefusal.safeParse(await res.json()).success) {
+      return "name-taken";
+    }
+    return undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+async function loadRoles() {
+  try {
+    const res = await fetch(ROLES_PATH);
+    if (res.ok) roles.value = RoleList.parse(await res.json()).roles;
+  } catch {
+    // Keep what's shown; the notice still says it may be out of date.
+  }
 }
 
 async function stopAdding() {
@@ -157,12 +235,13 @@ async function postRole(itemId: string, details: AddRoleRequest) {
         type="button"
         class="primary"
         data-test="add-role"
-        :disabled="adding || saving"
+        :disabled="busy"
         @click="startAdding"
       >
         Add role
       </button>
     </div>
+    <p v-if="notice" class="notice" role="alert">{{ notice }}</p>
     <RoleForm
       v-if="adding"
       :saving="saving"
@@ -175,20 +254,51 @@ async function postRole(itemId: string, details: AddRoleRequest) {
     <!-- An explicit list role: Safari drops list semantics once bullets are styled away,
          and the count of roles should be announced (AC6). -->
     <ul v-if="itemRoles.length > 0" class="role-cards" role="list" aria-label="Roles">
-      <li v-for="role in itemRoles" :key="role.id" class="role-card" data-test="role">
-        <span class="role-name">{{ role.name }}</span>
-        <!-- Real spaces, so a screen reader hears "Captain Hook Lead Uncast", not one word. -->
-        {{ " " }}
-        <span :class="['pill', `pill-${role.size}`]" data-test="size">{{
-          roleSizeLabel(role.size)
-        }}</span>
-        <template v-if="castNames(role)">
+      <li
+        v-for="role in itemRoles"
+        :key="role.id"
+        :class="['role-card', { editing: editing?.id === role.id }]"
+        :data-role-id="role.id"
+        data-test="role"
+      >
+        <!-- While editing, the card holds the form instead. -->
+        <RoleForm
+          v-if="editing?.id === role.id"
+          :role="role"
+          :cast-name="castNames(role)"
+          :saving="saving"
+          :error="formError"
+          :taken="takenNames"
+          :cast="cast"
+          @save="saveEdit"
+          @cancel="stopEditing(role.id)"
+        />
+        <template v-else>
+          <span class="role-name">{{ role.name }}</span>
+          <!-- Real spaces, so a screen reader hears "Captain Hook Lead Uncast", not one word. -->
           {{ " " }}
-          <span class="role-cast" data-test="cast">{{ castNames(role) }}</span>
-        </template>
-        <template v-if="role.castMemberIds.length === 0">
+          <span :class="['pill', `pill-${role.size}`]" data-test="size">{{
+            roleSizeLabel(role.size)
+          }}</span>
+          <template v-if="castNames(role)">
+            {{ " " }}
+            <span class="role-cast" data-test="cast">{{ castNames(role) }}</span>
+          </template>
+          <template v-if="role.castMemberIds.length === 0">
+            {{ " " }}
+            <span class="uncast" data-test="uncast">Uncast</span>
+          </template>
           {{ " " }}
-          <span class="uncast" data-test="uncast">Uncast</span>
+          <button
+            type="button"
+            class="row-action"
+            data-test="edit"
+            :aria-label="`Edit ${role.name}`"
+            :disabled="busy"
+            @click="startEditing(role)"
+          >
+            Edit
+          </button>
         </template>
       </li>
     </ul>

@@ -1,20 +1,32 @@
 <script setup lang="ts">
-import { type AddRoleRequest, type CastMember, RoleSize } from "@app/shared";
+import { type AddRoleRequest, type CastMember, type Role, RoleSize } from "@app/shared";
 import { onMounted, ref, useId } from "vue";
 import { type RoleForm, roleDetailsFrom, roleSizeLabel, type TakenNames } from "../roles.ts";
 import CastMemberPicker from "./CastMemberPicker.vue";
 
-// taken: the item's existing role names, which a new role can't repeat.
+// Adds a role (no role given) or edits one (role given, with who's cast in it named).
+// taken: the item's other role names, which this one can't repeat.
 // cast: the production's cast, to choose who plays the part.
 const props = defineProps<{
   saving: boolean;
   error: string;
   taken: TakenNames;
   cast: CastMember[];
+  role?: Role | undefined;
+  castName?: string | undefined;
 }>();
 const emit = defineEmits<{ save: [details: AddRoleRequest]; cancel: [] }>();
 
-const form = ref<RoleForm>({ name: "", size: "", castMember: { query: "", id: null } });
+const castMemberId = props.role?.castMemberIds[0];
+const form = ref<RoleForm>({
+  name: props.role?.name ?? "",
+  size: props.role?.size ?? "",
+  castMember: { query: props.castName ?? "", id: castMemberId ?? null },
+});
+
+// An ensemble's members are changed elsewhere (casting-roles.E2.S2), so editing one here
+// keeps whoever is in it.
+const keepsEnsemble = props.role?.size === "ensemble";
 const errors = ref<Partial<Record<keyof RoleForm, string>>>({});
 
 const uid = useId();
@@ -33,16 +45,22 @@ function onEscape(event: KeyboardEvent) {
 }
 
 function submit() {
-  const result = roleDetailsFrom(form.value, props.taken);
+  // Editing an ensemble has no picker, so its (absent) choice isn't validated; the
+  // members it already has are sent back unchanged.
+  const choice = keepsEnsemble ? { query: "", id: null } : form.value.castMember;
+  const result = roleDetailsFrom({ ...form.value, castMember: choice }, props.taken);
   errors.value = result.ok ? {} : result.errors;
-  if (result.ok) emit("save", result.details);
+  if (!result.ok) return;
+  const castMemberIds =
+    keepsEnsemble && props.role ? props.role.castMemberIds : result.details.castMemberIds;
+  emit("save", { ...result.details, castMemberIds });
 }
 </script>
 
 <template>
   <form
     class="cast-member-form"
-    aria-label="Add role"
+    :aria-label="role ? `Edit ${role.name}` : 'Add role'"
     novalidate
     @submit.prevent="submit"
     @keydown.esc="onEscape"
@@ -69,7 +87,7 @@ function submit() {
       </select>
       <p v-if="errors.size" :id="errorFor('size')" class="field-error">{{ errors.size }}</p>
     </div>
-    <div class="field">
+    <div v-if="!keepsEnsemble" class="field">
       <label :for="idFor('castMember')">Cast member <span class="optional">(optional)</span></label>
       <CastMemberPicker
         v-model="form.castMember"

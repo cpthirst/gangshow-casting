@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { AddRoleRefusal, AddRoleRequest, Role, RoleList, sameRoleName } from "./role.ts";
+import {
+  AddRoleRefusal,
+  AddRoleRequest,
+  Role,
+  RoleList,
+  sameRoleName,
+  UpdateRoleRequest,
+} from "./role.ts";
 
 const captainHook = {
   id: 1,
@@ -93,5 +100,23 @@ describe("sameRoleName", () => {
 describe("AddRoleRefusal", () => {
   it("says the name is already taken in the item", () => {
     expect(AddRoleRefusal.parse({ error: "name-taken" })).toEqual({ error: "name-taken" });
+  });
+});
+
+describe("UpdateRoleRequest", () => {
+  const edit = { name: "Mr Smee", size: "lead", castMemberIds: [12], revision: 2 };
+
+  it("takes new details and the revision they were based on", () => {
+    expect(UpdateRoleRequest.parse(edit)).toEqual(edit);
+  });
+
+  it.each([
+    ["no revision", { ...edit, revision: undefined }],
+    ["an empty name", { ...edit, name: " " }],
+    ["two people in a lead role", { ...edit, castMemberIds: [12, 13] }],
+    ["the same person twice", { ...edit, size: "ensemble", castMemberIds: [12, 12] }],
+    ["an id, which comes from the URL", { ...edit, id: 7 }],
+  ])("refuses %s", (_case, request) => {
+    expect(UpdateRoleRequest.safeParse(request).success).toBe(false);
   });
 });

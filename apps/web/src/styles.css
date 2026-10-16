@@ -954,6 +954,36 @@ main a {
   font-weight: 700;
 }
 
+/* Edit sits at the end of the card, like the Cast page's row actions. */
+.role-card [data-test="edit"] {
+  margin-left: auto;
+  padding: 0.25rem 0.75rem;
+  border: 1px solid var(--text);
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.role-card [data-test="edit"]:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* When "Uncast" is shown, it takes the push to the right and Edit sits just after it. */
+.role-card .uncast + [data-test="edit"] {
+  margin-left: 0;
+}
+
+/* A card being edited holds the form at full width. */
+.role-card.editing {
+  display: block;
+  background: var(--surface);
+}
+
 /* The cast member search: a list of choices drops down under the field as you type. */
 .combobox {
   position: relative;
