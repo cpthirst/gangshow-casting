@@ -2,7 +2,7 @@
 id: casting-rules.E2.S1
 title: Flag back-to-back named parts as errors on an item's page
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story
@@ -21,7 +21,7 @@ Then Sam's name shows an Error icon
 ### AC2: The description says what the clash is and with which item
 Given Sam has the back-to-back error in AC1
 When I hover over or focus the icon on the "Pirate Sketch" page
-Then I see "Error: back-to-back. Also Lead in 'Opening Number', straight before this item"
+Then I see "Error: back-to-back. Lead in 'Opening Number', then Support in 'Pirate Sketch'"
 
 ### AC3: The icon is read out in words
 Given Sam's name shows the Error icon
@@ -73,9 +73,12 @@ And no clash icons are shown
 
 ## Notes
 
+- Wording changed on 2026-10-16 at the user's request (ux-reviewer, during casting-rules.E2.S3): every description is "Severity: kind. detail" and names both items, so it reads the same on either item's page.
 - FRs: FR1, FR2, FR7, FR10, FR11 (error), FR12, FR13
 - Depends on: none.
 - Walking skeleton: builds the clash calculation (a plain, unit-tested function over the saved running order and the roles) and the shared icon with its description, which E2.S2–E3.S2 reuse.
 - AC10 would also give Sam a timing finding once E2.S3 lands; this story only checks there's no back-to-back error.
+- AC11 keeps the page's existing failure message, "Couldn't load the item." (PRD FR13: existing "couldn't load" messages stay).
+- Browser layout tests: at the user's go-ahead (2026-10-16), a walk checks a clash's description is written out on phones and fits (AC4).
 - If this passes ~400 changed lines, split the phone write-out (AC4) into its own story.
 - Out of scope: ensemble warnings (E2.S2), timing and quick changes (E2.S3), the Items list and Overview (E3).

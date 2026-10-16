@@ -1,0 +1,326 @@
+{
+  "productionId": "2027",
+  "roles": [
+    {
+      "id": 1,
+      "itemId": "itm-02",
+      "name": "Captain Blackbeard",
+      "size": "lead",
+      "castMemberIds": [1],
+      "revision": 1
+    },
+    {
+      "id": 2,
+      "itemId": "itm-03",
+      "name": "Old Oak",
+      "size": "support",
+      "castMemberIds": [1],
+      "revision": 1
+    },
+    {
+      "id": 3,
+      "itemId": "itm-12",
+      "name": "Mission Control",
+      "size": "cameo",
+      "castMemberIds": [26],
+      "revision": 1
+    },
+    {
+      "id": 4,
+      "itemId": "itm-05",
+      "name": "Professor Compass",
+      "size": "lead",
+      "castMemberIds": [46],
+      "revision": 1
+    },
+    {
+      "id": 5,
+      "itemId": "itm-07",
+      "name": "MC Knot",
+      "size": "support",
+      "castMemberIds": [46],
+      "revision": 1
+    },
+    {
+      "id": 6,
+      "itemId": "itm-17",
+      "name": "Torch Bearer",
+      "size": "lead",
+      "castMemberIds": [56],
+      "revision": 1
+    },
+    {
+      "id": 7,
+      "itemId": "itm-19",
+      "name": "Head Chef",
+      "size": "cameo",
+      "castMemberIds": [56],
+      "revision": 1
+    },
+    {
+      "id": 8,
+      "itemId": "itm-01",
+      "name": "Narrator",
+      "size": "support",
+      "castMemberIds": [2],
+      "revision": 1
+    },
+    {
+      "id": 9,
+      "itemId": "itm-02",
+      "name": "Polly the Parrot",
+      "size": "cameo",
+      "castMemberIds": [3],
+      "revision": 1
+    },
+    {
+      "id": 10,
+      "itemId": "itm-02",
+      "name": "First Mate",
+      "size": "support",
+      "castMemberIds": [4],
+      "revision": 1
+    },
+    {
+      "id": 11,
+      "itemId": "itm-03",
+      "name": "Woodcutter",
+      "size": "lead",
+      "castMemberIds": [5],
+      "revision": 1
+    },
+    {
+      "id": 12,
+      "itemId": "itm-05",
+      "name": "Map Reader",
+      "size": "support",
+      "castMemberIds": [6],
+      "revision": 1
+    },
+    {
+      "id": 13,
+      "itemId": "itm-05",
+      "name": "Lost Hiker",
+      "size": "cameo",
+      "castMemberIds": [7],
+      "revision": 1
+    },
+    {
+      "id": 14,
+      "itemId": "itm-07",
+      "name": "DJ Bowline",
+      "size": "lead",
+      "castMemberIds": [8],
+      "revision": 1
+    },
+    {
+      "id": 15,
+      "itemId": "itm-08",
+      "name": "Referee",
+      "size": "support",
+      "castMemberIds": [9],
+      "revision": 1
+    },
+    {
+      "id": 16,
+      "itemId": "itm-08",
+      "name": "Captain Cross",
+      "size": "lead",
+      "castMemberIds": [10],
+      "revision": 1
+    },
+    {
+      "id": 17,
+      "itemId": "itm-08",
+      "name": "Captain Nought",
+      "size": "lead",
+      "castMemberIds": [11],
+      "revision": 1
+    },
+    {
+      "id": 18,
+      "itemId": "itm-09",
+      "name": "Lantern Keeper",
+      "size": "cameo",
+      "castMemberIds": [12],
+      "revision": 1
+    },
+    {
+      "id": 19,
+      "itemId": "itm-12",
+      "name": "Commander Nova",
+      "size": "lead",
+      "castMemberIds": [13],
+      "revision": 1
+    },
+    {
+      "id": 20,
+      "itemId": "itm-12",
+      "name": "Robot",
+      "size": "support",
+      "castMemberIds": [14],
+      "revision": 1
+    },
+    {
+      "id": 21,
+      "itemId": "itm-13",
+      "name": "Grumpy Camper",
+      "size": "lead",
+      "castMemberIds": [15],
+      "revision": 1
+    },
+    {
+      "id": 22,
+      "itemId": "itm-13",
+      "name": "Tent Peg",
+      "size": "cameo",
+      "castMemberIds": [16],
+      "revision": 1
+    },
+    {
+      "id": 23,
+      "itemId": "itm-15",
+      "name": "Newsreader",
+      "size": "lead",
+      "castMemberIds": [17],
+      "revision": 1
+    },
+    {
+      "id": 24,
+      "itemId": "itm-15",
+      "name": "Weather Forecaster",
+      "size": "support",
+      "castMemberIds": [18],
+      "revision": 1
+    },
+    {
+      "id": 25,
+      "itemId": "itm-15",
+      "name": "Roving Reporter",
+      "size": "cameo",
+      "castMemberIds": [19],
+      "revision": 1
+    },
+    {
+      "id": 26,
+      "itemId": "itm-16",
+      "name": "Badge Secretary",
+      "size": "support",
+      "castMemberIds": [20],
+      "revision": 1
+    },
+    {
+      "id": 27,
+      "itemId": "itm-18",
+      "name": "Game Master",
+      "size": "lead",
+      "castMemberIds": [21],
+      "revision": 1
+    },
+    {
+      "id": 28,
+      "itemId": "itm-19",
+      "name": "Skip",
+      "size": "support",
+      "castMemberIds": [22],
+      "revision": 1
+    },
+    {
+      "id": 29,
+      "itemId": "itm-20",
+      "name": "Ringmaster",
+      "size": "lead",
+      "castMemberIds": [23],
+      "revision": 1
+    },
+    {
+      "id": 30,
+      "itemId": "itm-03",
+      "name": "Squirrel",
+      "size": "cameo",
+      "castMemberIds": [],
+      "revision": 1
+    },
+    {
+      "id": 31,
+      "itemId": "itm-01",
+      "name": "Opening Chorus",
+      "size": "ensemble",
+      "castMemberIds": [
+        24, 25, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 47, 48,
+        49
+      ],
+      "revision": 1
+    },
+    {
+      "id": 32,
+      "itemId": "itm-04",
+      "name": "Campfire Singers",
+      "size": "ensemble",
+      "castMemberIds": [2, 8, 9, 10, 50, 51, 52, 53, 54, 55, 59, 60],
+      "revision": 1
+    },
+    {
+      "id": 33,
+      "itemId": "itm-06",
+      "name": "Flag Wavers",
+      "size": "ensemble",
+      "castMemberIds": [12, 13, 14, 15, 16, 17, 18, 19],
+      "revision": 1
+    },
+    {
+      "id": 34,
+      "itemId": "itm-10",
+      "name": "First Half Company",
+      "size": "ensemble",
+      "castMemberIds": [
+        20, 21, 22, 23, 24, 25, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40
+      ],
+      "revision": 1
+    },
+    {
+      "id": 35,
+      "itemId": "itm-11",
+      "name": "Orchestra Mimes",
+      "size": "ensemble",
+      "castMemberIds": [41, 42, 43, 44, 45, 47],
+      "revision": 1
+    },
+    {
+      "id": 36,
+      "itemId": "itm-13",
+      "name": "Campers",
+      "size": "ensemble",
+      "castMemberIds": [26, 48, 49, 50, 51, 52, 53, 54, 55, 59, 60],
+      "revision": 1
+    },
+    {
+      "id": 37,
+      "itemId": "itm-14",
+      "name": "Puddle Jumpers",
+      "size": "ensemble",
+      "castMemberIds": [2, 3, 4, 5, 6, 7, 8, 9],
+      "revision": 1
+    },
+    {
+      "id": 38,
+      "itemId": "itm-17",
+      "name": "Hikers",
+      "size": "ensemble",
+      "castMemberIds": [10, 11, 12, 13, 14, 15],
+      "revision": 1
+    },
+    {
+      "id": 39,
+      "itemId": "itm-20",
+      "name": "Full Company",
+      "size": "ensemble",
+      "castMemberIds": [
+        16, 17, 18, 19, 20, 24, 25, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42,
+        43, 44, 45, 47, 48, 49, 50
+      ],
+      "revision": 1
+    }
+  ],
+  "nextId": 40
+}

@@ -32,7 +32,15 @@
       "size": "ensemble",
       "castMemberIds": [1, 2, 3, 4],
       "revision": 1
+    },
+    {
+      "id": 5,
+      "itemId": "itm-1",
+      "name": "Narrator",
+      "size": "lead",
+      "castMemberIds": [2],
+      "revision": 1
     }
   ],
-  "nextId": 5
+  "nextId": 6
 }

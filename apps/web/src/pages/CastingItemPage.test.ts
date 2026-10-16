@@ -1219,3 +1219,377 @@ describe("Role card buttons", () => {
     expect(remove.attributes("data-tooltip")).toBe("Remove from the ensemble");
   });
 });
+
+describe("Clashes on an item's page", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.body.innerHTML = "";
+  });
+
+  // First half: Opening Number, Pirate Sketch, Dance One. Second half: Campfire Song, Finale.
+  const clashShow = aRunningOrder(
+    [anItem("Opening Number"), anItem("Pirate Sketch"), anItem("Dance One")],
+    [anItem("Campfire Song"), anItem("Finale")],
+  );
+  let nextRoleId = 100;
+  const cast = (itemId: string, size: Role["size"], castMemberIds: number[], name?: string) => ({
+    ...aRole(itemId, name ?? `Role ${nextRoleId}`, size),
+    id: nextRoleId++,
+    castMemberIds,
+  });
+  const SAM = 12;
+  const ALEX = 13;
+
+  type Page = Awaited<ReturnType<typeof openAppAt>>["wrapper"];
+  /** Every place a person's name appears on the page. */
+  const namesOf = (wrapper: Page, name: string) =>
+    wrapper.findAll("[data-test=cast-name]").filter((el) => el.text().startsWith(name));
+  /** Whether any of a person's clash descriptions is a back-to-back clash. */
+  const isBackToBack = (wrapper: Page, name: string) =>
+    namesOf(wrapper, name).some((el) => el.text().includes("back-to-back"));
+  const clashOf = (wrapper: Page, name: string) =>
+    namesOf(wrapper, name)[0]?.find("[data-test=clash]");
+
+  it("shows an error by someone in named parts in two items in a row, on both items", async () => {
+    savedRunningOrderIs(clashShow, [
+      cast("opening-number", "lead", [SAM]),
+      cast("pirate-sketch", "support", [SAM]),
+    ]);
+
+    for (const item of ["opening-number", "pirate-sketch"]) {
+      const { wrapper } = await openAppAt(`/casting/items/${item}`);
+      expect(clashOf(wrapper, "Sam Example")?.attributes("data-severity")).toBe("error");
+      wrapper.unmount();
+    }
+  });
+
+  it("says what the clash is and with which item", async () => {
+    savedRunningOrderIs(clashShow, [
+      cast("opening-number", "lead", [SAM]),
+      cast("pirate-sketch", "support", [SAM]),
+    ]);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    expect(clashOf(wrapper, "Sam Example")?.get("[data-test=clash-description]").text()).toBe(
+      "Error: back-to-back. Lead in 'Opening Number', then Support in 'Pirate Sketch'",
+    );
+  });
+
+  it("can be reached by keyboard and is read out in words", async () => {
+    savedRunningOrderIs(clashShow, [
+      cast("opening-number", "lead", [SAM]),
+      cast("pirate-sketch", "support", [SAM]),
+    ]);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    const icon = clashOf(wrapper, "Sam Example")?.get("[data-test=clash-icon]");
+    expect(icon?.attributes("tabindex")).toBe("0");
+    expect(icon?.attributes("role")).toBe("img");
+    expect(icon?.attributes("aria-label")).toBe(
+      "Error: back-to-back. Lead in 'Opening Number', then Support in 'Pirate Sketch'",
+    );
+  });
+
+  it("marks someone wherever their name appears, by their biggest part", async () => {
+    savedRunningOrderIs(clashShow, [
+      cast("pirate-sketch", "lead", [SAM], "Captain Hook"),
+      cast("pirate-sketch", "ensemble", [SAM, ALEX], "Pirates"),
+      cast("opening-number", "cameo", [SAM]),
+    ]);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    const sam = namesOf(wrapper, "Sam Example");
+    expect(sam).toHaveLength(2);
+    for (const name of sam) {
+      expect(name.find("[data-test=clash]").attributes("data-severity")).toBe("error");
+    }
+    expect(clashOf(wrapper, "Alex Sample")?.exists()).toBe(false);
+  });
+
+  it("doesn't count items with another item between them", async () => {
+    savedRunningOrderIs(clashShow, [
+      cast("opening-number", "lead", [SAM]),
+      cast("dance-one", "lead", [SAM]),
+    ]);
+    const { wrapper } = await openAppAt("/casting/items/opening-number");
+
+    // Five minutes apart: a quick change since casting-rules E2.S3, but not back-to-back.
+    expect(namesOf(wrapper, "Sam Example")).toHaveLength(1);
+    expect(isBackToBack(wrapper, "Sam Example")).toBe(false);
+  });
+
+  it("doesn't count items either side of the interval", async () => {
+    savedRunningOrderIs(clashShow, [
+      cast("dance-one", "lead", [SAM]),
+      cast("campfire-song", "lead", [SAM]),
+    ]);
+    const { wrapper } = await openAppAt("/casting/items/dance-one");
+
+    expect(clashOf(wrapper, "Sam Example")?.exists()).toBe(false);
+  });
+
+  it("shows no icon for someone without a clash", async () => {
+    savedRunningOrderIs(clashShow, [
+      cast("opening-number", "lead", [ALEX]),
+      cast("opening-number", "support", [SAM]),
+      cast("pirate-sketch", "support", [SAM]),
+    ]);
+    const { wrapper } = await openAppAt("/casting/items/opening-number");
+
+    expect(namesOf(wrapper, "Alex Sample")).toHaveLength(1);
+    expect(clashOf(wrapper, "Alex Sample")?.exists()).toBe(false);
+  });
+
+  it("clears the error once the clashing role is removed", async () => {
+    vi.stubGlobal("confirm", () => true);
+    savedRunningOrderIs(clashShow, [
+      cast("opening-number", "lead", [SAM]),
+      cast("pirate-sketch", "support", [SAM], "First Mate"),
+    ]);
+    const { wrapper, router } = await openAppAt("/casting/items/pirate-sketch");
+    await wrapper.get("button[aria-label='Remove First Mate']").trigger("click");
+    await flushPromises();
+
+    await router.push("/casting/items/opening-number");
+    await flushPromises();
+
+    expect(namesOf(wrapper, "Sam Example")).toHaveLength(1);
+    expect(clashOf(wrapper, "Sam Example")?.exists()).toBe(false);
+  });
+
+  it("clears the error once a running order moving the items apart is saved", async () => {
+    const roles = [cast("opening-number", "lead", [SAM]), cast("pirate-sketch", "support", [SAM])];
+    savedRunningOrderIs(clashShow, roles);
+    const before = await openAppAt("/casting/items/opening-number");
+    expect(clashOf(before.wrapper, "Sam Example")?.exists()).toBe(true);
+    before.wrapper.unmount();
+
+    // Saved on the Running order page: Dance One now sits between the two.
+    savedRunningOrderIs(
+      aRunningOrder(
+        [anItem("Opening Number"), anItem("Dance One"), anItem("Pirate Sketch")],
+        [anItem("Campfire Song"), anItem("Finale")],
+        8,
+      ),
+      roles,
+    );
+    const { wrapper } = await openAppAt("/casting/items/opening-number");
+
+    // Dance One's 5 minutes now make it a quick change, but not back-to-back.
+    expect(namesOf(wrapper, "Sam Example")).toHaveLength(1);
+    expect(isBackToBack(wrapper, "Sam Example")).toBe(false);
+  });
+
+  it.each([
+    ["a named part then an ensemble", "lead", "ensemble"],
+    ["an ensemble then a named part", "ensemble", "cameo"],
+    ["two ensembles", "ensemble", "ensemble"],
+  ] as const)("shows a warning, not an error, for %s", async (_, firstPart, secondPart) => {
+    savedRunningOrderIs(clashShow, [
+      cast("opening-number", firstPart, [SAM]),
+      cast("pirate-sketch", secondPart, [SAM]),
+    ]);
+
+    for (const item of ["opening-number", "pirate-sketch"]) {
+      const { wrapper } = await openAppAt(`/casting/items/${item}`);
+      expect(clashOf(wrapper, "Sam Example")?.attributes("data-severity")).toBe("warning");
+      wrapper.unmount();
+    }
+  });
+
+  it("says a warning is a warning, and why", async () => {
+    savedRunningOrderIs(clashShow, [
+      cast("opening-number", "lead", [SAM]),
+      cast("pirate-sketch", "ensemble", [SAM]),
+    ]);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    expect(clashOf(wrapper, "Sam Example")?.get("[data-test=clash-description]").text()).toBe(
+      "Warning: back-to-back. Lead in 'Opening Number', then Ensemble in 'Pirate Sketch'",
+    );
+  });
+
+  it("gives warnings and errors different shapes, and says which in words", async () => {
+    savedRunningOrderIs(clashShow, [
+      cast("opening-number", "lead", [SAM]),
+      cast("pirate-sketch", "support", [SAM]),
+      cast("opening-number", "ensemble", [ALEX]),
+      cast("pirate-sketch", "cameo", [ALEX]),
+    ]);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    const error = clashOf(wrapper, "Sam Example")?.get("[data-test=clash-icon]");
+    const warning = clashOf(wrapper, "Alex Sample")?.get("[data-test=clash-icon]");
+    expect(error?.get("path").attributes("d")).not.toBe(warning?.get("path").attributes("d"));
+    expect(error?.attributes("aria-label")).toMatch(/^Error: /);
+    expect(warning?.attributes("aria-label")).toMatch(/^Warning: /);
+  });
+
+  it("shows one icon at the worst severity, describing every clash", async () => {
+    // The warning (with Opening Number) comes before the error (with Dance One) in the show.
+    savedRunningOrderIs(clashShow, [
+      cast("opening-number", "ensemble", [SAM]),
+      cast("pirate-sketch", "support", [SAM]),
+      cast("dance-one", "lead", [SAM]),
+    ]);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    const sam = namesOf(wrapper, "Sam Example")[0];
+    expect(sam?.findAll("[data-test=clash]")).toHaveLength(1);
+    expect(sam?.get("[data-test=clash]").attributes("data-severity")).toBe("error");
+    expect(sam?.findAll(".clash-line").map((line) => line.text())).toEqual([
+      "Error: back-to-back. Support in 'Pirate Sketch', then Lead in 'Dance One'",
+      "Warning: back-to-back. Ensemble in 'Opening Number', then Support in 'Pirate Sketch'",
+    ]);
+  });
+
+  // Opening Number 5, Pirate Sketch 4, Dance One 3, Song Two 2, Sketch Two 6 minutes; then
+  // the interval; then Campfire Song 5, Finale 8.
+  const timedShow = (intervalMinutes = 20) => ({
+    ...aRunningOrder(
+      [
+        anItem("Opening Number", { minutes: 5 }),
+        anItem("Pirate Sketch", { minutes: 4 }),
+        anItem("Dance One", { minutes: 3 }),
+        anItem("Song Two", { minutes: 2 }),
+        anItem("Sketch Two", { minutes: 6 }),
+      ],
+      [anItem("Campfire Song", { minutes: 5 }), anItem("Finale", { minutes: 8 })],
+    ),
+    intervalMinutes,
+  });
+  const samIn = (...itemIds: string[]) => itemIds.map((itemId) => cast(itemId, "lead", [SAM]));
+  const linesOf = (wrapper: Page, name: string) =>
+    namesOf(wrapper, name)[0]
+      ?.findAll(".clash-line")
+      .map((line) => line.text()) ?? [];
+
+  it("warns about less than 5 minutes between appearances, on both items", async () => {
+    savedRunningOrderIs(timedShow(), samIn("opening-number", "dance-one"));
+
+    for (const item of ["opening-number", "dance-one"]) {
+      const { wrapper } = await openAppAt(`/casting/items/${item}`);
+      expect(clashOf(wrapper, "Sam Example")?.attributes("data-severity")).toBe("warning");
+      expect(linesOf(wrapper, "Sam Example")).toEqual([
+        "Warning: short gap. Only 4 minutes between 'Opening Number' and 'Dance One' (needs at least 5 minutes)",
+      ]);
+      wrapper.unmount();
+    }
+  });
+
+  it("adds up every item between, so 5 minutes is a quick change", async () => {
+    savedRunningOrderIs(timedShow(), samIn("pirate-sketch", "sketch-two"));
+    const { wrapper } = await openAppAt("/casting/items/sketch-two");
+
+    expect(clashOf(wrapper, "Sam Example")?.attributes("data-severity")).toBe("info");
+    expect(linesOf(wrapper, "Sam Example")).toEqual([
+      "Info: quick change. 5 minutes between 'Pirate Sketch' and 'Sketch Two'",
+    ]);
+  });
+
+  it("notes a quick change for 5 to under 8 minutes", async () => {
+    savedRunningOrderIs(timedShow(), samIn("opening-number", "song-two"));
+    const { wrapper } = await openAppAt("/casting/items/song-two");
+
+    expect(clashOf(wrapper, "Sam Example")?.attributes("data-severity")).toBe("info");
+    expect(linesOf(wrapper, "Sam Example")).toEqual([
+      "Info: quick change. 7 minutes between 'Opening Number' and 'Song Two'",
+    ]);
+  });
+
+  it("needs nothing for exactly 8 minutes", async () => {
+    savedRunningOrderIs(timedShow(8), samIn("sketch-two", "campfire-song"));
+    const { wrapper } = await openAppAt("/casting/items/campfire-song");
+
+    expect(namesOf(wrapper, "Sam Example")).toHaveLength(1);
+    expect(clashOf(wrapper, "Sam Example")?.exists()).toBe(false);
+  });
+
+  it("counts the interval towards the gap", async () => {
+    savedRunningOrderIs(timedShow(4), samIn("sketch-two", "campfire-song"));
+    const { wrapper } = await openAppAt("/casting/items/campfire-song");
+
+    expect(linesOf(wrapper, "Sam Example")).toEqual([
+      "Warning: short gap. Only 4 minutes between 'Sketch Two' and 'Campfire Song' (needs at least 5 minutes)",
+    ]);
+  });
+
+  it("compares each appearance only with the next one", async () => {
+    savedRunningOrderIs(timedShow(), samIn("opening-number", "pirate-sketch", "dance-one"));
+    const { wrapper } = await openAppAt("/casting/items/opening-number");
+
+    expect(linesOf(wrapper, "Sam Example")).toEqual([
+      "Error: back-to-back. Lead in 'Opening Number', then Lead in 'Pirate Sketch'",
+    ]);
+  });
+
+  it("reports back-to-back appearances once, not also as a timing warning", async () => {
+    savedRunningOrderIs(timedShow(), samIn("opening-number", "pirate-sketch"));
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    expect(linesOf(wrapper, "Sam Example")).toEqual([
+      "Error: back-to-back. Lead in 'Opening Number', then Lead in 'Pirate Sketch'",
+    ]);
+  });
+
+  it("gives info its own shape, and says Info in words", async () => {
+    savedRunningOrderIs(timedShow(), [
+      ...samIn("opening-number", "song-two"),
+      cast("pirate-sketch", "lead", [ALEX]),
+      cast("song-two", "lead", [ALEX]),
+      cast("song-two", "cameo", [15]),
+      cast("sketch-two", "cameo", [15]),
+    ]);
+    const { wrapper } = await openAppAt("/casting/items/song-two");
+
+    const shapes = ["Sam Example", "Alex Sample", "Zoë Adams"].map((name) => {
+      const icon = clashOf(wrapper, name)?.get("[data-test=clash-icon]");
+      return [icon?.attributes("aria-label")?.split(":")[0], icon?.get("path").attributes("d")];
+    });
+    expect(shapes.map(([label]) => label)).toEqual(["Info", "Warning", "Error"]);
+    expect(new Set(shapes.map(([, shape]) => shape)).size).toBe(3);
+  });
+
+  it("shows a timing warning over a quick change, describing both", async () => {
+    // Pirate Sketch → Sketch Two is a 5-minute quick change; Sketch Two → Campfire Song is
+    // only the 3-minute interval.
+    savedRunningOrderIs(timedShow(3), samIn("pirate-sketch", "sketch-two", "campfire-song"));
+    const { wrapper } = await openAppAt("/casting/items/sketch-two");
+
+    expect(clashOf(wrapper, "Sam Example")?.attributes("data-severity")).toBe("warning");
+    expect(linesOf(wrapper, "Sam Example")).toEqual([
+      "Warning: short gap. Only 3 minutes between 'Sketch Two' and 'Campfire Song' (needs at least 5 minutes)",
+      "Info: quick change. 5 minutes between 'Pirate Sketch' and 'Sketch Two'",
+    ]);
+  });
+
+  it("marks each line with its severity, so quick changes can be quieter on phones", async () => {
+    savedRunningOrderIs(timedShow(3), samIn("pirate-sketch", "sketch-two", "campfire-song"));
+    const { wrapper } = await openAppAt("/casting/items/sketch-two");
+
+    const lines = namesOf(wrapper, "Sam Example")[0]?.findAll(".clash-line") ?? [];
+    expect(lines.map((line) => line.classes())).toEqual([
+      ["clash-line", "clash-line-warning"],
+      ["clash-line", "clash-line-info"],
+    ]);
+  });
+
+  it("shows no icons when the casting can't be loaded", async () => {
+    // The roles would clash, but the cast list fails, so nothing can be shown as checked.
+    savedRunningOrderIs(clashShow, [
+      cast("opening-number", "lead", [SAM]),
+      cast("pirate-sketch", "support", [SAM]),
+    ]);
+    const fetchShow = vi.mocked(fetch);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string, init?: RequestInit) =>
+        url === CAST_PATH ? new Response(null, { status: 500 }) : fetchShow(url, init),
+      ),
+    );
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    expect(wrapper.find("[role=alert]").text()).toContain("Couldn't load");
+    expect(wrapper.find("[data-test=clash]").exists()).toBe(false);
+  });
+});

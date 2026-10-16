@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm --parallel --filter web --filter api dev",
+    "demo": "node tooling/src/demo.ts",
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck && pnpm typecheck:harness",
     "typecheck:harness": "tsc -p .claude/hooks",

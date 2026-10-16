@@ -2,7 +2,7 @@
 id: casting-rules.E2.S2
 title: Flag back-to-back appearances with an ensemble as warnings
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story
@@ -31,7 +31,7 @@ Then Sam's name shows a Warning icon
 ### AC4: The description says it's a warning and why
 Given Sam has the warning in AC1
 When I hover over or focus the icon on the "Pirate Sketch" page
-Then I see "Warning: back-to-back. Also Lead in 'Opening Number', straight before this item"
+Then I see "Warning: back-to-back. Lead in 'Opening Number', then Ensemble in 'Pirate Sketch'"
 
 ### AC5: Warnings look different from errors
 Given one person's name shows a Warning icon and another's shows an Error icon
@@ -47,6 +47,7 @@ And its description lists both the error with "Opening Number" and the warning w
 
 ## Notes
 
+- Wording changed on 2026-10-16 at the user's request (ux-reviewer, during casting-rules.E2.S3): every description is "Severity: kind. detail" and names both items, so it reads the same on either item's page.
 - FRs: FR3, FR7 (worst severity, every clash described), FR11 (warning)
 - Depends on: casting-rules.E2.S1.
 - Out of scope: timing and quick changes (E2.S3), the Items list and Overview (E3).

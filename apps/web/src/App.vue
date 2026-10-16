@@ -10,6 +10,9 @@ const PHONE_QUERY = "(max-width: 767px)";
 
 const route = useRoute();
 
+// Set by `pnpm demo`, so its made-up show can't be mistaken for the real one.
+const isDemo = import.meta.env.VITE_DEMO === "true";
+
 // Replaces RouterLink's own aria-current (an explicit attribute wins), so a page outside
 // the menu, such as an item, can mark its menu page (Items) as current.
 const ariaCurrent = (pageName: string) =>
@@ -61,6 +64,9 @@ function onEscape() {
       <p class="wordmark" data-test="wordmark">
         <span class="wordmark-name">Chester Gang Show</span>
         <span class="wordmark-sub">Casting</span>
+      </p>
+      <p v-if="isDemo" class="demo-label" data-test="demo-label">
+        Demo data: a made-up show, reset each time the demo starts
       </p>
       <button
         v-if="isPhone"

@@ -11,7 +11,9 @@ import {
 import { computed, nextTick, onMounted, ref, watchEffect } from "vue";
 import { useRoute } from "vue-router";
 import BinIcon from "../BinIcon.vue";
+import ClashIcon from "../ClashIcon.vue";
 import { CAST_PATH, sortCast } from "../cast.ts";
+import { clashesOf, findClashes } from "../clashes.ts";
 import {
   addRolePath,
   nameTakenMessage,
@@ -32,16 +34,23 @@ const cast = ref<CastMember[]>([]);
 
 // Roles hold ids; names come from the cast list (ADR 0010), by last name (an ensemble's
 // members, casting-roles FR5). Someone no longer on the cast shows nothing.
-const castNames = (role: Role) =>
-  sortCast(cast.value.filter((member) => role.castMemberIds.includes(member.id)))
-    .map((member) => `${member.firstName} ${member.lastName}`)
-    .join(", ");
+const castOf = (role: Role) =>
+  sortCast(cast.value.filter((member) => role.castMemberIds.includes(member.id)));
+const fullName = (member: CastMember) => `${member.firstName} ${member.lastName}`;
+const castNames = (role: Role) => castOf(role).map(fullName).join(", ");
 const status = ref<"loading" | "loaded" | "error">("loading");
 
 const place = computed(() => {
   const itemId = route.params.itemId;
   return order.value && typeof itemId === "string" ? placeOf(order.value, itemId) : undefined;
 });
+
+// Worked out from the saved running order and every role, so other items count too
+// (casting-rules FR1).
+const clashes = computed(() => (order.value ? findClashes(order.value, roles.value) : []));
+
+const clashesHere = (member: CastMember, itemId: string) =>
+  clashesOf(clashes.value, member.id, itemId);
 
 const itemRoles = computed(() =>
   sortRoles(roles.value.filter((role) => role.itemId === place.value?.item.id)),
@@ -342,9 +351,17 @@ async function postRole(itemId: string, details: AddRoleRequest) {
           <span :class="['pill', `pill-${role.size}`]" data-test="size">{{
             roleSizeLabel(role.size)
           }}</span>
-          <template v-if="castNames(role)">
+          <template v-if="castOf(role).length > 0">
             {{ " " }}
-            <span class="role-cast" data-test="cast">{{ castNames(role) }}</span>
+            <span class="role-cast" data-test="cast">
+              <template v-for="(member, i) in castOf(role)" :key="member.id"
+                ><template v-if="i > 0">, </template
+                ><span class="cast-name" data-test="cast-name"
+                  >{{ fullName(member)
+                  }}<ClashIcon
+                    :clashes="clashesHere(member, place.item.id)" /></span
+              ></template>
+            </span>
           </template>
           <template v-if="role.castMemberIds.length === 0">
             {{ " " }}

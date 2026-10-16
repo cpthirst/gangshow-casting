@@ -2,7 +2,7 @@
 id: casting-rules.E2.S3
 title: Flag short gaps as timing warnings and quick changes
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story
@@ -17,7 +17,7 @@ The examples use this saved running order. First half: "Opening Number" (5 minut
 Given "Sam Example" is in "Opening Number" and "Dance One", and in nothing between
 When I open either item's page
 Then Sam's name shows a Warning icon
-And the description reads "Warning: only 4 minutes between 'Opening Number' and 'Dance One' (needs 5)"
+And the description reads "Warning: short gap. Only 4 minutes between 'Opening Number' and 'Dance One' (needs at least 5 minutes)"
 
 ### AC2: The gap adds up every item between
 Given Sam is in "Pirate Sketch" and "Sketch Two", and in nothing between
@@ -42,7 +42,7 @@ Given the running order is saved with a 4-minute interval
 And Sam is in "Sketch Two" and "Campfire Song"
 When I open either item's page
 Then Sam's name shows a Warning icon
-And the description reads "Warning: only 4 minutes between 'Sketch Two' and 'Campfire Song' (needs 5)"
+And the description reads "Warning: short gap. Only 4 minutes between 'Sketch Two' and 'Campfire Song' (needs at least 5 minutes)"
 
 ### AC6: Only the next appearance is compared
 Given Sam is in "Opening Number", "Pirate Sketch" and "Dance One"
@@ -69,6 +69,8 @@ And its description lists both
 
 ## Notes
 
+- Wording changed on 2026-10-16 at the user's request (ux-reviewer, during casting-rules.E2.S3): every description is "Severity: kind. detail" and names both items, so it reads the same on either item's page.
+- On phones and other screens without hover, quick-change lines are normal weight, so errors and warnings stand out (user's choice, same review).
 - FRs: FR4, FR5, FR6, FR11 (info)
 - Depends on: casting-rules.E2.S2.
 - AC4 and AC5 change only the interval's length in the running order above.
