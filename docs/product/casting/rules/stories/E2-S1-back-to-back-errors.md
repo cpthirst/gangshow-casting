@@ -2,7 +2,7 @@
 id: casting-rules.E2.S1
 title: Flag back-to-back named parts as errors on an item's page
 epic: E2
-status: in-progress
+status: done
 ---
 
 ## Story

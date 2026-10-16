@@ -1354,6 +1354,12 @@ describe("Clashes on an item's page", () => {
 
   it("clears the error once a running order moving the items apart is saved", async () => {
     const roles = [cast("opening-number", "lead", [SAM]), cast("pirate-sketch", "support", [SAM])];
+    savedRunningOrderIs(clashShow, roles);
+    const before = await openAppAt("/casting/items/opening-number");
+    expect(clashOf(before.wrapper, "Sam Example")?.exists()).toBe(true);
+    before.wrapper.unmount();
+
+    // Saved on the Running order page: Dance One now sits between the two.
     savedRunningOrderIs(
       aRunningOrder(
         [anItem("Opening Number"), anItem("Dance One"), anItem("Pirate Sketch")],
@@ -1367,13 +1373,17 @@ describe("Clashes on an item's page", () => {
     expect(clashOf(wrapper, "Sam Example")?.exists()).toBe(false);
   });
 
-  it("shows no icons when the roles can't be loaded", async () => {
-    savedRunningOrderIs(clashShow);
+  it("shows no icons when the casting can't be loaded", async () => {
+    // The roles would clash, but the cast list fails, so nothing can be shown as checked.
+    savedRunningOrderIs(clashShow, [
+      cast("opening-number", "lead", [SAM]),
+      cast("pirate-sketch", "support", [SAM]),
+    ]);
     const fetchShow = vi.mocked(fetch);
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: string, init?: RequestInit) =>
-        url === ROLES_PATH ? new Response(null, { status: 500 }) : fetchShow(url, init),
+        url === CAST_PATH ? new Response(null, { status: 500 }) : fetchShow(url, init),
       ),
     );
     const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
