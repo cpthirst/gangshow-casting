@@ -824,8 +824,7 @@ main a {
   cursor: not-allowed;
 }
 
-/* An ensemble's form: Add all cast and the member search come first, then the members so
-   far. Not among Save and Cancel. */
+/* Add all cast sits above the member search and list, not among Save and Cancel. */
 .add-all-cast {
   display: flex;
   flex-wrap: wrap;

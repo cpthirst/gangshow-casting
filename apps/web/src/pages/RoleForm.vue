@@ -169,7 +169,7 @@ function submit() {
       <p v-if="errors.size" :id="errorFor('size')" class="field-error">{{ errors.size }}</p>
     </div>
     <div class="field">
-      <!-- Adding comes first, then the members so far (casting-roles FR5, FR11). -->
+      <!-- Adding comes first, then the list to check who's in. -->
       <div v-if="showsMembers" class="add-all-cast">
         <button
           type="button"
