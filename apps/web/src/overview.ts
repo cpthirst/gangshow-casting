@@ -1,6 +1,6 @@
 import { type CastMember, type Role, RoleSize, type RunningOrder, Section } from "@app/shared";
 import { sectionLabel, sortCast } from "./cast.ts";
-import { biggerPart } from "./roles.ts";
+import { biggerPart, roleSizeLabel } from "./roles.ts";
 import { runningClock } from "./running-order.ts";
 
 /** One section of the Overview: its people, in display order. */
@@ -133,3 +133,21 @@ export const timelineOf = (
       part: theirParts?.get(item.id),
     })),
   );
+
+/** What a dot stands for, on hover (FR5): "3 · Dance One: Support", or "1 · Opening Number"
+ *  when they're not in it. Plain text, never HTML. */
+export function dotLabel({ title, number, part }: TimelineSlot) {
+  const item = number === null ? `${title} (not in printed programme)` : `${number} · ${title}`;
+  return part ? `${item}: ${roleSizeLabel(part)}` : item;
+}
+
+/** A timeline as one sentence for screen readers (FR6): "In 2 of 5 items: Pirate Sketch,
+ *  Finale", or "In none of the 5 items". */
+export function timelineSummary(halves: TimelineSlot[][]) {
+  const slots = halves.flat();
+  const total = `${slots.length} item${slots.length === 1 ? "" : "s"}`;
+  const theirs = slots.filter((slot) => slot.part).map((slot) => slot.title);
+  return theirs.length === 0
+    ? `In none of the ${total}`
+    : `In ${theirs.length} of ${total}: ${theirs.join(", ")}`;
+}

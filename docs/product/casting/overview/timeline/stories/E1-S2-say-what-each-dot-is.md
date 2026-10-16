@@ -2,7 +2,7 @@
 id: casting-overview-timeline.E1.S2
 title: Say what each dot is
 epic: E1
-status: ready
+status: in-progress
 ---
 
 ## Story

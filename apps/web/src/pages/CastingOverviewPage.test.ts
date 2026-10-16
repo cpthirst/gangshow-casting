@@ -489,6 +489,7 @@ describe("Timeline on the Overview", () => {
   };
   const roles = [
     role("pirate-sketch", [sam.id]),
+    role("pirate-sketch", [sam.id], "ensemble"),
     role("entr'acte", [sam.id], "cameo"),
     role("finale", [sam.id], "support"),
     role("opening-number", [alex.id, ben.id], "ensemble"),
@@ -570,7 +571,58 @@ describe("Timeline on the Overview", () => {
     const wrapper = await openOverview();
 
     const card = cardOf(wrapper, "Sam Example")?.element;
-    expect(card?.lastElementChild?.getAttribute("data-test")).toBe("timeline");
+    expect(card?.lastElementChild?.querySelector("[data-test=timeline]")).not.toBeNull();
+  });
+
+  it("names each dot's item, and their part, on hover", async () => {
+    showIs();
+    const wrapper = await openOverview();
+
+    const tips = cardOf(wrapper, "Sam Example")
+      ?.findAll("[data-test=dot]")
+      .map((dot) => dot.attributes("data-tooltip"));
+    expect(tips).toEqual([
+      "1 · Opening Number",
+      "2 · Pirate Sketch: Lead",
+      "3 · Dance One",
+      "Entr'acte (not in printed programme): Cameo",
+      "1 · Campfire Song",
+      "2 · Finale: Support",
+    ]);
+  });
+
+  it("gives a person's biggest part in an item", async () => {
+    showIs();
+    const wrapper = await openOverview();
+
+    // Sam is a lead and in the ensemble in Pirate Sketch.
+    const pirate = cardOf(wrapper, "Sam Example")?.findAll("[data-test=dot]")[1];
+    expect(pirate?.attributes("data-tooltip")).toBe("2 · Pirate Sketch: Lead");
+  });
+
+  it("reads each timeline as one sentence, with the dots hidden from screen readers", async () => {
+    showIs();
+    const wrapper = await openOverview();
+
+    const sam = cardOf(wrapper, "Sam Example");
+    expect(sam?.get("[data-test=timeline]").attributes("aria-hidden")).toBe("true");
+    expect(sam?.get("[data-test=timeline-summary]").text()).toBe(
+      "In 3 of 6 items: Pirate Sketch, Entr'acte, Finale",
+    );
+    expect(cardOf(wrapper, "Jo Newcomer")?.get("[data-test=timeline-summary]").text()).toBe(
+      "In none of the 6 items",
+    );
+  });
+
+  it("keeps the dots out of the tab order", async () => {
+    showIs();
+    const wrapper = await openOverview();
+
+    const focusable = wrapper.findAll(
+      "[data-test=timeline] [tabindex], [data-test=timeline] a, [data-test=timeline] button",
+    );
+    expect(focusable).toEqual([]);
+    expect(wrapper.findAll("[data-test=dot]").length).toBeGreaterThan(0);
   });
 
   it("shows no dots without a saved running order", async () => {

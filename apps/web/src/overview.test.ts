@@ -4,10 +4,12 @@ import {
   biggestParts,
   castBySection,
   castingScore,
+  dotLabel,
   type PartCounts,
   partsByMember,
   spokenParts,
   timelineOf,
+  timelineSummary,
 } from "./overview.ts";
 import { anItem, aRunningOrder } from "./running-order.fixture.ts";
 
@@ -291,6 +293,32 @@ describe("a person's timeline", () => {
         ["Finale", 1, undefined],
       ],
     ]);
+  });
+
+  it("labels a dot with its number, title and their part", () => {
+    const [first] = timelineOf(show, parts.get(SAM));
+
+    expect(first?.map(dotLabel)).toEqual([
+      "1 · Opening Number",
+      "2 · Pirate Sketch: Lead",
+      "3 · Dance One",
+    ]);
+  });
+
+  it("labels an item not in the printed programme as such", () => {
+    const [, second] = timelineOf(show, parts.get(SAM));
+
+    expect(second?.map(dotLabel)).toEqual([
+      "Entr'acte (not in printed programme): Cameo",
+      "1 · Finale",
+    ]);
+  });
+
+  it("sums the timeline up in one sentence", () => {
+    expect(timelineSummary(timelineOf(show, parts.get(SAM)))).toBe(
+      "In 2 of 5 items: Pirate Sketch, Entr'acte",
+    );
+    expect(timelineSummary(timelineOf(show, parts.get(99)))).toBe("In none of the 5 items");
   });
 
   it("is all empty for someone in no roles", () => {

@@ -1187,9 +1187,12 @@ main a {
 
 /* A person's timeline on the Overview: their own row at the bottom of the card, centred, with
    a dot per item and a wider gap where the interval falls. */
+.timeline-wrap {
+  flex-basis: 100%;
+}
+
 .timeline {
   display: flex;
-  flex-basis: 100%;
   justify-content: center;
   gap: 1.25rem;
   margin-top: 0.75rem;
@@ -1207,6 +1210,13 @@ main a {
 
 .timeline-out {
   color: var(--not-in-item);
+}
+
+/* A dot's item opens rightwards in the first half and leftwards in the second, so it stays
+   within the row however narrow the screen. */
+.timeline-half:last-child .timeline-dot[data-tooltip]:hover::after {
+  right: 0;
+  left: auto;
 }
 
 /* A person's pills on the Overview, together after their name like on a role card. */
