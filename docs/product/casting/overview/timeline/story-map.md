@@ -18,7 +18,7 @@ prd: ./prd.md
 |---|---|---|---|---|
 | [casting-overview-timeline.E1.S1](stories/E1-S1-dots-per-item.md) | Each Overview card shows a row of dots, one per item in show order with a wider gap at the interval: green circle-dot where the person appears, grey circle where not; none without a saved running order or when the casting fails (walking skeleton) | FR1, FR2, FR3, FR4, FR7, FR8 | (none) | done |
 | [casting-overview-timeline.E1.S2](stories/E1-S2-say-what-each-dot-is.md) | Hovering a dot names its item and the person's part; screen readers hear one sentence per person, not each dot | FR5, FR6 | E1.S1 | done |
-| [casting-overview-timeline.E1.S3](stories/E1-S3-fits-every-phone.md) | Each timeline stays on one line, shrinking to fit down to 320px for up to about 30 items, with no sideways scrolling | FR9 | E1.S1 | in-progress |
+| [casting-overview-timeline.E1.S3](stories/E1-S3-fits-every-phone.md) | Each timeline shrinks to fit on one line, never below about 8px; a show too big for that wraps half by half; no sideways scrolling | FR9 | E1.S1 | in-progress |
 
 ## FR coverage
 

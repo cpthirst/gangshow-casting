@@ -1194,14 +1194,16 @@ main a {
 
 /* Sized in em, so dots and gaps shrink together. A row of N dots is N × 1em, plus
    0.4em between dots and 1.4em at the interval: about N × 1.4em + 0.6em. The dots stay at
-   full size when that fits, and shrink to the card's width when it doesn't (FR9).
-   --dots is set by the component. */
+   full size when that fits, and shrink to the card's width when it doesn't, but never below
+   8px; a show too big for one line at 8px wraps half by half (FR9). --dots is set by the
+   component. */
 .timeline {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
-  gap: 1.4em;
+  gap: 0.4em 1.4em;
   margin-top: 0.75rem;
-  font-size: min(0.875rem, calc(100cqi / (var(--dots, 20) * 1.4 + 0.6)));
+  font-size: min(0.875rem, max(8px, calc(100cqi / (var(--dots) * 1.4 + 0.6))));
 }
 
 .timeline-half {

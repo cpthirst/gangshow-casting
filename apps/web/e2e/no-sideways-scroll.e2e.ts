@@ -1,3 +1,4 @@
+import { RunningOrder, type RunningOrderItem } from "@app/shared";
 import { expect, type Page, test } from "@playwright/test";
 
 // Happy-path walks through each page at phone widths (the projects in playwright.config.ts),
@@ -116,8 +117,8 @@ test("the casting overview fits the screen", async ({ page }) => {
   await expectNoSidewaysScroll(page);
 });
 
-/** For each person's timeline: whether its dots sit on one line, and whether the gap at the
- *  interval is wider than any gap between items. */
+/** For each person's timeline: how many dots, their smallest size, whether each half's dots
+ *  sit on one line, and whether the whole row is one line with a wider gap at the interval. */
 async function timelineLayout(page: Page) {
   return page.locator("[data-test=timeline]").evaluateAll((timelines) =>
     timelines.map((timeline) => {
@@ -125,30 +126,29 @@ async function timelineLayout(page: Page) {
         [...half.querySelectorAll("[data-test=dot]")].map((dot) => dot.getBoundingClientRect()),
       );
       const dots = halves.flat();
+      const onOneLine = (boxes: DOMRect[]) =>
+        new Set(boxes.map((box) => Math.round(box.top))).size === 1;
       const gaps = (boxes: DOMRect[]) =>
         boxes.slice(1).map((box, i) => box.left - (boxes[i]?.right ?? box.left));
       const [first = [], second = []] = halves;
       const interval = (second[0]?.left ?? 0) - (first.at(-1)?.right ?? 0);
       return {
-        oneLine: new Set(dots.map((dot) => Math.round(dot.top))).size === 1,
+        dots: dots.length,
+        smallest: Math.round(Math.min(...dots.map((dot) => dot.width))),
+        halvesOnOneLine: halves.every(onOneLine),
+        rowOnOneLine: onOneLine(dots),
         intervalWider: interval > Math.max(...gaps(first), ...gaps(second)),
       };
     }),
   );
 }
 
-test("each person's timeline stays on one line, with the interval gap", async ({ page }) => {
-  await page.goto("/casting/overview");
-  await expect(page.locator("[data-test=timeline]").first()).toBeVisible();
+// The Overview's API: the made-up e2e show's production (see e2e/data).
+const RUNNING_ORDER_URL = "**/api/productions/2027/running-order";
 
-  const layouts = await timelineLayout(page);
-  expect(layouts.every((layout) => layout.oneLine && layout.intervalWider)).toBe(true);
-  await expectNoSidewaysScroll(page);
-});
-
-test("a 30-item show's timelines still fit on one line", async ({ page }) => {
-  // The made-up data has 5 items; stand in a made-up 30-item running order for this walk.
-  const item = (n: number) => ({
+/** Stands in a made-up show of `count` items, split between the halves, for one walk. */
+async function showOf(page: Page, count: number) {
+  const item = (n: number): RunningOrderItem => ({
     id: `big-${n}`,
     title: `Made-up Item ${n}`,
     cast: "",
@@ -158,17 +158,54 @@ test("a 30-item show's timelines still fit on one line", async ({ page }) => {
     minutes: 3,
     printed: true,
   });
-  await page.route("**/api/productions/2027/running-order", async (route) => {
+  const half = Math.ceil(count / 2);
+  await page.route(RUNNING_ORDER_URL, async (route) => {
     const response = await route.fetch();
-    const order = await response.json();
-    order.halves[0].items = Array.from({ length: 15 }, (_, i) => item(i + 1));
-    order.halves[1].items = Array.from({ length: 15 }, (_, i) => item(i + 16));
+    const order = RunningOrder.parse(await response.json());
+    order.halves[0].items = Array.from({ length: half }, (_, i) => item(i + 1));
+    order.halves[1].items = Array.from({ length: count - half }, (_, i) => item(half + i + 1));
     await route.fulfill({ response, json: order });
   });
+}
+
+async function openTimelines(page: Page) {
   await page.goto("/casting/overview");
   await expect(page.locator("[data-test=timeline]").first()).toBeVisible();
-
   const layouts = await timelineLayout(page);
-  expect(layouts.every((layout) => layout.oneLine && layout.intervalWider)).toBe(true);
+  expect(layouts.length).toBeGreaterThan(0);
+  return layouts;
+}
+
+test("a 20-item show's timelines fit on one line, with a wider gap at the interval", async ({
+  page,
+}) => {
+  await showOf(page, 20);
+  const layouts = await openTimelines(page);
+
+  expect(
+    layouts.map(({ dots, rowOnOneLine, intervalWider }) => ({ dots, rowOnOneLine, intervalWider })),
+  ).toEqual(layouts.map(() => ({ dots: 20, rowOnOneLine: true, intervalWider: true })));
   await expectNoSidewaysScroll(page);
+});
+
+test("a 30-item show's timelines keep readable dots, wrapping half by half", async ({ page }) => {
+  await showOf(page, 30);
+  const layouts = await openTimelines(page);
+
+  expect(layouts.map(({ dots, halvesOnOneLine }) => ({ dots, halvesOnOneLine }))).toEqual(
+    layouts.map(() => ({ dots: 30, halvesOnOneLine: true })),
+  );
+  expect(Math.min(...layouts.map((layout) => layout.smallest))).toBeGreaterThanOrEqual(8);
+  await expectNoSidewaysScroll(page);
+});
+
+test.describe("on a desktop screen", () => {
+  test.use({ viewport: { width: 1280, height: 800 }, isMobile: false });
+
+  test("timeline dots stay full size", async ({ page }) => {
+    await showOf(page, 20);
+    const layouts = await openTimelines(page);
+
+    expect(layouts.map((layout) => layout.smallest)).toEqual(layouts.map(() => 14));
+  });
 });
