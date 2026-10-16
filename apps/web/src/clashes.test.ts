@@ -82,6 +82,46 @@ describe("back-to-back clashes", () => {
   });
 });
 
+describe("back-to-back with an ensemble", () => {
+  it.each([
+    ["a named part then an ensemble", "lead", "ensemble"],
+    ["an ensemble then a named part", "ensemble", "cameo"],
+    ["two ensembles", "ensemble", "ensemble"],
+  ] as const)("finds %s as a warning", (_, firstPart, secondPart) => {
+    const clashes = findClashes(show, [
+      role("opening-number", firstPart, [SAM]),
+      role("pirate-sketch", secondPart, [SAM]),
+    ]);
+
+    expect(clashes.map((clash) => clash.severity)).toEqual(["warning"]);
+  });
+
+  it("describes a warning as a warning", () => {
+    const [clash] = findClashes(show, [
+      role("opening-number", "lead", [SAM]),
+      role("pirate-sketch", "ensemble", [SAM]),
+    ]);
+
+    expect(clash && describeClash(clash, "pirate-sketch")).toBe(
+      "Warning: back-to-back. Also Lead in 'Opening Number', straight before this item",
+    );
+  });
+
+  it("lists someone's clashes in an item worst first", () => {
+    // The warning (Opening Number → Pirate Sketch) comes first in the show.
+    const clashes = findClashes(show, [
+      role("opening-number", "ensemble", [SAM]),
+      role("pirate-sketch", "lead", [SAM]),
+      role("dance-one", "support", [SAM]),
+    ]);
+
+    expect(clashesOf(clashes, SAM, "pirate-sketch").map((clash) => clash.severity)).toEqual([
+      "error",
+      "warning",
+    ]);
+  });
+});
+
 describe("a person's clashes in an item", () => {
   const clashes = findClashes(show, [
     role("opening-number", "lead", [SAM]),

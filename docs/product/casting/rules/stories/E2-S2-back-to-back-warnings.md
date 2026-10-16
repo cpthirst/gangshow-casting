@@ -2,7 +2,7 @@
 id: casting-rules.E2.S2
 title: Flag back-to-back appearances with an ensemble as warnings
 epic: E2
-status: ready
+status: in-progress
 ---
 
 ## Story

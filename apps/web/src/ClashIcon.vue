@@ -7,8 +7,7 @@ import { type Clash, describeClash } from "./clashes.ts";
 // readers; the written-out text is for sighted users: on hover or focus, always on phones.
 const props = defineProps<{ clashes: Clash[]; itemId: string }>();
 
-// Only errors exist so far; casting-rules.E2.S2 orders clashes worst first. The warning and
-// info shapes below are defined now, so the icons stay one component.
+// The clashes come worst first (clashesOf), so the first sets the icon.
 const severity = computed(() => props.clashes[0]?.severity);
 const descriptions = computed(() => props.clashes.map((c) => describeClash(c, props.itemId)));
 </script>

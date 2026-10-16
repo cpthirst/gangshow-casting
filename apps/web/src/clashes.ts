@@ -2,7 +2,8 @@ import { type Role, RoleSize, type RunningOrder } from "@app/shared";
 import { roleSizeLabel } from "./roles.ts";
 
 /** How serious a clash is, most serious first (casting-rules FR11). */
-export type Severity = "error" | "warning" | "info";
+const SEVERITIES = ["error", "warning", "info"] as const;
+export type Severity = (typeof SEVERITIES)[number];
 
 /** One of a person's appearances: an item, and their biggest part in it. */
 export interface Appearance {
@@ -39,7 +40,7 @@ interface Slot extends Appearance {
 }
 
 /** Every clash in the show: each person's appearances in running order, compared one after
- *  the other (casting-rules FR1, FR2). */
+ *  the other (casting-rules FR1–FR3). */
 export function findClashes(order: RunningOrder, roles: Role[]): Clash[] {
   const shown = new Map(
     order.halves
@@ -77,7 +78,8 @@ export function findClashes(order: RunningOrder, roles: Role[]): Clash[] {
       clashes.push({
         castMemberId,
         kind: "back-to-back",
-        severity: "error",
+        // An ensemble's costume and entrances are more flexible (FR3).
+        severity: first.part === "ensemble" || second.part === "ensemble" ? "warning" : "error",
         first: appearance(first),
         second: appearance(second),
       });
@@ -88,13 +90,17 @@ export function findClashes(order: RunningOrder, roles: Role[]): Clash[] {
 
 const appearance = ({ itemId, title, part }: Slot): Appearance => ({ itemId, title, part });
 
-/** A person's clashes that involve an item. */
+const rank = (severity: Severity) => SEVERITIES.indexOf(severity);
+
+/** A person's clashes that involve an item, worst first (FR7). */
 export const clashesOf = (clashes: Clash[], castMemberId: number, itemId: string) =>
-  clashes.filter(
-    (clash) =>
-      clash.castMemberId === castMemberId &&
-      (clash.first.itemId === itemId || clash.second.itemId === itemId),
-  );
+  clashes
+    .filter(
+      (clash) =>
+        clash.castMemberId === castMemberId &&
+        (clash.first.itemId === itemId || clash.second.itemId === itemId),
+    )
+    .sort((a, b) => rank(a.severity) - rank(b.severity));
 
 /** What a clash means, seen from one of its items (plain text, never HTML): "Error: back-to-back. Also Lead in
  *  'Opening Number', straight before this item" (casting-rules FR7). */

@@ -1373,6 +1373,69 @@ describe("Clashes on an item's page", () => {
     expect(clashOf(wrapper, "Sam Example")?.exists()).toBe(false);
   });
 
+  it.each([
+    ["a named part then an ensemble", "lead", "ensemble"],
+    ["an ensemble then a named part", "ensemble", "cameo"],
+    ["two ensembles", "ensemble", "ensemble"],
+  ] as const)("shows a warning, not an error, for %s", async (_, firstPart, secondPart) => {
+    savedRunningOrderIs(clashShow, [
+      cast("opening-number", firstPart, [SAM]),
+      cast("pirate-sketch", secondPart, [SAM]),
+    ]);
+
+    for (const item of ["opening-number", "pirate-sketch"]) {
+      const { wrapper } = await openAppAt(`/casting/items/${item}`);
+      expect(clashOf(wrapper, "Sam Example")?.attributes("data-severity")).toBe("warning");
+      wrapper.unmount();
+    }
+  });
+
+  it("says a warning is a warning, and why", async () => {
+    savedRunningOrderIs(clashShow, [
+      cast("opening-number", "lead", [SAM]),
+      cast("pirate-sketch", "ensemble", [SAM]),
+    ]);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    expect(clashOf(wrapper, "Sam Example")?.get("[data-test=clash-description]").text()).toBe(
+      "Warning: back-to-back. Also Lead in 'Opening Number', straight before this item",
+    );
+  });
+
+  it("gives warnings and errors different shapes, and says which in words", async () => {
+    savedRunningOrderIs(clashShow, [
+      cast("opening-number", "lead", [SAM]),
+      cast("pirate-sketch", "support", [SAM]),
+      cast("opening-number", "ensemble", [ALEX]),
+      cast("pirate-sketch", "cameo", [ALEX]),
+    ]);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    const error = clashOf(wrapper, "Sam Example")?.get("[data-test=clash-icon]");
+    const warning = clashOf(wrapper, "Alex Sample")?.get("[data-test=clash-icon]");
+    expect(error?.get("path").attributes("d")).not.toBe(warning?.get("path").attributes("d"));
+    expect(error?.attributes("aria-label")).toMatch(/^Error: /);
+    expect(warning?.attributes("aria-label")).toMatch(/^Warning: /);
+  });
+
+  it("shows one icon at the worst severity, describing every clash", async () => {
+    // The warning (with Opening Number) comes before the error (with Dance One) in the show.
+    savedRunningOrderIs(clashShow, [
+      cast("opening-number", "ensemble", [SAM]),
+      cast("pirate-sketch", "support", [SAM]),
+      cast("dance-one", "lead", [SAM]),
+    ]);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    const sam = namesOf(wrapper, "Sam Example")[0];
+    expect(sam?.findAll("[data-test=clash]")).toHaveLength(1);
+    expect(sam?.get("[data-test=clash]").attributes("data-severity")).toBe("error");
+    expect(sam?.findAll(".clash-line").map((line) => line.text())).toEqual([
+      "Error: back-to-back. Also Lead in 'Dance One', straight after this item",
+      "Warning: back-to-back. Also Ensemble in 'Opening Number', straight before this item",
+    ]);
+  });
+
   it("shows no icons when the casting can't be loaded", async () => {
     // The roles would clash, but the cast list fails, so nothing can be shown as checked.
     savedRunningOrderIs(clashShow, [
