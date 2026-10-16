@@ -889,6 +889,27 @@ main a {
   font-weight: 700;
 }
 
+/* An item's roles. Casting-item-overview.E2.S1 turns these into ordered cards. */
+.roles {
+  margin: 1rem 0;
+  padding: 0;
+  list-style: none;
+  background: var(--white);
+  border-radius: 0.5rem;
+}
+
+.roles li {
+  display: flex;
+  gap: 0.75rem;
+  align-items: baseline;
+  padding: 0.625rem 0.75rem;
+  border-bottom: 1px solid var(--surface);
+}
+
+.role-name {
+  font-weight: 700;
+}
+
 /* Phone: the sidebar becomes a top bar, and the menu drops down over the page.
    Must match PHONE_QUERY in App.vue. */
 @media (max-width: 767px) {

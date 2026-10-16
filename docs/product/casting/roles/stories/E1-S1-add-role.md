@@ -2,7 +2,7 @@
 id: casting-roles.E1.S1
 title: Add an uncast role to an item
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story

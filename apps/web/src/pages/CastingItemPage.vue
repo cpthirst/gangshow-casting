@@ -1,18 +1,25 @@
 <script setup lang="ts">
-import { RunningOrder } from "@app/shared";
-import { computed, onMounted, ref, watchEffect } from "vue";
+import { type AddRoleRequest, Role, RoleList, RunningOrder } from "@app/shared";
+import { computed, nextTick, onMounted, ref, watchEffect } from "vue";
 import { useRoute } from "vue-router";
+import { addRolePath, ROLES_PATH, roleSizeLabel } from "../roles.ts";
 import { showPageTitle } from "../router.ts";
 import { placeOf, RUNNING_ORDER_PATH } from "../running-order.ts";
+import RoleForm from "./RoleForm.vue";
 
 const route = useRoute();
 const order = ref<RunningOrder>();
+const roles = ref<Role[]>([]);
 const status = ref<"loading" | "loaded" | "error">("loading");
 
 const place = computed(() => {
   const itemId = route.params.itemId;
   return order.value && typeof itemId === "string" ? placeOf(order.value, itemId) : undefined;
 });
+
+const itemRoles = computed(() =>
+  roles.value.filter((role) => role.itemId === place.value?.item.id),
+);
 
 // Loaded, but the item isn't in the latest saved running order (PRD FR6).
 const notFound = computed(() => status.value === "loaded" && !place.value);
@@ -35,18 +42,64 @@ watchEffect(() => {
 onMounted(async () => {
   try {
     // Name and position come from the latest saved running order, like the Items list.
-    const res = await fetch(RUNNING_ORDER_PATH);
+    const [orderRes, rolesRes] = await Promise.all([fetch(RUNNING_ORDER_PATH), fetch(ROLES_PATH)]);
     // No saved running order at all: no item can be in it.
-    if (res.status !== 404) {
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      order.value = RunningOrder.parse(await res.json());
+    if (orderRes.status !== 404) {
+      if (!orderRes.ok) throw new Error(`HTTP ${orderRes.status}`);
+      order.value = RunningOrder.parse(await orderRes.json());
     }
+    if (!rolesRes.ok) throw new Error(`HTTP ${rolesRes.status}`);
+    roles.value = RoleList.parse(await rolesRes.json()).roles;
     status.value = "loaded";
   } catch {
     // A failed load must never look like "not found".
     status.value = "error";
   }
 });
+
+const adding = ref(false);
+const saving = ref(false);
+const formError = ref("");
+const addButton = ref<HTMLButtonElement>();
+
+function startAdding() {
+  formError.value = "";
+  adding.value = true;
+}
+
+async function stopAdding() {
+  adding.value = false;
+  await nextTick();
+  addButton.value?.focus();
+}
+
+// Saves straight away (PRD FR8). On failure the form stays open with what was typed.
+async function add(details: AddRoleRequest) {
+  if (!place.value || saving.value) return;
+  saving.value = true;
+  formError.value = "";
+  const role = await postRole(place.value.item.id, details);
+  saving.value = false;
+  if (!role) {
+    formError.value = "Couldn't add the role. Try again.";
+    return;
+  }
+  roles.value = [...roles.value, role];
+  await stopAdding();
+}
+
+async function postRole(itemId: string, details: AddRoleRequest) {
+  try {
+    const res = await fetch(addRolePath(itemId), {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(details),
+    });
+    return res.status === 201 ? Role.parse(await res.json()) : undefined;
+  } catch {
+    return undefined;
+  }
+}
 </script>
 
 <template>
@@ -57,7 +110,28 @@ onMounted(async () => {
   <template v-else-if="place">
     <h1>{{ place.item.title }}</h1>
     <p class="item-position" data-test="position">{{ position }}</p>
-    <p>No roles have been added yet.</p>
+    <div class="cast-actions">
+      <button
+        ref="addButton"
+        type="button"
+        class="primary"
+        data-test="add-role"
+        :disabled="adding || saving"
+        @click="startAdding"
+      >
+        Add role
+      </button>
+    </div>
+    <RoleForm v-if="adding" :saving="saving" :error="formError" @save="add" @cancel="stopAdding" />
+    <ul v-if="itemRoles.length > 0" class="roles">
+      <li v-for="role in itemRoles" :key="role.id" data-test="role">
+        <span class="role-name">{{ role.name }}</span>
+        <!-- A real space, so it reads "Captain Hook Lead" rather than "Captain HookLead". -->
+        {{ " " }}
+        <span class="role-size">{{ roleSizeLabel(role.size) }}</span>
+      </li>
+    </ul>
+    <p v-else>No roles have been added yet.</p>
   </template>
   <template v-else-if="notFound">
     <h1>Item not found</h1>
