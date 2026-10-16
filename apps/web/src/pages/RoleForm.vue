@@ -130,7 +130,6 @@ function submit() {
         <p :id="idFor('members')" class="field-label">Members</p>
         <ul class="members row-icons" :aria-labelledby="idFor('members')">
           <li v-for="member in memberList" :key="member.id" data-test="member">
-            <span class="member-name">{{ fullName(member) }}</span>
             <button
               type="button"
               class="icon-button"
@@ -140,6 +139,7 @@ function submit() {
             >
               <BinIcon />
             </button>
+            <span class="member-name">{{ fullName(member) }}</span>
           </li>
           <li v-if="memberList.length === 0" class="uncast">Nobody yet</li>
         </ul>

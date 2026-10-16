@@ -479,6 +479,8 @@ main a {
   justify-content: center;
   /* A glyph (✎) and an icon (bin) line up side by side. */
   vertical-align: middle;
+  /* Never squashed by a long name beside it. */
+  flex-shrink: 0;
   text-decoration: none;
 }
 
@@ -521,17 +523,10 @@ main a {
   pointer-events: none;
 }
 
-/* Icons at the end of a row (.row-icons: the Cast list, role cards, ensemble members)
-   open their tooltip leftwards, so it never runs past the edge, which would scroll the
-   page sideways on a phone. */
-.row-icons [data-tooltip]:hover::after,
-.row-icons [data-tooltip]:focus-visible::after {
-  right: 0;
-  left: auto;
-}
-
+/* Row icons (.row-icons: the Cast list, role cards, ensemble members) come first, on the
+   left, as on the Running order and Items pages. */
 .row-icons .icon-button {
-  margin: 0 0 0 0.25rem;
+  margin: 0 0.25rem 0 0;
 }
 
 /* The edit form, shown in place of an item's row. */
@@ -797,7 +792,6 @@ main a {
 .cast-list .actions {
   width: 1%;
   white-space: nowrap;
-  text-align: right;
 }
 
 .cast-list .not-set {
@@ -847,10 +841,11 @@ main a {
     font-weight: 700;
   }
 
+  /* The icons sit on their own line at the top of the card, as on the Running order. */
   .cast-list td.actions {
-    order: 1;
+    flex-basis: 100%;
     width: auto;
-    margin-left: auto;
+    margin-bottom: 0.25rem;
   }
 
   .cast-list td:not(.first-name, .last-name, .actions) {
@@ -1015,19 +1010,22 @@ main a {
 
 /* Uncast stands out at a glance: the gaps the team still has to fill. */
 .uncast {
-  margin-right: 0.25rem;
   color: var(--red-darker);
   font-size: 0.875rem;
   font-style: italic;
   font-weight: 700;
 }
 
-/* A card's "Uncast" marker and its Edit and Remove icons stay together at its end; on a
-   narrow card they wrap as one group, still on the right. */
+/* On a role card, "Uncast" sits at the end. */
+.role-card .uncast {
+  margin-left: auto;
+}
+
+/* A card's Edit and Remove icons come first, on the left; on phones they sit on their own
+   line above the role (see the phone rules below). */
 .role-actions {
   display: inline-flex;
   align-items: center;
-  margin-left: auto;
 }
 
 /* An ensemble's members, each removable, above the search to add one more. */
@@ -1047,9 +1045,9 @@ main a {
 
 .members li {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.25rem;
   align-items: center;
-  padding: 0.25rem 0.25rem 0.25rem 0.75rem;
+  padding: 0.25rem 0.75rem 0.25rem 0.25rem;
   border-radius: 999px;
   background: var(--white);
 }
@@ -1129,7 +1127,12 @@ main a {
   }
 
   .row-icons .icon-button {
-    margin-left: 0.5rem;
+    margin-right: 0.5rem;
+  }
+
+  .role-actions {
+    flex-basis: 100%;
+    margin-bottom: 0.25rem;
   }
 
   .shell {

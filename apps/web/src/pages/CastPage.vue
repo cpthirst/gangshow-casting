@@ -336,22 +336,17 @@ onMounted(load);
       <table class="cast-list">
         <thead>
           <tr>
+            <!-- Icons first, as on the Running order and Items pages. -->
+            <th scope="col" class="actions">Actions</th>
             <th scope="col">First name</th>
             <th scope="col">Last name</th>
             <th scope="col">Section</th>
             <th scope="col">Group</th>
-            <th scope="col" class="actions"><span class="visually-hidden">Actions</span></th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="member in shown" :key="member.id" :data-member-id="member.id">
             <!-- data-label names each cell when small screens show rows as cards. -->
-            <td class="first-name" data-label="First name">{{ member.firstName }}</td>
-            <td class="last-name" data-label="Last name">{{ member.lastName }}</td>
-            <td data-label="Section" :class="{ 'not-set': member.section === null }">
-              {{ sectionLabel(member.section) }}
-            </td>
-            <td data-label="Group">{{ member.group }}</td>
             <td class="actions row-icons" data-label="Actions">
               <button
                 type="button"
@@ -375,6 +370,12 @@ onMounted(load);
                 <BinIcon />
               </button>
             </td>
+            <td class="first-name" data-label="First name">{{ member.firstName }}</td>
+            <td class="last-name" data-label="Last name">{{ member.lastName }}</td>
+            <td data-label="Section" :class="{ 'not-set': member.section === null }">
+              {{ sectionLabel(member.section) }}
+            </td>
+            <td data-label="Group">{{ member.group }}</td>
           </tr>
         </tbody>
       </table>

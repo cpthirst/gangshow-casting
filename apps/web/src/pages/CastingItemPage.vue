@@ -311,22 +311,8 @@ async function postRole(itemId: string, details: AddRoleRequest) {
           @cancel="stopEditing(role.id)"
         />
         <template v-else>
-          <span class="role-name">{{ role.name }}</span>
-          <!-- Real spaces, so a screen reader hears "Captain Hook Lead Uncast", not one word. -->
-          {{ " " }}
-          <span :class="['pill', `pill-${role.size}`]" data-test="size">{{
-            roleSizeLabel(role.size)
-          }}</span>
-          <template v-if="castNames(role)">
-            {{ " " }}
-            <span class="role-cast" data-test="cast">{{ castNames(role) }}</span>
-          </template>
-          {{ " " }}
-          <!-- "Uncast" and the buttons stay together at the card's end, wrapping as one. -->
+          <!-- Icons first, as on the Running order and Items pages; above the role on phones. -->
           <span class="role-actions row-icons">
-            <span v-if="role.castMemberIds.length === 0" class="uncast" data-test="uncast"
-              >Uncast</span
-            >
             <button
               type="button"
               class="icon-button"
@@ -350,6 +336,20 @@ async function postRole(itemId: string, details: AddRoleRequest) {
               <BinIcon />
             </button>
           </span>
+          <span class="role-name">{{ role.name }}</span>
+          <!-- Real spaces, so a screen reader hears "Captain Hook Lead Uncast", not one word. -->
+          {{ " " }}
+          <span :class="['pill', `pill-${role.size}`]" data-test="size">{{
+            roleSizeLabel(role.size)
+          }}</span>
+          <template v-if="castNames(role)">
+            {{ " " }}
+            <span class="role-cast" data-test="cast">{{ castNames(role) }}</span>
+          </template>
+          <template v-if="role.castMemberIds.length === 0">
+            {{ " " }}
+            <span class="uncast" data-test="uncast">Uncast</span>
+          </template>
         </template>
       </li>
     </ul>

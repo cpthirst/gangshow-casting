@@ -148,6 +148,17 @@ describe("Cast page", () => {
   });
 
   describe("row buttons", () => {
+    it("puts the icons in the first column, like the Running order and Items pages", async () => {
+      serve(aCast([aMember("Sam", "Example")]));
+
+      const wrapper = await openPage();
+
+      expect(wrapper.findAll("thead th").map((th) => th.text())[0]).toBe("Actions");
+      const firstCell = wrapper.get("tbody tr td");
+      expect(firstCell.find("button[aria-label='Edit Sam Example']").exists()).toBe(true);
+      expect(firstCell.find("button[aria-label='Delete Sam Example']").exists()).toBe(true);
+    });
+
     it("uses icon buttons like the Running order, each named and explained", async () => {
       serve(aCast([aMember("Sam", "Example")]));
 
@@ -170,7 +181,7 @@ describe("Cast page", () => {
       const wrapper = await openPage();
 
       const labels = wrapper.findAll("tbody td").map((td) => td.attributes("data-label"));
-      expect(labels).toEqual(["First name", "Last name", "Section", "Group", "Actions"]);
+      expect(labels).toEqual(["Actions", "First name", "Last name", "Section", "Group"]);
     });
   });
 
