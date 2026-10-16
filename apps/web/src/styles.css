@@ -1299,8 +1299,11 @@ main a {
     margin-bottom: 0.25rem;
   }
 
+  /* The header keeps its own height; spare height on a short page goes to the content,
+     or the header would grow and shrink from page to page. */
   .shell {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
   }
 
   .sidebar {
