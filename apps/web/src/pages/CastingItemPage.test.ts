@@ -165,7 +165,7 @@ describe("Casting item page", () => {
     savedRunningOrderIs(show);
     const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
 
-    const nav = wrapper.get("main nav[aria-label=Items]");
+    const nav = wrapper.get("main nav[aria-label='Item navigation']");
     expect(nav.get("a").text()).toBe("All items");
     // compareDocumentPosition sets FOLLOWING when the heading comes after the nav.
     const heading = wrapper.get("main h1").element;
@@ -176,7 +176,7 @@ describe("Casting item page", () => {
 
   // The page's items, in show order: Opening Number, Pirate Sketch | Campfire Song, Mystery Act.
   const stepLinks = (wrapper: Awaited<ReturnType<typeof openAppAt>>["wrapper"]) =>
-    wrapper.findAll("main nav[aria-label=Items] a[rel]").map((link) => ({
+    wrapper.findAll("main nav[aria-label='Item navigation'] a[rel]").map((link) => ({
       rel: link.attributes("rel"),
       text: link.text().replace(/\s+/g, " "),
       href: link.attributes("href"),
@@ -246,7 +246,7 @@ describe("Casting item page", () => {
     const { wrapper } = await openAppAt("/casting/items/no-such-item");
 
     expect(wrapper.get("main h1").text()).toBe("Item not found");
-    expect(wrapper.get("main nav[aria-label=Items] a").text()).toBe("All items");
+    expect(wrapper.get("main nav[aria-label='Item navigation'] a").text()).toBe("All items");
     expect(document.title).toBe("Item not found · Chester Gang Show casting");
   });
 
@@ -799,7 +799,7 @@ describe("Role counts on the Items list", () => {
     await wrapper.get("select[name=size]").setValue("support");
     await wrapper.get("form[aria-label='Add role']").trigger("submit");
     await flushPromises();
-    await wrapper.get("main nav[aria-label=Items] a.back-link").trigger("click");
+    await wrapper.get("main nav[aria-label='Item navigation'] a.back-link").trigger("click");
     await flushPromises();
 
     expect(counts()?.get("[aria-hidden=true]").text()).toBe("Roles 1 · Cast 0");

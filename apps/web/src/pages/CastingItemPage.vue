@@ -273,7 +273,8 @@ async function postRole(itemId: string, details: AddRoleRequest) {
 </script>
 
 <template>
-  <nav class="item-nav" aria-label="Items">
+  <!-- Real spaces between label and title, so the links read "Previous Pirate Sketch". -->
+  <nav class="step-nav" aria-label="Item navigation">
     <RouterLink :to="{ name: 'casting-items' }" class="back-link">All items</RouterLink>
     <RouterLink
       v-if="neighbours.previous"
@@ -285,7 +286,12 @@ async function postRole(itemId: string, details: AddRoleRequest) {
       {{ " " }}
       <span class="step-title">{{ neighbours.previous.title }}</span>
     </RouterLink>
-    <RouterLink v-if="neighbours.next" :to="{ name: 'casting-item', params: { itemId: neighbours.next.id } }" rel="next" class="step-link step-next">
+    <RouterLink
+      v-if="neighbours.next"
+      :to="{ name: 'casting-item', params: { itemId: neighbours.next.id } }"
+      rel="next"
+      class="step-link step-next"
+    >
       <span class="step-label">Next</span>
       {{ " " }}
       <span class="step-title">{{ neighbours.next.title }}</span>
