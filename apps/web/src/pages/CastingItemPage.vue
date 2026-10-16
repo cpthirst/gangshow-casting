@@ -273,7 +273,6 @@ async function postRole(itemId: string, details: AddRoleRequest) {
 </script>
 
 <template>
-  <!-- Real spaces between label and title, so the links read "Previous Pirate Sketch". -->
   <nav class="step-nav" aria-label="Item navigation">
     <RouterLink :to="{ name: 'casting-items' }" class="back-link">All items</RouterLink>
     <RouterLink
@@ -283,6 +282,7 @@ async function postRole(itemId: string, details: AddRoleRequest) {
       class="step-link step-previous"
     >
       <span class="step-label">Previous</span>
+      <!-- A real space, so the link reads "Previous Pirate Sketch", not one word. -->
       {{ " " }}
       <span class="step-title">{{ neighbours.previous.title }}</span>
     </RouterLink>

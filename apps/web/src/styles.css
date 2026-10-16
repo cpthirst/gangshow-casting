@@ -943,8 +943,9 @@ main a {
   white-space: nowrap;
 }
 
-/* Stepping nav above a page's title (an item's page for now): All items on the left; the previous and next items in show order on
-   the right, so the team can step through the show. On phones, All items gets its own row. */
+/* Stepping nav above a page's title (an item's page for now): All items on the left, and
+   the previous and next items in show order on the right, so the team can step through
+   the show. On phones, All items gets its own row. */
 .step-nav {
   display: flex;
   flex-wrap: wrap;
