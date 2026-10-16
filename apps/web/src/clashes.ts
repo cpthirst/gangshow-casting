@@ -16,11 +16,19 @@ export interface Appearance {
 /** A problem for one person between two of their appearances, one after the other. */
 export interface Clash {
   castMemberId: number;
-  kind: "back-to-back";
+  kind: "back-to-back" | "timing" | "quick-change";
   severity: Severity;
   first: Appearance;
   second: Appearance;
+  /** Minutes off stage between the two: the items between, and the interval if it falls
+   *  between them. */
+  gapMinutes: number;
 }
+
+/** Less time off stage than this is a timing warning (casting-rules FR4)… */
+const MIN_GAP = 5;
+/** …and less than this is a quick change to plan (FR5). */
+const QUICK_CHANGE_GAP = 8;
 
 const severityLabels: Record<Severity, string> = {
   error: "Error",
@@ -34,20 +42,60 @@ const severityLabel = (severity: Severity) => severityLabels[severity];
 const biggest = (a: RoleSize, b: RoleSize) =>
   RoleSize.options.indexOf(a) <= RoleSize.options.indexOf(b) ? a : b;
 
-/** Where one of a person's appearances falls in the show. */
-interface Slot extends Appearance {
+/** Where an item falls in the show, and when, in minutes from curtain up. */
+interface Place {
   position: number;
   halfIndex: number;
+  starts: number;
+  ends: number;
+}
+
+/** Where one of a person's appearances falls in the show. */
+type Slot = Appearance & Place;
+
+/** Each item's place in the show, by item id. The interval comes between the halves. */
+function placesIn(order: RunningOrder) {
+  const places = new Map<string, Place & { title: string }>();
+  let clock = 0;
+  for (const [halfIndex, half] of order.halves.entries()) {
+    if (halfIndex > 0) clock += order.intervalMinutes;
+    for (const item of half.items) {
+      // Every item is expected to have a length (PRD assumption); a blank adds no time, so a
+      // possible clash shows rather than hides.
+      const ends = clock + (item.minutes ?? 0);
+      places.set(item.id, {
+        title: item.title,
+        position: places.size,
+        halfIndex,
+        starts: clock,
+        ends,
+      });
+      clock = ends;
+    }
+  }
+  return places;
+}
+
+/** What's wrong between two appearances one after the other, if anything (FR2–FR6). */
+function problem(first: Slot, second: Slot): Pick<Clash, "kind" | "severity"> | undefined {
+  const isBackToBack =
+    second.position === first.position + 1 && second.halfIndex === first.halfIndex;
+  // An ensemble's costume and entrances are more flexible (FR3).
+  if (isBackToBack)
+    return {
+      kind: "back-to-back",
+      severity: involvesEnsemble(first, second) ? "warning" : "error",
+    };
+  const gap = second.starts - first.ends;
+  if (gap < MIN_GAP) return { kind: "timing", severity: "warning" };
+  if (gap < QUICK_CHANGE_GAP) return { kind: "quick-change", severity: "info" };
+  return undefined;
 }
 
 /** Every clash in the show: each person's appearances in running order, compared one after
- *  the other (casting-rules FR1–FR3). */
+ *  the other (casting-rules FR1–FR6). */
 export function findClashes(order: RunningOrder, roles: Role[]): Clash[] {
-  const shown = new Map(
-    order.halves
-      .flatMap((half, halfIndex) => half.items.map((item) => ({ item, halfIndex })))
-      .map((place, position) => [place.item.id, { ...place, position }]),
-  );
+  const shown = placesIn(order);
 
   // Person → item → where it is and their biggest part in it.
   const slots = new Map<number, Map<string, Slot>>();
@@ -58,11 +106,9 @@ export function findClashes(order: RunningOrder, roles: Role[]): Clash[] {
       const theirs = slots.get(id) ?? new Map<string, Slot>();
       const part = theirs.get(role.itemId)?.part;
       theirs.set(role.itemId, {
-        itemId: place.item.id,
-        title: place.item.title,
+        ...place,
+        itemId: role.itemId,
         part: part ? biggest(part, role.size) : role.size,
-        position: place.position,
-        halfIndex: place.halfIndex,
       });
       slots.set(id, theirs);
     }
@@ -73,16 +119,14 @@ export function findClashes(order: RunningOrder, roles: Role[]): Clash[] {
     const inOrder = [...theirs.values()].sort((a, b) => a.position - b.position);
     for (const [i, first] of inOrder.entries()) {
       const second = inOrder[i + 1];
-      const isBackToBack =
-        second?.position === first.position + 1 && second.halfIndex === first.halfIndex;
-      if (!second || !isBackToBack) continue;
+      const found = second && problem(first, second);
+      if (!second || !found) continue;
       clashes.push({
         castMemberId,
-        kind: "back-to-back",
-        // An ensemble's costume and entrances are more flexible (FR3).
-        severity: involvesEnsemble(first, second) ? "warning" : "error",
+        ...found,
         first: appearance(first),
         second: appearance(second),
+        gapMinutes: second.starts - first.ends,
       });
     }
   }
@@ -110,8 +154,12 @@ export const clashesOf = (clashes: Clash[], castMemberId: number, itemId: string
 /** What a clash means, seen from one of its items, as plain text (never HTML). For example
  *  "Error: back-to-back. Also Lead in 'Opening Number', straight before this item" (FR7). */
 export function describeClash(clash: Clash, itemId: string) {
+  const label = severityLabel(clash.severity);
+  const between = `${clash.gapMinutes} minutes between '${clash.first.title}' and '${clash.second.title}'`;
+  if (clash.kind === "timing") return `${label}: only ${between} (needs ${MIN_GAP})`;
+  if (clash.kind === "quick-change") return `${label}: quick change. ${between}`;
   const isFirst = clash.first.itemId === itemId;
   const other = isFirst ? clash.second : clash.first;
   const when = isFirst ? "straight after" : "straight before";
-  return `${severityLabel(clash.severity)}: back-to-back. Also ${roleSizeLabel(other.part)} in '${other.title}', ${when} this item`;
+  return `${label}: back-to-back. Also ${roleSizeLabel(other.part)} in '${other.title}', ${when} this item`;
 }

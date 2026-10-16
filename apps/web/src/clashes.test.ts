@@ -1,6 +1,6 @@
 import type { Role, RoleSize } from "@app/shared";
 import { describe, expect, it } from "vitest";
-import { clashesOf, describeClash, findClashes } from "./clashes.ts";
+import { type Clash, clashesOf, describeClash, findClashes } from "./clashes.ts";
 import { anItem, aRunningOrder } from "./running-order.fixture.ts";
 
 // First half: Opening Number, Pirate Sketch, Dance One. Second half: Campfire Song, Finale.
@@ -30,6 +30,7 @@ describe("back-to-back clashes", () => {
         severity: "error",
         first: { itemId: "opening-number", title: "Opening Number", part: "lead" },
         second: { itemId: "pirate-sketch", title: "Pirate Sketch", part: "support" },
+        gapMinutes: 0,
       },
     ]);
   });
@@ -50,7 +51,8 @@ describe("back-to-back clashes", () => {
       role("dance-one", "lead", [SAM]),
     ]);
 
-    expect(clashes).toEqual([]);
+    // A 5-minute gap: a quick change (casting-rules E2.S3), but not back-to-back.
+    expect(clashes.map((clash) => clash.kind)).not.toContain("back-to-back");
   });
 
   it("doesn't count items either side of the interval", () => {
@@ -118,6 +120,95 @@ describe("back-to-back with an ensemble", () => {
     expect(clashesOf(clashes, SAM, "pirate-sketch").map((clash) => clash.severity)).toEqual([
       "error",
       "warning",
+    ]);
+  });
+});
+
+describe("time between appearances", () => {
+  // Opening Number 5, Pirate Sketch 4, Dance One 3, Song Two 2, Sketch Two 6 minutes; then
+  // the interval; then Campfire Song 5, Finale 8.
+  const timed = (intervalMinutes = 20) => ({
+    ...aRunningOrder(
+      [
+        anItem("Opening Number", { minutes: 5 }),
+        anItem("Pirate Sketch", { minutes: 4 }),
+        anItem("Dance One", { minutes: 3 }),
+        anItem("Song Two", { minutes: 2 }),
+        anItem("Sketch Two", { minutes: 6 }),
+      ],
+      [anItem("Campfire Song", { minutes: 5 }), anItem("Finale", { minutes: 8 })],
+    ),
+    intervalMinutes,
+  });
+  const samIn = (...itemIds: string[]) => itemIds.map((itemId) => role(itemId, "lead", [SAM]));
+  const described = (clashes: Clash[], itemId: string) =>
+    clashesOf(clashes, SAM, itemId).map((clash) => describeClash(clash, itemId));
+
+  it("warns about a gap under 5 minutes", () => {
+    const clashes = findClashes(timed(), samIn("opening-number", "dance-one"));
+
+    expect(described(clashes, "dance-one")).toEqual([
+      "Warning: only 4 minutes between 'Opening Number' and 'Dance One' (needs 5)",
+    ]);
+    expect(described(clashes, "opening-number")).toEqual(described(clashes, "dance-one"));
+  });
+
+  it("adds up every item between, so 5 minutes is a quick change", () => {
+    const clashes = findClashes(timed(), samIn("pirate-sketch", "sketch-two"));
+
+    expect(clashes.map((clash) => [clash.kind, clash.severity, clash.gapMinutes])).toEqual([
+      ["quick-change", "info", 5],
+    ]);
+  });
+
+  it("notes a quick change for a gap from 5 to under 8 minutes", () => {
+    const clashes = findClashes(timed(), samIn("opening-number", "song-two"));
+
+    expect(described(clashes, "song-two")).toEqual([
+      "Info: quick change. 7 minutes between 'Opening Number' and 'Song Two'",
+    ]);
+  });
+
+  it("needs nothing for a gap of exactly 8 minutes", () => {
+    const clashes = findClashes(timed(8), samIn("sketch-two", "campfire-song"));
+
+    expect(clashes).toEqual([]);
+  });
+
+  it("counts the interval towards the gap", () => {
+    const clashes = findClashes(timed(4), samIn("sketch-two", "campfire-song"));
+
+    expect(described(clashes, "campfire-song")).toEqual([
+      "Warning: only 4 minutes between 'Sketch Two' and 'Campfire Song' (needs 5)",
+    ]);
+  });
+
+  it("needs nothing across a long interval", () => {
+    expect(findClashes(timed(20), samIn("sketch-two", "campfire-song"))).toEqual([]);
+  });
+
+  it("compares each appearance only with the next one", () => {
+    const clashes = findClashes(timed(), samIn("opening-number", "pirate-sketch", "dance-one"));
+
+    expect(described(clashes, "opening-number")).toEqual([
+      "Error: back-to-back. Also Lead in 'Pirate Sketch', straight after this item",
+    ]);
+  });
+
+  it("reports back-to-back appearances once, not also as a timing warning", () => {
+    const clashes = findClashes(timed(), samIn("opening-number", "pirate-sketch"));
+
+    expect(clashes.map((clash) => clash.kind)).toEqual(["back-to-back"]);
+  });
+
+  it("lists a timing warning before a quick change", () => {
+    // Pirate Sketch → Sketch Two is a 5-minute quick change, first in the show; Sketch Two →
+    // Campfire Song is only the 3-minute interval.
+    const clashes = findClashes(timed(3), samIn("pirate-sketch", "sketch-two", "campfire-song"));
+
+    expect(clashesOf(clashes, SAM, "sketch-two").map((clash) => clash.severity)).toEqual([
+      "warning",
+      "info",
     ]);
   });
 });

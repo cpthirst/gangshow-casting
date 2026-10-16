@@ -1244,6 +1244,9 @@ describe("Clashes on an item's page", () => {
   /** Every place a person's name appears on the page. */
   const namesOf = (wrapper: Page, name: string) =>
     wrapper.findAll("[data-test=cast-name]").filter((el) => el.text().startsWith(name));
+  /** Whether any of a person's clash descriptions is a back-to-back clash. */
+  const isBackToBack = (wrapper: Page, name: string) =>
+    namesOf(wrapper, name).some((el) => el.text().includes("back-to-back"));
   const clashOf = (wrapper: Page, name: string) =>
     namesOf(wrapper, name)[0]?.find("[data-test=clash]");
 
@@ -1310,7 +1313,9 @@ describe("Clashes on an item's page", () => {
     ]);
     const { wrapper } = await openAppAt("/casting/items/opening-number");
 
-    expect(clashOf(wrapper, "Sam Example")?.exists()).toBe(false);
+    // Five minutes apart: a quick change since casting-rules E2.S3, but not back-to-back.
+    expect(namesOf(wrapper, "Sam Example")).toHaveLength(1);
+    expect(isBackToBack(wrapper, "Sam Example")).toBe(false);
   });
 
   it("doesn't count items either side of the interval", async () => {
@@ -1370,7 +1375,9 @@ describe("Clashes on an item's page", () => {
     );
     const { wrapper } = await openAppAt("/casting/items/opening-number");
 
-    expect(clashOf(wrapper, "Sam Example")?.exists()).toBe(false);
+    // Dance One's 5 minutes now make it a quick change, but not back-to-back.
+    expect(namesOf(wrapper, "Sam Example")).toHaveLength(1);
+    expect(isBackToBack(wrapper, "Sam Example")).toBe(false);
   });
 
   it.each([
@@ -1433,6 +1440,126 @@ describe("Clashes on an item's page", () => {
     expect(sam?.findAll(".clash-line").map((line) => line.text())).toEqual([
       "Error: back-to-back. Also Lead in 'Dance One', straight after this item",
       "Warning: back-to-back. Also Ensemble in 'Opening Number', straight before this item",
+    ]);
+  });
+
+  // Opening Number 5, Pirate Sketch 4, Dance One 3, Song Two 2, Sketch Two 6 minutes; then
+  // the interval; then Campfire Song 5, Finale 8.
+  const timedShow = (intervalMinutes = 20) => ({
+    ...aRunningOrder(
+      [
+        anItem("Opening Number", { minutes: 5 }),
+        anItem("Pirate Sketch", { minutes: 4 }),
+        anItem("Dance One", { minutes: 3 }),
+        anItem("Song Two", { minutes: 2 }),
+        anItem("Sketch Two", { minutes: 6 }),
+      ],
+      [anItem("Campfire Song", { minutes: 5 }), anItem("Finale", { minutes: 8 })],
+    ),
+    intervalMinutes,
+  });
+  const samIn = (...itemIds: string[]) => itemIds.map((itemId) => cast(itemId, "lead", [SAM]));
+  const linesOf = (wrapper: Page, name: string) =>
+    namesOf(wrapper, name)[0]
+      ?.findAll(".clash-line")
+      .map((line) => line.text()) ?? [];
+
+  it("warns about less than 5 minutes between appearances, on both items", async () => {
+    savedRunningOrderIs(timedShow(), samIn("opening-number", "dance-one"));
+
+    for (const item of ["opening-number", "dance-one"]) {
+      const { wrapper } = await openAppAt(`/casting/items/${item}`);
+      expect(clashOf(wrapper, "Sam Example")?.attributes("data-severity")).toBe("warning");
+      expect(linesOf(wrapper, "Sam Example")).toEqual([
+        "Warning: only 4 minutes between 'Opening Number' and 'Dance One' (needs 5)",
+      ]);
+      wrapper.unmount();
+    }
+  });
+
+  it("adds up every item between, so 5 minutes is a quick change", async () => {
+    savedRunningOrderIs(timedShow(), samIn("pirate-sketch", "sketch-two"));
+    const { wrapper } = await openAppAt("/casting/items/sketch-two");
+
+    expect(clashOf(wrapper, "Sam Example")?.attributes("data-severity")).toBe("info");
+    expect(linesOf(wrapper, "Sam Example")).toEqual([
+      "Info: quick change. 5 minutes between 'Pirate Sketch' and 'Sketch Two'",
+    ]);
+  });
+
+  it("notes a quick change for 5 to under 8 minutes", async () => {
+    savedRunningOrderIs(timedShow(), samIn("opening-number", "song-two"));
+    const { wrapper } = await openAppAt("/casting/items/song-two");
+
+    expect(clashOf(wrapper, "Sam Example")?.attributes("data-severity")).toBe("info");
+    expect(linesOf(wrapper, "Sam Example")).toEqual([
+      "Info: quick change. 7 minutes between 'Opening Number' and 'Song Two'",
+    ]);
+  });
+
+  it("needs nothing for exactly 8 minutes", async () => {
+    savedRunningOrderIs(timedShow(8), samIn("sketch-two", "campfire-song"));
+    const { wrapper } = await openAppAt("/casting/items/campfire-song");
+
+    expect(namesOf(wrapper, "Sam Example")).toHaveLength(1);
+    expect(clashOf(wrapper, "Sam Example")?.exists()).toBe(false);
+  });
+
+  it("counts the interval towards the gap", async () => {
+    savedRunningOrderIs(timedShow(4), samIn("sketch-two", "campfire-song"));
+    const { wrapper } = await openAppAt("/casting/items/campfire-song");
+
+    expect(linesOf(wrapper, "Sam Example")).toEqual([
+      "Warning: only 4 minutes between 'Sketch Two' and 'Campfire Song' (needs 5)",
+    ]);
+  });
+
+  it("compares each appearance only with the next one", async () => {
+    savedRunningOrderIs(timedShow(), samIn("opening-number", "pirate-sketch", "dance-one"));
+    const { wrapper } = await openAppAt("/casting/items/opening-number");
+
+    expect(linesOf(wrapper, "Sam Example")).toEqual([
+      "Error: back-to-back. Also Lead in 'Pirate Sketch', straight after this item",
+    ]);
+  });
+
+  it("reports back-to-back appearances once, not also as a timing warning", async () => {
+    savedRunningOrderIs(timedShow(), samIn("opening-number", "pirate-sketch"));
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    expect(linesOf(wrapper, "Sam Example")).toEqual([
+      "Error: back-to-back. Also Lead in 'Opening Number', straight before this item",
+    ]);
+  });
+
+  it("gives info its own shape, and says Info in words", async () => {
+    savedRunningOrderIs(timedShow(), [
+      ...samIn("opening-number", "song-two"),
+      cast("pirate-sketch", "lead", [ALEX]),
+      cast("song-two", "lead", [ALEX]),
+      cast("song-two", "cameo", [15]),
+      cast("sketch-two", "cameo", [15]),
+    ]);
+    const { wrapper } = await openAppAt("/casting/items/song-two");
+
+    const shapes = ["Sam Example", "Alex Sample", "Zoë Adams"].map((name) => {
+      const icon = clashOf(wrapper, name)?.get("[data-test=clash-icon]");
+      return [icon?.attributes("aria-label")?.split(":")[0], icon?.get("path").attributes("d")];
+    });
+    expect(shapes.map(([label]) => label)).toEqual(["Info", "Warning", "Error"]);
+    expect(new Set(shapes.map(([, shape]) => shape)).size).toBe(3);
+  });
+
+  it("shows a timing warning over a quick change, describing both", async () => {
+    // Pirate Sketch → Sketch Two is a 5-minute quick change; Sketch Two → Campfire Song is
+    // only the 3-minute interval.
+    savedRunningOrderIs(timedShow(3), samIn("pirate-sketch", "sketch-two", "campfire-song"));
+    const { wrapper } = await openAppAt("/casting/items/sketch-two");
+
+    expect(clashOf(wrapper, "Sam Example")?.attributes("data-severity")).toBe("warning");
+    expect(linesOf(wrapper, "Sam Example")).toEqual([
+      "Warning: only 3 minutes between 'Sketch Two' and 'Campfire Song' (needs 5)",
+      "Info: quick change. 5 minutes between 'Pirate Sketch' and 'Sketch Two'",
     ]);
   });
 

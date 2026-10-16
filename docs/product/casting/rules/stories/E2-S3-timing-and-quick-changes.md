@@ -2,7 +2,7 @@
 id: casting-rules.E2.S3
 title: Flag short gaps as timing warnings and quick changes
 epic: E2
-status: ready
+status: in-progress
 ---
 
 ## Story

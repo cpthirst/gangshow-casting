@@ -3,6 +3,7 @@ import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { CastList, RoleList, RunningOrder } from "@app/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { type Clash, findClashes } from "../../apps/web/src/clashes.ts";
 import { DEMO_API_PORT, DEMO_WEB_PORT, demoServers, freshDemoData } from "./demo.ts";
 
 const committed = (path: string) =>
@@ -65,6 +66,28 @@ describe("the demo guide", () => {
       "Timing warning",
       "Quick-change info",
     ]);
+  });
+
+  it("lists exactly the clashes the casting rules find in the show", () => {
+    const kindOf = (clash: Clash) =>
+      ({
+        "back-to-back": `Back-to-back ${clash.severity}`,
+        timing: "Timing warning",
+        "quick-change": "Quick-change info",
+      })[clash.kind];
+    const nameOf = (id: number) => {
+      const member = cast.find((m) => m.id === id);
+      return `${member?.firstName} ${member?.lastName}`;
+    };
+    const found = findClashes(order, roles).map((clash) => ({
+      kind: kindOf(clash),
+      person: nameOf(clash.castMemberId),
+      first: clash.first.title,
+      second: clash.second.title,
+    }));
+
+    expect(found).toEqual(expect.arrayContaining(planted));
+    expect(found).toHaveLength(planted.length);
   });
 
   it.each(planted)("$kind: $person is cast in both $first and $second", (row) => {
