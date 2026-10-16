@@ -282,6 +282,7 @@ async function postRole(itemId: string, details: AddRoleRequest) {
       v-if="neighbours.previous"
       :to="{ name: 'casting-item', params: { itemId: neighbours.previous.id } }"
       rel="prev"
+      :data-tooltip="neighbours.previous.title"
       class="step-link step-previous"
     >
       <span class="step-label"><FontAwesomeIcon :icon="icons.back" /> Previous</span>
@@ -293,6 +294,7 @@ async function postRole(itemId: string, details: AddRoleRequest) {
       v-if="neighbours.next"
       :to="{ name: 'casting-item', params: { itemId: neighbours.next.id } }"
       rel="next"
+      :data-tooltip="neighbours.next.title"
       class="step-link step-next"
     >
       <span class="step-label">Next <FontAwesomeIcon :icon="icons.forward" /></span>

@@ -999,6 +999,13 @@ main a {
   text-align: right;
 }
 
+/* The full title, for one cut short. Next's opens leftwards, so it stays on screen. */
+.step-next[data-tooltip]:hover::after,
+.step-next[data-tooltip]:focus-visible::after {
+  right: 0;
+  left: auto;
+}
+
 .step-label {
   display: inline-flex;
   gap: 0.375rem;
