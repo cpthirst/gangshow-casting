@@ -1,4 +1,5 @@
-import { type Role, RoleSize, type RunningOrder } from "@app/shared";
+import { type CastMember, type Role, RoleSize, type RunningOrder } from "@app/shared";
+import { sortCast } from "./cast.ts";
 import { roleSizeLabel } from "./roles.ts";
 
 /** How serious a clash can be (casting-rules FR11). Most serious first: `rank` relies on
@@ -143,16 +144,56 @@ const appearance = ({ itemId, title, part }: Slot): Appearance => ({ itemId, tit
 
 const rank = (severity: Severity) => SEVERITIES.indexOf(severity);
 
+// A stable sort: clashes of the same severity stay in running order.
+const worstFirst = (clashes: Clash[]) =>
+  [...clashes].sort((a, b) => rank(a.severity) - rank(b.severity));
+
+const involves = (clash: Clash, itemId: string) =>
+  clash.first.itemId === itemId || clash.second.itemId === itemId;
+
+/** Everyone's clashes that involve an item, worst first (FR8). */
+export const clashesInItem = (clashes: Clash[], itemId: string) =>
+  worstFirst(clashes.filter((clash) => involves(clash, itemId)));
+
+/** All of a person's clashes in the show, worst first (FR9). */
+export const clashesOfPerson = (clashes: Clash[], castMemberId: number) =>
+  worstFirst(clashes.filter((clash) => clash.castMemberId === castMemberId));
+
 /** A person's clashes that involve an item, worst first (FR7). */
 export const clashesOf = (clashes: Clash[], castMemberId: number, itemId: string) =>
-  clashes
-    .filter(
-      (clash) =>
-        clash.castMemberId === castMemberId &&
-        (clash.first.itemId === itemId || clash.second.itemId === itemId),
-    )
-    // A stable sort: clashes of the same severity stay in running order.
-    .sort((a, b) => rank(a.severity) - rank(b.severity));
+  clashesInItem(clashes, itemId).filter((clash) => clash.castMemberId === castMemberId);
+
+const plurals: Record<Severity, [string, string]> = {
+  error: ["error", "errors"],
+  warning: ["warning", "warnings"],
+  info: ["info", "info"],
+};
+
+/** "1 error, 2 warnings: Sam Example, Alex Sample": how many of each severity, then who,
+ *  in surname order (FR8). */
+export function summariseClashes(clashes: Clash[], cast: CastMember[]) {
+  const counts = SEVERITIES.map((severity) => {
+    const count = clashes.filter((clash) => clash.severity === severity).length;
+    const [one, many] = plurals[severity];
+    return count === 0 ? "" : `${count} ${count === 1 ? one : many}`;
+  }).filter(Boolean);
+  const ids = new Set(clashes.map((clash) => clash.castMemberId));
+  const who = sortCast(cast.filter((member) => ids.has(member.id)))
+    .map((member) => `${member.firstName} ${member.lastName}`)
+    .join(", ");
+  // Someone since removed from the cast has no name to give.
+  return who ? `${counts.join(", ")}: ${who}` : counts.join(", ");
+}
+
+/** One line of a clash icon's description, with the severity that styles it. */
+export interface ClashLine {
+  severity: Severity;
+  text: string;
+}
+
+/** Each clash described on its own line, worst first, for a person (item page, Overview). */
+export const describeEach = (clashes: Clash[]): ClashLine[] =>
+  worstFirst(clashes).map((clash) => ({ severity: clash.severity, text: describeClash(clash) }));
 
 /** What a clash means, as plain text (never HTML) (FR7): the severity, what kind, then
  *  both items, so it reads the same on either item's page. For example "Error: back-to-back.

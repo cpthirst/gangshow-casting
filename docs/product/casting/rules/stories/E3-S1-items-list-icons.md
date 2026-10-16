@@ -2,7 +2,7 @@
 id: casting-rules.E3.S1
 title: Show clash icons on the Items list
 epic: E3
-status: ready
+status: done
 ---
 
 ## Story

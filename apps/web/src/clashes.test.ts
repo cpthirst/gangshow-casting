@@ -1,6 +1,14 @@
-import type { Role, RoleSize } from "@app/shared";
+import type { CastMember, Role, RoleSize } from "@app/shared";
 import { describe, expect, it } from "vitest";
-import { type Clash, clashesOf, describeClash, findClashes } from "./clashes.ts";
+import {
+  type Clash,
+  clashesInItem,
+  clashesOf,
+  clashesOfPerson,
+  describeClash,
+  findClashes,
+  summariseClashes,
+} from "./clashes.ts";
 import { anItem, aRunningOrder } from "./running-order.fixture.ts";
 
 // First half: Opening Number, Pirate Sketch, Dance One. Second half: Campfire Song, Finale.
@@ -213,6 +221,25 @@ describe("time between appearances", () => {
   });
 });
 
+describe("a person's clashes across the show, for the Overview", () => {
+  it("are all their clashes, worst first, and nobody else's", () => {
+    // Sam: a quick change (Opening Number → Dance One, Pirate Sketch's 5 minutes between),
+    // then back-to-back Campfire Song → Finale. The quick change comes first in the show.
+    const clashes = findClashes(show, [
+      role("opening-number", "lead", [SAM]),
+      role("dance-one", "lead", [SAM]),
+      role("campfire-song", "lead", [SAM, ALEX]),
+      role("finale", "cameo", [SAM]),
+    ]);
+
+    expect(clashesOfPerson(clashes, SAM).map((clash) => [clash.kind, clash.severity])).toEqual([
+      ["back-to-back", "error"],
+      ["quick-change", "info"],
+    ]);
+    expect(clashesOfPerson(clashes, ALEX)).toEqual([]);
+  });
+});
+
 describe("a person's clashes in an item", () => {
   const clashes = findClashes(show, [
     role("opening-number", "lead", [SAM]),
@@ -235,5 +262,73 @@ describe("a person's clashes in an item", () => {
       ["Error: back-to-back. Lead in 'Opening Number', then Support in 'Pirate Sketch'"],
       ["Error: back-to-back. Lead in 'Opening Number', then Support in 'Pirate Sketch'"],
     ]);
+  });
+});
+
+describe("an item's clashes, for the Items list", () => {
+  // Made-up names only (CLAUDE.md safeguarding).
+  const member = (id: number, firstName: string, lastName: string): CastMember => ({
+    id,
+    firstName,
+    lastName,
+    section: null,
+    group: "",
+    revision: 1,
+  });
+  const cast = [member(SAM, "Sam", "Example"), member(ALEX, "Alex", "Sample")];
+  // Pirate Sketch: Sam's back-to-back error with Opening Number; Alex's back-to-back
+  // warnings with Opening Number and Dance One.
+  const clashes = findClashes(show, [
+    role("opening-number", "lead", [SAM]),
+    role("pirate-sketch", "support", [SAM]),
+    role("opening-number", "ensemble", [ALEX]),
+    role("pirate-sketch", "lead", [ALEX]),
+    role("dance-one", "ensemble", [ALEX]),
+  ]);
+
+  it("are everyone's clashes involving the item, worst first", () => {
+    expect(clashesInItem(clashes, "pirate-sketch").map((clash) => clash.severity)).toEqual([
+      "error",
+      "warning",
+      "warning",
+    ]);
+    expect(clashesInItem(clashes, "finale")).toEqual([]);
+  });
+
+  it("are summed up by severity, then who, by surname", () => {
+    expect(summariseClashes(clashesInItem(clashes, "pirate-sketch"), cast)).toBe(
+      "1 error, 2 warnings: Sam Example, Alex Sample",
+    );
+  });
+
+  it("names people by surname, not in the cast list's order", () => {
+    // Both errors in Pirate Sketch: Alex (listed first) and Zoë Adams.
+    const twoErrors = findClashes(show, [
+      role("opening-number", "lead", [ALEX]),
+      role("pirate-sketch", "support", [ALEX]),
+      role("pirate-sketch", "cameo", [15]),
+      role("dance-one", "lead", [15]),
+    ]);
+    const withZoe = [...cast, member(15, "Zoë", "Adams")];
+
+    expect(summariseClashes(clashesInItem(twoErrors, "pirate-sketch"), withZoe)).toBe(
+      "2 errors: Zoë Adams, Alex Sample",
+    );
+  });
+
+  it("leaves out who when nobody is on the cast list any more", () => {
+    expect(summariseClashes(clashesInItem(clashes, "pirate-sketch"), [])).toBe(
+      "1 error, 2 warnings",
+    );
+  });
+
+  it("count quick changes as info", () => {
+    // Pirate Sketch's 5 minutes between them: a quick change.
+    const quick = findClashes(show, [
+      role("opening-number", "lead", [ALEX]),
+      role("dance-one", "lead", [ALEX]),
+    ]);
+
+    expect(summariseClashes(quick, cast)).toBe("1 info: Alex Sample");
   });
 });
