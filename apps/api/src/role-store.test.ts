@@ -184,3 +184,55 @@ describe.each([
     expect((await store.list("2027")).roles).toHaveLength(1);
   });
 });
+
+describe.each([
+  ["in-memory", () => inMemoryRoleStore([{ productionId: "2027", roles: castRoles() }])],
+  ["file", () => fileRoleStoreWith(castRoles())],
+])("%s role store uncasting a member", (_kind, makeStore) => {
+  beforeEach(async () => {
+    dataDirForNames = await mkdtemp(join(tmpdir(), "role-uncast-"));
+  });
+  afterEach(() => rm(dataDirForNames, { recursive: true, force: true }));
+
+  const castOf = async (store: Awaited<ReturnType<typeof makeStore>>, id: number) =>
+    (await store.list("2027")).roles.find((role) => role.id === id)?.castMemberIds;
+
+  it("takes them out of every role, keeping the roles and everyone else", async () => {
+    const store = await makeStore();
+
+    await store.uncastMember("2027", 12);
+
+    expect(await castOf(store, 1)).toEqual([]);
+    expect(await castOf(store, 2)).toEqual([]);
+    expect(await castOf(store, 3)).toEqual([13]);
+    expect((await store.list("2027")).roles).toHaveLength(4);
+  });
+
+  it("bumps the revision of each role it changes, and only those", async () => {
+    const store = await makeStore();
+
+    await store.uncastMember("2027", 12);
+
+    const revisions = (await store.list("2027")).roles.map((role) => role.revision);
+    expect(revisions).toEqual([2, 2, 2, 1]);
+  });
+});
+
+/** Roles 1 and 2 have only member 12, role 3 is an ensemble of 12 and 13, role 4 has 14. */
+function castRoles(): Role[] {
+  return [
+    aRole(1, { castMemberIds: [12] }),
+    aRole(2, { itemId: "campfire-song", castMemberIds: [12] }),
+    aRole(3, { size: "ensemble", castMemberIds: [12, 13] }),
+    aRole(4, { castMemberIds: [14] }),
+  ];
+}
+
+async function fileRoleStoreWith(roles: Role[]) {
+  await mkdir(join(dataDirForNames, "2027"), { recursive: true });
+  await writeFile(
+    join(dataDirForNames, "2027", "roles.json"),
+    JSON.stringify({ productionId: "2027", roles }),
+  );
+  return fileRoleStore(dataDirForNames);
+}

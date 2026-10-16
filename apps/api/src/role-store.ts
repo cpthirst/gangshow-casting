@@ -12,6 +12,8 @@ export interface RoleStore {
   /** Adds a role to an item, with the next unused id, unless the item already has a role
    *  with that name. */
   add(productionId: string, itemId: string, details: AddRoleRequest): Promise<Role | "name-taken">;
+  /** Takes a cast member out of every role (e.g. they've left the cast). The roles stay. */
+  uncastMember(productionId: string, castMemberId: number): Promise<void>;
 }
 
 // The stored file also remembers the next id, so a removed role's id is never reused.
@@ -34,6 +36,20 @@ function withNewRole(file: RoleFile, itemId: string, details: AddRoleRequest) {
   return { role, file: { ...file, roles: [...file.roles, role], nextId: role.id + 1 } };
 }
 
+/** The file with the member taken out of every role; each role that changes is bumped. */
+function withoutMember(file: RoleFile, castMemberId: number): RoleFile {
+  const roles = file.roles.map((role) =>
+    role.castMemberIds.includes(castMemberId)
+      ? {
+          ...role,
+          castMemberIds: role.castMemberIds.filter((id) => id !== castMemberId),
+          revision: role.revision + 1,
+        }
+      : role,
+  );
+  return { ...file, roles };
+}
+
 export function inMemoryRoleStore(initial: RoleList[] = []): RoleStore {
   const files = new Map<string, RoleFile>(initial.map((list) => [list.productionId, list]));
   const fileOf = (productionId: string) => files.get(productionId) ?? emptyFile(productionId);
@@ -44,6 +60,9 @@ export function inMemoryRoleStore(initial: RoleList[] = []): RoleStore {
       if (added === "name-taken") return added;
       files.set(productionId, added.file);
       return added.role;
+    },
+    async uncastMember(productionId, castMemberId) {
+      files.set(productionId, withoutMember(fileOf(productionId), castMemberId));
     },
   };
 }
@@ -74,6 +93,13 @@ export function fileRoleStore(dataDir: string): RoleStore {
         if (added === "name-taken") return added;
         await write(added.file);
         return added.role;
+      }),
+    uncastMember: (productionId, castMemberId) =>
+      inTurn(async () => {
+        const file = await read(productionId);
+        // Nothing to save if they're in no roles (e.g. no roles file yet).
+        if (!file.roles.some((role) => role.castMemberIds.includes(castMemberId))) return;
+        await write(withoutMember(file, castMemberId));
       }),
   };
 }

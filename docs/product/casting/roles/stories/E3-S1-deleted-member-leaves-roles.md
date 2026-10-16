@@ -2,7 +2,7 @@
 id: casting-roles.E3.S1
 title: Remove a deleted cast member from every role
 epic: E3
-status: ready
+status: done
 ---
 
 ## Story
