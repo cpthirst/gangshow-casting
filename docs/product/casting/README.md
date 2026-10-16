@@ -9,8 +9,9 @@ Putting cast members into roles within the show's items. This is the app's core 
 | `casting-item-overview` | [item-overview/prd.md](item-overview/prd.md) | One item's page: its name, position and roles | casting-items |
 | `casting-roles` | [roles/prd.md](roles/prd.md) | Adding, editing and removing roles, and casting people in them | casting-item-overview, cast-management |
 | `casting-overview` | [overview/prd.md](overview/prd.md) | The whole cast by section, ordered by how much (and how big) their parts are | casting-roles |
+| `casting-rules` | [rules/prd.md](rules/prd.md) | Back-to-back and timing clashes, flagged as errors and warnings on the item, Items and Overview pages; a `pnpm demo` show to try them | casting-overview |
 
-A later PRD (not written yet): **casting rules** (back-to-back appearances, uneven stage time and so on), which add the warning and error icons to the items list.
+A later PRD (not written yet): **uneven stage time**, a further casting rule.
 
 ## Build order
 
