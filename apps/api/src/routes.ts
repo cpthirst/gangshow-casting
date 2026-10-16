@@ -1,11 +1,14 @@
 import { fileURLToPath } from "node:url";
 import { createAddCastMember } from "./add-cast-member.ts";
+import { createAddRole } from "./add-role.ts";
 import { fileCastStore } from "./cast-store.ts";
 import { createDeleteCastMember } from "./delete-cast-member.ts";
 import { createGetCast } from "./get-cast.ts";
+import { createGetRoles } from "./get-roles.ts";
 import { createGetRunningOrder } from "./get-running-order.ts";
 import type { Handler } from "./handler.ts";
 import { handler as health } from "./health.ts";
+import { fileRoleStore } from "./role-store.ts";
 import { fileRunningOrderStore } from "./running-order-store.ts";
 import { createSaveRunningOrder } from "./save-running-order.ts";
 import { createUpdateCastMember } from "./update-cast-member.ts";
@@ -14,6 +17,7 @@ import { createUpdateCastMember } from "./update-cast-member.ts";
 const dataDir = process.env.DATA_DIR ?? fileURLToPath(new URL("../data", import.meta.url));
 const runningOrders = fileRunningOrderStore(dataDir);
 const cast = fileCastStore(dataDir);
+const roles = fileRoleStore(dataDir);
 
 /** One entry per future API Gateway route: "<METHOD> <path>", with {name} path parameters. */
 export const routes: Record<string, Handler> = {
@@ -25,6 +29,8 @@ export const routes: Record<string, Handler> = {
   "POST /api/productions/{productionId}/cast": createAddCastMember(cast),
   "PUT /api/productions/{productionId}/cast/{castId}": createUpdateCastMember(cast),
   "DELETE /api/productions/{productionId}/cast/{castId}": createDeleteCastMember(cast),
+  "GET /api/productions/{productionId}/roles": createGetRoles(roles),
+  "POST /api/productions/{productionId}/items/{itemId}/roles": createAddRole(roles, runningOrders),
 };
 
 /** Finds the handler for a request, as API Gateway would, with any path parameters. */

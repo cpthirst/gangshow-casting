@@ -1,9 +1,9 @@
-import { randomUUID } from "node:crypto";
-import { mkdir, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { CastList, CastMember, type CastMemberDetails, ProductionId } from "@app/shared";
 import { ifExists } from "./files.ts";
 import { parseJson } from "./json.ts";
+import { oneAtATime, writePrivateFile } from "./private-file.ts";
 
 /** Where each production's cast list lives: one mutable document, no history (ADR 0010). */
 export interface CastStore {
@@ -111,30 +111,9 @@ export function fileCastStore(dataDir: string): CastStore {
     return text === undefined ? undefined : parseCastFile(text, productionId);
   }
 
-  // Write the whole file to a temp file, then rename it into place: a crash never
-  // leaves a half-written cast list.
-  async function write(file: CastFile) {
-    const path = fileFor(file.productionId);
-    const temp = join(dirname(path), `.cast-${randomUUID()}.tmp`);
-    await mkdir(dirname(path), { recursive: true });
-    await sweepTempFiles(dirname(path));
-    try {
-      // Owner-only: the file holds children's names.
-      await writeFile(temp, JSON.stringify(CastFile.parse(file), null, 2), { mode: 0o600 });
-      await rename(temp, path);
-    } finally {
-      await rm(temp, { force: true });
-    }
-  }
-
-  // One change at a time, so two simultaneous saves can't overwrite each other. This only
-  // holds within one process (the dev server); a hosted store needs its own guarantee.
-  let queue: Promise<unknown> = Promise.resolve();
-  const oneAtATime = <T>(change: () => Promise<T>): Promise<T> => {
-    const result = queue.then(change);
-    queue = result.catch(() => undefined);
-    return result;
-  };
+  const write = (file: CastFile) =>
+    writePrivateFile(fileFor(file.productionId), JSON.stringify(CastFile.parse(file), null, 2));
+  const inTurn = oneAtATime();
 
   return {
     list: async (productionId) => {
@@ -142,7 +121,7 @@ export function fileCastStore(dataDir: string): CastStore {
       return file && listOf(file);
     },
     add: (productionId, details) =>
-      oneAtATime(async () => {
+      inTurn(async () => {
         const file = await read(productionId);
         if (!file) return undefined;
         const added = withNewMember(file, details);
@@ -150,13 +129,13 @@ export function fileCastStore(dataDir: string): CastStore {
         return added.member;
       }),
     update: (productionId, id, revision, details) =>
-      oneAtATime(async () => {
+      inTurn(async () => {
         const updated = withUpdatedMember(await read(productionId), id, revision, details);
         if (updated.file) await write(updated.file);
         return updated.result;
       }),
     remove: (productionId, id, revision) =>
-      oneAtATime(async () => {
+      inTurn(async () => {
         // The file is rewritten without them: no copy or history is kept (ADR 0010).
         const removed = withoutMember(await read(productionId), id, revision);
         if (removed.file) await write(removed.file);
@@ -173,11 +152,4 @@ function parseCastFile(text: string, productionId: string): CastFile {
     throw new Error(`Cast file for production ${productionId} is invalid`);
   }
   return parsed.data;
-}
-
-// A crash between writing and renaming can leave a temp copy of the list, which may hold
-// someone later deleted. Clear any such leftovers before each save (ADR 0010: no copies).
-async function sweepTempFiles(folder: string) {
-  const leftovers = (await readdir(folder)).filter((name) => /^\.cast-.*\.tmp$/.test(name));
-  await Promise.all(leftovers.map((name) => rm(join(folder, name), { force: true })));
 }

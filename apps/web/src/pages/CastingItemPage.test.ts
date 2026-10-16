@@ -1,8 +1,9 @@
-import type { RunningOrder } from "@app/shared";
+import { AddRoleRequest, type Role, type RunningOrder } from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory } from "vue-router";
 import App from "../App.vue";
+import { ROLES_PATH } from "../roles.ts";
 import { createAppRouter } from "../router.ts";
 import { anItem, aRunningOrder } from "../running-order.fixture.ts";
 
@@ -13,10 +14,30 @@ const show = aRunningOrder(
   [anItem("Campfire Song"), anItem("Mystery Act", { printed: false })],
 );
 
-function savedRunningOrderIs(order: RunningOrder) {
+const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
+
+/** A stand-in API holding one saved running order and the roles added so far. */
+function savedRunningOrderIs(order: RunningOrder, roles: Role[] = []) {
+  const stored = [...roles];
   vi.stubGlobal(
     "fetch",
-    vi.fn(async () => new Response(JSON.stringify(order))),
+    vi.fn(async (url: string, init?: RequestInit) => {
+      if (url === ROLES_PATH) return json({ productionId: "2027", roles: stored });
+      const addTo = /\/items\/([^/]+)\/roles$/.exec(url)?.[1];
+      if (addTo && init?.method === "POST") {
+        const details = AddRoleRequest.parse(JSON.parse(String(init.body)));
+        const role = {
+          ...details,
+          id: stored.length + 1,
+          itemId: addTo,
+          castMemberIds: [],
+          revision: 1,
+        };
+        stored.push(role);
+        return json(role, 201);
+      }
+      return json(order);
+    }),
   );
 }
 
@@ -125,7 +146,11 @@ describe("Casting item page", () => {
   it("shows not found when there's no saved running order at all", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () => new Response(null, { status: 404 })),
+      vi.fn(async (url: string) =>
+        url === ROLES_PATH
+          ? json({ productionId: "2027", roles: [] })
+          : new Response(null, { status: 404 }),
+      ),
     );
     const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
 
@@ -164,5 +189,230 @@ describe("Casting item page", () => {
     const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
 
     expect(wrapper.get("main [role=alert]").text()).toBe("Couldn't load the item.");
+  });
+});
+
+const aRole = (itemId: string, name: string, size: Role["size"] = "lead"): Role => ({
+  id: 1,
+  itemId,
+  name,
+  size,
+  castMemberIds: [],
+  revision: 1,
+});
+
+describe("Adding roles to an item", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.body.innerHTML = "";
+  });
+
+  type Page = Awaited<ReturnType<typeof openAppAt>>["wrapper"];
+
+  /** The error shown next to a field: the one its aria-describedby points at. */
+  const errorFor = (wrapper: Page, field: string) => {
+    const id = wrapper.get(`[name=${field}]`).attributes("aria-describedby");
+    return id ? document.getElementById(id)?.textContent?.trim() : undefined;
+  };
+
+  const rolesShown = (wrapper: Awaited<ReturnType<typeof openAppAt>>["wrapper"]) =>
+    wrapper.findAll("[data-test=role]").map((role) => role.text().replace(/\s+/g, " "));
+
+  async function addRole(
+    wrapper: Awaited<ReturnType<typeof openAppAt>>["wrapper"],
+    name: string,
+    size: string,
+  ) {
+    await wrapper.get("[data-test=add-role]").trigger("click");
+    await wrapper.get("input[name=name]").setValue(name);
+    await wrapper.get("select[name=size]").setValue(size);
+    await wrapper.get("form[aria-label='Add role']").trigger("submit");
+    await flushPromises();
+  }
+
+  it("adds a role with its name and size, replacing the empty state", async () => {
+    savedRunningOrderIs(show);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    await addRole(wrapper, "Captain Hook", "lead");
+
+    expect(rolesShown(wrapper)).toEqual(["Captain Hook Lead"]);
+    expect(wrapper.text()).not.toContain("No roles have been added yet.");
+  });
+
+  it("still lists a role added earlier when the page is opened again", async () => {
+    savedRunningOrderIs(show);
+    const first = await openAppAt("/casting/items/pirate-sketch");
+    await addRole(first.wrapper, "Captain Hook", "lead");
+    first.wrapper.unmount();
+
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    expect(rolesShown(wrapper)).toEqual(["Captain Hook Lead"]);
+  });
+
+  it("keeps added roles when the page is opened again", async () => {
+    savedRunningOrderIs(show, [aRole("pirate-sketch", "Captain Hook")]);
+
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    expect(rolesShown(wrapper)).toEqual(["Captain Hook Lead"]);
+  });
+
+  it("shows only the roles that belong to this item", async () => {
+    savedRunningOrderIs(show, [aRole("pirate-sketch", "Captain Hook")]);
+
+    const { wrapper } = await openAppAt("/casting/items/campfire-song");
+
+    expect(rolesShown(wrapper)).toEqual([]);
+    expect(wrapper.text()).toContain("No roles have been added yet.");
+  });
+
+  it.each([
+    ["empty", ""],
+    ["only spaces", "   "],
+  ])("asks for a role name when it's %s, adding nothing", async (_case, name) => {
+    savedRunningOrderIs(show);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    await addRole(wrapper, name, "lead");
+
+    expect(errorFor(wrapper, "name")).toBe("Enter a role name");
+    expect(rolesShown(wrapper)).toEqual([]);
+  });
+
+  it("refuses a role name over 60 characters, adding nothing", async () => {
+    savedRunningOrderIs(show);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    await addRole(wrapper, "x".repeat(61), "lead");
+
+    expect(errorFor(wrapper, "name")).toBe("Role names can be up to 60 characters");
+    expect(rolesShown(wrapper)).toEqual([]);
+  });
+
+  it("asks for a role size, adding nothing", async () => {
+    savedRunningOrderIs(show);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    await addRole(wrapper, "Captain Hook", "");
+
+    expect(errorFor(wrapper, "size")).toBe("Choose a role size");
+    expect(rolesShown(wrapper)).toEqual([]);
+  });
+
+  it("adds nothing when cancelled", async () => {
+    savedRunningOrderIs(show);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+    await wrapper.get("[data-test=add-role]").trigger("click");
+    await wrapper.get("input[name=name]").setValue("Captain Hook");
+
+    await wrapper.get("[data-test=cancel]").trigger("click");
+    await flushPromises();
+
+    expect(wrapper.find("form[aria-label='Add role']").exists()).toBe(false);
+    expect(rolesShown(wrapper)).toEqual([]);
+  });
+
+  it("reports roles that can't be loaded rather than showing no roles", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) =>
+        url === ROLES_PATH ? new Response(null, { status: 500 }) : json(show),
+      ),
+    );
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    expect(wrapper.get("main [role=alert]").text()).toBe("Couldn't load the item.");
+    expect(wrapper.text()).not.toContain("No roles have been added yet.");
+  });
+
+  it("says when a role couldn't be added, keeping what was typed", async () => {
+    savedRunningOrderIs(show);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+    const fetch = vi.mocked(globalThis.fetch);
+    const answer = fetch.getMockImplementation();
+    fetch.mockImplementation(async (url, init) =>
+      init?.method === "POST"
+        ? new Response(null, { status: 500 })
+        : (answer?.(url, init) ?? json({})),
+    );
+
+    await addRole(wrapper, "Captain Hook", "lead");
+
+    expect(wrapper.get("form [role=alert]").text()).toBe("Couldn't add the role. Try again.");
+    expect(wrapper.get<HTMLInputElement>("input[name=name]").element.value).toBe("Captain Hook");
+  });
+});
+
+describe("Role names within an item", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.body.innerHTML = "";
+  });
+
+  type Page = Awaited<ReturnType<typeof openAppAt>>["wrapper"];
+
+  const nameError = (wrapper: Page) => {
+    const id = wrapper.get("[name=name]").attributes("aria-describedby");
+    return id ? document.getElementById(id)?.textContent?.trim() : undefined;
+  };
+
+  const roleNames = (wrapper: Page) =>
+    wrapper.findAll("[data-test=role] .role-name").map((name) => name.text());
+
+  async function addRole(wrapper: Page, name: string, size = "cameo") {
+    await wrapper.get("[data-test=add-role]").trigger("click");
+    await wrapper.get("input[name=name]").setValue(name);
+    await wrapper.get("select[name=size]").setValue(size);
+    await wrapper.get("form[aria-label='Add role']").trigger("submit");
+    await flushPromises();
+  }
+
+  it("refuses a name the item already has, saying so next to the role name", async () => {
+    savedRunningOrderIs(show, [aRole("pirate-sketch", "Captain Hook")]);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    await addRole(wrapper, "Captain Hook");
+
+    expect(nameError(wrapper)).toBe("Pirate Sketch already has a role called Captain Hook");
+    expect(roleNames(wrapper)).toEqual(["Captain Hook"]);
+  });
+
+  it("treats case and surrounding spaces as the same name", async () => {
+    savedRunningOrderIs(show, [aRole("pirate-sketch", "Captain Hook")]);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    await addRole(wrapper, " captain hook ");
+
+    expect(nameError(wrapper)).toBe("Pirate Sketch already has a role called Captain Hook");
+    expect(roleNames(wrapper)).toEqual(["Captain Hook"]);
+  });
+
+  it("allows the same name in a different item", async () => {
+    savedRunningOrderIs(show, [aRole("pirate-sketch", "Narrator")]);
+    const { wrapper } = await openAppAt("/casting/items/campfire-song");
+
+    await addRole(wrapper, "Narrator", "support");
+
+    expect(roleNames(wrapper)).toEqual(["Narrator"]);
+  });
+
+  it("explains when someone else has just added the same name", async () => {
+    savedRunningOrderIs(show);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+    const fetch = vi.mocked(globalThis.fetch);
+    const answer = fetch.getMockImplementation();
+    fetch.mockImplementation(async (url, init) =>
+      init?.method === "POST"
+        ? json({ error: "name-taken" }, 400)
+        : (answer?.(url, init) ?? json({})),
+    );
+
+    await addRole(wrapper, "Captain Hook");
+
+    expect(wrapper.get("form [role=alert]").text()).toBe(
+      "Pirate Sketch already has a role called Captain Hook",
+    );
   });
 });
