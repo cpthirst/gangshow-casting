@@ -111,6 +111,19 @@ test("an item's Previous and Next share a row, cutting a long title short", asyn
   await expectNoSidewaysScroll(page);
 });
 
+test("an item's long notes wrap on its Items list card and fit the screen", async ({ page }) => {
+  // e2e/data gives the long Pirate Sketch title's item a 500-character note.
+  await page.goto("/casting/items");
+  const notes = page.locator("[data-test=item-notes]");
+
+  await expect(notes).toBeVisible();
+  const lineHeight = await notes
+    .locator("td")
+    .evaluate((cell) => parseFloat(getComputedStyle(cell).lineHeight));
+  expect((await notes.boundingBox())?.height ?? 0).toBeGreaterThan(lineHeight * 3);
+  await expectNoSidewaysScroll(page);
+});
+
 test("the casting overview fits the screen", async ({ page }) => {
   await page.goto("/casting/overview");
   await expect(page.getByRole("heading", { name: /Explorers/ })).toBeVisible();

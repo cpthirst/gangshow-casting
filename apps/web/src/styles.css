@@ -384,11 +384,9 @@ main a {
   touch-action: none;
 }
 
-/* Narrow boxes (phones, tablets, split screens): each item becomes a stacked card with
-   labelled details, so nothing scrolls sideways. Same table underneath, so dragging,
-   move buttons and screen-reader cell labels all still work. */
 /* An item's notes on the Items list: a row of their own straight under the item's, read
-   as part of it (casting-item-overview FR9). */
+   as part of it (casting-item-overview FR9). The line above them is removed by a rule at
+   the end of this file, which has to outrank the table's own cell borders. */
 .running-order td.item-notes-text {
   padding-top: 0;
   font-size: 0.875rem;
@@ -396,14 +394,18 @@ main a {
   overflow-wrap: anywhere;
 }
 
+/* The same "Notes" label as on a phone card, from the cell's data-label. */
 .running-order td.item-notes-text::before {
-  content: "Notes ";
+  content: attr(data-label) " ";
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
+/* Narrow boxes (phones, tablets, split screens): each item becomes a stacked card with
+   labelled details, so nothing scrolls sideways. Same table underneath, so dragging,
+   move buttons and screen-reader cell labels all still work. */
 @container (max-width: 50rem) {
   .running-order,
   .running-order tbody,

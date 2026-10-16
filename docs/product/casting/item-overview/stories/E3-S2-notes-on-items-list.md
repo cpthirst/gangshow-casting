@@ -2,7 +2,7 @@
 id: casting-item-overview.E3.S2
 title: Show an item's notes on the Items list
 epic: E3
-status: in-progress
+status: done
 ---
 
 ## Story
@@ -42,3 +42,4 @@ Then the items still show, with a message that the notes couldn't be loaded
 - FRs: FR9
 - Depends on: casting-item-overview.E3.S1.
 - Added on 2026-10-16 at the user's request.
+- Browser walk (ADR 0011), at the user's go-ahead: a 500-character made-up note wraps on its card at 320 and 360px with no sideways scrolling (AC2, AC4).

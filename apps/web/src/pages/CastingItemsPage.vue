@@ -159,57 +159,57 @@ async function loadRunningOrder() {
           </thead>
           <tbody role="rowgroup">
             <template v-for="{ item, number, counts } in rows" :key="item.id">
-            <tr
-              role="row"
-              data-test="item"
-              :data-item-id="item.id"
-              :class="{ 'not-printed': number === null }"
-            >
-              <td class="moves" data-label="Cast" role="cell">
-                <RouterLink
-                  class="icon-button"
-                  data-test="cast"
-                  :to="{ name: 'casting-item', params: { itemId: item.id } }"
-                  :aria-label="`Cast ${item.title}`"
-                  data-tooltip="Cast this item"
-                >
-                  <FontAwesomeIcon :icon="icons.cast" />
-                </RouterLink>
-              </td>
-              <td data-test="number" class="number" data-label="#" role="cell">
-                <template v-if="number !== null">{{ number }}</template>
-                <span v-else class="badge">Not in printed programme</span>
-              </td>
-              <td class="title" data-label="Item" role="cell">
-                <span data-test="title">{{ item.title }}</span>
-                <ClashIcon :lines="clashLines(item.id)" />
-              </td>
-              <!-- Seen as "Roles 5 · Cast 3", heard as "5 roles, 3 cast". Empty while the
-                   counts are loading or unavailable. -->
-              <td data-test="counts" class="counts" data-label="Roles" role="cell">
-                <template v-if="counts?.total === 0">No roles yet</template>
-                <template v-else-if="counts">
-                  <span aria-hidden="true">Roles {{ counts.total }} · Cast {{ counts.cast }}</span>
-                  <span class="visually-hidden">{{ spokenCounts(counts) }}</span>
-                </template>
-              </td>
-              <!-- Left empty when unknown, so the phone card hides the row. -->
-              <td data-test="minutes" class="minutes" data-label="Mins" role="cell">
-                <template v-if="item.minutes !== null">{{ item.minutes }}</template>
-              </td>
-            </tr>
-            <!-- The item's notes, in full, across the table under its row (FR9). -->
-            <tr
-              v-if="notesOf(item.id)"
-              role="row"
-              class="item-notes-row"
-              :class="{ 'not-printed': number === null }"
-              data-test="item-notes"
-            >
-              <td colspan="5" class="item-notes-text" data-label="Notes" role="cell">
-                {{ notesOf(item.id) }}
-              </td>
-            </tr>
+              <tr
+                role="row"
+                data-test="item"
+                :data-item-id="item.id"
+                :class="{ 'not-printed': number === null }"
+              >
+                <td class="moves" data-label="Cast" role="cell">
+                  <RouterLink
+                    class="icon-button"
+                    data-test="cast"
+                    :to="{ name: 'casting-item', params: { itemId: item.id } }"
+                    :aria-label="`Cast ${item.title}`"
+                    data-tooltip="Cast this item"
+                  >
+                    <FontAwesomeIcon :icon="icons.cast" />
+                  </RouterLink>
+                </td>
+                <td data-test="number" class="number" data-label="#" role="cell">
+                  <template v-if="number !== null">{{ number }}</template>
+                  <span v-else class="badge">Not in printed programme</span>
+                </td>
+                <td class="title" data-label="Item" role="cell">
+                  <span data-test="title">{{ item.title }}</span>
+                  <ClashIcon :lines="clashLines(item.id)" />
+                </td>
+                <!-- Seen as "Roles 5 · Cast 3", heard as "5 roles, 3 cast". Empty while the
+                     counts are loading or unavailable. -->
+                <td data-test="counts" class="counts" data-label="Roles" role="cell">
+                  <template v-if="counts?.total === 0">No roles yet</template>
+                  <template v-else-if="counts">
+                    <span aria-hidden="true">Roles {{ counts.total }} · Cast {{ counts.cast }}</span>
+                    <span class="visually-hidden">{{ spokenCounts(counts) }}</span>
+                  </template>
+                </td>
+                <!-- Left empty when unknown, so the phone card hides the row. -->
+                <td data-test="minutes" class="minutes" data-label="Mins" role="cell">
+                  <template v-if="item.minutes !== null">{{ item.minutes }}</template>
+                </td>
+              </tr>
+              <!-- The item's notes, in full, across the table under its row (FR9). -->
+              <tr
+                v-if="notesOf(item.id)"
+                role="row"
+                class="item-notes-row"
+                :class="{ 'not-printed': number === null }"
+                data-test="item-notes"
+              >
+                <td colspan="5" class="item-notes-text" data-label="Notes" role="cell">
+                  {{ notesOf(item.id) }}
+                </td>
+              </tr>
             </template>
           </tbody>
         </table>
