@@ -83,6 +83,17 @@ body {
   text-transform: uppercase;
 }
 
+/* Stands out on every page, so the demo can't be mistaken for the real show. */
+.demo-label {
+  margin: -1rem 1.5rem 1.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  background: var(--yellow);
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
 .sidebar ul {
   list-style: none;
   margin: 0;
@@ -1173,6 +1184,13 @@ main a {
     font-size: 1.125rem;
   }
 
+  /* Its own line under the wordmark and Menu button. */
+  .demo-label {
+    order: 1;
+    flex-basis: 100%;
+    margin: 0;
+  }
+
   .sidebar nav {
     position: absolute;
     top: 100%;
@@ -1184,6 +1202,7 @@ main a {
   }
 
   .sidebar-footer {
+    order: 2;
     flex-basis: 100%;
     margin: 0;
     padding: 0;

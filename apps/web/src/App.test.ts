@@ -29,6 +29,7 @@ describe("App shell", () => {
   beforeEach(() => vi.stubGlobal("fetch", respondWith(200, { status: "ok", version: "1.2.3" })));
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
     document.body.innerHTML = "";
   });
 
@@ -268,6 +269,23 @@ describe("App shell", () => {
     const { wrapper } = await openAppAt("/cast");
 
     expect(wrapper.text()).toContain("API: ok (1.2.3)");
+  });
+
+  it("labels every page as demo data when serving the demo show", async () => {
+    vi.stubEnv("VITE_DEMO", "true");
+
+    for (const path of ["/", "/cast", "/casting/items", "/casting/overview"]) {
+      const { wrapper } = await openAppAt(path);
+      expect(wrapper.get("[data-test=demo-label]").text()).toContain("Demo data");
+      wrapper.unmount();
+    }
+  });
+
+  it("has no demo label on the real app", async () => {
+    const { wrapper } = await openAppAt("/");
+
+    expect(wrapper.find("[data-test=demo-label]").exists()).toBe(false);
+    expect(wrapper.text()).not.toContain("Demo data");
   });
 
   it("still renders the shell when the API is unreachable", async () => {

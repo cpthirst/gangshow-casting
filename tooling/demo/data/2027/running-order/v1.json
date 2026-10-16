@@ -1,0 +1,222 @@
+{
+  "productionId": "2027",
+  "title": "Gang Show 2027 (demo)",
+  "version": 1,
+  "savedAt": "2026-10-16T09:00:00.000Z",
+  "startTime": "19:00",
+  "intervalMinutes": 20,
+  "halves": [
+    {
+      "id": "first-half",
+      "name": "First half",
+      "items": [
+        {
+          "id": "itm-01",
+          "title": "The Big Opening",
+          "cast": "",
+          "stage": ["full"],
+          "leads": "",
+          "comments": "",
+          "minutes": 6,
+          "printed": true
+        },
+        {
+          "id": "itm-02",
+          "title": "Pirate Sketch",
+          "cast": "",
+          "stage": ["full"],
+          "leads": "",
+          "comments": "",
+          "minutes": 5,
+          "printed": true
+        },
+        {
+          "id": "itm-03",
+          "title": "Woodland Dance",
+          "cast": "",
+          "stage": ["full"],
+          "leads": "",
+          "comments": "",
+          "minutes": 4,
+          "printed": true
+        },
+        {
+          "id": "itm-04",
+          "title": "Campfire Song",
+          "cast": "",
+          "stage": ["full"],
+          "leads": "",
+          "comments": "",
+          "minutes": 3,
+          "printed": true
+        },
+        {
+          "id": "itm-05",
+          "title": "The Lost Map",
+          "cast": "",
+          "stage": ["full"],
+          "leads": "",
+          "comments": "",
+          "minutes": 5,
+          "printed": true
+        },
+        {
+          "id": "itm-06",
+          "title": "Semaphore Shuffle",
+          "cast": "",
+          "stage": ["full"],
+          "leads": "",
+          "comments": "",
+          "minutes": 4,
+          "printed": true
+        },
+        {
+          "id": "itm-07",
+          "title": "Explorers' Rap",
+          "cast": "",
+          "stage": ["full"],
+          "leads": "",
+          "comments": "",
+          "minutes": 3,
+          "printed": true
+        },
+        {
+          "id": "itm-08",
+          "title": "Knots and Crosses",
+          "cast": "",
+          "stage": ["full"],
+          "leads": "",
+          "comments": "",
+          "minutes": 5,
+          "printed": true
+        },
+        {
+          "id": "itm-09",
+          "title": "Lantern Song",
+          "cast": "",
+          "stage": ["full"],
+          "leads": "",
+          "comments": "",
+          "minutes": 4,
+          "printed": true
+        },
+        {
+          "id": "itm-10",
+          "title": "First Half Finale",
+          "cast": "",
+          "stage": ["full"],
+          "leads": "",
+          "comments": "",
+          "minutes": 6,
+          "printed": true
+        }
+      ]
+    },
+    {
+      "id": "second-half",
+      "name": "Second half",
+      "items": [
+        {
+          "id": "itm-11",
+          "title": "Entr'acte",
+          "cast": "",
+          "stage": ["full"],
+          "leads": "",
+          "comments": "",
+          "minutes": 4,
+          "printed": false
+        },
+        {
+          "id": "itm-12",
+          "title": "Space Scouts",
+          "cast": "",
+          "stage": ["full"],
+          "leads": "",
+          "comments": "",
+          "minutes": 6,
+          "printed": true
+        },
+        {
+          "id": "itm-13",
+          "title": "Tent Trouble",
+          "cast": "",
+          "stage": ["full"],
+          "leads": "",
+          "comments": "",
+          "minutes": 5,
+          "printed": true
+        },
+        {
+          "id": "itm-14",
+          "title": "Rainy Day Blues",
+          "cast": "",
+          "stage": ["full"],
+          "leads": "",
+          "comments": "",
+          "minutes": 3,
+          "printed": true
+        },
+        {
+          "id": "itm-15",
+          "title": "Network News",
+          "cast": "",
+          "stage": ["full"],
+          "leads": "",
+          "comments": "",
+          "minutes": 4,
+          "printed": true
+        },
+        {
+          "id": "itm-16",
+          "title": "Badge Bonanza",
+          "cast": "",
+          "stage": ["full"],
+          "leads": "",
+          "comments": "",
+          "minutes": 5,
+          "printed": true
+        },
+        {
+          "id": "itm-17",
+          "title": "Night Hike",
+          "cast": "",
+          "stage": ["full"],
+          "leads": "",
+          "comments": "",
+          "minutes": 3,
+          "printed": true
+        },
+        {
+          "id": "itm-18",
+          "title": "Wide Game",
+          "cast": "",
+          "stage": ["full"],
+          "leads": "",
+          "comments": "",
+          "minutes": 6,
+          "printed": true
+        },
+        {
+          "id": "itm-19",
+          "title": "Thank You Leaders",
+          "cast": "",
+          "stage": ["full"],
+          "leads": "",
+          "comments": "",
+          "minutes": 3,
+          "printed": true
+        },
+        {
+          "id": "itm-20",
+          "title": "Grand Finale",
+          "cast": "",
+          "stage": ["full"],
+          "leads": "",
+          "comments": "",
+          "minutes": 7,
+          "printed": true
+        }
+      ]
+    }
+  ]
+}

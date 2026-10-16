@@ -18,7 +18,7 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [casting-rules.E1.S1](stories/E1-S1-demo-show.md) | `pnpm demo` serves the app on a fresh copy of a committed, made-up full show, set up with every kind of clash, on its own ports beside `pnpm dev`, labelled "Demo data" on every page | NFR (demo data) | (none) | ready |
+| [casting-rules.E1.S1](stories/E1-S1-demo-show.md) | `pnpm demo` serves the app on a fresh copy of a committed, made-up full show, set up with every kind of clash, on its own ports beside `pnpm dev`, labelled "Demo data" on every page | NFR (demo data) | (none) | in-progress |
 
 ## E2: See clashes on an item's page
 

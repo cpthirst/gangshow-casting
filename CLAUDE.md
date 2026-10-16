@@ -20,6 +20,7 @@ A casting tool for the **Chester Gang Show** production team: it shows which Sco
 pnpm install                     # Node 26, pnpm 12
 pnpm dev                         # web (vite :5173) + api dev server (:3000); vite proxies /api
 pnpm check                       # lint + typecheck + test + cdk synth — the definition of done
+pnpm demo                        # the app on a made-up demo show (:5190), fresh each start; see tooling/demo
 pnpm format                      # biome autofix (format + lint + import order)
 pnpm lint:docs                   # validate story structure (part of check)
 pnpm test:e2e                    # browser layout tests at phone widths (CI job, not in check)

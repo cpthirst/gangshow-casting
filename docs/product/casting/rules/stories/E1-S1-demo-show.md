@@ -2,7 +2,7 @@
 id: casting-rules.E1.S1
 title: Serve the app on a demo show
 epic: E1
-status: ready
+status: in-progress
 ---
 
 ## Story

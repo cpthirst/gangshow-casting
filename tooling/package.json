@@ -5,5 +5,8 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run"
+  },
+  "devDependencies": {
+    "@app/shared": "workspace:*"
   }
 }
