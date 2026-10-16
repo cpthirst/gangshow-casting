@@ -281,6 +281,27 @@ describe("an item's clashes, for the Items list", () => {
     );
   });
 
+  it("names people by surname, not in the cast list's order", () => {
+    // Both errors in Pirate Sketch: Alex (listed first) and Zoë Adams.
+    const twoErrors = findClashes(show, [
+      role("opening-number", "lead", [ALEX]),
+      role("pirate-sketch", "support", [ALEX]),
+      role("pirate-sketch", "cameo", [15]),
+      role("dance-one", "lead", [15]),
+    ]);
+    const withZoe = [...cast, member(15, "Zoë", "Adams")];
+
+    expect(summariseClashes(clashesInItem(twoErrors, "pirate-sketch"), withZoe)).toBe(
+      "2 errors: Zoë Adams, Alex Sample",
+    );
+  });
+
+  it("leaves out who when nobody is on the cast list any more", () => {
+    expect(summariseClashes(clashesInItem(clashes, "pirate-sketch"), [])).toBe(
+      "1 error, 2 warnings",
+    );
+  });
+
   it("count quick changes as info", () => {
     // Pirate Sketch's 5 minutes between them: a quick change.
     const quick = findClashes(show, [

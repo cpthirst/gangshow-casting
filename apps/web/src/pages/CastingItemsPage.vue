@@ -32,6 +32,7 @@ const clashes = computed(() =>
 function clashLines(itemId: string) {
   const theirs = clashesInItem(clashes.value, itemId);
   const [worst] = theirs;
+  // There are clashes only once the cast has loaded; checked again to name them.
   if (!worst || !Array.isArray(cast.value)) return [];
   return [{ severity: worst.severity, text: summariseClashes(theirs, cast.value) }];
 }

@@ -177,7 +177,8 @@ export function summariseClashes(clashes: Clash[], cast: CastMember[]) {
   const who = sortCast(cast.filter((member) => ids.has(member.id)))
     .map((member) => `${member.firstName} ${member.lastName}`)
     .join(", ");
-  return `${counts.join(", ")}: ${who}`;
+  // Someone since removed from the cast has no name to give.
+  return who ? `${counts.join(", ")}: ${who}` : counts.join(", ");
 }
 
 /** One line of a clash icon's description, with the severity that styles it. */
