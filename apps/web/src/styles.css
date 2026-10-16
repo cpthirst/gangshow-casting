@@ -946,10 +946,13 @@ main a {
 
 /* Stepping nav above a page's title (an item's page for now): All items on the left, and
    the previous and next items in show order on the right, so the team can step through
-   the show. On phones, All items gets its own row. */
+   the show. Previous and Next have fixed columns, so they stay put from item to item
+   whatever the titles' lengths, or when one is missing. On phones, All items gets its
+   own row. */
 .step-nav {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  /* All items keeps its width; on narrow screens Previous and Next give way instead. */
+  grid-template-columns: minmax(max-content, 1fr) repeat(2, minmax(0, 11rem));
   align-items: center;
   gap: 0.25rem 1.5rem;
   margin-bottom: 0.25rem;
@@ -966,8 +969,9 @@ main a {
   display: inline-flex;
   gap: 0.375rem;
   align-items: center;
-  margin-right: auto;
+  justify-self: start;
   padding: 0.25rem 0;
+  white-space: nowrap;
   text-decoration: none;
 }
 
@@ -981,19 +985,18 @@ main a {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  max-width: 16rem;
   padding: 0.25rem 0;
   text-decoration: none;
 }
 
-.step-next {
-  align-items: flex-end;
-  text-align: right;
+.step-previous {
+  grid-column: 2;
 }
 
-/* On the first item, Next still sits at the right. */
-.back-link + .step-next {
-  margin-left: auto;
+.step-next {
+  grid-column: 3;
+  align-items: flex-end;
+  text-align: right;
 }
 
 .step-label {
@@ -1322,14 +1325,25 @@ main a {
     min-height: 2.75rem;
   }
 
+  /* All items on its own row; Previous and Next share the row below, half each. */
+  .step-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .step-nav .back-link {
-    flex-basis: 100%;
+    grid-column: 1 / -1;
+  }
+
+  .step-previous {
+    grid-column: 1;
+  }
+
+  .step-next {
+    grid-column: 2;
   }
 
   .step-link {
-    flex: 1 1 0;
     justify-content: center;
-    max-width: none;
   }
 
   /* Its own line under the wordmark and Menu button. */
