@@ -1,4 +1,4 @@
-import { AddRoleRequest, type RoleSize, sameRoleName } from "@app/shared";
+import { AddRoleRequest, type Role, RoleSize, sameRoleName } from "@app/shared";
 
 // Only one production for now (see docs/product/running-order/prd.md).
 const PRODUCTION_ID = "2027";
@@ -18,6 +18,18 @@ const sizeLabels: Record<RoleSize, string> = {
 };
 
 export const roleSizeLabel = (size: RoleSize) => sizeLabels[size];
+
+// RoleSize is declared biggest first (packages/shared), so its order is the ranking.
+const sizeRank = (size: RoleSize) => RoleSize.options.indexOf(size);
+
+/** An item's roles in reading order: biggest first (lead → ensemble), then by name,
+ *  ignoring case (PRD FR4). Returns a new array. */
+export const sortRoles = (roles: Role[]) =>
+  [...roles].sort(
+    (a, b) =>
+      sizeRank(a.size) - sizeRank(b.size) ||
+      a.name.localeCompare(b.name, "en", { sensitivity: "base" }),
+  );
 
 /** The add-role form's fields, as typed. A blank size means none chosen yet. */
 export interface RoleForm {

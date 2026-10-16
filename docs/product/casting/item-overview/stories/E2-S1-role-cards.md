@@ -2,7 +2,7 @@
 id: casting-item-overview.E2.S1
 title: Show an item's roles as ordered cards
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story

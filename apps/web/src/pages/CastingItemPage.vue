@@ -2,7 +2,7 @@
 import { AddRoleRefusal, type AddRoleRequest, Role, RoleList, RunningOrder } from "@app/shared";
 import { computed, nextTick, onMounted, ref, watchEffect } from "vue";
 import { useRoute } from "vue-router";
-import { addRolePath, nameTakenMessage, ROLES_PATH, roleSizeLabel } from "../roles.ts";
+import { addRolePath, nameTakenMessage, ROLES_PATH, roleSizeLabel, sortRoles } from "../roles.ts";
 import { showPageTitle } from "../router.ts";
 import { placeOf, RUNNING_ORDER_PATH } from "../running-order.ts";
 import RoleForm from "./RoleForm.vue";
@@ -18,7 +18,7 @@ const place = computed(() => {
 });
 
 const itemRoles = computed(() =>
-  roles.value.filter((role) => role.itemId === place.value?.item.id),
+  sortRoles(roles.value.filter((role) => role.itemId === place.value?.item.id)),
 );
 
 // A new role can't repeat a name the item already has (PRD FR3).
@@ -145,12 +145,20 @@ async function postRole(itemId: string, details: AddRoleRequest) {
       @save="add"
       @cancel="stopAdding"
     />
-    <ul v-if="itemRoles.length > 0" class="roles">
-      <li v-for="role in itemRoles" :key="role.id" data-test="role">
+    <!-- An explicit list role: Safari drops list semantics once bullets are styled away,
+         and the count of roles should be announced (AC6). -->
+    <ul v-if="itemRoles.length > 0" class="role-cards" role="list" aria-label="Roles">
+      <li v-for="role in itemRoles" :key="role.id" class="role-card" data-test="role">
         <span class="role-name">{{ role.name }}</span>
-        <!-- A real space, so it reads "Captain Hook Lead" rather than "Captain HookLead". -->
+        <!-- Real spaces, so a screen reader hears "Captain Hook Lead Uncast", not one word. -->
         {{ " " }}
-        <span class="role-size">{{ roleSizeLabel(role.size) }}</span>
+        <span :class="['pill', `pill-${role.size}`]" data-test="size">{{
+          roleSizeLabel(role.size)
+        }}</span>
+        <template v-if="role.castMemberIds.length === 0">
+          {{ " " }}
+          <span class="uncast" data-test="uncast">Uncast</span>
+        </template>
       </li>
     </ul>
     <p v-else>No roles have been added yet.</p>
