@@ -1,6 +1,13 @@
-import type { Role, RoleSize } from "@app/shared";
+import type { CastMember, Role, RoleSize } from "@app/shared";
 import { describe, expect, it } from "vitest";
-import { type Clash, clashesOf, describeClash, findClashes } from "./clashes.ts";
+import {
+  type Clash,
+  clashesInItem,
+  clashesOf,
+  describeClash,
+  findClashes,
+  summariseClashes,
+} from "./clashes.ts";
 import { anItem, aRunningOrder } from "./running-order.fixture.ts";
 
 // First half: Opening Number, Pirate Sketch, Dance One. Second half: Campfire Song, Finale.
@@ -235,5 +242,52 @@ describe("a person's clashes in an item", () => {
       ["Error: back-to-back. Lead in 'Opening Number', then Support in 'Pirate Sketch'"],
       ["Error: back-to-back. Lead in 'Opening Number', then Support in 'Pirate Sketch'"],
     ]);
+  });
+});
+
+describe("an item's clashes, for the Items list", () => {
+  // Made-up names only (CLAUDE.md safeguarding).
+  const member = (id: number, firstName: string, lastName: string): CastMember => ({
+    id,
+    firstName,
+    lastName,
+    section: null,
+    group: "",
+    revision: 1,
+  });
+  const cast = [member(SAM, "Sam", "Example"), member(ALEX, "Alex", "Sample")];
+  // Pirate Sketch: Sam's back-to-back error with Opening Number; Alex's back-to-back
+  // warnings with Opening Number and Dance One.
+  const clashes = findClashes(show, [
+    role("opening-number", "lead", [SAM]),
+    role("pirate-sketch", "support", [SAM]),
+    role("opening-number", "ensemble", [ALEX]),
+    role("pirate-sketch", "lead", [ALEX]),
+    role("dance-one", "ensemble", [ALEX]),
+  ]);
+
+  it("are everyone's clashes involving the item, worst first", () => {
+    expect(clashesInItem(clashes, "pirate-sketch").map((clash) => clash.severity)).toEqual([
+      "error",
+      "warning",
+      "warning",
+    ]);
+    expect(clashesInItem(clashes, "finale")).toEqual([]);
+  });
+
+  it("are summed up by severity, then who, by surname", () => {
+    expect(summariseClashes(clashesInItem(clashes, "pirate-sketch"), cast)).toBe(
+      "1 error, 2 warnings: Sam Example, Alex Sample",
+    );
+  });
+
+  it("count quick changes as info", () => {
+    // Pirate Sketch's 5 minutes between them: a quick change.
+    const quick = findClashes(show, [
+      role("opening-number", "lead", [ALEX]),
+      role("dance-one", "lead", [ALEX]),
+    ]);
+
+    expect(summariseClashes(quick, cast)).toBe("1 info: Alex Sample");
   });
 });

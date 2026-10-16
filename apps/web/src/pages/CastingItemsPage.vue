@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import { type Role, RoleList, RunningOrder } from "@app/shared";
+import { CastList, type CastMember, type Role, RoleList, RunningOrder } from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, onMounted, ref } from "vue";
+import ClashIcon from "../ClashIcon.vue";
+import { CAST_PATH } from "../cast.ts";
+import { clashesInItem, findClashes, summariseClashes } from "../clashes.ts";
 import { icons } from "../icons.ts";
 import { ROLES_PATH, roleCounts, spokenCounts } from "../roles.ts";
 import { RUNNING_ORDER_PATH, runningClock } from "../running-order.ts";
@@ -15,6 +18,23 @@ type State =
 const state = ref<State>({ status: "loading" });
 // Loaded separately: if the roles fail, the items still show, just without counts.
 const roles = ref<Role[] | "error">();
+// Only needed to name who clashes; if it fails, the counts still show.
+const cast = ref<CastMember[] | "error">();
+
+// Clashes need the order and the roles, and the cast to say who (casting-rules FR8, FR13).
+const clashes = computed(() =>
+  state.value.status === "loaded" && Array.isArray(roles.value) && Array.isArray(cast.value)
+    ? findClashes(state.value.order, roles.value)
+    : [],
+);
+
+/** An item's clashes as one summed-up line, for its icon. */
+function clashLines(itemId: string) {
+  const theirs = clashesInItem(clashes.value, itemId);
+  const [worst] = theirs;
+  if (!worst || !Array.isArray(cast.value)) return [];
+  return [{ severity: worst.severity, text: summariseClashes(theirs, cast.value) }];
+}
 
 // Numbers come from the running clock, so they always match the Running order page. Each
 // row also carries its role counts: undefined while the roles are loading or unavailable.
@@ -30,7 +50,22 @@ const halves = computed(() => {
   }));
 });
 
-onMounted(() => Promise.all([loadRunningOrder(), loadRoles()]));
+onMounted(() => Promise.all([loadRunningOrder(), loadRoles(), loadCast()]));
+
+async function loadCast() {
+  try {
+    const res = await fetch(CAST_PATH);
+    // No cast list yet just means nobody can clash.
+    if (res.status === 404) {
+      cast.value = [];
+      return;
+    }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    cast.value = CastList.parse(await res.json()).members;
+  } catch {
+    cast.value = "error";
+  }
+}
 
 async function loadRoles() {
   try {
@@ -71,6 +106,9 @@ async function loadRunningOrder() {
   <template v-else-if="state.status === 'loaded'">
     <p class="based-on" data-test="version">Based on Draft {{ state.order.version }}</p>
     <p v-if="roles === 'error'" class="notice" role="alert">Couldn't load the role counts.</p>
+    <p v-else-if="cast === 'error'" class="notice" role="alert">
+      Couldn't check the casting for clashes.
+    </p>
     <section v-for="{ half, rows } in halves" :key="half.id" class="half" :aria-labelledby="half.id">
       <h2 :id="half.id">{{ half.name }}</h2>
       <div class="table-scroll" tabindex="0" role="region" :aria-label="`${half.name} items`">
@@ -108,7 +146,10 @@ async function loadRunningOrder() {
                 <template v-if="number !== null">{{ number }}</template>
                 <span v-else class="badge">Not in printed programme</span>
               </td>
-              <td data-test="title" class="title" data-label="Item" role="cell">{{ item.title }}</td>
+              <td class="title" data-label="Item" role="cell">
+                <span data-test="title">{{ item.title }}</span>
+                <ClashIcon :lines="clashLines(item.id)" />
+              </td>
               <!-- Seen as "Roles 5 · Cast 3", heard as "5 roles, 3 cast". Empty while the
                    counts are loading or unavailable. -->
               <td data-test="counts" class="counts" data-label="Roles" role="cell">

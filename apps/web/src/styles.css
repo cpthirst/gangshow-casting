@@ -1139,6 +1139,13 @@ main a {
   display: block;
 }
 
+/* A table's box scrolls sideways when it has to, which also cuts off anything hanging below
+   it, so on a table's last row the description opens upwards. */
+tr:last-child .clash-description {
+  top: auto;
+  bottom: calc(100% + 0.375rem);
+}
+
 .clash-line {
   display: block;
 }

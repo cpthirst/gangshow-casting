@@ -13,7 +13,7 @@ import { computed, nextTick, onMounted, ref, watchEffect } from "vue";
 import { useRoute } from "vue-router";
 import ClashIcon from "../ClashIcon.vue";
 import { CAST_PATH, sortCast } from "../cast.ts";
-import { clashesOf, findClashes } from "../clashes.ts";
+import { clashesOf, describeEach, findClashes } from "../clashes.ts";
 import { icons } from "../icons.ts";
 import {
   addRolePath,
@@ -51,7 +51,7 @@ const place = computed(() => {
 const clashes = computed(() => (order.value ? findClashes(order.value, roles.value) : []));
 
 const clashesHere = (member: CastMember, itemId: string) =>
-  clashesOf(clashes.value, member.id, itemId);
+  describeEach(clashesOf(clashes.value, member.id, itemId));
 
 const itemRoles = computed(() =>
   sortRoles(roles.value.filter((role) => role.itemId === place.value?.item.id)),
@@ -390,7 +390,7 @@ async function postRole(itemId: string, details: AddRoleRequest) {
                 ><span class="cast-name" data-test="cast-name"
                   >{{ fullName(member)
                   }}<ClashIcon
-                    :clashes="clashesHere(member, place.item.id)" /></span
+                    :lines="clashesHere(member, place.item.id)" /></span
               ></template>
             </span>
           </template>
