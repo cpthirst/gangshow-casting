@@ -2,7 +2,7 @@
 id: casting-overview.E2.S1
 title: Show each person's parts as role-size pills
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story

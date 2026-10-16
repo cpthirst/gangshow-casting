@@ -1,10 +1,13 @@
-import type { CastMember } from "@app/shared";
+import type { CastMember, Role, RunningOrder } from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory } from "vue-router";
 import App from "../App.vue";
 import { CAST_PATH } from "../cast.ts";
+import { ROLES_PATH } from "../roles.ts";
 import { createAppRouter } from "../router.ts";
+import { anItem, aRunningOrder } from "../running-order.fixture.ts";
+import { RUNNING_ORDER_PATH } from "../running-order.ts";
 
 enableAutoUnmount(afterEach);
 
@@ -171,5 +174,163 @@ describe("Casting overview page", () => {
 
     expect(wrapper.get("main").text()).not.toContain("Coming soon");
     expect(wrapper.get("main h1").text()).toBe("Overview");
+  });
+});
+
+describe("Casting overview parts", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.body.innerHTML = "";
+  });
+
+  const show = aRunningOrder([anItem("Pirate Sketch")], [anItem("Campfire Song")]);
+  let roleId = 1;
+  const role = (itemId: string, size: Role["size"], castMemberIds: number[]): Role => ({
+    id: roleId,
+    itemId,
+    name: `Role ${roleId++}`,
+    size,
+    castMemberIds,
+    revision: 1,
+  });
+
+  /** A stand-in API: the cast, the roles and the saved running order. A path given as
+   *  `status` answers with that status instead (e.g. a 500, or 404 for no running order). */
+  function theShowIs(
+    members: CastMember[],
+    roles: Role[],
+    { order = show, status = {} }: { order?: RunningOrder; status?: Record<string, number> } = {},
+  ) {
+    const answers: Record<string, unknown> = {
+      [CAST_PATH]: { productionId: "2027", members },
+      [ROLES_PATH]: { productionId: "2027", roles },
+      [RUNNING_ORDER_PATH]: order,
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        const code = status[url];
+        if (code) return new Response(null, { status: code });
+        if (url in answers) return new Response(JSON.stringify(answers[url]));
+        // Anything else (the shell's health check) is fine.
+        return new Response(JSON.stringify({ status: "ok", version: "dev" }));
+      }),
+    );
+  }
+
+  const cardFor = (wrapper: VueWrapper, name: string) =>
+    wrapper.findAll("[data-test=person]").find((card) => card.get(".person-name").text() === name);
+  const pills = (wrapper: VueWrapper, name: string) =>
+    cardFor(wrapper, name)
+      ?.findAll("[data-test=size]")
+      .map((pill) => pill.text().replace(/\s+/g, " "));
+
+  it("shows a pill per role size, with a count", async () => {
+    const sam = person("Sam", "Example", "scouts");
+    theShowIs(
+      [sam],
+      [
+        role("pirate-sketch", "lead", [sam.id]),
+        role("pirate-sketch", "ensemble", [sam.id]),
+        role("campfire-song", "ensemble", [sam.id]),
+        role("campfire-song", "ensemble", [sam.id]),
+      ],
+    );
+
+    const wrapper = await openOverview();
+
+    expect(pills(wrapper, "Sam Example")).toEqual(["Lead ×1", "Ensemble ×3"]);
+  });
+
+  it("uses the role cards' pills, biggest size first", async () => {
+    const alex = person("Alex", "Sample", "explorers");
+    theShowIs(
+      [alex],
+      [
+        role("pirate-sketch", "cameo", [alex.id]),
+        role("pirate-sketch", "lead", [alex.id]),
+        role("campfire-song", "support", [alex.id]),
+      ],
+    );
+
+    const wrapper = await openOverview();
+
+    expect(pills(wrapper, "Alex Sample")).toEqual(["Lead ×1", "Support ×1", "Cameo ×1"]);
+    const classes = cardFor(wrapper, "Alex Sample")
+      ?.findAll("[data-test=size]")
+      .map((pill) => pill.classes().join(" "));
+    expect(classes).toEqual(["pill pill-lead", "pill pill-support", "pill pill-cameo"]);
+  });
+
+  it("only shows pills for sizes they have", async () => {
+    const sam = person("Sam", "Example", "scouts");
+    theShowIs([sam], [role("pirate-sketch", "lead", [sam.id])]);
+
+    const wrapper = await openOverview();
+
+    expect(pills(wrapper, "Sam Example")).toEqual(["Lead ×1"]);
+  });
+
+  it("marks someone in no roles, like Uncast on a role card", async () => {
+    theShowIs([person("Jo", "Newcomer", null)], []);
+
+    const wrapper = await openOverview();
+
+    const marker = cardFor(wrapper, "Jo Newcomer")?.get("[data-test=no-parts]");
+    expect(marker?.text()).toBe("No parts yet");
+    expect(marker?.classes()).toContain("uncast");
+  });
+
+  it("only counts roles in the saved running order", async () => {
+    const sam = person("Sam", "Example", "scouts");
+    theShowIs([sam], [role("cut-item", "lead", [sam.id])]);
+
+    const wrapper = await openOverview();
+
+    expect(pills(wrapper, "Sam Example")).toEqual([]);
+    expect(cardFor(wrapper, "Sam Example")?.text()).toContain("No parts yet");
+  });
+
+  it("reads the pills out in words", async () => {
+    const sam = person("Sam", "Example", "scouts");
+    theShowIs(
+      [sam],
+      [
+        role("pirate-sketch", "lead", [sam.id]),
+        role("pirate-sketch", "ensemble", [sam.id]),
+        role("campfire-song", "ensemble", [sam.id]),
+        role("campfire-song", "ensemble", [sam.id]),
+      ],
+    );
+
+    const wrapper = await openOverview();
+
+    const card = cardFor(wrapper, "Sam Example");
+    expect(card?.get(".visually-hidden").text()).toBe("1 lead, 3 ensemble");
+    expect(card?.get(".person-parts").attributes("aria-hidden")).toBe("true");
+  });
+
+  it.each([
+    ["the roles", ROLES_PATH],
+    ["the running order", RUNNING_ORDER_PATH],
+  ])("reports %s failing to load rather than showing no parts", async (_case, failing) => {
+    theShowIs([person("Sam", "Example", "scouts")], [], { status: { [failing]: 500 } });
+
+    const wrapper = await openOverview();
+
+    expect(wrapper.get("main [role=alert]").text()).toBe("Couldn't load the casting.");
+    expect(wrapper.text()).not.toContain("No parts yet");
+  });
+
+  it("marks everyone as having no parts when there's no saved running order yet", async () => {
+    const sam = person("Sam", "Example", "scouts");
+    theShowIs([sam], [role("pirate-sketch", "lead", [sam.id])], {
+      status: { [RUNNING_ORDER_PATH]: 404 },
+    });
+
+    const wrapper = await openOverview();
+
+    expect(cardFor(wrapper, "Sam Example")?.text()).toContain("No parts yet");
+    expect(wrapper.find("main [role=alert]").exists()).toBe(false);
   });
 });

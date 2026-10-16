@@ -1018,6 +1018,13 @@ main a {
   font-weight: 700;
 }
 
+/* A person's pills on the Overview, together after their name like on a role card. */
+.person-parts {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
 /* Casting overview: each section heading also says how many people are in it. */
 .section-count {
   font-size: 0.875rem;

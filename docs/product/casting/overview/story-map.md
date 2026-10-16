@@ -23,7 +23,7 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [casting-overview.E2.S1](stories/E2-S1-role-size-pills.md) | Each person shows a pill per role size with a count, or "No parts yet"; counts only roles in the saved running order | FR2, FR5 (marking), FR6, FR7 | E1.S1 | ready |
+| [casting-overview.E2.S1](stories/E2-S1-role-size-pills.md) | Each person shows a pill per role size with a count, or "No parts yet"; counts only roles in the saved running order | FR2, FR5 (marking), FR6, FR7 | E1.S1 | done |
 | [casting-overview.E2.S2](stories/E2-S2-order-by-casting-score.md) | Order each section by casting score (lead 8, support 3, cameo 2, ensemble 1), then total roles, then name; no parts at the bottom | FR3, FR4, FR5 (ordering) | E2.S1 | ready |
 
 ## FR coverage
