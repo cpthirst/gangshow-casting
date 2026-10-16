@@ -1,7 +1,8 @@
 import { type Role, RoleSize, type RunningOrder } from "@app/shared";
 import { roleSizeLabel } from "./roles.ts";
 
-/** How serious a clash is, most serious first (casting-rules FR11). */
+/** How serious a clash can be (casting-rules FR11). Most serious first: `rank` relies on
+ *  this order. */
 const SEVERITIES = ["error", "warning", "info"] as const;
 export type Severity = (typeof SEVERITIES)[number];
 
@@ -79,7 +80,7 @@ export function findClashes(order: RunningOrder, roles: Role[]): Clash[] {
         castMemberId,
         kind: "back-to-back",
         // An ensemble's costume and entrances are more flexible (FR3).
-        severity: first.part === "ensemble" || second.part === "ensemble" ? "warning" : "error",
+        severity: involvesEnsemble(first, second) ? "warning" : "error",
         first: appearance(first),
         second: appearance(second),
       });
@@ -87,6 +88,9 @@ export function findClashes(order: RunningOrder, roles: Role[]): Clash[] {
   }
   return clashes;
 }
+
+const involvesEnsemble = (first: Slot, second: Slot) =>
+  first.part === "ensemble" || second.part === "ensemble";
 
 const appearance = ({ itemId, title, part }: Slot): Appearance => ({ itemId, title, part });
 
@@ -100,10 +104,11 @@ export const clashesOf = (clashes: Clash[], castMemberId: number, itemId: string
         clash.castMemberId === castMemberId &&
         (clash.first.itemId === itemId || clash.second.itemId === itemId),
     )
+    // A stable sort: clashes of the same severity stay in running order.
     .sort((a, b) => rank(a.severity) - rank(b.severity));
 
-/** What a clash means, seen from one of its items (plain text, never HTML): "Error: back-to-back. Also Lead in
- *  'Opening Number', straight before this item" (casting-rules FR7). */
+/** What a clash means, seen from one of its items, as plain text (never HTML). For example
+ *  "Error: back-to-back. Also Lead in 'Opening Number', straight before this item" (FR7). */
 export function describeClash(clash: Clash, itemId: string) {
   const isFirst = clash.first.itemId === itemId;
   const other = isFirst ? clash.second : clash.first;

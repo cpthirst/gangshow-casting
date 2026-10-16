@@ -1083,6 +1083,11 @@ main a {
   display: block;
 }
 
+/* A little room between someone's clashes, so each is easy to pick out. */
+.clash-line + .clash-line {
+  margin-top: 0.25rem;
+}
+
 /* No hover on phones and touch tablets, so a clash's description is always written out
    under the name. */
 @media (max-width: 767px), (hover: none) {
