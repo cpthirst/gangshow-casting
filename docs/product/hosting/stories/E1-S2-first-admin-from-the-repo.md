@@ -2,7 +2,7 @@
 id: hosting.E1.S2
 title: Create or restore an admin account from the repo
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story

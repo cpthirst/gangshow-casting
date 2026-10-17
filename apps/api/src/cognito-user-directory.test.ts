@@ -1,0 +1,97 @@
+import {
+  AdminAddUserToGroupCommand,
+  AdminCreateUserCommand,
+  AdminDisableUserCommand,
+  AdminEnableUserCommand,
+  AdminGetUserCommand,
+  AdminListGroupsForUserCommand,
+  AdminRemoveUserFromGroupCommand,
+  AdminSetUserPasswordCommand,
+  AdminUserGlobalSignOutCommand,
+  CognitoIdentityProviderClient,
+  UserNotFoundException,
+} from "@aws-sdk/client-cognito-identity-provider";
+import { mockClient } from "aws-sdk-client-mock";
+import { beforeEach, describe, expect, it } from "vitest";
+import { cognitoClientFor, cognitoUserDirectory } from "./cognito-user-directory.ts";
+
+const POOL = "eu-west-2_madeup";
+const cognito = mockClient(CognitoIdentityProviderClient);
+const directory = () =>
+  cognitoUserDirectory(new CognitoIdentityProviderClient({ region: "eu-west-2" }), POOL);
+const inputsOf = (command: Parameters<typeof cognito.commandCalls>[0]) =>
+  cognito.commandCalls(command).map((call) => call.args[0].input);
+
+beforeEach(() => cognito.reset());
+
+describe("cognitoClientFor", () => {
+  it("talks to the region the user pool is in", async () => {
+    expect(await cognitoClientFor("eu-west-2_madeup").config.region()).toBe("eu-west-2");
+  });
+});
+
+describe("the Cognito user directory", () => {
+  it("finds an account, with whether it's enabled and an admin", async () => {
+    cognito.on(AdminGetUserCommand).resolves({ Username: "pat", Enabled: false });
+    cognito.on(AdminListGroupsForUserCommand).resolves({ Groups: [{ GroupName: "admin" }] });
+
+    expect(await directory().find("pat")).toEqual({ username: "pat", enabled: false, admin: true });
+    expect(inputsOf(AdminGetUserCommand)).toEqual([{ UserPoolId: POOL, Username: "pat" }]);
+  });
+
+  it("finds nothing for a username the pool doesn't have", async () => {
+    cognito
+      .on(AdminGetUserCommand)
+      .rejects(new UserNotFoundException({ message: "User does not exist.", $metadata: {} }));
+
+    expect(await directory().find("pat")).toBeUndefined();
+  });
+
+  it("creates an account without sending an invitation, as accounts have no email or phone", async () => {
+    await directory().create("pat", "Made-up-1");
+
+    expect(inputsOf(AdminCreateUserCommand)).toEqual([
+      {
+        UserPoolId: POOL,
+        Username: "pat",
+        TemporaryPassword: "Made-up-1",
+        MessageAction: "SUPPRESS",
+      },
+    ]);
+  });
+
+  it("sets a temporary or a permanent password", async () => {
+    await directory().setPassword("pat", "Made-up-1", "temporary");
+    await directory().setPassword("pat", "Made-up-2", "permanent");
+
+    expect(inputsOf(AdminSetUserPasswordCommand)).toEqual([
+      { UserPoolId: POOL, Username: "pat", Password: "Made-up-1", Permanent: false },
+      { UserPoolId: POOL, Username: "pat", Password: "Made-up-2", Permanent: true },
+    ]);
+  });
+
+  it("enables and disables an account", async () => {
+    await directory().setEnabled("pat", true);
+    await directory().setEnabled("pat", false);
+
+    expect(inputsOf(AdminEnableUserCommand)).toEqual([{ UserPoolId: POOL, Username: "pat" }]);
+    expect(inputsOf(AdminDisableUserCommand)).toEqual([{ UserPoolId: POOL, Username: "pat" }]);
+  });
+
+  it("makes an account an admin, or not, through the admin group", async () => {
+    await directory().setAdmin("pat", true);
+    await directory().setAdmin("pat", false);
+
+    const input = { UserPoolId: POOL, Username: "pat", GroupName: "admin" };
+    expect(inputsOf(AdminAddUserToGroupCommand)).toEqual([input]);
+    expect(inputsOf(AdminRemoveUserFromGroupCommand)).toEqual([input]);
+  });
+
+  it("signs an account out everywhere", async () => {
+    await directory().signOutEverywhere("pat");
+
+    expect(inputsOf(AdminUserGlobalSignOutCommand)).toEqual([
+      { UserPoolId: POOL, Username: "pat" },
+    ]);
+  });
+});

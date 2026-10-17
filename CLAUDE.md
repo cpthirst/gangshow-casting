@@ -25,7 +25,8 @@ pnpm format                      # biome autofix (format + lint + import order)
 pnpm lint:docs                   # validate story structure (part of check)
 pnpm test:e2e                    # browser layout tests at phone widths (CI job, not in check)
 pnpm test:dynamo                 # API database tests against DynamoDB Local on :8000 (CI job, not in check; ADR 0016)
-pnpm check:hosted <api url>      # after a deploy: confirms the hosted API refuses anyone not signed in
+USER_POOL_ID=… CHECK_CLIENT_ID=… pnpm check:hosted <api url> <check admin>   # after a deploy: refuses anyone not signed in, lets the check admin in (ids from the stack outputs)
+USER_POOL_ID=… pnpm account admin <username>   # create or restore an admin; `account check <admin> <member>` sets up the check's accounts
 pnpm --filter <pkg> test         # one package: web | api | infra | @app/shared
 pnpm --filter <pkg> exec vitest run <file> -t "<name>"   # one test
 ```

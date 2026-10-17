@@ -8,14 +8,17 @@
     "test": "vitest run",
     "test:dynamo": "vitest run --config vitest.dynamo.config.ts",
     "move": "node src/move-cli.ts",
+    "account": "node src/account-cli.ts",
     "check:hosted": "node src/hosted-check.ts"
   },
   "dependencies": {
     "@app/shared": "workspace:*",
+    "@aws-sdk/client-cognito-identity-provider": "^3.1152.0",
     "@aws-sdk/client-dynamodb": "^3.1152.0",
     "@aws-sdk/lib-dynamodb": "^3.1152.0"
   },
   "devDependencies": {
-    "@types/aws-lambda": "^8.10.164"
+    "@types/aws-lambda": "^8.10.164",
+    "aws-sdk-client-mock": "^4.1.0"
   }
 }

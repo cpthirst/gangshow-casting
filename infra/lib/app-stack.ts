@@ -95,6 +95,20 @@ export class AppStack extends Stack {
       // The PRD's 1-day sign-in.
       refreshTokenValidity: Duration.days(1),
     });
+    // The post-deploy check's sign-in (hosting FR17). Admin-initiated password sign-in needs
+    // the maintainer's AWS credentials, so this client is no way in for anyone else.
+    const checkClient = userPool.addClient("CheckClient", {
+      generateSecret: false,
+      preventUserExistenceErrors: true,
+      disableOAuth: true,
+      authFlows: { adminUserPassword: true },
+      // One sign-in per run: the shortest lifetimes Cognito allows, as a check account is an admin.
+      accessTokenValidity: Duration.hours(1),
+      idTokenValidity: Duration.hours(1),
+      refreshTokenValidity: Duration.hours(1),
+    });
+    // Admins manage accounts, delete cast members and save running orders (ADR 0018).
+    userPool.addGroup("AdminGroup", { groupName: "admin" });
 
     const apiFunction = new NodejsFunction(this, "ApiFunction", {
       entry: apiEntryPoint,
@@ -116,7 +130,7 @@ export class AppStack extends Stack {
     const api = new HttpApi(this, "Api", {
       createDefaultStage: false,
       defaultAuthorizer: new HttpUserPoolAuthorizer("TeamSignIn", userPool, {
-        userPoolClients: [webClient],
+        userPoolClients: [webClient, checkClient],
       }),
       defaultIntegration: apiIntegration,
     });
@@ -154,5 +168,6 @@ export class AppStack extends Stack {
     });
     new CfnOutput(this, "UserPoolId", { value: userPool.userPoolId });
     new CfnOutput(this, "WebClientId", { value: webClient.userPoolClientId });
+    new CfnOutput(this, "CheckClientId", { value: checkClient.userPoolClientId });
   }
 }

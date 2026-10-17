@@ -16,6 +16,12 @@ const synth = () => {
 const resourcesOfType = (template: Template, type: string) =>
   Object.values(template.findResources(type));
 
+/** One user pool client's properties, found by its construct id, so a test can't match the other. */
+const clientNamed = (template: Template, id: string) => {
+  const clients = Object.entries(template.findResources("AWS::Cognito::UserPoolClient"));
+  return clients.find(([logicalId]) => logicalId.includes(id))?.[1].Properties;
+};
+
 describe("AppStack", () => {
   it("lives in London, keeping the cast's data in the UK", () => {
     expect(synth().stack.region).toBe("eu-west-2");
@@ -134,7 +140,7 @@ describe("AppStack", () => {
     });
 
     it("gives the pages' client no secret, 1-hour tokens and a 1-day sign-in", () => {
-      synth().template.hasResourceProperties("AWS::Cognito::UserPoolClient", {
+      expect(clientNamed(synth().template, "WebClient")).toMatchObject({
         GenerateSecret: false,
         // No password sign-in through this client; only hosted sign-in (ADR 0018).
         ExplicitAuthFlows: ["ALLOW_REFRESH_TOKEN_AUTH"],
@@ -143,6 +149,31 @@ describe("AppStack", () => {
         IdTokenValidity: 60,
         RefreshTokenValidity: 1440,
         TokenValidityUnits: { AccessToken: "minutes", IdToken: "minutes", RefreshToken: "minutes" },
+      });
+    });
+
+    it("has an admin group", () => {
+      synth().template.hasResourceProperties("AWS::Cognito::UserPoolGroup", {
+        GroupName: "admin",
+        UserPoolId: { Ref: Match.stringLikeRegexp("UserPool") },
+      });
+    });
+
+    it("gives the post-deploy check a client that only takes sign-ins made with AWS credentials", () => {
+      const { template } = synth();
+
+      expect(clientNamed(template, "CheckClient")).toMatchObject({
+        GenerateSecret: false,
+        ExplicitAuthFlows: ["ALLOW_ADMIN_USER_PASSWORD_AUTH", "ALLOW_REFRESH_TOKEN_AUTH"],
+        AllowedOAuthFlowsUserPoolClient: false,
+        PreventUserExistenceErrors: "ENABLED",
+        // One sign-in per run, so its tokens last no longer than the shortest Cognito allows.
+        AccessTokenValidity: 60,
+        IdTokenValidity: 60,
+        RefreshTokenValidity: 60,
+      });
+      template.hasOutput("CheckClientId", {
+        Value: { Ref: Match.stringLikeRegexp("CheckClient") },
       });
     });
   });
@@ -169,7 +200,10 @@ describe("AppStack", () => {
         AuthorizerType: "JWT",
         IdentitySource: ["$request.header.Authorization"],
         JwtConfiguration: {
-          Audience: [{ Ref: Match.stringLikeRegexp("WebClient") }],
+          Audience: [
+            { Ref: Match.stringLikeRegexp("WebClient") },
+            { Ref: Match.stringLikeRegexp("CheckClient") },
+          ],
           Issuer: Match.objectLike({
             "Fn::Join": ["", Match.arrayWith([{ Ref: Match.stringLikeRegexp("UserPool") }])],
           }),
