@@ -36,7 +36,8 @@ describe("moving a production with the move command", () => {
   });
 
   let clock = 0;
-  const now = () => new Date(Date.UTC(2026, 9, 17, 10, clock++));
+  // A second apart, each after the files were written, as real runs would be.
+  const now = () => new Date(Date.now() + 1_000 * ++clock);
   const move = async (...args: string[]) => {
     const lines: string[] = [];
     const code = await runMove(

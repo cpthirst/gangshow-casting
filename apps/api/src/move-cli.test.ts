@@ -115,9 +115,10 @@ describe("the move command", () => {
       await writeFile(join(dataDir, "2027", "cast.json"), "{}");
     });
     afterEach(() => rm(dataDir, { recursive: true, force: true }));
+    // After the files were written, as a real copy and verification would be.
     const verified = async () => {
-      await recordCopied(dataDir, "2027", new Date("2026-10-17T10:00:00Z"));
-      await recordVerification(dataDir, "2027", true, new Date("2026-10-17T10:05:00Z"));
+      await recordCopied(dataDir, "2027", new Date(Date.now() + 1_000));
+      await recordVerification(dataDir, "2027", true, new Date(Date.now() + 2_000));
     };
 
     it("refuses without a passing verification, needing no remote table", async () => {

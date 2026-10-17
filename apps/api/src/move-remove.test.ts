@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, rm, symlink, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -20,10 +20,22 @@ describe("removing a production's local files", () => {
   afterEach(() => rm(dataDir, { recursive: true, force: true }));
 
   const folders = () => readdir(dataDir);
-  const confirmed = { asked: [] as string[][] };
-  const answer = (yes: boolean) => async (files: string[]) => {
-    confirmed.asked.push(files);
-    return yes;
+  /** Answers the confirmation, remembering which files it was asked about. */
+  const answering = (yes: boolean) => {
+    const asked: string[][] = [];
+    return {
+      asked,
+      confirm: async (files: string[]) => {
+        asked.push(files);
+        return yes;
+      },
+    };
+  };
+  const answer = (yes: boolean) => answering(yes).confirm;
+  // Verified in the future, so files written by the set-up count as before it.
+  const verified = async () => {
+    await recordCopied(dataDir, "2027", new Date(Date.now() + 60_000));
+    await recordVerification(dataDir, "2027", true, new Date(Date.now() + 120_000));
   };
 
   it("refuses, removing nothing, without a passing verification", async () => {
@@ -47,22 +59,40 @@ describe("removing a production's local files", () => {
   });
 
   it("lists the files it will remove and keeps them all if not confirmed", async () => {
-    await recordCopied(dataDir, "2027", at("10:00"));
-    await recordVerification(dataDir, "2027", true, at("10:05"));
-    confirmed.asked = [];
+    await verified();
+    const { asked, confirm } = answering(false);
 
-    const result = await removeLocalProduction(dataDir, "2027", answer(false));
+    const result = await removeLocalProduction(dataDir, "2027", confirm);
 
-    expect(confirmed.asked).toEqual([
-      [".move-record.json", "cast.json", join("running-order", "v1.json")],
-    ]);
+    expect(asked).toEqual([[".move-record.json", "cast.json", join("running-order", "v1.json")]]);
     expect(result).toEqual({ outcome: "kept" });
     expect(await folders()).toContain("2027");
   });
 
-  it("removes only that production's files once confirmed, saying what went", async () => {
+  it("refuses, removing nothing, if a local file changed after the verification", async () => {
     await recordCopied(dataDir, "2027", at("10:00"));
     await recordVerification(dataDir, "2027", true, at("10:05"));
+    // Edited after verifying, e.g. by the app still running on the files.
+    await utimes(join(dataDir, "2027", "cast.json"), new Date(), new Date());
+
+    const result = await removeLocalProduction(dataDir, "2027", answer(true));
+
+    expect(result).toEqual({ outcome: "changed-since" });
+    expect(await readdir(join(dataDir, "2027"))).toContain("cast.json");
+  });
+
+  it("lists everything it will remove, not only regular files", async () => {
+    await verified();
+    await symlink(join(dataDir, "2026"), join(dataDir, "2027", "elsewhere"));
+    const { asked, confirm } = answering(false);
+
+    await removeLocalProduction(dataDir, "2027", confirm);
+
+    expect(asked[0]).toContain("elsewhere");
+  });
+
+  it("removes only that production's files once confirmed, saying what went", async () => {
+    await verified();
 
     const result = await removeLocalProduction(dataDir, "2027", answer(true));
 
@@ -80,6 +110,9 @@ describe("removing a production's local files", () => {
     ]);
     expect(removalLines("2027", { outcome: "copied-since" })).toEqual([
       "Nothing removed: production 2027 was copied again after its last passing verification. Verify again first.",
+    ]);
+    expect(removalLines("2027", { outcome: "changed-since" })).toEqual([
+      "Nothing removed: production 2027's local files changed after its last passing verification. Stop the app, then copy and verify again.",
     ]);
     expect(removalLines("2027", { outcome: "kept" })).toEqual(["Nothing removed: not confirmed."]);
     expect(removalLines("2027", { outcome: "removed", files: ["cast.json"] })).toEqual([

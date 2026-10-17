@@ -29,9 +29,12 @@ function asMoveRecord(value: unknown): MoveRecord | undefined {
   return record;
 }
 
+/** The record's file name, in the production's local folder. */
+export const MOVE_RECORD = ".move-record.json";
+
 function recordFileFor(dataDir: string, productionId: string) {
   if (!ProductionId.safeParse(productionId).success) throw new Error("Invalid production id");
-  return join(dataDir, productionId, ".move-record.json");
+  return join(dataDir, productionId, MOVE_RECORD);
 }
 
 export async function readMoveRecord(dataDir: string, productionId: string): Promise<MoveRecord> {
