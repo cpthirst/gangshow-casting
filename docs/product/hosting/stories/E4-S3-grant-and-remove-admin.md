@@ -29,10 +29,11 @@ When "pat" tries to remove admin from "pat"
 Then they're told they can't remove their own admin role
 And "pat" stays an admin
 
-### AC4: There's always an admin
+### AC4: The only admin can't lock everyone out
 Given "pat" is the only enabled admin
-When any change is attempted through the app
-Then "pat" stays an enabled admin
+When "pat" tries to remove admin from "pat", or to disable "pat"
+Then both are refused
+And "pat" stays an enabled admin
 
 ### AC5: Non-admins can't change roles
 Given a signed-in team member who isn't an admin
@@ -44,5 +45,6 @@ Then the response is 403
 - FRs: FR11, FR13
 - Depends on: hosting.E4.S1
 - Admin is membership of the `admin` group (ADR 0018). Removing admin also signs that account out everywhere, so the change takes effect within the access-token lifetime.
-- AC4 follows from AC3 and E4.S2 AC5 (only admins act, and no admin can disable or demote themselves). Test it as a combination.
+- AC4 follows from AC3 and E4.S2 AC5: only admins act, and no admin can disable or demote themselves.
+- Two admins demoting or disabling each other at the same moment could still leave none. That's rare, and the repo script (E1.S2, FR14) recovers from it.
 - Out of scope: other roles or per-production permissions.

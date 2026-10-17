@@ -33,7 +33,7 @@ And no account is created
 ### AC4: The username must be valid
 Given an admin on the create form
 When they leave the username empty, or enter one with spaces or longer than 32 characters
-Then they're told what a username can contain
+Then they're told a username is 1–32 letters, digits, dots, hyphens or underscores
 And no account is created
 
 ### AC5: Non-admins can't see or manage accounts
@@ -52,6 +52,6 @@ Then accounts are listed and created in a made-up local directory, with no AWS
 - FRs: FR9, FR11, FR18
 - Depends on: hosting.E3.S2, hosting.E2.S2
 - ADR 0017/0018: user-management routes run in their own function, the only one allowed to change accounts. No invitation message is sent.
-- The request and response shapes go in `packages/shared` first. The temporary password is returned only in the create response, never logged.
+- The request and response shapes go in `packages/shared` first. The function generates the temporary password with a cryptographically secure generator that meets the pool's policy, because a suppressed invitation returns none. It's returned only in the create response and never logged. API access logs don't record bodies.
 - Ask before adding any browser test for the new page (CLAUDE.md).
 - Out of scope: reset and disable (E4.S2), admin role changes (E4.S3).

@@ -28,8 +28,8 @@ Then both see the same message, which doesn't say whether the username or the pa
 
 ### AC4: Repeated wrong passwords are slowed down
 Given an account "sam"
-When the wrong password is entered for "sam" several times in a row
-Then further attempts for "sam" are blocked for a while
+When the wrong password is entered for "sam" 5 times in a row
+Then further attempts for "sam" are refused for a while, with the wait growing after each further failure
 
 ### AC5: Still signed in later that day
 Given "sam" signed in on their phone this morning
@@ -45,7 +45,7 @@ Then they must sign in again before any data is shown
 Given "sam" is signed in
 When they choose "Sign out"
 Then they're returned to the sign-in screen
-And going back in the browser shows no production data
+And signing in again asks for their password rather than signing them straight back in
 
 ### AC8: Locally there's no sign-in
 Given the app running with `pnpm dev` or `pnpm demo`
@@ -56,7 +56,12 @@ Then it shows the data with no sign-in screen, as an admin
 
 - FRs: FR3, FR5, FR6, FR7, FR8, FR18
 - Depends on: hosting.E3.S1
-- ADR 0018: Cognito managed login with PKCE, through `oidc-client-ts`. Access token 1 hour, refresh token 1 day. AC2–AC4 come from the user pool's settings: infra assertions plus a manual check after deploy.
+- ADR 0018: Cognito managed login with PKCE, through `oidc-client-ts`, on a Cognito prefix domain. The access token lasts 1 hour and the refresh token 1 day. The client id, the login domain and the app's address reach the pages' build at deploy time. The app client's callback and sign-out URLs are the app's address. The pages' CSP allows the login domain.
+- How each AC is verified:
+  - AC3 is the app client's "prevent user existence errors" setting, covered by an infra assertion plus a manual check after deploy.
+  - AC4 is Cognito's built-in lockout, which isn't configurable, so it's checked manually only.
+  - AC2 comes from the temporary-password flow (E1.S2, E4.S1), checked manually.
+- AC7 needs Cognito's own logout endpoint called, not just the tokens cleared. Otherwise Cognito's session cookie signs the person straight back in.
 - Try the sign-in screens with a team member. If they're confusing, raise it (ADR 0018 "Revisit if").
 - Ask before adding any browser test (CLAUDE.md).
 - Out of scope: self-service forgotten password (non-goal), hiding admin actions (E3.S3).

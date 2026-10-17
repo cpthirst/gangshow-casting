@@ -14,7 +14,7 @@ As a production team member who isn't an admin, I want the app to show me only w
 ### AC1: A non-admin doesn't get delete on a cast member
 Given a signed-in team member who isn't an admin
 When they open a cast member's edit screen
-Then there's no working delete button
+Then no delete button is shown
 And the screen says "Only admins can delete cast members"
 
 ### AC2: A non-admin can't save the running order

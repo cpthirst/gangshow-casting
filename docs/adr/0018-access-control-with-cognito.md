@@ -36,10 +36,15 @@ We will use option 2:
   - A reset uses `AdminSetUserPassword` with a temporary password, then `AdminUserGlobalSignOut`.
   - Disabling uses `AdminDisableUser`, then the same global sign-out.
   - The user's next sign-in requires a new password.
-  - A repo script does the same for the first admin and lockout recovery (PRD FR14), using the maintainer's AWS credentials.
+  - A suppressed invitation returns no password, so our code generates every temporary password with a cryptographically secure generator that meets the pool's policy. It's shown once and never logged.
+  - A repo script does the same for the first admin and lockout recovery (PRD FR14), using the maintainer's AWS credentials. It also creates the post-deploy check's accounts (one admin, one not) with permanent passwords.
+  - The post-deploy check signs in through a separate check app client that allows only `ADMIN_USER_PASSWORD_AUTH`, which needs the maintainer's AWS credentials. The public app client used by the pages allows only the PKCE code flow, with "prevent user existence errors" turned on.
 - **Tokens**: access and ID tokens last 1 hour, and the refresh token lasts 1 day. Disable and reset revoke refresh tokens, so access ends within an hour.
 - **Sign-in screens**: Cognito's managed login pages, authorization-code flow with PKCE, handled in the SPA by `oidc-client-ts`. Tokens are kept in `localStorage` so sign-in survives closing the tab for the day. A strict CSP (ADR 0017) limits the XSS exposure that brings.
-- **API enforcement**: the HTTP API's JWT authorizer, pointing at the pool and app client, is on every route by default. A route can be public only if it's listed explicitly in the infra code.
+  - The managed login needs a Cognito prefix domain, and the app client's callback and sign-out URLs set to the CloudFront address. The client id, login domain and address reach the SPA build at deploy time.
+  - Signing out calls Cognito's own logout endpoint as well as clearing tokens, because Cognito's session cookie would otherwise sign the person straight back in.
+  - The managed login's feature tier (Lite or Essentials) must stay within the free monthly-active-user allowance at our size. Confirm this on the AWS pricing page when the pool is created.
+- **API enforcement**: the HTTP API's JWT authorizer, pointing at the pool and app client, is on every route by default, including a `$default` catch-all, so unknown paths get 401 rather than 404. A route can be public only if it's listed explicitly in the infra code.
   - **Admin**: a Cognito group `admin`, read from the `cognito:groups` claim. Routes that need it are marked admin-only in `routes.ts`. The entry point refuses them with 403 before the handler runs, so a new admin route can't forget the check.
 - **Locally**: `dev-server.ts`, the demo and the browser tests pass a fixed fake admin identity and never contact Cognito. User management runs against an in-memory user directory, like the stores' in-memory twins.
 
