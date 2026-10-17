@@ -20,7 +20,9 @@
     "test:e2e": "pnpm --filter web test:e2e",
     "test:dynamo": "pnpm --filter api test:dynamo",
     "check:hosted": "pnpm --filter api check:hosted",
-    "account": "pnpm --filter api account"
+    "account": "pnpm --filter api account",
+    "infra:diff": "pnpm --filter infra exec cdk diff",
+    "infra:deploy": "pnpm --filter infra exec cdk deploy"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",

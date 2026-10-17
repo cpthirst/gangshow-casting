@@ -20,7 +20,8 @@
       "Bash(git push:*)",
       "Bash(gh pr:*)",
       "Bash(cdk deploy:*)",
-      "Bash(pnpm --filter infra deploy:*)",
+      "Bash(pnpm infra:deploy:*)",
+      "Bash(pnpm --filter infra exec cdk deploy:*)",
       "Bash(aws:*)",
       "Edit(.claude/**)",
       "Edit(.github/**)"
