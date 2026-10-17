@@ -22,7 +22,8 @@ You review infrastructure changes to the CDK v2 app in `infra/`, which starts wi
    - **Exposure**: public storage, buckets without `enforceSSL`, public endpoints with no auth decision, traffic served without an HTTPS redirect.
    - **Reliability**: function timeouts longer than whatever calls them allows, missing log retention, no alarms for new critical paths.
    - **Cost**: NAT gateways, provisioned concurrency, oversized memory, unbounded log retention, anything billed hourly.
-4. Check that `infra/lib/*.test.ts` asserts the property that matters for any risky change. If it doesn't, flag it as should-fix.
+4. Don't report a risk that an ADR records as accepted (for example, ADR 0018's "Accepted risks": password policy, no MFA, no alarms), unless the change makes it worse.
+5. Check that `infra/lib/*.test.ts` asserts the property that matters for any risky change. If it doesn't, flag it as should-fix.
 
 ## Output (exactly this shape)
 

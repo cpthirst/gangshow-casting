@@ -18,7 +18,9 @@
     "prepare": "lefthook install",
     "lint:docs": "node tooling/src/validate-docs.ts",
     "test:e2e": "pnpm --filter web test:e2e",
-    "test:dynamo": "pnpm --filter api test:dynamo"
+    "test:dynamo": "pnpm --filter api test:dynamo",
+    "check:hosted": "pnpm --filter api check:hosted",
+    "account": "pnpm --filter api account"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",

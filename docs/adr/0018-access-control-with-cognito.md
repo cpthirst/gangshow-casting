@@ -60,6 +60,12 @@ We will use option 2:
   - The managed login pages may not match the app's look.
   - Forgotten passwords always need an admin.
   - Tokens in `localStorage` are exposed if an XSS ever happens.
+- **Accepted risks** (decided by the maintainer, 2026-10-17, when the pool was first deployed):
+  - **Password policy:** Cognito's default (at least 8 characters, mixed character types), not a longer minimum.
+  - **No MFA:** not even optional app-based codes, to keep sign-in simple for volunteers.
+  - **No alarms** on API or function errors. Problems are found by the post-deploy check, or reported by users.
+
+  Reviewers shouldn't raise these again, unless a change makes them worse.
 - **Revisit if**:
   - volunteers find the managed login pages confusing (then use our own screens with the Cognito API);
   - the team wants self-service reset (that needs an email per user and an ADR 0010 update);
