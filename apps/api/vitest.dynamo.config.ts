@@ -10,6 +10,7 @@ export default defineConfig({
   test: {
     include: ["src/**/*.dynamo.test.ts"],
     env: {
+      // dataStores() still builds the file stores beside the remote one.
       DATA_DIR: mkdtempSync(join(tmpdir(), "gangshow-api-test-data-")),
       AWS_ENDPOINT_URL_DYNAMODB: process.env.AWS_ENDPOINT_URL_DYNAMODB ?? "http://127.0.0.1:8000",
       AWS_REGION: "eu-west-2",

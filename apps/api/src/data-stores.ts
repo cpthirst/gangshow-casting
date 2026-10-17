@@ -14,8 +14,10 @@ const defaultDataDir = fileURLToPath(new URL("../data", import.meta.url));
  * Where the API keeps each production's data, from its environment:
  * - DATA_DIR: the local data folder (default apps/api/data);
  * - DATA_TABLE: the remote table, if any (remote-data FR4). Item notes move first; the other
- *   stores follow in later stories. AWS_REGION defaults to London, and the AWS SDK reads the
- *   credentials and profile itself.
+ *   stores follow in later stories;
+ * - DATA_TABLE_REGION: the table's region, default London, where infra deploys it. Not
+ *   AWS_REGION, so a shell set up for other AWS work can't point the API elsewhere.
+ * The AWS SDK reads the credentials and profile itself.
  */
 export function dataStores(env: Record<string, string | undefined> = process.env) {
   const dataDir = env.DATA_DIR ?? defaultDataDir;
@@ -30,7 +32,7 @@ export function dataStores(env: Record<string, string | undefined> = process.env
   if (!table)
     return { ...stores, itemNotes: fileItemNoteStore(dataDir), where: `everything in ${files}` };
 
-  const region = env.AWS_REGION ?? "eu-west-2";
+  const region = env.DATA_TABLE_REGION ?? "eu-west-2";
   const db = documentClient(new DynamoDBClient({ region }));
   return {
     ...stores,

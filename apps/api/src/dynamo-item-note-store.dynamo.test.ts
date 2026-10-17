@@ -33,6 +33,13 @@ describe("DynamoDB item note store", () => {
     expect((await store.list("2028")).notes).toEqual([]);
   });
 
+  it("refuses an item id that isn't valid, saving nothing", async () => {
+    const store = dynamoItemNoteStore(table.db, table.tableName);
+
+    await expect(store.save("2027", "x".repeat(41), 0, "Bows")).rejects.toThrow();
+    expect((await store.list("2027")).notes).toEqual([]);
+  });
+
   it("refuses a production id that isn't valid", async () => {
     await expect(dynamoItemNoteStore(table.db, table.tableName).list("../etc")).rejects.toThrow();
   });

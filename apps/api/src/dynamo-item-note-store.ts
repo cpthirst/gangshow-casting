@@ -1,11 +1,11 @@
-import { type ItemNote, ItemNoteList } from "@app/shared";
+import { ItemNote, ItemNoteList } from "@app/shared";
 import { type DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
 import { conditionFailed, partitionFor, queryAll } from "./dynamo-table.ts";
 import type { ItemNoteStore } from "./item-note-store.ts";
 
 const NOTE = "NOTE#";
 
-/** Item notes in the production data table, one item per item's notes (ADR 0015). */
+/** Item notes in the production data table: one row per show item's notes (ADR 0015). */
 export function dynamoItemNoteStore(db: DynamoDBDocumentClient, tableName: string): ItemNoteStore {
   return {
     async list(productionId) {
@@ -15,7 +15,8 @@ export function dynamoItemNoteStore(db: DynamoDBDocumentClient, tableName: strin
     },
 
     async save(productionId, itemId, revision, text) {
-      const note: ItemNote = { itemId, text, revision: revision + 1 };
+      // Checked here too, as the item id becomes part of the row's key.
+      const note = ItemNote.parse({ itemId, text, revision: revision + 1 });
       try {
         await db.send(
           new PutCommand({

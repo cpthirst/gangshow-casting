@@ -27,17 +27,17 @@ describe("data stores", () => {
     const stores = dataStores({
       DATA_DIR: dataDir,
       DATA_TABLE: "GangshowData",
-      AWS_REGION: "eu-west-2",
+      DATA_TABLE_REGION: "eu-west-1",
     });
 
     expect(stores.where).toBe(
-      `item notes in table GangshowData (eu-west-2); everything else in files at ${dataDir}`,
+      `item notes in table GangshowData (eu-west-1); everything else in files at ${dataDir}`,
     );
   });
 
-  it("uses London when no region is given", () => {
-    expect(dataStores({ DATA_DIR: dataDir, DATA_TABLE: "GangshowData" }).where).toContain(
-      "(eu-west-2)",
-    );
+  it("uses London, where the table is deployed, unless the table's region is given", () => {
+    const env = { DATA_DIR: dataDir, DATA_TABLE: "GangshowData", AWS_REGION: "us-east-1" };
+
+    expect(dataStores(env).where).toContain("(eu-west-2)");
   });
 });

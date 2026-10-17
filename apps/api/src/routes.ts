@@ -14,10 +14,9 @@ import { createSaveRunningOrder } from "./save-running-order.ts";
 import { createUpdateCastMember } from "./update-cast-member.ts";
 import { createUpdateRole } from "./update-role.ts";
 
-const stores = dataStores();
-const { runningOrders, cast, roles, itemNotes } = stores;
+const { runningOrders, cast, roles, itemNotes, where } = dataStores();
 /** Where the data is kept, for the dev server to say on start. */
-export const dataLocation = stores.where;
+export const dataLocation = where;
 
 /** One entry per future API Gateway route: "<METHOD> <path>", with {name} path parameters. */
 export const routes: Record<string, Handler> = {

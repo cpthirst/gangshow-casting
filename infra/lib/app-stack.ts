@@ -9,7 +9,8 @@ export class AppStack extends Stack {
     super(scope, id, { ...props, env: { ...props.env, region: "eu-west-2" } });
 
     // All production data in one table, one item per entity (ADR 0015). The key names
-    // match apps/api/src/dynamo-table.ts.
+    // match apps/api/src/dynamo-table.ts. Don't rename "DataTable" or change the construct:
+    // either replaces the table, orphaning the retained one with all the data.
     const table = new TableV2(this, "DataTable", {
       partitionKey: { name: "pk", type: AttributeType.STRING },
       sortKey: { name: "sk", type: AttributeType.STRING },

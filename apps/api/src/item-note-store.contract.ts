@@ -34,6 +34,15 @@ export function behavesAsAnItemNoteStore(make: () => ItemNoteStore) {
     expect((await store.list("2027")).notes[0]?.text).toBe("Hat change");
   });
 
+  it("refuses a save from revision 1 once the notes are at revision 2", async () => {
+    const store = make();
+    await store.save("2027", "pirate-sketch", 0, "Hat change");
+    await store.save("2027", "pirate-sketch", 1, "Hat and coat change");
+
+    expect(await store.save("2027", "pirate-sketch", 1, "Mine")).toBe("stale");
+    expect((await store.list("2027")).notes[0]?.text).toBe("Hat and coat change");
+  });
+
   it("keeps cleared notes as empty text, so later stale saves are still caught", async () => {
     const store = make();
     await store.save("2027", "pirate-sketch", 0, "Hat change");
@@ -51,7 +60,7 @@ export function behavesAsAnItemNoteStore(make: () => ItemNoteStore) {
     await store.save("2027", "pirate-sketch", 0, "Hat change");
     await store.save("2027", "finale", 0, "Everyone on");
 
-    // In no particular order: pages find an item's notes by its id.
+    // In no particular order (DynamoDB returns them in key order): pages find notes by item id.
     expect((await store.list("2027")).notes.map((note) => note.itemId).sort()).toEqual([
       "finale",
       "pirate-sketch",
