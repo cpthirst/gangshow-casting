@@ -974,7 +974,7 @@ main a {
     text-transform: uppercase;
   }
 
-  /* No group: no empty line. */
+  /* No group or notes: no empty line. */
   .cast-list td:empty {
     display: none;
   }

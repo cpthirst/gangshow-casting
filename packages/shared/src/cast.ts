@@ -3,9 +3,12 @@ import { ProductionId } from "./running-order.ts";
 
 export const Section = z.enum(["scouts", "explorers", "network"]);
 
+/** A short free-text note on how someone sings or acts (ADR 0014); absent when not given. */
+const SkillNote = z.string().trim().max(100).optional();
+
 /**
- * A cast member: only the fields ADR 0010 allows. Strict, so any other personal data
- * (a date of birth, contact details…) is rejected rather than silently stored.
+ * A cast member: only the fields ADR 0010 and ADR 0014 allow. Strict, so any other personal
+ * data (a date of birth, contact details…) is rejected rather than silently stored.
  */
 export const CastMember = z.strictObject({
   /** Assigned by the app; never edited or reused. */
@@ -16,6 +19,9 @@ export const CastMember = z.strictObject({
   section: Section.nullable(),
   /** Scout group or Explorer unit; "" while not set. */
   group: z.string().trim().max(60),
+  /** Casting notes, never health or contact details (ADR 0014). */
+  singing: SkillNote,
+  acting: SkillNote,
   /** Goes up on every change, so a stale edit or delete can be refused. */
   revision: z.number().int().positive(),
 });
@@ -29,6 +35,8 @@ export const CastMemberDetails = CastMember.pick({
   lastName: true,
   section: true,
   group: true,
+  singing: true,
+  acting: true,
 });
 
 /**

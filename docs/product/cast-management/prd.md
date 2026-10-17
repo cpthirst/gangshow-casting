@@ -50,6 +50,12 @@ The production team keeps the cast list in a spreadsheet, which currently holds 
 - **FR6**: Invalid details must be explained next to the field, and nothing saved: a missing first or last name, or a name or group over the length limit.
 - **FR7**: Adding, editing and deleting must each save straight away. If someone else changed or deleted that cast member since the list was loaded, the change isn't applied. The user is told, and shown the current list.
 - **FR8**: The 2027 starting list (`cast.csv`) must be available as the initial cast. It's held locally and never committed to the repository.
+- **FR9**: Cast members may also have optional **Singing** and **Acting** notes.
+  - They're free text, up to 100 characters each, added and edited with the other details (FR3, FR4).
+  - They show as columns in the cast list (FR1), and as labelled lines on phone cards, but they aren't filterable (FR2 is unchanged).
+  - Existing cast members start with both blank.
+  - The notes are about singing and acting only, never health or contact details (ADR 0014).
+  - (Added on 2026-10-16 at the user's request.)
 
 ## Non-functional requirements
 

@@ -68,6 +68,8 @@ export interface CastForm {
   lastName: string;
   section: Section | "";
   group: string;
+  singing: string;
+  acting: string;
 }
 
 export const castFormFor = (member?: CastMember): CastForm => ({
@@ -75,6 +77,8 @@ export const castFormFor = (member?: CastMember): CastForm => ({
   lastName: member?.lastName ?? "",
   section: member?.section ?? "",
   group: member?.group ?? "",
+  singing: member?.singing ?? "",
+  acting: member?.acting ?? "",
 });
 
 const messages: Record<keyof CastForm, { missing: string; tooLong: string }> = {
@@ -88,6 +92,8 @@ const messages: Record<keyof CastForm, { missing: string; tooLong: string }> = {
   },
   section: { missing: "Choose a section", tooLong: "Choose a section" },
   group: { missing: "", tooLong: "Keep the group to 60 characters or fewer" },
+  singing: { missing: "", tooLong: "Keep the singing note to 100 characters or fewer" },
+  acting: { missing: "", tooLong: "Keep the acting note to 100 characters or fewer" },
 };
 
 const isFormField = (key: unknown): key is keyof CastForm =>

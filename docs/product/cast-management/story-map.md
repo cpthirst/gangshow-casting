@@ -12,6 +12,7 @@ prd: ./prd.md
 |---|---|---|
 | E1 | See and find cast members | FR1, FR2, FR8 |
 | E2 | Keep the cast list current | FR3, FR4, FR5, FR6, FR7 |
+| E3 | Note how each person sings and acts | FR9 |
 
 ## E1: See and find cast members
 
@@ -28,6 +29,12 @@ prd: ./prd.md
 | [cast-management.E2.S2](stories/E2-S2-edit-cast-member.md) | Edit a cast member's details (all but the ID; refuses stale edits) | FR4, FR6, FR7 | E2.S1 | done |
 | [cast-management.E2.S3](stories/E2-S3-delete-cast-member.md) | Delete a cast member after confirming | FR5, FR7 | E1.S1 | done |
 
+## E3: Note how each person sings and acts
+
+| ID | Story | FRs | Depends on | Status |
+|---|---|---|---|---|
+| [cast-management.E3.S1](stories/E3-S1-singing-and-acting-notes.md) | Add and edit short Singing and Acting notes on cast members; shown as columns (labelled lines on phones), not filterable | FR9 | E2.S2 | done |
+
 ## FR coverage
 
 | FR | Stories |
@@ -40,6 +47,7 @@ prd: ./prd.md
 | FR6 | E2.S1, E2.S2 |
 | FR7 | E2.S1, E2.S2, E2.S3 |
 | FR8 | E1.S1 |
+| FR9 | E3.S1 |
 
 ## Notes
 

@@ -40,6 +40,17 @@ describe("update cast member handler", () => {
     expect((await member12(store))?.section).toBe("explorers");
   });
 
+  it("saves edited Singing and Acting notes", async () => {
+    const { store, handler } = setUp();
+    const notes = { singing: "Alto, harmonies", acting: "Comic timing" };
+
+    expect((await handler(request("12", { ...changes, ...notes, revision: 4 }))).statusCode).toBe(
+      200,
+    );
+
+    expect(await member12(store)).toMatchObject(notes);
+  });
+
   it("returns 409 for a stale revision, saving nothing", async () => {
     const { store, handler } = setUp();
 
