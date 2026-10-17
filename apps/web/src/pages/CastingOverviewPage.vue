@@ -18,6 +18,7 @@ import {
 import { ROLES_PATH, roleSizeLabel } from "../roles.ts";
 import { RUNNING_ORDER_PATH } from "../running-order.ts";
 import ShowTimeline from "../ShowTimeline.vue";
+import { apiFetch } from "../sign-in.ts";
 
 const state = ref<
   { status: "loading" } | { status: "error" } | { status: "loaded"; cast: CastMember[] }
@@ -58,7 +59,10 @@ onMounted(() => Promise.all([loadCast(), loadParts()]));
 
 async function loadParts() {
   try {
-    const [rolesRes, orderRes] = await Promise.all([fetch(ROLES_PATH), fetch(RUNNING_ORDER_PATH)]);
+    const [rolesRes, orderRes] = await Promise.all([
+      apiFetch(ROLES_PATH),
+      apiFetch(RUNNING_ORDER_PATH),
+    ]);
     if (!rolesRes.ok) throw new Error(`HTTP ${rolesRes.status}`);
     const roles = RoleList.parse(await rolesRes.json()).roles;
     // No saved running order: no items, so no roles count yet.
@@ -80,7 +84,7 @@ async function loadParts() {
 
 async function loadCast() {
   try {
-    const res = await fetch(CAST_PATH);
+    const res = await apiFetch(CAST_PATH);
     // No cast list yet: an empty cast, not an error.
     if (res.status === 404) {
       state.value = { status: "loaded", cast: [] };

@@ -1,6 +1,8 @@
 import { type RunningOrder, type RunningOrderItem, SaveRunningOrderRequest } from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { signInAs } from "../sign-in.fixture.ts";
+import { useLocalSignIn } from "../sign-in.ts";
 import RunningOrderPage from "./RunningOrderPage.vue";
 
 // SortableJS can't drag in happy-dom, so stand in for it and fire its drop event directly.
@@ -95,6 +97,8 @@ const rowFor = (wrapper: Awaited<ReturnType<typeof openPage>>, title: string) =>
 };
 
 describe("Running order page", () => {
+  // As on pnpm dev: everyone acts as an admin, unless a test signs someone in.
+  beforeEach(useLocalSignIn);
   afterEach(() => {
     vi.unstubAllGlobals();
     document.body.innerHTML = "";
@@ -534,6 +538,55 @@ describe("Running order page", () => {
       expect(saveButton(wrapper).attributes("disabled")).toBeDefined();
       expect(resetButton(wrapper).attributes("disabled")).toBeDefined();
       expect(moveButton(wrapper, "Move Dance One up").attributes("disabled")).toBeDefined();
+    });
+
+    describe("for someone signed in", () => {
+      afterEach(useLocalSignIn);
+
+      it("shows the running order to everyone, but saves only for admins, saying why", async () => {
+        await signInAs([]);
+        fakeApi(threeItems());
+        const wrapper = await openPage();
+        await press(wrapper, "Move Curtain Up down");
+
+        expect(firstHalfTitles(wrapper)).toEqual(["Pirate Panic", "Curtain Up", "Dance One"]);
+        expect(saveButton(wrapper).attributes("disabled")).toBeDefined();
+        expect(wrapper.get("[data-test=admin-only]").text()).toBe(
+          "Only admins can change the running order",
+        );
+      });
+
+      it("lets an admin save as before", async () => {
+        await signInAs(["admin"]);
+        fakeApi(threeItems());
+        const wrapper = await openPage();
+        await press(wrapper, "Move Curtain Up down");
+
+        expect(wrapper.find("[data-test=admin-only]").exists()).toBe(false);
+        await click(saveButton(wrapper));
+
+        expect(posts()).toBe(1);
+        expect(wrapper.text()).toContain("Draft 7");
+      });
+
+      // Such as when their admin role was removed after they signed in.
+      it("explains a refusal for not being an admin, keeping the changes", async () => {
+        await signInAs(["admin"]);
+        fakeApi(threeItems());
+        const wrapper = await openPage();
+        await press(wrapper, "Move Curtain Up down");
+        vi.stubGlobal(
+          "fetch",
+          vi.fn(async () => new Response(null, { status: 403 })),
+        );
+
+        await click(saveButton(wrapper));
+
+        expect(wrapper.get(".notice").text()).toBe("Only admins can change the running order.");
+        expect(firstHalfTitles(wrapper)).toEqual(["Pirate Panic", "Curtain Up", "Dance One"]);
+        expect(wrapper.find("[data-test=unsaved]").exists()).toBe(true);
+        expect(wrapper.text()).toContain("Draft 6");
+      });
     });
 
     it("keeps unsaved changes and says so when the save fails", async () => {

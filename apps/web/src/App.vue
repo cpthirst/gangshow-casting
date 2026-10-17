@@ -1,14 +1,23 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import HealthStatus from "./HealthStatus.vue";
-import { isMenuGroup, menuPages } from "./router.ts";
+import { isMenuGroup, menuPages, showPageTitle } from "./router.ts";
+import {
+  isHosted,
+  isSignedIn,
+  isSignInUnavailable,
+  signIn,
+  signInNeeded,
+  signOut,
+} from "./sign-in.ts";
 import { useMediaQuery } from "./useMediaQuery.ts";
 
 // Must match the phone @media query in styles.css.
 const PHONE_QUERY = "(max-width: 767px)";
 
 const route = useRoute();
+const router = useRouter();
 
 // Set by `pnpm demo`, so its made-up show can't be mistaken for the real one.
 const isDemo = import.meta.env.VITE_DEMO === "true";
@@ -25,6 +34,15 @@ const isMenuOpen = ref(false);
 
 // A menu left open on a phone shouldn't reappear after a rotate or resize.
 watch(isPhone, closeMenu);
+
+// After the router names the page, so the tab says what the page actually shows.
+watch(
+  [signInNeeded, () => route.fullPath],
+  ([needed]) => {
+    if (needed) showPageTitle("Sign in");
+  },
+  { flush: "post" },
+);
 
 // Focus the content directly: a plain #main link would also change the URL.
 function focusContent() {
@@ -46,6 +64,14 @@ function onMenuChoice(event: MouseEvent) {
   if (!isMenuOpen.value || !isLink) return;
   closeMenu();
   focusContent();
+}
+
+// Leaving the page first lets it ask its own question about unsaved changes; signing out
+// goes ahead only if it lets them leave.
+async function leaveAndSignOut() {
+  const stayed = await router.push({ name: "signing-out" });
+  if (stayed) return;
+  await signOut();
 }
 
 function onEscape() {
@@ -98,10 +124,35 @@ function onEscape() {
           </li>
         </ul>
       </nav>
-      <footer class="sidebar-footer"><HealthStatus /></footer>
+      <footer class="sidebar-footer">
+        <HealthStatus />
+        <button
+          v-if="isSignedIn"
+          class="sign-out-button"
+          type="button"
+          data-test="sign-out"
+          @click="leaveAndSignOut"
+        >
+          Sign out
+        </button>
+      </footer>
     </aside>
     <main id="main" ref="main" tabindex="-1">
-      <RouterView />
+      <template v-if="signInNeeded">
+        <h1>You need to sign in</h1>
+        <p v-if="isSignInUnavailable" role="alert">
+          Couldn't set up sign-in. Reload the page to try again.
+        </p>
+        <p v-else role="alert">
+          The show's casting is only for the production team. Sign in to see it.
+        </p>
+        <div v-if="isHosted" class="editor-actions">
+          <button class="primary" type="button" data-test="sign-in" @click="signIn">
+            Sign in
+          </button>
+        </div>
+      </template>
+      <RouterView v-else />
     </main>
   </div>
 </template>

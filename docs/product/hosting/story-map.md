@@ -34,9 +34,9 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [hosting.E3.S1](stories/E3-S1-pages-at-one-address.md) | The pages are served at one HTTPS address, with `/api` routed to the hosted API, no caching of API responses, security headers, and new releases picked up on next load; without sign-in no data shows | FR1, FR3, FR4, FR15, FR16 | E2.S1 | ready |
-| [hosting.E3.S2](stories/E3-S2-sign-in-and-out.md) | Sign in with an assigned username, choose a new password at first sign-in, stay signed in for a day, sign out; wrong-password errors don't say which part was wrong; local dev stays signed in as an admin | FR3, FR5, FR6, FR7, FR8, FR18 | E3.S1 | ready |
-| [hosting.E3.S3](stories/E3-S3-admin-actions-hidden.md) | Non-admins don't see delete-cast-member or save-running-order, or see them disabled with "Only admins can …" | FR10 | E3.S2, E2.S2 | ready |
+| [hosting.E3.S1](stories/E3-S1-pages-at-one-address.md) | The pages are served at one HTTPS address, with `/api` routed to the hosted API, no caching of API responses, security headers, and new releases picked up on next load; without sign-in no data shows | FR1, FR3, FR4, FR15, FR16 | E2.S1 | done |
+| [hosting.E3.S2](stories/E3-S2-sign-in-and-out.md) | Sign in with an assigned username, choose a new password at first sign-in, stay signed in for a day, sign out; wrong-password errors don't say which part was wrong; local dev stays signed in as an admin | FR3, FR5, FR6, FR7, FR8, FR18 | E3.S1 | done |
+| [hosting.E3.S3](stories/E3-S3-admin-actions-hidden.md) | Non-admins don't see delete-cast-member or save-running-order, or see them disabled with "Only admins can …" | FR10 | E3.S2, E2.S2 | done |
 
 ## E4: Admins manage accounts in the app
 

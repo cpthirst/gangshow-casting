@@ -1,6 +1,9 @@
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { routeKeys } from "@app/shared";
 import { App } from "aws-cdk-lib";
 import { Match, Template } from "aws-cdk-lib/assertions";
+import { CachePolicy, OriginRequestPolicy } from "aws-cdk-lib/aws-cloudfront";
 import { describe, expect, it } from "vitest";
 import { AppStack } from "./app-stack.ts";
 
@@ -153,6 +156,38 @@ describe("AppStack", () => {
       });
     });
 
+    it("gives the team Cognito's sign-in pages, on the pool's own prefix domain", () => {
+      synth().template.hasResourceProperties("AWS::Cognito::UserPoolDomain", {
+        Domain: Match.stringLikeRegexp("^gangshow-casting-[a-z0-9]+$"),
+        UserPoolId: { Ref: Match.stringLikeRegexp("^UserPool") },
+        CustomDomainConfig: Match.absent(),
+      });
+    });
+
+    it("signs the pages in only by the code flow, returning to the app's address", () => {
+      const appAddress = {
+        "Fn::Join": [
+          "",
+          [
+            "https://",
+            { "Fn::GetAtt": [expect.stringMatching(/^PagesDistribution/), "DomainName"] },
+            "/",
+          ],
+        ],
+      };
+
+      expect(clientNamed(synth().template, "WebClient")).toMatchObject({
+        AllowedOAuthFlowsUserPoolClient: true,
+        AllowedOAuthFlows: ["code"],
+        AllowedOAuthScopes: ["openid"],
+        SupportedIdentityProviders: ["COGNITO"],
+        CallbackURLs: [appAddress],
+        LogoutURLs: [appAddress],
+        // Signing out revokes the day's refresh token.
+        EnableTokenRevocation: true,
+      });
+    });
+
     it("has an admin group", () => {
       synth().template.hasResourceProperties("AWS::Cognito::UserPoolGroup", {
         GroupName: "admin",
@@ -183,11 +218,12 @@ describe("AppStack", () => {
     it("hosts exactly one route for each in the API's route list, served by the API's entry point", () => {
       const { template } = synth();
 
-      template.resourceCountIs("AWS::Lambda::Function", 1);
-      template.hasResourceProperties("AWS::Lambda::Function", {
-        Runtime: "nodejs24.x",
-        Handler: "index.handler",
-      });
+      // The pages' deployment brings its own function, in Python; the API's is the only Node one.
+      const functions = resourcesOfType(template, "AWS::Lambda::Function");
+      const apiFunctions = functions.filter((f) => f.Properties.Runtime.startsWith("nodejs"));
+      expect(apiFunctions.map((f) => f.Properties)).toEqual([
+        expect.objectContaining({ Runtime: "nodejs24.x", Handler: "index.handler" }),
+      ]);
       const routes = resourcesOfType(template, "AWS::ApiGatewayV2::Route");
       const hosted = routes.map((r) => r.Properties.RouteKey).filter((key) => key !== "$default");
       expect(hosted.sort()).toEqual([...routeKeys].sort());
@@ -263,14 +299,17 @@ describe("AppStack", () => {
       });
     });
 
-    it("keeps the API's and the function's logs for 30 days", () => {
+    it("keeps every log for 30 days: the API's, its function's and the pages' deployment's", () => {
       const { template } = synth();
 
       const logGroups = resourcesOfType(template, "AWS::Logs::LogGroup");
-      expect(logGroups).toHaveLength(2);
+      expect(logGroups).toHaveLength(3);
       for (const group of logGroups) expect(group.Properties.RetentionInDays).toBe(30);
       template.hasResourceProperties("AWS::Lambda::Function", {
         LoggingConfig: { LogGroup: { Ref: Match.stringLikeRegexp("ApiFunctionLogs") } },
+      });
+      template.hasResourceProperties("AWS::Lambda::Function", {
+        LoggingConfig: { LogGroup: { Ref: Match.stringLikeRegexp("PagesDeploymentLogs") } },
       });
     });
 
@@ -284,4 +323,296 @@ describe("AppStack", () => {
       expect(JSON.stringify(format)).not.toMatch(/body/i);
     });
   });
+
+  describe("hosted pages, at one address with the API (ADR 0017)", () => {
+    it("serves the pages from the pages bucket and /api/* from the hosted API, over HTTPS", () => {
+      const { template } = synth();
+
+      const config = distributionConfig(template);
+      expect(originOf(config, config.DefaultCacheBehavior)).toMatchObject({
+        DomainName: { "Fn::GetAtt": [expect.stringMatching(/^PagesBucket/), "RegionalDomainName"] },
+        OriginAccessControlId: { "Fn::GetAtt": [expect.any(String), "Id"] },
+      });
+      const api = originOf(config, behaviourFor(config, "/api/*"));
+      expect(JSON.stringify(api?.DomainName)).toMatch(/"Ref":"Api\w+".*execute-api/);
+      // The routes already start with /api, so the path reaches the API as it is.
+      expect(api?.OriginPath).toBeUndefined();
+      expect(api?.CustomOriginConfig).toMatchObject({ OriginProtocolPolicy: "https-only" });
+      template.hasOutput("AppUrl", {
+        Value: {
+          "Fn::Join": ["", ["https://", Match.objectLike({ "Fn::GetAtt": Match.anyValue() }), "/"]],
+        },
+      });
+    });
+
+    it("redirects the pages from plain HTTP to HTTPS, and never answers the API over HTTP", () => {
+      const config = distributionConfig(synth().template);
+
+      expect(config.DefaultCacheBehavior.ViewerProtocolPolicy).toBe("redirect-to-https");
+      expect(behaviourFor(config, "/api/*").ViewerProtocolPolicy).toBe("https-only");
+    });
+
+    describe("a page deep in the app", () => {
+      const rewrite = () => {
+        const { template } = synth();
+        const [fn] = resourcesOfType(template, "AWS::CloudFront::Function");
+        const code: string = fn?.Properties.FunctionCode;
+        const handler = new Function(`${code}; return handler;`)();
+        return (uri: string) => handler({ request: { uri } }).uri;
+      };
+
+      it("loads the app for a page's own address, such as /cast or /cast/123", () => {
+        const toApp = rewrite();
+
+        for (const uri of ["/", "/cast", "/cast/123", "/casting/items/abc-1"]) {
+          expect(toApp(uri)).toBe("/index.html");
+        }
+      });
+
+      it("leaves the address of a file alone, so a missing one is still not found", () => {
+        const toApp = rewrite();
+
+        expect(toApp("/assets/missing.js")).toBe("/assets/missing.js");
+        expect(toApp("/assets/index-C93hsal6.css")).toBe("/assets/index-C93hsal6.css");
+      });
+
+      it("rewrites only the pages' requests, never the API's", () => {
+        const config = distributionConfig(synth().template);
+
+        expect(config.DefaultCacheBehavior.FunctionAssociations).toEqual([
+          { EventType: "viewer-request", FunctionARN: expect.anything() },
+        ]);
+        expect(behaviourFor(config, "/api/*").FunctionAssociations).toBeUndefined();
+        expect(behaviourFor(config, "/assets/*").FunctionAssociations).toBeUndefined();
+      });
+
+      // Without leave to list the bucket, S3 answers 403 for a missing file, not 404.
+      it("lets the distribution tell a missing file from a forbidden one", () => {
+        const actions = pagesBucketStatements(synth().template).flatMap((s) => s.Action);
+
+        expect(actions).toEqual(expect.arrayContaining(["s3:GetObject", "s3:ListBucket"]));
+      });
+    });
+
+    // A distribution-wide error page would turn the API's 401, 403 and 404 into the app's page.
+    it("passes the API's error statuses and bodies through unchanged", () => {
+      expect(distributionConfig(synth().template).CustomErrorResponses).toBeUndefined();
+    });
+
+    it("never caches the API's requests at the edge, and passes the sign-in header on", () => {
+      const api = behaviourFor(distributionConfig(synth().template), "/api/*");
+
+      expect(api).toMatchObject({
+        CachePolicyId: CachePolicy.CACHING_DISABLED.cachePolicyId,
+        // Every header but Host, so Authorization reaches API Gateway's sign-in check.
+        OriginRequestPolicyId:
+          OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER.originRequestPolicyId,
+        AllowedMethods: expect.arrayContaining(["GET", "POST", "PUT", "DELETE"]),
+      });
+    });
+
+    // The sign-in check's 401s come from API Gateway and never pass through the API's code.
+    it("tells browsers not to keep any API response, even the sign-in check's refusals", () => {
+      const { template } = synth();
+
+      const headers = responseHeadersFor(template, "/api/*");
+      expect(headers.CustomHeadersConfig.Items).toContainEqual({
+        Header: "Cache-Control",
+        Value: "no-store",
+        Override: true,
+      });
+    });
+
+    it("keeps the pages' files private, readable only through the app's address", () => {
+      const { template } = synth();
+
+      template.hasResourceProperties("AWS::S3::Bucket", {
+        PublicAccessBlockConfiguration: {
+          BlockPublicAcls: true,
+          BlockPublicPolicy: true,
+          IgnorePublicAcls: true,
+          RestrictPublicBuckets: true,
+        },
+      });
+      const allowed = pagesBucketStatements(template).filter((s) => s.Effect === "Allow");
+      // The deployment's own role writes the files; it gets its grant on the role, not here.
+      expect(allowed.length).toBeGreaterThan(0);
+      for (const statement of allowed) {
+        expect(statement.Principal).toEqual({ Service: "cloudfront.amazonaws.com" });
+        // Only this distribution, not every CloudFront distribution in AWS.
+        expect(Object.keys(statement.Condition.StringEquals)).toEqual(["AWS:SourceArn"]);
+        expect(JSON.stringify(statement.Condition)).toMatch(/PagesDistribution/);
+      }
+    });
+
+    it("forbids framing the pages, limits where scripts load from, and keeps browsers on HTTPS", () => {
+      const { template } = synth();
+
+      for (const path of [undefined, "/assets/*"]) {
+        const security = responseHeadersFor(template, path).SecurityHeadersConfig;
+        expect(security).toMatchObject({
+          FrameOptions: { FrameOption: "DENY", Override: true },
+          StrictTransportSecurity: {
+            AccessControlMaxAgeSec: 63072000,
+            IncludeSubdomains: true,
+            Override: true,
+          },
+          ContentTypeOptions: { Override: true },
+        });
+        // As CloudFormation has it: the login domain is only known at deploy time.
+        const policy = JSON.stringify(security.ContentSecurityPolicy.ContentSecurityPolicy);
+        for (const directive of [
+          "script-src 'self'",
+          "frame-ancestors 'none'",
+          "object-src 'none'",
+        ]) {
+          expect(policy).toMatch(new RegExp(`${directive}(;|")`));
+        }
+      }
+    });
+
+    it("lets the pages ask the team's login domain for sign-in tokens, and nowhere else", () => {
+      const security = responseHeadersFor(synth().template, undefined).SecurityHeadersConfig;
+
+      expect(JSON.stringify(security.ContentSecurityPolicy.ContentSecurityPolicy)).toMatch(
+        /connect-src 'self' https:\/\/",\{"Ref":"UserPoolLoginDomain\w+"\},"\.auth\.eu-west-2\.amazoncognito\.com;/,
+      );
+    });
+
+    it("tells the pages where to sign in, in a config file written at deploy", () => {
+      const { stack, template } = synth();
+      const [deployment] = resourcesOfType(template, "Custom::CDKBucketDeployment");
+      // The values are only known at deploy, so the file holds markers the deploy fills in.
+      const markers: Record<string, unknown> = Object.assign(
+        {},
+        ...(deployment?.Properties.SourceMarkers ?? []),
+      );
+      const config = Object.fromEntries(
+        Object.entries(deployedConfig(stack)).map(([key, marker]) => [
+          key,
+          JSON.stringify(markers[String(marker)]),
+        ]),
+      );
+
+      expect(Object.keys(config).sort()).toEqual(["appUrl", "clientId", "issuer", "loginUrl"]);
+      expect(config.clientId).toMatch(/"Ref":"UserPoolWebClient/);
+      expect(config.issuer).toMatch(/"Fn::GetAtt":\["UserPool\w+","ProviderURL"/);
+      expect(config.loginUrl).toMatch(/"Ref":"UserPoolLoginDomain/);
+      expect(config.appUrl).toMatch(
+        /"Fn::GetAtt":\["PagesDistribution\w+","DomainName"\]\},"\/\\""/,
+      );
+    });
+
+    it("serves the config file fresh on every load, so a new deploy's sign-in is picked up", () => {
+      const config = distributionConfig(synth().template);
+
+      // It has no behaviour of its own, so it's served by the pages' default: never cached.
+      const patterns = config.CacheBehaviors.map((b: Behaviour) => b.PathPattern);
+      expect(patterns).toEqual(["/assets/*", "/api/*"]);
+      expect(config.DefaultCacheBehavior.CachePolicyId).toBe(
+        CachePolicy.CACHING_DISABLED.cachePolicyId,
+      );
+    });
+
+    describe("a new release", () => {
+      it("is picked up on the next load, as the app's page is never cached", () => {
+        const { template } = synth();
+
+        const config = distributionConfig(template);
+        expect(config.DefaultCacheBehavior.CachePolicyId).toBe(
+          CachePolicy.CACHING_DISABLED.cachePolicyId,
+        );
+        expect(responseHeadersFor(template, undefined).CustomHeadersConfig.Items).toContainEqual({
+          Header: "Cache-Control",
+          Value: "no-cache",
+          Override: true,
+        });
+      });
+
+      // Vite names each built file after its content, so a new release has new names.
+      it("keeps the built files cached for a year, as their names change with their content", () => {
+        const { template } = synth();
+
+        expect(behaviourFor(distributionConfig(template), "/assets/*").CachePolicyId).toBe(
+          CachePolicy.CACHING_OPTIMIZED.cachePolicyId,
+        );
+        expect(responseHeadersFor(template, "/assets/*").CustomHeadersConfig.Items).toContainEqual({
+          Header: "Cache-Control",
+          Value: "public, max-age=31536000, immutable",
+          Override: true,
+        });
+      });
+
+      it("deploys the web app's build into the pages bucket, keeping the last release's files", () => {
+        synth().template.hasResourceProperties("Custom::CDKBucketDeployment", {
+          DestinationBucketName: { Ref: Match.stringLikeRegexp("^PagesBucket") },
+          // An open tab may still ask for the release it loaded.
+          Prune: false,
+        });
+      });
+    });
+  });
 });
+
+// The distribution's config, and the parts of it the pages' tests look at.
+type Behaviour = {
+  PathPattern?: string;
+  TargetOriginId: string;
+  ViewerProtocolPolicy: string;
+  CachePolicyId: string;
+  ResponseHeadersPolicyId?: { Ref: string };
+  FunctionAssociations?: unknown[];
+};
+
+const distributionConfig = (template: Template) => {
+  const [distribution] = resourcesOfType(template, "AWS::CloudFront::Distribution");
+  return distribution?.Properties.DistributionConfig;
+};
+
+const behaviourFor = (config: { CacheBehaviors: Behaviour[] }, path: string) => {
+  const behaviour = config.CacheBehaviors.find((b) => b.PathPattern === path);
+  if (!behaviour) throw new Error(`No behaviour for ${path}`);
+  return behaviour;
+};
+
+type Origin = { Id: string; [property: string]: unknown };
+
+const originOf = (config: { Origins: Origin[] }, behaviour: Behaviour) =>
+  config.Origins.find((o) => o.Id === behaviour.TargetOriginId);
+
+/** The response headers policy on a path's behaviour; no path means the pages' default. */
+const responseHeadersFor = (template: Template, path: string | undefined) => {
+  const config = distributionConfig(template);
+  const behaviour = path ? behaviourFor(config, path) : config.DefaultCacheBehavior;
+  const policies = template.findResources("AWS::CloudFront::ResponseHeadersPolicy");
+  const policy = policies[behaviour.ResponseHeadersPolicyId?.Ref ?? ""];
+  if (!policy) throw new Error(`No response headers policy for ${path ?? "the pages"}`);
+  return policy.Properties.ResponseHeadersPolicyConfig;
+};
+
+type Statement = {
+  Effect: string;
+  Action: string | string[];
+  Principal: unknown;
+  Condition: { StringEquals: Record<string, unknown> };
+};
+
+/** The config.json the deploy puts next to the pages, as synthesised (markers for values). */
+function deployedConfig(stack: AppStack): Record<string, unknown> {
+  const assembly = App.of(stack)?.synth();
+  if (!assembly) throw new Error("No app to synthesise");
+  const assetDirs = readdirSync(assembly.directory).filter((name) => name.startsWith("asset."));
+  for (const dir of assetDirs) {
+    const file = join(assembly.directory, dir, "config.json");
+    // A marker stands in for a whole JSON value, quotes and all.
+    if (existsSync(file)) {
+      return JSON.parse(readFileSync(file, "utf8").replaceAll(/<<marker:[^>]+>>/g, '"$&"'));
+    }
+  }
+  throw new Error("No config.json in the deployment");
+}
+
+const pagesBucketStatements = (template: Template): Statement[] => {
+  const [policy] = resourcesOfType(template, "AWS::S3::BucketPolicy");
+  return policy?.Properties.PolicyDocument.Statement ?? [];
+};

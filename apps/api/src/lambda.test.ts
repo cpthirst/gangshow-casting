@@ -47,7 +47,18 @@ describe("Lambda entry point", () => {
   it("returns 404 with no body for a path it doesn't serve", async () => {
     const res = await handler(request("GET", "/api/nope"));
 
-    expect(res).toEqual({ statusCode: 404 });
+    expect(res).toEqual({ statusCode: 404, headers: { "cache-control": "no-store" } });
+  });
+
+  it("tells browsers not to keep any response, found or not", async () => {
+    const found = await handler(request("GET", "/api/health"));
+    const missing = await handler(request("GET", "/api/nope"));
+    const refused = await handler(request("DELETE", "/api/productions/2027/cast/1"));
+
+    for (const res of [found, missing, refused]) {
+      expect(res.headers).toMatchObject({ "cache-control": "no-store" });
+    }
+    expect(refused.statusCode).toBe(403);
   });
 
   it("decodes a body that API Gateway sent base64-encoded", async () => {

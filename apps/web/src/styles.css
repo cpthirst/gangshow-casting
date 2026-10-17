@@ -147,6 +147,10 @@ body {
   margin: 0;
 }
 
+.sign-out-button {
+  margin-top: 0.5rem;
+}
+
 main {
   padding: 2.5rem;
   min-width: 0;
@@ -1009,7 +1013,8 @@ main a {
   white-space: nowrap;
 }
 
-.menu-button {
+.menu-button,
+.sign-out-button {
   padding: 0.5rem 1rem;
   border: 2px solid var(--white);
   border-radius: 999px;
@@ -1560,12 +1565,24 @@ main a {
     box-shadow: 0 0.5rem 1rem rgb(0 0 0 / 0.25);
   }
 
+  /* One row with the API status, so the sticky header stays short. */
   .sidebar-footer {
     order: 2;
     flex-basis: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
     margin: 0;
     padding: 0;
     font-size: 0.75rem;
+  }
+
+  /* The Menu button's size, and easy to tap with a thumb. */
+  .sign-out-button {
+    margin-top: 0;
+    min-height: 2.75rem;
+    font-size: 1rem;
   }
 
   main {

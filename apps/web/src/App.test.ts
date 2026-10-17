@@ -3,6 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory, type Router } from "vue-router";
 import App from "./App.vue";
 import { createAppRouter } from "./router.ts";
+import {
+  type SignInManager,
+  signInUnavailable,
+  useHostedSignIn,
+  useLocalSignIn,
+} from "./sign-in.ts";
 
 async function openAppAt(path: string) {
   const router = createAppRouter(createMemoryHistory());
@@ -24,6 +30,9 @@ function nextNavigation(router: Router) {
 
 const respondWith = (status: number, body: unknown) =>
   vi.fn().mockResolvedValue(new Response(JSON.stringify(body), { status }));
+
+// The app-wide sign-in state outlives each mount, so every test starts as pnpm dev does.
+beforeEach(useLocalSignIn);
 
 describe("App shell", () => {
   beforeEach(() => vi.stubGlobal("fetch", respondWith(200, { status: "ok", version: "1.2.3" })));
@@ -295,6 +304,128 @@ describe("App shell", () => {
 
     expect(wrapper.get("main h1").text()).toBe("Running order");
     expect(wrapper.text()).toContain("API: unavailable");
+  });
+
+  describe("when no one is signed in", () => {
+    const castMember = { id: 1, firstName: "Ada", lastName: "Testperson" };
+    // The API refuses everything, but a page must show nothing even if one answer slipped through.
+    // The Cast page asks only for the cast, so there the refusal comes from the shell's API status.
+    const refuseExceptCast = vi.fn(async (url: string) =>
+      url.endsWith("/cast")
+        ? new Response(JSON.stringify([castMember]), { status: 200 })
+        : new Response(JSON.stringify({ message: "Unauthorized" }), { status: 401 }),
+    );
+    beforeEach(() => vi.stubGlobal("fetch", refuseExceptCast));
+
+    it.each(["/", "/cast", "/casting/overview", "/casting/items", "/casting/items/1"])(
+      "shows no data on %s and says to sign in",
+      async (path) => {
+        const { wrapper } = await openAppAt(path);
+
+        const main = wrapper.get("main");
+        expect(main.get("h1").text()).toBe("You need to sign in");
+        expect(main.text()).not.toContain("Testperson");
+      },
+    );
+
+    it("announces why the page is empty, and says so in the tab and the API status", async () => {
+      const { wrapper } = await openAppAt("/cast");
+
+      expect(wrapper.get("main [role=alert]").text()).toContain("Sign in to see it");
+      expect(document.title).toBe("Sign in · Chester Gang Show casting");
+      expect(wrapper.get(".sidebar-footer").text()).toBe("API: sign in needed");
+    });
+
+    it("keeps the tab saying sign in after moving to another page", async () => {
+      const { router } = await openAppAt("/cast");
+
+      await router.push("/casting/overview");
+      await flushPromises();
+
+      expect(document.title).toBe("Sign in · Chester Gang Show casting");
+    });
+  });
+
+  describe("signing in on the hosted app", () => {
+    const config = {
+      clientId: "made-up-client",
+      issuer: "https://cognito-idp.eu-west-2.amazonaws.com/eu-west-2_madeup",
+      loginUrl: "https://made-up.auth.eu-west-2.amazoncognito.com",
+      appUrl: "https://d111111abcdef8.cloudfront.net/",
+    };
+    // Signed in, with the hour-long token good for a while yet.
+    const sam = { accessToken: "sams-token", expiresAt: Date.now() + 3_600_000, groups: [] };
+    const managerWith = (stored: typeof sam | null) =>
+      ({
+        storedUser: vi.fn(async () => stored),
+        refresh: vi.fn(async () => sam),
+        finishSignIn: vi.fn(async () => sam),
+        startSignIn: vi.fn(async () => {}),
+        revoke: vi.fn(async () => {}),
+        forget: vi.fn(async () => {}),
+      }) satisfies SignInManager;
+    const browserAt = (path: string) => ({ path, search: "", replacePath: vi.fn(), goTo: vi.fn() });
+
+    it("offers to sign in when no one is, and starts from the page asked for", async () => {
+      const manager = managerWith(null);
+      await useHostedSignIn(config, manager, browserAt("/cast"));
+      const { wrapper } = await openAppAt("/cast");
+
+      expect(wrapper.find("[data-test=sign-out]").exists()).toBe(false);
+      await wrapper.get("main button[data-test=sign-in]").trigger("click");
+
+      expect(manager.startSignIn).toHaveBeenCalledWith("/cast");
+    });
+
+    it("shows the page once signed in, with a way to sign out", async () => {
+      const manager = managerWith(sam);
+      const browser = browserAt("/cast");
+      await useHostedSignIn(config, manager, browser);
+      const { wrapper } = await openAppAt("/cast");
+
+      expect(wrapper.get("main h1").text()).toBe("Cast");
+      await wrapper.get("[data-test=sign-out]").trigger("click");
+      await flushPromises();
+
+      expect(manager.forget).toHaveBeenCalled();
+      expect(browser.goTo).toHaveBeenCalledWith(expect.stringContaining("/logout?"));
+    });
+
+    // The page's own leave question, such as "Discard unsaved changes?", decides.
+    it("asks the open page before signing out, and stays if it says to", async () => {
+      const manager = managerWith(sam);
+      await useHostedSignIn(config, manager, browserAt("/"));
+      const { wrapper, router } = await openAppAt("/");
+      const keepChanges = router.beforeEach(() => false);
+
+      await wrapper.get("[data-test=sign-out]").trigger("click");
+      await flushPromises();
+      expect(manager.forget).not.toHaveBeenCalled();
+      expect(router.currentRoute.value.path).toBe("/");
+
+      keepChanges();
+      await wrapper.get("[data-test=sign-out]").trigger("click");
+      await flushPromises();
+      expect(manager.forget).toHaveBeenCalled();
+    });
+
+    it("says when sign-in couldn't be set up, offering no button that can't work", async () => {
+      signInUnavailable();
+      const { wrapper } = await openAppAt("/cast");
+
+      expect(wrapper.get("main h1").text()).toBe("You need to sign in");
+      expect(wrapper.get("main [role=alert]").text()).toBe(
+        "Couldn't set up sign-in. Reload the page to try again.",
+      );
+      expect(wrapper.find("[data-test=sign-in]").exists()).toBe(false);
+    });
+
+    it("has no sign-in or sign-out locally", async () => {
+      const { wrapper } = await openAppAt("/cast");
+
+      expect(wrapper.get("main h1").text()).toBe("Cast");
+      expect(wrapper.find("[data-test=sign-out]").exists()).toBe(false);
+    });
   });
 });
 

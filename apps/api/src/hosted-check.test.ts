@@ -248,7 +248,7 @@ describe("the post-deploy check", () => {
 
       expect(code).toBe(1);
       expect(lines).toEqual([
-        "Usage: pnpm check:hosted <https address of the API> <check admin username> <check member username>",
+        "Usage: pnpm check:hosted <https address of the app> <check admin username> <check member username>",
       ]);
       expect(requests).toEqual([]);
       expect(signIns).toEqual([]);

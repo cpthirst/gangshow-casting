@@ -17,6 +17,7 @@ import {
   stageLabel,
   updateOf,
 } from "../running-order.ts";
+import { apiFetch, isAdmin } from "../sign-in.ts";
 import { type RowDrop, vSortableRows } from "../sortable-rows.ts";
 import ItemEditor from "./ItemEditor.vue";
 
@@ -42,7 +43,7 @@ const showSaved = (order: RunningOrder) => {
 
 async function load() {
   try {
-    const res = await fetch(RUNNING_ORDER_PATH);
+    const res = await apiFetch(RUNNING_ORDER_PATH);
     if (res.status === 404) {
       state.value = { status: "empty" };
       return;
@@ -116,6 +117,10 @@ function changeWorking(changed: RunningOrder, itemId: string) {
   announcement.value = `${describeMove(before, changed, itemId)} Not saved yet.`;
 }
 
+// The API refuses non-admins too: this only shows it up front. A refusal anyway means their
+// admin role was removed after they signed in.
+const ONLY_ADMINS_SAVE = "Only admins can change the running order";
+
 async function save() {
   if (state.value.status !== "loaded" || busy.value || !loaded.value?.unsaved) return;
   const { saved, working } = state.value;
@@ -123,6 +128,11 @@ async function save() {
   const result = await saveDraft(saved.version, working);
   saving.value = false;
 
+  if (result.outcome === "refused") {
+    notice.value = `${ONLY_ADMINS_SAVE}.`;
+    announcement.value = notice.value;
+    return;
+  }
   if (result.outcome === "failed") {
     notice.value = "Couldn't save the draft. Your changes are still here. Try again.";
     announcement.value = notice.value;
@@ -143,16 +153,21 @@ function reset() {
   announcement.value = `Changes discarded. Back to Draft ${state.value.saved.version}.`;
 }
 
-type SaveResult = { outcome: "saved" | "conflict"; order: RunningOrder } | { outcome: "failed" };
+type SaveResult =
+  | { outcome: "saved" | "conflict"; order: RunningOrder }
+  | { outcome: "refused" }
+  | { outcome: "failed" };
 
-// 201 → saved; 409 → someone else saved first (the body is their version); anything else failed.
+// 201 → saved; 409 → someone else saved first (the body is their version); 403 → not an admin;
+// anything else failed.
 async function saveDraft(baseVersion: number, working: RunningOrder): Promise<SaveResult> {
   try {
-    const res = await fetch(`${RUNNING_ORDER_PATH}/versions`, {
+    const res = await apiFetch(`${RUNNING_ORDER_PATH}/versions`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ baseVersion, change: updateOf(working) }),
     });
+    if (res.status === 403) return { outcome: "refused" };
     if (res.status !== 201 && res.status !== 409) return { outcome: "failed" };
     const order = RunningOrder.parse(await res.json());
     return { outcome: res.status === 201 ? "saved" : "conflict", order };
@@ -206,11 +221,12 @@ function refocus(itemId: string, direction: Move) {
     <div class="draft-bar">
       <p class="version">Draft {{ loaded.saved.version }}</p>
       <p v-if="loaded.unsaved" class="unsaved" data-test="unsaved">Unsaved changes</p>
+      <p v-if="!isAdmin" class="admin-only" data-test="admin-only">{{ ONLY_ADMINS_SAVE }}</p>
       <button
         type="button"
         class="primary"
         data-test="save"
-        :disabled="!loaded.unsaved || busy"
+        :disabled="!loaded.unsaved || busy || !isAdmin"
         @click="save"
       >
         Save as Draft {{ loaded.saved.version + 1 }}

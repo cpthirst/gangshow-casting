@@ -16,6 +16,7 @@ import { icons } from "../icons.ts";
 import { ITEM_NOTES_PATH } from "../item-notes.ts";
 import { ROLES_PATH, roleCounts, spokenCounts } from "../roles.ts";
 import { RUNNING_ORDER_PATH, runningClock } from "../running-order.ts";
+import { apiFetch } from "../sign-in.ts";
 
 type State =
   | { status: "loading" }
@@ -67,7 +68,7 @@ onMounted(() => Promise.all([loadRunningOrder(), loadRoles(), loadCast(), loadNo
 
 async function loadNotes() {
   try {
-    const res = await fetch(ITEM_NOTES_PATH);
+    const res = await apiFetch(ITEM_NOTES_PATH);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const list = ItemNoteList.parse(await res.json()).notes;
     notes.value = new Map(list.filter((n) => n.text !== "").map((n) => [n.itemId, n.text]));
@@ -79,7 +80,7 @@ async function loadNotes() {
 
 async function loadCast() {
   try {
-    const res = await fetch(CAST_PATH);
+    const res = await apiFetch(CAST_PATH);
     // No cast list yet just means nobody can clash.
     if (res.status === 404) {
       cast.value = [];
@@ -94,7 +95,7 @@ async function loadCast() {
 
 async function loadRoles() {
   try {
-    const res = await fetch(ROLES_PATH);
+    const res = await apiFetch(ROLES_PATH);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     roles.value = RoleList.parse(await res.json()).roles;
   } catch {
@@ -106,7 +107,7 @@ async function loadRoles() {
 async function loadRunningOrder() {
   try {
     // The latest saved version: unsaved moves live only on the Running order page (PRD FR1).
-    const res = await fetch(RUNNING_ORDER_PATH);
+    const res = await apiFetch(RUNNING_ORDER_PATH);
     if (res.status === 404) {
       state.value = { status: "empty" };
       return;
