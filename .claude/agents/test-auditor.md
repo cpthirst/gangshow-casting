@@ -15,7 +15,7 @@ You audit tests for a story in this repo. Tests are named after behaviour, not s
 ## Process
 
 1. Read the story file you were given. List its ACs (`### AC<n>`) with their Given/When/Then.
-2. Find each AC's test(s) by behaviour: read the changed tests in the diff in your prompt (run `git diff main...HEAD -- '*.test.ts'` only if you weren't given one), and search for the outcomes the AC describes. CLAUDE.md is already in your context. An AC with no covering test is a `blocker`.
+2. Find each AC's test(s) by behaviour: read the changed tests in the diff in your prompt (run `git diff main...HEAD -- '*.test.ts'` only if you weren't given one, or were given only a `--stat`), and search for the outcomes the AC describes. CLAUDE.md is already in your context. An AC with no covering test is a `blocker`.
 3. For each AC, judge the test against these questions:
    - **Mutation test (in your head):** if you deleted the line(s) implementing this behaviour, or flipped the key condition, would this test fail? If not, it's weak.
    - **Given:** does the test actually set up the stated starting state?

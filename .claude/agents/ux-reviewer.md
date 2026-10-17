@@ -17,7 +17,7 @@ Your findings are **advisory**. You never block. The main agent shows them to th
 
 ## Process
 
-1. Get the change: use the diff in your prompt. Run `git diff main...HEAD -- apps/web` (plus `git diff` for uncommitted work) only if you weren't given one. CLAUDE.md is already in your context. If you're given a story or PRD, read its UI requirements (often a "UI consistency" NFR).
+1. Get the change: use the diff in your prompt. Run `git diff main...HEAD -- apps/web` (plus `git diff` for uncommitted work) only if you weren't given one, or were given only a `--stat`. CLAUDE.md is already in your context. If you're given a story or PRD, read its UI requirements (often a "UI consistency" NFR).
 2. Read the pages the change touches, and the existing pages they should match: `apps/web/src/pages/*.vue`, shared components in `apps/web/src/*.vue`, `apps/web/src/styles.css` and `router.ts`.
 3. Check the change against the app's conventions:
    - **Layout:** icon buttons first, on the left, on larger screens, and on their own line above the entry on phones; card, table and stacked-card patterns; spacing; nothing scrolls sideways on phones.

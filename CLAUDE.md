@@ -73,13 +73,13 @@ New feature work starts from a story with Given/When/Then ACs. If there isn't on
 
 Run after the gate is green, before a story is `done` or a PR is opened. Launch the relevant reviewers **in parallel**, passing the story path if there is one.
 
-**Hand each reviewer the change**, so they don't each fetch it again. Run `git diff main...HEAD` (plus `git diff` for uncommitted work) once, and paste it into every reviewer's prompt, with the story path. Give `infra-reviewer` and `ux-reviewer` only the part of the diff in their own area. If the diff is over ~1,500 lines, paste `git diff --stat main...HEAD` instead, and say which files matter most. Reviewers already have CLAUDE.md, so don't paste it.
+**Hand each reviewer the change**, so they don't each fetch it again. Run `git diff main...HEAD` (plus `git diff` for uncommitted work) once, and paste it into every reviewer's prompt, with the story path. Give `infra-reviewer` and `ux-reviewer` only the part of the diff in their own area. If `git diff --shortstat main...HEAD` reports over ~1,500 changed lines, paste `git diff --stat main...HEAD` instead, and say which files matter most. Reviewers already have CLAUDE.md, so don't paste it. Skip any reviewer whose row below doesn't match the diff; that's intended.
 
 | Reviewer | Run when the diff (`git diff main...HEAD`) touches |
 |---|---|
 | `code-reviewer` | always |
 | `test-auditor` | a story is being implemented |
-| `security-reviewer` | non-test code in `apps/api` or `packages/shared`; `apps/web` code that handles sign-in, tokens, building URLs or `v-html`; or dependencies in any `package.json` / `pnpm-workspace.yaml` |
+| `security-reviewer` | non-test code in `apps/api` (including `routes.ts` and `dev-server.ts`) or `packages/shared`; `apps/web` code that touches sign-in, tokens, browser storage, `fetch` or other URLs, or renders raw HTML (`v-html`, `innerHTML`); or dependency changes in any `package.json` / `pnpm-workspace.yaml`. When unsure, run it |
 | `infra-reviewer` | `infra/`, or anything that changes how the API is packaged or deployed |
 | `ux-reviewer` | `apps/web` (advisory: never blocks) |
 

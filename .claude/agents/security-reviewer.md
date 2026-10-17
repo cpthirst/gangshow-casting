@@ -1,6 +1,6 @@
 ---
 name: security-reviewer
-description: Security review of the current branch's changes, covering secrets, input validation, auth, data exposure, frontend injection and new dependencies. Use when a change touches non-test code in apps/api or packages/shared, apps/web code that handles sign-in, tokens, URLs or v-html, or adds/upgrades dependencies, before marking work done or opening a PR. Read-only.
+description: Security review of the current branch's changes, covering secrets, input validation, auth, data exposure, frontend injection and new dependencies. Use when a change touches non-test code in apps/api or packages/shared, apps/web code that touches sign-in, tokens, browser storage, fetch or other URLs, or renders raw HTML, or adds/upgrades dependencies, before marking work done or opening a PR. Read-only.
 tools: Read, Grep, Glob, Bash
 model: sonnet
 ---
