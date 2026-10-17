@@ -38,27 +38,34 @@ export async function runMove(
   // First, so a shell set up for the wrong table or folder is obvious.
   print(`Using table ${remote.table} (${remote.region}) and files at ${dataDir}.`);
   try {
+    const local = await readLocalProduction(dataDir, productionId);
+    if (!hasLocalData(local)) {
+      const nothing = command === "copy" ? "nothing copied" : "nothing to verify";
+      print(`No local data found for production ${productionId}: ${nothing}.`);
+      return 1;
+    }
+
     if (command === "verify") {
       const result = await verifyCopy(
         fileStores(dataDir),
         remoteStores(remote.db, remote.table),
         productionId,
       );
-      await recordVerification(dataDir, productionId, result.passed, now());
+      // Shown first, so a problem recording it can't hide what was found.
       for (const line of verificationLines(result)) print(line);
+      await recordVerification(dataDir, productionId, result.passed, now());
       return result.passed ? 0 : 1;
     }
 
-    const local = await readLocalProduction(dataDir, productionId);
-    if (!hasLocalData(local)) {
-      print(`No local data found for production ${productionId}: nothing copied.`);
-      return 1;
-    }
     const report = await copyProduction(remote.db, remote.table, local);
     if (report.outcome === "copied") await recordCopied(dataDir, productionId, now());
     for (const line of copyReportLines(report)) print(line);
     return report.outcome === "copied" ? 0 : 1;
   } catch (error) {
+    // A verification that couldn't run must not leave an earlier pass to be trusted.
+    if (command === "verify") {
+      await recordVerification(dataDir, productionId, false, now()).catch(() => undefined);
+    }
     // Only the error's kind: its message could quote the data, which names children.
     const kind = error instanceof Error ? error.name : "unknown error";
     const what = command === "copy" ? "Copy" : "Verification";

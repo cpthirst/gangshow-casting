@@ -35,45 +35,82 @@ type ById = Map<string, unknown>;
 const COLLECTIONS = ["cast", "roles", "item notes", "running order versions"] as const;
 type Collection = (typeof COLLECTIONS)[number];
 
-/** Everything a production holds, read the way the app reads it: through the API's own
- *  handlers, plus every running order version from the store (no route reads old ones). */
-async function readThroughApi(
-  stores: Readable,
-  productionId: string,
-): Promise<Record<Collection, ById>> {
-  const event = { pathParameters: { productionId } };
-  const body = async (response: Promise<APIGatewayProxyStructuredResultV2>) => {
-    const { statusCode, body: text } = await response;
-    return statusCode === 200 ? JSON.parse(text ?? "") : undefined;
-  };
+/** A handler's JSON body, parsed by the caller's schema; undefined for 404, which the cast
+ *  and running order answer when a production has none. Anything else is a failure. */
+async function bodyOf(response: Promise<APIGatewayProxyStructuredResultV2>): Promise<unknown> {
+  const { statusCode, body } = await response;
+  if (statusCode === 404) return undefined;
+  if (statusCode !== 200) throw new Error(`The API answered ${String(statusCode)}`);
+  return JSON.parse(body ?? "");
+}
 
-  const castBody = await body(createGetCast(stores.cast)(event));
-  const cast = castBody === undefined ? [] : CastList.parse(castBody).members;
-  const roles = RoleList.parse(await body(createGetRoles(stores.roles)(event))).roles;
-  const notes = ItemNoteList.parse(await body(createGetItemNotes(stores.itemNotes)(event))).notes;
-  const latestBody = await body(createGetRunningOrder(stores.runningOrders)(event));
-  const latest = latestBody === undefined ? 0 : RunningOrder.parse(latestBody).version;
+/** Every saved version of the running order, up to the latest, by version number. No
+ *  route reads old versions, so they're read from the store. */
+async function versionsOf(stores: Readable, productionId: string, latest: number) {
   const versions: ById = new Map();
   for (let version = 1; version <= latest; version++) {
     const order = await stores.runningOrders.get(productionId, version);
     if (order) versions.set(String(version), order);
   }
+  return versions;
+}
 
+const keyedBy = <T>(records: T[], idOf: (record: T) => string | number): ById =>
+  new Map(records.map((record) => [String(idOf(record)), record]));
+
+/** Everything a production holds, read the way the app reads it: through the API's own
+ *  handlers. */
+async function readThroughApi(
+  stores: Readable,
+  productionId: string,
+): Promise<Record<Collection, ById>> {
+  const event = { pathParameters: { productionId } };
+  const castBody = await bodyOf(createGetCast(stores.cast)(event));
+  const latestBody = await bodyOf(createGetRunningOrder(stores.runningOrders)(event));
+  const latest = latestBody === undefined ? 0 : RunningOrder.parse(latestBody).version;
   return {
-    cast: new Map(cast.map((member) => [String(member.id), member])),
-    roles: new Map(roles.map((role) => [String(role.id), role])),
-    "item notes": new Map(notes.map((note) => [note.itemId, note])),
-    "running order versions": versions,
+    cast: keyedBy(castBody === undefined ? [] : CastList.parse(castBody).members, (m) => m.id),
+    roles: keyedBy(
+      RoleList.parse(await bodyOf(createGetRoles(stores.roles)(event))).roles,
+      (r) => r.id,
+    ),
+    "item notes": keyedBy(
+      ItemNoteList.parse(await bodyOf(createGetItemNotes(stores.itemNotes)(event))).notes,
+      (note) => note.itemId,
+    ),
+    "running order versions": await versionsOf(stores, productionId, latest),
   };
 }
 
 // Numeric ids in number order, others alphabetically, so reports read naturally.
-const byId = (a: string, b: string) => a.localeCompare(b, "en", { numeric: true });
+const sortedIds = (records: ById) =>
+  [...records.keys()].sort((a, b) => a.localeCompare(b, "en", { numeric: true }));
+
+/** One collection compared: how many match, what's missing or different, what's extra. */
+function compareCollection(collection: Collection, local: ById, remote: ById) {
+  const problems: string[] = [];
+  let matching = 0;
+  for (const id of sortedIds(local)) {
+    if (!remote.has(id)) {
+      problems.push(`${collection}: ${id} missing`);
+      continue;
+    }
+    if (!isDeepStrictEqual(local.get(id), remote.get(id))) {
+      problems.push(`${collection}: ${id} differs`);
+      continue;
+    }
+    matching++;
+  }
+  const remoteOnly = sortedIds(remote)
+    .filter((id) => !local.has(id))
+    .map((id) => `${collection}: ${id}`);
+  return { matching, problems, remoteOnly };
+}
 
 /**
  * Checks the remote database returns everything the files hold, read through the API from
- * both. Passes only if every local record is there and the same. Names records by
- * collection and id only, never their contents.
+ * both. Passes only if the files hold something, and every record of it is there and the
+ * same. Names records by collection and id only, never their contents.
  */
 export async function verifyCopy(
   local: Readable,
@@ -84,26 +121,25 @@ export async function verifyCopy(
   const theirs = await readThroughApi(remote, productionId);
   const result: Verification = {
     productionId,
-    passed: true,
+    passed: false,
     counts: {},
     problems: [],
     remoteOnly: [],
   };
 
   for (const collection of COLLECTIONS) {
-    const records = mine[collection];
-    const remoteRecords = theirs[collection];
-    let matching = 0;
-    for (const id of [...records.keys()].sort(byId)) {
-      if (!remoteRecords.has(id)) result.problems.push(`${collection}: ${id} missing`);
-      else if (!isDeepStrictEqual(records.get(id), remoteRecords.get(id))) {
-        result.problems.push(`${collection}: ${id} differs`);
-      } else matching++;
-    }
-    if (records.size > 0) result.counts[collection] = matching;
-    for (const id of [...remoteRecords.keys()].sort(byId)) {
-      if (!records.has(id)) result.remoteOnly.push(`${collection}: ${id}`);
-    }
+    const { matching, problems, remoteOnly } = compareCollection(
+      collection,
+      mine[collection],
+      theirs[collection],
+    );
+    if (mine[collection].size > 0) result.counts[collection] = matching;
+    result.problems.push(...problems);
+    result.remoteOnly.push(...remoteOnly);
+  }
+  // Nothing local means a mistyped id or the wrong folder, never a proven copy.
+  if (COLLECTIONS.every((collection) => mine[collection].size === 0)) {
+    result.problems.push("nothing in the files to compare");
   }
   result.passed = result.problems.length === 0;
   return result;

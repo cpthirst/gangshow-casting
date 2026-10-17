@@ -97,10 +97,31 @@ describe("verifying a copy through the API", () => {
     expect(result.remoteOnly).toEqual(["item notes: opening", "running order versions: 3"]);
   });
 
-  it("passes for a production with no data in either", async () => {
-    expect((await verifyCopy(await storesWith({}), await storesWith({}), "2027")).passed).toBe(
-      true,
+  it("never passes when the files hold nothing to compare, such as for a mistyped id", async () => {
+    const result = await verifyCopy(await storesWith({}), await storesWith(production), "2027");
+
+    expect(result).toMatchObject({ passed: false, problems: ["nothing in the files to compare"] });
+  });
+
+  it.each([
+    [
+      "an item's notes",
+      { notes: [{ itemId: "finale", text: "Bows and encore", revision: 2 }] },
+      "item notes: finale differs",
+    ],
+    [
+      "a role",
+      { roles: { productionId: "2027", roles: [aRole(3, { castMemberIds: [] }), aRole(7)] } },
+      "roles: 3 differs",
+    ],
+  ])("fails when %s differs", async (_what, change, problem) => {
+    const result = await verifyCopy(
+      await storesWith(production),
+      await storesWith({ ...production, ...change }),
+      "2027",
     );
+
+    expect(result.problems).toEqual([problem]);
   });
 
   it("reports a pass and a failure as lines, with no names", () => {

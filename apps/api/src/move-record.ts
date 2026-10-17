@@ -17,7 +17,8 @@ export interface MoveRecord {
 
 const isTime = (value: unknown) => typeof value === "string" && !Number.isNaN(Date.parse(value));
 
-/** The record as stored, or undefined if it isn't one (e.g. a hand edit gone wrong). */
+/** The record as stored, or undefined if it isn't one (e.g. a hand edit gone wrong). Strict
+ *  on purpose: removal trusts this record, so anything unexpected in it is refused. */
 function asMoveRecord(value: unknown): MoveRecord | undefined {
   if (typeof value !== "object" || value === null) return undefined;
   const record: MoveRecord = {};
@@ -43,6 +44,7 @@ export async function readMoveRecord(dataDir: string, productionId: string): Pro
 
 async function writeMoveRecord(dataDir: string, productionId: string, record: MoveRecord) {
   const path = recordFileFor(dataDir, productionId);
+  // An empty record is no record: nothing is left to suggest a pass.
   if (record.copiedAt === undefined && record.verifiedAt === undefined) {
     await rm(path, { force: true });
     return;
@@ -62,10 +64,8 @@ export async function recordVerification(
   passed: boolean,
   at: Date,
 ) {
-  const { verifiedAt: _earlier, ...record } = await readMoveRecord(dataDir, productionId);
-  await writeMoveRecord(
-    dataDir,
-    productionId,
-    passed ? { ...record, verifiedAt: at.toISOString() } : record,
-  );
+  const record = await readMoveRecord(dataDir, productionId);
+  delete record.verifiedAt;
+  if (passed) record.verifiedAt = at.toISOString();
+  await writeMoveRecord(dataDir, productionId, record);
 }
