@@ -1,7 +1,8 @@
-import { CastList, ItemNoteList } from "@app/shared";
+import { CastList, CastMember, ItemNoteList } from "@app/shared";
 import { GetCommand } from "@aws-sdk/lib-dynamodb";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { aCastList, aCastMember } from "./cast.fixture.ts";
+import { createAddCastMember } from "./add-cast-member.ts";
+import { aCastList, aCastMember, jo } from "./cast.fixture.ts";
 import { dataStores } from "./data-stores.ts";
 import { aTestTable, seedCast, type TestTable } from "./dynamo.fixture.ts";
 import { createGetCast } from "./get-cast.ts";
@@ -9,6 +10,7 @@ import { createGetItemNotes } from "./get-item-notes.ts";
 import { aRunningOrder, itemId } from "./running-order.fixture.ts";
 import { inMemoryRunningOrderStore } from "./running-order-store.ts";
 import { createSaveItemNote } from "./save-item-note.ts";
+import { createUpdateCastMember } from "./update-cast-member.ts";
 
 describe("data stores with a remote table", () => {
   let table: TestTable;
@@ -27,6 +29,27 @@ describe("data stores with a remote table", () => {
     const res = await createGetCast(cast)({ pathParameters: { productionId: "2027" } });
 
     expect(CastList.parse(JSON.parse(res.body ?? ""))).toEqual(list);
+  });
+
+  it("adds and edits cast members through the API in the remote table", async () => {
+    await seedCast(table.db, table.tableName, aCastList([aCastMember(1)]));
+    const { cast } = dataStores({ ...process.env, DATA_TABLE: table.tableName });
+
+    const added = await createAddCastMember(cast)({
+      pathParameters: { productionId: "2027" },
+      body: JSON.stringify({ ...jo, singing: "Alto" }),
+    });
+    const edited = await createUpdateCastMember(cast)({
+      pathParameters: { productionId: "2027", castId: "1" },
+      body: JSON.stringify({ ...jo, firstName: "Sam", revision: 1 }),
+    });
+    const read = await createGetCast(cast)({ pathParameters: { productionId: "2027" } });
+
+    expect([added.statusCode, edited.statusCode]).toEqual([201, 200]);
+    expect(CastList.parse(JSON.parse(read.body ?? "")).members).toEqual([
+      { ...jo, firstName: "Sam", id: 1, revision: 2 },
+      CastMember.parse(JSON.parse(added.body ?? "")),
+    ]);
   });
 
   it("saves and reads item notes through the API in the remote table", async () => {

@@ -5,7 +5,7 @@ import { DynamoDBDocumentClient, QueryCommand } from "@aws-sdk/lib-dynamodb";
 // The production data table (ADR 0015): partition key "pk" and sort key "sk", matching
 // infra/lib/app-stack.ts. Each production is one partition; each entity is one item.
 
-// Optional fields left out (like a member's notes) are simply not stored.
+// For every store: optional fields left out (like a member's notes) are simply not stored.
 export const documentClient = (client: DynamoDBClient) =>
   DynamoDBDocumentClient.from(client, { marshallOptions: { removeUndefinedValues: true } });
 

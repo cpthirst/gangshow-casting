@@ -1,9 +1,7 @@
-import type { CastList, CastMemberDetails } from "@app/shared";
+import type { CastList } from "@app/shared";
 import { expect, it } from "vitest";
-import { aCastList, aCastMember } from "./cast.fixture.ts";
+import { aCastList, aCastMember, jo } from "./cast.fixture.ts";
 import type { CastStore } from "./cast-store.ts";
-
-const jo: CastMemberDetails = { firstName: "Jo", lastName: "Newcomer", section: null, group: "" };
 
 /** The rules every cast store keeps, run against each implementation. `make` starts it
  *  holding the given cast lists. */
@@ -18,7 +16,7 @@ export function behavesAsACastStore(make: (initial?: CastList[]) => Promise<Cast
     expect(await (await make()).list("2027")).toBeUndefined();
   });
 
-  it("loads members saved before Singing and Acting notes existed", async () => {
+  it("loads members saved before Singing and Acting notes existed, with no notes", async () => {
     const store = await make([aCastList([aCastMember(1)])]);
 
     const member = (await store.list("2027"))?.members[0];
@@ -31,7 +29,9 @@ export function behavesAsACastStore(make: (initial?: CastList[]) => Promise<Cast
     const added = await store.add("2027", { ...jo, singing: "Alto" });
 
     expect(added).toEqual({ ...jo, singing: "Alto", id: 57, revision: 1 });
-    expect((await store.list("2027"))?.members.map((m) => m.id)).toEqual([1, 56, 57]);
+    const members = (await store.list("2027"))?.members;
+    expect(members?.map((m) => m.id)).toEqual([1, 56, 57]);
+    expect(members?.at(-1)).toEqual(added);
   });
 
   it("adds nothing to a production with no cast list", async () => {

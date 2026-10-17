@@ -1,7 +1,9 @@
+import { PutCommand } from "@aws-sdk/lib-dynamodb";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { aCastList, aCastMember } from "./cast.fixture.ts";
 import { behavesAsACastStore } from "./cast-store.contract.ts";
 import { aTestTable, seedCast, type TestTable } from "./dynamo.fixture.ts";
-import { dynamoCastStore } from "./dynamo-cast-store.ts";
+import { castKey, dynamoCastStore } from "./dynamo-cast-store.ts";
 
 describe("DynamoDB cast store", () => {
   let table: TestTable;
@@ -27,6 +29,24 @@ describe("DynamoDB cast store", () => {
     expect((await store.list("2027"))?.members.map((m) => m.id)).toEqual([
       1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
     ]);
+  });
+
+  it("never echoes a bad stored row's contents (which could include names) in its error", async () => {
+    await seedCast(table.db, table.tableName, aCastList([aCastMember(1)]));
+    await table.db.send(
+      new PutCommand({
+        TableName: table.tableName,
+        Item: { pk: "PROD#2027", sk: castKey(2), ...aCastMember(2), dateOfBirth: "Zed Gone" },
+      }),
+    );
+
+    const error = await dynamoCastStore(table.db, table.tableName)
+      .list("2027")
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(Error);
+    expect(String(error)).not.toMatch(/Zed|Gone|dateOfBirth/);
+    expect(error instanceof Error && error.cause).toBeUndefined();
   });
 
   it("refuses a production id that isn't valid", async () => {

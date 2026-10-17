@@ -6,7 +6,7 @@ import {
   PutCommand,
   UpdateCommand,
 } from "@aws-sdk/lib-dynamodb";
-import type { CastStore } from "./cast-store.ts";
+import type { CastStore, Refusal } from "./cast-store.ts";
 import { conditionFailed, META, partitionFor, queryAll, withoutKeys } from "./dynamo-table.ts";
 
 const CAST = "CAST#";
@@ -16,7 +16,8 @@ export const castKey = (id: number) => `${CAST}${String(id).padStart(8, "0")}`;
 /**
  * The cast list in the production data table (ADR 0015): one row per member. The
  * production's META row holds `castNextId`, which marks that it has a cast list and hands
- * out ids atomically, so they're never reused, even across API processes.
+ * out ids atomically, so they're never reused, even across API processes. Anything that
+ * writes member rows directly (seeding, the copy) must set `castNextId` past every id.
  */
 export function dynamoCastStore(db: DynamoDBDocumentClient, tableName: string): CastStore {
   const keyOf = (productionId: string, id: number) => ({
@@ -24,7 +25,32 @@ export function dynamoCastStore(db: DynamoDBDocumentClient, tableName: string): 
     sk: castKey(id),
   });
 
-  const hasCastList = async (productionId: string) => {
+  /** Runs a conditional write: true if it was written, false if its condition failed. */
+  async function written(write: () => Promise<unknown>) {
+    try {
+      await write();
+      return true;
+    } catch (error) {
+      if (conditionFailed(error)) return false;
+      throw error;
+    }
+  }
+
+  // A conditional write failed: tell a stale revision from a member who isn't there.
+  async function refusal(productionId: string, id: number): Promise<Refusal> {
+    const row = await db.send(
+      new GetCommand({ TableName: tableName, Key: keyOf(productionId, id), ConsistentRead: true }),
+    );
+    return row.Item ? "stale" : "not-found";
+  }
+
+  // Write a member only if they're still at `revision`.
+  const atRevision = (revision: number) => ({
+    ConditionExpression: "revision = :revision",
+    ExpressionAttributeValues: { ":revision": revision },
+  });
+
+  async function hasCastList(productionId: string) {
     const meta = await db.send(
       new GetCommand({
         TableName: tableName,
@@ -33,53 +59,48 @@ export function dynamoCastStore(db: DynamoDBDocumentClient, tableName: string): 
       }),
     );
     return meta.Item?.castNextId !== undefined;
-  };
+  }
 
-  // A conditional write failed: tell a stale revision from a member who isn't there.
-  const refusal = async (productionId: string, id: number) => {
-    const row = await db.send(
-      new GetCommand({ TableName: tableName, Key: keyOf(productionId, id), ConsistentRead: true }),
-    );
-    return row.Item ? "stale" : "not-found";
-  };
-
-  // Write a member only if they're still at `revision`.
-  const atRevision = (revision: number) => ({
-    ConditionExpression: "revision = :revision",
-    ExpressionAttributeValues: { ":revision": revision },
-  });
+  /** Takes the production's next cast id, or undefined if it has no cast list. An id taken
+   *  for an add that then fails is simply skipped: ids only need never to repeat. */
+  async function takeNextId(productionId: string): Promise<number | undefined> {
+    let taken: unknown;
+    const counted = await written(async () => {
+      const result = await db.send(
+        new UpdateCommand({
+          TableName: tableName,
+          Key: { pk: partitionFor(productionId), sk: META },
+          UpdateExpression: "SET castNextId = castNextId + :one",
+          ConditionExpression: "attribute_exists(castNextId)",
+          ExpressionAttributeValues: { ":one": 1 },
+          ReturnValues: "UPDATED_OLD",
+        }),
+      );
+      taken = result.Attributes?.castNextId;
+    });
+    return counted && typeof taken === "number" ? taken : undefined;
+  }
 
   return {
     async list(productionId) {
       if (!(await hasCastList(productionId))) return undefined;
       const rows = await queryAll(db, tableName, productionId, CAST);
-      return CastList.parse({ productionId, members: rows.map(withoutKeys) });
+      // Rows hold children's names, so a bad one becomes a fixed message with no cause:
+      // nothing from the data reaches a log (as with the file store).
+      const parsed = CastList.safeParse({ productionId, members: rows.map(withoutKeys) });
+      if (!parsed.success) throw new Error(`Cast list for production ${productionId} is invalid`);
+      return parsed.data;
     },
 
     async add(productionId, details) {
-      let id: unknown;
-      try {
-        const counter = await db.send(
-          new UpdateCommand({
-            TableName: tableName,
-            Key: { pk: partitionFor(productionId), sk: META },
-            UpdateExpression: "SET castNextId = castNextId + :one",
-            ConditionExpression: "attribute_exists(castNextId)",
-            ExpressionAttributeValues: { ":one": 1 },
-            ReturnValues: "UPDATED_OLD",
-          }),
-        );
-        id = counter.Attributes?.castNextId;
-      } catch (error) {
-        if (conditionFailed(error)) return undefined;
-        throw error;
-      }
+      const id = await takeNextId(productionId);
+      if (id === undefined) return undefined;
       const member = CastMember.parse({ ...details, id, revision: 1 });
-      // Never overwrites: the counter starts past every id in use (see seeding and copying).
       await db.send(
         new PutCommand({
           TableName: tableName,
-          Item: { ...keyOf(productionId, member.id), ...member },
+          Item: { ...keyOf(productionId, id), ...member },
+          // Never overwrites: castNextId is always past every stored id.
           ConditionExpression: "attribute_not_exists(sk)",
         }),
       );
@@ -88,36 +109,31 @@ export function dynamoCastStore(db: DynamoDBDocumentClient, tableName: string): 
 
     async update(productionId, id, revision, details) {
       const member = CastMember.parse({ ...details, id, revision: revision + 1 });
-      try {
-        await db.send(
+      const saved = await written(() =>
+        db.send(
           new PutCommand({
             TableName: tableName,
             Item: { ...keyOf(productionId, id), ...member },
             ...atRevision(revision),
           }),
-        );
-      } catch (error) {
-        if (conditionFailed(error)) return refusal(productionId, id);
-        throw error;
-      }
-      return member;
+        ),
+      );
+      return saved ? member : refusal(productionId, id);
     },
 
     async remove(productionId, id, revision) {
-      try {
-        // The row is deleted outright: no copy or history is kept (ADR 0010).
-        await db.send(
+      // The row is deleted outright, with no copy or history kept (ADR 0010). Only the
+      // table's 7-day point-in-time recovery holds it until then.
+      const removed = await written(() =>
+        db.send(
           new DeleteCommand({
             TableName: tableName,
             Key: keyOf(productionId, id),
             ...atRevision(revision),
           }),
-        );
-      } catch (error) {
-        if (conditionFailed(error)) return refusal(productionId, id);
-        throw error;
-      }
-      return "removed";
+        ),
+      );
+      return removed ? "removed" : refusal(productionId, id);
     },
   };
 }

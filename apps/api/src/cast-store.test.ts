@@ -1,13 +1,10 @@
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { CastMemberDetails } from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { aCastList, aCastMember } from "./cast.fixture.ts";
+import { aCastList, aCastMember, jo } from "./cast.fixture.ts";
 import { behavesAsACastStore } from "./cast-store.contract.ts";
 import { fileCastStore, inMemoryCastStore } from "./cast-store.ts";
-
-const jo: CastMemberDetails = { firstName: "Jo", lastName: "Newcomer", section: null, group: "" };
 
 describe("in-memory cast store", () => {
   behavesAsACastStore(async (initial) => inMemoryCastStore(initial));
