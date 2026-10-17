@@ -69,5 +69,7 @@ async function statusOf(fetchFn: Fetch, url: string, { method, token }: CheckReq
 }
 
 if (import.meta.main) {
-  process.exitCode = await runHostedCheck(process.argv.slice(2), (line) => console.log(line));
+  process.exitCode = await runHostedCheck(process.argv.slice(2), (line) =>
+    process.stdout.write(`${line}\n`),
+  );
 }
