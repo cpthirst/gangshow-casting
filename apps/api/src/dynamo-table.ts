@@ -54,6 +54,12 @@ export async function queryAll(
 /** Whether a write was refused by its condition, e.g. a stale revision. */
 export const conditionFailed = (error: unknown) => error instanceof ConditionalCheckFailedException;
 
+/** The condition for writing a row only if it's still at `revision`. */
+export const atRevision = (revision: number) => ({
+  ConditionExpression: "revision = :revision",
+  ExpressionAttributeValues: { ":revision": revision },
+});
+
 /** Runs a conditional write: true if it was written, false if its condition failed. */
 export async function written(write: () => Promise<unknown>) {
   try {

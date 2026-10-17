@@ -2,7 +2,7 @@ import type { CastStore, Refusal } from "./cast-store.ts";
 import type { RoleStore } from "./role-store.ts";
 
 /** Deletes a cast member for good, if they're still at `revision`, and takes them out of
- *  every role in the same change (casting-roles FR9, ADR 0010, remote-data FR7). */
+ *  every role in the same change, so nobody is left cast after they've gone (ADR 0010). */
 export type RemoveCastMember = (
   productionId: string,
   id: number,

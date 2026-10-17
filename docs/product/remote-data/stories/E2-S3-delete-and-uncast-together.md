@@ -41,5 +41,5 @@ Then they pass against the in-memory stores and against the remote store on the 
 - FRs: FR7
 - Depends on: remote-data.E2.S1, remote-data.E2.S2
 - Replaces the delete handler's uncast–delete–uncast sequence with one store operation (ADR 0015). Past 99 roles, the remote store can't fit the change in one transaction, so AC4 relies on ADR 0015's fallback sweep.
-- Built as one `RemoveCastMember` operation the delete handler calls. On the remote database it is one transaction; the local files can't share one, so they keep the roles-first, member, roles-again order (AC2 holds there for a delete refused up front, as before).
+- Built as one `RemoveCastMember` operation the delete handler calls. On the remote database it is one transaction; the local files can't share one, so they keep the roles-first, member, roles-again order. There, AC2 holds for a delete refused up front (as before); a write failing part-way can leave the member uncast but still listed, which is safe to retry. The remote database has no such gap.
 - Out of scope: any change to what the user sees when deleting.

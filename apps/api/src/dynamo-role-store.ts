@@ -7,7 +7,15 @@ import {
   TransactWriteCommand,
   UpdateCommand,
 } from "@aws-sdk/lib-dynamodb";
-import { META, partitionFor, queryAll, transacted, withoutKeys, written } from "./dynamo-table.ts";
+import {
+  atRevision,
+  META,
+  partitionFor,
+  queryAll,
+  transacted,
+  withoutKeys,
+  written,
+} from "./dynamo-table.ts";
 import type { RoleRefusal, RoleStore } from "./role-store.ts";
 
 const ROLE = "ROLE#";
@@ -28,6 +36,13 @@ export const roleRow = (productionId: string, role: Role) => ({
   ...role,
 });
 
+/** The role with a cast member taken out, as its next revision. */
+export const withoutMember = (role: Role, castMemberId: number): Role => ({
+  ...role,
+  castMemberIds: role.castMemberIds.filter((id) => id !== castMemberId),
+  revision: role.revision + 1,
+});
+
 /** How many times uncasting re-reads roles that changed under it before giving up: plenty
  *  for a handful of volunteers editing at once. */
 const UNCAST_PASSES = 5;
@@ -44,10 +59,6 @@ export function dynamoRoleStore(db: DynamoDBDocumentClient, tableName: string): 
     pk: partitionFor(productionId),
     sk: roleNameKey(role),
     roleId: role.id,
-  });
-  const atRevision = (revision: number) => ({
-    ConditionExpression: "revision = :revision",
-    ExpressionAttributeValues: { ":revision": revision },
   });
 
   async function list(productionId: string) {
@@ -213,16 +224,11 @@ export function dynamoRoleStore(db: DynamoDBDocumentClient, tableName: string): 
         );
         if (casting.length === 0) return;
         for (const role of casting) {
-          const uncast: Role = {
-            ...role,
-            castMemberIds: role.castMemberIds.filter((id) => id !== castMemberId),
-            revision: role.revision + 1,
-          };
           await written(() =>
             db.send(
               new PutCommand({
                 TableName: tableName,
-                Item: roleRow(productionId, uncast),
+                Item: roleRow(productionId, withoutMember(role, castMemberId)),
                 ...atRevision(role.revision),
               }),
             ),

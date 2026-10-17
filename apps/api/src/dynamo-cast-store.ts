@@ -7,7 +7,7 @@ import {
   UpdateCommand,
 } from "@aws-sdk/lib-dynamodb";
 import type { CastStore, Refusal } from "./cast-store.ts";
-import { META, partitionFor, queryAll, withoutKeys, written } from "./dynamo-table.ts";
+import { atRevision, META, partitionFor, queryAll, withoutKeys, written } from "./dynamo-table.ts";
 
 const CAST = "CAST#";
 /** A member's sort key. Zero-padded, so members come back in id order. */
@@ -32,12 +32,6 @@ export function dynamoCastStore(db: DynamoDBDocumentClient, tableName: string): 
     );
     return row.Item ? "stale" : "not-found";
   }
-
-  // Write a member only if they're still at `revision`.
-  const atRevision = (revision: number) => ({
-    ConditionExpression: "revision = :revision",
-    ExpressionAttributeValues: { ":revision": revision },
-  });
 
   async function hasCastList(productionId: string) {
     const meta = await db.send(
