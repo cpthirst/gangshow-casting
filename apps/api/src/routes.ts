@@ -14,7 +14,7 @@ import { createSaveRunningOrder } from "./save-running-order.ts";
 import { createUpdateCastMember } from "./update-cast-member.ts";
 import { createUpdateRole } from "./update-role.ts";
 
-const { runningOrders, cast, roles, itemNotes, where } = dataStores();
+const { runningOrders, cast, roles, removeCastMember, itemNotes, where } = dataStores();
 /** Where the data is kept, for the dev server to say on start. */
 export const dataLocation = where;
 
@@ -27,7 +27,7 @@ export const routes: Record<string, Handler> = {
   "GET /api/productions/{productionId}/cast": createGetCast(cast),
   "POST /api/productions/{productionId}/cast": createAddCastMember(cast),
   "PUT /api/productions/{productionId}/cast/{castId}": createUpdateCastMember(cast),
-  "DELETE /api/productions/{productionId}/cast/{castId}": createDeleteCastMember(cast, roles),
+  "DELETE /api/productions/{productionId}/cast/{castId}": createDeleteCastMember(removeCastMember),
   "GET /api/productions/{productionId}/roles": createGetRoles(roles),
   "GET /api/productions/{productionId}/item-notes": createGetItemNotes(itemNotes),
   "PUT /api/productions/{productionId}/items/{itemId}/notes": createSaveItemNote(

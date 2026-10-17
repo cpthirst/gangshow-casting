@@ -18,6 +18,13 @@ export const roleKey = (id: number) => `${ROLE}${String(id).padStart(8, "0")}`;
 export const roleNameKey = ({ itemId, name }: Pick<Role, "itemId" | "name">) =>
   `ROLENAME#${encodeURIComponent(itemId)}#${encodeURIComponent(name.trim().toLowerCase())}`;
 
+/** A role as stored: its row, keyed in its production. */
+export const roleRow = (productionId: string, role: Role) => ({
+  pk: partitionFor(productionId),
+  sk: roleKey(role.id),
+  ...role,
+});
+
 /** How many times uncasting re-reads roles that changed under it before giving up. */
 const UNCAST_PASSES = 5;
 
@@ -29,11 +36,6 @@ const UNCAST_PASSES = 5;
  * also write their name rows and set `lastRoleId` to the highest id.
  */
 export function dynamoRoleStore(db: DynamoDBDocumentClient, tableName: string): RoleStore {
-  const roleRow = (productionId: string, role: Role) => ({
-    pk: partitionFor(productionId),
-    sk: roleKey(role.id),
-    ...role,
-  });
   const nameRow = (productionId: string, role: Role) => ({
     pk: partitionFor(productionId),
     sk: roleNameKey(role),

@@ -3,9 +3,11 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { fileCastStore } from "./cast-store.ts";
 import { dynamoCastStore } from "./dynamo-cast-store.ts";
 import { dynamoItemNoteStore } from "./dynamo-item-note-store.ts";
+import { dynamoRemoveCastMember } from "./dynamo-remove-cast-member.ts";
 import { dynamoRoleStore } from "./dynamo-role-store.ts";
 import { documentClient } from "./dynamo-table.ts";
 import { fileItemNoteStore } from "./item-note-store.ts";
+import { uncastThenRemove } from "./remove-cast-member.ts";
 import { fileRoleStore } from "./role-store.ts";
 import { fileRunningOrderStore } from "./running-order-store.ts";
 
@@ -28,10 +30,13 @@ export function dataStores(env: Record<string, string | undefined> = process.env
 
   const table = env.DATA_TABLE;
   if (!table) {
+    const cast = fileCastStore(dataDir);
+    const roles = fileRoleStore(dataDir);
     return {
       ...stores,
-      cast: fileCastStore(dataDir),
-      roles: fileRoleStore(dataDir),
+      cast,
+      roles,
+      removeCastMember: uncastThenRemove(cast, roles),
       itemNotes: fileItemNoteStore(dataDir),
       where: `everything in ${files}`,
     };
@@ -43,6 +48,7 @@ export function dataStores(env: Record<string, string | undefined> = process.env
     ...stores,
     cast: dynamoCastStore(db, table),
     roles: dynamoRoleStore(db, table),
+    removeCastMember: dynamoRemoveCastMember(db, table),
     itemNotes: dynamoItemNoteStore(db, table),
     where: `item notes, cast and roles in table ${table} (${region}); everything else in ${files}`,
   };

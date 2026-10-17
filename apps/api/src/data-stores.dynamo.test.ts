@@ -5,10 +5,12 @@ import { createAddCastMember } from "./add-cast-member.ts";
 import { createAddRole } from "./add-role.ts";
 import { aCastList, aCastMember, jo } from "./cast.fixture.ts";
 import { dataStores } from "./data-stores.ts";
-import { aTestTable, seedCast, type TestTable } from "./dynamo.fixture.ts";
+import { createDeleteCastMember } from "./delete-cast-member.ts";
+import { aTestTable, seedCast, seedRoles, type TestTable } from "./dynamo.fixture.ts";
 import { createGetCast } from "./get-cast.ts";
 import { createGetItemNotes } from "./get-item-notes.ts";
 import { createGetRoles } from "./get-roles.ts";
+import { aRole } from "./role-store.contract.ts";
 import { aRunningOrder, itemId } from "./running-order.fixture.ts";
 import { inMemoryRunningOrderStore } from "./running-order-store.ts";
 import { createSaveItemNote } from "./save-item-note.ts";
@@ -74,6 +76,27 @@ describe("data stores with a remote table", () => {
     expect(RoleList.parse(JSON.parse(read.body ?? "")).roles).toEqual([
       Role.parse(JSON.parse(added.body ?? "")),
     ]);
+  });
+
+  it("deletes a cast member through the API, taking them out of their roles", async () => {
+    await seedCast(table.db, table.tableName, aCastList([aCastMember(1), aCastMember(12)]));
+    await seedRoles(table.db, table.tableName, {
+      productionId: "2027",
+      roles: [aRole(1, { castMemberIds: [12, 1] })],
+    });
+    const { cast, roles, removeCastMember } = dataStores({
+      ...process.env,
+      DATA_TABLE: table.tableName,
+    });
+
+    const res = await createDeleteCastMember(removeCastMember)({
+      pathParameters: { productionId: "2027", castId: "12" },
+      queryStringParameters: { revision: "1" },
+    });
+
+    expect(res.statusCode).toBe(204);
+    expect((await cast.list("2027"))?.members.map((m) => m.id)).toEqual([1]);
+    expect((await roles.list("2027")).roles[0]?.castMemberIds).toEqual([1]);
   });
 
   it("saves and reads item notes through the API in the remote table", async () => {

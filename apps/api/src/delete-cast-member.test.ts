@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { aCastList, aCastMember } from "./cast.fixture.ts";
 import { inMemoryCastStore } from "./cast-store.ts";
 import { createDeleteCastMember } from "./delete-cast-member.ts";
+import { uncastThenRemove } from "./remove-cast-member.ts";
 import { inMemoryRoleStore, type RoleStore } from "./role-store.ts";
 
 const request = (castId: string, revision: string | undefined, productionId = "2027") => ({
@@ -21,7 +22,7 @@ const aRole = (id: number, itemId: string, castMemberIds: number[]): Role => ({
 
 function setUp(roles: RoleStore = inMemoryRoleStore()) {
   const store = inMemoryCastStore([aCastList([aCastMember(1), aCastMember(12, { revision: 4 })])]);
-  return { store, roles, handler: createDeleteCastMember(store, roles) };
+  return { store, roles, handler: createDeleteCastMember(uncastThenRemove(store, roles)) };
 }
 
 const ids = async (store: ReturnType<typeof setUp>["store"]) =>
@@ -127,7 +128,7 @@ describe("delete cast member handler with roles", () => {
       },
     };
 
-    await createDeleteCastMember(racingCast, roles)(request("12", "4"));
+    await createDeleteCastMember(uncastThenRemove(racingCast, roles))(request("12", "4"));
 
     expect(JSON.stringify(await roles.list("2027"))).not.toMatch(/"castMemberIds":\[[^\]]*\b12\b/);
   });
