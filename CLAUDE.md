@@ -18,7 +18,7 @@ A casting tool for the **Chester Gang Show** production team: it shows which Sco
 
 ```bash
 pnpm install                     # Node 26, pnpm 12
-pnpm dev                         # web (vite :5173) + api dev server (:3000); vite proxies /api
+pnpm dev                         # web (vite :5173) + api (:3000) on the real remote table (AWS profile `default`); vite proxies /api
 pnpm check                       # lint + typecheck + test + cdk synth — the definition of done
 pnpm demo                        # the app on a made-up demo show (:5190), fresh each start; see tooling/demo
 pnpm format                      # biome autofix (format + lint + import order)

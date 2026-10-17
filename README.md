@@ -35,11 +35,11 @@ Most of the cast are under 18 and this is a Scouting activity, so the app is bui
 
 ```bash
 pnpm install   # Node 26, pnpm 12 (also installs the git hooks)
-pnpm dev       # web on :5173 + API dev server on :3000 (Vite proxies /api)
+pnpm dev       # web on :5173 + API on :3000 (Vite proxies /api), using the remote table: needs your AWS profile
 pnpm check     # lint + docs lint + typecheck + tests + cdk synth: the definition of "done"
 ```
 
-To keep the data in AWS rather than on your machine, follow [Moving the show's data to the remote database](docs/guides/remote-data.md).
+The show's data lives in a DynamoDB table in AWS, so `pnpm dev` needs your AWS profile set up: see [the remote database guide](docs/guides/remote-data.md). `pnpm demo` runs on made-up local data instead, and needs no AWS.
 
 Open http://localhost:5173 and you should see **"API: ok (dev)"**: the Vue app calling the API's health endpoint end to end. That walking skeleton is where casting features start; each one arrives as a story (see [How a change flows](#how-a-change-flows)).
 
