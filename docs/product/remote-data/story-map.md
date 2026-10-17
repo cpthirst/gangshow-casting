@@ -43,7 +43,7 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [remote-data.E4.S1](stories/E4-S1-maintainers-guide.md) | Step-by-step guide: account, MFA and profile, deploy, switch, copy, verify, remove | FR12 | E3.S3, E1.S2 | ready |
+| [remote-data.E4.S1](stories/E4-S1-maintainers-guide.md) | Step-by-step guide: account, MFA and profile, deploy, switch, copy, verify, remove | FR12 | E3.S3, E1.S2 | done |
 
 ## FR coverage
 

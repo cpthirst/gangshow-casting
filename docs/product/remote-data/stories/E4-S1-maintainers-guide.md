@@ -2,7 +2,7 @@
 id: remote-data.E4.S1
 title: Guide the maintainer from a new AWS account to the files removed
 epic: E4
-status: ready
+status: done
 ---
 
 ## Story
@@ -35,5 +35,5 @@ Then it holds no account ids, credentials or email addresses, only where to put 
 
 - FRs: FR12
 - Depends on: remote-data.E3.S3, remote-data.E1.S2
-- Docs-only. Checked by the user following it for the real move, not by tests.
+- Docs-only, at `docs/guides/remote-data.md`, linked from the README. Checked by the user following it for the real move, not by tests.
 - Out of scope: hosting the API.
