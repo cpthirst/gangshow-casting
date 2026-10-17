@@ -100,6 +100,13 @@ export function createAppRouter(history: RouterHistory = createWebHistory()) {
         component: CastingItemPage,
         meta: { title: "Item", menuPage: "casting-items" },
       },
+      // Where Sign out goes first, so the page being left can ask about unsaved changes.
+      {
+        path: "/signing-out",
+        name: "signing-out",
+        component: { render: () => null },
+        meta: { title: "Signing out" },
+      },
       { path: "/casting", redirect: "/casting/overview" },
       // Bookmarks from before the Casting menu (casting-menus FR4).
       { path: "/casting-grid", redirect: "/casting/overview" },

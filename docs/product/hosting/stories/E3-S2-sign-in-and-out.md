@@ -2,7 +2,7 @@
 id: hosting.E3.S2
 title: Sign in with an assigned username, and sign out
 epic: E3
-status: ready
+status: done
 ---
 
 ## Story
@@ -65,3 +65,6 @@ Then it shows the data with no sign-in screen, as an admin
 - Try the sign-in screens with a team member. If they're confusing, raise it (ADR 0018 "Revisit if").
 - Ask before adding any browser test (CLAUDE.md).
 - Out of scope: self-service forgotten password (non-goal), hiding admin actions (E3.S3).
+- As built: the deploy writes `/config.json` (`SignInConfig` in `packages/shared`) next to the pages, as the app's address is only known once deployed. The Vite dev server (`pnpm dev`, `pnpm demo`, the browser tests) never signs in. Every built app does, so a missing config can't switch sign-in off. Tokens are renewed when a request needs one, using the day's refresh token only.
+- To check by hand after the first deploy: AC2 (temporary password), AC3 (same message for a wrong password and an unknown user), AC4 (lockout), and that signing out and in again asks for the password (AC7).
+- Follow-up from E3.S1 still open: once the day's sign-in runs out, a 401 replaces the page, so an unsaved draft is lost. That now happens at most once a day; keeping the draft across sign-in is a possible story.

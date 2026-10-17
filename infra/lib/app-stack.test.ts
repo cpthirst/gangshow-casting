@@ -1,3 +1,5 @@
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { routeKeys } from "@app/shared";
 import { App } from "aws-cdk-lib";
 import { Match, Template } from "aws-cdk-lib/assertions";
@@ -154,6 +156,38 @@ describe("AppStack", () => {
       });
     });
 
+    it("gives the team Cognito's sign-in pages, on the pool's own prefix domain", () => {
+      synth().template.hasResourceProperties("AWS::Cognito::UserPoolDomain", {
+        Domain: Match.stringLikeRegexp("^gangshow-casting-[a-z0-9]+$"),
+        UserPoolId: { Ref: Match.stringLikeRegexp("^UserPool") },
+        CustomDomainConfig: Match.absent(),
+      });
+    });
+
+    it("signs the pages in only by the code flow, returning to the app's address", () => {
+      const appAddress = {
+        "Fn::Join": [
+          "",
+          [
+            "https://",
+            { "Fn::GetAtt": [expect.stringMatching(/^PagesDistribution/), "DomainName"] },
+            "/",
+          ],
+        ],
+      };
+
+      expect(clientNamed(synth().template, "WebClient")).toMatchObject({
+        AllowedOAuthFlowsUserPoolClient: true,
+        AllowedOAuthFlows: ["code"],
+        AllowedOAuthScopes: ["openid"],
+        SupportedIdentityProviders: ["COGNITO"],
+        CallbackURLs: [appAddress],
+        LogoutURLs: [appAddress],
+        // Signing out revokes the day's refresh token.
+        EnableTokenRevocation: true,
+      });
+    });
+
     it("has an admin group", () => {
       synth().template.hasResourceProperties("AWS::Cognito::UserPoolGroup", {
         GroupName: "admin",
@@ -306,7 +340,7 @@ describe("AppStack", () => {
       expect(api?.CustomOriginConfig).toMatchObject({ OriginProtocolPolicy: "https-only" });
       template.hasOutput("AppUrl", {
         Value: {
-          "Fn::Join": ["", ["https://", Match.objectLike({ "Fn::GetAtt": Match.anyValue() })]],
+          "Fn::Join": ["", ["https://", Match.objectLike({ "Fn::GetAtt": Match.anyValue() }), "/"]],
         },
       });
     });
@@ -425,15 +459,59 @@ describe("AppStack", () => {
           },
           ContentTypeOptions: { Override: true },
         });
-        const policy: string = security.ContentSecurityPolicy.ContentSecurityPolicy;
-        expect(policy.split("; ")).toEqual(
-          expect.arrayContaining([
-            "script-src 'self'",
-            "frame-ancestors 'none'",
-            "object-src 'none'",
-          ]),
-        );
+        // As CloudFormation has it: the login domain is only known at deploy time.
+        const policy = JSON.stringify(security.ContentSecurityPolicy.ContentSecurityPolicy);
+        for (const directive of [
+          "script-src 'self'",
+          "frame-ancestors 'none'",
+          "object-src 'none'",
+        ]) {
+          expect(policy).toMatch(new RegExp(`${directive}(;|")`));
+        }
       }
+    });
+
+    it("lets the pages ask the team's login domain for sign-in tokens, and nowhere else", () => {
+      const security = responseHeadersFor(synth().template, undefined).SecurityHeadersConfig;
+
+      expect(JSON.stringify(security.ContentSecurityPolicy.ContentSecurityPolicy)).toMatch(
+        /connect-src 'self' https:\/\/",\{"Ref":"UserPoolLoginDomain\w+"\},"\.auth\.eu-west-2\.amazoncognito\.com;/,
+      );
+    });
+
+    it("tells the pages where to sign in, in a config file written at deploy", () => {
+      const { stack, template } = synth();
+      const [deployment] = resourcesOfType(template, "Custom::CDKBucketDeployment");
+      // The values are only known at deploy, so the file holds markers the deploy fills in.
+      const markers: Record<string, unknown> = Object.assign(
+        {},
+        ...(deployment?.Properties.SourceMarkers ?? []),
+      );
+      const config = Object.fromEntries(
+        Object.entries(deployedConfig(stack)).map(([key, marker]) => [
+          key,
+          JSON.stringify(markers[String(marker)]),
+        ]),
+      );
+
+      expect(Object.keys(config).sort()).toEqual(["appUrl", "clientId", "issuer", "loginUrl"]);
+      expect(config.clientId).toMatch(/"Ref":"UserPoolWebClient/);
+      expect(config.issuer).toMatch(/"Fn::GetAtt":\["UserPool\w+","ProviderURL"/);
+      expect(config.loginUrl).toMatch(/"Ref":"UserPoolLoginDomain/);
+      expect(config.appUrl).toMatch(
+        /"Fn::GetAtt":\["PagesDistribution\w+","DomainName"\]\},"\/\\""/,
+      );
+    });
+
+    it("serves the config file fresh on every load, so a new deploy's sign-in is picked up", () => {
+      const config = distributionConfig(synth().template);
+
+      // It has no behaviour of its own, so it's served by the pages' default: never cached.
+      const patterns = config.CacheBehaviors.map((b: Behaviour) => b.PathPattern);
+      expect(patterns).toEqual(["/assets/*", "/api/*"]);
+      expect(config.DefaultCacheBehavior.CachePolicyId).toBe(
+        CachePolicy.CACHING_DISABLED.cachePolicyId,
+      );
     });
 
     describe("a new release", () => {
@@ -518,6 +596,21 @@ type Statement = {
   Principal: unknown;
   Condition: { StringEquals: Record<string, unknown> };
 };
+
+/** The config.json the deploy puts next to the pages, as synthesised (markers for values). */
+function deployedConfig(stack: AppStack): Record<string, unknown> {
+  const assembly = App.of(stack)?.synth();
+  if (!assembly) throw new Error("No app to synthesise");
+  const assetDirs = readdirSync(assembly.directory).filter((name) => name.startsWith("asset."));
+  for (const dir of assetDirs) {
+    const file = join(assembly.directory, dir, "config.json");
+    // A marker stands in for a whole JSON value, quotes and all.
+    if (existsSync(file)) {
+      return JSON.parse(readFileSync(file, "utf8").replaceAll(/<<marker:[^>]+>>/g, '"$&"'));
+    }
+  }
+  throw new Error("No config.json in the deployment");
+}
 
 const pagesBucketStatements = (template: Template): Statement[] => {
   const [policy] = resourcesOfType(template, "AWS::S3::BucketPolicy");

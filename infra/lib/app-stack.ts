@@ -11,7 +11,13 @@ import {
 import { HttpUserPoolAuthorizer } from "aws-cdk-lib/aws-apigatewayv2-authorizers";
 import { HttpLambdaIntegration } from "aws-cdk-lib/aws-apigatewayv2-integrations";
 import { CfnBudget } from "aws-cdk-lib/aws-budgets";
-import { AccountRecovery, UserPool } from "aws-cdk-lib/aws-cognito";
+import {
+  AccountRecovery,
+  CfnUserPoolClient,
+  OAuthScope,
+  UserPool,
+  UserPoolClientIdentityProvider,
+} from "aws-cdk-lib/aws-cognito";
 import { AttributeType, TableV2 } from "aws-cdk-lib/aws-dynamodb";
 import { Architecture, Runtime } from "aws-cdk-lib/aws-lambda";
 import { NodejsFunction, OutputFormat } from "aws-cdk-lib/aws-lambda-nodejs";
@@ -92,12 +98,22 @@ export class AppStack extends Stack {
       removalPolicy: RemovalPolicy.RETAIN,
       deletionProtection: true,
     });
-    // The pages' sign-in client. Hosted sign-in (PKCE) and its addresses come with the pages
-    // (hosting E3.S2); until then it is only the audience the API's tokens must name.
+    // Cognito's own sign-in pages, at <prefix>.auth.eu-west-2.amazoncognito.com. The prefix
+    // must be unique in the region, and comes from this stack's construct path: renaming the
+    // stack or "UserPool" changes it, replacing the domain.
+    const loginDomain = userPool.addDomain("LoginDomain", {
+      cognitoDomain: { domainPrefix: `gangshow-casting-${this.node.addr.slice(0, 8)}` },
+    });
+    // The pages' sign-in client: Cognito's sign-in pages by the code flow, which the pages
+    // run with PKCE as a public client (ADR 0018). Its return addresses are set once the
+    // pages' address exists, below.
     const webClient = userPool.addClient("WebClient", {
       generateSecret: false,
       preventUserExistenceErrors: true,
-      disableOAuth: true,
+      supportedIdentityProviders: [UserPoolClientIdentityProvider.COGNITO],
+      oAuth: { flows: { authorizationCodeGrant: true }, scopes: [OAuthScope.OPENID] },
+      // Signing out revokes the day's refresh token (Cognito's default, made explicit).
+      enableTokenRevocation: true,
       // Any key here makes CDK list only refresh tokens: no password sign-in on this client.
       authFlows: { userSrp: false },
       accessTokenValidity: Duration.hours(1),
@@ -183,7 +199,20 @@ export class AppStack extends Stack {
       },
     });
 
-    const pages = new Pages(this, "Pages", { api });
+    const pages = new Pages(this, "Pages", {
+      api,
+      signIn: {
+        clientId: webClient.userPoolClientId,
+        issuer: userPool.userPoolProviderUrl,
+        loginUrl: loginDomain.baseUrl(),
+      },
+    });
+    // The client must exist before the API (its sign-in check names it) and the API before
+    // the pages (they route to it), so the client gets the pages' address afterwards.
+    const webClientResource = webClient.node.defaultChild;
+    if (!(webClientResource instanceof CfnUserPoolClient)) throw new Error("No web client");
+    webClientResource.callbackUrLs = [pages.url];
+    webClientResource.logoutUrLs = [pages.url];
 
     new CfnOutput(this, "AppUrl", {
       value: pages.url,

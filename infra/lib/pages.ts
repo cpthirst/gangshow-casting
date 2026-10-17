@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import type { SignInConfig } from "@app/shared";
 import { Annotations, AssetHashType, DockerImage, Duration, RemovalPolicy } from "aws-cdk-lib";
 import type { HttpApi } from "aws-cdk-lib/aws-apigatewayv2";
 import {
@@ -30,23 +31,25 @@ import { Construct } from "constructs";
 const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
 const webApp = fileURLToPath(new URL("../../apps/web", import.meta.url));
 
-// The built app is one script and one stylesheet from its own address, with no inline code,
-// so nothing else needs allowing. Signing in adds the sign-in service (hosting E3.S2).
-const CONTENT_SECURITY_POLICY = [
-  "default-src 'self'",
-  "script-src 'self'",
-  "style-src 'self'",
-  "img-src 'self'",
-  "font-src 'self'",
-  "connect-src 'self'",
-  "object-src 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "frame-ancestors 'none'",
-].join("; ");
+// The built app is one script and one stylesheet from its own address, with no inline code.
+// Signing in leaves for the login pages by navigation, which the policy doesn't limit; the
+// app itself only asks the login domain for tokens.
+const contentSecurityPolicy = (loginUrl: string) =>
+  [
+    "default-src 'self'",
+    "script-src 'self'",
+    "style-src 'self'",
+    "img-src 'self'",
+    "font-src 'self'",
+    `connect-src 'self' ${loginUrl}`,
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+  ].join("; ");
 
-const securityHeaders: ResponseSecurityHeadersBehavior = {
-  contentSecurityPolicy: { contentSecurityPolicy: CONTENT_SECURITY_POLICY, override: true },
+const securityHeaders = (loginUrl: string): ResponseSecurityHeadersBehavior => ({
+  contentSecurityPolicy: { contentSecurityPolicy: contentSecurityPolicy(loginUrl), override: true },
   frameOptions: { frameOption: HeadersFrameOption.DENY, override: true },
   strictTransportSecurity: {
     accessControlMaxAge: Duration.days(730),
@@ -55,7 +58,7 @@ const securityHeaders: ResponseSecurityHeadersBehavior = {
   },
   contentTypeOptions: { override: true },
   referrerPolicy: { referrerPolicy: HeadersReferrerPolicy.SAME_ORIGIN, override: true },
-};
+});
 
 // The router's pages have no file extension; everything with one is a built file. Runs at
 // the edge on the pages' requests only, so the API's paths never reach it.
@@ -68,13 +71,16 @@ const SEND_PAGES_TO_THE_APP = `function handler(event) {
 
 export interface PagesProps {
   api: HttpApi;
+  /** Where the pages sign people in; the app's own address is added here. */
+  signIn: Omit<SignInConfig, "appUrl">;
 }
 
 /** The web app's pages and the hosted API at one HTTPS address (ADR 0017). */
 export class Pages extends Construct {
+  /** The app's address, ending in "/", as sign-in's return address must match it exactly. */
   readonly url: string;
 
-  constructor(scope: Construct, id: string, { api }: PagesProps) {
+  constructor(scope: Construct, id: string, { api, signIn }: PagesProps) {
     super(scope, id);
 
     // Holds only the built app, rebuilt on every deploy. CDK's default removal policy
@@ -88,7 +94,7 @@ export class Pages extends Construct {
 
     const withHeaders = (id: string, cacheControl: string) =>
       new ResponseHeadersPolicy(this, id, {
-        securityHeadersBehavior: securityHeaders,
+        securityHeadersBehavior: securityHeaders(signIn.loginUrl),
         customHeadersBehavior: {
           customHeaders: [{ header: "Cache-Control", value: cacheControl, override: true }],
         },
@@ -151,8 +157,12 @@ export class Pages extends Construct {
       "The root is index.html, so the bucket's listing is never served",
     );
 
+    this.url = `https://${distribution.distributionDomainName}/`;
+    const config: SignInConfig = { ...signIn, appUrl: this.url };
+
     new BucketDeployment(this, "Deployment", {
-      sources: [webBuild()],
+      // config.json has the extension of a file, so it's served as one, never cached.
+      sources: [webBuild(), Source.jsonData("config.json", config)],
       destinationBucket: bucket,
       // An open tab may still ask for the files of the release it loaded.
       prune: false,
@@ -161,8 +171,6 @@ export class Pages extends Construct {
         removalPolicy: RemovalPolicy.DESTROY,
       }),
     });
-
-    this.url = `https://${distribution.distributionDomainName}`;
   }
 }
 
