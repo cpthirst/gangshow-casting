@@ -2,7 +2,7 @@
 id: remote-data.E3.S2
 title: Verify the copy through the API
 epic: E3
-status: ready
+status: done
 ---
 
 ## Story

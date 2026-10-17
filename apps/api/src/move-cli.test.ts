@@ -16,7 +16,7 @@ describe("the move command", () => {
       const { code, lines } = await run(args, { DATA_TABLE: "GangshowData" });
 
       expect(code).toBe(1);
-      expect(lines[0]).toBe("Usage: pnpm --filter api move <copy|verify|remove> <production id>");
+      expect(lines[0]).toBe("Usage: pnpm --filter api move <copy|verify> <production id>");
     }
   });
 
