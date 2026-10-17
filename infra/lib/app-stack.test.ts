@@ -3,8 +3,11 @@ import { Match, Template } from "aws-cdk-lib/assertions";
 import { describe, expect, it } from "vitest";
 import { AppStack } from "./app-stack.ts";
 
+// Made-up address: the real one is given at deploy time and never committed.
+const ALERT_EMAIL = "alerts@example.com";
+
 const synth = () => {
-  const stack = new AppStack(new App(), "Test");
+  const stack = new AppStack(new App(), "Test", { alertEmail: ALERT_EMAIL });
   return { stack, template: Template.fromStack(stack) };
 };
 
@@ -56,6 +59,34 @@ describe("AppStack", () => {
 
     it("outputs the table's name, for the API's configuration", () => {
       synth().template.hasOutput("DataTableName", {});
+    });
+  });
+
+  describe("budget alert (remote-data FR13)", () => {
+    it("is a monthly cost budget of about £5", () => {
+      synth().template.hasResourceProperties("AWS::Budgets::Budget", {
+        Budget: {
+          BudgetType: "COST",
+          TimeUnit: "MONTHLY",
+          BudgetLimit: { Amount: 7, Unit: "USD" },
+        },
+      });
+    });
+
+    it("emails the given address when the month's spend is forecast to pass it", () => {
+      synth().template.hasResourceProperties("AWS::Budgets::Budget", {
+        NotificationsWithSubscribers: [
+          {
+            Notification: {
+              NotificationType: "FORECASTED",
+              ComparisonOperator: "GREATER_THAN",
+              Threshold: 100,
+              ThresholdType: "PERCENTAGE",
+            },
+            Subscribers: [{ SubscriptionType: "EMAIL", Address: ALERT_EMAIL }],
+          },
+        ],
+      });
     });
   });
 });

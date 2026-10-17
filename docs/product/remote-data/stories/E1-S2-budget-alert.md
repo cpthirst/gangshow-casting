@@ -2,7 +2,7 @@
 id: remote-data.E1.S2
 title: Email the maintainer when AWS spend looks high
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story

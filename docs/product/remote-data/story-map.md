@@ -20,7 +20,7 @@ prd: ./prd.md
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
 | [remote-data.E1.S1](stories/E1-S1-item-notes-on-the-remote-database.md) | Item notes on the remote database (walking skeleton: retained table with 7-day recovery in CDK → notes store → API chosen by config → emulator tests in CI; deployed by the maintainer) | FR1, FR2, FR3, FR4, FR5, FR6, FR11 | (none) | done |
-| [remote-data.E1.S2](stories/E1-S2-budget-alert.md) | A monthly budget alert, emailed to the maintainer | FR13 | E1.S1 | ready |
+| [remote-data.E1.S2](stories/E1-S2-budget-alert.md) | A monthly budget alert, emailed to the maintainer | FR13 | E1.S1 | done |
 
 ## E2: Everything the app saves works against the remote database
 
