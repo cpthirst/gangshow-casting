@@ -144,6 +144,12 @@ export function behavesAsARoleStore(make: (initial?: RoleList[]) => Promise<Role
     expect(byId(await store.list("2027"))).toEqual(editRoles());
   });
 
+  it("says a stale edit is stale, even if its new name is also taken", async () => {
+    const store = await make([roles(editRoles())]);
+
+    expect(await store.update("2027", 2, 9, { ...smee, name: "Captain Hook" })).toBe("stale");
+  });
+
   it("lets a role keep its own name", async () => {
     const store = await make([roles(editRoles())]);
 
@@ -183,7 +189,7 @@ export function behavesAsARoleStore(make: (initial?: RoleList[]) => Promise<Role
       await store.add("2027", "campfire-song", { ...smee, castMemberIds: [] }),
     );
 
-    expect(added.id).toBe(4);
+    expect(added).toMatchObject({ id: 4, name: "Mr Smee" });
   });
 
   it("takes an uncast member out of every role, keeping the roles and everyone else", async () => {
@@ -191,8 +197,8 @@ export function behavesAsARoleStore(make: (initial?: RoleList[]) => Promise<Role
 
     await store.uncastMember("2027", 12);
 
-    const castOf = (id: number) => byId(list).find((role) => role.id === id)?.castMemberIds;
     const list = await store.list("2027");
+    const castOf = (id: number) => byId(list).find((role) => role.id === id)?.castMemberIds;
     expect([castOf(1), castOf(2), castOf(3), castOf(4)]).toEqual([[], [], [13], [14]]);
   });
 

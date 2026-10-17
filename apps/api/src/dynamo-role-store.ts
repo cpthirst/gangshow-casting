@@ -1,4 +1,5 @@
-import { Role, RoleList } from "@app/shared";
+import { createHash } from "node:crypto";
+import { normalisedRoleName, Role, RoleList } from "@app/shared";
 import {
   type DynamoDBDocumentClient,
   GetCommand,
@@ -13,10 +14,12 @@ const ROLE = "ROLE#";
 /** A role's sort key. Zero-padded, so roles come back in id order. */
 export const roleKey = (id: number) => `${ROLE}${String(id).padStart(8, "0")}`;
 
-/** The sort key of the row that reserves a role's name in its item. Names match ignoring
- *  case and surrounding spaces (sameRoleName); encoding keeps "#" in an id or name apart. */
+/** The sort key of the row that reserves a role's name in its item. Names match as
+ *  sameRoleName says. Hashed, so any valid item id and name make a short, safe key. */
 export const roleNameKey = ({ itemId, name }: Pick<Role, "itemId" | "name">) =>
-  `ROLENAME#${encodeURIComponent(itemId)}#${encodeURIComponent(name.trim().toLowerCase())}`;
+  `ROLENAME#${createHash("sha256")
+    .update(JSON.stringify([itemId, normalisedRoleName(name)]))
+    .digest("hex")}`;
 
 /** A role as stored: its row, keyed in its production. */
 export const roleRow = (productionId: string, role: Role) => ({
@@ -25,7 +28,8 @@ export const roleRow = (productionId: string, role: Role) => ({
   ...role,
 });
 
-/** How many times uncasting re-reads roles that changed under it before giving up. */
+/** How many times uncasting re-reads roles that changed under it before giving up: plenty
+ *  for a handful of volunteers editing at once. */
 const UNCAST_PASSES = 5;
 
 /**
@@ -127,6 +131,7 @@ export function dynamoRoleStore(db: DynamoDBDocumentClient, tableName: string): 
     },
 
     async update(productionId, id, revision, details): Promise<Role | RoleRefusal> {
+      // Read outside the transaction, but safely: its revision check fails if this changed.
       const old = await current(productionId, id);
       if (!old) return "not-found";
       const role = Role.parse({ ...old, ...details, revision: revision + 1 });
@@ -166,6 +171,7 @@ export function dynamoRoleStore(db: DynamoDBDocumentClient, tableName: string): 
       );
       if (!failed) return role;
       if (failed.includes(0)) return refusal(productionId, id);
+      // Only the revision check (0) and the new name's reservation can fail their conditions.
       return "name-taken";
     },
 

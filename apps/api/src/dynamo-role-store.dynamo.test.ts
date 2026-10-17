@@ -30,6 +30,8 @@ describe("DynamoDB role store", () => {
     ]);
 
     expect(results.filter((result) => result === "name-taken")).toHaveLength(1);
+    const names = (await store.list("2027")).roles.map((role) => role.name);
+    expect(names.filter((name) => name === "Captain Hook")).toHaveLength(1);
   });
 
   it("never echoes a bad stored role's contents in its error", async () => {
