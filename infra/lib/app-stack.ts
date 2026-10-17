@@ -1,4 +1,5 @@
 import { fileURLToPath } from "node:url";
+import { ADMIN_GROUP, routeKeys } from "@app/shared";
 import { CfnOutput, Duration, RemovalPolicy, Stack, type StackProps } from "aws-cdk-lib";
 import { AccessLogFormat } from "aws-cdk-lib/aws-apigateway";
 import {
@@ -18,6 +19,14 @@ import { LogGroup, RetentionDays } from "aws-cdk-lib/aws-logs";
 import type { Construct } from "constructs";
 
 const apiEntryPoint = fileURLToPath(new URL("../../apps/api/src/lambda.ts", import.meta.url));
+
+// The methods the API's route list uses.
+const HTTP_METHODS: Record<string, HttpMethod> = {
+  GET: HttpMethod.GET,
+  POST: HttpMethod.POST,
+  PUT: HttpMethod.PUT,
+  DELETE: HttpMethod.DELETE,
+};
 
 export interface AppStackProps extends StackProps {
   /** Where the budget alert goes: given at deploy time, never committed. */
@@ -108,7 +117,7 @@ export class AppStack extends Stack {
       refreshTokenValidity: Duration.hours(1),
     });
     // Admins manage accounts, delete cast members and save running orders (ADR 0018).
-    userPool.addGroup("AdminGroup", { groupName: "admin" });
+    userPool.addGroup("AdminGroup", { groupName: ADMIN_GROUP });
 
     const apiFunction = new NodejsFunction(this, "ApiFunction", {
       entry: apiEntryPoint,
@@ -118,11 +127,16 @@ export class AppStack extends Stack {
       // Inside API Gateway's 30-second limit, so a slow request fails here first.
       timeout: Duration.seconds(10),
       bundling: { format: OutputFormat.ESM, minify: true },
+      // The API keeps everything in the table (apps/api/src/data-stores.ts); the region
+      // defaults to London, where the table is.
+      environment: { DATA_TABLE: table.tableName },
       logGroup: new LogGroup(this, "ApiFunctionLogs", {
         retention: RetentionDays.ONE_MONTH,
         removalPolicy: RemovalPolicy.DESTROY,
       }),
     });
+    // Reads and writes the table's items, and nothing else in DynamoDB (hosting E2.S1).
+    table.grantReadWriteData(apiFunction);
     const apiIntegration = new HttpLambdaIntegration("ApiIntegration", apiFunction);
 
     // Every route, and the $default catch-all, needs a token from the team's pool, so an
@@ -134,7 +148,13 @@ export class AppStack extends Stack {
       }),
       defaultIntegration: apiIntegration,
     });
-    api.addRoutes({ path: "/api/health", methods: [HttpMethod.GET], integration: apiIntegration });
+    // Exactly the API's own route list, so every route it serves is hosted and guarded.
+    for (const key of routeKeys) {
+      const [method = "", path = ""] = key.split(" ");
+      const httpMethod = HTTP_METHODS[method];
+      if (!httpMethod) throw new Error(`No HTTP method for the route ${key}`);
+      api.addRoutes({ path, methods: [httpMethod], integration: apiIntegration });
+    }
 
     const accessLogs = new LogGroup(this, "ApiAccessLogs", {
       retention: RetentionDays.ONE_MONTH,

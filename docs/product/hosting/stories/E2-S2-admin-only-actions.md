@@ -2,7 +2,7 @@
 id: hosting.E2.S2
 title: Keep deleting cast members and saving the running order for admins
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story

@@ -1,6 +1,6 @@
 import type { Handler } from "./handler.ts";
 
-/** Finds the handler for a request, as API Gateway would, with any path parameters. */
+/** Finds the route for a request, as API Gateway would: its key, handler and path parameters. */
 export function matchRoute(table: Record<string, Handler>, method: string, path: string) {
   const pathSegments = path.split("/");
   for (const [route, handler] of Object.entries(table)) {
@@ -8,7 +8,7 @@ export function matchRoute(table: Record<string, Handler>, method: string, path:
     const routeSegments = routePath?.split("/") ?? [];
     if (routeMethod !== method || routeSegments.length !== pathSegments.length) continue;
     const pathParameters = matchSegments(routeSegments, pathSegments);
-    if (pathParameters) return { handler, event: { pathParameters } };
+    if (pathParameters) return { key: route, handler, event: { pathParameters } };
   }
   return undefined;
 }

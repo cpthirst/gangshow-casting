@@ -50,8 +50,11 @@ export function fileStores(dataDir: string) {
   };
 }
 
+/** Every store the API's routes use. */
+export type Stores = ReturnType<typeof fileStores>;
+
 /** Every store, kept in the remote table. */
-export function remoteStores(db: DynamoDBDocumentClient, table: string) {
+export function remoteStores(db: DynamoDBDocumentClient, table: string): Stores {
   return {
     runningOrders: dynamoRunningOrderStore(db, table),
     cast: dynamoCastStore(db, table),
