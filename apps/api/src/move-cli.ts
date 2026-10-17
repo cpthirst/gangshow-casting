@@ -1,6 +1,6 @@
 import { ProductionId } from "@app/shared";
 import { dataDirFrom, remoteTableFrom } from "./data-stores.ts";
-import { copyProduction, copyReportLines, readLocalProduction } from "./move-copy.ts";
+import { copyProduction, copyReportLines, hasLocalData, readLocalProduction } from "./move-copy.ts";
 
 type Env = Record<string, string | undefined>;
 const USAGE = "Usage: pnpm --filter api move <copy|verify|remove> <production id>";
@@ -31,10 +31,24 @@ export async function runMove(
     return 1;
   }
 
-  const local = await readLocalProduction(dataDirFrom(env), productionId);
-  const report = await copyProduction(remote.db, remote.table, local);
-  for (const line of copyReportLines(report)) print(line);
-  return report.outcome === "copied" ? 0 : 1;
+  const dataDir = dataDirFrom(env);
+  // First, so a shell set up for the wrong table or folder is obvious.
+  print(`Using table ${remote.table} (${remote.region}) and files at ${dataDir}.`);
+  try {
+    const local = await readLocalProduction(dataDir, productionId);
+    if (!hasLocalData(local)) {
+      print(`No local data found for production ${productionId}: nothing copied.`);
+      return 1;
+    }
+    const report = await copyProduction(remote.db, remote.table, local);
+    for (const line of copyReportLines(report)) print(line);
+    return report.outcome === "copied" ? 0 : 1;
+  } catch (error) {
+    // Only the error's kind: its message could quote the data, which names children.
+    const kind = error instanceof Error ? error.name : "unknown error";
+    print(`Copy failed (${kind}). Nothing local was changed; fix the cause and run it again.`);
+    return 1;
+  }
 }
 
 if (import.meta.main) {

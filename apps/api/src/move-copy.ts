@@ -39,6 +39,14 @@ export async function readLocalProduction(
   };
 }
 
+/** Whether the files hold anything for the production at all: none means a mistyped id or
+ *  the wrong data folder, not an empty production. */
+export const hasLocalData = (local: LocalProduction) =>
+  local.cast !== undefined ||
+  local.roles.list.roles.length > 0 ||
+  local.notes.notes.length > 0 ||
+  local.versions.length > 0;
+
 /** A row of the production data table. */
 export type Row = Record<string, unknown> & { pk: string; sk: string };
 
@@ -72,9 +80,11 @@ const collections: [prefix: string, name: string][] = [
   ["RO#", "running order versions"],
 ];
 
-/** A row's collection and id, as reports name it: never its contents. */
+/** A row's collection and id, as reports name it: never its contents. A role name's key is
+ *  a hash, so it's named by its role. */
 function labelOf(row: Row) {
   const [prefix, collection] = collections.find(([p]) => row.sk.startsWith(p)) ?? ["", "other"];
+  if (prefix === "ROLENAME#") return { collection, id: `role ${String(row.roleId)}` };
   const id = row.sk.slice(prefix.length).replace(/^0+(?=\d)/, "");
   return { collection, id };
 }
@@ -128,7 +138,8 @@ function countsOf(plan: CopyPlan) {
 /**
  * Copies a production's local data into the remote table: only rows that aren't there yet,
  * each written only if still absent. If the table holds any row differently, it writes
- * nothing at all. The id counters move on to where the files' would be, never back.
+ * nothing at all. The id counters move on to where the files' would be, never back, after
+ * the rows: so a run cut short is safe to run again.
  */
 export async function copyProduction(
   db: DynamoDBDocumentClient,

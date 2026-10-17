@@ -9,7 +9,12 @@ import { configDefaults, defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     exclude: [...configDefaults.exclude, "**/*.dynamo.test.ts"],
-    // Never the real remote table either, even if the shell has DATA_TABLE set.
-    env: { DATA_DIR: mkdtempSync(join(tmpdir(), "gangshow-api-test-data-")), DATA_TABLE: "" },
+    // Never the real remote table either, even if the shell has DATA_TABLE set; and any
+    // DynamoDB call a test makes by mistake goes to a closed local port, not to AWS.
+    env: {
+      DATA_DIR: mkdtempSync(join(tmpdir(), "gangshow-api-test-data-")),
+      DATA_TABLE: "",
+      AWS_ENDPOINT_URL_DYNAMODB: "http://127.0.0.1:9",
+    },
   },
 });

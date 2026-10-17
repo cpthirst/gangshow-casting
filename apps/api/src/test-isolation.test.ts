@@ -15,4 +15,8 @@ describe("test isolation", () => {
   it("never points the API at a remote table during tests", () => {
     expect(process.env.DATA_TABLE).toBe("");
   });
+
+  it("sends any DynamoDB call a test makes to a closed local port, never to AWS", () => {
+    expect(process.env.AWS_ENDPOINT_URL_DYNAMODB).toBe("http://127.0.0.1:9");
+  });
 });

@@ -6,6 +6,7 @@ import { aCastList, aCastMember } from "./cast.fixture.ts";
 import {
   type CopyReport,
   copyReportLines,
+  hasLocalData,
   planCopy,
   readLocalProduction,
   rowsOf,
@@ -89,6 +90,23 @@ describe("copying a production to the remote database", () => {
     );
 
     expect(planCopy(rows, changed).differing).toEqual(["cast: 12"]);
+  });
+
+  it("names a differing role name row by its role's id, not its key", async () => {
+    await aLocalProduction(dataDir);
+    const rows = rowsOf(await readLocalProduction(dataDir, "2027"));
+    const changed = rows.map((row) =>
+      row.sk.startsWith("ROLENAME#") ? { ...row, roleId: 99 } : row,
+    );
+
+    expect(planCopy(rows, changed).differing).toEqual(["role names: role 3"]);
+  });
+
+  it("finds nothing to copy for a production with no local data", async () => {
+    const local = await readLocalProduction(dataDir, "2072");
+
+    expect(hasLocalData(local)).toBe(false);
+    expect(rowsOf(local)).toEqual([]);
   });
 
   it("ignores rows that are only in the remote database, such as notes saved there", async () => {

@@ -10,7 +10,7 @@ import { dynamoCastStore } from "./dynamo-cast-store.ts";
 import { dynamoItemNoteStore } from "./dynamo-item-note-store.ts";
 import { dynamoRoleStore } from "./dynamo-role-store.ts";
 import { dynamoRunningOrderStore } from "./dynamo-running-order-store.ts";
-import { copyProduction, readLocalProduction } from "./move-copy.ts";
+import { copyProduction, copyReportLines, readLocalProduction } from "./move-copy.ts";
 import { aRole, hook } from "./role-store.contract.ts";
 import { aRunningOrder } from "./running-order.fixture.ts";
 import { fileRunningOrderStore } from "./running-order-store.ts";
@@ -100,9 +100,34 @@ describe("copying a production to the remote database", () => {
 
     const again = await copy();
 
-    expect(again.outcome).toBe("copied");
-    expect(Object.values(again.counts).every((count) => count.copied === 0)).toBe(true);
-    expect((await remote().cast.list("2027"))?.members).toHaveLength(2);
+    expect(again).toMatchObject({
+      outcome: "copied",
+      counts: {
+        cast: { copied: 0, alreadyThere: 2 },
+        roles: { copied: 0, alreadyThere: 1 },
+        "role names": { copied: 0, alreadyThere: 1 },
+        "item notes": { copied: 0, alreadyThere: 1 },
+        "running order versions": { copied: 0, alreadyThere: 6 },
+      },
+    });
+    expect(await remote().cast.list("2027")).toEqual(cast);
+    expect(await remote().roles.list("2027")).toEqual(roles);
+  });
+
+  it("never names people, parts or notes in what it reports, copied or refused", async () => {
+    const copied = copyReportLines(await copy());
+    await table.db.send(
+      new PutCommand({
+        TableName: table.tableName,
+        Item: { pk: "PROD#2027", sk: "CAST#00000001", ...aCastMember(1, { revision: 9 }) },
+      }),
+    );
+    const refused = copyReportLines(await copy());
+
+    expect(refused[0]).toMatch(/^Nothing copied/);
+    for (const line of [...copied, ...refused]) {
+      expect(line).not.toMatch(/Jo|Sam|Example|Alto|Captain|Hook|Bows|Curtain/);
+    }
   });
 
   it("writes nothing if the remote database holds a member differently", async () => {
@@ -118,11 +143,21 @@ describe("copying a production to the remote database", () => {
     expect(report).toMatchObject({ outcome: "refused", differing: ["cast: 12"] });
     expect(await remote().roles.list("2027")).toEqual({ productionId: "2027", roles: [] });
     expect(await remote().runningOrders.latest("2027")).toBeUndefined();
+    expect(await remote().notes.list("2027")).toEqual({ productionId: "2027", notes: [] });
+    // No counters were moved on: there's still no cast list to add to.
+    expect(await remote().cast.add("2027", { ...jo })).toBeUndefined();
   });
 
-  it("leaves the local files exactly as they were", async () => {
+  it("leaves the local files exactly as they were, copied or refused", async () => {
     const before = await fingerprint();
 
+    await copy();
+    await table.db.send(
+      new PutCommand({
+        TableName: table.tableName,
+        Item: { pk: "PROD#2027", sk: "CAST#00000001", ...aCastMember(1, { revision: 9 }) },
+      }),
+    );
     await copy();
 
     expect(await fingerprint()).toEqual(before);

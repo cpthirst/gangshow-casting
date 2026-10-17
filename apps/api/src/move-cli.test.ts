@@ -1,3 +1,6 @@
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { runMove } from "./move-cli.ts";
 
@@ -22,6 +25,43 @@ describe("the move command", () => {
 
     expect(code).toBe(1);
     expect(lines).toEqual(['"../etc" isn\'t a production id, such as 2027.']);
+  });
+
+  it("says it found nothing, and changes nothing, for a production with no local data", async () => {
+    const dataDir = await mkdtemp(join(tmpdir(), "move-cli-"));
+
+    const { code, lines } = await run(["copy", "2072"], {
+      DATA_DIR: dataDir,
+      DATA_TABLE: "GangshowData",
+    });
+
+    expect(code).toBe(1);
+    expect(lines).toEqual([
+      `Using table GangshowData (eu-west-2) and files at ${dataDir}.`,
+      "No local data found for production 2072: nothing copied.",
+    ]);
+    await rm(dataDir, { recursive: true, force: true });
+  });
+
+  it("reports a failure without quoting the data it was reading", async () => {
+    const dataDir = await mkdtemp(join(tmpdir(), "move-cli-"));
+    await mkdir(join(dataDir, "2027", "running-order"), { recursive: true });
+    await writeFile(
+      join(dataDir, "2027", "running-order", "v1.json"),
+      JSON.stringify({ version: 1, leads: "Zed Gone" }),
+    );
+
+    const { code, lines } = await run(["copy", "2027"], {
+      DATA_DIR: dataDir,
+      DATA_TABLE: "GangshowData",
+    });
+
+    expect(code).toBe(1);
+    expect(lines.at(-1)).toBe(
+      "Copy failed (ZodError). Nothing local was changed; fix the cause and run it again.",
+    );
+    expect(lines.join(" ")).not.toMatch(/Zed|Gone/);
+    await rm(dataDir, { recursive: true, force: true });
   });
 
   it("needs to know which remote table to use", async () => {
