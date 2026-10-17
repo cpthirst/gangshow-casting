@@ -25,7 +25,9 @@ The safeguarding rule in CLAUDE.md and the README is updated to match.
 These rules don't change:
 - casting data is for the production team only and must never be publicly reachable;
 - real cast data stays out of git, tests, fixtures and seed data;
-- deleting a cast member removes their data permanently.
+- deleting a cast member removes their data permanently. Amended 2026-10-17 (ADR 0015, remote-data FR2): once the data is in the remote database, its point-in-time recovery keeps up to 7 days of history, so a deleted cast member is gone from every copy within 7 days.
+
+Keeping the data in the remote database while the API runs on the maintainer's machine (remote-data) is not hosting: the table is reachable only with the maintainer's AWS credentials. Hosting the API still needs the access-control story and ADR below.
 
 ## Consequences
 

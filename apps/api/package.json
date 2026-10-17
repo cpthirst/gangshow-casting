@@ -5,10 +5,13 @@
   "scripts": {
     "dev": "node --watch src/dev-server.ts",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:dynamo": "vitest run --config vitest.dynamo.config.ts"
   },
   "dependencies": {
-    "@app/shared": "workspace:*"
+    "@app/shared": "workspace:*",
+    "@aws-sdk/client-dynamodb": "^3.1152.0",
+    "@aws-sdk/lib-dynamodb": "^3.1152.0"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.164"
