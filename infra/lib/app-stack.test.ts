@@ -1,3 +1,4 @@
+import { routeKeys } from "@app/shared";
 import { App } from "aws-cdk-lib";
 import { Match, Template } from "aws-cdk-lib/assertions";
 import { describe, expect, it } from "vitest";
@@ -179,7 +180,7 @@ describe("AppStack", () => {
   });
 
   describe("hosted API (ADR 0017)", () => {
-    it("serves GET /api/health from a function running the API's entry point", () => {
+    it("hosts exactly one route for each in the API's route list, served by the API's entry point", () => {
       const { template } = synth();
 
       template.resourceCountIs("AWS::Lambda::Function", 1);
@@ -187,10 +188,44 @@ describe("AppStack", () => {
         Runtime: "nodejs24.x",
         Handler: "index.handler",
       });
-      template.hasResourceProperties("AWS::ApiGatewayV2::Route", {
-        RouteKey: "GET /api/health",
-        Target: Match.anyValue(),
+      const routes = resourcesOfType(template, "AWS::ApiGatewayV2::Route");
+      const hosted = routes.map((r) => r.Properties.RouteKey).filter((key) => key !== "$default");
+      expect(hosted.sort()).toEqual([...routeKeys].sort());
+      const targets = new Set(routes.map((r) => JSON.stringify(r.Properties.Target)));
+      expect(targets.size).toBe(1);
+    });
+
+    it("keeps the API's data in the data table, which is all of the data store it may use", () => {
+      const { template } = synth();
+
+      template.hasResourceProperties("AWS::Lambda::Function", {
+        Environment: { Variables: { DATA_TABLE: { Ref: Match.stringLikeRegexp("DataTable") } } },
       });
+      const policies = resourcesOfType(template, "AWS::IAM::Policy");
+      const statements = policies.flatMap((p) => p.Properties.PolicyDocument.Statement);
+      const dynamo = statements.filter((s) => JSON.stringify(s.Action).includes("dynamodb:"));
+      const actions = dynamo.flatMap((s) => s.Action);
+      // What the stores send (apps/api/src/dynamo-*.ts); transactions need the condition check.
+      expect(actions).toEqual(
+        expect.arrayContaining([
+          "dynamodb:GetItem",
+          "dynamodb:Query",
+          "dynamodb:PutItem",
+          "dynamodb:UpdateItem",
+          "dynamodb:DeleteItem",
+          "dynamodb:ConditionCheckItem",
+        ]),
+      );
+      // Items only: never creating, changing or deleting tables or their backups.
+      expect(actions.filter((a) => /Table|Backup|PointInTime/.test(a))).toEqual([
+        "dynamodb:DescribeTable",
+      ]);
+      // Each grant is on the data table itself: no wildcard, and no other table.
+      for (const statement of dynamo) {
+        expect(statement.Resource).toEqual({
+          "Fn::GetAtt": [expect.stringMatching(/^DataTable/), "Arn"],
+        });
+      }
     });
 
     it("requires a sign-in token from the team's user pool on every route", () => {
@@ -210,10 +245,9 @@ describe("AppStack", () => {
         },
       });
       const routes = resourcesOfType(template, "AWS::ApiGatewayV2::Route");
-      expect(routes.map((r) => r.Properties.RouteKey).sort()).toEqual([
-        "$default",
-        "GET /api/health",
-      ]);
+      expect(routes.map((r) => r.Properties.RouteKey).sort()).toEqual(
+        ["$default", ...routeKeys].sort(),
+      );
       for (const route of routes) {
         expect(route.Properties).toMatchObject({
           AuthorizationType: "JWT",

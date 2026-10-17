@@ -1,10 +1,9 @@
 import { createInterface } from "node:readline/promises";
 import { Writable } from "node:stream";
+// Every route infra hosts, so a route added later is checked from its first deploy.
+import { routeKeys as allRouteKeys } from "@app/shared";
 import { signInWithPassword } from "./cognito-sign-in.ts";
 import { cognitoClientFor } from "./cognito-user-directory.ts";
-// The whole route table, not just what is hosted so far: every route must refuse strangers,
-// so a route added later is checked from its first deploy.
-import { routes } from "./routes.ts";
 
 type Env = Record<string, string | undefined>;
 type Fetch = (url: string, init: RequestInit) => Promise<Response>;
@@ -47,7 +46,7 @@ function requestsToRefuse(routeKeys: string[]): CheckRequest[] {
  * fails. Returns the exit code.
  */
 export async function runHostedCheck(args: string[], env: Env, deps: Deps): Promise<number> {
-  const { print, fetch: fetchFn = fetch, routeKeys = Object.keys(routes) } = deps;
+  const { print, fetch: fetchFn = fetch, routeKeys = [...allRouteKeys] } = deps;
   const [address = "", username = ""] = args;
   if (!address.startsWith("https://") || !username) {
     print(USAGE);

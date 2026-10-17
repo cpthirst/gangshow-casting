@@ -1,6 +1,6 @@
+import { routeKeys } from "@app/shared";
 import { describe, expect, it } from "vitest";
 import { runHostedCheck, type SignIn } from "./hosted-check.ts";
-import { routes } from "./routes.ts";
 
 const API = "https://abc123.execute-api.eu-west-2.amazonaws.com";
 const ROUTES = ["GET /api/health", "DELETE /api/productions/{productionId}/cast/{castId}"];
@@ -139,21 +139,26 @@ describe("the post-deploy check", () => {
     expect(lines).toContain("FAIL 200 GET /api/health, made-up token (expected 401)");
   });
 
-  it("checks every route the API has, by default", async () => {
+  it("checks every route the API has by default, passing only when each refuses", async () => {
     const requested: string[] = [];
+    const lines: string[] = [];
     const fakeFetch = async (url: string, init: RequestInit) => {
       requested.push(`${init.method} ${new URL(url).pathname}`);
-      return new Response(null, { status: 401 });
+      return asDeployed("", "", new Headers(init.headers));
     };
 
-    await runHostedCheck([API, "check-admin"], ENV, {
-      print: () => {},
+    const code = await runHostedCheck([API, "check-admin"], ENV, {
+      print: (line) => lines.push(line),
       fetch: fakeFetch,
       signIn: async () => TOKEN,
     });
 
     const pathFor = (key: string) => key.replaceAll(/\{\w+\}/g, "check");
-    expect(requested).toEqual(expect.arrayContaining(Object.keys(routes).map(pathFor)));
+    expect(requested).toEqual(expect.arrayContaining(routeKeys.map(pathFor)));
+    expect(lines.filter((line) => line.endsWith("no token (expected 401)"))).toHaveLength(
+      routeKeys.length + 1,
+    );
+    expect(code).toBe(0);
   });
 
   it("never prints what the API sent back", async () => {

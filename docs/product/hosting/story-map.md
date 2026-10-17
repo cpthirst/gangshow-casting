@@ -27,7 +27,7 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [hosting.E2.S1](stories/E2-S1-all-routes-hosted.md) | Every route in the routes list is hosted against the remote table, sign-in required on each; the check covers every route | FR2, FR15, FR17 | E1.S2 | ready |
+| [hosting.E2.S1](stories/E2-S1-all-routes-hosted.md) | Every route in the routes list is hosted against the remote table, sign-in required on each; the check covers every route | FR2, FR15, FR17 | E1.S2 | done |
 | [hosting.E2.S2](stories/E2-S2-admin-only-actions.md) | Deleting a cast member and saving a running-order version are refused (403) for non-admins; the local dev server and demo act as an admin; the check confirms a non-admin is refused | FR9, FR17, FR18 | E2.S1 | ready |
 
 ## E3: The team signs in and uses the app in a browser, from anywhere

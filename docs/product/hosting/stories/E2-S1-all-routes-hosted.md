@@ -2,7 +2,7 @@
 id: hosting.E2.S1
 title: Host every API route on the remote data
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story
