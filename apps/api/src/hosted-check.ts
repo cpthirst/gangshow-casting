@@ -19,7 +19,7 @@ type Deps = {
 };
 
 const USAGE =
-  "Usage: pnpm check:hosted <https address of the API> <check admin username> <check member username>";
+  "Usage: pnpm check:hosted <https address of the app> <check admin username> <check member username>";
 
 // Shaped like a sign-in token but signed by nobody, so the API must refuse it.
 const toBase64Url = (value: object) => Buffer.from(JSON.stringify(value)).toString("base64url");

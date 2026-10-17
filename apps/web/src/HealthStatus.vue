@@ -1,17 +1,20 @@
 <script setup lang="ts">
 import { HealthResponse } from "@app/shared";
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
+import { apiFetch, signInNeeded } from "./sign-in.ts";
 
-const label = ref("checking…");
+const status = ref("checking…");
+// The API answers no one until they sign in, which isn't the same as it being down.
+const label = computed(() => (signInNeeded.value ? "sign in needed" : status.value));
 
 onMounted(async () => {
   try {
-    const res = await fetch("/api/health");
+    const res = await apiFetch("/api/health");
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const { status, version } = HealthResponse.parse(await res.json());
-    label.value = `${status} (${version})`;
+    const { status: health, version } = HealthResponse.parse(await res.json());
+    status.value = `${health} (${version})`;
   } catch {
-    label.value = "unavailable";
+    status.value = "unavailable";
   }
 });
 </script>

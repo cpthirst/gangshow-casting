@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory, type Router } from "vue-router";
 import App from "./App.vue";
 import { createAppRouter } from "./router.ts";
+import { signInNeeded } from "./sign-in.ts";
 
 async function openAppAt(path: string) {
   const router = createAppRouter(createMemoryHistory());
@@ -24,6 +25,11 @@ function nextNavigation(router: Router) {
 
 const respondWith = (status: number, body: unknown) =>
   vi.fn().mockResolvedValue(new Response(JSON.stringify(body), { status }));
+
+// The app-wide sign-in state outlives each mount, so every test starts signed in.
+beforeEach(() => {
+  signInNeeded.value = false;
+});
 
 describe("App shell", () => {
   beforeEach(() => vi.stubGlobal("fetch", respondWith(200, { status: "ok", version: "1.2.3" })));
@@ -295,6 +301,46 @@ describe("App shell", () => {
 
     expect(wrapper.get("main h1").text()).toBe("Running order");
     expect(wrapper.text()).toContain("API: unavailable");
+  });
+
+  describe("when no one is signed in", () => {
+    const castMember = { id: 1, firstName: "Ada", lastName: "Testperson" };
+    // The API refuses everything, but a page must show nothing even if one answer slipped through.
+    // The Cast page asks only for the cast, so there the refusal comes from the shell's API status.
+    const refuseExceptCast = vi.fn(async (url: string) =>
+      url.endsWith("/cast")
+        ? new Response(JSON.stringify([castMember]), { status: 200 })
+        : new Response(JSON.stringify({ message: "Unauthorized" }), { status: 401 }),
+    );
+    beforeEach(() => vi.stubGlobal("fetch", refuseExceptCast));
+
+    it.each(["/", "/cast", "/casting/overview", "/casting/items", "/casting/items/1"])(
+      "shows no data on %s and says to sign in",
+      async (path) => {
+        const { wrapper } = await openAppAt(path);
+
+        const main = wrapper.get("main");
+        expect(main.get("h1").text()).toBe("You need to sign in");
+        expect(main.text()).not.toContain("Testperson");
+      },
+    );
+
+    it("announces why the page is empty, and says so in the tab and the API status", async () => {
+      const { wrapper } = await openAppAt("/cast");
+
+      expect(wrapper.get("main [role=alert]").text()).toContain("Sign in to see it");
+      expect(document.title).toBe("Sign in · Chester Gang Show casting");
+      expect(wrapper.get(".sidebar-footer").text()).toBe("API: sign in needed");
+    });
+
+    it("keeps the tab saying sign in after moving to another page", async () => {
+      const { router } = await openAppAt("/cast");
+
+      await router.push("/casting/overview");
+      await flushPromises();
+
+      expect(document.title).toBe("Sign in · Chester Gang Show casting");
+    });
   });
 });
 

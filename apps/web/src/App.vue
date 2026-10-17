@@ -2,7 +2,8 @@
 import { ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import HealthStatus from "./HealthStatus.vue";
-import { isMenuGroup, menuPages } from "./router.ts";
+import { isMenuGroup, menuPages, showPageTitle } from "./router.ts";
+import { signInNeeded } from "./sign-in.ts";
 import { useMediaQuery } from "./useMediaQuery.ts";
 
 // Must match the phone @media query in styles.css.
@@ -25,6 +26,15 @@ const isMenuOpen = ref(false);
 
 // A menu left open on a phone shouldn't reappear after a rotate or resize.
 watch(isPhone, closeMenu);
+
+// After the router names the page, so the tab says what the page actually shows.
+watch(
+  [signInNeeded, () => route.fullPath],
+  ([needed]) => {
+    if (needed) showPageTitle("Sign in");
+  },
+  { flush: "post" },
+);
 
 // Focus the content directly: a plain #main link would also change the URL.
 function focusContent() {
@@ -101,7 +111,11 @@ function onEscape() {
       <footer class="sidebar-footer"><HealthStatus /></footer>
     </aside>
     <main id="main" ref="main" tabindex="-1">
-      <RouterView />
+      <template v-if="signInNeeded">
+        <h1>You need to sign in</h1>
+        <p role="alert">The show's casting is only for the production team. Sign in to see it.</p>
+      </template>
+      <RouterView v-else />
     </main>
   </div>
 </template>

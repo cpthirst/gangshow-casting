@@ -17,6 +17,7 @@ import { Architecture, Runtime } from "aws-cdk-lib/aws-lambda";
 import { NodejsFunction, OutputFormat } from "aws-cdk-lib/aws-lambda-nodejs";
 import { LogGroup, RetentionDays } from "aws-cdk-lib/aws-logs";
 import type { Construct } from "constructs";
+import { Pages } from "./pages.ts";
 
 const apiEntryPoint = fileURLToPath(new URL("../../apps/api/src/lambda.ts", import.meta.url));
 
@@ -182,10 +183,14 @@ export class AppStack extends Stack {
       },
     });
 
-    new CfnOutput(this, "ApiUrl", {
-      value: stage.url,
-      description: "The hosted API, for the post-deploy check",
+    const pages = new Pages(this, "Pages", { api });
+
+    new CfnOutput(this, "AppUrl", {
+      value: pages.url,
+      description: "The app's address, for the team and the post-deploy check",
     });
+    // Reachable too, behind the same sign-in check (ADR 0017).
+    new CfnOutput(this, "ApiUrl", { value: stage.url, description: "The API's own address" });
     new CfnOutput(this, "UserPoolId", { value: userPool.userPoolId });
     new CfnOutput(this, "WebClientId", { value: webClient.userPoolClientId });
     new CfnOutput(this, "CheckClientId", { value: checkClient.userPoolClientId });

@@ -26,6 +26,7 @@ import {
 } from "../roles.ts";
 import { showPageTitle } from "../router.ts";
 import { neighboursOf, placeOf, RUNNING_ORDER_PATH } from "../running-order.ts";
+import { apiFetch } from "../sign-in.ts";
 import ItemNotes from "./ItemNotes.vue";
 import RoleForm from "./RoleForm.vue";
 
@@ -96,9 +97,9 @@ onMounted(async () => {
   try {
     // Name and position come from the latest saved running order, like the Items list.
     const [orderRes, rolesRes, castRes] = await Promise.all([
-      fetch(RUNNING_ORDER_PATH),
-      fetch(ROLES_PATH),
-      fetch(CAST_PATH),
+      apiFetch(RUNNING_ORDER_PATH),
+      apiFetch(ROLES_PATH),
+      apiFetch(CAST_PATH),
     ]);
     // No saved running order at all: no item can be in it.
     if (orderRes.status !== 404) {
@@ -173,7 +174,7 @@ async function saveEdit(details: AddRoleRequest) {
 
 async function putRole(role: Role, details: AddRoleRequest) {
   try {
-    const res = await fetch(updateRolePath(role.id), {
+    const res = await apiFetch(updateRolePath(role.id), {
       method: "PUT",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ ...details, revision: role.revision }),
@@ -219,7 +220,7 @@ async function removeRole(role: Role) {
 // The status code, or undefined if the request didn't get an answer.
 async function sendRemove(role: Role) {
   try {
-    return (await fetch(removeRolePath(role), { method: "DELETE" })).status;
+    return (await apiFetch(removeRolePath(role), { method: "DELETE" })).status;
   } catch {
     return undefined;
   }
@@ -227,7 +228,7 @@ async function sendRemove(role: Role) {
 
 async function loadRoles() {
   try {
-    const res = await fetch(ROLES_PATH);
+    const res = await apiFetch(ROLES_PATH);
     if (res.ok) roles.value = RoleList.parse(await res.json()).roles;
   } catch {
     // Keep what's shown; the notice still says it may be out of date.
@@ -262,7 +263,7 @@ async function add(details: AddRoleRequest) {
 
 async function postRole(itemId: string, details: AddRoleRequest) {
   try {
-    const res = await fetch(addRolePath(itemId), {
+    const res = await apiFetch(addRolePath(itemId), {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(details),

@@ -2,7 +2,7 @@
 id: hosting.E3.S1
 title: Serve the pages at one address with the API
 epic: E3
-status: ready
+status: done
 ---
 
 ## Story
@@ -78,3 +78,4 @@ And the page says they need to sign in
 - AC10 needs only a "you need to sign in" state when the API returns 401. The sign-in itself is E3.S2.
 - Ask before adding any browser test for the new state (CLAUDE.md).
 - Out of scope: signing in (E3.S2), a custom domain.
+- Follow-up for E3.S2: a 401 replaces the page with the sign-in message, so a sign-in that runs out mid-edit loses an unsaved draft (such as a running order). Signing in again should keep it, or warn first.

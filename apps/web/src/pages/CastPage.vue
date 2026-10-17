@@ -15,6 +15,7 @@ import {
 } from "../cast.ts";
 import { icons } from "../icons.ts";
 import { ROLES_PATH } from "../roles.ts";
+import { apiFetch } from "../sign-in.ts";
 import CastMemberForm from "./CastMemberForm.vue";
 
 type State =
@@ -154,7 +155,7 @@ async function putMember(
   details: CastMemberDetails,
 ): Promise<CastMember | "saved" | "conflict" | "failed"> {
   try {
-    const res = await fetch(`${CAST_PATH}/${member.id}`, {
+    const res = await apiFetch(`${CAST_PATH}/${member.id}`, {
       method: "PUT",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ ...details, revision: member.revision }),
@@ -203,7 +204,7 @@ async function deleteMember(member: CastMember) {
 /** How many roles the member is cast in now, or undefined if the roles can't be loaded. */
 async function rolesOf(member: CastMember) {
   try {
-    const res = await fetch(ROLES_PATH);
+    const res = await apiFetch(ROLES_PATH);
     if (!res.ok) return undefined;
     const list = RoleList.safeParse(await res.json());
     if (!list.success) return undefined;
@@ -217,7 +218,7 @@ async function rolesOf(member: CastMember) {
 async function sendDelete(member: CastMember) {
   try {
     const url = `${CAST_PATH}/${member.id}?revision=${member.revision}`;
-    return (await fetch(url, { method: "DELETE" })).status;
+    return (await apiFetch(url, { method: "DELETE" })).status;
   } catch {
     return undefined;
   }
@@ -226,7 +227,7 @@ async function sendDelete(member: CastMember) {
 // 201 → the saved member (or "saved" if its reply can't be read); anything else failed.
 async function postMember(details: CastMemberDetails): Promise<CastMember | "saved" | "failed"> {
   try {
-    const res = await fetch(CAST_PATH, {
+    const res = await apiFetch(CAST_PATH, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(details),
@@ -241,7 +242,7 @@ async function postMember(details: CastMemberDetails): Promise<CastMember | "sav
 
 async function load() {
   try {
-    const res = await fetch(CAST_PATH);
+    const res = await apiFetch(CAST_PATH);
     if (res.status === 404) {
       state.value = { status: "empty" };
       return;

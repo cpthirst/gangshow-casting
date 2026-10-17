@@ -17,6 +17,7 @@ import {
   stageLabel,
   updateOf,
 } from "../running-order.ts";
+import { apiFetch } from "../sign-in.ts";
 import { type RowDrop, vSortableRows } from "../sortable-rows.ts";
 import ItemEditor from "./ItemEditor.vue";
 
@@ -42,7 +43,7 @@ const showSaved = (order: RunningOrder) => {
 
 async function load() {
   try {
-    const res = await fetch(RUNNING_ORDER_PATH);
+    const res = await apiFetch(RUNNING_ORDER_PATH);
     if (res.status === 404) {
       state.value = { status: "empty" };
       return;
@@ -148,7 +149,7 @@ type SaveResult = { outcome: "saved" | "conflict"; order: RunningOrder } | { out
 // 201 → saved; 409 → someone else saved first (the body is their version); anything else failed.
 async function saveDraft(baseVersion: number, working: RunningOrder): Promise<SaveResult> {
   try {
-    const res = await fetch(`${RUNNING_ORDER_PATH}/versions`, {
+    const res = await apiFetch(`${RUNNING_ORDER_PATH}/versions`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ baseVersion, change: updateOf(working) }),

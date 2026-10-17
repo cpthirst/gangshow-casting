@@ -3,6 +3,7 @@ import { ItemNote, ItemNoteList, MAX_NOTE_LENGTH } from "@app/shared";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { onBeforeRouteLeave, onBeforeRouteUpdate } from "vue-router";
 import { ITEM_NOTES_PATH, saveNotesPath } from "../item-notes.ts";
+import { apiFetch } from "../sign-in.ts";
 
 // An item's casting notes: one free-text field, saved on its own, apart from the running
 // order (casting-item-overview FR8, FR10). The page gives each item a fresh instance (keyed
@@ -22,7 +23,7 @@ const announcement = ref("");
 const unsaved = computed(() => status.value === "ready" && text.value !== saved.value.text);
 
 async function currentNote(): Promise<ItemNote | undefined> {
-  const res = await fetch(ITEM_NOTES_PATH);
+  const res = await apiFetch(ITEM_NOTES_PATH);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return ItemNoteList.parse(await res.json()).notes.find((n) => n.itemId === props.itemId);
 }
@@ -47,7 +48,7 @@ async function save() {
   }
   saving.value = true;
   try {
-    const res = await fetch(saveNotesPath(props.itemId), {
+    const res = await apiFetch(saveNotesPath(props.itemId), {
       method: "PUT",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ text: text.value, revision: saved.value.revision }),
