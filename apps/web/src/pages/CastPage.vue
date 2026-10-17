@@ -343,6 +343,8 @@ onMounted(load);
             <th scope="col">Last name</th>
             <th scope="col">Section</th>
             <th scope="col">Group</th>
+            <th scope="col">Singing</th>
+            <th scope="col">Acting</th>
           </tr>
         </thead>
         <tbody>
@@ -377,6 +379,8 @@ onMounted(load);
               {{ sectionLabel(member.section) }}
             </td>
             <td data-label="Group">{{ member.group }}</td>
+            <td data-label="Singing">{{ member.singing }}</td>
+            <td data-label="Acting">{{ member.acting }}</td>
           </tr>
         </tbody>
       </table>

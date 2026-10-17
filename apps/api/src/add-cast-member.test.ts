@@ -28,6 +28,22 @@ describe("add cast member handler", () => {
     expect((await store.list("2027"))?.members).toHaveLength(3);
   });
 
+  it("saves Singing and Acting notes with the member", async () => {
+    const { store, handler } = setUp();
+    const notes = { singing: "Strong alto, can solo", acting: "Comic timing" };
+
+    expect((await handler(request({ ...jo, ...notes }))).statusCode).toBe(201);
+
+    expect((await store.list("2027"))?.members.at(-1)).toMatchObject(notes);
+  });
+
+  it("rejects a note over 100 characters with 400, saving nothing", async () => {
+    const { store, handler } = setUp();
+
+    expect((await handler(request({ ...jo, acting: "x".repeat(101) }))).statusCode).toBe(400);
+    expect((await store.list("2027"))?.members).toHaveLength(2);
+  });
+
   it.each([
     ["an empty first name", { ...jo, firstName: "" }],
     ["a section outside the list", { ...jo, section: "beavers" }],

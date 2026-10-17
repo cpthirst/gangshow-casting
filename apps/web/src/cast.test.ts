@@ -62,16 +62,30 @@ describe("filterCast", () => {
 });
 
 describe("detailsFrom", () => {
-  const form: CastForm = { firstName: "Jo", lastName: "Newcomer", section: "", group: "" };
+  const form: CastForm = {
+    firstName: "Jo",
+    lastName: "Newcomer",
+    section: "",
+    group: "",
+    singing: "",
+    acting: "",
+  };
+  const blankNotes = { singing: "", acting: "" };
 
   it("turns a filled form into cast member details, trimmed, with blank section as not set", () => {
     expect(detailsFrom({ ...form, firstName: " Jo ", section: "scouts" })).toEqual({
       ok: true,
-      details: { firstName: "Jo", lastName: "Newcomer", section: "scouts", group: "" },
+      details: {
+        firstName: "Jo",
+        lastName: "Newcomer",
+        section: "scouts",
+        group: "",
+        ...blankNotes,
+      },
     });
     expect(detailsFrom(form)).toEqual({
       ok: true,
-      details: { firstName: "Jo", lastName: "Newcomer", section: null, group: "" },
+      details: { firstName: "Jo", lastName: "Newcomer", section: null, group: "", ...blankNotes },
     });
   });
 
@@ -81,6 +95,8 @@ describe("detailsFrom", () => {
     ["firstName", { firstName: "x".repeat(41) }, "Keep the first name to 40 characters or fewer"],
     ["lastName", { lastName: "x".repeat(41) }, "Keep the last name to 40 characters or fewer"],
     ["group", { group: "x".repeat(61) }, "Keep the group to 60 characters or fewer"],
+    ["singing", { singing: "x".repeat(101) }, "Keep the singing note to 100 characters or fewer"],
+    ["acting", { acting: "x".repeat(101) }, "Keep the acting note to 100 characters or fewer"],
   ];
 
   it.each(badInput)("explains a bad %s", (field, change, message) => {

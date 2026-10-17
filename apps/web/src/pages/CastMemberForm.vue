@@ -89,6 +89,28 @@ function submit() {
       />
       <p v-if="errors.group" :id="errorFor('group')" class="field-error">{{ errors.group }}</p>
     </div>
+    <div class="field">
+      <label :for="idFor('singing')">Singing</label>
+      <input
+        :id="idFor('singing')"
+        v-model="form.singing"
+        name="singing"
+        autocomplete="off"
+        v-bind="invalid('singing')"
+      />
+      <p v-if="errors.singing" :id="errorFor('singing')" class="field-error">{{ errors.singing }}</p>
+    </div>
+    <div class="field">
+      <label :for="idFor('acting')">Acting</label>
+      <input
+        :id="idFor('acting')"
+        v-model="form.acting"
+        name="acting"
+        autocomplete="off"
+        v-bind="invalid('acting')"
+      />
+      <p v-if="errors.acting" :id="errorFor('acting')" class="field-error">{{ errors.acting }}</p>
+    </div>
     <p v-if="error" class="field-error form-error" role="alert">{{ error }}</p>
     <div class="editor-actions">
       <button type="submit" class="primary" :disabled="saving">Save</button>

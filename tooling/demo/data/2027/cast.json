@@ -7,6 +7,8 @@
       "lastName": "Applebottom",
       "section": "scouts",
       "group": "1st Nowhere Scouts",
+      "singing": "Strong alto, can solo",
+      "acting": "Natural comic timing",
       "revision": 1
     },
     {
@@ -15,6 +17,7 @@
       "lastName": "Hedgerow",
       "section": "scouts",
       "group": "2nd Somewhere Scouts",
+      "singing": "Confident on harmonies",
       "revision": 1
     },
     {
@@ -23,6 +26,7 @@
       "lastName": "Oddsock",
       "section": "scouts",
       "group": "3rd Elsewhere Scouts",
+      "acting": "Good with accents; loud and clear",
       "revision": 1
     },
     {
@@ -31,6 +35,8 @@
       "lastName": "Wobblesworth",
       "section": "scouts",
       "group": "1st Make-Believe Scouts",
+      "singing": "Soprano, needs a mic for solos",
+      "acting": "Shy at first but improving",
       "revision": 1
     },
     {

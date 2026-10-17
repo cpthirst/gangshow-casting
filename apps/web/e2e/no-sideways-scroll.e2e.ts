@@ -45,6 +45,12 @@ test("the cast list and its add and edit forms fit the screen", async ({ page })
   await page.goto("/cast");
   await expect(page.getByText("Featherstonehaugh-Smythe")).toBeVisible();
   await expectNoSidewaysScroll(page);
+  // Notes are labelled lines on a card that has them, and absent from one that doesn't.
+  const card = (lastName: string) => page.locator("tbody tr", { hasText: lastName });
+  await expect(card("Featherstonehaugh-Smythe").locator("td[data-label=Singing]")).toBeVisible();
+  await expect(card("Featherstonehaugh-Smythe").locator("td[data-label=Acting]")).toBeVisible();
+  await expect(card("Example").locator("td[data-label=Singing]")).toBeHidden();
+  await expect(card("Example").locator("td[data-label=Acting]")).toBeHidden();
 
   await page.getByRole("button", { name: "Add cast member" }).click();
   await expect(page.getByRole("button", { name: "Cancel" })).toBeVisible();

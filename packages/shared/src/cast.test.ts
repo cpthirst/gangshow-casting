@@ -31,6 +31,31 @@ describe("CastMember", () => {
     expect(CastMember.safeParse({ ...sam, ...change }).success).toBe(false);
   });
 
+  it("may hold short Singing and Acting notes, trimmed (ADR 0014)", () => {
+    const parsed = CastMember.parse({ ...sam, singing: " Strong alto ", acting: "Comic timing" });
+
+    expect([parsed.singing, parsed.acting]).toEqual(["Strong alto", "Comic timing"]);
+  });
+
+  it("loads a member saved before the notes existed, with no notes", () => {
+    const parsed = CastMember.parse(sam);
+
+    expect([parsed.singing, parsed.acting]).toEqual([undefined, undefined]);
+  });
+
+  it.each(["singing", "acting"])("rejects a %s note over 100 characters", (field) => {
+    expect(CastMember.safeParse({ ...sam, [field]: "x".repeat(101) }).success).toBe(false);
+    expect(
+      CastMemberDetails.safeParse({
+        firstName: "Jo",
+        lastName: "Newcomer",
+        section: null,
+        group: "",
+        [field]: "x".repeat(101),
+      }).success,
+    ).toBe(false);
+  });
+
   it("rejects any personal data beyond the agreed fields (ADR 0010)", () => {
     expect(CastMember.safeParse({ ...sam, dateOfBirth: "2012-01-01" }).success).toBe(false);
   });

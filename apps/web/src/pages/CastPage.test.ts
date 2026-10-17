@@ -52,10 +52,15 @@ const names = (wrapper: Page) => rows(wrapper).map(([first, last]) => `${first} 
 describe("Cast page", () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it("lists every cast member with their name, section and group", async () => {
+  it("lists every cast member with their name, section, group and notes", async () => {
     serve(
       aCast([
-        aMember("Sam", "Example", { section: "scouts", group: "1st Somewhere" }),
+        aMember("Sam", "Example", {
+          section: "scouts",
+          group: "1st Somewhere",
+          singing: "Strong alto",
+          acting: "Comic timing",
+        }),
         aMember("Alex", "Sample", { section: "explorers", group: "Riverside ESU" }),
       ]),
     );
@@ -67,10 +72,12 @@ describe("Cast page", () => {
       "Last name",
       "Section",
       "Group",
+      "Singing",
+      "Acting",
     ]);
     expect(rows(wrapper)).toEqual([
-      ["Sam", "Example", "Scouts", "1st Somewhere"],
-      ["Alex", "Sample", "Explorers", "Riverside ESU"],
+      ["Sam", "Example", "Scouts", "1st Somewhere", "Strong alto", "Comic timing"],
+      ["Alex", "Sample", "Explorers", "Riverside ESU", "", ""],
     ]);
   });
 
@@ -119,7 +126,20 @@ describe("Cast page", () => {
 
     const wrapper = await openPage();
 
-    expect(rows(wrapper)).toEqual([["Alex", "Sample", "Not set", ""]]);
+    expect(rows(wrapper)).toEqual([["Alex", "Sample", "Not set", "", "", ""]]);
+  });
+
+  it("shows blank notes for members saved before notes existed", async () => {
+    // Saved before ADR 0014: no singing or acting keys at all.
+    serve(
+      aCast([
+        { id: 1, firstName: "Alex", lastName: "Sample", section: null, group: "", revision: 1 },
+      ]),
+    );
+
+    const wrapper = await openPage();
+
+    expect(rows(wrapper)).toEqual([["Alex", "Sample", "Not set", "", "", ""]]);
   });
 
   it("says there are no cast members yet when none are saved", async () => {
@@ -182,7 +202,15 @@ describe("Cast page", () => {
       const wrapper = await openPage();
 
       const labels = wrapper.findAll("tbody td").map((td) => td.attributes("data-label"));
-      expect(labels).toEqual(["Actions", "First name", "Last name", "Section", "Group"]);
+      expect(labels).toEqual([
+        "Actions",
+        "First name",
+        "Last name",
+        "Section",
+        "Group",
+        "Singing",
+        "Acting",
+      ]);
     });
   });
 
@@ -303,6 +331,18 @@ describe("Cast page", () => {
       expect(document.activeElement).toBe(firstName(wrapper).element);
     });
 
+    it("filters by first name, last name and section only, not by the notes", async () => {
+      serve(cast());
+      const wrapper = await openPage();
+
+      const fields = wrapper.findAll("form.cast-filters :is(input, select)");
+      expect(fields.map((field) => field.attributes("name"))).toEqual([
+        "firstName",
+        "lastName",
+        "section",
+      ]);
+    });
+
     it("labels each filter for screen readers", async () => {
       serve(cast());
       const wrapper = await openPage();
@@ -367,12 +407,12 @@ describe("Cast page", () => {
       await save(wrapper);
 
       expect(names(wrapper)).toEqual(["Sam Example", "Jo Newcomer", "Alex Sample"]);
-      expect(rows(wrapper)[1]).toEqual(["Jo", "Newcomer", "Scouts", "1st Somewhere"]);
+      expect(rows(wrapper)[1]).toEqual(["Jo", "Newcomer", "Scouts", "1st Somewhere", "", ""]);
       expect(wrapper.get("[data-test=count]").text()).toBe("3 cast members");
       expect(wrapper.find("form[data-test=cast-member-form]").exists()).toBe(false);
     });
 
-    it("leaves section and group optional", async () => {
+    it("leaves section, group and notes optional", async () => {
       api(cast());
       const wrapper = await openPage();
       const form = await openForm(wrapper);
@@ -380,7 +420,31 @@ describe("Cast page", () => {
       await fill(form, { firstName: "Jo", lastName: "Newcomer" });
       await save(wrapper);
 
-      expect(rows(wrapper)[1]).toEqual(["Jo", "Newcomer", "Not set", ""]);
+      expect(rows(wrapper)[1]).toEqual(["Jo", "Newcomer", "Not set", "", "", ""]);
+    });
+
+    it("adds someone with Singing and Acting notes, shown in their columns", async () => {
+      api(cast());
+      const wrapper = await openPage();
+      const form = await openForm(wrapper);
+
+      await fill(form, {
+        firstName: "Jo",
+        lastName: "Newcomer",
+        singing: "Strong alto, can solo",
+        acting: "Comic timing",
+      });
+      await save(wrapper);
+
+      expect(posts[0]).toMatchObject({ singing: "Strong alto, can solo", acting: "Comic timing" });
+      expect(rows(wrapper)[1]).toEqual([
+        "Jo",
+        "Newcomer",
+        "Not set",
+        "",
+        "Strong alto, can solo",
+        "Comic timing",
+      ]);
     });
 
     it.each([
@@ -402,9 +466,26 @@ describe("Cast page", () => {
     });
 
     it.each([
-      ["first name", "firstName", "x".repeat(41), "Keep the first name to 40 characters or fewer"],
-      ["group", "group", "x".repeat(61), "Keep the group to 60 characters or fewer"],
-    ])("refuses a %s over the limit", async (_f, field, value, message) => {
+      [
+        "a first name",
+        "firstName",
+        "x".repeat(41),
+        "Keep the first name to 40 characters or fewer",
+      ],
+      ["a group", "group", "x".repeat(61), "Keep the group to 60 characters or fewer"],
+      [
+        "a Singing note",
+        "singing",
+        "x".repeat(101),
+        "Keep the singing note to 100 characters or fewer",
+      ],
+      [
+        "an Acting note",
+        "acting",
+        "x".repeat(101),
+        "Keep the acting note to 100 characters or fewer",
+      ],
+    ])("refuses %s over the limit", async (_f, field, value, message) => {
       api(cast());
       const wrapper = await openPage();
       const form = await openForm(wrapper);
@@ -753,8 +834,8 @@ describe("Cast page", () => {
       await edit.get("[name=group]").setValue("Riverside ESU");
       await save(wrapper);
 
-      expect(rows(wrapper)[0]).toEqual(["Sam", "Example", "Explorers", "Riverside ESU"]);
-      expect(puts[0]?.body).toEqual({
+      expect(rows(wrapper)[0]).toEqual(["Sam", "Example", "Explorers", "Riverside ESU", "", ""]);
+      expect(puts[0]?.body).toMatchObject({
         firstName: "Sam",
         lastName: "Example",
         section: "explorers",
@@ -762,6 +843,37 @@ describe("Cast page", () => {
         revision: 3,
       });
       expect(wrapper.find("form[data-test=cast-member-form]").exists()).toBe(false);
+    });
+
+    it("saves edited notes to the row", async () => {
+      api(aCast([aMember("Jo", "Newcomer", { singing: "Strong alto, can solo", revision: 2 })]));
+      const wrapper = await openPage();
+      const edit = await openEdit(wrapper, "Jo Newcomer");
+
+      expect(edit.get<HTMLInputElement>("[name=singing]").element.value).toBe(
+        "Strong alto, can solo",
+      );
+      await edit.get("[name=singing]").setValue("Alto, harmonies");
+      await save(wrapper);
+
+      expect(puts[0]?.body).toMatchObject({ singing: "Alto, harmonies", revision: 2 });
+      expect(rows(wrapper)[0]?.[4]).toBe("Alto, harmonies");
+    });
+
+    it("refuses a note over 100 characters when editing, saving nothing", async () => {
+      api(cast());
+      const wrapper = await openPage();
+      const edit = await openEdit(wrapper, "Sam Example");
+
+      await edit.get("[name=acting]").setValue("x".repeat(101));
+      await save(wrapper);
+
+      const input = form(wrapper).get("[name=acting]");
+      expect(input.attributes("aria-invalid")).toBe("true");
+      expect(wrapper.get(`[id="${input.attributes("aria-describedby")}"]`).text()).toBe(
+        "Keep the acting note to 100 characters or fewer",
+      );
+      expect(puts).toHaveLength(0);
     });
 
     it("shows every field but the ID as editable, with the ID shown", async () => {
@@ -802,7 +914,7 @@ describe("Cast page", () => {
         "Enter a first name",
       );
       expect(puts).toHaveLength(0);
-      expect(rows(wrapper)[0]).toEqual(["Sam", "Example", "Scouts", "1st Somewhere"]);
+      expect(rows(wrapper)[0]).toEqual(["Sam", "Example", "Scouts", "1st Somewhere", "", ""]);
     });
 
     it("leaves the member unchanged when cancelled", async () => {
@@ -814,7 +926,7 @@ describe("Cast page", () => {
       await edit.get("button[data-test=cancel]").trigger("click");
       await flushPromises();
 
-      expect(rows(wrapper)[0]).toEqual(["Sam", "Example", "Scouts", "1st Somewhere"]);
+      expect(rows(wrapper)[0]).toEqual(["Sam", "Example", "Scouts", "1st Somewhere", "", ""]);
       expect(puts).toHaveLength(0);
     });
 
@@ -832,7 +944,7 @@ describe("Cast page", () => {
       await save(wrapper);
 
       expect(wrapper.text()).toContain(conflictMessage);
-      expect(rows(wrapper)[0]).toEqual(["Sam", "Example", "Scouts", "Changed Group"]);
+      expect(rows(wrapper)[0]).toEqual(["Sam", "Example", "Scouts", "Changed Group", "", ""]);
       expect(wrapper.find("form[data-test=cast-member-form]").exists()).toBe(false);
     });
 
