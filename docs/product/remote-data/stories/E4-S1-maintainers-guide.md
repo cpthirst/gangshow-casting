@@ -2,7 +2,7 @@
 id: remote-data.E4.S1
 title: Guide the maintainer from a new AWS account to the files removed
 epic: E4
-status: ready
+status: done
 ---
 
 ## Story
@@ -14,7 +14,7 @@ As a maintainer who hasn't done this before, I want one guide that takes me thro
 ### AC1: Every step, in order
 Given the guide
 When I read it
-Then it covers, in order: creating the AWS account with MFA, a least-privilege profile on my machine, deploying with my alert email, switching the API to the remote database, backing up the data folder, copying, verifying, removing the local files, and removing the backup
+Then it covers, in order: creating the AWS account with MFA, a least-privilege profile on my machine, deploying with my alert email, backing up the data folder, copying, verifying, switching the API to the remote database, removing the local files, and removing the backup
 
 ### AC2: Going back is explained
 Given I'm part-way through the move
@@ -35,5 +35,6 @@ Then it holds no account ids, credentials or email addresses, only where to put 
 
 - FRs: FR12
 - Depends on: remote-data.E3.S3, remote-data.E1.S2
-- Docs-only. Checked by the user following it for the real move, not by tests.
+- Docs-only, at `docs/guides/remote-data.md`, linked from the README. Checked by the user following it for the real move, not by tests.
+- AC1's order changed at review (2026-10-17): the API moves to the remote database after the copy is verified, not before, since until then the table doesn't hold the show.
 - Out of scope: hosting the API.

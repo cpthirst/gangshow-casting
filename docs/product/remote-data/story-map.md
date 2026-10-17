@@ -35,15 +35,15 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [remote-data.E3.S1](stories/E3-S1-copy-a-production.md) | Copy a production's data from the files to the remote database, safe to re-run | FR8 | E2.S3, E2.S4 | ready |
-| [remote-data.E3.S2](stories/E3-S2-verify-the-copy.md) | Verify the copy by reading everything through the API from both, reporting differences by id only | FR9 | E3.S1 | ready |
-| [remote-data.E3.S3](stories/E3-S3-remove-the-local-files.md) | Remove the local files, only after a passing verification since the last copy, and after confirming | FR10 | E3.S2 | ready |
+| [remote-data.E3.S1](stories/E3-S1-copy-a-production.md) | Copy a production's data from the files to the remote database, safe to re-run | FR8 | E2.S3, E2.S4 | done |
+| [remote-data.E3.S2](stories/E3-S2-verify-the-copy.md) | Verify the copy by reading everything through the API from both, reporting differences by id only | FR9 | E3.S1 | done |
+| [remote-data.E3.S3](stories/E3-S3-remove-the-local-files.md) | Remove the local files, only after a passing verification since the last copy, and after confirming | FR10 | E3.S2 | done |
 
 ## E4: A maintainer's guide from new AWS account to files removed
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [remote-data.E4.S1](stories/E4-S1-maintainers-guide.md) | Step-by-step guide: account, MFA and profile, deploy, switch, copy, verify, remove | FR12 | E3.S3, E1.S2 | ready |
+| [remote-data.E4.S1](stories/E4-S1-maintainers-guide.md) | Step-by-step guide: account, MFA and profile, deploy, switch, copy, verify, remove | FR12 | E3.S3, E1.S2 | done |
 
 ## FR coverage
 

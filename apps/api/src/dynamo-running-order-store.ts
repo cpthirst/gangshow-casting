@@ -11,7 +11,7 @@ import type { RunningOrderStore } from "./running-order-store.ts";
 const VERSION = "RO#";
 /** A version's sort key. Zero-padded (8 digits is ample for versions saved by hand), so
  *  versions sort by number and the newest is last. */
-const versionKey = (version: number) => `${VERSION}${String(version).padStart(8, "0")}`;
+export const versionKey = (version: number) => `${VERSION}${String(version).padStart(8, "0")}`;
 
 /** A stored version. The items' free text can name children, so a bad row becomes a fixed
  *  message naming only the production and version. */

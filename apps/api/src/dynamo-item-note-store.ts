@@ -4,6 +4,8 @@ import { conditionFailed, partitionFor, queryAll } from "./dynamo-table.ts";
 import type { ItemNoteStore } from "./item-note-store.ts";
 
 const NOTE = "NOTE#";
+/** An item's notes' sort key. */
+export const noteKey = (itemId: string) => `${NOTE}${itemId}`;
 
 /** Item notes in the production data table: one row per show item's notes (ADR 0015). */
 export function dynamoItemNoteStore(db: DynamoDBDocumentClient, tableName: string): ItemNoteStore {
@@ -21,7 +23,7 @@ export function dynamoItemNoteStore(db: DynamoDBDocumentClient, tableName: strin
         await db.send(
           new PutCommand({
             TableName: tableName,
-            Item: { pk: partitionFor(productionId), sk: `${NOTE}${itemId}`, ...note },
+            Item: { pk: partitionFor(productionId), sk: noteKey(itemId), ...note },
             // Saved only if still at the revision it was read at (none yet for revision 0).
             ...(revision === 0
               ? { ConditionExpression: "attribute_not_exists(pk)" }

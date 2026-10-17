@@ -122,18 +122,28 @@ export function inMemoryRoleStore(initial: RoleList[] = []): RoleStore {
   };
 }
 
+// The id becomes a folder name: never trust callers to have checked it.
+function roleFileFor(dataDir: string, productionId: string) {
+  if (!ProductionId.safeParse(productionId).success) throw new Error("Invalid production id");
+  return join(dataDir, productionId, "roles.json");
+}
+
+async function readFileOf(dataDir: string, productionId: string) {
+  const text = await ifExists(() => readFile(roleFileFor(dataDir, productionId), "utf8"));
+  return text === undefined ? emptyFile(productionId) : parseRoleFile(text, productionId);
+}
+
+/** A production's roles as stored, with the next id it would hand out, for copying them
+ *  elsewhere (remote-data FR8). */
+export async function readRoleFile(dataDir: string, productionId: string) {
+  const file = await readFileOf(dataDir, productionId);
+  return { list: listOf(file), nextId: nextIdOf(file) };
+}
+
 /** Local file: `<dataDir>/<productionId>/roles.json` (git-ignored), created with the first role. */
 export function fileRoleStore(dataDir: string): RoleStore {
-  // The id becomes a folder name: never trust callers to have checked it.
-  const fileFor = (productionId: string) => {
-    if (!ProductionId.safeParse(productionId).success) throw new Error("Invalid production id");
-    return join(dataDir, productionId, "roles.json");
-  };
-
-  async function read(productionId: string) {
-    const text = await ifExists(() => readFile(fileFor(productionId), "utf8"));
-    return text === undefined ? emptyFile(productionId) : parseRoleFile(text, productionId);
-  }
+  const fileFor = (productionId: string) => roleFileFor(dataDir, productionId);
+  const read = (productionId: string) => readFileOf(dataDir, productionId);
 
   const write = (file: RoleFile) =>
     writePrivateFile(fileFor(file.productionId), JSON.stringify(RoleFile.parse(file), null, 2));

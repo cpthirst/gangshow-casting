@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { aRole, behavesAsARoleStore, hook, roleFrom } from "./role-store.contract.ts";
-import { fileRoleStore, inMemoryRoleStore } from "./role-store.ts";
+import { fileRoleStore, inMemoryRoleStore, readRoleFile } from "./role-store.ts";
 
 describe("in-memory role store", () => {
   behavesAsARoleStore(async (initial) => inMemoryRoleStore(initial));
@@ -80,5 +80,28 @@ describe("file role store", () => {
       .catch((e: unknown) => e);
     expect(String(error)).toMatch(/roles file for production 2027 is invalid/i);
     expect(String(error)).not.toContain("Sam Example");
+  });
+});
+
+describe("readRoleFile", () => {
+  let dataDir: string;
+  beforeEach(async () => {
+    dataDir = await mkdtemp(join(tmpdir(), "roles-read-"));
+  });
+  afterEach(() => rm(dataDir, { recursive: true, force: true }));
+
+  it("gives a production's roles and the next id it would hand out", async () => {
+    const list = { productionId: "2027", roles: [aRole(1), aRole(4)] };
+    await mkdir(join(dataDir, "2027"), { recursive: true });
+    await writeFile(join(dataDir, "2027", "roles.json"), JSON.stringify(list));
+
+    expect(await readRoleFile(dataDir, "2027")).toEqual({ list, nextId: 5 });
+  });
+
+  it("gives no roles, starting from id 1, for a production with no roles file", async () => {
+    expect(await readRoleFile(dataDir, "2027")).toEqual({
+      list: { productionId: "2027", roles: [] },
+      nextId: 1,
+    });
   });
 });

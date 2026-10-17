@@ -2,7 +2,7 @@
 id: remote-data.E3.S1
 title: Copy a production's data to the remote database
 epic: E3
-status: ready
+status: done
 ---
 
 ## Story
@@ -41,5 +41,5 @@ Then the local files are unchanged
 
 - FRs: FR8
 - Depends on: remote-data.E2.S3, remote-data.E2.S4
-- Tested against the in-memory remote stores in `pnpm check`, and against the emulator in the database CI job, with made-up data only.
+- Planning, reporting and the command's checks are tested in `pnpm check`; the writes themselves (copy, re-run, refusal, counters, files untouched) against the emulator in the database CI job. Made-up data only.
 - Out of scope: verifying through the API (E3.S2), removing the files (E3.S3).

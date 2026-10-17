@@ -34,5 +34,5 @@ Then it stops with a message saying how to supply one
 - The address comes from the maintainer at deploy time (see the PRD's resolved questions). Tests use a made-up address such as alerts@example.com.
 - AWS budgets are billed in US dollars, so "£5" is set as the nearest whole-dollar amount and noted in the code. Confirm the figure with the user if it needs to be exact.
 - The actual-spend alert was added at review (2026-10-17): AWS needs weeks of history before it forecasts, so a new account would otherwise get no warning.
-- Deploying needs the address: `pnpm --filter infra deploy -c alertEmail=<your address>`, and the same for `pnpm --filter infra diff`. The guide (E4.S1) covers it.
+- Deploying needs the address: in `infra`, `pnpm exec cdk deploy -c alertEmail=<your address>`, and the same for `cdk diff`. (Not `pnpm deploy`, which is pnpm's own command.) The guide (E4.S1) covers it.
 - Out of scope: alerts for anything other than cost.

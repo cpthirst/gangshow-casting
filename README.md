@@ -39,6 +39,8 @@ pnpm dev       # web on :5173 + API dev server on :3000 (Vite proxies /api)
 pnpm check     # lint + docs lint + typecheck + tests + cdk synth: the definition of "done"
 ```
 
+To keep the data in AWS rather than on your machine, follow [Moving the show's data to the remote database](docs/guides/remote-data.md).
+
 Open http://localhost:5173 and you should see **"API: ok (dev)"**: the Vue app calling the API's health endpoint end to end. That walking skeleton is where casting features start; each one arrives as a story (see [How a change flows](#how-a-change-flows)).
 
 The repo is built on an opinionated **TypeScript monorepo scaffold** with a **layered agent harness** for [Claude Code](https://claude.com/claude-code): instructions, skills, reviewers, hooks and pipelines that let coding agents work here autonomously without quality slipping. The rest of this README describes that engineering setup.
