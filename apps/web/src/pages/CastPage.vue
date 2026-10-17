@@ -15,7 +15,7 @@ import {
 } from "../cast.ts";
 import { icons } from "../icons.ts";
 import { ROLES_PATH } from "../roles.ts";
-import { apiFetch } from "../sign-in.ts";
+import { apiFetch, isAdmin } from "../sign-in.ts";
 import CastMemberForm from "./CastMemberForm.vue";
 
 type State =
@@ -169,6 +169,10 @@ async function putMember(
   }
 }
 
+// The API refuses non-admins too: this only shows it up front. A refusal anyway means their
+// admin role was removed after they signed in.
+const ONLY_ADMINS_DELETE = "Only admins can delete cast members";
+
 // Permanent by design (PRD FR5, ADR 0010), so always confirm first, naming the person and
 // how many roles they'll leave (casting-roles FR9).
 async function deleteMember(member: CastMember) {
@@ -196,6 +200,8 @@ async function deleteMember(member: CastMember) {
     addButton.value?.focus();
   } else if (status === 409 || status === 404) {
     await showConflict();
+  } else if (status === 403) {
+    notice.value = `${ONLY_ADMINS_DELETE}.`;
   } else {
     notice.value = `Couldn't delete ${fullName(member)}. Try again.`;
   }
@@ -367,8 +373,8 @@ onMounted(load);
                 type="button"
                 class="icon-button"
                 :aria-label="`Delete ${fullName(member)}`"
-                data-tooltip="Delete from the cast"
-                :disabled="busy"
+                :data-tooltip="isAdmin ? 'Delete from the cast' : ONLY_ADMINS_DELETE"
+                :disabled="busy || !isAdmin"
                 @click="deleteMember(member)"
               >
                 <FontAwesomeIcon :icon="icons.remove" />

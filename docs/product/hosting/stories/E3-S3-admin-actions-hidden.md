@@ -2,7 +2,7 @@
 id: hosting.E3.S3
 title: Show admin-only actions only to admins
 epic: E3
-status: ready
+status: done
 ---
 
 ## Story
@@ -13,9 +13,9 @@ As a production team member who isn't an admin, I want the app to show me only w
 
 ### AC1: A non-admin doesn't get delete on a cast member
 Given a signed-in team member who isn't an admin
-When they open a cast member's edit screen
-Then no delete button is shown
-And the screen says "Only admins can delete cast members"
+When they open the Cast list
+Then each cast member's delete button is disabled
+And it says "Only admins can delete cast members"
 
 ### AC2: A non-admin can't save the running order
 Given a signed-in team member who isn't an admin
@@ -25,7 +25,7 @@ And the save action is disabled with "Only admins can change the running order"
 
 ### AC3: An admin sees both actions
 Given a signed-in admin
-When they open a cast member's edit screen and the running order
+When they open the Cast list and the running order
 Then delete and save work as they do today
 
 ### AC4: An unexpected refusal is explained
@@ -41,3 +41,5 @@ And nothing on the page changes
 - Whether someone is an admin comes from their sign-in (ADR 0018), not from a separate request.
 - The ux-reviewer should check that the disabled and hidden states match the rest of the app.
 - Out of scope: user management pages (E4).
+- AC1 changed during the build (2026-10-18, the user's choice): delete is the bin icon on each row of the Cast list, not on the edit form, so it's shown disabled with the reason as its tooltip, matching AC2's disabled-with-reason save.
+- Locally (`pnpm dev`, `pnpm demo`) everyone acts as an admin (E3.S2 AC8), so both actions work as before.

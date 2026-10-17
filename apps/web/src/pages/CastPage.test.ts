@@ -6,8 +6,10 @@ import {
   UpdateCastMemberRequest,
 } from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ROLES_PATH } from "../roles.ts";
+import { signInAs } from "../sign-in.fixture.ts";
+import { useLocalSignIn } from "../sign-in.ts";
 import CastPage from "./CastPage.vue";
 
 enableAutoUnmount(afterEach);
@@ -50,6 +52,8 @@ const rows = (wrapper: Page) =>
 const names = (wrapper: Page) => rows(wrapper).map(([first, last]) => `${first} ${last}`);
 
 describe("Cast page", () => {
+  // As on pnpm dev: everyone acts as an admin, unless a test signs someone in.
+  beforeEach(useLocalSignIn);
   afterEach(() => vi.unstubAllGlobals());
 
   it("lists every cast member with their name, section, group and notes", async () => {
@@ -771,6 +775,56 @@ describe("Cast page", () => {
       await deleteMember(wrapper, "Alex Sample");
 
       expect(wrapper.text()).not.toContain("Someone else changed this cast member");
+    });
+
+    describe("for someone signed in", () => {
+      afterEach(useLocalSignIn);
+
+      it("offers delete only to admins, saying why to everyone else", async () => {
+        await signInAs([]);
+        api(cast());
+        const wrapper = await openPage();
+
+        for (const name of ["Sam Example", "Alex Sample"]) {
+          const button = deleteButton(wrapper, name);
+          expect(button.attributes("disabled")).toBeDefined();
+          expect(button.attributes("data-tooltip")).toBe("Only admins can delete cast members");
+        }
+        expect(wrapper.get('button[aria-label="Edit Sam Example"]').attributes("disabled")).toBe(
+          undefined,
+        );
+      });
+
+      it("lets an admin delete as before", async () => {
+        await signInAs(["admin"]);
+        api(cast());
+        vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
+        const wrapper = await openPage();
+
+        expect(deleteButton(wrapper, "Sam Example").attributes("data-tooltip")).toBe(
+          "Delete from the cast",
+        );
+        await deleteMember(wrapper, "Sam Example");
+
+        expect(names(wrapper)).toEqual(["Alex Sample"]);
+      });
+
+      // Such as when their admin role was removed after they signed in.
+      it("explains a refusal for not being an admin, changing nothing", async () => {
+        await signInAs(["admin"]);
+        api(cast());
+        vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
+        const wrapper = await openPage();
+        vi.stubGlobal(
+          "fetch",
+          vi.fn(async () => new Response(null, { status: 403 })),
+        );
+
+        await deleteMember(wrapper, "Sam Example");
+
+        expect(wrapper.get(".notice").text()).toBe("Only admins can delete cast members.");
+        expect(names(wrapper)).toEqual(["Sam Example", "Alex Sample"]);
+      });
     });
 
     it("says so when the delete fails, keeping them on the list", async () => {
