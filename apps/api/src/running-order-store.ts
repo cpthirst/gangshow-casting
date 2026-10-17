@@ -23,14 +23,15 @@ export function inMemoryRunningOrderStore(initial: RunningOrder[] = []): Running
   const versions = [...initial];
   const ofProduction = (productionId: string) =>
     versions.filter((order) => order.productionId === productionId);
-  const get = async (productionId: string, version: number) =>
+  const find = (productionId: string, version: number) =>
     ofProduction(productionId).find((order) => order.version === version);
 
   return {
     latest: async (productionId) => newest(ofProduction(productionId)),
-    get,
+    get: async (productionId, version) => find(productionId, version),
     async save(order) {
-      if (await get(order.productionId, order.version)) return "conflict";
+      // Checked and saved with no await between, so two saves of a version can't both win.
+      if (find(order.productionId, order.version)) return "conflict";
       versions.push(order);
       return "saved";
     },

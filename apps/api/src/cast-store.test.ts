@@ -1,76 +1,13 @@
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { CastMemberDetails } from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { aCastList, aCastMember } from "./cast.fixture.ts";
+import { aCastList, aCastMember, jo } from "./cast.fixture.ts";
+import { behavesAsACastStore } from "./cast-store.contract.ts";
 import { fileCastStore, inMemoryCastStore } from "./cast-store.ts";
 
 describe("in-memory cast store", () => {
-  it("returns a production's cast list", async () => {
-    const list = aCastList([aCastMember(1)]);
-
-    expect(await inMemoryCastStore([list]).list("2027")).toEqual(list);
-  });
-
-  it("returns nothing for a production with no cast", async () => {
-    expect(await inMemoryCastStore().list("2027")).toBeUndefined();
-  });
-});
-
-const jo: CastMemberDetails = { firstName: "Jo", lastName: "Newcomer", section: null, group: "" };
-
-describe("in-memory cast store adding", () => {
-  it("adds a member with the next id and revision 1", async () => {
-    const store = inMemoryCastStore([aCastList([aCastMember(1), aCastMember(56)])]);
-
-    const added = await store.add("2027", { ...jo });
-
-    expect(added).toEqual({ ...jo, id: 57, revision: 1 });
-    expect((await store.list("2027"))?.members).toHaveLength(3);
-  });
-
-  it("adds nothing to a production with no cast list", async () => {
-    expect(await inMemoryCastStore().add("2027", { ...jo })).toBeUndefined();
-  });
-});
-
-describe("in-memory cast store removing", () => {
-  it("removes a member at the given revision", async () => {
-    const store = inMemoryCastStore([aCastList([aCastMember(1), aCastMember(2, { revision: 4 })])]);
-
-    expect(await store.remove("2027", 2, 4)).toBe("removed");
-    expect((await store.list("2027"))?.members.map((m) => m.id)).toEqual([1]);
-  });
-
-  it("refuses a stale revision, an unknown member and a production with no list", async () => {
-    const store = inMemoryCastStore([aCastList([aCastMember(2, { revision: 4 })])]);
-
-    expect(await store.remove("2027", 2, 3)).toBe("stale");
-    expect(await store.remove("2027", 9, 1)).toBe("not-found");
-    expect(await store.remove("1999", 2, 4)).toBe("not-found");
-    expect((await store.list("2027"))?.members).toHaveLength(1);
-  });
-});
-
-describe("in-memory cast store updating", () => {
-  it("updates a member at the given revision, bumping the revision", async () => {
-    const store = inMemoryCastStore([aCastList([aCastMember(12, { revision: 3 })])]);
-
-    const result = await store.update("2027", 12, 3, { ...jo });
-
-    expect(result).toEqual({ ...jo, id: 12, revision: 4 });
-    expect((await store.list("2027"))?.members).toEqual([{ ...jo, id: 12, revision: 4 }]);
-  });
-
-  it("refuses a stale revision, an unknown member and a production with no list", async () => {
-    const store = inMemoryCastStore([aCastList([aCastMember(12, { revision: 4 })])]);
-
-    expect(await store.update("2027", 12, 3, { ...jo })).toBe("stale");
-    expect(await store.update("2027", 99, 1, { ...jo })).toBe("not-found");
-    expect(await store.update("1999", 12, 4, { ...jo })).toBe("not-found");
-    expect((await store.list("2027"))?.members[0]?.revision).toBe(4);
-  });
+  behavesAsACastStore(async (initial) => inMemoryCastStore(initial));
 });
 
 describe("file cast store", () => {
@@ -84,6 +21,11 @@ describe("file cast store", () => {
     dataDir = await mkdtemp(join(tmpdir(), "cast-"));
   });
   afterEach(() => rm(dataDir, { recursive: true, force: true }));
+
+  behavesAsACastStore(async (initial = []) => {
+    for (const list of initial) await writeCast(list.productionId, list);
+    return fileCastStore(dataDir);
+  });
 
   it("reads a production's cast list", async () => {
     const list = aCastList([aCastMember(1), aCastMember(2, { firstName: "Alex" })]);

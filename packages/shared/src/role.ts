@@ -66,9 +66,12 @@ export const UpdateRoleRequest = withCastingRules(
 /** 400 from adding a role: the item already has a role with that name. */
 export const AddRoleRefusal = z.strictObject({ error: z.literal("name-taken") });
 
+/** A role name in the one form all its spellings share: no surrounding spaces, lower case. */
+export const normalisedRoleName = (name: string) => name.trim().toLowerCase();
+
 /** Role names match ignoring case and surrounding spaces ("captain hook " = "Captain Hook"). */
 export const sameRoleName = (a: string, b: string) =>
-  a.trim().toLowerCase() === b.trim().toLowerCase();
+  normalisedRoleName(a) === normalisedRoleName(b);
 
 /** GET /api/productions/{productionId}/roles: every role in the production. */
 export const RoleList = z.strictObject({

@@ -26,10 +26,10 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [remote-data.E2.S1](stories/E2-S1-cast-on-the-remote-database.md) | Cast members on the remote database (list, add with never-reused ids, edit, refuse stale saves) | FR5, FR6 | E1.S1 | ready |
-| [remote-data.E2.S2](stories/E2-S2-roles-on-the-remote-database.md) | Roles on the remote database (unique names per item, never-reused ids, refuse stale saves) | FR5, FR6 | E1.S1 | ready |
-| [remote-data.E2.S3](stories/E2-S3-delete-and-uncast-together.md) | Deleting a cast member uncasts them from every role in one all-or-nothing change, on files and remote | FR7 | E2.S1, E2.S2 | ready |
-| [remote-data.E2.S4](stories/E2-S4-running-order-on-the-remote-database.md) | Running-order versions on the remote database (latest, every version kept, refuse saves from an old version) | FR5, FR6 | E1.S1 | ready |
+| [remote-data.E2.S1](stories/E2-S1-cast-on-the-remote-database.md) | Cast members on the remote database (list, add with never-reused ids, edit, refuse stale saves) | FR5, FR6 | E1.S1 | done |
+| [remote-data.E2.S2](stories/E2-S2-roles-on-the-remote-database.md) | Roles on the remote database (unique names per item, never-reused ids, refuse stale saves) | FR5, FR6 | E1.S1 | done |
+| [remote-data.E2.S3](stories/E2-S3-delete-and-uncast-together.md) | Deleting a cast member uncasts them from every role in one all-or-nothing change, on files and remote | FR7 | E2.S1, E2.S2 | done |
+| [remote-data.E2.S4](stories/E2-S4-running-order-on-the-remote-database.md) | Running-order versions on the remote database (latest, every version kept, refuse saves from an old version) | FR5, FR6 | E1.S1 | done |
 
 ## E3: Move the production's data across, prove it, then remove the local files
 

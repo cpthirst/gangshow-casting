@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   AddRoleRefusal,
   AddRoleRequest,
+  normalisedRoleName,
   Role,
   RoleList,
   sameRoleName,
@@ -94,6 +95,12 @@ describe("sameRoleName", () => {
 
   it("tells different names apart", () => {
     expect(sameRoleName("Captain Hook", "Captain Cook")).toBe(false);
+  });
+});
+
+describe("normalisedRoleName", () => {
+  it("gives every spelling of the same name one form, for keys that must match", () => {
+    expect(normalisedRoleName("  CAPTAIN Hook ")).toBe("captain hook");
   });
 });
 

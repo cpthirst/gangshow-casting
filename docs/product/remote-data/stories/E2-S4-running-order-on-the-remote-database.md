@@ -2,7 +2,7 @@
 id: remote-data.E2.S4
 title: Keep running-order versions in the remote database
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story
@@ -40,4 +40,6 @@ Then they pass against the in-memory store and against the remote store on the e
 
 - FRs: FR5 (running order), FR6 (running order)
 - Depends on: remote-data.E1.S1
+- Built without ADR 0015's META latest-version counter: a version is saved only if it doesn't exist yet, and "latest" is the newest row by key. One rule does the job of two.
+- The contract found the in-memory store (used in tests) let two saves of one version both win; fixed.
 - Out of scope: restoring an old version in the app (running-order FR11's "recover").

@@ -30,9 +30,7 @@ describe("data stores", () => {
       DATA_TABLE_REGION: "eu-west-1",
     });
 
-    expect(stores.where).toBe(
-      `item notes in table GangshowData (eu-west-1); everything else in files at ${dataDir}`,
-    );
+    expect(stores.where).toBe("everything in table GangshowData (eu-west-1)");
   });
 
   it("uses London, where the table is deployed, unless the table's region is given", () => {

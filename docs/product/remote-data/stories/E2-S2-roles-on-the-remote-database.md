@@ -2,7 +2,7 @@
 id: remote-data.E2.S2
 title: Keep roles in the remote database
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story
