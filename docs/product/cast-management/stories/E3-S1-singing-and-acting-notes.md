@@ -2,7 +2,7 @@
 id: cast-management.E3.S1
 title: Note how each cast member sings and acts
 epic: E3
-status: in-progress
+status: done
 ---
 
 ## Story

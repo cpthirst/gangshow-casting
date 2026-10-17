@@ -142,6 +142,17 @@ describe("Cast page", () => {
     expect(rows(wrapper)).toEqual([["Alex", "Sample", "Not set", "", "", ""]]);
   });
 
+  it("leaves blank note cells truly empty, so phone cards drop their lines", async () => {
+    serve(aCast([aMember("Sam", "Example")]));
+
+    const wrapper = await openPage();
+
+    // The card hides a line with CSS :empty, which any whitespace would defeat.
+    for (const label of ["Singing", "Acting"]) {
+      expect(wrapper.get(`td[data-label=${label}]`).element.innerHTML).toBe("");
+    }
+  });
+
   it("says there are no cast members yet when none are saved", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 404 })));
 
@@ -835,11 +846,13 @@ describe("Cast page", () => {
       await save(wrapper);
 
       expect(rows(wrapper)[0]).toEqual(["Sam", "Example", "Explorers", "Riverside ESU", "", ""]);
-      expect(puts[0]?.body).toMatchObject({
+      expect(puts[0]?.body).toEqual({
         firstName: "Sam",
         lastName: "Example",
         section: "explorers",
         group: "Riverside ESU",
+        singing: "",
+        acting: "",
         revision: 3,
       });
       expect(wrapper.find("form[data-test=cast-member-form]").exists()).toBe(false);

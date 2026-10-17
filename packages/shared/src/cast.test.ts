@@ -43,6 +43,10 @@ describe("CastMember", () => {
     expect([parsed.singing, parsed.acting]).toEqual([undefined, undefined]);
   });
 
+  it.each(["singing", "acting"])("accepts a %s note of exactly 100 characters", (field) => {
+    expect(CastMember.safeParse({ ...sam, [field]: "x".repeat(100) }).success).toBe(true);
+  });
+
   it.each(["singing", "acting"])("rejects a %s note over 100 characters", (field) => {
     expect(CastMember.safeParse({ ...sam, [field]: "x".repeat(101) }).success).toBe(false);
     expect(

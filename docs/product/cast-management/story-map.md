@@ -33,7 +33,7 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [cast-management.E3.S1](stories/E3-S1-singing-and-acting-notes.md) | Add and edit short Singing and Acting notes on cast members; shown as columns (labelled lines on phones), not filterable | FR9 | E2.S2 | in-progress |
+| [cast-management.E3.S1](stories/E3-S1-singing-and-acting-notes.md) | Add and edit short Singing and Acting notes on cast members; shown as columns (labelled lines on phones), not filterable | FR9 | E2.S2 | done |
 
 ## FR coverage
 
