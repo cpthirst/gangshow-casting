@@ -33,19 +33,18 @@ Keys live in `~/.aws/credentials` on your machine only. Never put them in the re
 From the repository's root, prepare the account for CDK (the first time only), then deploy:
 
 ```bash
-cd infra
-AWS_PROFILE=gangshow-admin pnpm exec cdk bootstrap aws://<account-id>/eu-west-2 -c alertEmail=you@example.com
-AWS_PROFILE=gangshow-admin pnpm exec cdk deploy -c alertEmail=you@example.com
-cd ..
+export ALERT_EMAIL=you@example.com AWS_PROFILE=gangshow-admin
+pnpm --filter infra exec cdk bootstrap aws://<account-id>/eu-west-2
+pnpm infra:deploy
 ```
 
-Use `pnpm exec cdk`, not `pnpm deploy`: that's one of pnpm's own commands and never reaches CDK.
+Use `pnpm infra:deploy`, not `pnpm deploy`: that's one of pnpm's own commands and never reaches CDK. To set the address once for every shell, add the `export ALERT_EMAIL=…` line to your shell profile (such as `~/.zshrc`), not to the repository.
 
 The deploy prints `GangshowCasting.DataTableName = <table>`. Keep that name. It creates:
 - the table, with 7-day point-in-time recovery and deletion protection, kept even if the stack is deleted;
 - a monthly budget that emails you if AWS spend is forecast to pass about £5, or does. The budget covers the whole account.
 
-To see what a later change would do before deploying it, run `AWS_PROFILE=gangshow-admin pnpm exec cdk diff -c alertEmail=you@example.com` in `infra`.
+To see what a later change would do before deploying it, run `pnpm infra:diff` with the same two variables set.
 
 Then create the profile the app and the move will use: an IAM user, `gangshow-data`, with no console access, that can only read and write this one table. Attach this inline policy, filled in with your account id and table name:
 
