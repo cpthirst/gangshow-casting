@@ -124,6 +124,14 @@ We will use **Amazon DynamoDB in on-demand mode**: one table for all production 
 
 The table, its IAM grants and its backups arrive with the hosting story, through the infra review.
 
+**Amended 2026-10-17, as built (remote-data E1 and E2):**
+- The table and its 7-day backups arrived with remote-data, ahead of hosting: the API still runs on the maintainer's machine (ADR 0010). IAM grants still wait for hosting.
+- Running order versions need no META counter. A version is saved only if its row doesn't exist yet, and "latest" is the newest row by key, so one condition does both jobs.
+- `META` holds `castNextId` (which also marks that a production has a cast list) and `lastRoleId`.
+- A role's name row is keyed on a SHA-256 of its item id and normalised name (`ROLENAME#<hash>`), so any valid name makes a short, safe key.
+- Deleting a cast member is one `RemoveCastMember` operation, not a `CastStore` method: the transaction, then a sweep for roles cast meanwhile.
+- A running order version is one item, so DynamoDB's 400 KB item limit caps it. Today's orders are about 5 KB; the schema's worst case is close to the limit (see Revisit if).
+
 ## Consequences
 
 **Easier**
@@ -140,6 +148,7 @@ The table, its IAM grants and its backups arrive with the hosting story, through
 - **Backups and GDPR**: point-in-time recovery and backups keep a deleted child's data for up to 35 days. ADR 0010 says deletion is permanent and no copies are kept, so the access-control/hosting ADR must decide the retention window and record it in the privacy notice.
 
 **Revisit if**
+- A running order nears DynamoDB's 400 KB item limit (many items with every free-text field full): split versions across items, or cap the schema in bytes.
 - The team needs **queries across productions** (returning cast, year-on-year stage time) or ad-hoc **reporting or exports** run on the server.
 - Filtering, search or clash detection **moves to the server**, for example because casts grow into the thousands, or pages start needing one entity or paged results instead of whole collections.
 - **Restoring an old running order** (FR11's "recover") has to re-map roles and notes across many items in one change. A change touching more than 100 items needs relational transactions.

@@ -9,8 +9,20 @@ import { partitionFor, withoutKeys, written } from "./dynamo-table.ts";
 import type { RunningOrderStore } from "./running-order-store.ts";
 
 const VERSION = "RO#";
-/** A version's sort key. Zero-padded, so versions sort by number and the newest is last. */
+/** A version's sort key. Zero-padded (8 digits is ample for versions saved by hand), so
+ *  versions sort by number and the newest is last. */
 const versionKey = (version: number) => `${VERSION}${String(version).padStart(8, "0")}`;
+
+/** A stored version. The items' free text can name children, so a bad row becomes a fixed
+ *  message naming only the production and version. */
+function parse(row: Record<string, unknown> | undefined) {
+  if (row === undefined) return undefined;
+  const parsed = RunningOrder.safeParse(withoutKeys(row));
+  if (!parsed.success) {
+    throw new Error(`Running order ${String(row.sk)} for ${String(row.pk)} is invalid`);
+  }
+  return parsed.data;
+}
 
 /**
  * Running order versions in the production data table (ADR 0015): one row per version, a
@@ -21,9 +33,6 @@ export function dynamoRunningOrderStore(
   db: DynamoDBDocumentClient,
   tableName: string,
 ): RunningOrderStore {
-  const parse = (row: Record<string, unknown> | undefined) =>
-    row === undefined ? undefined : RunningOrder.parse(withoutKeys(row));
-
   return {
     async latest(productionId) {
       const newest = await db.send(
@@ -55,7 +64,8 @@ export function dynamoRunningOrderStore(
         db.send(
           new PutCommand({
             TableName: tableName,
-            Item: { pk: partitionFor(order.productionId), sk: versionKey(order.version), ...order },
+            // Keys last, so nothing in the order can stand in for them.
+            Item: { ...order, pk: partitionFor(order.productionId), sk: versionKey(order.version) },
             ConditionExpression: "attribute_not_exists(sk)",
           }),
         ),

@@ -14,8 +14,9 @@ const ATTEMPTS = 5;
 /**
  * Deletes a cast member and saves every role they're in without them, in one transaction:
  * all of it happens, or none (ADR 0015). Each role is saved at the revision it was read at,
- * so a role changed meanwhile cancels the lot, and it starts again. Someone in more roles
- * than one transaction holds falls back to roles first, then the member, then a sweep.
+ * so a role changed meanwhile cancels the lot, and it starts again. Afterwards it sweeps
+ * for any role they were cast in meanwhile. Someone in more roles than one transaction
+ * holds falls back to roles first, then the member, then a sweep.
  */
 export function dynamoRemoveCastMember(
   db: DynamoDBDocumentClient,
@@ -58,6 +59,7 @@ export function dynamoRemoveCastMember(
       if (!failed) {
         // A role they were cast in after the roles were read isn't in the transaction, so
         // sweep once more: no trace is left (ADR 0010). It writes nothing if there's none.
+        // If it fails, the member is already gone; the error says roles kept changing.
         await roles.uncastMember(productionId, id);
         return "removed";
       }

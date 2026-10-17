@@ -9,7 +9,7 @@ export function behavesAsARunningOrderStore(
   make: (initial?: RunningOrder[]) => Promise<RunningOrderStore>,
 ) {
   it("returns the highest version by number", async () => {
-    const store = await make([aRunningOrder(9), aRunningOrder(10)]);
+    const store = await make([aRunningOrder(10), aRunningOrder(9)]);
 
     expect((await store.latest("2027"))?.version).toBe(10);
   });
@@ -51,6 +51,8 @@ export function behavesAsARunningOrderStore(
     ]);
 
     expect([...results].sort()).toEqual(["conflict", "saved"]);
+    const winner = results[0] === "saved" ? "Mine" : "Theirs";
+    expect((await store.latest("2027"))?.halves[0].items[0]?.title).toBe(winner);
   });
 
   it("returns nothing for a version that was never saved", async () => {
@@ -59,7 +61,11 @@ export function behavesAsARunningOrderStore(
 
   it("keeps each production's versions apart", async () => {
     const store = await make([aRunningOrder(4)]);
+    const other = aRunningOrder(4, { productionId: "2028", first: ["Other Show"] });
 
     expect(await store.latest("2028")).toBeUndefined();
+    expect(await store.save(other)).toBe("saved");
+    expect(await store.get("2028", 4)).toEqual(other);
+    expect(await store.get("2027", 4)).toEqual(aRunningOrder(4));
   });
 }
