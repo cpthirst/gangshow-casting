@@ -24,8 +24,9 @@ Then the browser is redirected to HTTPS
 
 ### AC3: Reloading a page deep in the app works
 Given the hosted app is deployed
-When a team member reloads, or opens a bookmark to, a page such as `/cast`
+When a team member reloads, or opens a bookmark to, a page such as `/cast` or `/cast/123`
 Then the app loads and shows that page
+And a missing file such as `/assets/missing.js` still returns 404, not the app's page
 
 ### AC4: API errors keep their status
 Given the hosted app is deployed
