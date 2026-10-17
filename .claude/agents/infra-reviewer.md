@@ -13,7 +13,7 @@ You review infrastructure changes to the CDK v2 app in `infra/`, which starts wi
 
 ## Process
 
-1. Get the change: `git diff main...HEAD -- infra` (plus any API packaging changes).
+1. Get the change: use the diff in your prompt. Run `git diff main...HEAD -- infra` (plus any API packaging changes) only if you weren't given one. CLAUDE.md is already in your context.
 2. Run `pnpm synth`. Then try `pnpm --filter infra exec cdk diff`. If it fails for lack of AWS credentials, say so and review the code plus `infra/cdk.out/*.template.json` instead.
 3. Check:
    - **Destructive changes**: changing the logical ID or construct path of a stateful resource (bucket, table, queue) causes replacement and data loss. That's a blocker. `[-]` deletions or `requires replacement` in `cdk diff` must be called out.

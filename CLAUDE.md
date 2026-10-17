@@ -71,13 +71,15 @@ New feature work starts from a story with Given/When/Then ACs. If there isn't on
 
 ## Review loop (subagents, `.claude/agents/`)
 
-Run after the gate is green, before a story is `done` or a PR is opened. Launch the relevant reviewers **in parallel**, passing the story path if there is one:
+Run after the gate is green, before a story is `done` or a PR is opened. Launch the relevant reviewers **in parallel**, passing the story path if there is one.
+
+**Hand each reviewer the change**, so they don't each fetch it again. Run `git diff main...HEAD` (plus `git diff` for uncommitted work) once, and paste it into every reviewer's prompt, with the story path. Give `infra-reviewer` and `ux-reviewer` only the part of the diff in their own area. If the diff is over ~1,500 lines, paste `git diff --stat main...HEAD` instead, and say which files matter most. Reviewers already have CLAUDE.md, so don't paste it.
 
 | Reviewer | Run when the diff (`git diff main...HEAD`) touches |
 |---|---|
 | `code-reviewer` | always |
 | `test-auditor` | a story is being implemented |
-| `security-reviewer` | `apps/api`, `apps/web`, `packages/shared`, or any `package.json` / `pnpm-workspace.yaml` |
+| `security-reviewer` | non-test code in `apps/api` or `packages/shared`; `apps/web` code that handles sign-in, tokens, building URLs or `v-html`; or dependencies in any `package.json` / `pnpm-workspace.yaml` |
 | `infra-reviewer` | `infra/`, or anything that changes how the API is packaged or deployed |
 | `ux-reviewer` | `apps/web` (advisory: never blocks) |
 

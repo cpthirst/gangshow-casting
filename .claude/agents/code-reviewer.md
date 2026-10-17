@@ -14,8 +14,8 @@ You are a senior engineer reviewing a colleague's change in this repo. You did n
 
 ## Process
 
-1. Get the change: `git diff main...HEAD` (plus `git diff` for uncommitted work). If the task names a story file, read it along with its acceptance criteria.
-2. Read `CLAUDE.md` and any ADR in `docs/adr/` that the change touches.
+1. Get the change: use the diff in your prompt. Run `git diff main...HEAD` (plus `git diff` for uncommitted work) only if you weren't given one, or were given only a `--stat`. Read whole files only where the diff lacks context you need. If the task names a story file, read it along with its acceptance criteria.
+2. CLAUDE.md is already in your context; don't read it again. Read any ADR in `docs/adr/` that the change touches.
 3. Review for each of the areas below.
 4. Cite exact `file:line` for each finding. Quote the code, and for readability findings show the shorter or clearer version.
 
