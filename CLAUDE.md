@@ -24,6 +24,7 @@ pnpm demo                        # the app on a made-up demo show (:5190), fresh
 pnpm format                      # biome autofix (format + lint + import order)
 pnpm lint:docs                   # validate story structure (part of check)
 pnpm test:e2e                    # browser layout tests at phone widths (CI job, not in check)
+pnpm test:dynamo                 # API database tests against DynamoDB Local on :8000 (CI job, not in check; ADR 0016)
 pnpm --filter <pkg> test         # one package: web | api | infra | @app/shared
 pnpm --filter <pkg> exec vitest run <file> -t "<name>"   # one test
 ```

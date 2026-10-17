@@ -11,4 +11,8 @@ describe("test isolation", () => {
     expect(process.env.DATA_DIR).toBeDefined();
     expect(resolve(process.env.DATA_DIR ?? realDataDir)).not.toBe(resolve(realDataDir));
   });
+
+  it("never points the API at a remote table during tests", () => {
+    expect(process.env.DATA_TABLE).toBe("");
+  });
 });

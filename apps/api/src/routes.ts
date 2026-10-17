@@ -1,7 +1,6 @@
-import { fileURLToPath } from "node:url";
 import { createAddCastMember } from "./add-cast-member.ts";
 import { createAddRole } from "./add-role.ts";
-import { fileCastStore } from "./cast-store.ts";
+import { dataStores } from "./data-stores.ts";
 import { createDeleteCastMember } from "./delete-cast-member.ts";
 import { createGetCast } from "./get-cast.ts";
 import { createGetItemNotes } from "./get-item-notes.ts";
@@ -9,21 +8,15 @@ import { createGetRoles } from "./get-roles.ts";
 import { createGetRunningOrder } from "./get-running-order.ts";
 import type { Handler } from "./handler.ts";
 import { handler as health } from "./health.ts";
-import { fileItemNoteStore } from "./item-note-store.ts";
 import { createRemoveRole } from "./remove-role.ts";
-import { fileRoleStore } from "./role-store.ts";
-import { fileRunningOrderStore } from "./running-order-store.ts";
 import { createSaveItemNote } from "./save-item-note.ts";
 import { createSaveRunningOrder } from "./save-running-order.ts";
 import { createUpdateCastMember } from "./update-cast-member.ts";
 import { createUpdateRole } from "./update-role.ts";
 
-// Git-ignored: real production data never goes in the repo (CLAUDE.md safeguarding).
-const dataDir = process.env.DATA_DIR ?? fileURLToPath(new URL("../data", import.meta.url));
-const runningOrders = fileRunningOrderStore(dataDir);
-const cast = fileCastStore(dataDir);
-const roles = fileRoleStore(dataDir);
-const itemNotes = fileItemNoteStore(dataDir);
+const { runningOrders, cast, roles, itemNotes, where } = dataStores();
+/** Where the data is kept, for the dev server to say on start. */
+export const dataLocation = where;
 
 /** One entry per future API Gateway route: "<METHOD> <path>", with {name} path parameters. */
 export const routes: Record<string, Handler> = {

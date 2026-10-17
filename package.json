@@ -17,7 +17,8 @@
     "check": "pnpm lint && pnpm lint:docs && pnpm typecheck && pnpm test && pnpm synth",
     "prepare": "lefthook install",
     "lint:docs": "node tooling/src/validate-docs.ts",
-    "test:e2e": "pnpm --filter web test:e2e"
+    "test:e2e": "pnpm --filter web test:e2e",
+    "test:dynamo": "pnpm --filter api test:dynamo"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",

@@ -1,0 +1,41 @@
+import { randomUUID } from "node:crypto";
+import { CreateTableCommand, DeleteTableCommand, DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { documentClient } from "./dynamo-table.ts";
+
+// Database tests talk only to a local emulator (ADR 0016), never to AWS, so they refuse to
+// run unless the DynamoDB endpoint is on this machine.
+function requireLocalEmulator() {
+  const endpoint = process.env.AWS_ENDPOINT_URL_DYNAMODB ?? "";
+  if (!/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/?$/.test(endpoint)) {
+    throw new Error(`Database tests need a local DynamoDB emulator, not "${endpoint}"`);
+  }
+}
+
+/** A fresh, empty table shaped like the real one (infra/lib/app-stack.ts), on the emulator. */
+export async function aTestTable() {
+  requireLocalEmulator();
+  const client = new DynamoDBClient({});
+  const tableName = `test-${randomUUID()}`;
+  await client.send(
+    new CreateTableCommand({
+      TableName: tableName,
+      BillingMode: "PAY_PER_REQUEST",
+      KeySchema: [
+        { AttributeName: "pk", KeyType: "HASH" },
+        { AttributeName: "sk", KeyType: "RANGE" },
+      ],
+      AttributeDefinitions: [
+        { AttributeName: "pk", AttributeType: "S" },
+        { AttributeName: "sk", AttributeType: "S" },
+      ],
+    }),
+  );
+  return {
+    client,
+    db: documentClient(client),
+    tableName,
+    drop: () => client.send(new DeleteTableCommand({ TableName: tableName })),
+  };
+}
+
+export type TestTable = Awaited<ReturnType<typeof aTestTable>>;

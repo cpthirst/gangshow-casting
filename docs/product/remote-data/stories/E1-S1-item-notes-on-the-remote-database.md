@@ -2,7 +2,7 @@
 id: remote-data.E1.S1
 title: Keep item notes in the remote database
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story
@@ -56,4 +56,6 @@ And ADR 0010 says deleted data stays in point-in-time backups for up to 7 days
 - Changes `.github/workflows/ci.yml` (a new job), so it needs the user's approval in review, as a harness/CI change.
 - The emulator isn't installed locally (decided 2026-10-17), so the remote store's tests can't run in `pnpm check`. Writing them as one contract suite, run against both stores, keeps red/green honest locally.
 - The demo and the browser tests keep their local made-up files.
+- Configuration: `DATA_TABLE` (the table name, a stack output) and `DATA_TABLE_REGION` (default eu-west-2). The dev server says where data is kept when it starts.
+- Follow-ups from review, for the guide (E4.S1) or hosting: use a dedicated least-privilege AWS profile and check which account it resolves to; add alarms on the table once the API is hosted.
 - Out of scope: the other stores (E2), the budget alert (E1.S2), moving the data (E3).

@@ -1,7 +1,7 @@
 // Local stand-in for API Gateway: serves the same handlers Lambda will run (ADR 0006).
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { Handler } from "./handler.ts";
-import { matchRoute, routes } from "./routes.ts";
+import { dataLocation, matchRoute, routes } from "./routes.ts";
 
 export function createDevServer(table: Record<string, Handler>) {
   return createServer(async (req, res) => {
@@ -95,6 +95,6 @@ if (import.meta.main) {
   const port = Number(process.env.PORT ?? 3000);
   // Loopback only: the dev API is unauthenticated, so keep it off the local network.
   createDevServer(routes).listen(port, "127.0.0.1", () => {
-    process.stdout.write(`api listening on http://127.0.0.1:${port}\n`);
+    process.stdout.write(`api listening on http://127.0.0.1:${port}; data: ${dataLocation}\n`);
   });
 }

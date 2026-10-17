@@ -2,7 +2,7 @@
 id: remote-data.E1.S2
 title: Email the maintainer when AWS spend looks high
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story
@@ -14,7 +14,7 @@ As a maintainer of a charity's app, I want an email if the AWS bill is heading o
 ### AC1: A monthly budget with a forecast alert
 Given the infrastructure code
 When it is synthesised
-Then it defines a monthly cost budget of £5 that emails an alert when the forecast spend passes it
+Then it defines a monthly cost budget of £5 that emails an alert when the forecast spend passes it, and again when the actual spend does
 
 ### AC2: The address isn't in the repository
 Given the infrastructure code is synthesised with an alert email supplied at deploy time
@@ -33,4 +33,6 @@ Then it stops with a message saying how to supply one
 - Depends on: remote-data.E1.S1
 - The address comes from the maintainer at deploy time (see the PRD's resolved questions). Tests use a made-up address such as alerts@example.com.
 - AWS budgets are billed in US dollars, so "£5" is set as the nearest whole-dollar amount and noted in the code. Confirm the figure with the user if it needs to be exact.
+- The actual-spend alert was added at review (2026-10-17): AWS needs weeks of history before it forecasts, so a new account would otherwise get no warning.
+- Deploying needs the address: `pnpm --filter infra deploy -c alertEmail=<your address>`, and the same for `pnpm --filter infra diff`. The guide (E4.S1) covers it.
 - Out of scope: alerts for anything other than cost.
