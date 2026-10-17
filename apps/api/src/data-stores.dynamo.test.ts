@@ -1,12 +1,14 @@
-import { CastList, CastMember, ItemNoteList } from "@app/shared";
+import { CastList, CastMember, ItemNoteList, Role, RoleList } from "@app/shared";
 import { GetCommand } from "@aws-sdk/lib-dynamodb";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createAddCastMember } from "./add-cast-member.ts";
+import { createAddRole } from "./add-role.ts";
 import { aCastList, aCastMember, jo } from "./cast.fixture.ts";
 import { dataStores } from "./data-stores.ts";
 import { aTestTable, seedCast, type TestTable } from "./dynamo.fixture.ts";
 import { createGetCast } from "./get-cast.ts";
 import { createGetItemNotes } from "./get-item-notes.ts";
+import { createGetRoles } from "./get-roles.ts";
 import { aRunningOrder, itemId } from "./running-order.fixture.ts";
 import { inMemoryRunningOrderStore } from "./running-order-store.ts";
 import { createSaveItemNote } from "./save-item-note.ts";
@@ -49,6 +51,28 @@ describe("data stores with a remote table", () => {
     expect(CastList.parse(JSON.parse(read.body ?? "")).members).toEqual([
       { ...jo, firstName: "Sam", id: 1, revision: 2 },
       CastMember.parse(JSON.parse(added.body ?? "")),
+    ]);
+  });
+
+  it("adds and reads roles through the API in the remote table", async () => {
+    await seedCast(table.db, table.tableName, aCastList([aCastMember(1)]));
+    const { cast, roles } = dataStores({ ...process.env, DATA_TABLE: table.tableName });
+    const finale = itemId("Finale");
+    const runningOrders = inMemoryRunningOrderStore([aRunningOrder(1, { first: ["Finale"] })]);
+
+    const added = await createAddRole(
+      roles,
+      runningOrders,
+      cast,
+    )({
+      pathParameters: { productionId: "2027", itemId: finale },
+      body: JSON.stringify({ name: "Captain Hook", size: "lead", castMemberIds: [1] }),
+    });
+    const read = await createGetRoles(roles)({ pathParameters: { productionId: "2027" } });
+
+    expect(added.statusCode).toBe(201);
+    expect(RoleList.parse(JSON.parse(read.body ?? "")).roles).toEqual([
+      Role.parse(JSON.parse(added.body ?? "")),
     ]);
   });
 

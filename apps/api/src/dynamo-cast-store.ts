@@ -7,7 +7,7 @@ import {
   UpdateCommand,
 } from "@aws-sdk/lib-dynamodb";
 import type { CastStore, Refusal } from "./cast-store.ts";
-import { conditionFailed, META, partitionFor, queryAll, withoutKeys } from "./dynamo-table.ts";
+import { META, partitionFor, queryAll, withoutKeys, written } from "./dynamo-table.ts";
 
 const CAST = "CAST#";
 /** A member's sort key. Zero-padded, so members come back in id order. */
@@ -24,17 +24,6 @@ export function dynamoCastStore(db: DynamoDBDocumentClient, tableName: string): 
     pk: partitionFor(productionId),
     sk: castKey(id),
   });
-
-  /** Runs a conditional write: true if it was written, false if its condition failed. */
-  async function written(write: () => Promise<unknown>) {
-    try {
-      await write();
-      return true;
-    } catch (error) {
-      if (conditionFailed(error)) return false;
-      throw error;
-    }
-  }
 
   // A conditional write failed: tell a stale revision from a member who isn't there.
   async function refusal(productionId: string, id: number): Promise<Refusal> {

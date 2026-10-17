@@ -1,69 +1,12 @@
 import { mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { AddRoleRequest, Role } from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { aRole, behavesAsARoleStore, hook, roleFrom } from "./role-store.contract.ts";
 import { fileRoleStore, inMemoryRoleStore } from "./role-store.ts";
 
-const hook: AddRoleRequest = { name: "Captain Hook", size: "lead", castMemberIds: [] };
-let dataDirForNames: string;
-
-/** The added role, failing the test if the name was refused. */
-function roleFrom(result: Role | "name-taken"): Role {
-  if (result === "name-taken") throw new Error("expected the role to be added");
-  return result;
-}
-
-const aRole = (id: number, details: Partial<Role> = {}): Role => ({
-  id,
-  itemId: "pirate-sketch",
-  name: `Role ${id}`,
-  size: "support",
-  castMemberIds: [],
-  revision: 1,
-  ...details,
-});
-
 describe("in-memory role store", () => {
-  it("has no roles for a production nobody has cast yet", async () => {
-    expect(await inMemoryRoleStore().list("2027")).toEqual({ productionId: "2027", roles: [] });
-  });
-
-  it("adds an uncast role to an item with the next id and revision 1", async () => {
-    const store = inMemoryRoleStore([{ productionId: "2027", roles: [aRole(1), aRole(4)] }]);
-
-    const added = await store.add("2027", "pirate-sketch", hook);
-
-    expect(added).toEqual({
-      ...hook,
-      id: 5,
-      itemId: "pirate-sketch",
-      castMemberIds: [],
-      revision: 1,
-    });
-    expect((await store.list("2027")).roles).toHaveLength(3);
-  });
-
-  it("keeps each production's roles apart", async () => {
-    const store = inMemoryRoleStore();
-
-    await store.add("2027", "pirate-sketch", hook);
-
-    expect((await store.list("2028")).roles).toEqual([]);
-  });
-});
-
-describe("role store casting", () => {
-  it("keeps the cast member ids a new role is given", async () => {
-    const store = inMemoryRoleStore();
-
-    const added = roleFrom(
-      await store.add("2027", "pirate-sketch", { ...hook, castMemberIds: [12] }),
-    );
-
-    expect(added.castMemberIds).toEqual([12]);
-    expect((await store.list("2027")).roles[0]?.castMemberIds).toEqual([12]);
-  });
+  behavesAsARoleStore(async (initial) => inMemoryRoleStore(initial));
 });
 
 describe("file role store", () => {
@@ -78,6 +21,14 @@ describe("file role store", () => {
     dataDir = await mkdtemp(join(tmpdir(), "roles-"));
   });
   afterEach(() => rm(dataDir, { recursive: true, force: true }));
+
+  behavesAsARoleStore(async (initial = []) => {
+    for (const list of initial) {
+      await mkdir(join(dataDir, list.productionId), { recursive: true });
+      await writeFile(rolesFile(list.productionId), JSON.stringify(list));
+    }
+    return fileRoleStore(dataDir);
+  });
 
   it("has no roles before the first is added", async () => {
     expect(await fileRoleStore(dataDir).list("2027")).toEqual({ productionId: "2027", roles: [] });
@@ -129,199 +80,5 @@ describe("file role store", () => {
       .catch((e: unknown) => e);
     expect(String(error)).toMatch(/roles file for production 2027 is invalid/i);
     expect(String(error)).not.toContain("Sam Example");
-  });
-});
-
-describe.each([
-  ["in-memory", () => inMemoryRoleStore()],
-  ["file", () => fileRoleStore(dataDirForNames)],
-])("%s role store with a name already used", (_kind, makeStore) => {
-  beforeEach(async () => {
-    dataDirForNames = await mkdtemp(join(tmpdir(), "role-names-"));
-  });
-  afterEach(() => rm(dataDirForNames, { recursive: true, force: true }));
-
-  it("refuses the same name in the same item, ignoring case and spaces", async () => {
-    const store = makeStore();
-    await store.add("2027", "pirate-sketch", hook);
-
-    expect(
-      await store.add("2027", "pirate-sketch", {
-        name: " captain HOOK ",
-        size: "cameo",
-        castMemberIds: [],
-      }),
-    ).toBe("name-taken");
-    expect((await store.list("2027")).roles).toHaveLength(1);
-  });
-
-  it("allows the same name in a different item", async () => {
-    const store = makeStore();
-    await store.add("2027", "pirate-sketch", {
-      name: "Narrator",
-      size: "support",
-      castMemberIds: [],
-    });
-
-    const added = await store.add("2027", "campfire-song", {
-      name: "Narrator",
-      size: "support",
-      castMemberIds: [],
-    });
-
-    expect(added).toMatchObject({ itemId: "campfire-song", name: "Narrator" });
-  });
-
-  it("lets only one of two simultaneous adds of the same name through", async () => {
-    const store = makeStore();
-
-    const results = await Promise.all([
-      store.add("2027", "pirate-sketch", hook),
-      store.add("2027", "pirate-sketch", hook),
-    ]);
-
-    expect(results.filter((result) => result === "name-taken")).toHaveLength(1);
-    expect((await store.list("2027")).roles).toHaveLength(1);
-  });
-});
-
-describe.each([
-  ["in-memory", () => inMemoryRoleStore([{ productionId: "2027", roles: castRoles() }])],
-  ["file", () => fileRoleStoreWith(castRoles())],
-])("%s role store uncasting a member", (_kind, makeStore) => {
-  beforeEach(async () => {
-    dataDirForNames = await mkdtemp(join(tmpdir(), "role-uncast-"));
-  });
-  afterEach(() => rm(dataDirForNames, { recursive: true, force: true }));
-
-  const castOf = async (store: Awaited<ReturnType<typeof makeStore>>, id: number) =>
-    (await store.list("2027")).roles.find((role) => role.id === id)?.castMemberIds;
-
-  it("takes them out of every role, keeping the roles and everyone else", async () => {
-    const store = await makeStore();
-
-    await store.uncastMember("2027", 12);
-
-    expect(await castOf(store, 1)).toEqual([]);
-    expect(await castOf(store, 2)).toEqual([]);
-    expect(await castOf(store, 3)).toEqual([13]);
-    expect((await store.list("2027")).roles).toHaveLength(4);
-  });
-
-  it("bumps the revision of each role it changes, and only those", async () => {
-    const store = await makeStore();
-
-    await store.uncastMember("2027", 12);
-
-    const revisions = (await store.list("2027")).roles.map((role) => role.revision);
-    expect(revisions).toEqual([2, 2, 2, 1]);
-  });
-});
-
-/** Roles 1 and 2 have only member 12, role 3 is an ensemble of 12 and 13, role 4 has 14. */
-function castRoles(): Role[] {
-  return [
-    aRole(1, { castMemberIds: [12] }),
-    aRole(2, { itemId: "campfire-song", castMemberIds: [12] }),
-    aRole(3, { size: "ensemble", castMemberIds: [12, 13] }),
-    aRole(4, { castMemberIds: [14] }),
-  ];
-}
-
-async function fileRoleStoreWith(roles: Role[]) {
-  await mkdir(join(dataDirForNames, "2027"), { recursive: true });
-  await writeFile(
-    join(dataDirForNames, "2027", "roles.json"),
-    JSON.stringify({ productionId: "2027", roles }),
-  );
-  return fileRoleStore(dataDirForNames);
-}
-
-describe.each([
-  ["in-memory", async () => inMemoryRoleStore([{ productionId: "2027", roles: editRoles() }])],
-  ["file", () => fileRoleStoreWith(editRoles())],
-])("%s role store updating", (_kind, makeStore) => {
-  beforeEach(async () => {
-    dataDirForNames = await mkdtemp(join(tmpdir(), "role-update-"));
-  });
-  afterEach(() => rm(dataDirForNames, { recursive: true, force: true }));
-
-  const smee = { name: "Mr Smee", size: "lead" as const, castMemberIds: [12] };
-
-  it("updates a role at the given revision, bumping the revision", async () => {
-    const store = await makeStore();
-
-    const result = await store.update("2027", 2, 1, smee);
-
-    expect(result).toEqual({ ...smee, id: 2, itemId: "pirate-sketch", revision: 2 });
-    expect((await store.list("2027")).roles.find((role) => role.id === 2)).toEqual(result);
-  });
-
-  it("refuses a stale revision or an unknown role, changing nothing", async () => {
-    const store = await makeStore();
-
-    expect(await store.update("2027", 2, 9, smee)).toBe("stale");
-    expect(await store.update("2027", 99, 1, smee)).toBe("not-found");
-    expect((await store.list("2027")).roles).toEqual(editRoles());
-  });
-
-  it("refuses a name another role in the item uses, ignoring case", async () => {
-    const store = await makeStore();
-
-    expect(await store.update("2027", 2, 1, { ...smee, name: "captain hook" })).toBe("name-taken");
-    expect((await store.list("2027")).roles).toEqual(editRoles());
-  });
-
-  it("lets a role keep its own name", async () => {
-    const store = await makeStore();
-
-    const result = await store.update("2027", 1, 1, { ...smee, name: "CAPTAIN HOOK" });
-
-    expect(result).toMatchObject({ id: 1, name: "CAPTAIN HOOK" });
-  });
-});
-
-/** Two roles in Pirate Sketch, and one with the same name in another item. */
-function editRoles(): Role[] {
-  return [
-    aRole(1, { name: "Captain Hook" }),
-    aRole(2, { name: "Smee" }),
-    aRole(3, { itemId: "campfire-song", name: "Mr Smee" }),
-  ];
-}
-
-describe.each([
-  ["in-memory", async () => inMemoryRoleStore([{ productionId: "2027", roles: editRoles() }])],
-  ["file", () => fileRoleStoreWith(editRoles())],
-])("%s role store removing", (_kind, makeStore) => {
-  beforeEach(async () => {
-    dataDirForNames = await mkdtemp(join(tmpdir(), "role-remove-"));
-  });
-  afterEach(() => rm(dataDirForNames, { recursive: true, force: true }));
-
-  it("removes a role at the given revision, keeping the others", async () => {
-    const store = await makeStore();
-
-    expect(await store.remove("2027", 2, 1)).toBe("removed");
-    expect((await store.list("2027")).roles.map((role) => role.id)).toEqual([1, 3]);
-  });
-
-  it("refuses a stale revision or an unknown role, removing nothing", async () => {
-    const store = await makeStore();
-
-    expect(await store.remove("2027", 2, 9)).toBe("stale");
-    expect(await store.remove("2027", 99, 1)).toBe("not-found");
-    expect((await store.list("2027")).roles).toEqual(editRoles());
-  });
-
-  it("never gives a removed role's id to a new one", async () => {
-    const store = await makeStore();
-
-    await store.remove("2027", 3, 1);
-    const added = roleFrom(
-      await store.add("2027", "pirate-sketch", { name: "Bosun", size: "cameo", castMemberIds: [] }),
-    );
-
-    expect(added.id).toBe(4);
   });
 });

@@ -1,8 +1,9 @@
 import { randomUUID } from "node:crypto";
-import type { CastList } from "@app/shared";
+import type { CastList, RoleList } from "@app/shared";
 import { CreateTableCommand, DeleteTableCommand, DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { type DynamoDBDocumentClient, PutCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { castKey } from "./dynamo-cast-store.ts";
+import { roleKey, roleNameKey } from "./dynamo-role-store.ts";
 import { documentClient, META, partitionFor } from "./dynamo-table.ts";
 
 // Database tests talk only to a local emulator (ADR 0016), never to AWS, so they refuse to
@@ -59,6 +60,31 @@ export async function seedCast(db: DynamoDBDocumentClient, tableName: string, li
   for (const member of list.members) {
     await db.send(
       new PutCommand({ TableName: tableName, Item: { pk, sk: castKey(member.id), ...member } }),
+    );
+  }
+}
+
+/** Writes roles straight into a table, with their name rows and the last id given out. */
+export async function seedRoles(db: DynamoDBDocumentClient, tableName: string, list: RoleList) {
+  const pk = partitionFor(list.productionId);
+  const lastRoleId = Math.max(0, ...list.roles.map((role) => role.id));
+  await db.send(
+    new UpdateCommand({
+      TableName: tableName,
+      Key: { pk, sk: META },
+      UpdateExpression: "SET lastRoleId = :last",
+      ExpressionAttributeValues: { ":last": lastRoleId },
+    }),
+  );
+  for (const role of list.roles) {
+    await db.send(
+      new PutCommand({ TableName: tableName, Item: { pk, sk: roleKey(role.id), ...role } }),
+    );
+    await db.send(
+      new PutCommand({
+        TableName: tableName,
+        Item: { pk, sk: roleNameKey(role), roleId: role.id },
+      }),
     );
   }
 }
