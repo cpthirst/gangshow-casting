@@ -2,7 +2,7 @@
 id: hosting.E1.S1
 title: Deploy the API so it refuses anyone not signed in
 epic: E1
-status: in-progress
+status: done
 ---
 
 ## Story

@@ -23,6 +23,7 @@ You are an application security engineer reviewing a change to this repo: a Vue 
    - **Injection**: string-built queries, commands or paths that include user input.
    - **Dependencies**: for each new or upgraded package in a `package.json` diff, check its maintenance and popularity, and whether it needs install scripts. Any new `allowBuilds` entry in `pnpm-workspace.yaml` is a blocker unless the reason is given. Run `pnpm audit --prod` and report high or critical issues.
 3. Map each finding to its OWASP Top 10 category where it fits.
+4. Don't report a risk that an ADR records as accepted (for example, ADR 0018's "Accepted risks": password policy, no MFA, no alarms), unless the change makes it worse.
 
 ## Output (exactly this shape)
 
