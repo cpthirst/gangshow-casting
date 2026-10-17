@@ -35,7 +35,8 @@ export class AppStack extends Stack {
       description: "Set DATA_TABLE to this to keep the API's data here",
     });
 
-    // An email if the month's AWS spend is forecast to pass about £5 (remote-data FR13).
+    // An email if the month's AWS spend is forecast to pass about £5, or does (remote-data
+    // FR13). A forecast needs weeks of history, so a new account relies on the actual one.
     // Budgets are in US dollars: $7 is the nearest whole amount.
     new CfnBudget(this, "MonthlyBudget", {
       budget: {
@@ -43,17 +44,15 @@ export class AppStack extends Stack {
         timeUnit: "MONTHLY",
         budgetLimit: { amount: 7, unit: "USD" },
       },
-      notificationsWithSubscribers: [
-        {
-          notification: {
-            notificationType: "FORECASTED",
-            comparisonOperator: "GREATER_THAN",
-            threshold: 100,
-            thresholdType: "PERCENTAGE",
-          },
-          subscribers: [{ subscriptionType: "EMAIL", address: props.alertEmail }],
+      notificationsWithSubscribers: ["FORECASTED", "ACTUAL"].map((notificationType) => ({
+        notification: {
+          notificationType,
+          comparisonOperator: "GREATER_THAN",
+          threshold: 100,
+          thresholdType: "PERCENTAGE",
         },
-      ],
+        subscribers: [{ subscriptionType: "EMAIL", address: props.alertEmail }],
+      })),
     });
   }
 }

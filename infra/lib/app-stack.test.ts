@@ -73,19 +73,20 @@ describe("AppStack", () => {
       });
     });
 
-    it("emails the given address when the month's spend is forecast to pass it", () => {
+    // A forecast needs weeks of history, so a new account is also warned on actual spend.
+    it("emails the given address when the month's spend is forecast to pass it, or does", () => {
+      const alertWhen = (type: string) => ({
+        Notification: {
+          NotificationType: type,
+          ComparisonOperator: "GREATER_THAN",
+          Threshold: 100,
+          ThresholdType: "PERCENTAGE",
+        },
+        Subscribers: [{ SubscriptionType: "EMAIL", Address: ALERT_EMAIL }],
+      });
+
       synth().template.hasResourceProperties("AWS::Budgets::Budget", {
-        NotificationsWithSubscribers: [
-          {
-            Notification: {
-              NotificationType: "FORECASTED",
-              ComparisonOperator: "GREATER_THAN",
-              Threshold: 100,
-              ThresholdType: "PERCENTAGE",
-            },
-            Subscribers: [{ SubscriptionType: "EMAIL", Address: ALERT_EMAIL }],
-          },
-        ],
+        NotificationsWithSubscribers: [alertWhen("FORECASTED"), alertWhen("ACTUAL")],
       });
     });
   });
