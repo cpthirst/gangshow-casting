@@ -103,7 +103,7 @@ describe("data stores with a remote table", () => {
 
   it("saves running order versions through the API in the remote table, refusing old ones", async () => {
     const { runningOrders } = dataStores({ ...process.env, DATA_TABLE: table.tableName });
-    await runningOrders.save(aRunningOrder(4, { first: ["Curtain Up"] }));
+    await runningOrders.save(aRunningOrder(4, { first: ["Curtain Up", "Finale"] }));
     const save = createSaveRunningOrder(runningOrders);
     const saveFrom = (baseVersion: number, titles: string[]) =>
       save({
@@ -120,8 +120,9 @@ describe("data stores with a remote table", () => {
         }),
       });
 
-    const saved = await saveFrom(4, ["Curtain Up", "Big Finish"]);
-    const stale = await saveFrom(4, ["Mine"]);
+    // Saves can reorder items, not add them.
+    const saved = await saveFrom(4, ["Finale", "Curtain Up"]);
+    const stale = await saveFrom(4, ["Curtain Up", "Finale"]);
     const read = await createGetRunningOrder(runningOrders)({
       pathParameters: { productionId: "2027" },
     });
@@ -129,7 +130,7 @@ describe("data stores with a remote table", () => {
     expect([saved.statusCode, stale.statusCode]).toEqual([201, 409]);
     const latest = RunningOrder.parse(JSON.parse(read.body ?? ""));
     expect(latest.version).toBe(5);
-    expect(latest.halves[0].items.map((item) => item.title)).toEqual(["Curtain Up", "Big Finish"]);
+    expect(latest.halves[0].items.map((item) => item.title)).toEqual(["Finale", "Curtain Up"]);
   });
 
   it("saves and reads item notes through the API in the remote table", async () => {
