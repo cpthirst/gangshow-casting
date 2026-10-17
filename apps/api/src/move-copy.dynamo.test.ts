@@ -83,13 +83,15 @@ describe("copying a production to the remote database", () => {
     const { cast: castStore, roles: roleStore } = remote();
 
     expect((await castStore.add("2027", { ...jo }))?.id).toBe(20);
-    expect(await roleStore.add("2027", "pirate-sketch", hook)).toMatchObject({ id: 4 });
+    expect(await roleStore.add("2027", "pirate-sketch", { ...hook, name: "Smee" })).toMatchObject({
+      id: 4,
+    });
   });
 
-  it("keeps the copied role's name reserved", async () => {
+  it("keeps the copied role's name reserved in its item", async () => {
     await copy();
 
-    expect(await remote().roles.add("2027", "pirate-sketch", hook)).toMatchObject({ id: 4 });
+    // The copied role 3 is Captain Hook in Pirate Sketch.
     expect(await remote().roles.add("2027", "pirate-sketch", hook)).toBe("name-taken");
   });
 
