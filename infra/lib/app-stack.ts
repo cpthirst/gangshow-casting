@@ -1,5 +1,5 @@
 import { fileURLToPath } from "node:url";
-import { routeKeys } from "@app/shared";
+import { ADMIN_GROUP, routeKeys } from "@app/shared";
 import { CfnOutput, Duration, RemovalPolicy, Stack, type StackProps } from "aws-cdk-lib";
 import { AccessLogFormat } from "aws-cdk-lib/aws-apigateway";
 import {
@@ -117,7 +117,7 @@ export class AppStack extends Stack {
       refreshTokenValidity: Duration.hours(1),
     });
     // Admins manage accounts, delete cast members and save running orders (ADR 0018).
-    userPool.addGroup("AdminGroup", { groupName: "admin" });
+    userPool.addGroup("AdminGroup", { groupName: ADMIN_GROUP });
 
     const apiFunction = new NodejsFunction(this, "ApiFunction", {
       entry: apiEntryPoint,

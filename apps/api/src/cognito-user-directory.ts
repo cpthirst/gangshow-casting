@@ -1,3 +1,4 @@
+import { ADMIN_GROUP } from "@app/shared";
 import {
   AdminAddUserToGroupCommand,
   AdminCreateUserCommand,
@@ -12,9 +13,6 @@ import {
   UserNotFoundException,
 } from "@aws-sdk/client-cognito-identity-provider";
 import type { UserDirectory } from "./user-directory.ts";
-
-// The group the stack creates (infra/lib/app-stack.ts), read from tokens' cognito:groups claim.
-const ADMIN_GROUP = "admin";
 
 /** A client for the pool's region: a pool id starts with it, such as eu-west-2_AbC123. */
 export function cognitoClientFor(userPoolId: string) {

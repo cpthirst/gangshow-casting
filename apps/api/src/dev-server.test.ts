@@ -1,5 +1,5 @@
 import { request, type Server } from "node:http";
-import { HealthResponse } from "@app/shared";
+import { adminOnlyRouteKeys, HealthResponse } from "@app/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createDevServer } from "./dev-server.ts";
 import { routes } from "./routes.ts";
@@ -151,6 +151,42 @@ describe("dev server query strings", () => {
       });
 
       expect(await res.text()).toBe("4");
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+});
+
+describe("dev server admin-only routes", () => {
+  it("runs them with no sign-in, as everyone is an admin locally (ADR 0018)", async () => {
+    const reached: string[] = [];
+    const table = Object.fromEntries(
+      adminOnlyRouteKeys.map((key) => [
+        key,
+        async () => {
+          reached.push(key);
+          return { statusCode: 204 };
+        },
+      ]),
+    );
+    const server = createDevServer(table);
+    await new Promise<void>((resolve) => server.listen(0, resolve));
+    const address = server.address();
+    if (typeof address !== "object" || address === null) throw new Error("server not listening");
+
+    try {
+      for (const key of adminOnlyRouteKeys) {
+        const [method = "", route = ""] = key.split(" ");
+        const path = route.replaceAll(/\{\w+\}/g, "2027");
+        const res = await fetch(`http://localhost:${address.port}${path}`, {
+          method,
+          headers: { "content-type": "application/json" },
+          body: method === "DELETE" ? null : "{}",
+        });
+
+        expect(res.status).toBe(204);
+      }
+      expect(reached).toEqual([...adminOnlyRouteKeys]);
     } finally {
       await new Promise<void>((resolve) => server.close(() => resolve()));
     }

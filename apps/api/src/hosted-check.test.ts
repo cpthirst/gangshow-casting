@@ -6,19 +6,32 @@ const API = "https://abc123.execute-api.eu-west-2.amazonaws.com";
 const ROUTES = ["GET /api/health", "DELETE /api/productions/{productionId}/cast/{castId}"];
 const ENV = { USER_POOL_ID: "eu-west-2_madeup", CHECK_CLIENT_ID: "made-up-check-client" };
 const TOKEN = "made-up-access-token";
+const MEMBER_TOKEN = "made-up-member-access-token";
+const tokenFor = async ({ username }: { username: string }) =>
+  username === "check-admin" ? TOKEN : MEMBER_TOKEN;
+const ADMIN_ONLY = [
+  "DELETE /api/productions/check/cast/check",
+  "POST /api/productions/check/running-order/versions",
+];
 
 type Answer = (method: string, path: string, headers: Headers) => Response;
-// The API as deployed: only the check account's real token gets through.
-const asDeployed: Answer = (_method, _path, headers) =>
-  headers.get("authorization") === `Bearer ${TOKEN}`
+// The API as deployed: only the check accounts' real tokens get through, and the admin-only
+// routes refuse the member.
+const asDeployed: Answer = (method, path, headers) => {
+  const authorization = headers.get("authorization");
+  if (authorization === `Bearer ${MEMBER_TOKEN}` && ADMIN_ONLY.includes(`${method} ${path}`)) {
+    return Response.json({ message: "Only admins can do this." }, { status: 403 });
+  }
+  return authorization === `Bearer ${TOKEN}` || authorization === `Bearer ${MEMBER_TOKEN}`
     ? Response.json({ status: "ok", version: "0.0.0" })
     : new Response('{"message":"Unauthorized"}', { status: 401 });
+};
 
 const run = async ({
   answer = asDeployed,
-  args = [API, "check-admin"],
+  args = [API, "check-admin", "check-member"],
   env = ENV,
-  signIn = async () => TOKEN,
+  signIn = tokenFor,
 }: {
   answer?: Answer;
   args?: string[];
@@ -47,6 +60,8 @@ const run = async ({
   return { code, lines, requests, signIns };
 };
 
+const withoutToken = ({ method, path }: { method: string; path: string }) => `${method} ${path}`;
+
 describe("the post-deploy check", () => {
   it("passes when every route and an unknown path refuse a request with no token", async () => {
     const { code, lines, requests } = await run();
@@ -58,7 +73,7 @@ describe("the post-deploy check", () => {
       { method: "GET", path: "/api/nope", authorization: null },
     ]);
     expect(lines.at(-1)).toBe(
-      "PASS: the API refuses every request without a valid sign-in, and lets a signed-in one in",
+      "PASS: the API refuses anyone not signed in, lets the check admin in, and keeps admin-only routes for admins",
     );
   });
 
@@ -76,13 +91,11 @@ describe("the post-deploy check", () => {
     const { code, lines, requests, signIns } = await run();
 
     expect(code).toBe(0);
-    expect(signIns).toEqual([
-      {
-        userPoolId: "eu-west-2_madeup",
-        clientId: "made-up-check-client",
-        username: "check-admin",
-      },
-    ]);
+    expect(signIns).toContainEqual({
+      userPoolId: "eu-west-2_madeup",
+      clientId: "made-up-check-client",
+      username: "check-admin",
+    });
     expect(requests).toContainEqual({
       method: "GET",
       path: "/api/health",
@@ -143,14 +156,15 @@ describe("the post-deploy check", () => {
     const requested: string[] = [];
     const lines: string[] = [];
     const fakeFetch = async (url: string, init: RequestInit) => {
-      requested.push(`${init.method} ${new URL(url).pathname}`);
-      return asDeployed("", "", new Headers(init.headers));
+      const { pathname } = new URL(url);
+      requested.push(`${init.method} ${pathname}`);
+      return asDeployed(init.method ?? "GET", pathname, new Headers(init.headers));
     };
 
-    const code = await runHostedCheck([API, "check-admin"], ENV, {
+    const code = await runHostedCheck([API, "check-admin", "check-member"], ENV, {
       print: (line) => lines.push(line),
       fetch: fakeFetch,
-      signIn: async () => TOKEN,
+      signIn: tokenFor,
     });
 
     const pathFor = (key: string) => key.replaceAll(/\{\w+\}/g, "check");
@@ -180,13 +194,61 @@ describe("the post-deploy check", () => {
     expect(lines).toContain("FAIL unreachable GET /api/health, no token (expected 401)");
   });
 
-  it("explains how to run it when not given an https address and a check admin", async () => {
-    for (const args of [[], ["http://example.com", "check-admin"], [API]]) {
+  it("signs in as the check member and confirms each admin-only route refuses it", async () => {
+    const { code, lines, requests, signIns } = await run();
+
+    expect(code).toBe(0);
+    expect(signIns.map((account) => account.username)).toEqual(["check-admin", "check-member"]);
+    expect(
+      requests.filter((r) => r.authorization === `Bearer ${MEMBER_TOKEN}`).map(withoutToken),
+    ).toEqual(ADMIN_ONLY);
+    expect(lines).toContain(
+      "PASS 403 DELETE /api/productions/check/cast/check, signed in as check-member (expected 403)",
+    );
+    expect(lines).toContain(
+      "PASS 403 POST /api/productions/check/running-order/versions, signed in as check-member (expected 403)",
+    );
+  });
+
+  it("never sends an admin-only request as the check admin", async () => {
+    const { requests } = await run();
+
+    const asAdmin = requests.filter((r) => r.authorization === `Bearer ${TOKEN}`);
+    expect(asAdmin.map(withoutToken)).toEqual(["GET /api/health"]);
+  });
+
+  it("fails when an admin-only route doesn't refuse the check member", async () => {
+    const { code, lines } = await run({
+      answer: (method, path, headers) =>
+        method === "POST" ? new Response(null, { status: 400 }) : asDeployed(method, path, headers),
+    });
+
+    expect(code).toBe(1);
+    expect(lines).toContain(
+      "FAIL 400 POST /api/productions/check/running-order/versions, signed in as check-member (expected 403)",
+    );
+  });
+
+  it("refuses the same account for both checks, as one can't be admin and not", async () => {
+    const { code, lines, signIns } = await run({ args: [API, "check-admin", "check-admin"] });
+
+    expect(code).toBe(1);
+    expect(lines).toEqual(["The check admin and check member must be different accounts."]);
+    expect(signIns).toEqual([]);
+  });
+
+  it("explains how to run it when not given an https address and both check accounts", async () => {
+    for (const args of [
+      [],
+      ["http://example.com", "check-admin", "check-member"],
+      [API],
+      [API, "check-admin"],
+    ]) {
       const { code, lines, requests, signIns } = await run({ args });
 
       expect(code).toBe(1);
       expect(lines).toEqual([
-        "Usage: pnpm check:hosted <https address of the API> <check admin username>",
+        "Usage: pnpm check:hosted <https address of the API> <check admin username> <check member username>",
       ]);
       expect(requests).toEqual([]);
       expect(signIns).toEqual([]);

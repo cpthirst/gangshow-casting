@@ -20,3 +20,15 @@ export const routeKeys = [
 ] as const;
 
 export type RouteKey = (typeof routeKeys)[number];
+
+/** The user pool's admin group (infra/lib/app-stack.ts), named in a token's cognito:groups. */
+export const ADMIN_GROUP = "admin";
+
+/**
+ * Routes only admins may use: permanent or show-wide changes (hosting FR9). The API refuses
+ * them for anyone else before the handler runs (ADR 0018), so a new one can't forget it.
+ */
+export const adminOnlyRouteKeys: readonly RouteKey[] = [
+  "DELETE /api/productions/{productionId}/cast/{castId}",
+  "POST /api/productions/{productionId}/running-order/versions",
+];

@@ -105,4 +105,99 @@ describe("Lambda entry point", () => {
       ]);
     });
   });
+
+  describe("admin-only actions (ADR 0018)", () => {
+    const alex = aCastMember(1, { firstName: "Alex", lastName: "Example" });
+    const setUp = () => {
+      const cast = inMemoryCastStore([aCastList([alex])]);
+      const roles = inMemoryRoleStore();
+      const runningOrders = inMemoryRunningOrderStore([aRunningOrder(4)]);
+      const api = lambdaEntry(
+        createRoutes({
+          cast,
+          roles,
+          runningOrders,
+          itemNotes: inMemoryItemNoteStore(),
+          removeCastMember: uncastThenRemove(cast, roles),
+        }),
+      );
+      return { api, cast, runningOrders };
+    };
+    // A signed-in token's groups, as API Gateway's JWT authorizer passes them on.
+    const signedIn = (method: string, rawPath: string, groups?: string, extra = {}) => ({
+      rawPath,
+      requestContext: {
+        http: { method },
+        authorizer: {
+          jwt: { claims: { sub: "made-up", ...(groups ? { "cognito:groups": groups } : {}) } },
+        },
+      },
+      ...extra,
+    });
+    const deleteAlex = (groups?: string) =>
+      signedIn("DELETE", "/api/productions/2027/cast/1", groups, {
+        queryStringParameters: { revision: String(alex.revision) },
+      });
+    const saveVersion = (groups?: string) => {
+      const { halves } = aRunningOrder(4);
+      const change = { type: "update", halves: halves.map(({ id, items }) => ({ id, items })) };
+      return signedIn("POST", "/api/productions/2027/running-order/versions", groups, {
+        body: JSON.stringify({ baseVersion: 4, change }),
+      });
+    };
+
+    it("refuses a non-admin's delete of a cast member, saying only admins can", async () => {
+      const { api, cast } = setUp();
+
+      for (const groups of [undefined, "[]", "[crew]", "[superadmin]", "[crew,admin]"]) {
+        const res = await api(deleteAlex(groups));
+
+        expect(res.statusCode).toBe(403);
+        expect(JSON.parse(res.body ?? "")).toEqual({ message: "Only admins can do this." });
+      }
+      expect((await cast.list("2027"))?.members).toEqual([alex]);
+    });
+
+    it("refuses a non-admin's new running-order version, keeping the latest", async () => {
+      const { api, runningOrders } = setUp();
+
+      const res = await api(saveVersion("[crew]"));
+
+      expect(res.statusCode).toBe(403);
+      expect((await runningOrders.latest("2027"))?.version).toBe(4);
+    });
+
+    it("lets an admin delete a cast member", async () => {
+      const { api, cast } = setUp();
+
+      const res = await api(deleteAlex("[admin]"));
+
+      expect(res.statusCode).toBe(204);
+      expect((await cast.list("2027"))?.members).toEqual([]);
+    });
+
+    it("lets an admin save a running-order version, whatever other groups they're in", async () => {
+      const { api, runningOrders } = setUp();
+
+      const res = await api(saveVersion("[crew admin]"));
+
+      expect(res.statusCode).toBe(201);
+      expect((await runningOrders.latest("2027"))?.version).toBe(5);
+    });
+
+    it("lets a non-admin make every other change, such as adding a cast member", async () => {
+      const { api, cast } = setUp();
+
+      const res = await api(
+        signedIn("POST", "/api/productions/2027/cast", "[crew]", {
+          body: JSON.stringify({ firstName: "Jo", lastName: "Sample", section: null, group: "" }),
+        }),
+      );
+
+      expect(res.statusCode).toBe(201);
+      expect((await cast.list("2027"))?.members).toContainEqual(
+        expect.objectContaining({ firstName: "Jo", lastName: "Sample" }),
+      );
+    });
+  });
 });

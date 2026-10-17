@@ -1,7 +1,7 @@
 import { createInterface } from "node:readline/promises";
 import { Writable } from "node:stream";
 // Every route infra hosts, so a route added later is checked from its first deploy.
-import { routeKeys as allRouteKeys } from "@app/shared";
+import { adminOnlyRouteKeys, routeKeys as allRouteKeys } from "@app/shared";
 import { signInWithPassword } from "./cognito-sign-in.ts";
 import { cognitoClientFor } from "./cognito-user-directory.ts";
 
@@ -18,7 +18,8 @@ type Deps = {
   routeKeys?: string[];
 };
 
-const USAGE = "Usage: pnpm check:hosted <https address of the API> <check admin username>";
+const USAGE =
+  "Usage: pnpm check:hosted <https address of the API> <check admin username> <check member username>";
 
 // Shaped like a sign-in token but signed by nobody, so the API must refuse it.
 const toBase64Url = (value: object) => Buffer.from(JSON.stringify(value)).toString("base64url");
@@ -28,12 +29,18 @@ const MADE_UP_TOKEN = [
   "bm90LWEtc2lnbmF0dXJl",
 ].join(".");
 
+// Any path parameter will do: the API must refuse before it looks at the path. "check" is
+// no cast member's id, and the requests carry no body, so even a wrongly accepted request
+// would be turned away by its handler without changing anything.
+function requestFor(key: string) {
+  const [method = "", route = ""] = key.split(" ");
+  return { method, path: route.replaceAll(/\{\w+\}/g, "check") };
+}
+
 /** Every route, an unknown path, and a made-up token: each must get 401 (hosting FR17). */
 function requestsToRefuse(routeKeys: string[]): CheckRequest[] {
   const signedOut = [...routeKeys, "GET /api/nope"].map((key) => {
-    const [method = "", route = ""] = key.split(" ");
-    // Any value will do: the API must refuse before it looks at the path.
-    const path = route.replaceAll(/\{\w+\}/g, "check");
+    const { method, path } = requestFor(key);
     return { method, path, label: `${method} ${path}, no token` };
   });
   const madeUp = { method: "GET", path: "/api/health", token: MADE_UP_TOKEN };
@@ -41,15 +48,19 @@ function requestsToRefuse(routeKeys: string[]): CheckRequest[] {
 }
 
 /**
- * Checks a deployed API refuses everyone not signed in and lets the check admin in. Prints
- * only statuses, never what the API sent back, which could hold cast data if the check
- * fails. Returns the exit code.
+ * Checks a deployed API refuses everyone not signed in, lets the check admin in, and keeps
+ * admin-only routes from the check member (hosting FR17). Prints only statuses, never what
+ * the API sent back, which could hold cast data if the check fails. Returns the exit code.
  */
 export async function runHostedCheck(args: string[], env: Env, deps: Deps): Promise<number> {
   const { print, fetch: fetchFn = fetch, routeKeys = [...allRouteKeys] } = deps;
-  const [address = "", username = ""] = args;
-  if (!address.startsWith("https://") || !username) {
+  const [address = "", admin = "", member = ""] = args;
+  if (!address.startsWith("https://") || !admin || !member) {
     print(USAGE);
+    return 1;
+  }
+  if (admin === member) {
+    print("The check admin and check member must be different accounts.");
     return 1;
   }
   const { USER_POOL_ID: userPoolId, CHECK_CLIENT_ID: clientId } = env;
@@ -60,16 +71,18 @@ export async function runHostedCheck(args: string[], env: Env, deps: Deps): Prom
     return 1;
   }
 
-  // First, so the password is asked for before the requests start.
-  const token = await deps.signIn({ userPoolId, clientId, username }).catch((error: unknown) => {
-    // Only the error's kind: AWS's message can repeat what was sent.
-    print(
-      `FAIL couldn't sign in as ${username} (${error instanceof Error ? error.name : "unknown error"})`,
-    );
-    return undefined;
-  });
+  const signInAs = (username: string) =>
+    deps.signIn({ userPoolId, clientId, username }).catch((error: unknown) => {
+      // Only the error's kind: AWS's message can repeat what was sent.
+      const kind = error instanceof Error ? error.name : "unknown error";
+      print(`FAIL couldn't sign in as ${username} (${kind})`);
+      return undefined;
+    });
+  // First, so the passwords are asked for before the requests start.
+  const adminToken = await signInAs(admin);
+  const memberToken = await signInAs(member);
 
-  let allPassed = token !== undefined;
+  let allPassed = adminToken !== undefined && memberToken !== undefined;
   const checkStatus = async (request: CheckRequest, expected: number) => {
     const status = await statusOf(fetchFn, new URL(request.path, address).href, request);
     allPassed &&= status === expected;
@@ -78,13 +91,21 @@ export async function runHostedCheck(args: string[], env: Env, deps: Deps): Prom
     );
   };
   for (const request of requestsToRefuse(routeKeys)) await checkStatus(request, 401);
-  if (token) {
-    const label = `GET /api/health, signed in as ${username}`;
-    await checkStatus({ method: "GET", path: "/api/health", token, label }, 200);
+  if (adminToken) {
+    const label = `GET /api/health, signed in as ${admin}`;
+    await checkStatus({ method: "GET", path: "/api/health", token: adminToken, label }, 200);
+  }
+  // Only ever as the member: an admin's request could make the change.
+  if (memberToken) {
+    for (const key of adminOnlyRouteKeys) {
+      const { method, path } = requestFor(key);
+      const label = `${method} ${path}, signed in as ${member}`;
+      await checkStatus({ method, path, token: memberToken, label }, 403);
+    }
   }
   print(
     allPassed
-      ? "PASS: the API refuses every request without a valid sign-in, and lets a signed-in one in"
+      ? "PASS: the API refuses anyone not signed in, lets the check admin in, and keeps admin-only routes for admins"
       : "FAIL: the API didn't answer as it should; don't use this deploy",
   );
   return allPassed ? 0 : 1;
