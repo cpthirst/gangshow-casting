@@ -1,14 +1,20 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { aCastList, aCastMember } from "./cast.fixture.ts";
 import { runMove } from "./move-cli.ts";
-import { readMoveRecord, recordVerification } from "./move-record.ts";
+import { readMoveRecord, recordCopied, recordVerification } from "./move-record.ts";
 
-const run = async (args: string[], env: Record<string, string | undefined> = {}) => {
+const run = async (args: string[], env: Record<string, string | undefined> = {}, answer = "") => {
   const lines: string[] = [];
-  const code = await runMove(args, env, (line) => lines.push(line));
+  const code = await runMove(
+    args,
+    env,
+    (line) => lines.push(line),
+    () => new Date(),
+    async () => answer,
+  );
   return { code, lines };
 };
 
@@ -18,7 +24,7 @@ describe("the move command", () => {
       const { code, lines } = await run(args, { DATA_TABLE: "GangshowData" });
 
       expect(code).toBe(1);
-      expect(lines[0]).toBe("Usage: pnpm --filter api move <copy|verify> <production id>");
+      expect(lines[0]).toBe("Usage: pnpm --filter api move <copy|verify|remove> <production id>");
     }
   });
 
@@ -99,6 +105,42 @@ describe("the move command", () => {
     expect(lines.at(-1)).toMatch(/^Verification failed \(\w+\)\./);
     expect(await readMoveRecord(dataDir, "2027")).toEqual({});
     await rm(dataDir, { recursive: true, force: true });
+  });
+
+  describe("remove", () => {
+    let dataDir: string;
+    beforeEach(async () => {
+      dataDir = await mkdtemp(join(tmpdir(), "move-cli-"));
+      await mkdir(join(dataDir, "2027"), { recursive: true });
+      await writeFile(join(dataDir, "2027", "cast.json"), "{}");
+    });
+    afterEach(() => rm(dataDir, { recursive: true, force: true }));
+    const verified = async () => {
+      await recordCopied(dataDir, "2027", new Date("2026-10-17T10:00:00Z"));
+      await recordVerification(dataDir, "2027", true, new Date("2026-10-17T10:05:00Z"));
+    };
+
+    it("refuses without a passing verification, needing no remote table", async () => {
+      const { code, lines } = await run(["remove", "2027"], { DATA_DIR: dataDir }, "2027");
+
+      expect(code).toBe(1);
+      expect(lines.at(-1)).toMatch(/^Nothing removed: verify production 2027 first/);
+      expect(await readdir(dataDir)).toEqual(["2027"]);
+    });
+
+    it("lists the files, and removes them only when the production id is typed", async () => {
+      await verified();
+
+      const kept = await run(["remove", "2027"], { DATA_DIR: dataDir }, "yes");
+      expect(kept.lines).toContain("  cast.json");
+      expect(kept.lines.at(-1)).toBe("Nothing removed: not confirmed.");
+      expect(await readdir(dataDir)).toEqual(["2027"]);
+
+      const removed = await run(["remove", "2027"], { DATA_DIR: dataDir }, " 2027 ");
+      expect(removed.code).toBe(0);
+      expect(removed.lines.at(-1)).toBe("Its data is now only in the remote database.");
+      expect(await readdir(dataDir)).toEqual([]);
+    });
   });
 
   it("needs to know which remote table to use", async () => {

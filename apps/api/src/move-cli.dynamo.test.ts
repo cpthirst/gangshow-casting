@@ -1,9 +1,10 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PutCommand } from "@aws-sdk/lib-dynamodb";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { aCastList, aCastMember } from "./cast.fixture.ts";
+import { remoteStores } from "./data-stores.ts";
 import { aTestTable, type TestTable } from "./dynamo.fixture.ts";
 import { runMove } from "./move-cli.ts";
 import { readMoveRecord } from "./move-record.ts";
@@ -43,6 +44,7 @@ describe("moving a production with the move command", () => {
       { ...process.env, DATA_DIR: dataDir, DATA_TABLE: table.tableName },
       (line) => lines.push(line),
       now,
+      async () => "2027",
     );
     return { code, lines };
   };
@@ -76,6 +78,31 @@ describe("moving a production with the move command", () => {
     expect(failed.lines).toContain("cast: 12 differs");
     expect(failed.lines.join(" ")).not.toMatch(/Jo|Sam|Example|Captain|Hook/);
     expect((await readMoveRecord(dataDir, "2027")).verifiedAt).toBeUndefined();
+  });
+
+  it("removes the local files after a passing verification, leaving the remote data whole", async () => {
+    await move("copy", "2027");
+    await move("verify", "2027");
+
+    const removed = await move("remove", "2027");
+
+    expect(removed.code).toBe(0);
+    expect(await readdir(dataDir)).toEqual([]);
+    const remote = remoteStores(table.db, table.tableName);
+    expect(await remote.cast.list("2027")).toEqual(cast);
+    expect(await remote.roles.list("2027")).toEqual(roles);
+    expect((await remote.runningOrders.latest("2027"))?.version).toBe(1);
+  });
+
+  it("won't remove the local files if the copy ran again after verifying", async () => {
+    await move("copy", "2027");
+    await move("verify", "2027");
+    await move("copy", "2027");
+
+    const refused = await move("remove", "2027");
+
+    expect(refused.code).toBe(1);
+    expect(await readdir(dataDir)).toEqual(["2027"]);
   });
 
   it("fails verification before anything has been copied", async () => {

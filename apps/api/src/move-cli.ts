@@ -1,15 +1,17 @@
+import { createInterface } from "node:readline/promises";
 import { ProductionId } from "@app/shared";
 import { dataDirFrom, fileStores, remoteStores, remoteTableFrom } from "./data-stores.ts";
 import { copyProduction, copyReportLines, hasLocalData, readLocalProduction } from "./move-copy.ts";
 import { recordCopied, recordVerification } from "./move-record.ts";
+import { removalLines, removeLocalProduction } from "./move-remove.ts";
 import { verificationLines, verifyCopy } from "./move-verify.ts";
 
 type Env = Record<string, string | undefined>;
-const USAGE = "Usage: pnpm --filter api move <copy|verify> <production id>";
+const USAGE = "Usage: pnpm --filter api move <copy|verify|remove> <production id>";
 
 /**
  * Moves a production's data from the local files to the remote table (remote-data E3):
- * `copy`, then `verify`. Reads DATA_DIR, DATA_TABLE and DATA_TABLE_REGION
+ * `copy`, then `verify`, then `remove`. Reads DATA_DIR, DATA_TABLE and DATA_TABLE_REGION
  * as the API does. Prints only collections, ids and counts, never names. Returns the exit
  * code.
  */
@@ -18,9 +20,10 @@ export async function runMove(
   env: Env,
   print: (line: string) => void,
   now: () => Date = () => new Date(),
+  ask: (question: string) => Promise<string> = askOnTerminal,
 ): Promise<number> {
   const [command, productionId = ""] = args;
-  if (command !== "copy" && command !== "verify") {
+  if (command !== "copy" && command !== "verify" && command !== "remove") {
     print(USAGE);
     return 1;
   }
@@ -28,6 +31,8 @@ export async function runMove(
     print(`"${productionId}" isn't a production id, such as 2027.`);
     return 1;
   }
+  if (command === "remove") return remove(dataDirFrom(env), productionId, print, ask);
+
   const remote = remoteTableFrom(env);
   if (!remote) {
     print("Set DATA_TABLE to the remote table's name (the stack's DataTableName output).");
@@ -71,6 +76,36 @@ export async function runMove(
     const what = command === "copy" ? "Copy" : "Verification";
     print(`${what} failed (${kind}). Nothing local was changed; fix the cause and run it again.`);
     return 1;
+  }
+}
+
+/** Removes the local files once a verification has passed since the last copy, after
+ *  listing them and asking for the production id to be typed: never touches the remote. */
+async function remove(
+  dataDir: string,
+  productionId: string,
+  print: (line: string) => void,
+  ask: (question: string) => Promise<string>,
+) {
+  print(`Using files at ${dataDir}.`);
+  const removal = await removeLocalProduction(dataDir, productionId, async (files) => {
+    print(`These local files for production ${productionId} will be removed:`);
+    for (const file of files) print(`  ${file}`);
+    const answer = await ask(
+      `Type ${productionId} to remove them, or anything else to keep them: `,
+    );
+    return answer.trim() === productionId;
+  });
+  for (const line of removalLines(productionId, removal)) print(line);
+  return removal.outcome === "removed" ? 0 : 1;
+}
+
+async function askOnTerminal(question: string) {
+  const terminal = createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    return await terminal.question(question);
+  } finally {
+    terminal.close();
   }
 }
 

@@ -2,7 +2,7 @@
 id: remote-data.E3.S3
 title: Remove the local files only once the copy is proven
 epic: E3
-status: ready
+status: done
 ---
 
 ## Story
