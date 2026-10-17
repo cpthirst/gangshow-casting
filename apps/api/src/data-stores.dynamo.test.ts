@@ -1,4 +1,4 @@
-import { CastList, CastMember, ItemNoteList, Role, RoleList } from "@app/shared";
+import { CastList, CastMember, ItemNoteList, Role, RoleList, RunningOrder } from "@app/shared";
 import { GetCommand } from "@aws-sdk/lib-dynamodb";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createAddCastMember } from "./add-cast-member.ts";
@@ -10,10 +10,12 @@ import { aTestTable, seedCast, seedRoles, type TestTable } from "./dynamo.fixtur
 import { createGetCast } from "./get-cast.ts";
 import { createGetItemNotes } from "./get-item-notes.ts";
 import { createGetRoles } from "./get-roles.ts";
+import { createGetRunningOrder } from "./get-running-order.ts";
 import { aRole } from "./role-store.contract.ts";
-import { aRunningOrder, itemId } from "./running-order.fixture.ts";
+import { anItem, aRunningOrder, itemId } from "./running-order.fixture.ts";
 import { inMemoryRunningOrderStore } from "./running-order-store.ts";
 import { createSaveItemNote } from "./save-item-note.ts";
+import { createSaveRunningOrder } from "./save-running-order.ts";
 import { createUpdateCastMember } from "./update-cast-member.ts";
 
 describe("data stores with a remote table", () => {
@@ -97,6 +99,37 @@ describe("data stores with a remote table", () => {
     expect(res.statusCode).toBe(204);
     expect((await cast.list("2027"))?.members.map((m) => m.id)).toEqual([1]);
     expect((await roles.list("2027")).roles[0]?.castMemberIds).toEqual([1]);
+  });
+
+  it("saves running order versions through the API in the remote table, refusing old ones", async () => {
+    const { runningOrders } = dataStores({ ...process.env, DATA_TABLE: table.tableName });
+    await runningOrders.save(aRunningOrder(4, { first: ["Curtain Up"] }));
+    const save = createSaveRunningOrder(runningOrders);
+    const saveFrom = (baseVersion: number, titles: string[]) =>
+      save({
+        pathParameters: { productionId: "2027" },
+        body: JSON.stringify({
+          baseVersion,
+          change: {
+            type: "update",
+            halves: [
+              { id: "first-half", items: titles.map(anItem) },
+              { id: "second-half", items: [] },
+            ],
+          },
+        }),
+      });
+
+    const saved = await saveFrom(4, ["Curtain Up", "Big Finish"]);
+    const stale = await saveFrom(4, ["Mine"]);
+    const read = await createGetRunningOrder(runningOrders)({
+      pathParameters: { productionId: "2027" },
+    });
+
+    expect([saved.statusCode, stale.statusCode]).toEqual([201, 409]);
+    const latest = RunningOrder.parse(JSON.parse(read.body ?? ""));
+    expect(latest.version).toBe(5);
+    expect(latest.halves[0].items.map((item) => item.title)).toEqual(["Curtain Up", "Big Finish"]);
   });
 
   it("saves and reads item notes through the API in the remote table", async () => {
