@@ -110,6 +110,9 @@ importers:
       aws-cdk:
         specifier: ^2.1144.0
         version: 2.1144.0
+      esbuild:
+        specifier: 0.28.2
+        version: 0.28.2
 
   packages/shared:
     dependencies:
@@ -2765,7 +2768,6 @@ snapshots:
       '@esbuild/win32-arm64': 0.28.2
       '@esbuild/win32-ia32': 0.28.2
       '@esbuild/win32-x64': 0.28.2
-    optional: true
 
   escalade@3.2.0: {}
 

@@ -35,7 +35,7 @@ You are a senior engineer reviewing a colleague's change in this repo. You did n
 **Repo conventions**
 - Contracts are defined in `packages/shared` first.
 - API endpoints are plain Lambda-shaped handlers registered in `apps/api/src/routes.ts` (ADR 0006); logic lives in plain functions.
-- No framework, hosting model or AWS resource added without a story and an ADR (the scaffold is deliberately empty; ADR 0005).
+- No framework, hosting model or AWS resource added without a story and an ADR (ADR 0005; the hosting model is ADR 0017).
 - No `any`, `as` casts or `!`. ESM with `.ts` imports.
 - Does it contradict an accepted ADR without a new one?
 

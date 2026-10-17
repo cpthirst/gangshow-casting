@@ -7,7 +7,8 @@
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
     "test:dynamo": "vitest run --config vitest.dynamo.config.ts",
-    "move": "node src/move-cli.ts"
+    "move": "node src/move-cli.ts",
+    "check:hosted": "node src/hosted-check.ts"
   },
   "dependencies": {
     "@app/shared": "workspace:*",

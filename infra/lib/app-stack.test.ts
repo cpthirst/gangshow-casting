@@ -6,10 +6,15 @@ import { AppStack } from "./app-stack.ts";
 // Made-up address: the real one is given at deploy time and never committed.
 const ALERT_EMAIL = "alerts@example.com";
 
+// Skips bundling the Lambda code, which `pnpm synth` checks for real, so each test stays fast.
 const synth = () => {
-  const stack = new AppStack(new App(), "Test", { alertEmail: ALERT_EMAIL });
+  const app = new App({ context: { "aws:cdk:bundling-stacks": [] } });
+  const stack = new AppStack(app, "Test", { alertEmail: ALERT_EMAIL });
   return { stack, template: Template.fromStack(stack) };
 };
+
+const resourcesOfType = (template: Template, type: string) =>
+  Object.values(template.findResources(type));
 
 describe("AppStack", () => {
   it("lives in London, keeping the cast's data in the UK", () => {
@@ -88,6 +93,127 @@ describe("AppStack", () => {
       synth().template.hasResourceProperties("AWS::Budgets::Budget", {
         NotificationsWithSubscribers: [alertWhen("FORECASTED"), alertWhen("ACTUAL")],
       });
+    });
+  });
+
+  describe("team user pool (ADR 0018)", () => {
+    it("signs people in by username, ignoring case", () => {
+      synth().template.hasResourceProperties("AWS::Cognito::UserPool", {
+        UsernameConfiguration: { CaseSensitive: false },
+        UsernameAttributes: Match.absent(),
+        AliasAttributes: Match.absent(),
+      });
+    });
+
+    it("doesn't let anyone create their own account", () => {
+      synth().template.hasResourceProperties("AWS::Cognito::UserPool", {
+        AdminCreateUserConfig: Match.objectLike({ AllowAdminCreateUserOnly: true }),
+      });
+    });
+
+    it("holds no email or phone, and offers no account recovery by message", () => {
+      const { template } = synth();
+
+      const [pool] = resourcesOfType(template, "AWS::Cognito::UserPool");
+      const attributes = JSON.stringify(pool?.Properties?.Schema ?? []);
+      expect(attributes).not.toMatch(/email|phone/);
+      template.hasResourceProperties("AWS::Cognito::UserPool", {
+        AutoVerifiedAttributes: Match.absent(),
+        AccountRecoverySetting: { RecoveryMechanisms: [{ Name: "admin_only", Priority: 1 }] },
+      });
+    });
+
+    it("survives the stack being deleted, and can't be deleted by accident", () => {
+      const { template } = synth();
+
+      template.hasResource("AWS::Cognito::UserPool", {
+        DeletionPolicy: "Retain",
+        UpdateReplacePolicy: "Retain",
+      });
+      template.hasResourceProperties("AWS::Cognito::UserPool", { DeletionProtection: "ACTIVE" });
+    });
+
+    it("gives the pages' client no secret, 1-hour tokens and a 1-day sign-in", () => {
+      synth().template.hasResourceProperties("AWS::Cognito::UserPoolClient", {
+        GenerateSecret: false,
+        // No password sign-in through this client; only hosted sign-in (ADR 0018).
+        ExplicitAuthFlows: ["ALLOW_REFRESH_TOKEN_AUTH"],
+        PreventUserExistenceErrors: "ENABLED",
+        AccessTokenValidity: 60,
+        IdTokenValidity: 60,
+        RefreshTokenValidity: 1440,
+        TokenValidityUnits: { AccessToken: "minutes", IdToken: "minutes", RefreshToken: "minutes" },
+      });
+    });
+  });
+
+  describe("hosted API (ADR 0017)", () => {
+    it("serves GET /api/health from a function running the API's entry point", () => {
+      const { template } = synth();
+
+      template.resourceCountIs("AWS::Lambda::Function", 1);
+      template.hasResourceProperties("AWS::Lambda::Function", {
+        Runtime: "nodejs24.x",
+        Handler: "index.handler",
+      });
+      template.hasResourceProperties("AWS::ApiGatewayV2::Route", {
+        RouteKey: "GET /api/health",
+        Target: Match.anyValue(),
+      });
+    });
+
+    it("requires a sign-in token from the team's user pool on every route", () => {
+      const { template } = synth();
+
+      template.hasResourceProperties("AWS::ApiGatewayV2::Authorizer", {
+        AuthorizerType: "JWT",
+        IdentitySource: ["$request.header.Authorization"],
+        JwtConfiguration: {
+          Audience: [{ Ref: Match.stringLikeRegexp("WebClient") }],
+          Issuer: Match.objectLike({
+            "Fn::Join": ["", Match.arrayWith([{ Ref: Match.stringLikeRegexp("UserPool") }])],
+          }),
+        },
+      });
+      const routes = resourcesOfType(template, "AWS::ApiGatewayV2::Route");
+      expect(routes.map((r) => r.Properties.RouteKey).sort()).toEqual([
+        "$default",
+        "GET /api/health",
+      ]);
+      for (const route of routes) {
+        expect(route.Properties).toMatchObject({
+          AuthorizationType: "JWT",
+          AuthorizerId: { Ref: expect.stringMatching(/TeamSignIn/) },
+        });
+      }
+    });
+
+    it("limits requests to 20 a second, with bursts of up to 40", () => {
+      synth().template.hasResourceProperties("AWS::ApiGatewayV2::Stage", {
+        StageName: "$default",
+        DefaultRouteSettings: { ThrottlingRateLimit: 20, ThrottlingBurstLimit: 40 },
+      });
+    });
+
+    it("keeps the API's and the function's logs for 30 days", () => {
+      const { template } = synth();
+
+      const logGroups = resourcesOfType(template, "AWS::Logs::LogGroup");
+      expect(logGroups).toHaveLength(2);
+      for (const group of logGroups) expect(group.Properties.RetentionInDays).toBe(30);
+      template.hasResourceProperties("AWS::Lambda::Function", {
+        LoggingConfig: { LogGroup: { Ref: Match.stringLikeRegexp("ApiFunctionLogs") } },
+      });
+    });
+
+    it("logs who asked for what and the status, never request or response bodies", () => {
+      const [stage] = resourcesOfType(synth().template, "AWS::ApiGatewayV2::Stage");
+      const format = JSON.parse(stage?.Properties.AccessLogSettings.Format ?? "{}");
+
+      expect(Object.keys(format)).toEqual(
+        expect.arrayContaining(["requestId", "routeKey", "status"]),
+      );
+      expect(JSON.stringify(format)).not.toMatch(/body/i);
     });
   });
 });

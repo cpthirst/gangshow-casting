@@ -7,12 +7,12 @@ A casting tool for the **Chester Gang Show** production team: it shows which Sco
 - **Casting is per item.** A show is an ordered sequence of items (production numbers, sketches, songs, dances). A cast member appears in many items, sometimes in a named or featured part. Model "who is in which item", not one role per person.
 - **Running order matters.** Back-to-back appearances (no time for a costume change) and uneven stage time are the core things users need to see.
 - **Each production is self-contained.** Items and casting never carry over between years, even when cast members return. Scope data to a production.
-- **Safeguarding and UK GDPR: most of the cast are under 18.** Store only first name, surname, section (Scouts, Explorers, Network), Scout group or Explorer unit, and age band (ADR 0010), plus short Singing and Acting casting notes (ADR 0014). Never add date of birth, exact age, address, contact details, photos or medical data without a story and an ADR that justify it. Casting data is for the production team only and must never be publicly reachable. Don't put real cast data in tests, fixtures or seed data; use made-up names.
+- **Safeguarding and UK GDPR: most of the cast are under 18.** Store only first name, surname, section (Scouts, Explorers, Network), Scout group or Explorer unit, and age band (ADR 0010), plus short Singing and Acting casting notes (ADR 0014). Never add date of birth, exact age, address, contact details, photos or medical data without a story and an ADR that justify it. Casting data is for the production team only and must never be publicly reachable. The only data about the team is the username an admin chooses for each adult volunteer's account (ADR 0018). Don't put real cast data in tests, fixtures or seed data; use made-up names.
 - **Users are non-technical volunteers**, often updating during or after a rehearsal. Prefer UI that is clear at a glance and quick to edit.
 
-## Scaffold status
+## Platform status
 
-**The platform is still a sandbox scaffold.** The API uses no framework, only plain handlers in the AWS Lambda / API Gateway shape (ADR 0006), and the CDK stack has no resources yet (ADR 0005). Don't introduce a framework, hosting model or AWS resource on your own initiative: it needs a story, and an ADR via the `adr` skill.
+The API uses no framework, only plain handlers in the AWS Lambda / API Gateway shape (ADR 0006). The hosting model is Lambda behind an API Gateway HTTP API, with the pages on S3 and CloudFront (ADR 0017), and sign-in through a Cognito user pool whose token every API route requires (ADR 0018). The hosting feature (`docs/product/hosting`) builds it story by story. Don't introduce a framework, hosting model or AWS resource on your own initiative: it needs a story, and an ADR via the `adr` skill.
 
 ## Commands
 
@@ -25,6 +25,7 @@ pnpm format                      # biome autofix (format + lint + import order)
 pnpm lint:docs                   # validate story structure (part of check)
 pnpm test:e2e                    # browser layout tests at phone widths (CI job, not in check)
 pnpm test:dynamo                 # API database tests against DynamoDB Local on :8000 (CI job, not in check; ADR 0016)
+pnpm check:hosted <api url>      # after a deploy: confirms the hosted API refuses anyone not signed in
 pnpm --filter <pkg> test         # one package: web | api | infra | @app/shared
 pnpm --filter <pkg> exec vitest run <file> -t "<name>"   # one test
 ```
@@ -36,7 +37,7 @@ pnpm --filter <pkg> exec vitest run <file> -t "<name>"   # one test
 | `apps/web` | Vue 3 + Vite SPA | Vitest + `@vue/test-utils` + happy-dom; Playwright layout tests in `e2e/` |
 | `apps/api` | Lambda-shaped handlers, no framework | One handler per route, listed in `routes.ts`; `dev-server.ts` (node:http) runs them locally (ADR 0006) |
 | `packages/shared` | zod schemas + inferred types | The API contract. Imported from source, no build step |
-| `infra` | CDK v2 app, one empty `AppStack` | Run directly by Node (`cdk.json`); add resources as stories need them |
+| `infra` | CDK v2 app, one `AppStack` | Run directly by Node (`cdk.json`); add resources as stories need them |
 | `tooling` | Repo scripts | `validate-docs.ts` checks product docs |
 | `docs/product/<feature>` | PRD, story map, stories | Written by the planning skills; see `docs/product/README.md` |
 | `docs/adr` | Architecture decisions | Read before changing anything an ADR covers |

@@ -1,7 +1,8 @@
 // Local stand-in for API Gateway: serves the same handlers Lambda will run (ADR 0006).
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { Handler } from "./handler.ts";
-import { dataLocation, matchRoute, routes } from "./routes.ts";
+import { matchRoute } from "./match-route.ts";
+import { dataLocation, routes } from "./routes.ts";
 
 export function createDevServer(table: Record<string, Handler>) {
   return createServer(async (req, res) => {

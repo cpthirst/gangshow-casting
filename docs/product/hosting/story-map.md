@@ -20,7 +20,7 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [hosting.E1.S1](stories/E1-S1-signed-in-only-health-route.md) | Walking skeleton: the health route deployed on Lambda behind an HTTP API, with a retained username-only user pool and its authorizer on every route; a post-deploy check confirms no-token requests get 401 | FR2, FR15, FR17 | (none) | ready |
+| [hosting.E1.S1](stories/E1-S1-signed-in-only-health-route.md) | Walking skeleton: the health route deployed on Lambda behind an HTTP API, with a retained username-only user pool and its authorizer on every route; a post-deploy check confirms no-token requests get 401 | FR2, FR15, FR17 | (none) | in-progress |
 | [hosting.E1.S2](stories/E1-S2-first-admin-from-the-repo.md) | The maintainer creates, or restores, an admin account in one step from the repo; the post-deploy check signs in as a check account and gets 200 | FR14, FR17 | E1.S1 | ready |
 
 ## E2: Every API route hosted on the remote data, with admin-only actions enforced

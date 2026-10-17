@@ -1,7 +1,23 @@
-import { CfnOutput, RemovalPolicy, Stack, type StackProps } from "aws-cdk-lib";
+import { fileURLToPath } from "node:url";
+import { CfnOutput, Duration, RemovalPolicy, Stack, type StackProps } from "aws-cdk-lib";
+import { AccessLogFormat } from "aws-cdk-lib/aws-apigateway";
+import {
+  HttpApi,
+  HttpMethod,
+  HttpStage,
+  LogGroupLogDestination,
+} from "aws-cdk-lib/aws-apigatewayv2";
+import { HttpUserPoolAuthorizer } from "aws-cdk-lib/aws-apigatewayv2-authorizers";
+import { HttpLambdaIntegration } from "aws-cdk-lib/aws-apigatewayv2-integrations";
 import { CfnBudget } from "aws-cdk-lib/aws-budgets";
+import { AccountRecovery, UserPool } from "aws-cdk-lib/aws-cognito";
 import { AttributeType, TableV2 } from "aws-cdk-lib/aws-dynamodb";
+import { Architecture, Runtime } from "aws-cdk-lib/aws-lambda";
+import { NodejsFunction, OutputFormat } from "aws-cdk-lib/aws-lambda-nodejs";
+import { LogGroup, RetentionDays } from "aws-cdk-lib/aws-logs";
 import type { Construct } from "constructs";
+
+const apiEntryPoint = fileURLToPath(new URL("../../apps/api/src/lambda.ts", import.meta.url));
 
 export interface AppStackProps extends StackProps {
   /** Where the budget alert goes: given at deploy time, never committed. */
@@ -54,5 +70,89 @@ export class AppStack extends Stack {
         subscribers: [{ subscriptionType: "EMAIL", address: props.alertEmail }],
       })),
     });
+
+    // The team's accounts (ADR 0018): usernames chosen by an admin, no email or phone, so
+    // forgotten passwords are reset by an admin. Don't rename "UserPool": that replaces the
+    // pool, and every account and password with it.
+    const userPool = new UserPool(this, "UserPool", {
+      signInAliases: { username: true },
+      signInCaseSensitive: false,
+      selfSignUpEnabled: false,
+      accountRecovery: AccountRecovery.NONE,
+      removalPolicy: RemovalPolicy.RETAIN,
+      deletionProtection: true,
+    });
+    // The pages' sign-in client. Hosted sign-in (PKCE) and its addresses come with the pages
+    // (hosting E3.S2); until then it is only the audience the API's tokens must name.
+    const webClient = userPool.addClient("WebClient", {
+      generateSecret: false,
+      preventUserExistenceErrors: true,
+      disableOAuth: true,
+      // Any key here makes CDK list only refresh tokens: no password sign-in on this client.
+      authFlows: { userSrp: false },
+      accessTokenValidity: Duration.hours(1),
+      idTokenValidity: Duration.hours(1),
+      // The PRD's 1-day sign-in.
+      refreshTokenValidity: Duration.days(1),
+    });
+
+    const apiFunction = new NodejsFunction(this, "ApiFunction", {
+      entry: apiEntryPoint,
+      runtime: Runtime.NODEJS_24_X,
+      architecture: Architecture.ARM_64,
+      memorySize: 256,
+      // Inside API Gateway's 30-second limit, so a slow request fails here first.
+      timeout: Duration.seconds(10),
+      bundling: { format: OutputFormat.ESM, minify: true },
+      logGroup: new LogGroup(this, "ApiFunctionLogs", {
+        retention: RetentionDays.ONE_MONTH,
+        removalPolicy: RemovalPolicy.DESTROY,
+      }),
+    });
+    const apiIntegration = new HttpLambdaIntegration("ApiIntegration", apiFunction);
+
+    // Every route, and the $default catch-all, needs a token from the team's pool, so an
+    // unknown path gets 401 rather than 404 (ADR 0018).
+    const api = new HttpApi(this, "Api", {
+      createDefaultStage: false,
+      defaultAuthorizer: new HttpUserPoolAuthorizer("TeamSignIn", userPool, {
+        userPoolClients: [webClient],
+      }),
+      defaultIntegration: apiIntegration,
+    });
+    api.addRoutes({ path: "/api/health", methods: [HttpMethod.GET], integration: apiIntegration });
+
+    const accessLogs = new LogGroup(this, "ApiAccessLogs", {
+      retention: RetentionDays.ONE_MONTH,
+      removalPolicy: RemovalPolicy.DESTROY,
+    });
+    const stage = new HttpStage(this, "ApiStage", {
+      httpApi: api,
+      autoDeploy: true,
+      // Shared by every caller, so a flood can't run up the bill (ADR 0017).
+      throttle: { rateLimit: 20, burstLimit: 40 },
+      accessLogSettings: {
+        destination: new LogGroupLogDestination(accessLogs),
+        // What was asked for and how it went; never bodies, which may hold cast data, nor
+        // IP addresses, which are personal data the PRD doesn't need.
+        format: AccessLogFormat.custom(
+          JSON.stringify({
+            requestId: "$context.requestId",
+            time: "$context.requestTime",
+            routeKey: "$context.routeKey",
+            status: "$context.status",
+            error: "$context.authorizer.error",
+            latency: "$context.responseLatency",
+          }),
+        ),
+      },
+    });
+
+    new CfnOutput(this, "ApiUrl", {
+      value: stage.url,
+      description: "The hosted API, for the post-deploy check",
+    });
+    new CfnOutput(this, "UserPoolId", { value: userPool.userPoolId });
+    new CfnOutput(this, "WebClientId", { value: webClient.userPoolClientId });
   }
 }
