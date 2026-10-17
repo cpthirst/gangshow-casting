@@ -3,8 +3,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { RunningOrder } from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { aRunningOrder } from "./running-order.fixture.ts";
 import { behavesAsARunningOrderStore } from "./running-order-store.contract.ts";
-import { fileRunningOrderStore, inMemoryRunningOrderStore } from "./running-order-store.ts";
+import {
+  fileRunningOrderStore,
+  inMemoryRunningOrderStore,
+  savedVersions,
+} from "./running-order-store.ts";
 
 describe("in-memory running order store", () => {
   behavesAsARunningOrderStore(async (initial) => inMemoryRunningOrderStore(initial));
@@ -40,5 +45,24 @@ describe("file running order store", () => {
     await writeFile(join(dir, "v1.json"), JSON.stringify({ version: 1 }));
 
     await expect(fileRunningOrderStore(dataDir).latest("2027")).rejects.toThrow();
+  });
+});
+
+describe("savedVersions", () => {
+  let dataDir: string;
+  beforeEach(async () => {
+    dataDir = await mkdtemp(join(tmpdir(), "running-order-versions-"));
+  });
+  afterEach(() => rm(dataDir, { recursive: true, force: true }));
+
+  it("lists every saved version number, lowest first", async () => {
+    const store = fileRunningOrderStore(dataDir);
+    for (const version of [10, 2, 9]) await store.save(aRunningOrder(version));
+
+    expect(await savedVersions(dataDir, "2027")).toEqual([2, 9, 10]);
+  });
+
+  it("lists none for a production with no running order", async () => {
+    expect(await savedVersions(dataDir, "2027")).toEqual([]);
   });
 });

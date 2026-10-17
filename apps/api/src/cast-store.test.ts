@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { aCastList, aCastMember, jo } from "./cast.fixture.ts";
 import { behavesAsACastStore } from "./cast-store.contract.ts";
-import { fileCastStore, inMemoryCastStore } from "./cast-store.ts";
+import { fileCastStore, inMemoryCastStore, readCastFile } from "./cast-store.ts";
 
 describe("in-memory cast store", () => {
   behavesAsACastStore(async (initial) => inMemoryCastStore(initial));
@@ -172,5 +172,25 @@ describe("file cast store", () => {
 
     expect(await fileCastStore(dataDir).update("2027", 12, 3, { ...jo })).toBe("stale");
     expect((await fileCastStore(dataDir).list("2027"))?.members[0]?.firstName).toBe("Sam");
+  });
+});
+
+describe("readCastFile", () => {
+  let dataDir: string;
+  beforeEach(async () => {
+    dataDir = await mkdtemp(join(tmpdir(), "cast-read-"));
+  });
+  afterEach(() => rm(dataDir, { recursive: true, force: true }));
+
+  it("gives a production's cast list and the next id it would hand out", async () => {
+    const list = aCastList([aCastMember(1), aCastMember(56)]);
+    await mkdir(join(dataDir, "2027"), { recursive: true });
+    await writeFile(join(dataDir, "2027", "cast.json"), JSON.stringify({ ...list, nextId: 60 }));
+
+    expect(await readCastFile(dataDir, "2027")).toEqual({ list, nextId: 60 });
+  });
+
+  it("gives nothing for a production with no cast file", async () => {
+    expect(await readCastFile(dataDir, "2027")).toBeUndefined();
   });
 });

@@ -2,7 +2,7 @@
 id: remote-data.E3.S1
 title: Copy a production's data to the remote database
 epic: E3
-status: ready
+status: done
 ---
 
 ## Story

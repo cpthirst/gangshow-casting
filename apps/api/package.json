@@ -6,7 +6,8 @@
     "dev": "node --watch src/dev-server.ts",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "test:dynamo": "vitest run --config vitest.dynamo.config.ts"
+    "test:dynamo": "vitest run --config vitest.dynamo.config.ts",
+    "move": "node src/move-cli.ts"
   },
   "dependencies": {
     "@app/shared": "workspace:*",

@@ -38,13 +38,22 @@ export function inMemoryRunningOrderStore(initial: RunningOrder[] = []): Running
   };
 }
 
+// The id becomes a folder name: never trust callers to have checked it.
+function versionsFolder(dataDir: string, productionId: string) {
+  if (!ProductionId.safeParse(productionId).success) throw new Error("Invalid production id");
+  return join(dataDir, productionId, "running-order");
+}
+
+/** Every saved version number of a production's running order in the files, lowest first,
+ *  for copying them elsewhere (remote-data FR8). */
+export async function savedVersions(dataDir: string, productionId: string) {
+  const files = (await ifExists(() => readdir(versionsFolder(dataDir, productionId)))) ?? [];
+  return versionsIn(files).sort((a, b) => a - b);
+}
+
 /** Local files: `<dataDir>/<productionId>/running-order/v<version>.json`. */
 export function fileRunningOrderStore(dataDir: string): RunningOrderStore {
-  // The id becomes a folder name: never trust callers to have checked it.
-  const folderFor = (productionId: string) => {
-    if (!ProductionId.safeParse(productionId).success) throw new Error("Invalid production id");
-    return join(dataDir, productionId, "running-order");
-  };
+  const folderFor = (productionId: string) => versionsFolder(dataDir, productionId);
 
   async function get(productionId: string, version: number) {
     const file = join(folderFor(productionId), `v${version}.json`);

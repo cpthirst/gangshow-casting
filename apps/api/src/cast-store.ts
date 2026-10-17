@@ -98,18 +98,28 @@ export function inMemoryCastStore(initial: CastList[] = []): CastStore {
   };
 }
 
+// The id becomes a folder name: never trust callers to have checked it.
+function castFileFor(dataDir: string, productionId: string) {
+  if (!ProductionId.safeParse(productionId).success) throw new Error("Invalid production id");
+  return join(dataDir, productionId, "cast.json");
+}
+
+async function readFileOf(dataDir: string, productionId: string) {
+  const text = await ifExists(() => readFile(castFileFor(dataDir, productionId), "utf8"));
+  return text === undefined ? undefined : parseCastFile(text, productionId);
+}
+
+/** A production's cast list as stored, with the next id it would hand out, for copying it
+ *  elsewhere (remote-data FR8); undefined if it has no cast file. */
+export async function readCastFile(dataDir: string, productionId: string) {
+  const file = await readFileOf(dataDir, productionId);
+  return file && { list: listOf(file), nextId: nextIdOf(file) };
+}
+
 /** Local file: `<dataDir>/<productionId>/cast.json` (git-ignored). */
 export function fileCastStore(dataDir: string): CastStore {
-  // The id becomes a folder name: never trust callers to have checked it.
-  const fileFor = (productionId: string) => {
-    if (!ProductionId.safeParse(productionId).success) throw new Error("Invalid production id");
-    return join(dataDir, productionId, "cast.json");
-  };
-
-  async function read(productionId: string) {
-    const text = await ifExists(() => readFile(fileFor(productionId), "utf8"));
-    return text === undefined ? undefined : parseCastFile(text, productionId);
-  }
+  const fileFor = (productionId: string) => castFileFor(dataDir, productionId);
+  const read = (productionId: string) => readFileOf(dataDir, productionId);
 
   const write = (file: CastFile) =>
     writePrivateFile(fileFor(file.productionId), JSON.stringify(CastFile.parse(file), null, 2));
