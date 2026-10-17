@@ -1,8 +1,10 @@
-import { ItemNoteList } from "@app/shared";
+import { CastList, ItemNoteList } from "@app/shared";
 import { GetCommand } from "@aws-sdk/lib-dynamodb";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { aCastList, aCastMember } from "./cast.fixture.ts";
 import { dataStores } from "./data-stores.ts";
-import { aTestTable, type TestTable } from "./dynamo.fixture.ts";
+import { aTestTable, seedCast, type TestTable } from "./dynamo.fixture.ts";
+import { createGetCast } from "./get-cast.ts";
 import { createGetItemNotes } from "./get-item-notes.ts";
 import { aRunningOrder, itemId } from "./running-order.fixture.ts";
 import { inMemoryRunningOrderStore } from "./running-order-store.ts";
@@ -15,6 +17,16 @@ describe("data stores with a remote table", () => {
   });
   afterEach(async () => {
     await table.drop();
+  });
+
+  it("reads the cast list through the API from the remote table", async () => {
+    const list = aCastList([aCastMember(1), aCastMember(2, { firstName: "Alex" })]);
+    await seedCast(table.db, table.tableName, list);
+    const { cast } = dataStores({ ...process.env, DATA_TABLE: table.tableName });
+
+    const res = await createGetCast(cast)({ pathParameters: { productionId: "2027" } });
+
+    expect(CastList.parse(JSON.parse(res.body ?? ""))).toEqual(list);
   });
 
   it("saves and reads item notes through the API in the remote table", async () => {

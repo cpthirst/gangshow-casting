@@ -31,7 +31,7 @@ describe("data stores", () => {
     });
 
     expect(stores.where).toBe(
-      `item notes in table GangshowData (eu-west-1); everything else in files at ${dataDir}`,
+      `item notes and cast in table GangshowData (eu-west-1); everything else in files at ${dataDir}`,
     );
   });
 

@@ -2,7 +2,7 @@
 id: remote-data.E2.S1
 title: Keep the cast list in the remote database
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story
@@ -45,5 +45,5 @@ Then they pass against the in-memory store and against the remote store on the e
 
 - FRs: FR5 (cast), FR6 (cast)
 - Depends on: remote-data.E1.S1
-- Deleting a cast member remotely without uncasting them is not offered: deleting comes in E2.S3, together with uncasting. Until then, delete against the remote database says it isn't available yet rather than leaving people in roles.
+- Deleting works remotely as it does with files: the delete handler already uncasts through the roles store first. E2.S3, in the same PR, makes the two one all-or-nothing change. (This replaces the earlier plan to refuse remote deletes until E2.S3.)
 - Out of scope: roles (E2.S2), the all-or-nothing delete (E2.S3).

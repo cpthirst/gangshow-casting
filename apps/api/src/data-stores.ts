@@ -1,6 +1,7 @@
 import { fileURLToPath } from "node:url";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { fileCastStore } from "./cast-store.ts";
+import { dynamoCastStore } from "./dynamo-cast-store.ts";
 import { dynamoItemNoteStore } from "./dynamo-item-note-store.ts";
 import { documentClient } from "./dynamo-table.ts";
 import { fileItemNoteStore } from "./item-note-store.ts";
@@ -23,20 +24,26 @@ export function dataStores(env: Record<string, string | undefined> = process.env
   const dataDir = env.DATA_DIR ?? defaultDataDir;
   const files = `files at ${dataDir}`;
   const stores = {
-    cast: fileCastStore(dataDir),
     roles: fileRoleStore(dataDir),
     runningOrders: fileRunningOrderStore(dataDir),
   };
 
   const table = env.DATA_TABLE;
-  if (!table)
-    return { ...stores, itemNotes: fileItemNoteStore(dataDir), where: `everything in ${files}` };
+  if (!table) {
+    return {
+      ...stores,
+      cast: fileCastStore(dataDir),
+      itemNotes: fileItemNoteStore(dataDir),
+      where: `everything in ${files}`,
+    };
+  }
 
   const region = env.DATA_TABLE_REGION ?? "eu-west-2";
   const db = documentClient(new DynamoDBClient({ region }));
   return {
     ...stores,
+    cast: dynamoCastStore(db, table),
     itemNotes: dynamoItemNoteStore(db, table),
-    where: `item notes in table ${table} (${region}); everything else in ${files}`,
+    where: `item notes and cast in table ${table} (${region}); everything else in ${files}`,
   };
 }

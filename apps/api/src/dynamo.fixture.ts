@@ -1,6 +1,9 @@
 import { randomUUID } from "node:crypto";
+import type { CastList } from "@app/shared";
 import { CreateTableCommand, DeleteTableCommand, DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { documentClient } from "./dynamo-table.ts";
+import { type DynamoDBDocumentClient, PutCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
+import { castKey } from "./dynamo-cast-store.ts";
+import { documentClient, META, partitionFor } from "./dynamo-table.ts";
 
 // Database tests talk only to a local emulator (ADR 0016), never to AWS, so they refuse to
 // run unless the DynamoDB endpoint is on this machine.
@@ -39,3 +42,23 @@ export async function aTestTable() {
 }
 
 export type TestTable = Awaited<ReturnType<typeof aTestTable>>;
+
+/** Writes a cast list straight into a table, with the next id past every member's. */
+export async function seedCast(db: DynamoDBDocumentClient, tableName: string, list: CastList) {
+  const pk = partitionFor(list.productionId);
+  const castNextId = Math.max(0, ...list.members.map((m) => m.id)) + 1;
+  // Updated, not replaced: META also holds other counters.
+  await db.send(
+    new UpdateCommand({
+      TableName: tableName,
+      Key: { pk, sk: META },
+      UpdateExpression: "SET castNextId = :next",
+      ExpressionAttributeValues: { ":next": castNextId },
+    }),
+  );
+  for (const member of list.members) {
+    await db.send(
+      new PutCommand({ TableName: tableName, Item: { pk, sk: castKey(member.id), ...member } }),
+    );
+  }
+}

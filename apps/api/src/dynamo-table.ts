@@ -5,7 +5,15 @@ import { DynamoDBDocumentClient, QueryCommand } from "@aws-sdk/lib-dynamodb";
 // The production data table (ADR 0015): partition key "pk" and sort key "sk", matching
 // infra/lib/app-stack.ts. Each production is one partition; each entity is one item.
 
-export const documentClient = (client: DynamoDBClient) => DynamoDBDocumentClient.from(client);
+// Optional fields left out (like a member's notes) are simply not stored.
+export const documentClient = (client: DynamoDBClient) =>
+  DynamoDBDocumentClient.from(client, { marshallOptions: { removeUndefinedValues: true } });
+
+/** Each production's one row of counters and markers, such as the next cast id. */
+export const META = "META";
+
+/** A row without its table keys: the entity as stored. */
+export const withoutKeys = ({ pk: _pk, sk: _sk, ...entity }: Record<string, unknown>) => entity;
 
 /** A production's partition. The id is checked, as it is for the file stores' folders. */
 export function partitionFor(productionId: string) {
