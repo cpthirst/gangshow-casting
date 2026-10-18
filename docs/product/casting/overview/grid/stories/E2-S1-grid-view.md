@@ -33,6 +33,7 @@ And each row starts with first name, last name and section
 Given the running order above
 When I look at the grid
 Then the item columns run "Opening Number", "Pirate Sketch", "Dance One" from left to right
+(each header also carries its programme number, see casting-overview-grid.E2.S2)
 
 ### AC5: A dot for the role held
 Given Sam is a lead in "Pirate Sketch"

@@ -944,7 +944,11 @@ describe("Casting grid on the Overview", () => {
     const wrapper = await openGrid();
 
     const heads = wrapper.findAll("thead th").map((head) => head.text());
-    expect(heads.slice(3)).toEqual(["Opening Number", "Pirate Sketch", "Dance One"]);
+    expect(heads.slice(3)).toEqual([
+      "1 · Opening Number (First half)",
+      "2 · Pirate Sketch (First half)",
+      "1 · Dance One (Second half)",
+    ]);
   });
 
   it("shows a lead as one lead-coloured dot with the letter L", async () => {
@@ -1046,6 +1050,64 @@ describe("Casting grid on the Overview", () => {
 
     expect(wrapper.find("table").exists()).toBe(false);
     expect(wrapper.get("main").text()).toContain("No items in the running order yet.");
+  });
+
+  it("heads each item column with its programme number, title and half", async () => {
+    const items = ["One", "Two", "Three", "Four", "Five", "Six", "Finale"].map((t) => anItem(t));
+    theShowIs([], { order: aRunningOrder(items.slice(0, 3), items.slice(3)) });
+
+    const wrapper = await openGrid();
+
+    const heads = wrapper.findAll("thead th").map((head) => head.text());
+    expect(heads.slice(3)).toEqual([
+      "1 · One (First half)",
+      "2 · Two (First half)",
+      "3 · Three (First half)",
+      "1 · Four (Second half)",
+      "2 · Five (Second half)",
+      "3 · Six (Second half)",
+      "4 · Finale (Second half)",
+    ]);
+  });
+
+  it("says when an item isn't in the printed programme, without a number", async () => {
+    theShowIs([], {
+      order: aRunningOrder(
+        [anItem("Opening Number"), anItem("Entr'acte", { printed: false })],
+        [anItem("Dance One")],
+      ),
+    });
+
+    const wrapper = await openGrid();
+
+    const heads = wrapper.findAll("thead th").map((head) => head.text());
+    expect(heads.slice(3)).toEqual([
+      "1 · Opening Number (First half)",
+      "Entr'acte (First half, not in printed programme)",
+      "1 · Dance One (Second half)",
+    ]);
+  });
+
+  it("pins the first and last name columns, but not the section or the items", async () => {
+    theShowIs(cast);
+
+    const wrapper = await openGrid();
+
+    const pinned = (cells: { classes(): string[] }[]) =>
+      cells.map((cell) => cell.classes().includes("grid-pinned"));
+    expect(pinned(wrapper.findAll("thead th"))).toEqual([true, true, false, false, false, false]);
+    for (const cells of rows(wrapper)) {
+      expect(pinned(cells)).toEqual([true, true, false, false, false, false]);
+    }
+  });
+
+  it("puts a column header over every cell", async () => {
+    theShowIs(cast);
+
+    const wrapper = await openGrid();
+
+    const heads = wrapper.findAll("thead th").length;
+    expect(rows(wrapper).every((cells) => cells.length === heads)).toBe(true);
   });
 
   it("says the grid couldn't load when the casting fails", async () => {

@@ -1417,6 +1417,7 @@ main a {
 /* The grid sits in a .table-scroll box, so it scrolls sideways there and never the page
    (ADR 0011); headings and row dividers match the other tables. */
 .casting-grid {
+  --pinned-width: 5.5rem;
   border-collapse: collapse;
 }
 
@@ -1429,9 +1430,65 @@ main a {
 }
 
 .casting-grid thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--white);
   font-size: 0.8125rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+
+/* The corner cells sit above both the other headings and the names. */
+.casting-grid thead .grid-pinned {
+  z-index: 3;
+}
+
+/* A tall grid scrolls inside its own box too, so its headings stay in view above the rows. */
+.grid-box {
+  max-height: 75vh;
+}
+
+/* The two name columns stay in view while the items scroll (casting-overview-grid FR10).
+   Fixed widths, so the last name can stick just after the first; long names wrap. They need
+   a solid background to hide what slides under them. */
+.casting-grid .grid-pinned {
+  position: sticky;
+  z-index: 1;
+  width: var(--pinned-width);
+  min-width: var(--pinned-width);
+  max-width: var(--pinned-width);
+  padding-right: 0.5rem;
+  padding-left: 0.5rem;
+  background: var(--white);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.casting-grid .grid-pinned-first {
+  left: 0;
+}
+
+.casting-grid .grid-pinned-last {
+  left: var(--pinned-width);
+  /* A light line where the names end and the items begin. A shadow, not a border: borders don't
+     travel with a sticky cell in a collapsed table. */
+  box-shadow: inset -2px 0 var(--surface);
+}
+
+/* A clash's description opens from the first name's cell, over the last name's. */
+.casting-grid .grid-pinned:hover,
+.casting-grid .grid-pinned:focus-within {
+  z-index: 2;
+}
+
+/* On phones a clash would be written out in the narrow name cell, so the grid shows just the
+   icon (it still carries the words for screen readers); the by-person view has the details. */
+@media (max-width: 767px), (hover: none) {
+  .casting-grid .clash .clash-description,
+  .casting-grid .clash:hover .clash-description {
+    display: none;
+  }
 }
 
 /* A cell with nobody in it: plainly empty, not forgotten. */

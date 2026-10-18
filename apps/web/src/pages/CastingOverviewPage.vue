@@ -8,6 +8,7 @@ import { type Clash, clashesOfPerson, describeEach, findClashes } from "../clash
 import {
   biggestParts,
   castBySection,
+  gridColumns,
   itemIdsInOrder,
   type PartCounts,
   partsByMember,
@@ -44,9 +45,7 @@ const view = ref<"people" | "grid">("people");
 
 // The grid: a column per item in running order, and the same people in the same order as
 // the by-person view, each with their part in every item.
-const gridColumns = computed(() =>
-  timeline.value ? timelineOf(timeline.value.order, undefined).flat() : [],
-);
+const columnsOfGrid = computed(() => (timeline.value ? gridColumns(timeline.value.order) : []));
 const gridRows = computed(() =>
   sections.value.flatMap((section) =>
     section.people.map(({ member, halves, clashLines }) => ({
@@ -158,7 +157,7 @@ async function loadCast() {
       </button>
     </div>
     <template v-if="view === 'grid'">
-      <CastingGrid v-if="gridColumns.length > 0" :columns="gridColumns" :rows="gridRows" />
+      <CastingGrid v-if="columnsOfGrid.length > 0" :columns="columnsOfGrid" :rows="gridRows" />
       <p v-else-if="parts === 'error'">Couldn't load the grid.</p>
       <p v-else-if="parts instanceof Map">No items in the running order yet.</p>
     </template>

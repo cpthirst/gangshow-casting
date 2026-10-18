@@ -152,6 +152,34 @@ export function dotLabel({ title, number, part }: TimelineSlot) {
   return part ? `${item}: ${roleSizeLabel(part)}` : item;
 }
 
+/** One item as a grid column: its programme number (null if not printed) and its half. */
+export interface GridColumn {
+  itemId: string;
+  title: string;
+  number: number | null;
+  halfName: string;
+}
+
+/** The grid's columns: every item in show order, so they line up with each person's
+ *  `timelineOf` slots. */
+export const gridColumns = (order: RunningOrder): GridColumn[] =>
+  runningClock(order).halves.flatMap(({ half, rows }) =>
+    rows.map(({ item, number }) => ({
+      itemId: item.id,
+      title: item.title,
+      number,
+      halfName: half.name,
+    })),
+  );
+
+/** A grid column's heading (casting-overview-grid FR10): "4 · Finale (Second half)". The
+ *  number is the programme number, as everywhere else in the app; it restarts each half, so
+ *  the half says which. An item left out of the printed programme has no number. */
+export const gridHeading = ({ title, number, halfName }: GridColumn) =>
+  number === null
+    ? `${title} (${halfName}, not in printed programme)`
+    : `${number} · ${title} (${halfName})`;
+
 /** A timeline as one sentence for screen readers (FR6): "In 2 of 5 items: Pirate Sketch,
  *  Finale", or "In none of the 5 items". */
 export function timelineSummary(halves: TimelineSlot[][]) {
