@@ -50,7 +50,7 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [hosting.E5.S1](stories/E5-S1-hosting-guide.md) | Step-by-step guide: deploy, create the first admin, run the post-deploy check, release, roll back, recover a locked-out admin | FR19 | E1.S2, E3.S2, E4.S3 | ready |
+| [hosting.E5.S1](stories/E5-S1-hosting-guide.md) | Step-by-step guide: deploy, create the first admin, run the post-deploy check, release, roll back, recover a locked-out admin | FR19 | E1.S2, E3.S2, E4.S3 | done |
 
 ## FR coverage
 

@@ -39,7 +39,7 @@ pnpm dev       # web on :5173 + API on :3000 (Vite proxies /api), using the remo
 pnpm check     # lint + docs lint + typecheck + tests + cdk synth: the definition of "done"
 ```
 
-The show's data lives in a DynamoDB table in AWS, so `pnpm dev` needs your AWS profile set up: see [the remote database guide](docs/guides/remote-data.md). `pnpm demo` runs on made-up local data instead, and needs no AWS.
+The show's data lives in a DynamoDB table in AWS, so `pnpm dev` needs your AWS profile set up: see [the remote database guide](docs/guides/remote-data.md). `pnpm demo` runs on made-up local data instead, and needs no AWS. To deploy the hosted app, hand out accounts, release or roll back, see [the hosting guide](docs/guides/hosting.md).
 
 Open http://localhost:5173 and you should see **"API: ok (dev)"**: the Vue app calling the API's health endpoint end to end. That walking skeleton is where casting features start; each one arrives as a story (see [How a change flows](#how-a-change-flows)).
 
