@@ -2,7 +2,7 @@
 import { RoleSize } from "@app/shared";
 import ClashIcon from "./ClashIcon.vue";
 import type { ClashLine } from "./clashes.ts";
-import { type GridColumn, gridHeading, type TimelineSlot } from "./overview.ts";
+import { fullGridHeading, type GridColumn, gridHeading, type TimelineSlot } from "./overview.ts";
 import { roleSizeLabel, roleSizeLetter } from "./roles.ts";
 
 // Who is in which item (casting-overview-grid FR5–FR8): a row per person, a column per item
@@ -10,6 +10,10 @@ import { roleSizeLabel, roleSizeLetter } from "./roles.ts";
 // Each slot's `part` comes from `biggestParts`: their biggest part in that item, ensemble
 // included. Names stay pinned at the left while the items scroll (FR10).
 // Rows (`timelineOf`) and columns (`gridColumns`) both run in show order, so they line up.
+// A heading with a cut title keeps the whole one for hover and screen readers.
+const wholeIfCut = (column: GridColumn) =>
+  gridHeading(column) === fullGridHeading(column) ? undefined : fullGridHeading(column);
+
 defineProps<{
   columns: GridColumn[];
   rows: {
@@ -43,7 +47,12 @@ defineProps<{
           <th scope="col" class="grid-pinned grid-pinned-first">First name</th>
           <th scope="col" class="grid-pinned grid-pinned-last">Last name</th>
           <th scope="col">Section</th>
-          <th v-for="column in columns" :key="column.itemId" scope="col">{{ gridHeading(column) }}</th>
+          <th
+            v-for="column in columns"
+            :key="column.itemId"
+            scope="col"
+            :title="wholeIfCut(column)"
+            :aria-label="wholeIfCut(column)">{{ gridHeading(column) }}</th>
         </tr>
       </thead>
       <tbody>

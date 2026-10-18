@@ -41,6 +41,13 @@ Given "Entr'acte" is not in the printed programme
 When I look at its column header
 Then it reads "Entr'acte (First half, not in printed programme)", with no number
 
+### AC6: Long item titles are cut short
+Given an item titled "The Grand Finale of the Evening" (31 characters)
+When I look at its column header
+Then the title shows as its first 15 characters followed by "...", "The Grand Final..."
+And hovering the header, or a screen reader, gives the whole title
+And a title of 15 characters or fewer is shown whole
+
 ## Notes
 
 - The two name columns are pinned; on phones a clash shows as its icon only in the grid (the by-person view has the words). Headings stay in view as a tall grid scrolls inside its own box.

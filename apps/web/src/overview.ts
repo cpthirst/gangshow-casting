@@ -172,13 +172,25 @@ export const gridColumns = (order: RunningOrder): GridColumn[] =>
     })),
   );
 
-/** A grid column's heading (casting-overview-grid FR10): "4 · Finale (Second half)". The
- *  number is the programme number, as everywhere else in the app; it restarts each half, so
- *  the half says which. An item left out of the printed programme has no number. */
-export const gridHeading = ({ title, number, halfName }: GridColumn) =>
+const MAX_TITLE = 15;
+
+/** A title cut to 15 characters with "..." after, if it is longer (casting-overview-grid FR10):
+ *  a grid column should be about as wide as a dot, not as its longest title. */
+export const shortTitle = (title: string) =>
+  title.length > MAX_TITLE ? `${title.slice(0, MAX_TITLE)}...` : title;
+
+const headingOf = ({ number, halfName }: GridColumn, title: string) =>
   number === null
     ? `${title} (${halfName}, not in printed programme)`
     : `${number} · ${title} (${halfName})`;
+
+/** A grid column's heading: "4 · Finale (Second half)". The number is the programme number,
+ *  as everywhere else in the app; it restarts each half, so the half says which. An item left
+ *  out of the printed programme has no number. A long title is cut short. */
+export const gridHeading = (column: GridColumn) => headingOf(column, shortTitle(column.title));
+
+/** The same heading with the whole title: for hover and screen readers. */
+export const fullGridHeading = (column: GridColumn) => headingOf(column, column.title);
 
 /** A timeline as one sentence for screen readers (FR6): "In 2 of 5 items: Pirate Sketch,
  *  Finale", or "In none of the 5 items". */

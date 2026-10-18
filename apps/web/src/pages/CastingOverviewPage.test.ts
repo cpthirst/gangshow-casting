@@ -1088,6 +1088,32 @@ describe("Casting grid on the Overview", () => {
     ]);
   });
 
+  it("cuts a title over 15 characters to 15 and '...', keeping the full one on hover", async () => {
+    theShowIs([], {
+      order: aRunningOrder([
+        anItem("Fifteen Letters!"),
+        anItem("Exactly 15 char"),
+        anItem("Short"),
+        anItem("The Grand Finale of the Evening", { printed: false }),
+      ]),
+    });
+
+    const wrapper = await openGrid();
+
+    const heads = wrapper.findAll("thead th").slice(3);
+    expect(heads.map((head) => head.text())).toEqual([
+      "1 · Fifteen Letters... (First half)",
+      "2 · Exactly 15 char (First half)",
+      "3 · Short (First half)",
+      "The Grand Final... (First half, not in printed programme)",
+    ]);
+    // The whole name is still there for hover and for screen readers.
+    expect(heads[0]?.attributes("title")).toBe("1 · Fifteen Letters! (First half)");
+    expect(heads[0]?.attributes("aria-label")).toBe("1 · Fifteen Letters! (First half)");
+    expect(heads[1]?.attributes("title")).toBeUndefined();
+    expect(heads[2]?.attributes("title")).toBeUndefined();
+  });
+
   it("pins the first and last name columns, but not the section or the items", async () => {
     theShowIs(cast);
 
