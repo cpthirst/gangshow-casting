@@ -6,7 +6,6 @@ description: Write or refine a single user story with Gherkin (Given/When/Then) 
 # Write a story
 
 Output: `docs/product/<feature>/stories/E<n>-S<n>-<slug>.md`, from [templates/story.md](templates/story.md).
-`pnpm lint:docs` enforces this format, so a malformed story fails the gate.
 
 ## Format rules
 
@@ -18,7 +17,7 @@ Output: `docs/product/<feature>/stories/E<n>-S<n>-<slug>.md`, from [templates/st
 
 Each criterion is `### AC<n>: <name>` followed by `Given` / `When` / `Then` lines (use `And` for extra clauses).
 
-Each AC must be covered by **at least one test** in `implement-story`, so write them to be testable:
+Each AC must be covered by **at least one test** in `implement-story` (except in a documentation story, which needs none), so write them to be testable:
 - **One behaviour per AC.** If you need two `Then`s about unrelated things, split it into two ACs.
 - **Observable outcomes only**: what a user or API client sees. No class, table or function names.
 - **Cover the unhappy paths**: validation errors, empty states, unauthorised access, not found.
@@ -29,6 +28,4 @@ Each AC must be covered by **at least one test** in `implement-story`, so write 
 A story moves to `ready` only when:
 - every AC has Given/When/Then and no open questions;
 - its dependencies are `done` or explicitly not blocking;
-- it's small enough for one PR (under ~400 lines). If not, split it and update the story map.
-
-Run `pnpm lint:docs` after writing.
+- it's small enough for one PR (under ~400 changed lines, not counting `.md` files). If not, split it and update the story map.

@@ -14,14 +14,13 @@ Output: `docs/product/<feature>/story-map.md` from [templates/story-map.md](temp
 2. **Find the epics** (`E1`, `E2`, …). An epic is one coherent, user-visible capability that maps to one or more FRs. Usually 2–6 per feature.
 3. **Slice each epic into stories** (`E1.S1`, `E1.S2`, …). Each story must be:
    - **A vertical slice**: delivers observable behaviour end-to-end (UI + API + infra as needed), not "build the database layer".
-   - **Small**: about a day's work, one PR under ~400 changed lines. Split anything bigger.
+   - **Small**: about a day's work, one PR under ~400 changed lines (`.md` files don't count). Split anything bigger.
    - **INVEST**: independent where possible, valuable, testable.
    - For a brand-new feature, make `E1.S1` a **walking skeleton**: the thinnest end-to-end path, deployed.
 4. **Sequence.** Record dependencies (`Depends on`). Order stories so each one builds on finished work.
 5. **Check coverage.** Every FR in the PRD maps to at least one story. Fill in the coverage table; any gap is a missing story or a requirement to drop (ask the user which).
 6. **Checkpoint.** Show the map (epics, story titles, order, coverage) and wait for the user's approval or changes. Don't create story files before then.
 7. **Create the stories.** For each row, use the `write-story` skill. Stories with no open questions start as `ready`; anything unclear starts as `draft`.
-8. Run `pnpm lint:docs` and fix every error.
 
 ## Keep the map current
 

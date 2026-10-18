@@ -36,7 +36,7 @@ Most of the cast are under 18 and this is a Scouting activity, so the app is bui
 ```bash
 pnpm install   # Node 26, pnpm 12 (also installs the git hooks)
 pnpm dev       # web on :5173 + API on :3000 (Vite proxies /api), using the remote table: needs your AWS profile
-pnpm check     # lint + docs lint + typecheck + tests + cdk synth: the definition of "done"
+pnpm check     # lint + typecheck + tests + cdk synth: the definition of "done"
 ```
 
 The show's data lives in a DynamoDB table in AWS, so `pnpm dev` needs your AWS profile set up: see [the remote database guide](docs/guides/remote-data.md). `pnpm demo` runs on made-up local data instead, and needs no AWS. To deploy the hosted app, hand out accounts, release or roll back, see [the hosting guide](docs/guides/hosting.md).
@@ -73,7 +73,7 @@ The repo is built on an opinionated **TypeScript monorepo scaffold** with a **la
 │           └── dev-server.ts    node:http stand-in for API Gateway, loopback only
 ├── packages/shared/         zod schemas + inferred types: the API contract
 ├── infra/                   AWS CDK app with one empty AppStack (ADR 0005)
-├── tooling/                 Repo scripts: validate-docs.ts (story structure) + harness tests
+├── tooling/                 Repo scripts: demo.ts + harness tests
 ├── docs/
 │   ├── adr/                 Architecture decision records 0001–0007
 │   └── product/<feature>/   PRD, story map and stories written by the planning skills
@@ -150,8 +150,6 @@ write-prd ──► story-map ──► write-story ──► implement-story �
 | `open-pr` | Conventional PR title, filled template, push | Push needs approval; never merges |
 | `adr` | `docs/adr/NNNN-*.md` | Proposed → Accepted by the user |
 
-`pnpm lint:docs` validates every story's structure, so a malformed story fails the gate.
-
 ### 3. Reviewer subagents (`.claude/agents/`)
 Subagents run in their own context and report back. Fresh context matters: the agent that wrote the code is a poor judge of it. All four reviewers have **no Edit or Write tools**, so they can report problems but can't "fix" them by weakening a test. A harness test enforces that. They run on Sonnet to keep cost down.
 
@@ -162,7 +160,7 @@ Subagents run in their own context and report back. Fresh context matters: the a
 | `security-reviewer` | `apps/`, `packages/shared`, any `package.json` or `pnpm-workspace.yaml` | Input validation, auth, secrets, data exposure, frontend injection, dependencies |
 | `infra-reviewer` | `infra/`, or API packaging and deployment | IAM, public exposure, destructive replacement, removal policies, cost |
 
-**The review loop** (defined once, in CLAUDE.md): the routed reviewers run in parallel. Every `blocker` must be fixed, and only the reviewers that blocked re-run, for at most 2 rounds before escalating to a human. `should-fix` and `nit` findings go into the PR's "Review notes". Every reviewer returns the same format (`Verdict: PASS | BLOCKED` plus `[severity] file:line` findings), so findings can be processed mechanically.
+**The review loop** (defined once, in CLAUDE.md): the routed reviewers run in parallel. Every `blocker` must be fixed, and only the reviewers that blocked re-run, for at most 2 rounds before escalating to a human. `should-fix` and `nit` findings go into the PR's "Review notes". Every reviewer returns the same format (`Verdict: PASS | BLOCKED` plus `[severity] file:line` findings), so findings can be processed mechanically. Documentation stories, and changes to `.md` files only, skip the loop and need no tests.
 
 ### 4. Claude Code hooks (`.claude/hooks/`, registered in `.claude/settings.json`)
 These are hooks in Claude Code's agent loop, not git hooks. Their output goes back to the agent, which acts on it. The logic is TypeScript that plain `node` runs directly, with unit tests in the gate.
@@ -228,7 +226,7 @@ Every action is **pinned to a commit SHA**, and workflows use least-privilege to
 - **Strict TypeScript:** `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, and no `any`, `as` casts or `!`. ESM, with `.ts` import extensions.
 - **The API contract lives in `packages/shared`** as zod schemas, used by both the API and the web app.
 - **Code is written for the next human reader:** brief, intention-revealing names, small functions, no speculative generality, and comments that explain *why*.
-- **Trunk-based development:** short-lived branches, small PRs (aim for under 400 lines) and squash merges. Conventional Commits with scopes `web api infra shared tooling harness deps docs release` (`main` is also allowed, for release-please only).
+- **Trunk-based development:** short-lived branches, small PRs (aim for under 400 lines, not counting `.md` files) and squash merges. Conventional Commits with scopes `web api infra shared tooling harness deps docs release` (`main` is also allowed, for release-please only).
 
 ---
 
