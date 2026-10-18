@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import { RoleSize } from "@app/shared";
 import ClashIcon from "./ClashIcon.vue";
-import type { ClashLine } from "./clashes.ts";
 import {
   fullGridHeading,
   type GridColumn,
+  type GridRow,
   gridHeading,
   spokenGridHeading,
-  type TimelineSlot,
 } from "./overview.ts";
 import { roleSizeLabel, roleSizeLetter } from "./roles.ts";
 
@@ -16,6 +15,7 @@ import { roleSizeLabel, roleSizeLetter } from "./roles.ts";
 // Each slot's `part` comes from `biggestParts`: their biggest part in that item, ensemble
 // included. Names stay pinned at the left while the items scroll (FR10).
 // Rows (`timelineOf`) and columns (`gridColumns`) both run in show order, so they line up.
+
 // A heading with a cut title keeps the whole one for hover; one cut or unprinted is read in
 // full to a screen reader.
 const wholeIfCut = (column: GridColumn) =>
@@ -25,14 +25,7 @@ const spokenIfDifferent = (column: GridColumn) =>
 
 defineProps<{
   columns: GridColumn[];
-  rows: {
-    id: number;
-    firstName: string;
-    lastName: string;
-    section: string;
-    clashLines: ClashLine[];
-    slots: TimelineSlot[];
-  }[];
+  rows: GridRow[];
 }>();
 </script>
 

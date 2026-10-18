@@ -3,6 +3,7 @@ import { createAddCastMember } from "./add-cast-member.ts";
 import { createAddRole } from "./add-role.ts";
 import { dataStores, type Stores } from "./data-stores.ts";
 import { createDeleteCastMember } from "./delete-cast-member.ts";
+import { exportCastingGrid } from "./export-casting-grid.ts";
 import { createGetCast } from "./get-cast.ts";
 import { createGetItemNotes } from "./get-item-notes.ts";
 import { createGetRoles } from "./get-roles.ts";
@@ -42,6 +43,7 @@ export function createRoutes({
       itemNotes,
       runningOrders,
     ),
+    "POST /api/productions/{productionId}/casting-grid/export": exportCastingGrid,
     "POST /api/productions/{productionId}/items/{itemId}/roles": createAddRole(
       roles,
       runningOrders,

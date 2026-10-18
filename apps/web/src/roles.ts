@@ -1,4 +1,11 @@
-import { AddRoleRequest, type CastMember, type Role, RoleSize, sameRoleName } from "@app/shared";
+import {
+  AddRoleRequest,
+  type CastMember,
+  type GridRoleLetter,
+  type Role,
+  RoleSize,
+  sameRoleName,
+} from "@app/shared";
 import { sortCast } from "./cast.ts";
 
 // Only one production for now (see docs/product/running-order/prd.md).
@@ -26,7 +33,7 @@ const sizeLabels: Record<RoleSize, string> = {
 
 export const roleSizeLabel = (size: RoleSize) => sizeLabels[size];
 
-const sizeLetters: Record<RoleSize, string> = {
+const sizeLetters: Record<RoleSize, GridRoleLetter> = {
   lead: "L",
   support: "S",
   cameo: "C",

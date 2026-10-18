@@ -179,6 +179,36 @@ describe("Lambda entry point", () => {
       expect((await runningOrders.latest("2027"))?.version).toBe(4);
     });
 
+    const exportGrid = (groups?: string) =>
+      signedIn("POST", "/api/productions/2027/casting-grid/export", groups, {
+        body: JSON.stringify({
+          items: ["1.1 · Opening Number"],
+          rows: [{ firstName: "Sam", lastName: "Example", section: "Scouts", cells: ["L"] }],
+        }),
+      });
+
+    it("refuses a non-admin's casting grid export, returning no file", async () => {
+      const { api } = setUp();
+
+      for (const groups of [undefined, "[]", "[crew]", "[superadmin]"]) {
+        const res = await api(exportGrid(groups));
+
+        expect(res.statusCode).toBe(403);
+        expect(res.isBase64Encoded).toBeUndefined();
+        expect(JSON.parse(res.body ?? "")).toEqual({ message: "Only admins can do this." });
+      }
+    });
+
+    it("lets an admin export the casting grid", async () => {
+      const { api } = setUp();
+
+      const res = await api(exportGrid("[crew admin]"));
+
+      expect(res.statusCode).toBe(200);
+      expect(res.isBase64Encoded).toBe(true);
+      expect(res.headers?.["cache-control"]).toBe("no-store");
+    });
+
     it("lets an admin delete a cast member", async () => {
       const { api, cast } = setUp();
 

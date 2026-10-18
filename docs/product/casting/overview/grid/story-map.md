@@ -33,7 +33,7 @@ prd: ./prd.md
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
 | [casting-overview-grid.E3.S1](stories/E3-S1-export-decision.md) | Record in an ADR that the server builds the Excel file behind an admin-only route, which library it uses, and who may export and why (documentation story) | (none: NFR) | (none) | done |
-| [casting-overview-grid.E3.S2](stories/E3-S2-admin-export.md) | An admin sees "Export to Excel" on the grid and downloads a file named for the production and date, with first name, last name, section and a role-size letter per filled cell; other users see no button and the server refuses them | FR12, FR13, FR14 | E2.S1, E3.S1 | ready |
+| [casting-overview-grid.E3.S2](stories/E3-S2-admin-export.md) | An admin sees "Export to Excel" on the grid and downloads a file named for the production and date, with first name, last name, section and a role-size letter per filled cell; other users see no button and the server refuses them | FR12, FR13, FR14 | E2.S1, E3.S1 | done |
 | [casting-overview-grid.E3.S3](stories/E3-S3-export-colours.md) | Each filled cell in the exported file also carries the colour fill matching the grid | FR13 | E3.S2 | ready |
 
 ## FR coverage

@@ -1,12 +1,20 @@
-import { type CastMember, type Role, RoleSize, type RunningOrder, Section } from "@app/shared";
+import {
+  type CastMember,
+  type GridSection,
+  type Role,
+  RoleSize,
+  type RunningOrder,
+  Section,
+} from "@app/shared";
 import { sectionLabel, sortCast } from "./cast.ts";
+import type { ClashLine } from "./clashes.ts";
 import { biggerPart, roleSizeLabel } from "./roles.ts";
 import { runningClock } from "./running-order.ts";
 
 /** One section of the Overview: its people, in display order. */
 export interface OverviewSection {
   key: Section | "not-set";
-  label: string;
+  label: GridSection;
   members: CastMember[];
 }
 
@@ -171,6 +179,16 @@ export const gridColumns = (order: RunningOrder): GridColumn[] =>
       halfNumber: half + 1,
     })),
   );
+
+/** One person's row in the grid: who they are and a slot for every column. */
+export interface GridRow {
+  id: number;
+  firstName: string;
+  lastName: string;
+  section: GridSection;
+  clashLines: ClashLine[];
+  slots: TimelineSlot[];
+}
 
 const MAX_TITLE = 15;
 

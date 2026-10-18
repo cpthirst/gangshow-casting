@@ -87,6 +87,6 @@ Users are non-technical volunteers, often working during or after a rehearsal, s
 - **Several roles in one item**: the cell shows only the most impactful role (lead, then support, then cameo, then ensemble). Decided by cpthirst.
 - **Ensemble in the grid**: ensemble parts appear as a coloured dot with the letter E, but stay out of the headline counts and the export file gets the letter E too. Decided by cpthirst.
 - **Open roles in the counts**: not shown. The headline counts are totals only. Decided by cpthirst.
-- **Export built by the server**: FR12 needs the server to refuse non-admins, which a file built in the browser from data already loaded cannot do. An admin-only route returns the file (ADR 0018). [ADR 0019](../../../../adr/0019-server-built-excel-export-for-admins.md) records this and the spreadsheet library (`write-excel-file`, chosen by cpthirst). Decided by Claude at cpthirst's request.
+- **Export made by the server from the grid the page sends**: FR12 needs the server to refuse non-admins, which a file built in the browser cannot do. An admin-only route turns the grid the admin sends into the file (ADR 0018). [ADR 0019](../../../../adr/0019-server-built-excel-export-for-admins.md) records this and the spreadsheet library (`write-excel-file`, chosen by cpthirst). Decided by Claude at cpthirst's request.
 - **Export is admin-only**: confirmed by cpthirst.
 - **Slug and folder**: `casting-overview-grid` under `casting/overview/grid/`. Confirmed by cpthirst.
