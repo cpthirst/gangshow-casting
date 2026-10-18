@@ -63,7 +63,7 @@ describe("the account script", () => {
 
     expect(code).toBe(0);
     expect(lines).toContain(
-      "Restored pat: enabled, an admin, and signed out on every device within the hour.",
+      "Restored pat: enabled, an admin, and signed out on every device within 5 minutes.",
     );
     expect(timesShown(lines, "Made-up-password-1")).toBe(1);
   });
@@ -178,7 +178,7 @@ describe("the account script", () => {
     expect(lines).toEqual([
       `Using user pool ${POOL}.`,
       "Checked 4 accounts. Made 2 Casting Team Members: sam, kit.",
-      "They can change casting again once their sign-in renews, within the hour.",
+      "They can change casting again once their sign-in renews, within 5 minutes.",
     ]);
     expect(accounts.filter((account) => !account.admin && !account.casting)).toEqual([]);
     expect(accounts.find((account) => account.username === "pat")).toMatchObject({

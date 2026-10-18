@@ -118,7 +118,7 @@ describe("Cognito sign-in", () => {
       expect(fetchMock).not.toHaveBeenCalled();
     });
 
-    it("trades the day's refresh token at the login domain for a new hour-long token", async () => {
+    it("trades the day's refresh token at the login domain for a new short-lived token", async () => {
       storeSignIn(userWith({}, { refresh_token: "days-refresh" }));
       const fetchMock = tokenEndpointAnswering(200, {
         access_token: "renewed-token",

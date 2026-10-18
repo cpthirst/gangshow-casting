@@ -64,7 +64,7 @@ export async function runAccount(args: string[], env: Env, deps: Deps): Promise<
       print(
         created
           ? `Created ${username} as an admin.`
-          : `Restored ${username}: enabled, an admin, and signed out on every device within the hour.`,
+          : `Restored ${username}: enabled, an admin, and signed out on every device within 5 minutes.`,
       );
       print(`Temporary password, shown only now: ${password}`);
       print(`${username} must choose a new password at first sign-in.`);
@@ -83,7 +83,7 @@ export async function runAccount(args: string[], env: Env, deps: Deps): Promise<
         print(
           `Checked ${checked} accounts. Made ${moved.length} Casting Team Members: ${moved.join(", ")}.`,
         );
-        print("They can change casting again once their sign-in renews, within the hour.");
+        print("They can change casting again once their sign-in renews, within 5 minutes.");
       }
     }
     return 0;

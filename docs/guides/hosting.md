@@ -97,7 +97,7 @@ On the **Accounts** page, any admin can also reset a forgotten password, disable
 
 ### Team roles
 
-Every account has a role: Admin, Casting Team Member or Read-Only Team Member. An account the app can't place in one of these may only read ([ADR 0020](../adr/0020-team-roles-as-user-pool-groups.md)). An admin chooses each new account's role when adding it. Changing someone's role signs them out on every device, and the new role applies when they sign back in.
+Every account has a role: Admin, Casting Team Member or Read-Only Team Member. An account the app can't place in one of these may only read ([ADR 0020](../adr/0020-team-roles-as-user-pool-groups.md)). An admin chooses each new account's role when adding it. Changing someone's role signs them out on every device within 5 minutes, and the new role applies when they sign back in.
 
 **Once, straight after the first deploy that brings team roles**, give every existing account a role:
 
@@ -106,7 +106,7 @@ export AWS_PROFILE=gangshow-admin USER_POOL_ID=<user pool id>
 pnpm account roles
 ```
 
-It makes every account that has no role yet a Casting Team Member, and says how many it checked and moved. Until each person's sign-in renews, within the hour, the app refuses their changes with "You have read-only access". Signing out and back in fixes it straight away. It's safe to run again: accounts that already have a role are never touched.
+It makes every account that has no role yet a Casting Team Member, and says how many it checked and moved. Until each person's sign-in renews, within 5 minutes, the app refuses their changes with "You have read-only access". Signing out and back in fixes it straight away. It's safe to run again: accounts that already have a role are never touched.
 
 ## 4. Release a new version
 
@@ -169,7 +169,7 @@ export AWS_PROFILE=gangshow-admin USER_POOL_ID=<user pool id>
 pnpm account admin <your username>
 ```
 
-The account comes back enabled and an admin, with a new temporary password, printed once. It's signed out on every device within the hour, in case the old password was stolen. Sign in at `<app address>` with the temporary password and choose a new one.
+The account comes back enabled and an admin, with a new temporary password, printed once. It's signed out on every device within 5 minutes, in case the old password was stolen. Sign in at `<app address>` with the temporary password and choose a new one.
 
 If the sign-in page says there have been too many attempts, Cognito has paused sign-in for that account after repeated wrong passwords. The pause grows with each wrong try, up to about 15 minutes, and restoring the account may not end it: wait, then sign in with the temporary password.
 

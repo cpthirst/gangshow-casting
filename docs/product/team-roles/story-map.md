@@ -41,7 +41,7 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [team-roles.E4.S1](stories/E4-S1-access-changes-within-5-minutes.md) | A role change, disable or password reset reaches every device within 5 minutes; pages pick up the new role and explain a refused change | FR12, FR13 | E3.S1 | ready |
+| [team-roles.E4.S1](stories/E4-S1-access-changes-within-5-minutes.md) | A role change, disable or password reset reaches every device within 5 minutes; a page explains a change refused as read-only | FR12, FR13 | E3.S1 | done |
 
 ## E5: Maintainer and local tooling
 

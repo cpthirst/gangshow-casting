@@ -1,9 +1,9 @@
-import { roleFrom, type SignInConfig, type TeamRole } from "@app/shared";
+import { READ_ONLY_REFUSAL, roleFrom, type SignInConfig, type TeamRole } from "@app/shared";
 import { computed, ref, shallowRef } from "vue";
 
 /** A signed-in person, as the sign-in library keeps them on this device. */
 export interface SignedInUser {
-  /** The hour-long token the API's sign-in check accepts. */
+  /** The 5-minute token the API's sign-in check accepts. */
   accessToken: string;
   /** When that token runs out, in milliseconds since 1970. */
   expiresAt: number;
@@ -19,7 +19,7 @@ export class SignInEnded extends Error {}
 /** What the app needs from the sign-in library; cognito-sign-in.ts wraps oidc-client-ts. */
 export interface SignInManager {
   storedUser(): Promise<SignedInUser | null>;
-  /** A new hour-long token; throws SignInEnded once the day's sign-in has run out. */
+  /** A new 5-minute token; throws SignInEnded once the day's sign-in has run out. */
   refresh(): Promise<SignedInUser>;
   /** Completes a sign-in on returning from the login pages; throws if it failed. */
   finishSignIn(): Promise<SignedInUser>;
@@ -59,6 +59,8 @@ type Session =
 
 const session = shallowRef<Session>({ kind: "starting" });
 const user = shallowRef<SignedInUser | null>(null);
+/** The API refused a change as read-only, though this sign-in's role allowed it. */
+const refusedAsReadOnly = ref(false);
 // A page asks for several things at once: they share one renewal.
 let renewing: Promise<string | undefined> | undefined;
 
@@ -72,21 +74,28 @@ export const isSignInUnavailable = computed(() => session.value.kind === "unavai
 export const signedInUsername = computed(() => user.value?.username);
 // What to show, not what's allowed: the API checks the role for itself (ADR 0020). Locally
 // the app acts for an admin; otherwise no sign-in, like no known group, may only read.
-const role = computed<TeamRole>(() =>
-  session.value.kind === "local" ? "admin" : roleFrom(user.value?.groups ?? []),
-);
+// After the API refuses a change as read-only, pages show the read-only view at once, not
+// only once the sign-in renews with the new role (team-roles FR12).
+const role = computed<TeamRole>(() => {
+  if (refusedAsReadOnly.value) return "read-only";
+  return session.value.kind === "local" ? "admin" : roleFrom(user.value?.groups ?? []);
+});
 export const isAdmin = computed(() => role.value === "admin");
 /** Read-Only Team Members see every page with no controls that change data (team-roles FR6). */
 export const isReadOnly = computed(() => role.value === "read-only");
+/** A change was refused because the person may only read: pages say it wasn't saved. */
+export const changeRefusedAsReadOnly = computed(() => refusedAsReadOnly.value);
 
 /** The app couldn't start its sign-in, so it can sign no one in. */
 export function signInUnavailable() {
+  refusedAsReadOnly.value = false;
   session.value = { kind: "unavailable" };
   user.value = null;
   signInNeeded.value = true;
 }
 
 export function useLocalSignIn() {
+  refusedAsReadOnly.value = false;
   session.value = { kind: "local" };
   user.value = null;
   signInNeeded.value = false;
@@ -98,6 +107,7 @@ export async function useHostedSignIn(
   manager: SignInManager,
   browser: Browser = theBrowser,
 ) {
+  refusedAsReadOnly.value = false;
   session.value = { kind: "hosted", config, manager, browser };
   const params = new URLSearchParams(browser.search);
   // The login pages always send state back, with a code or an error.
@@ -177,7 +187,19 @@ export async function apiFetch(...args: Parameters<typeof fetch>) {
     ? await fetch(input, { ...init, headers: withToken(init?.headers, token) })
     : await fetch(...args);
   if (res.status === 401 || (isHosted.value && !user.value)) signInNeeded.value = true;
+  if (res.status === 403 && (await refusalOf(res)) === READ_ONLY_REFUSAL) {
+    refusedAsReadOnly.value = true;
+  }
   return res;
+}
+
+/** A refusal's message, read from a copy so the page can still read the reply. */
+async function refusalOf(res: Response) {
+  const body: unknown = await res
+    .clone()
+    .json()
+    .catch(() => undefined);
+  return typeof body === "object" && body !== null && "message" in body ? body.message : undefined;
 }
 
 function withToken(headers: HeadersInit | undefined, token: string) {

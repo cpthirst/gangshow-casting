@@ -60,7 +60,7 @@ The creative team, such as the director and musical director, review casting dec
 - **FR9**: When an admin creates an account, they choose its role. Read-Only Team Member is the default, so a mistake gives the least access.
 - **FR10**: The Accounts page shows each account's role. An admin can change it with a single choice of the three roles, which replaces today's Make admin and Remove admin.
 - **FR11**: Changing a role asks the admin to confirm, saying what the person will be able to do.
-- **FR12**: A role change takes effect on every device within 5 minutes, without the person signing in again by hand. This matters most when someone moves to Read-Only Team Member, who must lose editing quickly. Until then the API keeps applying their old role. Their pages then catch up with the new one, and say so if a change is refused.
+- **FR12**: A role change takes effect on every device within 5 minutes. This matters most when someone moves to Read-Only Team Member, who must lose editing quickly. Until then the API keeps applying their old role. A role change signs the person out, so they sign back in to get the new one (amended 2026-10-18: the maintainer chose to keep the sign-out rather than have pages pick up the new role by themselves). A page that has a change refused as read-only says so and shows the read-only view.
 - **FR13**: Disabling an account or resetting its password also ends that account's access on every device within 5 minutes, tightening hosting FR12 from 1 hour.
 - **FR14**: There is always at least one enabled admin. An admin can't change their own role (hosting FR13).
 

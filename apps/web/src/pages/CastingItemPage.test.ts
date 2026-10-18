@@ -2209,4 +2209,30 @@ describe("An item's page for other roles", () => {
     expect(wrapper.find("section[aria-labelledby=notes-heading] textarea").exists()).toBe(true);
     expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
   });
+  it("shows the read-only view, saying the notes weren't saved, when the API refuses them as read-only", async () => {
+    // Made read-only while editing: this sign-in still says casting, but the API knows better.
+    await signInAs(["casting"]);
+    savedRunningOrderIs(show);
+    const theApi = fetch;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string, init?: RequestInit) =>
+        url.endsWith("/notes") && init?.method === "PUT"
+          ? new Response(JSON.stringify({ message: "You have read-only access." }), { status: 403 })
+          : theApi(url, init),
+      ),
+    );
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+    const notesSection = () => wrapper.get("section[aria-labelledby=notes-heading]");
+
+    await notesSection().get("textarea").setValue("Hat change");
+    await notesSection().get("form").trigger("submit");
+    await flushPromises();
+
+    const notice = wrapper.get("[data-test=read-only]");
+    expect(notice.text()).toBe("You have read-only access, so this wasn't saved.");
+    expect(notice.attributes("role")).toBe("alert");
+    expect(notesSection().find("textarea").exists()).toBe(false);
+    expect(wrapper.find("[data-test=add-role]").exists()).toBe(false);
+  });
 });

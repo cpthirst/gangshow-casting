@@ -145,14 +145,16 @@ describe("AppStack", () => {
       template.hasResourceProperties("AWS::Cognito::UserPool", { DeletionProtection: "ACTIVE" });
     });
 
-    it("gives the pages' client no secret, 1-hour tokens and a 1-day sign-in", () => {
+    it("gives the pages' client no secret, 5-minute tokens and a 1-day sign-in", () => {
       expect(clientNamed(synth().template, "WebClient")).toMatchObject({
         GenerateSecret: false,
         // No password sign-in through this client; only hosted sign-in (ADR 0018).
         ExplicitAuthFlows: ["ALLOW_REFRESH_TOKEN_AUTH"],
         PreventUserExistenceErrors: "ENABLED",
-        AccessTokenValidity: 60,
-        IdTokenValidity: 60,
+        // Cognito's shortest, so a role change, disable or reset bites within 5 minutes
+        // (team-roles FR12, FR13); pages renew them from the day's sign-in.
+        AccessTokenValidity: 5,
+        IdTokenValidity: 5,
         RefreshTokenValidity: 1440,
         TokenValidityUnits: { AccessToken: "minutes", IdToken: "minutes", RefreshToken: "minutes" },
       });
@@ -218,8 +220,8 @@ describe("AppStack", () => {
         AllowedOAuthFlowsUserPoolClient: false,
         PreventUserExistenceErrors: "ENABLED",
         // One sign-in per run, so its tokens last no longer than the shortest Cognito allows.
-        AccessTokenValidity: 60,
-        IdTokenValidity: 60,
+        AccessTokenValidity: 5,
+        IdTokenValidity: 5,
         RefreshTokenValidity: 60,
       });
       template.hasOutput("CheckClientId", {

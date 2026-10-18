@@ -468,7 +468,7 @@ describe("Accounts page", () => {
         await flushPromises();
 
         expect(confirm).toHaveBeenCalledWith(
-          "Disable sam? They'll be signed out on every device within the hour, and can't sign in until an admin enables them again.",
+          "Disable sam? They'll be signed out on every device within 5 minutes, and can't sign in until an admin enables them again.",
         );
         expect(changes(fetchMock)).toEqual([
           [

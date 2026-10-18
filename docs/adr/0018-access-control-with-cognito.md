@@ -1,6 +1,6 @@
 # 0018. Access control with Cognito: assigned usernames and an admin group
 
-- **Status**: Accepted
+- **Status**: Accepted. Amended by [ADR 0020](0020-team-roles-as-user-pool-groups.md): its groups, and access and ID tokens of 5 minutes (team-roles.E4.S1)
 - **Date**: 2026-10-17
 - **Deciders**: Nick Hirst
 
@@ -10,7 +10,7 @@ ADR 0010 requires an access-control decision before cast data is hosted. The hos
 - sign-in from the first deploy;
 - accounts created by admins with a username they choose, a temporary password, and no email or phone;
 - a new password at first sign-in and after a reset;
-- 1-day sign-in, with a disabled account cut off within 1 hour;
+- 1-day sign-in, with a disabled account cut off within 1 hour (now 5 minutes: ADR 0020);
 - an admin role for user management, deleting cast members and saving running orders;
 - local development with no sign-in.
 
@@ -39,7 +39,7 @@ We will use option 2:
   - A suppressed invitation returns no password, so our code generates every temporary password with a cryptographically secure generator that meets the pool's policy. It's shown once and never logged.
   - A repo script does the same for the first admin and lockout recovery (PRD FR14), using the maintainer's AWS credentials. It also creates the post-deploy check's accounts (one admin, one not) with permanent passwords.
   - The post-deploy check signs in through a separate check app client that allows only `ADMIN_USER_PASSWORD_AUTH`, which needs the maintainer's AWS credentials. The public app client used by the pages allows only the PKCE code flow, with "prevent user existence errors" turned on.
-- **Tokens**: access and ID tokens last 1 hour, and the refresh token lasts 1 day. Disable and reset revoke refresh tokens, so access ends within an hour.
+- **Tokens**: access and ID tokens last 1 hour, and the refresh token lasts 1 day. Disable and reset revoke refresh tokens, so access ends within an hour. (Now 5 minutes: see ADR 0020's "Later changes".)
 - **Sign-in screens**: Cognito's managed login pages, authorization-code flow with PKCE, handled in the SPA by `oidc-client-ts`. Tokens are kept in `localStorage` so sign-in survives closing the tab for the day. A strict CSP (ADR 0017) limits the XSS exposure that brings.
   - The managed login needs a Cognito prefix domain, and the app client's callback and sign-out URLs set to the CloudFront address. The client id, login domain and address reach the SPA build at deploy time.
   - Signing out calls Cognito's own logout endpoint as well as clearing tokens, because Cognito's session cookie would otherwise sign the person straight back in.

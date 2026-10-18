@@ -46,3 +46,11 @@ This amends ADR 0018's single `admin` group. Its other decisions stand.
   - Existing members can't change casting for up to an hour after the deploy.
   - Every route that changes data must not be a `GET`, which is already the API's convention.
 - **Revisit if**: a role needs some changes but not others, rather than all or nothing. That would need permissions per route, not one read-only rule.
+
+## Later changes
+
+Recorded as the team-roles stories were built, so this record stays true without rewriting the decision above.
+
+- **team-roles.E3.S1**: an admin gives an account exactly one role, which replaces the admin flag and the "loses admin joins `casting`" rule. Changing a role signs the account out everywhere.
+- **team-roles.E3.S2**: an admin chooses each new account's role, starting at read-only, instead of every new account joining `casting`.
+- **team-roles.E4.S1**: access and ID tokens last 5 minutes, Cognito's shortest, instead of ADR 0018's hour. The refresh token still lasts the day, and pages renew tokens from it. A role change, disable or password reset therefore ends the old access within 5 minutes. A role change keeps its sign-out (the maintainer's choice), so the person signs back in to get the new role.

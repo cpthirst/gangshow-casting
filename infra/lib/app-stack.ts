@@ -123,8 +123,10 @@ export class AppStack extends Stack {
       enableTokenRevocation: true,
       // Any key here makes CDK list only refresh tokens: no password sign-in on this client.
       authFlows: { userSrp: false },
-      accessTokenValidity: Duration.hours(1),
-      idTokenValidity: Duration.hours(1),
+      // Cognito's shortest, so a role change, disable or reset bites within 5 minutes
+      // (team-roles FR12, FR13). Pages renew them from the day's sign-in as they run out.
+      accessTokenValidity: Duration.minutes(5),
+      idTokenValidity: Duration.minutes(5),
       // The PRD's 1-day sign-in.
       refreshTokenValidity: Duration.days(1),
     });
@@ -135,9 +137,10 @@ export class AppStack extends Stack {
       preventUserExistenceErrors: true,
       disableOAuth: true,
       authFlows: { adminUserPassword: true },
-      // One sign-in per run: the shortest lifetimes Cognito allows, as a check account is an admin.
-      accessTokenValidity: Duration.hours(1),
-      idTokenValidity: Duration.hours(1),
+      // One sign-in per run, as a check account is an admin: Cognito's shortest token
+      // lifetimes, and an hour's refresh token, its shortest too.
+      accessTokenValidity: Duration.minutes(5),
+      idTokenValidity: Duration.minutes(5),
       refreshTokenValidity: Duration.hours(1),
     });
     // Admins manage accounts, delete cast members and save running orders (ADR 0018).

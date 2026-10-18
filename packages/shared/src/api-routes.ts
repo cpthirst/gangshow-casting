@@ -48,6 +48,9 @@ export function roleFrom(groups: readonly string[]): TeamRole {
   return "read-only";
 }
 
+/** The API's answer to a change from a read-only member, which pages recognise (team-roles FR12). */
+export const READ_ONLY_REFUSAL = "You have read-only access.";
+
 /** Reads change nothing, so every role may use them; every other route is a change. */
 export const isReadRoute = (key: string) => key.startsWith("GET ");
 

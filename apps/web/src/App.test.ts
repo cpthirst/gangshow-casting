@@ -375,7 +375,7 @@ describe("App shell", () => {
       loginUrl: "https://made-up.auth.eu-west-2.amazoncognito.com",
       appUrl: "https://d111111abcdef8.cloudfront.net/",
     };
-    // Signed in, with the hour-long token good for a while yet.
+    // Signed in, with the token good for a while yet.
     const sam = { accessToken: "sams-token", expiresAt: Date.now() + 3_600_000, groups: [] };
     const managerWith = (stored: typeof sam | null) =>
       ({

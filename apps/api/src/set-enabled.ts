@@ -8,7 +8,7 @@ import type { UserDirectory } from "./user-directory.ts";
 
 /**
  * PUT /api/accounts/{username}/enabled: turns an account's access off or on (hosting FR11).
- * Disabling also signs it out everywhere, ending its access within the hour (ADR 0018), and
+ * Disabling also signs it out everywhere, ending its access within 5 minutes (team-roles FR13), and
  * an admin can't disable themselves, so there's always an enabled admin (FR13).
  */
 export function createSetEnabled(directory: UserDirectory) {

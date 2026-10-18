@@ -17,7 +17,7 @@ export const resetWarning = (username: string) =>
 
 /** Asked before disabling, which ends the person's access everywhere (hosting FR12). */
 export const disableWarning = (username: string) =>
-  `Disable ${username}? They'll be signed out on every device within the hour, and can't sign in until an admin enables them again.`;
+  `Disable ${username}? They'll be signed out on every device within 5 minutes, and can't sign in until an admin enables them again.`;
 
 /** Each role by the name the team knows it by (team-roles FR4), in the order offered. */
 export const ROLE_NAMES: Record<TeamRole, string> = {
