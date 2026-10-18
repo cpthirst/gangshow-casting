@@ -252,7 +252,7 @@ describe("AppStack", () => {
       }
     });
 
-    it("lets only the accounts function manage the team's accounts, and only list and create them", () => {
+    it("lets only the accounts function manage the team's accounts, with just the actions it uses", () => {
       const { template } = synth();
 
       template.hasResourceProperties("AWS::Lambda::Function", {
@@ -274,7 +274,13 @@ describe("AppStack", () => {
           Action: [
             "cognito-idp:ListUsers",
             "cognito-idp:ListUsersInGroup",
+            "cognito-idp:AdminGetUser",
+            "cognito-idp:AdminListGroupsForUser",
             "cognito-idp:AdminCreateUser",
+            "cognito-idp:AdminSetUserPassword",
+            "cognito-idp:AdminEnableUser",
+            "cognito-idp:AdminDisableUser",
+            "cognito-idp:AdminUserGlobalSignOut",
           ],
           Resource: { "Fn::GetAtt": [expect.stringMatching(/^UserPool/), "Arn"] },
         }),

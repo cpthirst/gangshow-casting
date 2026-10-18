@@ -7,14 +7,21 @@ describe("adminOnlyRouteKeys", () => {
       "DELETE /api/productions/{productionId}/cast/{castId}",
       "GET /api/accounts",
       "POST /api/accounts",
+      "POST /api/accounts/{username}/password",
       "POST /api/productions/{productionId}/running-order/versions",
+      "PUT /api/accounts/{username}/enabled",
     ]);
   });
 });
 
 describe("accountRouteKeys", () => {
   it("lists the account routes, which are in the route list and all admin-only", () => {
-    expect([...accountRouteKeys].sort()).toEqual(["GET /api/accounts", "POST /api/accounts"]);
+    expect([...accountRouteKeys].sort()).toEqual([
+      "GET /api/accounts",
+      "POST /api/accounts",
+      "POST /api/accounts/{username}/password",
+      "PUT /api/accounts/{username}/enabled",
+    ]);
     for (const key of accountRouteKeys) {
       expect(routeKeys).toContain(key);
       expect(adminOnlyRouteKeys).toContain(key);

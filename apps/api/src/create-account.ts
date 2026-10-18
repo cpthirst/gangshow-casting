@@ -1,14 +1,8 @@
 import { type CreatedAccount, NewAccount } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import type { ApiEvent } from "./handler.ts";
-import { parseJson } from "./json.ts";
+import { jsonResponse, messageResponse, parseJson } from "./json.ts";
 import { type UserDirectory, UsernameTaken } from "./user-directory.ts";
-
-const message = (statusCode: number, text: string): APIGatewayProxyStructuredResultV2 => ({
-  statusCode,
-  headers: { "content-type": "application/json" },
-  body: JSON.stringify({ message: text }),
-});
 
 /**
  * POST /api/accounts: a new account with a temporary password, returned only here, for the
@@ -20,7 +14,7 @@ export function createCreateAccount(directory: UserDirectory, newPassword: () =>
     // Only the username comes from what an admin types; anything else wrong is a bad client.
     if (!request.success) {
       const usernameIssue = request.error.issues.find((issue) => issue.path[0] === "username");
-      return usernameIssue ? message(400, usernameIssue.message) : { statusCode: 400 };
+      return usernameIssue ? messageResponse(400, usernameIssue.message) : { statusCode: 400 };
     }
 
     const { username } = request.data;
@@ -28,17 +22,14 @@ export function createCreateAccount(directory: UserDirectory, newPassword: () =>
     try {
       await directory.create(username, temporaryPassword);
     } catch (error) {
-      if (error instanceof UsernameTaken) return message(409, "That username is already taken.");
+      if (error instanceof UsernameTaken)
+        return messageResponse(409, "That username is already taken.");
       throw error;
     }
     const created: CreatedAccount = {
       account: { username, admin: false, enabled: true },
       temporaryPassword,
     };
-    return {
-      statusCode: 201,
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(created),
-    };
+    return jsonResponse(201, created);
   };
 }

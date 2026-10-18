@@ -7,6 +7,7 @@ export interface SignedInUser {
   accessToken: string;
   /** When that token runs out, in milliseconds since 1970. */
   expiresAt: number;
+  username?: string;
   groups: string[];
   /** The page they asked for before going to sign in. */
   returnTo?: string;
@@ -67,6 +68,8 @@ export const signInNeeded = ref(false);
 export const isHosted = computed(() => session.value.kind === "hosted");
 export const isSignedIn = computed(() => isHosted.value && user.value !== null);
 export const isSignInUnavailable = computed(() => session.value.kind === "unavailable");
+/** Who's signed in; no one locally, where the app acts for an admin who is no account. */
+export const signedInUsername = computed(() => user.value?.username);
 // What to show, not what's allowed: the API checks the group for itself.
 export const isAdmin = computed(
   () => session.value.kind === "local" || (user.value?.groups.includes(ADMIN_GROUP) ?? false),

@@ -2,6 +2,7 @@ import type { AccountSummary, CreatedAccount } from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ACCOUNTS_PATH } from "../accounts.ts";
+import { signInAs } from "../sign-in.fixture.ts";
 import { useLocalSignIn } from "../sign-in.ts";
 import AccountsPage from "./AccountsPage.vue";
 
@@ -34,7 +35,9 @@ async function openPage() {
 
 type Page = Awaited<ReturnType<typeof openPage>>;
 const rows = (wrapper: Page) =>
-  wrapper.findAll("tbody tr").map((row) => row.findAll("td").map((cell) => cell.text()));
+  wrapper
+    .findAll("tbody tr")
+    .map((row) => row.findAll("td:not(.actions)").map((cell) => cell.text()));
 
 async function create(wrapper: Page, username: string) {
   await wrapper.get("[data-test=add-account]").trigger("click");
@@ -56,7 +59,7 @@ describe("Accounts page", () => {
 
     const wrapper = await openPage();
 
-    expect(wrapper.findAll("thead th").map((th) => th.text())).toEqual([
+    expect(wrapper.findAll("thead th:not(.actions)").map((th) => th.text())).toEqual([
       "Username",
       "Role",
       "Status",
@@ -85,6 +88,7 @@ describe("Accounts page", () => {
     const wrapper = await openPage();
 
     expect(wrapper.findAll("tbody td").map((cell) => cell.attributes("data-label"))).toEqual([
+      "Actions",
       "Username",
       "Role",
       "Status",
@@ -291,6 +295,268 @@ describe("Accounts page", () => {
       await create(wrapper, "jo");
 
       expect(wrapper.get(".form-error").text()).toBe("Only admins can add accounts.");
+    });
+  });
+
+  describe("changing an account", () => {
+    type Answer = () => Response;
+    /** The API: GET lists the accounts; other requests get the answer for "METHOD path". */
+    function serveChanges(accounts: AccountSummary[], answers: Record<string, Answer>) {
+      const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+        const answer = answers[`${init?.method ?? "GET"} ${url}`];
+        return answer ? answer() : json({ accounts });
+      });
+      vi.stubGlobal("fetch", fetchMock);
+      return fetchMock;
+    }
+    const changes = (fetchMock: ReturnType<typeof serveChanges>) =>
+      fetchMock.mock.calls.filter(([, init]) => init?.method !== undefined);
+    const button = (wrapper: Page, name: string) => wrapper.get(`button[aria-label="${name}"]`);
+    // stubGlobal, as on the Cast page: the outer afterEach unstubs it.
+    const confirmWith = (answer: boolean) => {
+      const confirm = vi.fn().mockReturnValue(answer);
+      vi.stubGlobal("confirm", confirm);
+      return confirm;
+    };
+
+    describe("resetting a password", () => {
+      const samReset: CreatedAccount = {
+        account: account("sam"),
+        temporaryPassword: "Made-up-temp-2",
+      };
+
+      it("shows the new temporary password once, saying they'll choose their own", async () => {
+        confirmWith(true);
+        serveChanges([account("sam")], {
+          "POST /api/accounts/sam/password": () => json(samReset),
+        });
+        const wrapper = await openPage();
+
+        await button(wrapper, "Reset password for sam").trigger("click");
+        await flushPromises();
+
+        const notice = wrapper.get("[data-test=created-account]");
+        expect(notice.get("[data-test=temporary-password]").text()).toBe("Made-up-temp-2");
+        expect(notice.text()).toContain("Pass this temporary password to sam");
+        expect(notice.text()).toContain("sam chooses a new password when they next sign in.");
+        expect(document.activeElement).toBe(notice.element);
+      });
+
+      it("tells screen readers, and keeps focus on the row once the password's passed on", async () => {
+        confirmWith(true);
+        serveChanges([account("sam")], {
+          "POST /api/accounts/sam/password": () => json(samReset),
+        });
+        const wrapper = await openPage();
+        await button(wrapper, "Reset password for sam").trigger("click");
+        await flushPromises();
+
+        await wrapper.get("[data-test=password-passed-on]").trigger("click");
+
+        expect(wrapper.get("[data-test=announcement]").text()).toBe("sam's password reset.");
+        expect(document.activeElement).toBe(button(wrapper, "Reset password for sam").element);
+      });
+
+      it("asks first, saying they'll be signed out everywhere, and does nothing if not", async () => {
+        const confirm = confirmWith(false);
+        const fetchMock = serveChanges([account("sam")], {});
+        const wrapper = await openPage();
+
+        await button(wrapper, "Reset password for sam").trigger("click");
+        await flushPromises();
+
+        expect(confirm).toHaveBeenCalledWith(
+          "Reset sam's password? They'll be signed out on every device, and need the new temporary password to sign in.",
+        );
+        expect(changes(fetchMock)).toEqual([]);
+      });
+
+      it("says when the password couldn't be reset", async () => {
+        confirmWith(true);
+        serveChanges([account("sam")], {
+          "POST /api/accounts/sam/password": () => json({}, 500),
+        });
+        const wrapper = await openPage();
+
+        await button(wrapper, "Reset password for sam").trigger("click");
+        await flushPromises();
+
+        expect(wrapper.get(".notice[role=alert]").text()).toBe(
+          "Couldn't reset sam's password. Try again.",
+        );
+      });
+    });
+
+    describe("disabling and enabling", () => {
+      it("asks first, then disables the account, sending enabled false", async () => {
+        const confirm = confirmWith(true);
+        const fetchMock = serveChanges([account("sam")], {
+          "PUT /api/accounts/sam/enabled": () => json(account("sam", { enabled: false })),
+        });
+        const wrapper = await openPage();
+
+        await button(wrapper, "Disable sam").trigger("click");
+        await flushPromises();
+
+        expect(confirm).toHaveBeenCalledWith(
+          "Disable sam? They'll be signed out on every device within the hour, and can't sign in until an admin enables them again.",
+        );
+        expect(changes(fetchMock)).toEqual([
+          [
+            "/api/accounts/sam/enabled",
+            {
+              method: "PUT",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ enabled: false }),
+            },
+          ],
+        ]);
+        expect(rows(wrapper)).toEqual([["sam", "Team member", "Disabled"]]);
+        expect(wrapper.get("[data-test=announcement]").text()).toBe("sam disabled.");
+      });
+
+      it("names each action in its tooltip", async () => {
+        serveChanges([account("sam"), account("lee", { enabled: false })], {});
+        const wrapper = await openPage();
+
+        expect(button(wrapper, "Reset password for sam").attributes("data-tooltip")).toBe(
+          "Reset password",
+        );
+        expect(button(wrapper, "Disable sam").attributes("data-tooltip")).toBe("Disable account");
+        expect(button(wrapper, "Enable lee").attributes("data-tooltip")).toBe("Enable account");
+      });
+
+      it("keeps focus in the row: on Enable once disabled, and on Disable once enabled", async () => {
+        confirmWith(true);
+        let enabled = true;
+        vi.stubGlobal(
+          "fetch",
+          vi.fn(async (_url: string, init?: RequestInit) => {
+            if (init?.method === "PUT") enabled = !enabled;
+            return init?.method === "PUT"
+              ? json(account("sam", { enabled }))
+              : json({ accounts: [account("sam")] });
+          }),
+        );
+        const wrapper = await openPage();
+
+        await button(wrapper, "Disable sam").trigger("click");
+        await flushPromises();
+        expect(document.activeElement).toBe(button(wrapper, "Enable sam").element);
+
+        await button(wrapper, "Enable sam").trigger("click");
+        await flushPromises();
+        expect(document.activeElement).toBe(button(wrapper, "Disable sam").element);
+      });
+
+      it("keeps focus on the row's button when the change fails", async () => {
+        confirmWith(true);
+        serveChanges([account("sam")], { "PUT /api/accounts/sam/enabled": () => json({}, 500) });
+        const wrapper = await openPage();
+
+        await button(wrapper, "Disable sam").trigger("click");
+        await flushPromises();
+
+        expect(document.activeElement).toBe(button(wrapper, "Disable sam").element);
+      });
+
+      it("won't offer to disable the signed-in admin's own account, saying why", async () => {
+        await signInAs(["admin"], "pat");
+        serveChanges([account("pat", { admin: true }), account("sam")], {});
+        const wrapper = await openPage();
+
+        const own = button(wrapper, "Disable pat");
+        expect(own.attributes("disabled")).toBeDefined();
+        expect(own.attributes("data-tooltip")).toBe("You can't disable your own account");
+        expect(button(wrapper, "Disable sam").attributes("disabled")).toBeUndefined();
+      });
+
+      it("leaves the account alone if the admin doesn't confirm", async () => {
+        confirmWith(false);
+        const fetchMock = serveChanges([account("sam")], {});
+        const wrapper = await openPage();
+
+        await button(wrapper, "Disable sam").trigger("click");
+        await flushPromises();
+
+        expect(changes(fetchMock)).toEqual([]);
+        expect(rows(wrapper)).toEqual([["sam", "Team member", "Enabled"]]);
+      });
+
+      it("enables a disabled account straight away", async () => {
+        const confirm = confirmWith(true);
+        serveChanges([account("sam", { enabled: false })], {
+          "PUT /api/accounts/sam/enabled": () => json(account("sam")),
+        });
+        const wrapper = await openPage();
+
+        await button(wrapper, "Enable sam").trigger("click");
+        await flushPromises();
+
+        expect(confirm).not.toHaveBeenCalled();
+        expect(rows(wrapper)).toEqual([["sam", "Team member", "Enabled"]]);
+        expect(wrapper.find('button[aria-label="Disable sam"]').exists()).toBe(true);
+      });
+
+      it("says an admin can't disable their own account", async () => {
+        confirmWith(true);
+        serveChanges([account("pat", { admin: true })], {
+          "PUT /api/accounts/pat/enabled": () =>
+            json({ message: "You can't disable your own account." }, 409),
+        });
+        const wrapper = await openPage();
+
+        await button(wrapper, "Disable pat").trigger("click");
+        await flushPromises();
+
+        expect(wrapper.get(".notice[role=alert]").text()).toBe(
+          "You can't disable your own account.",
+        );
+        expect(rows(wrapper)).toEqual([["pat", "Admin", "Enabled"]]);
+      });
+
+      it("says when the account couldn't be disabled", async () => {
+        confirmWith(true);
+        serveChanges([account("sam")], { "PUT /api/accounts/sam/enabled": () => json({}, 500) });
+        const wrapper = await openPage();
+
+        await button(wrapper, "Disable sam").trigger("click");
+        await flushPromises();
+
+        expect(wrapper.get(".notice[role=alert]").text()).toBe("Couldn't disable sam. Try again.");
+        expect(rows(wrapper)).toEqual([["sam", "Team member", "Enabled"]]);
+      });
+    });
+
+    it("shows the latest list when the account has gone", async () => {
+      confirmWith(true);
+      let accounts = [account("sam"), account("lee")];
+      const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+        if (init?.method !== "PUT") return json({ accounts });
+        accounts = [account("lee")];
+        return json({}, 404);
+      });
+      vi.stubGlobal("fetch", fetchMock);
+      const wrapper = await openPage();
+
+      await button(wrapper, "Disable sam").trigger("click");
+      await flushPromises();
+
+      expect(wrapper.get(".notice[role=alert]").text()).toBe(
+        "sam no longer has an account. Showing the latest list.",
+      );
+      expect(rows(wrapper)).toEqual([["lee", "Team member", "Enabled"]]);
+    });
+
+    it("says only admins can change accounts when the API refuses", async () => {
+      confirmWith(true);
+      serveChanges([account("sam")], { "PUT /api/accounts/sam/enabled": () => json({}, 403) });
+      const wrapper = await openPage();
+
+      await button(wrapper, "Disable sam").trigger("click");
+      await flushPromises();
+
+      expect(wrapper.get(".notice[role=alert]").text()).toBe("Only admins can change accounts.");
     });
   });
 });

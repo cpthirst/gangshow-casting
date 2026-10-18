@@ -33,13 +33,16 @@ export function cognitoUserDirectory(
   return {
     async find(username) {
       try {
-        const { Enabled } = await cognito.send(new AdminGetUserCommand(user(username)));
+        // The pool ignores case, so it answers with the username as it was created.
+        const { Username = username, Enabled } = await cognito.send(
+          new AdminGetUserCommand(user(username)),
+        );
         // The pool has only the admin group, so the first page holds every group.
         const { Groups = [] } = await cognito.send(
           new AdminListGroupsForUserCommand(user(username)),
         );
         const admin = Groups.some((group) => group.GroupName === ADMIN_GROUP);
-        return { username, enabled: Enabled === true, admin };
+        return { username: Username, enabled: Enabled === true, admin };
       } catch (error) {
         if (error instanceof UserNotFoundException) return undefined;
         throw error;

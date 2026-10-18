@@ -43,6 +43,13 @@ describe("the Cognito user directory", () => {
     expect(inputsOf(AdminGetUserCommand)).toEqual([{ UserPoolId: POOL, Username: "pat" }]);
   });
 
+  it("finds an account by any case of its username, answering with the pool's own", async () => {
+    cognito.on(AdminGetUserCommand).resolves({ Username: "sam", Enabled: true });
+    cognito.on(AdminListGroupsForUserCommand).resolves({ Groups: [] });
+
+    expect(await directory().find("SAM")).toEqual({ username: "sam", enabled: true, admin: false });
+  });
+
   it("finds nothing for a username the pool doesn't have", async () => {
     cognito
       .on(AdminGetUserCommand)

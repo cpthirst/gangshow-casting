@@ -7,6 +7,8 @@ export const routeKeys = [
   "GET /api/health",
   "GET /api/accounts",
   "POST /api/accounts",
+  "POST /api/accounts/{username}/password",
+  "PUT /api/accounts/{username}/enabled",
   "GET /api/productions/{productionId}/running-order",
   "POST /api/productions/{productionId}/running-order/versions",
   "GET /api/productions/{productionId}/cast",
@@ -33,6 +35,8 @@ export const ADMIN_GROUP = "admin";
 export const adminOnlyRouteKeys: readonly RouteKey[] = [
   "GET /api/accounts",
   "POST /api/accounts",
+  "POST /api/accounts/{username}/password",
+  "PUT /api/accounts/{username}/enabled",
   "DELETE /api/productions/{productionId}/cast/{castId}",
   "POST /api/productions/{productionId}/running-order/versions",
 ];
@@ -44,6 +48,8 @@ export const adminOnlyRouteKeys: readonly RouteKey[] = [
 export const accountRouteKeys = [
   "GET /api/accounts",
   "POST /api/accounts",
+  "POST /api/accounts/{username}/password",
+  "PUT /api/accounts/{username}/enabled",
 ] as const satisfies readonly RouteKey[];
 
 export type AccountRouteKey = (typeof accountRouteKeys)[number];

@@ -24,4 +24,16 @@ describe("the in-memory user directory", () => {
     await expect(directory.create("Sam", "Made-up-2")).rejects.toThrow(UsernameTaken);
     expect(accounts().map((account) => account.username)).toEqual(["sam"]);
   });
+
+  it("finds and changes an account whatever the case of its username, as the user pool does", async () => {
+    const { directory, accounts } = memoryUserDirectory();
+    await directory.create("sam", "Made-up-1");
+
+    await directory.setEnabled("SAM", false);
+
+    expect(await directory.find("Sam")).toEqual({ username: "sam", enabled: false, admin: false });
+    expect(accounts().map(({ username, enabled }) => ({ username, enabled }))).toEqual([
+      { username: "sam", enabled: false },
+    ]);
+  });
 });

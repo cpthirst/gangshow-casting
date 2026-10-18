@@ -23,13 +23,20 @@ export const AccountList = z.strictObject({ accounts: z.array(AccountSummary) })
 /** POST /api/accounts takes this; the API chooses the temporary password. */
 export const NewAccount = z.strictObject({ username: Username });
 
-/** POST /api/accounts' 201: the temporary password is shown to the admin once, never stored. */
+/**
+ * POST /api/accounts' 201, and POST /api/accounts/{username}/password's 200 (a reset): the
+ * temporary password is shown to the admin once, never stored.
+ */
 export const CreatedAccount = z.strictObject({
   account: AccountSummary,
   temporaryPassword: z.string().min(1),
 });
 
+/** PUT /api/accounts/{username}/enabled takes this; 200 returns the AccountSummary. */
+export const SetEnabled = z.strictObject({ enabled: z.boolean() });
+
 export type AccountSummary = z.infer<typeof AccountSummary>;
 export type AccountList = z.infer<typeof AccountList>;
 export type NewAccount = z.infer<typeof NewAccount>;
 export type CreatedAccount = z.infer<typeof CreatedAccount>;
+export type SetEnabled = z.infer<typeof SetEnabled>;

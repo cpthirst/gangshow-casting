@@ -62,7 +62,7 @@ test("the accounts list, its add form and a new account's password fit the scree
   // Both widths share one API, so each adds its own account: a long, unbroken username.
   const username = `extraordinarily-long-name-${testInfo.project.name.slice(-3)}`;
   await page.goto("/accounts");
-  await expect(page.getByRole("cell", { name: "robin" })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "robin", exact: true })).toBeVisible();
   await expectNoSidewaysScroll(page);
 
   await page.getByRole("button", { name: "Add account" }).click();
@@ -71,7 +71,7 @@ test("the accounts list, its add form and a new account's password fit the scree
 
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page.getByText(`Pass this temporary password to ${username}`)).toBeVisible();
-  await expect(page.getByRole("cell", { name: username })).toBeVisible();
+  await expect(page.getByRole("cell", { name: username, exact: true })).toBeVisible();
   await expectNoSidewaysScroll(page);
 });
 

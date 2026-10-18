@@ -31,19 +31,25 @@ type StoredAccount = Account & {
   signedOutEverywhere: number;
 };
 
-/** An in-memory directory. `accounts()` shows what a real pool would hold, for tests. */
+/**
+ * An in-memory directory. Usernames are case-insensitive, as in the user pool. `accounts()`
+ * shows what a real pool would hold, for tests.
+ */
 export function memoryUserDirectory(seed: StoredAccount[] = []) {
-  const stored = new Map(seed.map((account) => [account.username, { ...account }]));
+  const key = (username: string) => username.toLowerCase();
+  const stored = new Map(seed.map((account) => [key(account.username), { ...account }]));
   const existing = (username: string) => {
-    const account = stored.get(username);
+    const account = stored.get(key(username));
     if (!account) throw new Error(`No account named ${username}`);
     return account;
   };
 
   const directory: UserDirectory = {
     async find(username) {
-      const account = stored.get(username);
-      return account && { username, enabled: account.enabled, admin: account.admin };
+      const account = stored.get(key(username));
+      return (
+        account && { username: account.username, enabled: account.enabled, admin: account.admin }
+      );
     },
     async list() {
       return [...stored.values()].map(({ username, enabled, admin }) => ({
@@ -53,11 +59,8 @@ export function memoryUserDirectory(seed: StoredAccount[] = []) {
       }));
     },
     async create(username, temporaryPassword) {
-      const lower = username.toLowerCase();
-      if ([...stored.keys()].some((name) => name.toLowerCase() === lower)) {
-        throw new UsernameTaken(username);
-      }
-      stored.set(username, {
+      if (stored.has(key(username))) throw new UsernameTaken(username);
+      stored.set(key(username), {
         username,
         enabled: true,
         admin: false,

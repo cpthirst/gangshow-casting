@@ -2,7 +2,7 @@
 id: hosting.E4.S2
 title: Reset a password, or disable an account
 epic: E4
-status: ready
+status: done
 ---
 
 ## Story
@@ -58,3 +58,5 @@ Then the response is 403
 - ADR 0018: reset sets a temporary password then signs out everywhere. Disable does the same. "Within 1 hour" is the access-token lifetime: refresh tokens are revoked at once.
 - Disabling asks for confirmation first, in the app's usual style.
 - Out of scope: admin role changes (E4.S3), deleting accounts.
+- As built: the API knows who's asking from the access token's `username` claim. The dev server has no sign-in (ADR 0018), so locally the "can't disable yourself" check has no one to compare and doesn't apply.
+- As built: resetting a password also asks for confirmation, as it signs the person out on every device.

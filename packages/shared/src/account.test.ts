@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { AccountList, CreatedAccount, NewAccount, Username } from "./account.ts";
+import { AccountList, CreatedAccount, NewAccount, SetEnabled, Username } from "./account.ts";
 
 describe("Username", () => {
   it("accepts 1 to 32 letters, digits, dots, hyphens or underscores", () => {
@@ -52,5 +52,13 @@ describe("CreatedAccount", () => {
     };
 
     expect(CreatedAccount.parse(created)).toEqual(created);
+  });
+});
+
+describe("SetEnabled", () => {
+  it("takes whether the account is enabled, and nothing else", () => {
+    expect(SetEnabled.parse({ enabled: false })).toEqual({ enabled: false });
+    expect(SetEnabled.safeParse({ enabled: "no" }).success).toBe(false);
+    expect(SetEnabled.safeParse({ enabled: true, admin: true }).success).toBe(false);
   });
 });

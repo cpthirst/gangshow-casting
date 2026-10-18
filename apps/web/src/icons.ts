@@ -11,17 +11,24 @@ import {
   faCircleDot,
   faCircleInfo,
   faGripVertical,
+  faKey,
   faList,
   faPen,
   faSquareXmark,
   faTrashCan,
   faTriangleExclamation,
+  faUserCheck,
+  faUserSlash,
   faUsers,
 } from "@fortawesome/free-solid-svg-icons";
 
 export const icons = {
   edit: faPen,
   remove: faTrashCan,
+  // An account's actions on the Accounts page.
+  resetPassword: faKey,
+  disable: faUserSlash,
+  enable: faUserCheck,
   cast: faUsers,
   drag: faGripVertical,
   moveUp: faArrowUp,

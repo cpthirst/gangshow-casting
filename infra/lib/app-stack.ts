@@ -170,7 +170,13 @@ export class AppStack extends Stack {
       accountsFunction,
       "cognito-idp:ListUsers",
       "cognito-idp:ListUsersInGroup",
+      "cognito-idp:AdminGetUser",
+      "cognito-idp:AdminListGroupsForUser",
       "cognito-idp:AdminCreateUser",
+      "cognito-idp:AdminSetUserPassword",
+      "cognito-idp:AdminEnableUser",
+      "cognito-idp:AdminDisableUser",
+      "cognito-idp:AdminUserGlobalSignOut",
     );
     const accountsIntegration = new HttpLambdaIntegration("AccountsIntegration", accountsFunction);
 
