@@ -2,7 +2,7 @@
 id: team-roles.E2.S2
 title: Show the Cast list read-only
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story

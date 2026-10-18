@@ -21,6 +21,7 @@ import {
   spokenParts,
   timelineOf,
 } from "../overview.ts";
+import ReadOnlyNotice from "../ReadOnlyNotice.vue";
 import { ROLES_PATH, roleSizeLabel } from "../roles.ts";
 import { RUNNING_ORDER_PATH } from "../running-order.ts";
 import ShowTimeline from "../ShowTimeline.vue";
@@ -181,6 +182,7 @@ async function loadCast() {
       <FontAwesomeIcon :icon="icons.exportFile" />
     </button>
   </div>
+  <ReadOnlyNotice />
   <p>Everyone in the cast and how much they're cast.</p>
   <p class="visually-hidden" role="status" data-test="announcement">{{ exportAnnouncement }}</p>
   <p v-if="state.status === 'error'" role="alert">Couldn't load the cast.</p>

@@ -1,4 +1,4 @@
-import { ADMIN_GROUP, type SignInConfig } from "@app/shared";
+import { roleFrom, type SignInConfig, type TeamRole } from "@app/shared";
 import { computed, ref, shallowRef } from "vue";
 
 /** A signed-in person, as the sign-in library keeps them on this device. */
@@ -70,10 +70,14 @@ export const isSignedIn = computed(() => isHosted.value && user.value !== null);
 export const isSignInUnavailable = computed(() => session.value.kind === "unavailable");
 /** Who's signed in; no one locally, where the app acts for an admin who is no account. */
 export const signedInUsername = computed(() => user.value?.username);
-// What to show, not what's allowed: the API checks the group for itself.
-export const isAdmin = computed(
-  () => session.value.kind === "local" || (user.value?.groups.includes(ADMIN_GROUP) ?? false),
+// What to show, not what's allowed: the API checks the role for itself (ADR 0020). Locally
+// the app acts for an admin; otherwise no sign-in, like no known group, may only read.
+const role = computed<TeamRole>(() =>
+  session.value.kind === "local" ? "admin" : roleFrom(user.value?.groups ?? []),
 );
+export const isAdmin = computed(() => role.value === "admin");
+/** Read-Only Team Members see every page with no controls that change data (team-roles FR6). */
+export const isReadOnly = computed(() => role.value === "read-only");
 
 /** The app couldn't start its sign-in, so it can sign no one in. */
 export function signInUnavailable() {

@@ -9,7 +9,7 @@ import {
   UpdateRoleRequest,
 } from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory } from "vue-router";
 import App from "../App.vue";
 import { CAST_PATH } from "../cast.ts";
@@ -17,8 +17,12 @@ import { ITEM_NOTES_PATH } from "../item-notes.ts";
 import { ROLES_PATH } from "../roles.ts";
 import { createAppRouter } from "../router.ts";
 import { anItem, aRunningOrder } from "../running-order.fixture.ts";
+import { signInAs } from "../sign-in.fixture.ts";
+import { useLocalSignIn } from "../sign-in.ts";
 
 enableAutoUnmount(afterEach);
+// As on pnpm dev: everyone acts as an admin, unless a test signs someone in.
+beforeEach(useLocalSignIn);
 
 const show = aRunningOrder(
   [anItem("Opening Number"), anItem("Pirate Sketch")],
@@ -2122,5 +2126,87 @@ describe("Item notes", () => {
 
     expect(error(wrapper).text()).toBe("Couldn't save the notes. Try again.");
     expect(field(wrapper).element.value).toBe("Hat change");
+  });
+});
+
+describe("An item's page for a Read-Only Team Member", () => {
+  beforeEach(async () => {
+    await signInAs(["read-only"]);
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.body.innerHTML = "";
+    useLocalSignIn();
+  });
+
+  const hook = { ...aRole("pirate-sketch", "Captain Hook"), castMemberIds: [12] };
+  const notes = () => [{ itemId: "pirate-sketch", text: "Hat change", revision: 1 }];
+
+  it("shows the item's roles, who is cast and its notes", async () => {
+    savedRunningOrderIs(show, [hook], notes());
+
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    const card = wrapper.get("[data-test=role]");
+    expect(card.text()).toContain("Captain Hook");
+    expect(card.get("[data-test=size]").text()).toBe("Lead");
+    expect(card.get("[data-test=cast]").text()).toContain("Sam Example");
+    expect(wrapper.get("[data-test=notes-text]").text()).toBe("Hat change");
+    const steps = wrapper.findAll("main nav[aria-label='Item navigation'] a[rel]");
+    expect(steps.map((link) => link.attributes("href"))).toEqual([
+      "/casting/items/opening-number",
+      "/casting/items/campfire-song",
+    ]);
+  });
+
+  it("offers no role or notes editing", async () => {
+    savedRunningOrderIs(show, [hook], notes());
+
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    expect(wrapper.find("[data-test=add-role]").exists()).toBe(false);
+    expect(wrapper.find('button[aria-label="Edit Captain Hook"]').exists()).toBe(false);
+    expect(wrapper.find('button[aria-label="Remove Captain Hook"]').exists()).toBe(false);
+    const notesSection = wrapper.get("section[aria-labelledby=notes-heading]");
+    expect(notesSection.find("textarea").exists()).toBe(false);
+    expect(notesSection.find("button").exists()).toBe(false);
+  });
+
+  it("says plainly when an item has no roles or notes yet", async () => {
+    savedRunningOrderIs(show);
+
+    const { wrapper } = await openAppAt("/casting/items/campfire-song");
+
+    expect(wrapper.text()).toContain("No roles have been added yet.");
+    expect(wrapper.get("[data-test=notes-text]").text()).toBe("No notes yet.");
+    expect(wrapper.find("[data-test=add-role]").exists()).toBe(false);
+  });
+
+  it("says on the page that the access is read-only", async () => {
+    savedRunningOrderIs(show);
+
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    expect(wrapper.get("[data-test=read-only]").text()).toBe("You have read-only access");
+  });
+});
+
+describe("An item's page for other roles", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.body.innerHTML = "";
+    useLocalSignIn();
+  });
+
+  it.each([["casting"], ["admin"]])("keeps role and notes editing for %s", async (group) => {
+    await signInAs([group]);
+    savedRunningOrderIs(show, [aRole("pirate-sketch", "Captain Hook")]);
+
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    expect(wrapper.find("[data-test=add-role]").exists()).toBe(true);
+    expect(wrapper.find('button[aria-label="Edit Captain Hook"]').exists()).toBe(true);
+    expect(wrapper.find("section[aria-labelledby=notes-heading] textarea").exists()).toBe(true);
+    expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
   });
 });

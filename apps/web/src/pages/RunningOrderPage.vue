@@ -5,6 +5,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
 import { onBeforeRouteLeave } from "vue-router";
 import { icons } from "../icons.ts";
 import { ITEM_NOTES_PATH } from "../item-notes.ts";
+import ReadOnlyNotice from "../ReadOnlyNotice.vue";
 import { ROLES_PATH } from "../roles.ts";
 import {
   addItem,
@@ -25,7 +26,7 @@ import {
   stageLabel,
   updateOf,
 } from "../running-order.ts";
-import { apiFetch, isAdmin } from "../sign-in.ts";
+import { apiFetch, isAdmin, isReadOnly } from "../sign-in.ts";
 import { type RowDrop, vSortableRows } from "../sortable-rows.ts";
 import ItemEditor from "./ItemEditor.vue";
 
@@ -90,8 +91,14 @@ async function move(itemId: string, direction: Move) {
   refocus(itemId, direction);
 }
 
+// Read-only members see the order with nothing to change it (team-roles FR6): the Move
+// column, its drag handles and every control are left out. Casting Team Members keep them,
+// with saving, adding and removing still waiting for an admin (isAdmin).
+/** Eight columns of the show's details, plus Move for anyone who may change it. */
+const columns = computed(() => (isReadOnly.value ? 8 : 9));
+
 function drop({ itemId, toHalf, toIndex }: RowDrop) {
-  if (state.value.status !== "loaded" || busy.value) return;
+  if (state.value.status !== "loaded" || busy.value || isReadOnly.value) return;
   const { working } = state.value;
   const dropped = dropItem(working, itemId, toHalf, toIndex);
   if (!sameContent(dropped, working)) changeWorking(dropped, itemId);
@@ -310,24 +317,27 @@ function refocus(itemId: string, direction: Move) {
     <div class="draft-bar">
       <p class="version">Draft {{ loaded.saved.version }}</p>
       <p v-if="loaded.unsaved" class="unsaved" data-test="unsaved">Unsaved changes</p>
-      <p v-if="!isAdmin" class="admin-only" data-test="admin-only">{{ ONLY_ADMINS_CHANGE }}</p>
-      <button
-        type="button"
-        class="primary"
-        data-test="save"
-        :disabled="!loaded.unsaved || busy || !isAdmin"
-        @click="save"
-      >
-        Save as Draft {{ loaded.saved.version + 1 }}
-      </button>
-      <button
-        type="button"
-        data-test="reset"
-        :disabled="!loaded.unsaved || busy"
-        @click="reset"
-      >
-        Reset
-      </button>
+      <ReadOnlyNotice />
+      <template v-if="!isReadOnly">
+        <p v-if="!isAdmin" class="access-note" data-test="admin-only">{{ ONLY_ADMINS_CHANGE }}</p>
+        <button
+          type="button"
+          class="primary"
+          data-test="save"
+          :disabled="!loaded.unsaved || busy || !isAdmin"
+          @click="save"
+        >
+          Save as Draft {{ loaded.saved.version + 1 }}
+        </button>
+        <button
+          type="button"
+          data-test="reset"
+          :disabled="!loaded.unsaved || busy"
+          @click="reset"
+        >
+          Reset
+        </button>
+      </template>
     </div>
     <p v-if="notice" class="notice" role="alert">{{ notice }}</p>
     <p class="visually-hidden" role="status">{{ announcement }}</p>
@@ -345,7 +355,7 @@ function refocus(itemId: string, direction: Move) {
           <table class="running-order" role="table">
             <thead role="rowgroup">
               <tr role="row">
-                <th scope="col" role="columnheader">Move</th>
+                <th v-if="!isReadOnly" scope="col" role="columnheader">Move</th>
                 <th scope="col" role="columnheader">#</th>
                 <th scope="col" role="columnheader">Starts</th>
                 <th scope="col" role="columnheader">Item</th>
@@ -356,7 +366,7 @@ function refocus(itemId: string, direction: Move) {
                 <th scope="col" role="columnheader" class="minutes">Mins</th>
               </tr>
             </thead>
-            <tbody role="rowgroup" :data-half="i" v-sortable-rows="{ onDrop: drop, disabled: busy }">
+            <tbody role="rowgroup" :data-half="i" v-sortable-rows="{ onDrop: drop, disabled: busy || isReadOnly }">
               <tr
                 v-for="{ item, number, startsAt } in rows"
                 role="row"
@@ -365,11 +375,11 @@ function refocus(itemId: string, direction: Move) {
                 :class="{ 'not-printed': number === null }"
               >
                 <!-- While editing, the row holds the form instead of its cells. -->
-                <td v-if="editingId === item.id" colspan="9" class="editing" role="cell">
+                <td v-if="editingId === item.id" :colspan="columns" class="editing" role="cell">
                   <ItemEditor :item="item" @apply="applyEdit" @cancel="endEdit(item.id)" />
                 </td>
                 <template v-else>
-                  <td class="moves" data-label="Move" role="cell">
+                  <td v-if="!isReadOnly" class="moves" data-label="Move" role="cell">
                     <span
                       class="drag-handle"
                       role="img"
@@ -445,7 +455,7 @@ function refocus(itemId: string, direction: Move) {
                 </template>
               </tr>
               <tr v-if="addingTo === i" class="adding" role="row">
-                <td colspan="9" class="editing" role="cell">
+                <td :colspan="columns" class="editing" role="cell">
                   <ItemEditor
                     :item="newItem"
                     :adding-to="halfName(i)"
@@ -454,19 +464,28 @@ function refocus(itemId: string, direction: Move) {
                   />
                 </td>
               </tr>
-              <tr v-else-if="rows.length === 0" class="empty-half" role="row">
-                <td colspan="9" role="cell">No items. Drag one here, use “Move to {{ half.name.toLowerCase() }}” on an item, or use Add item below.</td>
+              <tr
+                v-else-if="rows.length === 0"
+                class="empty-half"
+                :class="{ 'read-only': isReadOnly }"
+                role="row"
+              >
+                <td :colspan="columns" role="cell">
+                  <template v-if="isReadOnly">No items yet</template>
+                  <template v-else>No items. Drag one here, use “Move to {{ half.name.toLowerCase() }}” on an item, or use Add item below.</template>
+                </td>
               </tr>
             </tbody>
             <tfoot role="rowgroup">
               <tr role="row">
-                <th scope="row" colspan="8" role="rowheader">{{ half.name }} total</th>
+                <th scope="row" :colspan="columns - 1" role="rowheader">{{ half.name }} total</th>
                 <td data-test="total" class="minutes" role="cell">{{ totalMinutes }} mins</td>
               </tr>
             </tfoot>
           </table>
         </div>
         <button
+          v-if="!isReadOnly"
           type="button"
           class="add-item"
           :data-add-to="i"

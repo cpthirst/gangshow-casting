@@ -2,7 +2,7 @@
 id: team-roles.E2.S3
 title: Show the Items pages and Overview read-only
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story

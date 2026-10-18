@@ -780,8 +780,8 @@ describe("Cast page", () => {
     describe("for someone signed in", () => {
       afterEach(useLocalSignIn);
 
-      it("offers delete only to admins, saying why to everyone else", async () => {
-        await signInAs([]);
+      it("offers delete only to admins, saying why to Casting Team Members", async () => {
+        await signInAs(["casting"]);
         api(cast());
         const wrapper = await openPage();
 
@@ -1064,6 +1064,107 @@ describe("Cast page", () => {
       expect(disabled("button[data-test=add-member]")).toBe(true);
       expect(disabled('button[aria-label="Edit Alex Sample"]')).toBe(true);
       expect(disabled('button[aria-label="Delete Alex Sample"]')).toBe(true);
+    });
+  });
+
+  describe("for a Read-Only Team Member", () => {
+    beforeEach(async () => {
+      await signInAs(["read-only"]);
+    });
+    afterEach(useLocalSignIn);
+
+    const cast = () =>
+      aCast([
+        aMember("Ava", "Example", { section: "explorers", singing: "Strong alto", acting: "Shy" }),
+        aMember("Sam", "Sample", { section: "scouts" }),
+      ]);
+
+    it("lists every cast member with their notes", async () => {
+      serve(cast());
+
+      const wrapper = await openPage();
+
+      expect(rows(wrapper)).toEqual([
+        ["Ava", "Example", "Explorers", "1st Somewhere", "Strong alto", "Shy"],
+        ["Sam", "Sample", "Scouts", "1st Somewhere", "", ""],
+      ]);
+    });
+
+    it("can still filter the cast", async () => {
+      serve(cast());
+      const wrapper = await openPage();
+
+      await wrapper.get("select[name=section]").setValue("explorers");
+
+      expect(names(wrapper)).toEqual(["Ava Example"]);
+      expect(wrapper.get("[data-test=count]").text()).toMatch(/1/);
+    });
+
+    it("shows no add, edit or delete controls, nor an Actions column", async () => {
+      serve(cast());
+
+      const wrapper = await openPage();
+
+      expect(wrapper.find("[data-test=add-member]").exists()).toBe(false);
+      expect(wrapper.find('button[aria-label^="Edit "]').exists()).toBe(false);
+      expect(wrapper.find('button[aria-label^="Delete "]').exists()).toBe(false);
+      expect(wrapper.findAll("th").map((th) => th.text())).not.toContain("Actions");
+      expect(wrapper.find("td.actions").exists()).toBe(false);
+    });
+
+    it("says why there's nothing to add when the cast is empty", async () => {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 404 })));
+
+      const wrapper = await openPage();
+
+      expect(wrapper.text()).toContain("No cast members yet.");
+      expect(wrapper.get("[data-test=read-only]").text()).toBe("You have read-only access");
+      expect(wrapper.find("[data-test=add-member]").exists()).toBe(false);
+    });
+
+    it("says on the page that the access is read-only", async () => {
+      serve(cast());
+
+      const wrapper = await openPage();
+
+      expect(wrapper.get("[data-test=read-only]").text()).toBe("You have read-only access");
+    });
+  });
+
+  describe("for other roles", () => {
+    afterEach(useLocalSignIn);
+
+    async function openAs(group: string) {
+      await signInAs([group]);
+      serve(aCast([aMember("Ava", "Example")]));
+      return openPage();
+    }
+
+    it("keeps today's controls for a Casting Team Member, Delete disabled with its reason", async () => {
+      const wrapper = await openAs("casting");
+
+      expect(wrapper.find("[data-test=add-member]").exists()).toBe(true);
+      expect(wrapper.find('button[aria-label="Edit Ava Example"]').exists()).toBe(true);
+      const remove = wrapper.get('button[aria-label="Delete Ava Example"]');
+      expect(remove.attributes("disabled")).toBeDefined();
+      expect(remove.attributes("data-tooltip")).toBe("Only admins can delete cast members");
+      // Said on the page too: phones don't show tooltips.
+      expect(wrapper.get(".access-note[data-test=admin-only]").text()).toBe(
+        "Only admins can delete cast members",
+      );
+      expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
+    });
+
+    it("keeps today's controls for an Admin, Delete included", async () => {
+      const wrapper = await openAs("admin");
+
+      expect(wrapper.find("[data-test=add-member]").exists()).toBe(true);
+      expect(wrapper.find('button[aria-label="Edit Ava Example"]').exists()).toBe(true);
+      expect(
+        wrapper.get('button[aria-label="Delete Ava Example"]').attributes("disabled"),
+      ).toBeUndefined();
+      expect(wrapper.find("[data-test=admin-only]").exists()).toBe(false);
+      expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
     });
   });
 });

@@ -1,6 +1,6 @@
 import type { CastMember, ItemNote, Role, RunningOrder } from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount, type VueWrapper } from "@vue/test-utils";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory } from "vue-router";
 import { CAST_PATH } from "../cast.ts";
 import { ITEM_NOTES_PATH } from "../item-notes.ts";
@@ -8,9 +8,13 @@ import { ROLES_PATH } from "../roles.ts";
 import { createAppRouter } from "../router.ts";
 import { anItem, aRunningOrder } from "../running-order.fixture.ts";
 import { RUNNING_ORDER_PATH } from "../running-order.ts";
+import { signInAs } from "../sign-in.fixture.ts";
+import { useLocalSignIn } from "../sign-in.ts";
 import CastingItemsPage from "./CastingItemsPage.vue";
 
 enableAutoUnmount(afterEach);
+// As on pnpm dev: everyone acts as an admin, unless a test signs someone in.
+beforeEach(useLocalSignIn);
 
 /** A stand-in API: the saved running order, the production's roles and its cast (none by
  *  default). */
@@ -502,4 +506,54 @@ describe("Notes on the Items list", () => {
     expect(titlesIn(wrapper, "First half")).toEqual(["Opening Number", "Pirate Sketch"]);
     expect(wrapper.get("[role=alert]").text()).toBe("Couldn't load the notes.");
   });
+});
+
+describe("The Items list for a Read-Only Team Member", () => {
+  beforeEach(async () => {
+    await signInAs(["read-only"]);
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    useLocalSignIn();
+  });
+
+  it("lists every item, each with a View link to its page", async () => {
+    savedRunningOrderIs(aRunningOrder([anItem("Pirate Panic"), anItem("Dance One")]));
+
+    const wrapper = await openItemsPage();
+
+    expect(titlesIn(wrapper, "First half")).toEqual(["Pirate Panic", "Dance One"]);
+    const link = wrapper.get('a[aria-label="View Pirate Panic"]');
+    expect(link.attributes("href")).toBe("/casting/items/pirate-panic");
+    expect(link.attributes("data-tooltip")).toBe("View this item");
+    expect(wrapper.find('a[aria-label^="Cast "]').exists()).toBe(false);
+  });
+
+  it("says on the page that the access is read-only", async () => {
+    savedRunningOrderIs(aRunningOrder([anItem("Pirate Panic")]));
+
+    const wrapper = await openItemsPage();
+
+    expect(wrapper.get("[data-test=read-only]").text()).toBe("You have read-only access");
+  });
+});
+
+describe("The Items list for other roles", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    useLocalSignIn();
+  });
+
+  it.each([["casting"], ["admin"]])(
+    "keeps the Cast link for %s, with no read-only line",
+    async (group) => {
+      await signInAs([group]);
+      savedRunningOrderIs(aRunningOrder([anItem("Pirate Panic")]));
+
+      const wrapper = await openItemsPage();
+
+      expect(wrapper.find('a[aria-label="Cast Pirate Panic"]').exists()).toBe(true);
+      expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
+    },
+  );
 });

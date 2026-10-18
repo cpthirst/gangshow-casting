@@ -236,6 +236,15 @@ main a {
   cursor: not-allowed;
 }
 
+/* Why someone can't do something here: "You have read-only access", "Only admins can …".
+   The same look on every page, and visible text rather than a tooltip, so it shows on phones. */
+.access-note {
+  margin: 0 0 1rem;
+  padding: 0.25rem 0.75rem;
+  border-left: 4px solid var(--red-darker);
+  font-weight: 700;
+}
+
 /* Text as well as colour, so it doesn't rely on colour alone. */
 .unsaved {
   padding: 0.125rem 0.75rem;
@@ -532,6 +541,12 @@ main a {
   font-style: italic;
 }
 
+/* Nothing can be dropped in for a Read-Only Team Member, so it isn't drawn as a target. */
+.running-order .empty-half.read-only td {
+  padding: 0.75rem;
+  border: none;
+}
+
 /* SortableJS's placeholder while dragging. */
 .running-order .sortable-ghost {
   background: var(--surface);
@@ -663,6 +678,12 @@ main a {
   font: inherit;
 }
 
+/* A Read-Only Team Member's view of the notes: their own line breaks, and long words wrap. */
+.item-notes .notes-text {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
 .item-editor [aria-invalid="true"] {
   border: 2px solid var(--red-darker);
 }
@@ -784,6 +805,10 @@ main a {
 
 .cast-actions {
   margin: 0 0 1rem;
+}
+
+.cast-actions .access-note {
+  margin: 0.75rem 0 0;
 }
 
 .cast-actions button {

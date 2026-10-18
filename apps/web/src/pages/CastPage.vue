@@ -14,8 +14,9 @@ import {
   sortCast,
 } from "../cast.ts";
 import { icons } from "../icons.ts";
+import ReadOnlyNotice from "../ReadOnlyNotice.vue";
 import { ROLES_PATH } from "../roles.ts";
-import { apiFetch, isAdmin } from "../sign-in.ts";
+import { apiFetch, isAdmin, isReadOnly } from "../sign-in.ts";
 import CastMemberForm from "./CastMemberForm.vue";
 
 type State =
@@ -267,12 +268,14 @@ onMounted(load);
   <h1>Cast</h1>
   <!-- Outside the state switch: a conflict can leave the list empty, and it still needs explaining. -->
   <p v-if="notice" class="notice" role="alert">{{ notice }}</p>
+  <!-- Above the states, so it explains an empty cast too. -->
+  <ReadOnlyNotice />
   <p v-if="state.status === 'loading'">Loading…</p>
   <p v-else-if="state.status === 'empty'">No cast members yet.</p>
   <p v-else-if="state.status === 'error'" role="alert">Couldn't load the cast list.</p>
   <template v-else>
     <p class="visually-hidden" role="status" data-test="announcement">{{ announcement }}</p>
-    <div class="cast-actions">
+    <div v-if="!isReadOnly" class="cast-actions">
       <button
         ref="addButton"
         type="button"
@@ -283,6 +286,8 @@ onMounted(load);
       >
         Add cast member
       </button>
+      <!-- Delete's tooltip says so too, but phones don't show tooltips. -->
+      <p v-if="!isAdmin" class="access-note" data-test="admin-only">{{ ONLY_ADMINS_DELETE }}</p>
     </div>
     <CastMemberForm
       v-if="adding"
@@ -345,7 +350,7 @@ onMounted(load);
         <thead>
           <tr>
             <!-- Icons first, as on the Running order and Items pages. -->
-            <th scope="col" class="actions">Actions</th>
+            <th v-if="!isReadOnly" scope="col" class="actions">Actions</th>
             <th scope="col">First name</th>
             <th scope="col">Last name</th>
             <th scope="col">Section</th>
@@ -357,7 +362,7 @@ onMounted(load);
         <tbody>
           <tr v-for="member in shown" :key="member.id" :data-member-id="member.id">
             <!-- data-label names each cell when small screens show rows as cards. -->
-            <td class="actions row-icons" data-label="Actions">
+            <td v-if="!isReadOnly" class="actions row-icons" data-label="Actions">
               <button
                 type="button"
                 class="icon-button"
