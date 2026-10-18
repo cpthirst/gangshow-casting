@@ -945,9 +945,9 @@ describe("Casting grid on the Overview", () => {
 
     const heads = wrapper.findAll("thead th").map((head) => head.text());
     expect(heads.slice(3)).toEqual([
-      "1 · Opening Number (First half)",
-      "2 · Pirate Sketch (First half)",
-      "1 · Dance One (Second half)",
+      "1.1 · Opening Number",
+      "1.2 · Pirate Sketch",
+      "2.1 · Dance One",
     ]);
   });
 
@@ -1064,13 +1064,13 @@ describe("Casting grid on the Overview", () => {
 
     const heads = wrapper.findAll("thead th").map((head) => head.text());
     expect(heads.slice(3)).toEqual([
-      "1 · One (First half)",
-      "2 · Two (First half)",
-      "3 · Three (First half)",
-      "1 · Four (Second half)",
-      "2 · Five (Second half)",
-      "3 · Six (Second half)",
-      "4 · Finale (Second half)",
+      "1.1 · One",
+      "1.2 · Two",
+      "1.3 · Three",
+      "2.1 · Four",
+      "2.2 · Five",
+      "2.3 · Six",
+      "2.4 · Finale",
     ]);
   });
 
@@ -1085,11 +1085,13 @@ describe("Casting grid on the Overview", () => {
     const wrapper = await openGrid();
 
     const heads = wrapper.findAll("thead th").map((head) => head.text());
-    expect(heads.slice(3)).toEqual([
-      "1 · Opening Number (First half)",
-      "Entr'acte (First half, not in printed programme)",
-      "1 · Dance One (Second half)",
-    ]);
+    expect(heads.slice(3)).toEqual(["1.1 · Opening Number", "Entr'acte", "2.1 · Dance One"]);
+    // Italic red, not words, on screen; a screen reader is still told.
+    const entracte = wrapper.findAll("thead th")[4];
+    expect(entracte?.classes()).toContain("grid-unprinted");
+    expect(entracte?.attributes("aria-label")).toBe("Entr'acte, not in printed programme");
+    expect(entracte?.attributes("title")).toBeUndefined();
+    expect(wrapper.findAll("thead th")[3]?.classes()).not.toContain("grid-unprinted");
   });
 
   it("cuts a title over 15 characters to 15 and '...', keeping the full one on hover", async () => {
@@ -1106,14 +1108,18 @@ describe("Casting grid on the Overview", () => {
 
     const heads = wrapper.findAll("thead th").slice(3);
     expect(heads.map((head) => head.text())).toEqual([
-      "1 · Fifteen Letters... (First half)",
-      "2 · Exactly 15 char (First half)",
-      "3 · Short (First half)",
-      "The Grand Final... (First half, not in printed programme)",
+      "1.1 · Fifteen Letters...",
+      "1.2 · Exactly 15 char",
+      "1.3 · Short",
+      "The Grand Final...",
     ]);
     // The whole name is still there for hover and for screen readers.
-    expect(heads[0]?.attributes("title")).toBe("1 · Fifteen Letters! (First half)");
-    expect(heads[0]?.attributes("aria-label")).toBe("1 · Fifteen Letters! (First half)");
+    expect(heads[0]?.attributes("title")).toBe("1.1 · Fifteen Letters!");
+    expect(heads[0]?.attributes("aria-label")).toBe("1.1 · Fifteen Letters!");
+    expect(heads[3]?.attributes("title")).toBe("The Grand Finale of the Evening");
+    expect(heads[3]?.attributes("aria-label")).toBe(
+      "The Grand Finale of the Evening, not in printed programme",
+    );
     expect(heads[1]?.attributes("title")).toBeUndefined();
     expect(heads[2]?.attributes("title")).toBeUndefined();
   });

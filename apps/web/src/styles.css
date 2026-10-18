@@ -1472,6 +1472,12 @@ main a {
   overflow-wrap: anywhere;
 }
 
+/* An item that isn't in the printed programme: italic red, as the team marks it. */
+.casting-grid .grid-unprinted {
+  color: var(--red-darker);
+  font-style: italic;
+}
+
 /* The corner cells sit above both the other headings and the names. */
 .casting-grid thead .grid-pinned {
   z-index: 3;
