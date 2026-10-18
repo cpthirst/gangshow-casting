@@ -16,7 +16,10 @@ export const exportRequestOf = (
   columns: GridColumn[],
   rows: GridRow[],
 ): CastingGridExportRequest => ({
-  items: columns.map(fullGridHeading),
+  items: columns.map((column) => ({
+    heading: fullGridHeading(column),
+    printed: column.number !== null,
+  })),
   rows: rows.map(({ firstName, lastName, section, slots }) => ({
     firstName,
     lastName,

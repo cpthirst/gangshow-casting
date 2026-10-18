@@ -182,7 +182,7 @@ describe("Lambda entry point", () => {
     const exportGrid = (groups?: string) =>
       signedIn("POST", "/api/productions/2027/casting-grid/export", groups, {
         body: JSON.stringify({
-          items: ["1.1 · Opening Number"],
+          items: [{ heading: "1.1 · Opening Number", printed: true }],
           rows: [{ firstName: "Sam", lastName: "Example", section: "Scouts", cells: ["L"] }],
         }),
       });

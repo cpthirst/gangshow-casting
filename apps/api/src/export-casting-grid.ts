@@ -1,4 +1,10 @@
-import { CastingGridExportRequest, ProductionId } from "@app/shared";
+import {
+  CastingGridExportRequest,
+  gridLetterColours,
+  gridTextColour,
+  ProductionId,
+  unprintedHeadingColour,
+} from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import writeExcelFile from "write-excel-file/node";
 import type { ApiEvent } from "./handler.ts";
@@ -6,20 +12,38 @@ import { parseJson } from "./json.ts";
 
 const XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
-/** The grid as sheet rows: a bold heading row, then a row per person. Text goes in as text,
- *  so a name that looks like a formula stays a name. */
+const bold = (value: string) => ({ value, fontWeight: "bold" as const });
+
+/** The grid as sheet rows: a bold heading row (an item left out of the printed programme in
+ *  red italics), then a row per person with each role letter on its dot's fill. Text goes in
+ *  as text, so a name that looks like a formula stays a name. */
 function sheetOf({ items, rows }: CastingGridExportRequest) {
-  const heading = ["First name", "Last name", "Section", ...items].map((value) => ({
-    value,
-    fontWeight: "bold" as const,
-  }));
+  const heading = [
+    bold("First name"),
+    bold("Last name"),
+    bold("Section"),
+    ...items.map(({ heading, printed }) =>
+      printed
+        ? bold(heading)
+        : { ...bold(heading), fontStyle: "italic" as const, textColor: unprintedHeadingColour },
+    ),
+  ];
   return [
     heading,
     ...rows.map(({ firstName, lastName, section, cells }) => [
       firstName,
       lastName,
       section,
-      ...cells,
+      ...cells.map((letter) =>
+        letter === null
+          ? null
+          : {
+              value: letter,
+              backgroundColor: gridLetterColours[letter],
+              textColor: gridTextColour,
+              align: "center" as const,
+            },
+      ),
     ]),
   ];
 }

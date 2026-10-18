@@ -1419,7 +1419,11 @@ describe("Excel export from the grid", () => {
     expect(exportRequests).toHaveLength(1);
     expect(exportRequests[0]?.init?.method).toBe("POST");
     expect(JSON.parse(String(exportRequests[0]?.init?.body))).toEqual({
-      items: ["1.1 · Opening Number", "1.2 · The Grand Finale of the Evening", "2.1 · Dance One"],
+      items: [
+        { heading: "1.1 · Opening Number", printed: true },
+        { heading: "1.2 · The Grand Finale of the Evening", printed: true },
+        { heading: "2.1 · Dance One", printed: true },
+      ],
       rows: [
         { firstName: "Sam", lastName: "Example", section: "Scouts", cells: ["L", null, "C"] },
         { firstName: "Alex", lastName: "Sample", section: "Explorers", cells: [null, "E", null] },

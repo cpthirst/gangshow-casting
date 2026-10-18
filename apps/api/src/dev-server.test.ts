@@ -45,7 +45,7 @@ describe("dev server", () => {
 
   it("serves the casting grid export as the bytes of an Excel file, not base64 text", async () => {
     const grid = {
-      items: ["1.1 · Opening Number"],
+      items: [{ heading: "1.1 · Opening Number", printed: true }],
       rows: [{ firstName: "Sam", lastName: "Example", section: "Scouts", cells: ["L"] }],
     };
 

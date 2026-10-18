@@ -2,7 +2,7 @@
 id: casting-overview-grid.E3.S3
 title: Colour the exported cells like the grid
 epic: E3
-status: ready
+status: done
 ---
 
 ## Story
@@ -36,9 +36,14 @@ Given any filled cell
 When I look at its letter
 Then the letter's colour against the fill meets 4.5:1 contrast
 
+### AC6: Unprinted items keep their red italics
+Given "Entr'acte" is not in the printed programme
+When I export the grid
+Then its heading in the file is bold italic in the grid's dark red, and printed headings are not italic
+
 ## Notes
 
 - FRs: FR13
 - Depends on: casting-overview-grid.E3.S2
-- Take colours from the same place the grid gets them so the two cannot drift apart.
+- The colours live in `packages/shared` (`gridLetterColours`, `unprintedHeadingColour`) for the server; a web test (`grid-colours.test.ts`) reads `styles.css` and fails if the screen's colours ever differ from them. The request now carries `{ heading, printed }` per item so the file can show unprinted items as the grid does.
 - Out of scope: any other formatting or a legend sheet.
