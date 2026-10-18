@@ -2,7 +2,7 @@
 id: casting-overview-grid.E3.S1
 title: Record how the Excel export is built and who may use it
 epic: E3
-status: ready
+status: done
 ---
 
 ## Story
@@ -32,12 +32,13 @@ Then it records the effect on the API bundle and on the hosting model (ADR 0017)
 
 ### AC4: The docs point to it
 Given the new ADR
-When the ADR index and the PRD are read
-Then both link to it
+When the PRD and this story are read
+Then both link to it (the repo has no ADR index to update)
 
 ## Notes
 
 - FRs: none (non-functional: security and safeguarding)
 - Depends on: none
 - Check the library works in a Lambda-shaped handler, runs without outside network calls, and does not trip `apps/web/src/no-third-party.test.ts`.
+- The decision is [ADR 0019](../../../../../adr/0019-server-built-excel-export-for-admins.md), status Proposed until the user accepts it.
 - Out of scope: building the export (E3.S2).
