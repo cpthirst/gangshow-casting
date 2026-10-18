@@ -56,7 +56,13 @@ body {
   min-height: 100vh;
 }
 
+/* Exactly one screen tall and stays put, so Sign out at its foot is always in view, however
+   long the page. Scrolls itself only if the screen is too short for the menu. */
 .sidebar {
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   background: var(--red-deep);
@@ -1503,9 +1509,10 @@ main a {
     grid-template-rows: auto 1fr;
   }
 
+  /* As tall as its contents, and not clipping the menu that drops down below it. */
   .sidebar {
-    position: sticky;
-    top: 0;
+    height: auto;
+    overflow: visible;
     z-index: 5;
     flex-flow: row wrap;
     align-items: center;
