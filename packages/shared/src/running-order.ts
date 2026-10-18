@@ -36,13 +36,24 @@ export const RunningOrder = z.object({
 
 export type Stage = z.infer<typeof Stage>;
 export type RunningOrderItem = z.infer<typeof RunningOrderItem>;
+export type NewRunningOrderItem = z.infer<typeof NewRunningOrderItem>;
+/** An item as a change carries it: saved already (with an id) or new. */
+export type ChangeItem = RunningOrderItem | NewRunningOrderItem;
 export type RunningOrder = z.infer<typeof RunningOrder>;
 
-const HalfItems = <Id extends string>(id: Id) =>
-  z.object({ id: z.literal(id), items: z.array(RunningOrderItem).max(100) });
+/** An item added in a change. It has no id yet: the server gives it one when it saves.
+ *  Strict, so an item with a bad id can't pass as a new one. */
+export const NewRunningOrderItem = z.strictObject(RunningOrderItem.omit({ id: true }).shape);
 
-/** Every item, in its new place and with its (possibly edited) details. The server checks
- *  it's the same set of items as the latest version (no item lost, duplicated or invented). */
+const HalfItems = <Id extends string>(id: Id) =>
+  z.object({
+    id: z.literal(id),
+    items: z.array(z.union([RunningOrderItem, NewRunningOrderItem])).max(100),
+  });
+
+/** Every item the show will have, in its new place and with its (possibly edited) details,
+ *  and the items added (no id yet). The server checks every item of the latest version is
+ *  either here once or removed, and nothing else was invented. */
 export const UpdateChange = z.object({
   type: z.literal("update"),
   halves: z.tuple([HalfItems("first-half"), HalfItems("second-half")]),

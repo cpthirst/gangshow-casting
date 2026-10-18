@@ -170,6 +170,30 @@ describe("Lambda entry point", () => {
       expect((await cast.list("2027"))?.members).toEqual([alex]);
     });
 
+    it("refuses a non-admin's draft that adds or removes an item, keeping the latest", async () => {
+      const { api, runningOrders } = setUp();
+      const { id: _id, ...encore } = { ...aRunningOrder(4).halves[0].items[0], title: "Encore" };
+      const removeAll = {
+        type: "update",
+        halves: aRunningOrder(4).halves.map(({ id }) => ({ id, items: [] })),
+      };
+      const addEncore = {
+        type: "update",
+        halves: aRunningOrder(4).halves.map(({ id, items }) => ({ id, items: [...items, encore] })),
+      };
+
+      for (const change of [removeAll, addEncore]) {
+        const res = await api(
+          signedIn("POST", "/api/productions/2027/running-order/versions", "[crew]", {
+            body: JSON.stringify({ baseVersion: 4, change }),
+          }),
+        );
+
+        expect(res.statusCode).toBe(403);
+      }
+      expect((await runningOrders.latest("2027"))?.version).toBe(4);
+    });
+
     it("refuses a non-admin's new running-order version, keeping the latest", async () => {
       const { api, runningOrders } = setUp();
 

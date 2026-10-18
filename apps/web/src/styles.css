@@ -764,6 +764,24 @@ main a {
   cursor: not-allowed;
 }
 
+/* Under each half: outlined like Reset, so it doesn't compete with Save. */
+.add-item {
+  margin: 0.75rem 0 0;
+  padding: 0.5rem 1rem;
+  border: 2px solid var(--text);
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.add-item:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .cast-actions {
   margin: 0 0 1rem;
 }

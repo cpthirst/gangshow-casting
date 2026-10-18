@@ -1,4 +1,11 @@
-import { type RunningOrder, RunningOrderItem, type Stage, type UpdateChange } from "@app/shared";
+import {
+  type ItemNoteList,
+  type RoleList,
+  type RunningOrder,
+  RunningOrderItem,
+  type Stage,
+  type UpdateChange,
+} from "@app/shared";
 
 // Only one production for now (see docs/product/running-order/prd.md).
 const PRODUCTION_ID = "2027";
@@ -118,15 +125,91 @@ export function dropItem(
   };
 }
 
-/** The change that saves this order: every item, in place, with its details. */
+// An added item's id until it's saved, when the server gives it a real one. The colon
+// keeps it apart from any saved id.
+const UNSAVED_ID = "unsaved:";
+let unsavedCount = 0;
+
+/** A blank item to add, with an id that marks it as not saved yet. */
+export const aNewItem = (): RunningOrderItem => ({
+  id: `${UNSAVED_ID}${++unsavedCount}`,
+  title: "",
+  cast: "",
+  stage: [],
+  leads: "",
+  comments: "",
+  minutes: null,
+  printed: true,
+});
+
+/** True for an item added since the last save. */
+export const isUnsaved = (itemId: string) => itemId.startsWith(UNSAVED_ID);
+
+/** The order with an item added to the end of a half (0 or 1). */
+export function addItem(order: RunningOrder, toHalf: 0 | 1, item: RunningOrderItem): RunningOrder {
+  const [first, second] = order.halves;
+  return {
+    ...order,
+    halves:
+      toHalf === 0
+        ? [{ ...first, items: [...first.items, item] }, second]
+        : [first, { ...second, items: [...second.items, item] }],
+  };
+}
+
+/** The order without one item. */
+export function removeItem(order: RunningOrder, itemId: string): RunningOrder {
+  const without = (items: RunningOrderItem[]) => items.filter((item) => item.id !== itemId);
+  return {
+    ...order,
+    halves: [
+      { ...order.halves[0], items: without(order.halves[0].items) },
+      { ...order.halves[1], items: without(order.halves[1].items) },
+    ],
+  };
+}
+
+/** The change that saves this order: every item, in place, with its details. Added items go
+ *  without an id: the server gives them one. */
 export function updateOf(order: RunningOrder): UpdateChange {
+  const sent = (items: RunningOrderItem[]) =>
+    items.map(({ id, ...details }) => (isUnsaved(id) ? details : { id, ...details }));
   return {
     type: "update",
     halves: [
-      { id: "first-half", items: order.halves[0].items },
-      { id: "second-half", items: order.halves[1].items },
+      { id: "first-half", items: sent(order.halves[0].items) },
+      { id: "second-half", items: sent(order.halves[1].items) },
     ],
   };
+}
+
+/** What a removed item takes with it when the draft is saved. */
+export interface ItemCasting {
+  roles: number;
+  hasNotes: boolean;
+}
+
+/** An item's casting, from the production's roles and notes. Cleared notes are kept as
+ *  empty text, so they don't count. */
+export const castingOf = (itemId: string, roles: RoleList, notes: ItemNoteList): ItemCasting => ({
+  roles: roles.roles.filter((role) => role.itemId === itemId).length,
+  hasNotes: notes.notes.some((note) => note.itemId === itemId && note.text.trim() !== ""),
+});
+
+/** The removal question. Saving deletes the item's roles and notes (ADR 0010), so say so;
+ *  casting is undefined when it couldn't be counted. */
+export function removeWarning(title: string, casting: ItemCasting | undefined) {
+  const question = `Remove ${title} from the running order?`;
+  if (casting === undefined) {
+    return `${question} Saving the draft also removes any roles it has, with who is cast in them, and its casting notes.`;
+  }
+  const roles =
+    casting.roles === 0
+      ? undefined
+      : `its ${casting.roles} role${casting.roles === 1 ? "" : "s"}, with who is cast in them`;
+  const notes = casting.hasNotes ? "its casting notes" : undefined;
+  const goes = [roles, notes].filter(Boolean).join(", and ");
+  return goes ? `${question} Saving the draft also removes ${goes}.` : question;
 }
 
 // Field by field in a fixed order, so object key order never matters.

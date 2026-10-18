@@ -47,7 +47,6 @@ That process causes three problems:
 - A separate status for TBC items such as Yaputcha. "Printed in programme" plus comments is enough.
 - Undo of a single move, and restoring an earlier saved draft. Reset discards all unsaved changes at once.
 - Sharing unsaved changes between people. They live in one browser until saved.
-- Adding and removing items in the app (FR10, deferred).
 
 ## Functional requirements
 
@@ -64,9 +63,9 @@ That process causes three problems:
 - **FR5**: Users must be able to make the same moves without dragging: move up, move down, and move to the other half. These work by keyboard and by single taps or clicks.
 - **FR6**: Reorders and edits must show at once, with numbering and the running clock updated, as **unsaved changes** clearly marked as such. They stay in the user's browser until the user chooses **Save as Draft N+1**, which saves them all as one new version (Draft 6 → 7). **Reset** must discard all unsaved changes and show the last saved draft again. Save and Reset are only available when there are unsaved changes. Leaving the page with unsaved changes asks for confirmation first.
 - **FR7**: If someone else saved a newer version since the user's last view, the user's save must not be applied. The user is told, and shown the latest version. Their unsaved changes are discarded.
-- **FR8**: A saved change must keep exactly the same set of items: no item lost, duplicated or invented.
+- **FR8**: A saved change must keep exactly the same set of items, except for the items the user added or removed (FR10): no other item lost, duplicated or invented.
 - **FR9**: Users must be able to edit an item's details: title, cast, stage (a sequence of Apron or Full), leads, comments, timing and whether it's printed in the programme.
-- **FR10** (deferred 2026-10-10): Users must be able to add a new item to either half and remove an item. Removing asks for confirmation. Not planned for now; items change by editing.
+- **FR10** (revived 2026-10-18): Admins must be able to add a new item to either half and remove an item. Removing asks for confirmation, and deletes the item's casting notes and roles when the draft is saved.
 - **FR11**: Every saved version must be kept, with its number and the time it was saved, so it can be recovered or viewed later.
 - **FR12**: Draft 6 of the 2027 programme must be available as the starting version, held locally and never committed to the repository.
 

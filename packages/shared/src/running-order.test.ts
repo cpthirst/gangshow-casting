@@ -111,4 +111,29 @@ describe("SaveRunningOrderRequest", () => {
   ])("rejects %s", (_case, request) => {
     expect(SaveRunningOrderRequest.safeParse(request).success).toBe(false);
   });
+
+  it("accepts a new item with no id beside the existing ones", () => {
+    const { id: _id, ...added } = { ...item, title: "Encore" };
+    const withNew = {
+      ...update,
+      halves: [update.halves[0], { id: "second-half", items: [added] }],
+    };
+
+    expect(SaveRunningOrderRequest.safeParse({ baseVersion: 6, change: withNew }).success).toBe(
+      true,
+    );
+  });
+
+  it.each([
+    ["a new item with no title", { title: " " }],
+    ["an item whose id is empty", { id: "" }],
+  ])("rejects %s", (_case, change) => {
+    const { id: _id, ...added } = item;
+    const bad = { ...added, ...change };
+    const withBad = { ...update, halves: [update.halves[0], { id: "second-half", items: [bad] }] };
+
+    expect(SaveRunningOrderRequest.safeParse({ baseVersion: 6, change: withBad }).success).toBe(
+      false,
+    );
+  });
 });

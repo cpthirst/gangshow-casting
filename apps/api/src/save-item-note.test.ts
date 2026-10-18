@@ -2,6 +2,7 @@ import { ItemNote, ItemNoteList, type SaveRunningOrderRequest } from "@app/share
 import { describe, expect, it } from "vitest";
 import { createGetItemNotes } from "./get-item-notes.ts";
 import { inMemoryItemNoteStore } from "./item-note-store.ts";
+import { inMemoryRoleStore } from "./role-store.ts";
 import { anItem, aRunningOrder, itemId } from "./running-order.fixture.ts";
 import { inMemoryRunningOrderStore } from "./running-order-store.ts";
 import { createSaveItemNote } from "./save-item-note.ts";
@@ -83,7 +84,10 @@ describe("item notes across running-order versions", () => {
       aRunningOrder(7, { first: ["Opening Number", "Pirate Sketch"] }),
     ]);
     const save = createSaveItemNote(notes, runningOrders);
-    const saveOrder = createSaveRunningOrder(runningOrders);
+    const saveOrder = createSaveRunningOrder(runningOrders, {
+      roles: inMemoryRoleStore(),
+      itemNotes: notes,
+    });
     await save(put({ text: "Hat change", revision: 0 }));
 
     // Pirate Sketch moves to the start of the second half: version 8.

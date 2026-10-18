@@ -3,7 +3,8 @@ import type { RunningOrderItem } from "@app/shared";
 import { onMounted, ref, useId } from "vue";
 import { formFor, type ItemForm, itemFrom, STAGE_CHOICES } from "../running-order.ts";
 
-const props = defineProps<{ item: RunningOrderItem }>();
+// addingTo names the half (e.g. "second half") when the item is new rather than edited.
+const props = defineProps<{ item: RunningOrderItem; addingTo?: string }>();
 const emit = defineEmits<{ apply: [item: RunningOrderItem]; cancel: [] }>();
 
 const form = ref<ItemForm>(formFor(props.item));
@@ -39,7 +40,7 @@ function submit() {
   <form
     data-test="item-editor"
     class="item-editor"
-    :aria-label="`Edit ${item.title}`"
+    :aria-label="addingTo ? `Add an item to the ${addingTo}` : `Edit ${item.title}`"
     novalidate
     @submit.prevent="submit"
     @keydown.esc="onEscape"
@@ -106,7 +107,7 @@ function submit() {
       <label :for="idFor('printed')">In the printed programme</label>
     </div>
     <div class="editor-actions">
-      <button type="submit" class="primary">Apply</button>
+      <button type="submit" class="primary">{{ addingTo ? "Add" : "Apply" }}</button>
       <button type="button" data-test="cancel" @click="emit('cancel')">Cancel</button>
     </div>
   </form>

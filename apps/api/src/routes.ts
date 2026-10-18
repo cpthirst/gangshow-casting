@@ -30,8 +30,10 @@ export function createRoutes({
   return {
     "GET /api/health": health,
     "GET /api/productions/{productionId}/running-order": createGetRunningOrder(runningOrders),
-    "POST /api/productions/{productionId}/running-order/versions":
-      createSaveRunningOrder(runningOrders),
+    "POST /api/productions/{productionId}/running-order/versions": createSaveRunningOrder(
+      runningOrders,
+      { roles, itemNotes },
+    ),
     "GET /api/productions/{productionId}/cast": createGetCast(cast),
     "POST /api/productions/{productionId}/cast": createAddCastMember(cast),
     "PUT /api/productions/{productionId}/cast/{castId}": createUpdateCastMember(cast),

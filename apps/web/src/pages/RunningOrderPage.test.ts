@@ -1,4 +1,10 @@
-import { type RunningOrder, type RunningOrderItem, SaveRunningOrderRequest } from "@app/shared";
+import {
+  type ItemNoteList,
+  type RoleList,
+  type RunningOrder,
+  type RunningOrderItem,
+  SaveRunningOrderRequest,
+} from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { signInAs } from "../sign-in.fixture.ts";
@@ -68,6 +74,12 @@ const aRunningOrder = (
     { id: "second-half", name: "Second half", items: second },
   ],
 });
+
+type SentItems = SaveRunningOrderRequest["change"]["halves"][number]["items"];
+let serverIds = 0;
+/** The items as the server saves them: an added item, sent without an id, gets one. */
+const savedItems = (items: SentItems): RunningOrderItem[] =>
+  items.map((item) => ("id" in item ? item : { id: `server-${++serverIds}`, ...item }));
 
 function serve(order: RunningOrder) {
   const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(order)));
@@ -326,8 +338,8 @@ describe("Running order page", () => {
             ...latest,
             version: latest.version + 1,
             halves: [
-              { ...latest.halves[0], items: change.halves[0].items },
-              { ...latest.halves[1], items: change.halves[1].items },
+              { ...latest.halves[0], items: savedItems(change.halves[0].items) },
+              { ...latest.halves[1], items: savedItems(change.halves[1].items) },
             ],
           };
           return new Response(JSON.stringify(latest), { status: 201 });
@@ -436,7 +448,7 @@ describe("Running order page", () => {
       const wrapper = await openPage();
 
       expect(half(wrapper, "second-half").get("tbody").text()).toBe(
-        "No items. Drag one here, or use “Move to second half” on an item.",
+        "No items. Drag one here, use “Move to second half” on an item, or use Add item below.",
       );
     });
 
@@ -552,7 +564,7 @@ describe("Running order page", () => {
         expect(firstHalfTitles(wrapper)).toEqual(["Pirate Panic", "Curtain Up", "Dance One"]);
         expect(saveButton(wrapper).attributes("disabled")).toBeDefined();
         expect(wrapper.get("[data-test=admin-only]").text()).toBe(
-          "Only admins can change the running order",
+          "Only admins can save the running order, or add and remove items",
         );
       });
 
@@ -781,7 +793,7 @@ describe("Running order page", () => {
       await flushPromises();
 
       const sent = SaveRunningOrderRequest.parse(JSON.parse(fetchMock.mock.calls[0]?.[1]?.body));
-      expect(sent.change.halves[0].items.map((item) => item.id)).toEqual([
+      expect(sent.change.halves[0].items.map((item) => ("id" in item ? item.id : ""))).toEqual([
         "itm_dance-one",
         "itm_curtain-up",
         "itm_pirate-panic",
@@ -826,8 +838,8 @@ describe("Running order page", () => {
             ...latest,
             version: latest.version + 1,
             halves: [
-              { ...latest.halves[0], items: first.items },
-              { ...latest.halves[1], items: second.items },
+              { ...latest.halves[0], items: savedItems(first.items) },
+              { ...latest.halves[1], items: savedItems(second.items) },
             ],
           };
           return new Response(JSON.stringify(latest), { status: 201 });
@@ -1029,6 +1041,318 @@ describe("Running order page", () => {
       expect(disabled("button[data-test=reset]")).toBe(true);
       expect(disabled('button[aria-label="Move Curtain Up down"]')).toBe(true);
       expect(disabled('button[aria-label="Edit Curtain Up"]')).toBe(true);
+    });
+  });
+
+  describe("adding and removing items", () => {
+    let saves: SaveRunningOrderRequest[] = [];
+    // A stand-in for the API: the running order, applying saved drafts and naming new items
+    // as the server does, plus the roles and notes the removal question counts.
+    function api(
+      initial: RunningOrder,
+      roles: RoleList["roles"] = [],
+      notes: ItemNoteList["notes"] = [],
+    ) {
+      let latest = initial;
+      saves = [];
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (url: string, init?: RequestInit) => {
+          if (url.endsWith("/roles"))
+            return new Response(JSON.stringify({ productionId: "2027", roles }));
+          if (url.endsWith("/item-notes")) {
+            return new Response(JSON.stringify({ productionId: "2027", notes }));
+          }
+          if (init?.method !== "POST") return new Response(JSON.stringify(latest));
+          const request = SaveRunningOrderRequest.parse(JSON.parse(String(init.body)));
+          saves.push(request);
+          latest = {
+            ...latest,
+            version: latest.version + 1,
+            halves: [
+              { ...latest.halves[0], items: savedItems(request.change.halves[0].items) },
+              { ...latest.halves[1], items: savedItems(request.change.halves[1].items) },
+            ],
+          };
+          return new Response(JSON.stringify(latest), { status: 201 });
+        }),
+      );
+    }
+
+    const order = () =>
+      aRunningOrder(
+        [anItem("Curtain Up"), anItem("Pirate Panic"), anItem("Dance One")],
+        [anItem("Big Finish")],
+      );
+
+    type Page = Awaited<ReturnType<typeof openPage>>;
+    const addButton = (wrapper: Page, halfName: string) =>
+      wrapper.get(`button[aria-label="Add item to the ${halfName}"]`);
+    async function startAdding(wrapper: Page, halfName: string) {
+      await addButton(wrapper, halfName).trigger("click");
+      await flushPromises();
+      return wrapper.get("form[data-test=item-editor]");
+    }
+    async function addTitled(wrapper: Page, halfName: string, title: string) {
+      const form = await startAdding(wrapper, halfName);
+      await form.get("input[name=title]").setValue(title);
+      await form.trigger("submit");
+      await flushPromises();
+    }
+    const removeButton = (wrapper: Page, title: string) =>
+      wrapper.get(`button[aria-label="Remove ${title}"]`);
+    async function remove(wrapper: Page, title: string, answer: boolean) {
+      const confirm = vi.fn(() => answer);
+      vi.stubGlobal("confirm", confirm);
+      await removeButton(wrapper, title).trigger("click");
+      await flushPromises();
+      return confirm;
+    }
+    const unsaved = (wrapper: Page) => wrapper.find("[data-test=unsaved]").exists();
+    const saveButton = (wrapper: Page) => wrapper.get("button[data-test=save]");
+    const allTitles = (wrapper: Page) => [
+      titlesIn(half(wrapper, "first-half")),
+      titlesIn(half(wrapper, "second-half")),
+    ];
+
+    it("adds an item to the end of a half as an unsaved change", async () => {
+      api(order());
+      const wrapper = await openPage();
+
+      await addTitled(wrapper, "second half", "Encore");
+
+      expect(titlesIn(half(wrapper, "second-half"))).toEqual(["Big Finish", "Encore"]);
+      expect(unsaved(wrapper)).toBe(true);
+      expect(saveButton(wrapper).text()).toBe("Save as Draft 7");
+    });
+
+    it("saves an added item without an id, then shows the id the server gave it", async () => {
+      serverIds = 0;
+      api(order());
+      const wrapper = await openPage();
+      await addTitled(wrapper, "second half", "Encore");
+
+      await saveButton(wrapper).trigger("click");
+      await flushPromises();
+
+      const added = saves[0]?.change.halves[1].items[1];
+      expect(added).toMatchObject({ title: "Encore", printed: true, minutes: null });
+      expect(added && "id" in added).toBe(false);
+      expect(wrapper.find('[data-item-id="server-1"]').exists()).toBe(true);
+      expect(unsaved(wrapper)).toBe(false);
+    });
+
+    it("says a new item needs a title, adding nothing", async () => {
+      api(order());
+      const wrapper = await openPage();
+
+      await addTitled(wrapper, "first half", "  ");
+
+      expect(wrapper.get(".field-error").text()).toBe("Enter a title (up to 120 characters).");
+      expect(allTitles(wrapper)).toEqual([
+        ["Curtain Up", "Pirate Panic", "Dance One"],
+        ["Big Finish"],
+      ]);
+      expect(unsaved(wrapper)).toBe(false);
+    });
+
+    it("adds nothing when adding is cancelled", async () => {
+      api(order());
+      const wrapper = await openPage();
+      const form = await startAdding(wrapper, "first half");
+      await form.get("input[name=title]").setValue("Encore");
+
+      await form.get("button[data-test=cancel]").trigger("click");
+      await flushPromises();
+
+      expect(wrapper.find("form[data-test=item-editor]").exists()).toBe(false);
+      expect(allTitles(wrapper)).toEqual([
+        ["Curtain Up", "Pirate Panic", "Dance One"],
+        ["Big Finish"],
+      ]);
+      expect(unsaved(wrapper)).toBe(false);
+    });
+
+    it("labels the add form as adding, with an Add button", async () => {
+      api(order());
+      const wrapper = await openPage();
+
+      const form = await startAdding(wrapper, "first half");
+
+      expect(form.attributes("aria-label")).toBe("Add an item to the first half");
+      expect(form.get("button[type=submit]").text()).toBe("Add");
+    });
+
+    it("holds off moves, edits, removals and other adds while an item is being added", async () => {
+      api(order());
+      const wrapper = await openPage();
+      await startAdding(wrapper, "first half");
+
+      const disabled = (selector: string) =>
+        wrapper.get(selector).attributes("disabled") !== undefined;
+      expect(disabled('button[aria-label="Move Curtain Up down"]')).toBe(true);
+      expect(disabled('button[aria-label="Edit Curtain Up"]')).toBe(true);
+      expect(disabled('button[aria-label="Remove Curtain Up"]')).toBe(true);
+      expect(disabled('button[aria-label="Add item to the second half"]')).toBe(true);
+    });
+
+    it("asks before removing, naming the item and the casting that goes when it's saved", async () => {
+      const dance = anItem("Dance One").id;
+      api(
+        order(),
+        [
+          {
+            id: 1,
+            itemId: dance,
+            name: "Lead dancer",
+            size: "lead",
+            castMemberIds: [12],
+            revision: 1,
+          },
+          {
+            id: 2,
+            itemId: dance,
+            name: "Chorus",
+            size: "ensemble",
+            castMemberIds: [],
+            revision: 1,
+          },
+          {
+            id: 3,
+            itemId: anItem("Pirate Panic").id,
+            name: "Captain",
+            size: "lead",
+            castMemberIds: [],
+            revision: 1,
+          },
+        ],
+        [{ itemId: dance, text: "Needs tap shoes", revision: 1 }],
+      );
+      const wrapper = await openPage();
+
+      const confirm = await remove(wrapper, "Dance One", false);
+
+      expect(confirm).toHaveBeenCalledWith(
+        "Remove Dance One from the running order? Saving the draft also removes its 2 roles, with who is cast in them, and its casting notes.",
+      );
+    });
+
+    it("asks plainly when the item has no casting", async () => {
+      api(order());
+      const wrapper = await openPage();
+
+      const confirm = await remove(wrapper, "Dance One", false);
+
+      expect(confirm).toHaveBeenCalledWith("Remove Dance One from the running order?");
+    });
+
+    it("still warns about casting when it can't be counted", async () => {
+      api(order());
+      const wrapper = await openPage();
+      const served = vi.mocked(fetch).getMockImplementation();
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (url: string, init?: RequestInit) =>
+          url.endsWith("/roles") ? new Response(null, { status: 500 }) : served?.(url, init),
+        ),
+      );
+
+      const confirm = await remove(wrapper, "Dance One", false);
+
+      expect(confirm).toHaveBeenCalledWith(
+        "Remove Dance One from the running order? Saving the draft also removes any roles it has, with who is cast in them, and its casting notes.",
+      );
+    });
+
+    it("removes a confirmed item as an unsaved change", async () => {
+      api(order());
+      const wrapper = await openPage();
+
+      await remove(wrapper, "Dance One", true);
+
+      expect(titlesIn(half(wrapper, "first-half"))).toEqual(["Curtain Up", "Pirate Panic"]);
+      expect(unsaved(wrapper)).toBe(true);
+      expect(saveButton(wrapper).text()).toBe("Save as Draft 7");
+    });
+
+    it("keeps the item when removal is cancelled", async () => {
+      api(order());
+      const wrapper = await openPage();
+
+      await remove(wrapper, "Dance One", false);
+
+      expect(titlesIn(half(wrapper, "first-half"))).toEqual([
+        "Curtain Up",
+        "Pirate Panic",
+        "Dance One",
+      ]);
+      expect(unsaved(wrapper)).toBe(false);
+    });
+
+    it("shows a half emptied by a removal as empty, with its interval and total", async () => {
+      api(order());
+      const wrapper = await openPage();
+
+      await remove(wrapper, "Big Finish", true);
+
+      const second = half(wrapper, "second-half");
+      expect(second.get(".empty-half").text()).toContain("No items");
+      expect(second.get("[data-test=total]").text()).toBe("0 mins");
+      expect(wrapper.find("[data-test=interval]").exists()).toBe(true);
+    });
+
+    it("brings a removed item back on Reset, deleting nothing", async () => {
+      api(order());
+      const wrapper = await openPage();
+      await remove(wrapper, "Dance One", true);
+
+      await wrapper.get("button[data-test=reset]").trigger("click");
+      await flushPromises();
+
+      expect(titlesIn(half(wrapper, "first-half"))).toEqual([
+        "Curtain Up",
+        "Pirate Panic",
+        "Dance One",
+      ]);
+      expect(unsaved(wrapper)).toBe(false);
+      expect(saves).toEqual([]);
+    });
+
+    it("removes an item added but not yet saved", async () => {
+      api(order());
+      const wrapper = await openPage();
+      await addTitled(wrapper, "second half", "Encore");
+
+      await remove(wrapper, "Encore", true);
+
+      expect(titlesIn(half(wrapper, "second-half"))).toEqual(["Big Finish"]);
+      expect(unsaved(wrapper)).toBe(false);
+    });
+
+    it("lets only admins add or remove items, saying why", async () => {
+      await signInAs([]);
+      api(order());
+      const wrapper = await openPage();
+
+      const add = addButton(wrapper, "first half");
+      const removeDance = removeButton(wrapper, "Dance One");
+      expect(add.attributes("disabled")).toBeDefined();
+      expect(add.attributes("data-tooltip")).toBe("Only admins can add items");
+      expect(removeDance.attributes("disabled")).toBeDefined();
+      expect(removeDance.attributes("data-tooltip")).toBe("Only admins can remove items");
+      useLocalSignIn();
+    });
+
+    it("lets admins add and remove items", async () => {
+      await signInAs(["admin"]);
+      api(order());
+      const wrapper = await openPage();
+
+      expect(addButton(wrapper, "first half").attributes("disabled")).toBeUndefined();
+      expect(removeButton(wrapper, "Dance One").attributes("data-tooltip")).toBe(
+        "Remove from the running order",
+      );
+      useLocalSignIn();
     });
   });
 });

@@ -1,6 +1,8 @@
 import { RunningOrder, type RunningOrderItem, type SaveRunningOrderRequest } from "@app/shared";
-import { describe, expect, it } from "vitest";
-import { anItem, aRunningOrder } from "./running-order.fixture.ts";
+import { describe, expect, it, vi } from "vitest";
+import { inMemoryItemNoteStore } from "./item-note-store.ts";
+import { inMemoryRoleStore } from "./role-store.ts";
+import { anItem, aRunningOrder, itemId } from "./running-order.fixture.ts";
 import { inMemoryRunningOrderStore } from "./running-order-store.ts";
 import { createSaveRunningOrder } from "./save-running-order.ts";
 
@@ -38,8 +40,29 @@ function setUp() {
   const store = inMemoryRunningOrderStore([
     aRunningOrder(6, { first: ["Curtain Up", "Pirate Panic", "Dance One"] }),
   ]);
-  return { store, handler: createSaveRunningOrder(store, () => NOW) };
+  const roles = inMemoryRoleStore();
+  const itemNotes = inMemoryItemNoteStore();
+  const handler = createSaveRunningOrder(store, { roles, itemNotes }, () => NOW);
+  return { store, roles, itemNotes, handler };
 }
+
+// A new item has no id until the server gives it one.
+const aNewItem = (title: string) => {
+  const { id: _id, ...item } = anItem(title);
+  return item;
+};
+
+// Saves the existing items, in order, with a new one added to the end of the second half.
+const addEncore = () => ({
+  baseVersion: 6,
+  change: {
+    type: "update",
+    halves: [
+      { id: "first-half", items: ["Curtain Up", "Pirate Panic", "Dance One"].map(anItem) },
+      { id: "second-half", items: [aNewItem("Encore")] },
+    ],
+  },
+});
 
 describe("save running order handler", () => {
   it("saves a reordered draft as the next version and keeps the old one", async () => {
@@ -70,7 +93,6 @@ describe("save running order handler", () => {
   });
 
   it.each([
-    ["loses an item", update(6, ["Curtain Up", "Pirate Panic"])],
     ["duplicates an item", update(6, ["Curtain Up", "Curtain Up", "Pirate Panic", "Dance One"])],
     ["invents an item", update(6, ["Curtain Up", "Pirate Panic", "Dance One", "Encore"])],
   ])("rejects an update that %s with 400, saving nothing", async (_case, body) => {
@@ -125,5 +147,158 @@ describe("save running order handler", () => {
     const res = await handler(request(update(1, []), "1999"));
 
     expect(res.statusCode).toBe(404);
+  });
+
+  it("adds a new item with a stable id of its own", async () => {
+    const { store, handler } = setUp();
+
+    const res = await handler(request(addEncore()));
+
+    expect(res.statusCode).toBe(201);
+    const saved = RunningOrder.parse(JSON.parse(res.body ?? ""));
+    expect(saved.version).toBe(7);
+    expect(titlesIn(res.body)).toEqual([["Curtain Up", "Pirate Panic", "Dance One"], ["Encore"]]);
+    const encore = saved.halves[1].items[0];
+    expect(encore?.id).toMatch(/\S/);
+    expect(encore?.id).not.toBe(itemId("Encore"));
+    expect((await store.latest("2027"))?.halves[1].items[0]?.id).toBe(encore?.id);
+  });
+
+  it("removes an item the update leaves out and keeps the old version whole", async () => {
+    const { store, handler } = setUp();
+
+    const res = await handler(request(update(6, ["Curtain Up", "Pirate Panic"])));
+
+    expect(res.statusCode).toBe(201);
+    expect(titlesIn(res.body)).toEqual([["Curtain Up", "Pirate Panic"], []]);
+    expect((await store.get("2027", 6))?.halves[0].items).toHaveLength(3);
+  });
+
+  it("adds one item and removes another in the same version", async () => {
+    const { handler } = setUp();
+    const change = addEncore();
+    change.change.halves[0] = {
+      id: "first-half",
+      items: ["Curtain Up", "Dance One"].map(anItem),
+    };
+
+    const res = await handler(request(change));
+
+    expect(res.statusCode).toBe(201);
+    expect(titlesIn(res.body)).toEqual([["Curtain Up", "Dance One"], ["Encore"]]);
+  });
+
+  it("rejects a new item with no title with 400, saving nothing", async () => {
+    const { store, handler } = setUp();
+    const change = addEncore();
+    change.change.halves[1] = { id: "second-half", items: [{ ...aNewItem("Encore"), title: " " }] };
+
+    const res = await handler(request(change));
+
+    expect(res.statusCode).toBe(400);
+    expect((await store.latest("2027"))?.version).toBe(6);
+  });
+
+  it("deletes the notes and roles of a removed item once the version is saved", async () => {
+    const { roles, itemNotes, handler } = setUp();
+    const dance = itemId("Dance One");
+    const pirate = itemId("Pirate Panic");
+    await roles.add("2027", dance, { name: "Lead dancer", size: "lead", castMemberIds: [12] });
+    await roles.add("2027", dance, { name: "Chorus", size: "ensemble", castMemberIds: [] });
+    await roles.add("2027", pirate, { name: "Captain", size: "lead", castMemberIds: [13] });
+    await itemNotes.save("2027", dance, 0, "Needs tap shoes");
+    await itemNotes.save("2027", pirate, 0, "Hat change");
+
+    const res = await handler(request(update(6, ["Curtain Up", "Pirate Panic"])));
+
+    expect(res.statusCode).toBe(201);
+    expect((await roles.list("2027")).roles).toEqual([
+      { id: 3, itemId: pirate, name: "Captain", size: "lead", castMemberIds: [13], revision: 1 },
+    ]);
+    expect((await itemNotes.list("2027")).notes).toEqual([
+      { itemId: pirate, text: "Hat change", revision: 1 },
+    ]);
+  });
+
+  it("still answers 201 with the saved version when the clean-up fails", async () => {
+    const store = inMemoryRunningOrderStore([
+      aRunningOrder(6, { first: ["Curtain Up", "Pirate Panic", "Dance One"] }),
+    ]);
+    const failing = async () => {
+      throw new Error("table unavailable");
+    };
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const handler = createSaveRunningOrder(
+      store,
+      { roles: { keepOnlyItems: failing }, itemNotes: { keepOnlyItems: failing } },
+      () => NOW,
+    );
+
+    const res = await handler(request(update(6, ["Curtain Up", "Pirate Panic"])));
+
+    expect(res.statusCode).toBe(201);
+    expect(RunningOrder.parse(JSON.parse(res.body ?? "")).version).toBe(7);
+    expect(log).toHaveBeenCalled();
+    log.mockRestore();
+  });
+
+  it("cleans up against the newest version, sparing items a later save added", async () => {
+    const store = inMemoryRunningOrderStore([
+      aRunningOrder(6, { first: ["Curtain Up", "Pirate Panic", "Dance One"] }),
+    ]);
+    const kept: string[][] = [];
+    const casting = {
+      roles: { keepOnlyItems: async (_p: string, ids: string[]) => void kept.push(ids) },
+      itemNotes: { keepOnlyItems: async () => {} },
+    };
+    // Someone else saves version 8, with a new item, just after this save writes 7.
+    const racing = {
+      ...store,
+      async save(order: RunningOrder) {
+        const result = await store.save(order);
+        await store.save(aRunningOrder(8, { first: ["Curtain Up", "Encore"] }));
+        return result;
+      },
+    };
+
+    await createSaveRunningOrder(
+      racing,
+      casting,
+      () => NOW,
+    )(request(update(6, ["Curtain Up", "Pirate Panic"])));
+
+    expect(kept).toEqual([[itemId("Curtain Up"), itemId("Encore")]]);
+  });
+
+  it("keeps every item's notes and roles when a draft only reorders", async () => {
+    const { roles, itemNotes, handler } = setUp();
+    await roles.add("2027", itemId("Dance One"), {
+      name: "Chorus",
+      size: "ensemble",
+      castMemberIds: [],
+    });
+    await itemNotes.save("2027", itemId("Dance One"), 0, "Needs tap shoes");
+
+    await handler(request(update(6, ["Dance One", "Curtain Up", "Pirate Panic"])));
+
+    expect((await roles.list("2027")).roles).toHaveLength(1);
+    expect((await itemNotes.list("2027")).notes).toHaveLength(1);
+  });
+
+  it("deletes nothing when the draft is stale", async () => {
+    const { roles, itemNotes, handler } = setUp();
+    await handler(request(update(6, ["Pirate Panic", "Curtain Up", "Dance One"])));
+    await roles.add("2027", itemId("Dance One"), {
+      name: "Chorus",
+      size: "ensemble",
+      castMemberIds: [],
+    });
+    await itemNotes.save("2027", itemId("Dance One"), 0, "Needs tap shoes");
+
+    const res = await handler(request(update(6, ["Curtain Up"])));
+
+    expect(res.statusCode).toBe(409);
+    expect((await roles.list("2027")).roles).toHaveLength(1);
+    expect((await itemNotes.list("2027")).notes).toHaveLength(1);
   });
 });

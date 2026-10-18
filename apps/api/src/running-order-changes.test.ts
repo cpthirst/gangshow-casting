@@ -1,9 +1,9 @@
-import type { RunningOrderItem, UpdateChange } from "@app/shared";
+import type { ChangeItem, UpdateChange } from "@app/shared";
 import { describe, expect, it } from "vitest";
 import { anItem, aRunningOrder } from "./running-order.fixture.ts";
 import { applyChange } from "./running-order-changes.ts";
 
-const update = (first: RunningOrderItem[], second: RunningOrderItem[]): UpdateChange => ({
+const update = (first: ChangeItem[], second: ChangeItem[]): UpdateChange => ({
   type: "update",
   halves: [
     { id: "first-half", items: first },
@@ -32,8 +32,41 @@ describe("applyChange: update", () => {
     expect(result.order.halves[0].items[0]).toEqual({ ...a, minutes: 20, printed: false });
   });
 
+  it("drops an item the update leaves out", () => {
+    const result = applyChange(latest, update([a], [c]));
+
+    if (!result.ok) throw new Error(result.error);
+    expect(titles(result.order)).toEqual([["A"], ["C"]]);
+  });
+
+  it("gives an added item a new id and keeps it where it was put", () => {
+    const { id: _id, ...encore } = anItem("Encore");
+    const result = applyChange(latest, update([a, b], [c, encore]), () => "new-id-1");
+
+    if (!result.ok) throw new Error(result.error);
+    expect(titles(result.order)).toEqual([
+      ["A", "B"],
+      ["C", "Encore"],
+    ]);
+    expect(result.order.halves[1].items[1]?.id).toBe("new-id-1");
+  });
+
+  it("gives each added item its own id", () => {
+    const { id: _id, ...encore } = anItem("Encore");
+    const { id: _other, ...walkDown } = anItem("Walk Down");
+    const ids = ["new-id-1", "new-id-2"];
+    const result = applyChange(
+      latest,
+      update([a, b, encore], [c, walkDown]),
+      () => ids.shift() ?? "",
+    );
+
+    if (!result.ok) throw new Error(result.error);
+    const added = result.order.halves.flatMap((half) => half.items.slice(-1).map((i) => i.id));
+    expect(added).toEqual(["new-id-1", "new-id-2"]);
+  });
+
   it.each([
-    ["loses an item", update([a, b], [])],
     ["duplicates an item", update([a, a, b], [c])],
     ["invents an item", update([a, b], [c, anItem("D")])],
   ])("rejects an update that %s", (_case, change) => {

@@ -1,16 +1,24 @@
 <script setup lang="ts">
-import { RunningOrder, type RunningOrderItem } from "@app/shared";
+import { ItemNoteList, RoleList, RunningOrder, type RunningOrderItem } from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
 import { onBeforeRouteLeave } from "vue-router";
 import { icons } from "../icons.ts";
+import { ITEM_NOTES_PATH } from "../item-notes.ts";
+import { ROLES_PATH } from "../roles.ts";
 import {
+  addItem,
+  aNewItem,
+  castingOf,
   dropItem,
   formatTime,
+  isUnsaved,
   locate,
   type Move,
   moveItem,
   RUNNING_ORDER_PATH,
+  removeItem,
+  removeWarning,
   replaceItem,
   runningClock,
   sameContent,
@@ -63,7 +71,15 @@ const notice = ref("");
 const saving = ref(false);
 /** The item whose edit form is open, if any. One at a time; other changes wait. */
 const editingId = ref<string | null>(null);
-const busy = computed(() => saving.value || editingId.value !== null);
+/** The half (0 or 1) an item is being added to, if any. It waits like an edit. */
+const addingTo = ref<0 | 1 | null>(null);
+/** The new item being filled in, kept while its form is open. */
+const newItem = ref<RunningOrderItem>(aNewItem());
+/** True while a removal's casting is counted, so a second click can't ask twice. */
+const counting = ref(false);
+const busy = computed(
+  () => saving.value || counting.value || editingId.value !== null || addingTo.value !== null,
+);
 
 async function move(itemId: string, direction: Move) {
   if (state.value.status !== "loaded" || busy.value) return;
@@ -102,9 +118,82 @@ async function applyEdit(edited: RunningOrderItem) {
 async function endEdit(itemId: string) {
   editingId.value = null;
   await nextTick();
+  focusEdit(itemId);
+}
+
+const focusEdit = (itemId: string) =>
   document
     .querySelector<HTMLButtonElement>(`[data-item-id="${CSS.escape(itemId)}"] [data-edit]`)
     ?.focus();
+
+// The API refuses non-admins too: these only show it up front (hosting FR9). Tooltips
+// don't show on phones, so a line on the page says it too.
+const ONLY_ADMINS_CHANGE = "Only admins can save the running order, or add and remove items";
+const ONLY_ADMINS_ADD = "Only admins can add items";
+const ONLY_ADMINS_REMOVE = "Only admins can remove items";
+
+function startAdding(halfIndex: 0 | 1) {
+  if (busy.value || !isAdmin.value) return;
+  newItem.value = aNewItem();
+  addingTo.value = halfIndex;
+}
+
+// An added item is an unsaved change, like an edit (PRD FR6, FR10).
+async function applyAdd(added: RunningOrderItem) {
+  if (state.value.status !== "loaded" || addingTo.value === null) return;
+  const halfIndex = addingTo.value;
+  state.value = { ...state.value, working: addItem(state.value.working, halfIndex, added) };
+  notice.value = "";
+  announcement.value = `${added.title} added to the ${halfName(halfIndex)}. Not saved yet.`;
+  addingTo.value = null;
+  await nextTick();
+  focusEdit(added.id);
+}
+
+async function endAdding() {
+  const halfIndex = addingTo.value;
+  addingTo.value = null;
+  if (halfIndex !== null) await focusAdd(halfIndex);
+}
+
+// Always asked first. Nothing is deleted until the draft is saved, when the item's roles
+// and notes go too (ADR 0010), so the question says what goes and Reset undoes it.
+async function confirmRemove(item: RunningOrderItem) {
+  if (state.value.status !== "loaded" || busy.value || !isAdmin.value) return;
+  const place = locate(state.value.working, item.id);
+  counting.value = true;
+  // An item added since the last save can't have any casting yet.
+  const casting = isUnsaved(item.id) ? { roles: 0, hasNotes: false } : await castingFor(item.id);
+  counting.value = false;
+  if (!window.confirm(removeWarning(item.title, casting))) return;
+  // Re-checked after the awaits: a reload could have replaced the page meanwhile.
+  if (state.value.status !== "loaded" || !locate(state.value.working, item.id)) return;
+  state.value = { ...state.value, working: removeItem(state.value.working, item.id) };
+  notice.value = "";
+  announcement.value = `${item.title} removed. Not saved yet.`;
+  // The row (and its buttons) is gone: keep focus in its half.
+  if (place) await focusAdd(place.half.id === "first-half" ? 0 : 1);
+}
+
+/** How many roles and notes the item has now, or undefined if they can't be loaded. */
+async function castingFor(itemId: string) {
+  try {
+    const [roles, notes] = await Promise.all([apiFetch(ROLES_PATH), apiFetch(ITEM_NOTES_PATH)]);
+    if (!roles.ok || !notes.ok) return undefined;
+    const roleList = RoleList.safeParse(await roles.json());
+    const noteList = ItemNoteList.safeParse(await notes.json());
+    if (!roleList.success || !noteList.success) return undefined;
+    return castingOf(itemId, roleList.data, noteList.data);
+  } catch {
+    return undefined;
+  }
+}
+
+const halfName = (halfIndex: number) => (halfIndex === 0 ? "first half" : "second half");
+
+async function focusAdd(halfIndex: 0 | 1) {
+  await nextTick();
+  document.querySelector<HTMLButtonElement>(`[data-add-to="${halfIndex}"]`)?.focus();
 }
 
 // Moves and drags both change only the working copy, until Save.
@@ -221,7 +310,7 @@ function refocus(itemId: string, direction: Move) {
     <div class="draft-bar">
       <p class="version">Draft {{ loaded.saved.version }}</p>
       <p v-if="loaded.unsaved" class="unsaved" data-test="unsaved">Unsaved changes</p>
-      <p v-if="!isAdmin" class="admin-only" data-test="admin-only">{{ ONLY_ADMINS_SAVE }}</p>
+      <p v-if="!isAdmin" class="admin-only" data-test="admin-only">{{ ONLY_ADMINS_CHANGE }}</p>
       <button
         type="button"
         class="primary"
@@ -328,6 +417,16 @@ function refocus(itemId: string, direction: Move) {
                     >
                       <FontAwesomeIcon :icon="icons.edit" />
                     </button>
+                    <button
+                      type="button"
+                      data-remove
+                      :disabled="busy || !isAdmin"
+                      :aria-label="`Remove ${item.title}`"
+                      :data-tooltip="isAdmin ? 'Remove from the running order' : ONLY_ADMINS_REMOVE"
+                      @click="confirmRemove(item)"
+                    >
+                      <FontAwesomeIcon :icon="icons.remove" />
+                    </button>
                   </td>
                   <td data-test="number" class="number" data-label="#" role="cell">
                     <template v-if="number !== null">{{ number }}</template>
@@ -345,8 +444,18 @@ function refocus(itemId: string, direction: Move) {
                   </td>
                 </template>
               </tr>
-              <tr v-if="rows.length === 0" class="empty-half" role="row">
-                <td colspan="9" role="cell">No items. Drag one here, or use “Move to {{ half.name.toLowerCase() }}” on an item.</td>
+              <tr v-if="addingTo === i" class="adding" role="row">
+                <td colspan="9" class="editing" role="cell">
+                  <ItemEditor
+                    :item="newItem"
+                    :adding-to="halfName(i)"
+                    @apply="applyAdd"
+                    @cancel="endAdding"
+                  />
+                </td>
+              </tr>
+              <tr v-else-if="rows.length === 0" class="empty-half" role="row">
+                <td colspan="9" role="cell">No items. Drag one here, use “Move to {{ half.name.toLowerCase() }}” on an item, or use Add item below.</td>
               </tr>
             </tbody>
             <tfoot role="rowgroup">
@@ -357,6 +466,17 @@ function refocus(itemId: string, direction: Move) {
             </tfoot>
           </table>
         </div>
+        <button
+          type="button"
+          class="add-item"
+          :data-add-to="i"
+          :disabled="busy || !isAdmin"
+          :aria-label="`Add item to the ${halfName(i)}`"
+          :data-tooltip="isAdmin ? undefined : ONLY_ADMINS_ADD"
+          @click="startAdding(i === 0 ? 0 : 1)"
+        >
+          Add item
+        </button>
       </section>
     </template>
     <p class="finish" data-test="finish">

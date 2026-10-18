@@ -209,4 +209,30 @@ export function behavesAsARoleStore(make: (initial?: RoleList[]) => Promise<Role
 
     expect(byId(await store.list("2027")).map((role) => role.revision)).toEqual([2, 2, 2, 1]);
   });
+
+  it("deletes the roles of items that aren't kept, with who was cast, and keeps the others", async () => {
+    const store = await make([roles(editRoles())]);
+
+    await store.keepOnlyItems("2027", ["campfire-song"]);
+
+    expect(byId(await store.list("2027"))).toEqual([editRoles()[2]]);
+  });
+
+  it("frees a dropped item's role names and never reuses its role ids", async () => {
+    const store = await make([roles(editRoles())]);
+    await store.keepOnlyItems("2027", ["campfire-song"]);
+
+    const added = roleFrom(await store.add("2027", "pirate-sketch", { ...hook, name: "Smee" }));
+
+    expect(added.name).toBe("Smee");
+    expect(added.id).toBeGreaterThan(3);
+  });
+
+  it("changes no role when every item is kept", async () => {
+    const store = await make([roles(editRoles())]);
+
+    await store.keepOnlyItems("2027", ["pirate-sketch", "campfire-song", "finale"]);
+
+    expect(byId(await store.list("2027"))).toEqual(editRoles());
+  });
 }

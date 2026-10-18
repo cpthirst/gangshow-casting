@@ -43,6 +43,9 @@ export const withoutMember = (role: Role, castMemberId: number): Role => ({
   revision: role.revision + 1,
 });
 
+/** A transaction holds at most 100 writes: a role and its name row each. */
+const MOST_ROLES_PER_TRANSACTION = 50;
+
 /** How many times uncasting re-reads roles that changed under it before giving up: plenty
  *  for a handful of volunteers editing at once. */
 const UNCAST_PASSES = 5;
@@ -236,6 +239,36 @@ export function dynamoRoleStore(db: DynamoDBDocumentClient, tableName: string): 
         }
       }
       throw new Error("Couldn't uncast a cast member: their roles kept changing");
+    },
+
+    async keepOnlyItems(productionId, itemIds) {
+      const dropped = (await list(productionId)).roles.filter(
+        (role) => !itemIds.includes(role.itemId),
+      );
+      // Each role goes with its name's reservation, so the name is free if the item returns.
+      // The ids stay used: the counter only counts up. Not conditional on the revision, as
+      // the item is gone whatever else changed.
+      for (let from = 0; from < dropped.length; from += MOST_ROLES_PER_TRANSACTION) {
+        const batch = dropped.slice(from, from + MOST_ROLES_PER_TRANSACTION);
+        await db.send(
+          new TransactWriteCommand({
+            TransactItems: batch.flatMap((role) => [
+              {
+                Delete: {
+                  TableName: tableName,
+                  Key: { pk: partitionFor(productionId), sk: roleKey(role.id) },
+                },
+              },
+              {
+                Delete: {
+                  TableName: tableName,
+                  Key: { pk: partitionFor(productionId), sk: roleNameKey(role) },
+                },
+              },
+            ]),
+          }),
+        );
+      }
     },
   };
 }
