@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/cpthirst/gangshow-casting/compare/v1.2.0...v1.3.0) (2026-10-18)
+
+
+### Features
+
+* **web:** show every page read-only to Read-Only Team Members (team-roles E2) ([#71](https://github.com/cpthirst/gangshow-casting/issues/71)) ([55eaa22](https://github.com/cpthirst/gangshow-casting/commit/55eaa22eff91d64a32f5f645da9ad867397a9409))
+
 ## [1.2.0](https://github.com/cpthirst/gangshow-casting/compare/v1.1.0...v1.2.0) (2026-10-18)
 
 
