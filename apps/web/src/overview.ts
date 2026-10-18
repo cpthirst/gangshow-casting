@@ -57,6 +57,17 @@ export function partsByMember(
   return parts;
 }
 
+/** The sizes in the headline totals: ensemble is left out (casting-overview-grid FR3). */
+const TOTAL_SIZES = ["lead", "support", "cameo"] as const;
+
+/** How many roles of each headline size the show has, cast or not (casting-overview-grid
+ *  FR1, FR2). Like parts, only roles in items of the saved running order count. */
+export const roleTotals = (roles: Role[], itemsInShow: ReadonlySet<string>) =>
+  TOTAL_SIZES.map((size) => ({
+    size,
+    count: roles.filter((role) => role.size === size && itemsInShow.has(role.itemId)).length,
+  }));
+
 /** The sizes someone has, biggest first, with their counts: what the pills show. */
 export const sizesHeld = (counts: PartCounts) =>
   RoleSize.options
@@ -140,6 +151,46 @@ export function dotLabel({ title, number, part }: TimelineSlot) {
   const item = number === null ? `${title} (not in printed programme)` : `${number} · ${title}`;
   return part ? `${item}: ${roleSizeLabel(part)}` : item;
 }
+
+/** One item as a grid column: its programme number (null if not printed) and its half. */
+export interface GridColumn {
+  itemId: string;
+  title: string;
+  number: number | null;
+  halfName: string;
+}
+
+/** The grid's columns: every item in show order, so they line up with each person's
+ *  `timelineOf` slots. */
+export const gridColumns = (order: RunningOrder): GridColumn[] =>
+  runningClock(order).halves.flatMap(({ half, rows }) =>
+    rows.map(({ item, number }) => ({
+      itemId: item.id,
+      title: item.title,
+      number,
+      halfName: half.name,
+    })),
+  );
+
+const MAX_TITLE = 15;
+
+/** A title cut to 15 characters with "..." after, if it is longer (casting-overview-grid FR10):
+ *  a grid column should be about as wide as a dot, not as its longest title. */
+export const shortTitle = (title: string) =>
+  title.length > MAX_TITLE ? `${title.slice(0, MAX_TITLE)}...` : title;
+
+const headingOf = ({ number, halfName }: GridColumn, title: string) =>
+  number === null
+    ? `${title} (${halfName}, not in printed programme)`
+    : `${number} · ${title} (${halfName})`;
+
+/** A grid column's heading: "4 · Finale (Second half)". The number is the programme number,
+ *  as everywhere else in the app; it restarts each half, so the half says which. An item left
+ *  out of the printed programme has no number. A long title is cut short. */
+export const gridHeading = (column: GridColumn) => headingOf(column, shortTitle(column.title));
+
+/** The same heading with the whole title: for hover and screen readers. */
+export const fullGridHeading = (column: GridColumn) => headingOf(column, column.title);
 
 /** A timeline as one sentence for screen readers (FR6): "In 2 of 5 items: Pirate Sketch,
  *  Finale", or "In none of the 5 items". */

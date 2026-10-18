@@ -1221,19 +1221,26 @@ main a {
   text-transform: uppercase;
 }
 
-.pill-lead {
+.pill-lead,
+.role-total-lead,
+.grid-dot-lead {
   background: #fde2dc;
 }
 
-.pill-support {
+.pill-support,
+.role-total-support,
+.grid-dot-support {
   background: #fff6b8;
 }
 
-.pill-cameo {
+.pill-cameo,
+.role-total-cameo,
+.grid-dot-cameo {
   background: #dcecf8;
 }
 
-.pill-ensemble {
+.pill-ensemble,
+.grid-dot-ensemble {
   background: var(--surface);
 }
 
@@ -1382,6 +1389,180 @@ main a {
   display: inline-flex;
   flex-wrap: wrap;
   gap: 0.375rem;
+}
+
+/* Casting overview: the By person / Grid switch, filled for the view showing. */
+.view-switch {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+}
+
+.view-switch button {
+  padding: 0.5rem 1rem;
+  border: 2px solid var(--text);
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.view-switch button[aria-pressed="true"] {
+  background: var(--text);
+  color: var(--white);
+}
+
+/* The grid sits in a .table-scroll box, so it scrolls sideways there and never the page
+   (ADR 0011). It has lines round every cell, so who is in which item reads across and down.
+   Separate borders, not collapsed: a sticky cell keeps its own borders as it moves. */
+.casting-grid {
+  --pinned-width: 5.5rem;
+  --grid-line: #c4c4c4;
+  border-collapse: separate;
+  border-spacing: 0;
+  border-top: 1px solid var(--grid-line);
+  border-left: 1px solid var(--grid-line);
+}
+
+.casting-grid th,
+.casting-grid td {
+  padding: 0.5rem 0.75rem;
+  border-right: 1px solid var(--grid-line);
+  border-bottom: 1px solid var(--grid-line);
+  text-align: left;
+  white-space: nowrap;
+}
+
+/* Dots and dashes sit in the middle of their cells, under their centred headings. */
+.casting-grid .grid-cell,
+.casting-grid .grid-item-heading {
+  text-align: center;
+}
+
+.casting-grid thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--white);
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* A tall grid scrolls inside its own box too, so its headings stay in view above the rows. */
+.grid-box {
+  max-height: 75vh;
+}
+
+/* The two name columns stay in view while the items scroll (casting-overview-grid FR10).
+   Fixed widths, so the last name can stick just after the first; long names wrap. They need
+   a solid background to hide what slides under them. */
+.casting-grid .grid-pinned {
+  position: sticky;
+  z-index: 1;
+  width: var(--pinned-width);
+  min-width: var(--pinned-width);
+  max-width: var(--pinned-width);
+  padding-right: 0.5rem;
+  padding-left: 0.5rem;
+  background: var(--white);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* The corner cells sit above both the other headings and the names. */
+.casting-grid thead .grid-pinned {
+  z-index: 3;
+}
+
+.casting-grid .grid-pinned-first {
+  left: 0;
+}
+
+.casting-grid .grid-pinned-last {
+  left: var(--pinned-width);
+  /* A heavier line where the names end and the items begin. */
+  border-right: 2px solid var(--not-in-item);
+}
+
+/* A clash's description opens from the first name's cell, over the last name's. */
+.casting-grid .grid-pinned:hover,
+.casting-grid .grid-pinned:focus-within {
+  z-index: 2;
+}
+
+/* On phones a clash would be written out in the narrow name cell, so the grid shows just the
+   icon (it still carries the words for screen readers); the by-person view has the details. */
+@media (max-width: 767px), (hover: none) {
+  .casting-grid .clash .clash-description,
+  .casting-grid .clash:hover .clash-description {
+    display: none;
+  }
+}
+
+/* A cell with nobody in it: a dash, in the same grey as a timeline's empty dots. */
+.grid-empty {
+  color: var(--not-in-item);
+}
+
+/* A dot with its letter inside, so size reads without colour (casting-overview-grid FR7). */
+.grid-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  color: var(--text);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* The key above the grid: each dot with its size written out. */
+.grid-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.grid-legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Casting overview: how many roles the show has, big enough to read across a room. */
+.role-totals-caption {
+  margin: 0 0 0.25rem;
+  font-weight: 700;
+}
+
+.role-totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0 0 1.5rem;
+  padding: 0;
+  list-style: none;
+}
+
+.role-total {
+  padding: 0.25rem 0.75rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.role-total-count {
+  font-size: 1.5rem;
 }
 
 /* Casting overview: each section heading also says how many people are in it. */
