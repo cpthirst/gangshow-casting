@@ -653,3 +653,171 @@ describe("Timeline on the Overview", () => {
     },
   );
 });
+
+describe("Casting overview role totals", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.body.innerHTML = "";
+  });
+
+  const show = aRunningOrder([anItem("Pirate Sketch")], [anItem("Campfire Song")]);
+  let roleId = 1;
+  const role = (itemId: string, size: Role["size"], castMemberIds: number[] = []): Role => ({
+    id: roleId,
+    itemId,
+    name: `Role ${roleId++}`,
+    size,
+    castMemberIds,
+    revision: 1,
+  });
+
+  /** A stand-in API for the cast, roles and running order. A path given as `status`
+   *  answers with that status instead. Returns every URL asked for. */
+  function theShowIs(
+    roles: Role[],
+    { members = [], status = {} }: { members?: CastMember[]; status?: Record<string, number> } = {},
+  ) {
+    const answers: Record<string, unknown> = {
+      [CAST_PATH]: { productionId: "2027", members },
+      [ROLES_PATH]: { productionId: "2027", roles },
+      [RUNNING_ORDER_PATH]: show,
+    };
+    const asked: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        asked.push(url);
+        const code = status[url];
+        if (code) return new Response(null, { status: code });
+        if (url in answers) return new Response(JSON.stringify(answers[url]));
+        return new Response(JSON.stringify({ status: "ok", version: "dev" }));
+      }),
+    );
+    return asked;
+  }
+
+  const totals = (wrapper: VueWrapper) =>
+    wrapper.findAll("[data-test=total]").map((total) => total.text().replace(/\s+/g, " "));
+
+  const aShow = [
+    role("pirate-sketch", "lead"),
+    role("campfire-song", "lead"),
+    role("pirate-sketch", "support"),
+    role("pirate-sketch", "support"),
+    role("campfire-song", "support"),
+    role("campfire-song", "cameo"),
+  ];
+
+  it("shows lead, support and cameo totals above the cast", async () => {
+    theShowIs(aShow, { members: [person("Sam", "Example", "scouts")] });
+
+    const wrapper = await openOverview();
+
+    expect(totals(wrapper)).toEqual(["Lead · 2", "Support · 3", "Cameo · 1"]);
+    const html = wrapper.get("main").html();
+    expect(html.indexOf("role-totals")).toBeLessThan(html.indexOf("overview-section"));
+  });
+
+  it("says in words that the totals are roles in the show", async () => {
+    theShowIs(aShow);
+
+    const wrapper = await openOverview();
+
+    const caption = wrapper.get(".role-totals-caption");
+    expect(caption.text()).toBe("Roles in the show");
+    expect(wrapper.get(".role-totals").attributes("aria-labelledby")).toBe(
+      caption.attributes("id"),
+    );
+  });
+
+  it("tints each total like its size's pills", async () => {
+    theShowIs(aShow);
+
+    const wrapper = await openOverview();
+
+    expect(wrapper.findAll("[data-test=total]").map((total) => total.classes())).toEqual([
+      expect.arrayContaining(["role-total-lead"]),
+      expect.arrayContaining(["role-total-support"]),
+      expect.arrayContaining(["role-total-cameo"]),
+    ]);
+  });
+
+  it("counts roles nobody is cast in", async () => {
+    const sam = person("Sam", "Example", "scouts");
+    theShowIs([role("pirate-sketch", "lead", []), role("pirate-sketch", "lead", [sam.id])], {
+      members: [sam],
+    });
+
+    const wrapper = await openOverview();
+
+    expect(totals(wrapper)[0]).toBe("Lead · 2");
+  });
+
+  it("leaves ensemble roles out of the totals", async () => {
+    theShowIs([...aShow, role("pirate-sketch", "ensemble", [1, 2, 3, 4])]);
+
+    const wrapper = await openOverview();
+
+    expect(totals(wrapper)).toEqual(["Lead · 2", "Support · 3", "Cameo · 1"]);
+    expect(wrapper.get(".role-totals").text()).not.toMatch(/ensemble/i);
+  });
+
+  it("shows a new support role in the total after a reload", async () => {
+    theShowIs(aShow);
+    expect(totals(await openOverview())[1]).toBe("Support · 3");
+
+    theShowIs([...aShow, role("campfire-song", "support")]);
+
+    expect(totals(await openOverview())[1]).toBe("Support · 4");
+  });
+
+  it("drops a removed cameo role from the total after a reload", async () => {
+    theShowIs(aShow);
+    expect(totals(await openOverview())[2]).toBe("Cameo · 1");
+
+    theShowIs(aShow.filter((r) => r.size !== "cameo"));
+
+    expect(totals(await openOverview())[2]).toBe("Cameo · 0");
+  });
+
+  it("shows zero totals for a show with no roles", async () => {
+    theShowIs([]);
+
+    const wrapper = await openOverview();
+
+    expect(totals(wrapper)).toEqual(["Lead · 0", "Support · 0", "Cameo · 0"]);
+  });
+
+  it("only asks for this production's roles", async () => {
+    const asked = theShowIs(aShow);
+
+    await openOverview();
+
+    expect(asked).toContain(ROLES_PATH);
+    expect(asked.filter((url) => url.includes("/roles"))).toEqual([ROLES_PATH]);
+  });
+
+  it("doesn't count roles in items missing from the saved running order", async () => {
+    theShowIs([...aShow, role("cut-item", "lead")]);
+
+    const wrapper = await openOverview();
+
+    expect(totals(wrapper)[0]).toBe("Lead · 2");
+  });
+
+  it("shows zero totals when there is no saved running order", async () => {
+    theShowIs(aShow, { status: { [RUNNING_ORDER_PATH]: 404 } });
+
+    const wrapper = await openOverview();
+
+    expect(totals(wrapper)).toEqual(["Lead · 0", "Support · 0", "Cameo · 0"]);
+  });
+
+  it("shows no totals, rather than zeros, when the roles can't be loaded", async () => {
+    theShowIs(aShow, { status: { [ROLES_PATH]: 500 } });
+
+    const wrapper = await openOverview();
+
+    expect(totals(wrapper)).toEqual([]);
+  });
+});

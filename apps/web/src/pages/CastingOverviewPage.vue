@@ -11,6 +11,7 @@ import {
   type PartCounts,
   partsByMember,
   peopleCount,
+  roleTotals,
   sizesHeld,
   spokenParts,
   timelineOf,
@@ -29,6 +30,8 @@ const state = ref<
 // Loaded separately from the cast: if the casting fails, the cast still shows, without
 // counts, and nobody is wrongly marked "No parts yet" (casting-overview FR8).
 const parts = ref<Map<number, PartCounts> | "error">();
+// How big the show is; none until the roles load, or if they fail.
+const totals = ref<ReturnType<typeof roleTotals>>();
 // From the same roles and running order, so they fail together: no icons then
 // (casting-rules FR9, FR13).
 const clashes = ref<Clash[]>([]);
@@ -68,15 +71,19 @@ async function loadParts() {
     // No saved running order: no items, so no roles count yet.
     if (orderRes.status === 404) {
       parts.value = partsByMember(roles, new Set());
+      totals.value = roleTotals(roles, new Set());
       return;
     }
     if (!orderRes.ok) throw new Error(`HTTP ${orderRes.status}`);
     const order = RunningOrder.parse(await orderRes.json());
     clashes.value = findClashes(order, roles);
     timeline.value = { order, parts: biggestParts(roles) };
-    parts.value = partsByMember(roles, itemIdsInOrder(order));
+    const itemsInShow = itemIdsInOrder(order);
+    parts.value = partsByMember(roles, itemsInShow);
+    totals.value = roleTotals(roles, itemsInShow);
   } catch {
     parts.value = "error";
+    totals.value = undefined;
     clashes.value = [];
     timeline.value = undefined;
   }
@@ -105,6 +112,17 @@ async function loadCast() {
   <p v-if="state.status === 'error'" role="alert">Couldn't load the cast.</p>
   <template v-else-if="state.status === 'loaded'">
     <p v-if="parts === 'error'" class="notice" role="alert">Couldn't load the casting.</p>
+    <!-- Real text, large: heard as "Lead 12", not an image (casting-overview-grid FR1). -->
+    <template v-if="totals">
+      <!-- Said out loud too, so the row is clearly roles and not people. Tinted like each
+           size's pills on the cards below. -->
+      <p id="role-totals-caption" class="role-totals-caption">Roles in the show</p>
+      <ul class="role-totals" role="list" aria-labelledby="role-totals-caption">
+        <li v-for="{ size, count } in totals" :key="size" :class="['role-total', `role-total-${size}`]" data-test="total">
+          {{ roleSizeLabel(size) }} · <span class="role-total-count">{{ count }}</span>
+        </li>
+      </ul>
+    </template>
     <p v-if="sections.length === 0">No cast members yet.</p>
     <section v-for="section in sections" :key="section.key" class="overview-section">
       <h2 :id="`section-${section.key}`">

@@ -18,7 +18,7 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [casting-overview-grid.E1.S1](stories/E1-S1-role-counts.md) | The top of Overview shows large Lead, Support and Cameo totals for the current production, cast or not, excluding ensemble, and they change as roles are added or removed (walking skeleton) | FR1, FR2, FR3 | (none) | ready |
+| [casting-overview-grid.E1.S1](stories/E1-S1-role-counts.md) | The top of Overview shows large Lead, Support and Cameo totals for the current production, cast or not, excluding ensemble, and they change as roles are added or removed (walking skeleton) | FR1, FR2, FR3 | (none) | done |
 
 ## E2: See who is in which item in one table
 

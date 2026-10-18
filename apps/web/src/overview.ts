@@ -57,6 +57,17 @@ export function partsByMember(
   return parts;
 }
 
+/** The sizes in the headline totals: ensemble is left out (casting-overview-grid FR3). */
+const TOTAL_SIZES = ["lead", "support", "cameo"] as const;
+
+/** How many roles of each headline size the show has, cast or not (casting-overview-grid
+ *  FR1, FR2). Like parts, only roles in items of the saved running order count. */
+export const roleTotals = (roles: Role[], itemsInShow: ReadonlySet<string>) =>
+  TOTAL_SIZES.map((size) => ({
+    size,
+    count: roles.filter((role) => role.size === size && itemsInShow.has(role.itemId)).length,
+  }));
+
 /** The sizes someone has, biggest first, with their counts: what the pills show. */
 export const sizesHeld = (counts: PartCounts) =>
   RoleSize.options
