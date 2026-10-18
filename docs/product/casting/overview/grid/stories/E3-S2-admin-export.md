@@ -2,7 +2,7 @@
 id: casting-overview-grid.E3.S2
 title: Export the grid to Excel as an admin
 epic: E3
-status: ready
+status: done
 ---
 
 ## Story
@@ -11,22 +11,23 @@ As an admin, I want to export the casting grid to Excel, so that I can take it t
 
 ## Acceptance criteria
 
-The examples use the production "Pirates 2027", the running order and cast from casting-overview-grid.E2.S1, and an export on 12 March 2027.
+The examples use the production "Pirates 2027" (the running order's title), the running order and cast from casting-overview-grid.E2.S1, and an export on 12 March 2027.
 
-### AC1: Admins see the button
+### AC1: Admins see the export icon
 Given I am signed in as an admin
 When the Overview is showing the grid
-Then I see an "Export to Excel" button
+Then I see Font Awesome's Excel file icon button at the top right, beside the page title, in a green tone
+And it is named "Export to Excel" for screen readers
 
 ### AC2: Other users do not
 Given I am signed in as a member who is not an admin
 When the Overview is showing the grid
-Then there is no "Export to Excel" button
+Then there is no export icon
 
 ### AC3: The button is not on the by-person view
 Given I am an admin
 When the Overview is showing people by section
-Then there is no "Export to Excel" button
+Then there is no export icon
 
 ### AC4: The file opens in Excel
 Given I am an admin
@@ -42,7 +43,7 @@ Then the file is named "Pirates 2027 casting grid 2027-03-12.xlsx"
 Given the cast and running order in casting-overview-grid.E2.S1
 When I export
 Then each row is first name, last name and section for Sam Example, Alex Sample and Jo Newcomer in the grid's order
-And the item columns run "1 · Opening Number", "2 · Pirate Sketch", "3 · Dance One"
+And the item columns run "1.1 · Opening Number", "1.2 · Pirate Sketch", "2.1 · Dance One", with the whole item title even where the grid cuts it short
 
 ### AC7: Filled cells hold the role-size letter
 Given Sam is a lead in "Pirate Sketch" and a cameo in "Dance One"
@@ -76,10 +77,22 @@ Given I am an admin and the export fails
 When I choose "Export to Excel"
 Then I see a message that the export did not work and I can try again
 
-### AC13: A reminder the file is team-only
+### AC13: Hovering says who the file is for
 Given I am an admin
-When I look at the "Export to Excel" button
-Then a short note beside it says the file holds the cast's names and is for the production team only
+When I hover over, or focus, the export icon
+Then a tooltip says "The file holds the cast's names: for the production team only."
+And the words are not shown on the page otherwise (a gap on touch screens the user accepts)
+
+### AC14: A finished export is announced and focus stays put
+Given I am an admin using a keyboard or screen reader
+When an export finishes or fails
+Then a screen reader hears "Casting grid exported." after a success
+And keyboard focus is back on the export icon
+
+### AC15: The biggest of several parts is exported
+Given Sam has a lead and a cameo in "Opening Number"
+When I export
+Then Sam's cell for it holds L only
 
 ## Notes
 
@@ -87,5 +100,7 @@ Then a short note beside it says the file holds the cast's names and is for the 
 - Depends on: casting-overview-grid.E2.S1, casting-overview-grid.E3.S1
 - The export matches the grid, ensemble E included.
 - Use made-up names only in tests and fixtures. Check the file contents by reading it back in a test.
+- Per [ADR 0019](../../../../../adr/0019-server-built-excel-export-for-admins.md), the page sends the grid as shown to an admin-only `POST /api/productions/{productionId}/casting-grid/export`, and the server only makes the file. Its strict schema (`packages/shared`) lets through only names, section, item headings and role letters, so AC9 is enforced by refusing a row with anything else.
+- "Refuses anyone not signed in" (AC11) is API Gateway's authorizer on every route (ADR 0018); the hosted check covers it.
 - If this runs over ~400 changed lines, split the route from the button and update the story map.
 - Out of scope: cell colour fills (E3.S3).

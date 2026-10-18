@@ -10,6 +10,7 @@ import {
   faCircle,
   faCircleDot,
   faCircleInfo,
+  faFileExcel,
   faGripVertical,
   faKey,
   faList,
@@ -35,6 +36,8 @@ export const icons = {
   // Shields for admin, so neither looks like Disable's crossed-out person.
   removeAdmin: faShieldHalved,
   cast: faUsers,
+  // Admins export the casting grid as an Excel file.
+  exportFile: faFileExcel,
   drag: faGripVertical,
   moveUp: faArrowUp,
   moveDown: faArrowDown,

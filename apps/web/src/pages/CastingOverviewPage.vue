@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { CastList, type CastMember, RoleList, RunningOrder } from "@app/shared";
-import { computed, onMounted, ref } from "vue";
+import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
+import { computed, nextTick, onMounted, ref } from "vue";
 import CastingGrid from "../CastingGrid.vue";
 import ClashIcon from "../ClashIcon.vue";
 import { CAST_PATH } from "../cast.ts";
+import { downloadGridExport, EXPORT_NOTE } from "../casting-grid-export.ts";
 import { type Clash, clashesOfPerson, describeEach, findClashes } from "../clashes.ts";
+import { icons } from "../icons.ts";
 import {
   biggestParts,
   castBySection,
@@ -21,7 +24,7 @@ import {
 import { ROLES_PATH, roleSizeLabel } from "../roles.ts";
 import { RUNNING_ORDER_PATH } from "../running-order.ts";
 import ShowTimeline from "../ShowTimeline.vue";
-import { apiFetch } from "../sign-in.ts";
+import { apiFetch, isAdmin } from "../sign-in.ts";
 
 const state = ref<
   { status: "loading" } | { status: "error" } | { status: "loaded"; cast: CastMember[] }
@@ -57,6 +60,40 @@ const gridRows = computed(() =>
       slots: halves?.flat() ?? [],
     })),
   ),
+);
+
+// Admins only: the grid as shown goes to the server, which makes the Excel file (ADR 0019).
+const exporting = ref(false);
+const exportFailed = ref(false);
+/** Screen-reader announcement of a finished export. */
+const exportAnnouncement = ref("");
+// A disabled button drops keyboard focus, so it is put back once the export is over.
+const exportButton = ref<HTMLButtonElement>();
+
+async function exportGrid() {
+  const order = timeline.value?.order;
+  if (!order || exporting.value) return;
+  exporting.value = true;
+  exportAnnouncement.value = "";
+  exportFailed.value = !(await downloadGridExport(
+    order.title,
+    columnsOfGrid.value,
+    gridRows.value,
+  ));
+  if (!exportFailed.value) exportAnnouncement.value = "Casting grid exported.";
+  exporting.value = false;
+  await nextTick();
+  exportButton.value?.focus();
+}
+
+// The export icon, top right: admins only, on the grid, once there is a grid to export. The
+// server refuses anyone else, so this only decides what to show.
+const canExport = computed(
+  () =>
+    isAdmin.value &&
+    view.value === "grid" &&
+    sections.value.length > 0 &&
+    columnsOfGrid.value.length > 0,
 );
 
 // Each person carries their part counts: undefined while loading or unavailable, or
@@ -128,8 +165,24 @@ async function loadCast() {
 </script>
 
 <template>
-  <h1>Overview</h1>
+  <div class="page-title-row">
+    <h1>Overview</h1>
+    <!-- An icon, named for screen readers and explained on hover. The file is a copy of the
+         cast's names outside the app, so the tooltip says who it's for (ADR 0019). -->
+    <button
+      v-if="canExport"
+      ref="exportButton"
+      type="button"
+      class="icon-button grid-export-button"
+      :disabled="exporting"
+      :aria-label="`Export to Excel. ${EXPORT_NOTE}`"
+      :data-tooltip="EXPORT_NOTE"
+      @click="exportGrid">
+      <FontAwesomeIcon :icon="icons.exportFile" />
+    </button>
+  </div>
   <p>Everyone in the cast and how much they're cast.</p>
+  <p class="visually-hidden" role="status" data-test="announcement">{{ exportAnnouncement }}</p>
   <p v-if="state.status === 'error'" role="alert">Couldn't load the cast.</p>
   <template v-else-if="state.status === 'loaded'">
     <p v-if="parts === 'error'" class="notice" role="alert">Couldn't load the casting.</p>
@@ -157,7 +210,12 @@ async function loadCast() {
       </button>
     </div>
     <template v-if="view === 'grid'">
-      <CastingGrid v-if="columnsOfGrid.length > 0" :columns="columnsOfGrid" :rows="gridRows" />
+      <template v-if="columnsOfGrid.length > 0">
+        <p v-if="exportFailed" class="notice grid-export-error" role="alert">
+          Couldn't export the grid. Try again.
+        </p>
+        <CastingGrid :columns="columnsOfGrid" :rows="gridRows" />
+      </template>
       <p v-else-if="parts === 'error'">Couldn't load the grid.</p>
       <p v-else-if="parts instanceof Map">No items in the running order yet.</p>
     </template>

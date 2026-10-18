@@ -15,10 +15,12 @@
     "@app/shared": "workspace:*",
     "@aws-sdk/client-cognito-identity-provider": "^3.1152.0",
     "@aws-sdk/client-dynamodb": "^3.1152.0",
-    "@aws-sdk/lib-dynamodb": "^3.1152.0"
+    "@aws-sdk/lib-dynamodb": "^3.1152.0",
+    "write-excel-file": "^4.1.1"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.164",
-    "aws-sdk-client-mock": "^4.1.0"
+    "aws-sdk-client-mock": "^4.1.0",
+    "fflate": "^0.8.3"
   }
 }

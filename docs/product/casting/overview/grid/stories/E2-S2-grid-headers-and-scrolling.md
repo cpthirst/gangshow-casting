@@ -13,11 +13,12 @@ As a member of the production team, I want the grid to keep names in view and la
 
 The examples use a running order where "Finale" is the 4th printed item of the second half.
 
-### AC1: Column headers name the item, its programme number and its half
-Given "Finale" is programme number 4 in the second half
+### AC1: Column headers name the item by half and number
+Given "Finale" is the 4th printed item of the second half
 When I look at the grid
-Then its column header reads "4 · Finale (Second half)"
-And programme numbers restart in the second half, as they do everywhere else in the app
+Then its column header reads "2.4 · Finale"
+And the first printed item of the first half reads "1.1 · ..." and the next "1.2 · ..."
+And the number is the programme number, which restarts each half
 
 ### AC2: Names stay visible when scrolling across
 Given a grid with 30 item columns
@@ -36,10 +37,11 @@ When the Overview is showing the grid
 Then the page itself does not scroll sideways
 And the grid scrolls sideways within its own area
 
-### AC5: Items not in the printed programme say so
+### AC5: Items not in the printed programme are italic red
 Given "Entr'acte" is not in the printed programme
 When I look at its column header
-Then it reads "Entr'acte (First half, not in printed programme)", with no number
+Then it reads "Entr'acte", with no number and no extra words, in italic red
+And a screen reader is told "Entr'acte, not in printed programme", since italic red alone says nothing to it
 
 ### AC6: Long item titles are cut short
 Given an item titled "The Grand Finale of the Evening" (31 characters)

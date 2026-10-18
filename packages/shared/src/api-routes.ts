@@ -18,6 +18,7 @@ export const routeKeys = [
   "DELETE /api/productions/{productionId}/cast/{castId}",
   "GET /api/productions/{productionId}/roles",
   "GET /api/productions/{productionId}/item-notes",
+  "POST /api/productions/{productionId}/casting-grid/export",
   "PUT /api/productions/{productionId}/items/{itemId}/notes",
   "POST /api/productions/{productionId}/items/{itemId}/roles",
   "PUT /api/productions/{productionId}/roles/{roleId}",
@@ -41,6 +42,7 @@ export const adminOnlyRouteKeys: readonly RouteKey[] = [
   "PUT /api/accounts/{username}/admin",
   "DELETE /api/productions/{productionId}/cast/{castId}",
   "POST /api/productions/{productionId}/running-order/versions",
+  "POST /api/productions/{productionId}/casting-grid/export",
 ];
 
 /**

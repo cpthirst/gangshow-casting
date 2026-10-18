@@ -1,6 +1,6 @@
 import type { CastMember, Role, RunningOrder } from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount, type VueWrapper } from "@vue/test-utils";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory } from "vue-router";
 import App from "../App.vue";
 import { CAST_PATH } from "../cast.ts";
@@ -8,6 +8,8 @@ import { ROLES_PATH } from "../roles.ts";
 import { createAppRouter } from "../router.ts";
 import { anItem, aRunningOrder } from "../running-order.fixture.ts";
 import { RUNNING_ORDER_PATH } from "../running-order.ts";
+import { signInAs } from "../sign-in.fixture.ts";
+import { useLocalSignIn } from "../sign-in.ts";
 
 enableAutoUnmount(afterEach);
 
@@ -945,9 +947,9 @@ describe("Casting grid on the Overview", () => {
 
     const heads = wrapper.findAll("thead th").map((head) => head.text());
     expect(heads.slice(3)).toEqual([
-      "1 · Opening Number (First half)",
-      "2 · Pirate Sketch (First half)",
-      "1 · Dance One (Second half)",
+      "1.1 · Opening Number",
+      "1.2 · Pirate Sketch",
+      "2.1 · Dance One",
     ]);
   });
 
@@ -1064,13 +1066,13 @@ describe("Casting grid on the Overview", () => {
 
     const heads = wrapper.findAll("thead th").map((head) => head.text());
     expect(heads.slice(3)).toEqual([
-      "1 · One (First half)",
-      "2 · Two (First half)",
-      "3 · Three (First half)",
-      "1 · Four (Second half)",
-      "2 · Five (Second half)",
-      "3 · Six (Second half)",
-      "4 · Finale (Second half)",
+      "1.1 · One",
+      "1.2 · Two",
+      "1.3 · Three",
+      "2.1 · Four",
+      "2.2 · Five",
+      "2.3 · Six",
+      "2.4 · Finale",
     ]);
   });
 
@@ -1085,11 +1087,13 @@ describe("Casting grid on the Overview", () => {
     const wrapper = await openGrid();
 
     const heads = wrapper.findAll("thead th").map((head) => head.text());
-    expect(heads.slice(3)).toEqual([
-      "1 · Opening Number (First half)",
-      "Entr'acte (First half, not in printed programme)",
-      "1 · Dance One (Second half)",
-    ]);
+    expect(heads.slice(3)).toEqual(["1.1 · Opening Number", "Entr'acte", "2.1 · Dance One"]);
+    // Italic red, not words, on screen; a screen reader is still told.
+    const entracte = wrapper.findAll("thead th")[4];
+    expect(entracte?.classes()).toContain("grid-unprinted");
+    expect(entracte?.attributes("aria-label")).toBe("Entr'acte, not in printed programme");
+    expect(entracte?.attributes("title")).toBeUndefined();
+    expect(wrapper.findAll("thead th")[3]?.classes()).not.toContain("grid-unprinted");
   });
 
   it("cuts a title over 15 characters to 15 and '...', keeping the full one on hover", async () => {
@@ -1106,14 +1110,18 @@ describe("Casting grid on the Overview", () => {
 
     const heads = wrapper.findAll("thead th").slice(3);
     expect(heads.map((head) => head.text())).toEqual([
-      "1 · Fifteen Letters... (First half)",
-      "2 · Exactly 15 char (First half)",
-      "3 · Short (First half)",
-      "The Grand Final... (First half, not in printed programme)",
+      "1.1 · Fifteen Letters...",
+      "1.2 · Exactly 15 char",
+      "1.3 · Short",
+      "The Grand Final...",
     ]);
     // The whole name is still there for hover and for screen readers.
-    expect(heads[0]?.attributes("title")).toBe("1 · Fifteen Letters! (First half)");
-    expect(heads[0]?.attributes("aria-label")).toBe("1 · Fifteen Letters! (First half)");
+    expect(heads[0]?.attributes("title")).toBe("1.1 · Fifteen Letters!");
+    expect(heads[0]?.attributes("aria-label")).toBe("1.1 · Fifteen Letters!");
+    expect(heads[3]?.attributes("title")).toBe("The Grand Finale of the Evening");
+    expect(heads[3]?.attributes("aria-label")).toBe(
+      "The Grand Finale of the Evening, not in printed programme",
+    );
     expect(heads[1]?.attributes("title")).toBeUndefined();
     expect(heads[2]?.attributes("title")).toBeUndefined();
   });
@@ -1271,5 +1279,235 @@ describe("Casting grid on the Overview", () => {
       "error",
     );
     expect(rowOf(wrapper, "Alex")[0]?.find("[data-test=clash]").exists()).toBe(false);
+  });
+});
+
+describe("Excel export from the grid", () => {
+  const EXPORT_PATH = "/api/productions/2027/casting-grid/export";
+  const show = aRunningOrder(
+    [anItem("Opening Number"), anItem("The Grand Finale of the Evening")],
+    [anItem("Dance One")],
+  );
+  let roleId = 1;
+  const role = (itemId: string, size: Role["size"], castMemberIds: number[]): Role => ({
+    id: roleId,
+    itemId,
+    name: `Role ${roleId++}`,
+    size,
+    castMemberIds,
+    revision: 1,
+  });
+  const sam = person("Sam", "Example", "scouts");
+  const alex = person("Alex", "Sample", "explorers");
+  const roles = [
+    role("opening-number", "lead", [sam.id]),
+    role("dance-one", "cameo", [sam.id]),
+    role("the-grand-finale-of-the-evening", "ensemble", [alex.id]),
+  ];
+
+  let exportStatus = 200;
+  let exportRequests: { url: string; init?: RequestInit }[] = [];
+  let downloads: { name: string; href: string }[] = [];
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"], now: new Date(2027, 2, 12, 10, 0) });
+    exportStatus = 200;
+    exportRequests = [];
+    downloads = [];
+    useLocalSignIn();
+    URL.createObjectURL = vi.fn(() => "blob:made-up");
+    URL.revokeObjectURL = vi.fn();
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
+      this: HTMLAnchorElement,
+    ) {
+      downloads.push({ name: this.download, href: this.href });
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string, init?: RequestInit) => {
+        if (url === EXPORT_PATH) {
+          exportRequests.push({ url, ...(init ? { init } : {}) });
+          return exportStatus === 200
+            ? new Response(new Blob(["PK"]), { status: 200 })
+            : new Response(null, { status: exportStatus });
+        }
+        const answers: Record<string, unknown> = {
+          [CAST_PATH]: { productionId: "2027", members: [sam, alex] },
+          [ROLES_PATH]: { productionId: "2027", roles },
+          [RUNNING_ORDER_PATH]: show,
+        };
+        return url in answers
+          ? new Response(JSON.stringify(answers[url]))
+          : new Response(JSON.stringify({ status: "ok", version: "dev" }));
+      }),
+    );
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    useLocalSignIn();
+    document.body.innerHTML = "";
+  });
+
+  const NOTE = "The file holds the cast's names: for the production team only.";
+  // An icon: its name is the label, which also tells a screen reader who the file is for.
+  const exportButton = (wrapper: VueWrapper) =>
+    wrapper
+      .findAll("main button")
+      .find((b) => b.attributes("aria-label")?.startsWith("Export to Excel"));
+  async function openGrid() {
+    const wrapper = await openOverview();
+    await wrapper
+      .findAll("main button")
+      .find((b) => b.text() === "Grid")
+      ?.trigger("click");
+    return wrapper;
+  }
+
+  it("shows an admin an Export to Excel icon button on the grid", async () => {
+    const wrapper = await openGrid();
+
+    const button = exportButton(wrapper);
+    expect(button?.exists()).toBe(true);
+    expect(button?.text()).toBe("");
+    expect(button?.find("svg").exists()).toBe(true);
+    expect(button?.classes()).toContain("grid-export-button");
+  });
+
+  it("puts the button at the top right, beside the page title", async () => {
+    const wrapper = await openGrid();
+
+    const row = wrapper.get(".page-title-row");
+    expect(row.find("h1").exists()).toBe(true);
+    expect(row.find("button.grid-export-button").exists()).toBe(true);
+    // After the title, so it sits at the right of the row.
+    expect(row.element.lastElementChild?.tagName).toBe("BUTTON");
+  });
+
+  it("shows a member who isn't an admin no button", async () => {
+    await signInAs([]);
+
+    const wrapper = await openGrid();
+
+    expect(wrapper.find("table").exists()).toBe(true);
+    expect(exportButton(wrapper)).toBeUndefined();
+  });
+
+  it("shows no button on the by-person view", async () => {
+    const wrapper = await openOverview();
+
+    expect(exportButton(wrapper)).toBeUndefined();
+  });
+
+  it("says who the file is for in the button's hover tooltip, and nowhere else on screen", async () => {
+    const wrapper = await openGrid();
+
+    const button = exportButton(wrapper);
+    expect(button?.attributes("data-tooltip")).toBe(NOTE);
+    expect(button?.attributes("aria-label")).toBe(`Export to Excel. ${NOTE}`);
+    expect(wrapper.text()).not.toContain(NOTE);
+  });
+
+  it("sends the grid as shown: names, section, whole item headings and role letters", async () => {
+    const wrapper = await openGrid();
+
+    await exportButton(wrapper)?.trigger("click");
+    await flushPromises();
+
+    expect(exportRequests).toHaveLength(1);
+    expect(exportRequests[0]?.init?.method).toBe("POST");
+    expect(JSON.parse(String(exportRequests[0]?.init?.body))).toEqual({
+      items: [
+        { heading: "1.1 · Opening Number", printed: true },
+        { heading: "1.2 · The Grand Finale of the Evening", printed: true },
+        { heading: "2.1 · Dance One", printed: true },
+      ],
+      rows: [
+        { firstName: "Sam", lastName: "Example", section: "Scouts", cells: ["L", null, "C"] },
+        { firstName: "Alex", lastName: "Sample", section: "Explorers", cells: [null, "E", null] },
+      ],
+    });
+  });
+
+  it("sends only the biggest of several parts in one item", async () => {
+    roles.push(role("opening-number", "cameo", [sam.id]));
+    const wrapper = await openGrid();
+
+    await exportButton(wrapper)?.trigger("click");
+    await flushPromises();
+
+    const sent = JSON.parse(String(exportRequests[0]?.init?.body));
+    expect(sent.rows[0].cells).toEqual(["L", null, "C"]);
+    roles.pop();
+  });
+
+  it("saves the file named for the production and the date", async () => {
+    const wrapper = await openGrid();
+
+    await exportButton(wrapper)?.trigger("click");
+    await flushPromises();
+
+    expect(downloads).toEqual([
+      { name: "Gang Show 2027 casting grid 2027-03-12.xlsx", href: "blob:made-up" },
+    ]);
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:made-up");
+  });
+
+  it("announces a finished export to screen readers", async () => {
+    const wrapper = await openGrid();
+    expect(wrapper.get("[data-test=announcement]").text()).toBe("");
+
+    await exportButton(wrapper)?.trigger("click");
+    await flushPromises();
+
+    const status = wrapper.get("[data-test=announcement]");
+    expect(status.attributes("role")).toBe("status");
+    expect(status.text()).toBe("Casting grid exported.");
+  });
+
+  it.each([
+    ["finishes", 200],
+    ["fails", 500],
+  ])("puts keyboard focus back on the icon when an export %s", async (_name, status) => {
+    exportStatus = status;
+    const wrapper = await openGrid();
+    const button = wrapper.get<HTMLButtonElement>(".grid-export-button");
+    button.element.focus();
+
+    await button.trigger("click");
+    await flushPromises();
+
+    expect(document.activeElement).toBe(button.element);
+  });
+
+  it("says the export didn't work, saving no file, and lets the admin try again", async () => {
+    exportStatus = 500;
+    const wrapper = await openGrid();
+
+    await exportButton(wrapper)?.trigger("click");
+    await flushPromises();
+
+    expect(wrapper.get(".grid-export-error").text()).toBe("Couldn't export the grid. Try again.");
+    expect(downloads).toEqual([]);
+
+    exportStatus = 200;
+    await exportButton(wrapper)?.trigger("click");
+    await flushPromises();
+
+    expect(wrapper.find(".grid-export-error").exists()).toBe(false);
+    expect(downloads).toHaveLength(1);
+  });
+
+  it("says the export didn't work when the server refuses it", async () => {
+    exportStatus = 403;
+    const wrapper = await openGrid();
+
+    await exportButton(wrapper)?.trigger("click");
+    await flushPromises();
+
+    expect(wrapper.get(".grid-export-error").text()).toBe("Couldn't export the grid. Try again.");
+    expect(downloads).toEqual([]);
   });
 });

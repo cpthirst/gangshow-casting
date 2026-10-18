@@ -33,10 +33,18 @@ export function createDevServer(table: Record<string, Handler>) {
           ? {}
           : { queryStringParameters: Object.fromEntries(url.searchParams) }),
       };
-      const { statusCode = 200, headers = {}, body: responseBody } = await route.handler(event);
+      const {
+        statusCode = 200,
+        headers = {},
+        body: responseBody,
+        isBase64Encoded,
+      } = await route.handler(event);
       // Lambda allows boolean/number header values; node:http wants strings.
       const outgoing = Object.fromEntries(Object.entries(headers).map(([k, v]) => [k, String(v)]));
-      res.writeHead(statusCode, outgoing).end(responseBody);
+      // API Gateway turns a base64 body back into bytes (an Excel file); so do we.
+      res
+        .writeHead(statusCode, outgoing)
+        .end(isBase64Encoded && responseBody ? Buffer.from(responseBody, "base64") : responseBody);
     } catch (error) {
       if (error instanceof PayloadTooLargeError) {
         tooLarge(res);

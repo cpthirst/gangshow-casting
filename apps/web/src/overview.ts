@@ -1,12 +1,20 @@
-import { type CastMember, type Role, RoleSize, type RunningOrder, Section } from "@app/shared";
+import {
+  type CastMember,
+  type GridSection,
+  type Role,
+  RoleSize,
+  type RunningOrder,
+  Section,
+} from "@app/shared";
 import { sectionLabel, sortCast } from "./cast.ts";
+import type { ClashLine } from "./clashes.ts";
 import { biggerPart, roleSizeLabel } from "./roles.ts";
 import { runningClock } from "./running-order.ts";
 
 /** One section of the Overview: its people, in display order. */
 export interface OverviewSection {
   key: Section | "not-set";
-  label: string;
+  label: GridSection;
   members: CastMember[];
 }
 
@@ -152,25 +160,35 @@ export function dotLabel({ title, number, part }: TimelineSlot) {
   return part ? `${item}: ${roleSizeLabel(part)}` : item;
 }
 
-/** One item as a grid column: its programme number (null if not printed) and its half. */
+/** One item as a grid column: its programme number (null if not printed) and its half (1 or 2). */
 export interface GridColumn {
   itemId: string;
   title: string;
   number: number | null;
-  halfName: string;
+  halfNumber: number;
 }
 
 /** The grid's columns: every item in show order, so they line up with each person's
  *  `timelineOf` slots. */
 export const gridColumns = (order: RunningOrder): GridColumn[] =>
-  runningClock(order).halves.flatMap(({ half, rows }) =>
+  runningClock(order).halves.flatMap(({ rows }, half) =>
     rows.map(({ item, number }) => ({
       itemId: item.id,
       title: item.title,
       number,
-      halfName: half.name,
+      halfNumber: half + 1,
     })),
   );
+
+/** One person's row in the grid: who they are and a slot for every column. */
+export interface GridRow {
+  id: number;
+  firstName: string;
+  lastName: string;
+  section: GridSection;
+  clashLines: ClashLine[];
+  slots: TimelineSlot[];
+}
 
 const MAX_TITLE = 15;
 
@@ -179,18 +197,23 @@ const MAX_TITLE = 15;
 export const shortTitle = (title: string) =>
   title.length > MAX_TITLE ? `${title.slice(0, MAX_TITLE)}...` : title;
 
-const headingOf = ({ number, halfName }: GridColumn, title: string) =>
-  number === null
-    ? `${title} (${halfName}, not in printed programme)`
-    : `${number} · ${title} (${halfName})`;
+const headingOf = ({ number, halfNumber }: GridColumn, title: string) =>
+  number === null ? title : `${halfNumber}.${number} · ${title}`;
 
-/** A grid column's heading: "4 · Finale (Second half)". The number is the programme number,
- *  as everywhere else in the app; it restarts each half, so the half says which. An item left
- *  out of the printed programme has no number. A long title is cut short. */
+/** A grid column's heading: "2.4 · Finale", the half then the programme number in it, which
+ *  restarts each half. An item left out of the printed programme has no number: the page
+ *  shows it in italic red. A long title is cut short. */
 export const gridHeading = (column: GridColumn) => headingOf(column, shortTitle(column.title));
 
-/** The same heading with the whole title: for hover and screen readers. */
+/** The same heading with the whole title: for hover. */
 export const fullGridHeading = (column: GridColumn) => headingOf(column, column.title);
+
+/** What a screen reader hears: the whole heading, and that an unprinted item is one, since
+ *  italic red alone says nothing to it. */
+export const spokenGridHeading = (column: GridColumn) =>
+  column.number === null
+    ? `${fullGridHeading(column)}, not in printed programme`
+    : fullGridHeading(column);
 
 /** A timeline as one sentence for screen readers (FR6): "In 2 of 5 items: Pirate Sketch,
  *  Finale", or "In none of the 5 items". */

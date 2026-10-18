@@ -1,15 +1,15 @@
-import { type CastMember, CastMemberDetails, type Section } from "@app/shared";
+import { type CastMember, CastMemberDetails, type GridSection, type Section } from "@app/shared";
 
 // Only one production for now (see docs/product/running-order/prd.md).
 export const CAST_PATH = "/api/productions/2027/cast";
 
-const sectionNames: Record<Section, string> = {
+const sectionNames: Record<Section, GridSection> = {
   scouts: "Scouts",
   explorers: "Explorers",
   network: "Network",
 };
 
-export const sectionLabel = (section: Section | null) =>
+export const sectionLabel = (section: Section | null): GridSection =>
   section === null ? "Not set" : sectionNames[section];
 
 // The platform's locale-aware comparison: case and accents don't change the order.

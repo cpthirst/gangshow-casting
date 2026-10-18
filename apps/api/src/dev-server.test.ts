@@ -43,6 +43,23 @@ describe("dev server", () => {
     expect(res.status).toBe(400);
   });
 
+  it("serves the casting grid export as the bytes of an Excel file, not base64 text", async () => {
+    const grid = {
+      items: [{ heading: "1.1 · Opening Number", printed: true }],
+      rows: [{ firstName: "Sam", lastName: "Example", section: "Scouts", cells: ["L"] }],
+    };
+
+    const res = await fetch(`${baseUrl}/api/productions/2027/casting-grid/export`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(grid),
+    });
+
+    expect(res.status).toBe(200);
+    const bytes = Buffer.from(await res.arrayBuffer());
+    expect(bytes.subarray(0, 2).toString()).toBe("PK");
+  });
+
   it("rejects an oversized request body with 413", async () => {
     const res = await fetch(`${baseUrl}/api/productions/2027/running-order/versions`, {
       method: "POST",
