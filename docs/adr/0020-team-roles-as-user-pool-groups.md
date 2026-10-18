@@ -1,6 +1,6 @@
 # 0020. Team roles as user pool groups, with read-only as the fail-safe
 
-- **Status**: Proposed
+- **Status**: Accepted
 - **Date**: 2026-10-18
 - **Deciders**: Nick Hirst
 
