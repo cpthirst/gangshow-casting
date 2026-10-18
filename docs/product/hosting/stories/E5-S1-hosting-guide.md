@@ -2,7 +2,7 @@
 id: hosting.E5.S1
 title: Write the guide to running the hosted app
 epic: E5
-status: ready
+status: done
 ---
 
 ## Story

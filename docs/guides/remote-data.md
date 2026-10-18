@@ -170,3 +170,7 @@ Add the restored table to the data profile's policy, then point the app at it wi
 Once you're sure the restored table is right, don't leave two copies of the cast. Ask for a story to bring the restored table under the stack and retire the damaged one: its deletion protection has to come off, it has to be deleted, and the policy has to name only the table in use again.
 
 Then delete the admin access key again.
+
+## Next: hosting the app
+
+To put the app online for the team, with sign-in, follow [the hosting guide](hosting.md).

@@ -1,8 +1,10 @@
 // Validates product docs written by the planning skills:
-// story structure (user story + Gherkin AC). Test coverage of ACs is judged at review (ADR 0007).
+// story structure (user story + Gherkin AC), and the maintainer's guides (validate-guides.ts).
+// Test coverage of ACs is judged at review (ADR 0007).
 // Run: node tooling/src/validate-docs.ts  (part of `pnpm check` via `pnpm lint:docs`)
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { validateGuides } from "./validate-guides.ts";
 
 const STATUSES = ["draft", "ready", "in-progress", "done"];
 const REQUIRED = ["id", "title", "epic", "status"];
@@ -93,10 +95,12 @@ export function validateRepo(root: string): { stories: number; errors: string[] 
 }
 
 if (import.meta.main) {
-  const { stories, errors } = validateRepo(process.cwd());
+  const root = process.cwd();
+  const repo = validateRepo(root);
+  const errors = [...repo.errors, ...validateGuides(root)];
   if (errors.length > 0) {
     process.stderr.write(`${errors.join("\n")}\n\n${errors.length} docs problem(s).\n`);
     process.exit(1);
   }
-  process.stdout.write(`docs: ${stories} stories OK\n`);
+  process.stdout.write(`docs: ${repo.stories} stories and the guides OK\n`);
 }
