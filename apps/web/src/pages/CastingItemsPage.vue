@@ -14,9 +14,10 @@ import { CAST_PATH } from "../cast.ts";
 import { clashesInItem, findClashes, summariseClashes } from "../clashes.ts";
 import { icons } from "../icons.ts";
 import { ITEM_NOTES_PATH } from "../item-notes.ts";
+import ReadOnlyNotice from "../ReadOnlyNotice.vue";
 import { ROLES_PATH, roleCounts, spokenCounts } from "../roles.ts";
 import { RUNNING_ORDER_PATH, runningClock } from "../running-order.ts";
-import { apiFetch } from "../sign-in.ts";
+import { apiFetch, isReadOnly } from "../sign-in.ts";
 
 type State =
   | { status: "loading" }
@@ -123,6 +124,7 @@ async function loadRunningOrder() {
 
 <template>
   <h1>Items</h1>
+  <ReadOnlyNotice />
   <p>The show's items, with how far each one's casting has got.</p>
   <p v-if="state.status === 'empty'">
     There's no saved running order yet. Set one up on the
@@ -171,8 +173,8 @@ async function loadRunningOrder() {
                     class="icon-button"
                     data-test="cast"
                     :to="{ name: 'casting-item', params: { itemId: item.id } }"
-                    :aria-label="`Cast ${item.title}`"
-                    data-tooltip="Cast this item"
+                    :aria-label="`${isReadOnly ? 'View' : 'Cast'} ${item.title}`"
+                    :data-tooltip="isReadOnly ? 'View this item' : 'Cast this item'"
                   >
                     <FontAwesomeIcon :icon="icons.cast" />
                   </RouterLink>

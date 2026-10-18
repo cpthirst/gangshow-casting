@@ -28,7 +28,7 @@ prd: ./prd.md
 |---|---|---|---|---|
 | [team-roles.E2.S1](stories/E2-S1-read-only-running-order.md) | Read-only members see the Running order with no moves, drags, edits, adds, removes, Save or Reset, and a "read-only access" line | FR5, FR6 | E1.S1 | done |
 | [team-roles.E2.S2](stories/E2-S2-read-only-cast-list.md) | Read-only members see the Cast list, with its casting notes and filters, but no add, edit or delete | FR5, FR6 | E1.S1 | done |
-| [team-roles.E2.S3](stories/E2-S3-read-only-items-and-overview.md) | Read-only members see the Items list, each item's roles and notes, and the Overview, with no role or notes editing | FR5, FR6 | E1.S1 | ready |
+| [team-roles.E2.S3](stories/E2-S3-read-only-items-and-overview.md) | Read-only members see the Items list, each item's roles and notes, and the Overview, with no role or notes editing | FR5, FR6 | E1.S1 | done |
 
 ## E3: Managing roles
 

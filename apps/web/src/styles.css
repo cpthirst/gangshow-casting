@@ -678,6 +678,12 @@ main a {
   font: inherit;
 }
 
+/* A Read-Only Team Member's view of the notes: their own line breaks, and long words wrap. */
+.item-notes .notes-text {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
 .item-editor [aria-invalid="true"] {
   border: 2px solid var(--red-darker);
 }

@@ -15,6 +15,7 @@ import ClashIcon from "../ClashIcon.vue";
 import { CAST_PATH, sortCast } from "../cast.ts";
 import { clashesOf, describeEach, findClashes } from "../clashes.ts";
 import { icons } from "../icons.ts";
+import ReadOnlyNotice from "../ReadOnlyNotice.vue";
 import {
   addRolePath,
   nameTakenMessage,
@@ -26,7 +27,7 @@ import {
 } from "../roles.ts";
 import { showPageTitle } from "../router.ts";
 import { neighboursOf, placeOf, RUNNING_ORDER_PATH } from "../running-order.ts";
-import { apiFetch } from "../sign-in.ts";
+import { apiFetch, isReadOnly } from "../sign-in.ts";
 import ItemNotes from "./ItemNotes.vue";
 import RoleForm from "./RoleForm.vue";
 
@@ -312,7 +313,9 @@ async function postRole(itemId: string, details: AddRoleRequest) {
   <template v-else-if="place">
     <h1>{{ place.item.title }}</h1>
     <p class="item-position" data-test="position">{{ position }}</p>
-    <div class="cast-actions">
+    <!-- Read-only members see the roles and notes with nothing to change them (team-roles FR6). -->
+    <ReadOnlyNotice />
+    <div v-if="!isReadOnly" class="cast-actions">
       <button
         ref="addButton"
         type="button"
@@ -360,7 +363,7 @@ async function postRole(itemId: string, details: AddRoleRequest) {
         />
         <template v-else>
           <!-- Icons first, as on the Running order and Items pages; above the role on phones. -->
-          <span class="role-actions row-icons">
+          <span v-if="!isReadOnly" class="role-actions row-icons">
             <button
               type="button"
               class="icon-button"

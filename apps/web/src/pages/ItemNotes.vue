@@ -3,7 +3,7 @@ import { ItemNote, ItemNoteList, MAX_NOTE_LENGTH } from "@app/shared";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { onBeforeRouteLeave, onBeforeRouteUpdate } from "vue-router";
 import { ITEM_NOTES_PATH, saveNotesPath } from "../item-notes.ts";
-import { apiFetch } from "../sign-in.ts";
+import { apiFetch, isReadOnly } from "../sign-in.ts";
 
 // An item's casting notes: one free-text field, saved on its own, apart from the running
 // order (casting-item-overview FR8, FR10). The page gives each item a fresh instance (keyed
@@ -21,6 +21,10 @@ const error = ref("");
 const announcement = ref("");
 
 const unsaved = computed(() => status.value === "ready" && text.value !== saved.value.text);
+/** What a Read-Only Team Member reads in place of the form. */
+const readOnlyText = computed(() =>
+  status.value === "loading" ? "Loading…" : saved.value.text || "No notes yet.",
+);
 
 async function currentNote(): Promise<ItemNote | undefined> {
   const res = await apiFetch(ITEM_NOTES_PATH);
@@ -94,6 +98,10 @@ onUnmounted(() => window.removeEventListener("beforeunload", warnBeforeUnload));
   <section class="item-notes" aria-labelledby="notes-heading">
     <h2 id="notes-heading">Notes</h2>
     <p v-if="status === 'error'" role="alert">Couldn't load the notes.</p>
+    <!-- Read-only members read the notes; they can't change them (team-roles FR6). -->
+    <p v-else-if="isReadOnly" class="notes-text" data-test="notes-text">
+      {{ readOnlyText }}
+    </p>
     <form v-else novalidate @submit.prevent="save">
       <textarea
         v-model="text"

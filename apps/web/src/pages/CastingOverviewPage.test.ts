@@ -12,6 +12,8 @@ import { signInAs } from "../sign-in.fixture.ts";
 import { useLocalSignIn } from "../sign-in.ts";
 
 enableAutoUnmount(afterEach);
+// As on pnpm dev: everyone acts as an admin, unless a test signs someone in.
+beforeEach(useLocalSignIn);
 
 // Made-up names only: tests never use the real cast (CLAUDE.md safeguarding).
 let nextId = 1;
@@ -1509,5 +1511,98 @@ describe("Excel export from the grid", () => {
 
     expect(wrapper.get(".grid-export-error").text()).toBe("Couldn't export the grid. Try again.");
     expect(downloads).toEqual([]);
+  });
+});
+
+describe("The Overview for a Read-Only Team Member", () => {
+  beforeEach(async () => {
+    await signInAs(["read-only"]);
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.body.innerHTML = "";
+    useLocalSignIn();
+  });
+
+  const ava = person("Ava", "Example", "explorers");
+  // Ava is in two items back to back: a clash.
+  function showIs() {
+    const order: RunningOrder = aRunningOrder([anItem("Opening Number"), anItem("Pirate Sketch")]);
+    const part = (id: number, itemId: string): Role => ({
+      id,
+      itemId,
+      name: `Role ${id}`,
+      size: "lead",
+      castMemberIds: [ava.id],
+      revision: 1,
+    });
+    const roles = [part(1, "opening-number"), part(2, "pirate-sketch")];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (url === CAST_PATH) {
+          return new Response(JSON.stringify({ productionId: "2027", members: [ava] }));
+        }
+        if (url === ROLES_PATH)
+          return new Response(JSON.stringify({ productionId: "2027", roles }));
+        if (url === RUNNING_ORDER_PATH) return new Response(JSON.stringify(order));
+        return new Response(JSON.stringify({ status: "ok", version: "dev" }));
+      }),
+    );
+  }
+  const showGrid = (wrapper: VueWrapper) =>
+    wrapper
+      .findAll(".view-switch button")
+      .find((b) => b.text() === "Grid")
+      ?.trigger("click");
+
+  it("shows the role totals, each person's timeline with clashes, and the casting grid", async () => {
+    showIs();
+
+    const wrapper = await openOverview();
+
+    expect(wrapper.find(".role-totals").exists()).toBe(true);
+    const card = wrapper
+      .findAll("[data-test=person]")
+      .find((person) => person.text().includes("Ava Example"));
+    expect(card?.find("[data-test=timeline]").exists()).toBe(true);
+    expect(card?.get("[data-test=clash]").attributes("data-severity")).toBe("error");
+    await showGrid(wrapper);
+    expect(wrapper.find("table").exists()).toBe(true);
+  });
+
+  it("has no Export to Excel button on the grid", async () => {
+    showIs();
+
+    const wrapper = await openOverview();
+    await showGrid(wrapper);
+
+    expect(wrapper.find("button.grid-export-button").exists()).toBe(false);
+  });
+
+  it("says on the page that the access is read-only", async () => {
+    showIs();
+
+    const wrapper = await openOverview();
+
+    expect(wrapper.get("[data-test=read-only]").text()).toBe("You have read-only access");
+  });
+});
+
+describe("The Overview for other roles", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.body.innerHTML = "";
+    useLocalSignIn();
+  });
+
+  it.each([["casting"], ["admin"]])("shows %s no read-only line", async (group) => {
+    await signInAs([group]);
+    castIs([person("Ava", "Example", "explorers")]);
+
+    const wrapper = await openOverview();
+
+    expect(wrapper.text()).toContain("Ava Example");
+    expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
   });
 });
