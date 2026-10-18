@@ -1,5 +1,5 @@
 import { fileURLToPath } from "node:url";
-import { ADMIN_GROUP, routeKeys } from "@app/shared";
+import { ADMIN_GROUP, isAccountRoute, routeKeys } from "@app/shared";
 import { CfnOutput, Duration, RemovalPolicy, Stack, type StackProps } from "aws-cdk-lib";
 import { AccessLogFormat } from "aws-cdk-lib/aws-apigateway";
 import {
@@ -25,7 +25,8 @@ import { LogGroup, RetentionDays } from "aws-cdk-lib/aws-logs";
 import type { Construct } from "constructs";
 import { Pages } from "./pages.ts";
 
-const apiEntryPoint = fileURLToPath(new URL("../../apps/api/src/lambda.ts", import.meta.url));
+const entryPoint = (file: string) =>
+  fileURLToPath(new URL(`../../apps/api/src/${file}`, import.meta.url));
 
 // The methods the API's route list uses.
 const HTTP_METHODS: Record<string, HttpMethod> = {
@@ -136,25 +137,50 @@ export class AppStack extends Stack {
     // Admins manage accounts, delete cast members and save running orders (ADR 0018).
     userPool.addGroup("AdminGroup", { groupName: ADMIN_GROUP });
 
-    const apiFunction = new NodejsFunction(this, "ApiFunction", {
-      entry: apiEntryPoint,
-      runtime: Runtime.NODEJS_24_X,
-      architecture: Architecture.ARM_64,
-      memorySize: 256,
-      // Inside API Gateway's 30-second limit, so a slow request fails here first.
-      timeout: Duration.seconds(10),
-      bundling: { format: OutputFormat.ESM, minify: true },
-      // The API keeps everything in the table (apps/api/src/data-stores.ts); the region
-      // defaults to London, where the table is.
-      environment: { DATA_TABLE: table.tableName },
-      logGroup: new LogGroup(this, "ApiFunctionLogs", {
-        retention: RetentionDays.ONE_MONTH,
-        removalPolicy: RemovalPolicy.DESTROY,
-      }),
-    });
+    // The API's handlers, one function per group (ADR 0017), with a month of logs each.
+    const nodeFunction = (id: string, entry: string, environment: Record<string, string>) =>
+      new NodejsFunction(this, id, {
+        entry: entryPoint(entry),
+        runtime: Runtime.NODEJS_24_X,
+        architecture: Architecture.ARM_64,
+        memorySize: 256,
+        // Inside API Gateway's 30-second limit, so a slow request fails here first.
+        timeout: Duration.seconds(10),
+        bundling: { format: OutputFormat.ESM, minify: true },
+        environment,
+        logGroup: new LogGroup(this, `${id}Logs`, {
+          retention: RetentionDays.ONE_MONTH,
+          removalPolicy: RemovalPolicy.DESTROY,
+        }),
+      });
+
+    // The API keeps everything in the table (apps/api/src/data-stores.ts); the region
+    // defaults to London, where the table is.
+    const dataFunction = nodeFunction("ApiFunction", "lambda.ts", { DATA_TABLE: table.tableName });
     // Reads and writes the table's items, and nothing else in DynamoDB (hosting E2.S1).
-    table.grantReadWriteData(apiFunction);
-    const apiIntegration = new HttpLambdaIntegration("ApiIntegration", apiFunction);
+    table.grantReadWriteData(dataFunction);
+    const apiIntegration = new HttpLambdaIntegration("ApiIntegration", dataFunction);
+
+    // The only function allowed to manage the team's accounts (ADR 0017, ADR 0018), and only
+    // with the actions the account routes use.
+    const accountsFunction = nodeFunction("AccountsFunction", "accounts-lambda.ts", {
+      USER_POOL_ID: userPool.userPoolId,
+    });
+    userPool.grant(
+      accountsFunction,
+      "cognito-idp:ListUsers",
+      "cognito-idp:ListUsersInGroup",
+      "cognito-idp:AdminGetUser",
+      "cognito-idp:AdminListGroupsForUser",
+      "cognito-idp:AdminCreateUser",
+      "cognito-idp:AdminSetUserPassword",
+      "cognito-idp:AdminEnableUser",
+      "cognito-idp:AdminDisableUser",
+      "cognito-idp:AdminUserGlobalSignOut",
+      "cognito-idp:AdminAddUserToGroup",
+      "cognito-idp:AdminRemoveUserFromGroup",
+    );
+    const accountsIntegration = new HttpLambdaIntegration("AccountsIntegration", accountsFunction);
 
     // Every route, and the $default catch-all, needs a token from the team's pool, so an
     // unknown path gets 401 rather than 404 (ADR 0018).
@@ -170,7 +196,8 @@ export class AppStack extends Stack {
       const [method = "", path = ""] = key.split(" ");
       const httpMethod = HTTP_METHODS[method];
       if (!httpMethod) throw new Error(`No HTTP method for the route ${key}`);
-      api.addRoutes({ path, methods: [httpMethod], integration: apiIntegration });
+      const integration = isAccountRoute(key) ? accountsIntegration : apiIntegration;
+      api.addRoutes({ path, methods: [httpMethod], integration });
     }
 
     const accessLogs = new LogGroup(this, "ApiAccessLogs", {

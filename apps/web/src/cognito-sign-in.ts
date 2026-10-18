@@ -69,10 +69,12 @@ export function cognitoSettings(config: SignInConfig, store: Storage): UserManag
 
 export function fromOidcUser(user: User): SignedInUser {
   const groups = user.profile["cognito:groups"];
+  const username = user.profile["cognito:username"];
   return {
     accessToken: user.access_token,
     // No end given counts as already ended, so it's renewed before use.
     expiresAt: (user.expires_at ?? 0) * 1000,
+    ...(typeof username === "string" ? { username } : {}),
     groups: Array.isArray(groups) ? groups.filter((g) => typeof g === "string") : [],
     ...(typeof user.state === "string" ? { returnTo: user.state } : {}),
   };

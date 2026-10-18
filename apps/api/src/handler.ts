@@ -4,6 +4,9 @@ import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from "
 export type ApiEvent = Pick<
   APIGatewayProxyEventV2,
   "pathParameters" | "queryStringParameters" | "body"
->;
+> & {
+  /** The signed-in token's claims, from API Gateway's JWT authorizer; none locally. */
+  requestContext?: { authorizer?: { jwt?: { claims?: Record<string, unknown> } } };
+};
 
 export type Handler = (event: ApiEvent) => Promise<APIGatewayProxyStructuredResultV2>;

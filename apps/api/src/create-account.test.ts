@@ -1,0 +1,74 @@
+import { CreatedAccount } from "@app/shared";
+import { describe, expect, it } from "vitest";
+import { createCreateAccount } from "./create-account.ts";
+import { memoryUserDirectory } from "./user-directory.ts";
+
+const request = (body: unknown) => ({
+  body: typeof body === "string" ? body : JSON.stringify(body),
+});
+
+// Made-up usernames only (CLAUDE.md safeguarding).
+function setUp() {
+  const { directory, accounts } = memoryUserDirectory();
+  const handler = createCreateAccount(directory, () => "Made-up-temp-1");
+  return { directory, accounts, handler };
+}
+
+describe("create account handler", () => {
+  it("creates an enabled, non-admin account and returns its temporary password once", async () => {
+    const { handler, accounts } = setUp();
+
+    const res = await handler(request({ username: "jo" }));
+
+    expect(res.statusCode).toBe(201);
+    expect(CreatedAccount.parse(JSON.parse(res.body ?? ""))).toEqual({
+      account: { username: "jo", admin: false, enabled: true },
+      temporaryPassword: "Made-up-temp-1",
+    });
+    // A temporary password: Jo must choose a new one at first sign-in.
+    expect(accounts()).toEqual([
+      expect.objectContaining({
+        username: "jo",
+        password: "Made-up-temp-1",
+        passwordKind: "temporary",
+      }),
+    ]);
+  });
+
+  it("refuses a username that's taken in any case with 409, creating nothing", async () => {
+    const { handler, directory, accounts } = setUp();
+    await directory.create("sam", "Made-up-1");
+
+    const res = await handler(request({ username: "Sam" }));
+
+    expect(res.statusCode).toBe(409);
+    expect(JSON.parse(res.body ?? "")).toEqual({ message: "That username is already taken." });
+    expect(accounts().map((account) => account.username)).toEqual(["sam"]);
+  });
+
+  it.each([
+    ["an empty username", { username: "" }],
+    ["a username with spaces", { username: "jo smith" }],
+    ["a username over 32 characters", { username: "j".repeat(33) }],
+  ])("refuses %s with 400, saying what a username may be", async (_case, body) => {
+    const { handler, accounts } = setUp();
+
+    const res = await handler(request(body));
+
+    expect(res.statusCode).toBe(400);
+    expect(JSON.parse(res.body ?? "")).toEqual({
+      message: "A username is 1–32 letters, digits, dots, hyphens or underscores.",
+    });
+    expect(accounts()).toEqual([]);
+  });
+
+  it.each([
+    ["malformed JSON", "{not json"],
+    ["a chosen password", { username: "jo", password: "Chosen-1" }],
+  ])("refuses %s with 400, creating nothing", async (_case, body) => {
+    const { handler, accounts } = setUp();
+
+    expect((await handler(request(body))).statusCode).toBe(400);
+    expect(accounts()).toEqual([]);
+  });
+});

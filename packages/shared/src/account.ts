@@ -9,3 +9,38 @@ export const Username = z
   );
 
 export type Username = z.infer<typeof Username>;
+
+/** An account as admins see it: who, and what they may do (hosting FR11). */
+export const AccountSummary = z.strictObject({
+  username: Username,
+  admin: z.boolean(),
+  enabled: z.boolean(),
+});
+
+/** GET /api/accounts: every account in the team's directory. */
+export const AccountList = z.strictObject({ accounts: z.array(AccountSummary) });
+
+/** POST /api/accounts takes this; the API chooses the temporary password. */
+export const NewAccount = z.strictObject({ username: Username });
+
+/**
+ * POST /api/accounts' 201, and POST /api/accounts/{username}/password's 200 (a reset): the
+ * temporary password is shown to the admin once, never stored.
+ */
+export const CreatedAccount = z.strictObject({
+  account: AccountSummary,
+  temporaryPassword: z.string().min(1),
+});
+
+/** PUT /api/accounts/{username}/enabled takes this; 200 returns the AccountSummary. */
+export const SetEnabled = z.strictObject({ enabled: z.boolean() });
+
+/** PUT /api/accounts/{username}/admin takes this; 200 returns the AccountSummary. */
+export const SetAdmin = z.strictObject({ admin: z.boolean() });
+
+export type AccountSummary = z.infer<typeof AccountSummary>;
+export type AccountList = z.infer<typeof AccountList>;
+export type NewAccount = z.infer<typeof NewAccount>;
+export type CreatedAccount = z.infer<typeof CreatedAccount>;
+export type SetEnabled = z.infer<typeof SetEnabled>;
+export type SetAdmin = z.infer<typeof SetAdmin>;

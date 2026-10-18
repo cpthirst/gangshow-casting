@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory, type Router } from "vue-router";
 import App from "./App.vue";
 import { createAppRouter } from "./router.ts";
+import { signInAs } from "./sign-in.fixture.ts";
 import {
   type SignInManager,
   signInUnavailable,
@@ -52,14 +53,37 @@ describe("App shell", () => {
     ]);
     const menu = wrapper.get("nav[aria-label=Main]");
     const topLevel = menu.findAll(":scope > ul > li").map((item) => item.text());
-    expect(topLevel).toEqual(["Running order", "Cast", expect.stringMatching(/^Casting/)]);
+    expect(topLevel).toEqual([
+      "Running order",
+      "Cast",
+      expect.stringMatching(/^Casting/),
+      "Accounts",
+    ]);
     expect(menu.findAll("a").map((link) => link.text())).toEqual([
       "Running order",
       "Cast",
       "Overview",
       "Items",
+      "Accounts",
     ]);
     expect(menu.text()).not.toContain("Casting grid");
+  });
+
+  it("leaves Accounts out of the menu for a signed-in team member who isn't an admin", async () => {
+    await signInAs([]);
+
+    const { wrapper } = await openAppAt("/");
+
+    const links = wrapper.get("nav[aria-label=Main]").findAll("a");
+    expect(links.map((link) => link.text())).not.toContain("Accounts");
+  });
+
+  it("shows Accounts in the menu to a signed-in admin", async () => {
+    await signInAs(["admin"]);
+
+    const { wrapper } = await openAppAt("/");
+
+    expect(wrapper.get("nav[aria-label=Main] a[href='/accounts']").text()).toBe("Accounts");
   });
 
   it("lists Overview and Items as a list inside Casting", async () => {

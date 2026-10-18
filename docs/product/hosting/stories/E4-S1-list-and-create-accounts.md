@@ -2,7 +2,7 @@
 id: hosting.E4.S1
 title: List and create accounts in the app
 epic: E4
-status: ready
+status: done
 ---
 
 ## Story

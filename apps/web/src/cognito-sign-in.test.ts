@@ -82,15 +82,23 @@ describe("Cognito sign-in", () => {
     expect(stored?.accessToken).toBe("sams-token");
   });
 
-  it("reads the person's groups, token, its end and the page they asked for", () => {
-    const user = userWith({ "cognito:groups": ["admin"] }, { userState: "/cast" });
+  it("reads the person's username, groups, token, its end and the page they asked for", () => {
+    const user = userWith(
+      { "cognito:username": "sam", "cognito:groups": ["admin"] },
+      { userState: "/cast" },
+    );
 
     expect(fromOidcUser(user)).toEqual({
       accessToken: "sams-token",
       expiresAt: (user.expires_at ?? 0) * 1000,
+      username: "sam",
       groups: ["admin"],
       returnTo: "/cast",
     });
+  });
+
+  it("leaves the username out if the sign-in doesn't give one", () => {
+    expect(fromOidcUser(userWith({}))).not.toHaveProperty("username");
   });
 
   it("treats someone in no group as in none", () => {

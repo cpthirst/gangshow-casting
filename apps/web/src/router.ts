@@ -1,5 +1,6 @@
 import type { Component } from "vue";
 import { createRouter, createWebHistory, type RouterHistory } from "vue-router";
+import AccountsPage from "./pages/AccountsPage.vue";
 import CastingItemPage from "./pages/CastingItemPage.vue";
 import CastingItemsPage from "./pages/CastingItemsPage.vue";
 import CastingOverviewPage from "./pages/CastingOverviewPage.vue";
@@ -29,6 +30,8 @@ interface MenuPage {
   name: string;
   component?: Component;
   meta: { title: string; description: string };
+  /** Left out of non-admins' menus. The API refuses them anyway: this only tidies the menu. */
+  adminOnly?: boolean;
 }
 
 /** A label in the menu with its own pages beneath it; the label isn't a page itself. */
@@ -79,6 +82,13 @@ export const menuPages: (MenuPage | MenuGroup)[] = [
         },
       },
     ],
+  },
+  {
+    path: "/accounts",
+    name: "accounts",
+    component: AccountsPage,
+    meta: { title: "Accounts", description: "The production team's sign-in accounts." },
+    adminOnly: true,
   },
 ];
 

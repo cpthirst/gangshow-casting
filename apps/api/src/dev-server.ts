@@ -1,6 +1,7 @@
 // Local stand-in for API Gateway: serves the same handlers Lambda will run (ADR 0006).
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { Handler } from "./handler.ts";
+import { localAccountRoutes } from "./local-accounts.ts";
 import { matchRoute } from "./match-route.ts";
 import { dataLocation, routes } from "./routes.ts";
 
@@ -92,10 +93,14 @@ async function readBody(req: IncomingMessage) {
   return chunks.length ? Buffer.concat(chunks).toString("utf8") : undefined;
 }
 
+/** What pnpm dev and pnpm demo serve: the data routes, and accounts that are always made up
+ * locally, even when the data is remote (ADR 0018). */
+export const devRoutes = () => ({ ...routes, ...localAccountRoutes() });
+
 if (import.meta.main) {
   const port = Number(process.env.PORT ?? 3000);
   // Loopback only: the dev API is unauthenticated, so keep it off the local network.
-  createDevServer(routes).listen(port, "127.0.0.1", () => {
+  createDevServer(devRoutes()).listen(port, "127.0.0.1", () => {
     process.stdout.write(`api listening on http://127.0.0.1:${port}; data: ${dataLocation}\n`);
   });
 }

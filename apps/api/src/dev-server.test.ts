@@ -1,7 +1,7 @@
 import { request, type Server } from "node:http";
-import { adminOnlyRouteKeys, HealthResponse } from "@app/shared";
+import { AccountList, adminOnlyRouteKeys, HealthResponse } from "@app/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createDevServer } from "./dev-server.ts";
+import { createDevServer, devRoutes } from "./dev-server.ts";
 import { routes } from "./routes.ts";
 
 describe("dev server", () => {
@@ -181,7 +181,7 @@ describe("dev server admin-only routes", () => {
         const res = await fetch(`http://localhost:${address.port}${path}`, {
           method,
           headers: { "content-type": "application/json" },
-          body: method === "DELETE" ? null : "{}",
+          body: method === "POST" || method === "PUT" ? "{}" : null,
         });
 
         expect(res.status).toBe(204);
@@ -235,6 +235,24 @@ describe("dev server host check", () => {
       });
 
       expect(status).toBe(403);
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+});
+
+describe("dev server routes", () => {
+  it("serve the account routes too, on the made-up local accounts", async () => {
+    const server = createDevServer(devRoutes());
+    await new Promise<void>((resolve) => server.listen(0, resolve));
+    const address = server.address();
+    if (typeof address !== "object" || address === null) throw new Error("server not listening");
+
+    try {
+      const res = await fetch(`http://localhost:${address.port}/api/accounts`);
+
+      expect(res.status).toBe(200);
+      expect(AccountList.parse(await res.json()).accounts).not.toEqual([]);
     } finally {
       await new Promise<void>((resolve) => server.close(() => resolve()));
     }

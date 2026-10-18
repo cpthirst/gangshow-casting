@@ -952,7 +952,8 @@ main a {
   }
 
   .cast-list td.first-name,
-  .cast-list td.last-name {
+  .cast-list td.last-name,
+  .cast-list td.username {
     font-size: 1.0625rem;
     font-weight: 700;
   }
@@ -964,12 +965,12 @@ main a {
     margin-bottom: 0.25rem;
   }
 
-  .cast-list td:not(.first-name, .last-name, .actions) {
+  .cast-list td:not(.first-name, .last-name, .username, .actions) {
     order: 2;
     flex-basis: 100%;
   }
 
-  .cast-list td:not(.first-name, .last-name, .actions)::before {
+  .cast-list td:not(.first-name, .last-name, .username, .actions)::before {
     content: attr(data-label) " ";
     font-size: 0.75rem;
     font-style: normal;
@@ -1594,4 +1595,15 @@ main a {
    as part of it. Last in the file: it outranks the table's own cell borders. */
 .running-order tr:has(+ .item-notes-row) td {
   border-bottom: none;
+}
+
+/* A new account's temporary password: big, and in a typewriter face so l, 1 and I differ. */
+.created-account p {
+  margin: 0 0 0.5rem;
+}
+
+.temporary-password {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 1.25rem;
+  overflow-wrap: anywhere;
 }

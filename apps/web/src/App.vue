@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import HealthStatus from "./HealthStatus.vue";
 import { isMenuGroup, menuPages, showPageTitle } from "./router.ts";
 import {
+  isAdmin,
   isHosted,
   isSignedIn,
   isSignInUnavailable,
@@ -26,6 +27,10 @@ const isDemo = import.meta.env.VITE_DEMO === "true";
 // the menu, such as an item, can mark its menu page (Items) as current.
 const ariaCurrent = (pageName: string) =>
   route.name === pageName || route.meta.menuPage === pageName ? "page" : undefined;
+
+const shownMenuPages = computed(() =>
+  menuPages.filter((entry) => isMenuGroup(entry) || !entry.adminOnly || isAdmin.value),
+);
 
 const main = ref<HTMLElement>();
 const menuButton = ref<HTMLButtonElement>();
@@ -107,7 +112,7 @@ function onEscape() {
       </button>
       <nav v-show="!isPhone || isMenuOpen" id="main-menu" aria-label="Main" @click="onMenuChoice">
         <ul>
-          <li v-for="entry in menuPages" :key="entry.name">
+          <li v-for="entry in shownMenuPages" :key="entry.name">
             <template v-if="isMenuGroup(entry)">
               <span :id="`menu-${entry.name}`" class="menu-group">{{ entry.title }}</span>
               <ul class="menu-group-pages" :aria-labelledby="`menu-${entry.name}`">

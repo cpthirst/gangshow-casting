@@ -10,9 +10,12 @@ import {
   AdminSetUserPasswordCommand,
   AdminUserGlobalSignOutCommand,
   CognitoIdentityProviderClient,
+  paginateListUsers,
+  paginateListUsersInGroup,
   UserNotFoundException,
+  UsernameExistsException,
 } from "@aws-sdk/client-cognito-identity-provider";
-import type { UserDirectory } from "./user-directory.ts";
+import { type UserDirectory, UsernameTaken } from "./user-directory.ts";
 
 /** A client for the pool's region: a pool id starts with it, such as eu-west-2_AbC123. */
 export function cognitoClientFor(userPoolId: string) {
@@ -30,26 +33,53 @@ export function cognitoUserDirectory(
   return {
     async find(username) {
       try {
-        const { Enabled } = await cognito.send(new AdminGetUserCommand(user(username)));
+        // The pool ignores case, so it answers with the username as it was created.
+        const { Username = username, Enabled } = await cognito.send(
+          new AdminGetUserCommand(user(username)),
+        );
         // The pool has only the admin group, so the first page holds every group.
         const { Groups = [] } = await cognito.send(
           new AdminListGroupsForUserCommand(user(username)),
         );
         const admin = Groups.some((group) => group.GroupName === ADMIN_GROUP);
-        return { username, enabled: Enabled === true, admin };
+        return { username: Username, enabled: Enabled === true, admin };
       } catch (error) {
         if (error instanceof UserNotFoundException) return undefined;
         throw error;
       }
     },
+    async list() {
+      const admins = new Set<string>();
+      const inAdminGroup = { UserPoolId: userPoolId, GroupName: ADMIN_GROUP };
+      for await (const page of paginateListUsersInGroup({ client: cognito }, inAdminGroup)) {
+        for (const { Username } of page.Users ?? []) if (Username) admins.add(Username);
+      }
+      const accounts = [];
+      for await (const page of paginateListUsers({ client: cognito }, { UserPoolId: userPoolId })) {
+        for (const { Username, Enabled } of page.Users ?? []) {
+          if (!Username) continue;
+          accounts.push({
+            username: Username,
+            enabled: Enabled === true,
+            admin: admins.has(Username),
+          });
+        }
+      }
+      return accounts;
+    },
     async create(username, temporaryPassword) {
-      await cognito.send(
-        new AdminCreateUserCommand({
-          ...user(username),
-          TemporaryPassword: temporaryPassword,
-          MessageAction: "SUPPRESS",
-        }),
-      );
+      try {
+        await cognito.send(
+          new AdminCreateUserCommand({
+            ...user(username),
+            TemporaryPassword: temporaryPassword,
+            MessageAction: "SUPPRESS",
+          }),
+        );
+      } catch (error) {
+        if (error instanceof UsernameExistsException) throw new UsernameTaken(username);
+        throw error;
+      }
     },
     async setPassword(username, password, kind) {
       await cognito.send(

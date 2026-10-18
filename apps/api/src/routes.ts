@@ -1,4 +1,4 @@
-import type { RouteKey } from "@app/shared";
+import type { AccountRouteKey, RouteKey } from "@app/shared";
 import { createAddCastMember } from "./add-cast-member.ts";
 import { createAddRole } from "./add-role.ts";
 import { dataStores, type Stores } from "./data-stores.ts";
@@ -15,14 +15,17 @@ import { createSaveRunningOrder } from "./save-running-order.ts";
 import { createUpdateCastMember } from "./update-cast-member.ts";
 import { createUpdateRole } from "./update-role.ts";
 
-/** A handler for each route in the shared route list, which infra hosts one-for-one. */
+/**
+ * A handler for each route in the shared route list, which infra hosts one-for-one, but for
+ * the account routes: those run in their own function (account-routes.ts, ADR 0017).
+ */
 export function createRoutes({
   runningOrders,
   cast,
   roles,
   removeCastMember,
   itemNotes,
-}: Stores): Record<RouteKey, Handler> {
+}: Stores): Record<Exclude<RouteKey, AccountRouteKey>, Handler> {
   return {
     "GET /api/health": health,
     "GET /api/productions/{productionId}/running-order": createGetRunningOrder(runningOrders),

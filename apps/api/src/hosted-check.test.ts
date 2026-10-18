@@ -1,4 +1,4 @@
-import { routeKeys } from "@app/shared";
+import { adminOnlyRouteKeys, routeKeys } from "@app/shared";
 import { describe, expect, it } from "vitest";
 import { runHostedCheck, type SignIn } from "./hosted-check.ts";
 
@@ -9,10 +9,8 @@ const TOKEN = "made-up-access-token";
 const MEMBER_TOKEN = "made-up-member-access-token";
 const tokenFor = async ({ username }: { username: string }) =>
   username === "check-admin" ? TOKEN : MEMBER_TOKEN;
-const ADMIN_ONLY = [
-  "DELETE /api/productions/check/cast/check",
-  "POST /api/productions/check/running-order/versions",
-];
+// Each admin-only route, as the check requests it.
+const ADMIN_ONLY = adminOnlyRouteKeys.map((key) => key.replaceAll(/\{\w+\}/g, "check"));
 
 type Answer = (method: string, path: string, headers: Headers) => Response;
 // The API as deployed: only the check accounts' real tokens get through, and the admin-only
@@ -208,6 +206,7 @@ describe("the post-deploy check", () => {
     expect(lines).toContain(
       "PASS 403 POST /api/productions/check/running-order/versions, signed in as check-member (expected 403)",
     );
+    expect(lines).toContain("PASS 403 GET /api/accounts, signed in as check-member (expected 403)");
   });
 
   it("never sends an admin-only request as the check admin", async () => {
