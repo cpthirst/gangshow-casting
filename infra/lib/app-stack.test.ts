@@ -4,16 +4,16 @@ import { isAccountRoute, routeKeys } from "@app/shared";
 import { App } from "aws-cdk-lib";
 import { Match, Template } from "aws-cdk-lib/assertions";
 import { CachePolicy, OriginRequestPolicy } from "aws-cdk-lib/aws-cloudfront";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { AppStack } from "./app-stack.ts";
+import { newApp, removeSynthesisedApps } from "./synth-for-test.ts";
 
 // Made-up address: the real one is given at deploy time and never committed.
 const ALERT_EMAIL = "alerts@example.com";
 
 // Skips bundling the Lambda code, which `pnpm synth` checks for real, so each test stays fast.
 const synth = () => {
-  const app = new App({ context: { "aws:cdk:bundling-stacks": [] } });
-  const stack = new AppStack(app, "Test", { alertEmail: ALERT_EMAIL });
+  const stack = new AppStack(newApp(), "Test", { alertEmail: ALERT_EMAIL });
   return { stack, template: Template.fromStack(stack) };
 };
 
@@ -27,6 +27,8 @@ const clientNamed = (template: Template, id: string) => {
 };
 
 describe("AppStack", () => {
+  afterEach(removeSynthesisedApps);
+
   it("lives in London, keeping the cast's data in the UK", () => {
     expect(synth().stack.region).toBe("eu-west-2");
   });

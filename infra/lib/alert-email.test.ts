@@ -1,12 +1,14 @@
-import { App } from "aws-cdk-lib";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { alertEmailFrom } from "./alert-email.ts";
+import { newApp, removeSynthesisedApps } from "./synth-for-test.ts";
 
-const appWith = (context: Record<string, unknown>) => new App({ context });
+const appWith = newApp;
 const HOW_TO =
   "Give the budget alert's email address: ALERT_EMAIL=you@example.com pnpm infra:deploy";
 
 describe("alertEmailFrom", () => {
+  afterEach(removeSynthesisedApps);
+
   it("takes the budget alert's address from the deploy command's context", () => {
     expect(alertEmailFrom(appWith({ alertEmail: "alerts@example.com" }), {})).toBe(
       "alerts@example.com",
