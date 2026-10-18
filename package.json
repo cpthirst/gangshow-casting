@@ -21,7 +21,8 @@
     "check:hosted": "pnpm --filter api check:hosted",
     "account": "pnpm --filter api account",
     "infra:diff": "pnpm --filter infra exec cdk diff",
-    "infra:deploy": "pnpm --filter infra exec cdk deploy"
+    "infra:deploy": "pnpm --filter infra exec cdk deploy",
+    "release": "node tooling/src/release.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",

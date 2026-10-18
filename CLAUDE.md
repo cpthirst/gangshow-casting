@@ -12,7 +12,7 @@ A casting tool for the **Chester Gang Show** production team: it shows which Sco
 
 ## Platform status
 
-The API uses no framework, only plain handlers in the AWS Lambda / API Gateway shape (ADR 0006). The hosting model is Lambda behind an API Gateway HTTP API, with the pages on S3 and CloudFront (ADR 0017), and sign-in through a Cognito user pool whose token every API route requires (ADR 0018). The hosting feature (`docs/product/hosting`) builds it story by story. Don't introduce a framework, hosting model or AWS resource on your own initiative: it needs a story, and an ADR via the `adr` skill.
+The API uses no framework, only plain handlers in the AWS Lambda / API Gateway shape (ADR 0006). The hosting model is Lambda behind an API Gateway HTTP API, with the pages on S3 and CloudFront (ADR 0017), and sign-in through a Cognito user pool whose token every API route requires (ADR 0018). The hosting feature (`docs/product/hosting`) builds it story by story. Don't introduce a framework, hosting model or AWS resource on your own initiative: it needs a story, and an ADR via the `adr` skill. Deploys are the maintainer's, from their own machine with their own AWS profile (`pnpm release`, or `pnpm infra:deploy` by hand); CI does not deploy, and an agent never deploys unasked.
 
 ## Commands
 
@@ -25,6 +25,7 @@ pnpm format                      # biome autofix (format + lint + import order)
 pnpm test:e2e                    # browser layout tests at phone widths (CI job, not in check)
 pnpm test:dynamo                 # API database tests against DynamoDB Local on :8000 (CI job, not in check; ADR 0016)
 ALERT_EMAIL=… AWS_PROFILE=… pnpm infra:deploy   # deploy the stack (ask first); `infra:diff` previews. Never `pnpm deploy`: pnpm's own command
+ALERT_EMAIL=… AWS_PROFILE=… pnpm release [version]   # the maintainer's release: merges the release-please PR, waits for its tag, then diffs and deploys it (never a diff that replaces the table or user pool), and offers the post-deploy check. With a version, only deploys that tag (redeploy, or go back). Asks before merging and deploying; user-only, see below
 USER_POOL_ID=… CHECK_CLIENT_ID=… pnpm check:hosted <app url> <check admin> <check member>   # after a deploy: refuses anyone not signed in, lets the check admin in, refuses the member admin-only routes (ids from the stack outputs)
 USER_POOL_ID=… pnpm account admin <username>   # create or restore an admin; `account check <admin> <member>` sets up the check's accounts
 pnpm --filter <pkg> test         # one package: web | api | infra | @app/shared
@@ -39,7 +40,7 @@ pnpm --filter <pkg> exec vitest run <file> -t "<name>"   # one test
 | `apps/api` | Lambda-shaped handlers, no framework | One handler per route, listed in `routes.ts`; `dev-server.ts` (node:http) runs them locally (ADR 0006) |
 | `packages/shared` | zod schemas + inferred types | The API contract. Imported from source, no build step |
 | `infra` | CDK v2 app, one `AppStack` | Run directly by Node (`cdk.json`); add resources as stories need them |
-| `tooling` | Repo scripts | `demo.ts` runs `pnpm demo`; harness tests |
+| `tooling` | Repo scripts | `demo.ts` runs `pnpm demo`; `release.ts` runs `pnpm release`; harness tests |
 | `docs/product/<feature>` | PRD, story map, stories | Written by the planning skills; see `docs/product/README.md` |
 | `docs/adr` | Architecture decisions | Read before changing anything an ADR covers |
 
@@ -83,7 +84,7 @@ Run after the gate is green, before a story is `done` or a PR is opened. **Skip 
 | `code-reviewer` | always |
 | `test-auditor` | a story is being implemented |
 | `security-reviewer` | non-test code in `apps/api` (including `routes.ts` and `dev-server.ts`) or `packages/shared`; `apps/web` code that touches sign-in, tokens, browser storage, `fetch` or other URLs, or renders raw HTML (`v-html`, `innerHTML`); or dependency changes in any `package.json` / `pnpm-workspace.yaml`. When unsure, run it |
-| `infra-reviewer` | `infra/`, or anything that changes how the API is packaged or deployed |
+| `infra-reviewer` | `infra/`, `tooling/src/release.ts`, or anything that changes how the API is packaged or deployed |
 | `ux-reviewer` | `apps/web` (advisory: never blocks) |
 
 1. Fix every `blocker`, re-run `pnpm check`, then re-run **only the reviewers that blocked**.
@@ -114,7 +115,7 @@ Trunk-based. `main` is always releasable.
 
 You may, without asking: edit code, add/upgrade dev dependencies, run any `pnpm` script, `cdk synth`/`cdk diff`, create branches and commits.
 
-Ask first: `git push`, opening/merging PRs, `cdk deploy`/`destroy`, anything touching real AWS accounts, deleting files you didn't create, changing CI or harness config (`.claude/`, `.github/`). Exception: while the user has switched on `batch-stories` for a feature, their "yes" to it covers the temporary `.claude/settings.json` change, and pushing that feature's branch and opening its single PR without asking. That PR may pass the ~400-line guideline; the skill says when to stop and check. Run `/batch-stories off` once the PR is open.
+Ask first: `git push`, opening/merging PRs, `cdk deploy`/`destroy`, `pnpm release` (it merges the release PR and deploys to the real AWS account, so run it only when the user asks, never as part of other work), anything touching real AWS accounts, deleting files you didn't create, changing CI or harness config (`.claude/`, `.github/`). Exception: while the user has switched on `batch-stories` for a feature, their "yes" to it covers the temporary `.claude/settings.json` change, and pushing that feature's branch and opening its single PR without asking. That PR may pass the ~400-line guideline; the skill says when to stop and check. Run `/batch-stories off` once the PR is open.
 
 Never: commit secrets or read `.env*` files, force-push, push to `main`, bypass hooks (`--no-verify`).
 

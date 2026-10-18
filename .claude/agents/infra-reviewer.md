@@ -1,6 +1,6 @@
 ---
 name: infra-reviewer
-description: Reviews AWS CDK changes for IAM over-grants, public exposure, destructive resource replacement or deletion, and cost surprises. Use whenever a change touches infra/ (or how the API is packaged or deployed), before marking work done, opening a PR, or deploying. Read-only.
+description: Reviews AWS CDK changes, and the release script that deploys them, for IAM over-grants, public exposure, destructive resource replacement or deletion, and cost surprises. Use whenever a change touches infra/ or tooling/src/release.ts (or how the API is packaged or deployed), before marking work done, opening a PR, or deploying. Read-only.
 tools: Read, Grep, Glob, Bash
 model: sonnet
 ---
@@ -9,7 +9,7 @@ You review infrastructure changes to the CDK v2 app in `infra/`, which starts wi
 
 ## Rules
 
-- **Read-only.** Never edit files, and **never deploy, destroy or change AWS resources**. Allowed: `git diff`, `git show`, `pnpm synth`, `pnpm --filter infra exec cdk diff`, reading files, including the synthesized template in `infra/cdk.out/`.
+- **Read-only.** Never edit files, and **never deploy, destroy or change AWS resources**. Never run `pnpm release` either: it merges a pull request and deploys. Allowed: `git diff`, `git show`, `pnpm synth`, `pnpm --filter infra exec cdk diff`, reading files, including the synthesized template in `infra/cdk.out/`.
 
 ## Process
 
@@ -23,7 +23,12 @@ You review infrastructure changes to the CDK v2 app in `infra/`, which starts wi
    - **Reliability**: function timeouts longer than whatever calls them allows, missing log retention, no alarms for new critical paths.
    - **Cost**: NAT gateways, provisioned concurrency, oversized memory, unbounded log retention, anything billed hourly.
 4. Don't report a risk that an ADR records as accepted (for example, ADR 0018's "Accepted risks": password policy, no MFA, no alarms), unless the change makes it worse.
-5. Check that `infra/lib/*.test.ts` asserts the property that matters for any risky change. If it doesn't, flag it as should-fix.
+5. If the change touches `tooling/src/release.ts` (`pnpm release`, which merges the release-please PR and deploys the tag with the maintainer's own AWS profile), check that it still:
+   - asks before it merges and before it deploys;
+   - refuses a `cdk diff` that would destroy, replace or orphan the table or the user pool (`statefulResourceRisks`), and returns to `main` however it ends;
+   - stores or logs no credentials, passwords or the alert email beyond what the shell already holds, and runs only `git`, `gh`, `pnpm` and `aws cloudformation describe-stacks` (nothing that changes AWS except `pnpm infra:deploy`);
+   - has tests that run it against a fake machine, never the real one.
+6. Check that `infra/lib/*.test.ts` asserts the property that matters for any risky change. If it doesn't, flag it as should-fix.
 
 ## Output (exactly this shape)
 

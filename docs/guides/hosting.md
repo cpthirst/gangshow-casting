@@ -97,7 +97,18 @@ On the **Accounts** page, any admin can also reset a forgotten password, disable
 
 ## 4. Release a new version
 
-Releases come from `main` ([ADR 0004](../adr/0004-versioning-with-release-please.md)). As changes are merged, release-please keeps a pull request open called `chore(main): release <next version>`, listing what's new. When you want to release:
+Releases come from `main` ([ADR 0004](../adr/0004-versioning-with-release-please.md)). As changes are merged, release-please keeps a pull request open called `chore(main): release <next version>`, listing what's new. When you want to release, either use the shortcut below or follow the steps by hand.
+
+**The shortcut.** `pnpm release` does the steps below for you (and, given a version, the going back in section 5), from your own machine and with your own AWS profile (nothing is stored or sent anywhere else):
+
+```bash
+export ALERT_EMAIL=you@example.com AWS_PROFILE=gangshow-admin
+pnpm release
+```
+
+It needs a clean working tree, and it stops at the first thing that goes wrong rather than carrying on. It checks your AWS profile works before it touches anything, then switches to `main`, finds the open release pull request (by its branch, not just its title) and asks before it merges it. Then it waits for the release's tag, checks the code really is at that tag, and shows you the `cdk diff`, listing anything it would remove or replace. It refuses a diff it can't read, and one that would replace or remove the table or the user pool. It asks before it deploys, naming the AWS account. After the deploy it offers the post-deploy check, reading the stack's outputs itself and using the check accounts `check-admin` and `check-member` (set `CHECK_ADMIN` and `CHECK_MEMBER` for other names), then returns you to `main`. On a release it also says which version you replaced, so you know what to go back to. If you stop a deploy half way (Ctrl+C), check the stack's status in the AWS console before you run `pnpm release <version>` again: CloudFormation may still be updating.
+
+By hand:
 
 1. Merge that pull request on GitHub. That tags the release `v<version>` and publishes it on the repository's **Releases** page.
 2. Note the version you're replacing: it's the release before this one on the **Releases** page. You'll need it to go back.
@@ -119,7 +130,7 @@ People already using the app pick up the new pages the next time they load it. A
 
 ## 5. Go back to the previous version
 
-If a release goes wrong, deploy the previous one. Going back changes only the pages and the API's code. The show's data and the team's accounts stay as they are: the stack keeps the table and the user pool, both protected from deletion, and a deploy doesn't change what's in them.
+If a release goes wrong, deploy the previous one: `pnpm release <previous version>` (for example `pnpm release v0.8.0`) does the steps below and merges nothing. Going back changes only the pages and the API's code. The show's data and the team's accounts stay as they are: the stack keeps the table and the user pool, both protected from deletion, and a deploy doesn't change what's in them.
 
 ```bash
 git fetch --tags
