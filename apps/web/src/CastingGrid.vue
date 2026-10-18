@@ -51,6 +51,7 @@ defineProps<{
             v-for="column in columns"
             :key="column.itemId"
             scope="col"
+            class="grid-item-heading"
             :title="wholeIfCut(column)"
             :aria-label="wholeIfCut(column)">{{ gridHeading(column) }}</th>
         </tr>
@@ -61,8 +62,10 @@ defineProps<{
           <th scope="row" class="grid-pinned grid-pinned-first">{{ row.firstName }} <ClashIcon :lines="row.clashLines" /></th>
           <td class="grid-pinned grid-pinned-last">{{ row.lastName }}</td>
           <td>{{ row.section }}</td>
-          <td v-for="slot in row.slots" :key="slot.itemId" :class="{ 'grid-empty': !slot.part }">
-            <template v-if="slot.part">
+          <td v-for="slot in row.slots" :key="slot.itemId" :class="['grid-cell', { 'grid-empty': !slot.part }]">
+            <!-- Nobody there: a dash, so an empty cell is plainly empty, not forgotten. -->
+            <span v-if="!slot.part" aria-hidden="true" data-test="grid-dash">-</span>
+            <template v-else>
               <!-- Seen as a letter in a coloured dot; heard as the size in words. -->
               <span :class="['grid-dot', `grid-dot-${slot.part}`]" aria-hidden="true" data-test="grid-dot">{{
                 roleSizeLetter(slot.part)

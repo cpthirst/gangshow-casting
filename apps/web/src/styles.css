@@ -1415,18 +1415,30 @@ main a {
 }
 
 /* The grid sits in a .table-scroll box, so it scrolls sideways there and never the page
-   (ADR 0011); headings and row dividers match the other tables. */
+   (ADR 0011). It has lines round every cell, so who is in which item reads across and down.
+   Separate borders, not collapsed: a sticky cell keeps its own borders as it moves. */
 .casting-grid {
   --pinned-width: 5.5rem;
-  border-collapse: collapse;
+  --grid-line: #c4c4c4;
+  border-collapse: separate;
+  border-spacing: 0;
+  border-top: 1px solid var(--grid-line);
+  border-left: 1px solid var(--grid-line);
 }
 
 .casting-grid th,
 .casting-grid td {
   padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid var(--surface);
+  border-right: 1px solid var(--grid-line);
+  border-bottom: 1px solid var(--grid-line);
   text-align: left;
   white-space: nowrap;
+}
+
+/* Dots and dashes sit in the middle of their cells, under their centred headings. */
+.casting-grid .grid-cell,
+.casting-grid .grid-item-heading {
+  text-align: center;
 }
 
 .casting-grid thead th {
@@ -1471,9 +1483,8 @@ main a {
 
 .casting-grid .grid-pinned-last {
   left: var(--pinned-width);
-  /* A light line where the names end and the items begin. A shadow, not a border: borders don't
-     travel with a sticky cell in a collapsed table. */
-  box-shadow: inset -2px 0 var(--surface);
+  /* A heavier line where the names end and the items begin. */
+  border-right: 2px solid var(--not-in-item);
 }
 
 /* A clash's description opens from the first name's cell, over the last name's. */
@@ -1491,9 +1502,9 @@ main a {
   }
 }
 
-/* A cell with nobody in it: plainly empty, not forgotten. */
+/* A cell with nobody in it: a dash, in the same grey as a timeline's empty dots. */
 .grid-empty {
-  background: var(--surface);
+  color: var(--not-in-item);
 }
 
 /* A dot with its letter inside, so size reads without colour (casting-overview-grid FR7). */

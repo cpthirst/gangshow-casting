@@ -52,10 +52,11 @@ Given Sam is "Captain Hook" (lead) and also a cameo in "Pirate Sketch"
 When I look at Sam's "Pirate Sketch" cell
 Then it holds one dot, the lead dot with L
 
-### AC8: No casting leaves the cell empty
+### AC8: No casting shows a dash
 Given Sam is not in "Opening Number"
 When I look at Sam's "Opening Number" cell
-Then it holds no dot and is visibly empty
+Then it holds no dot and shows a "-"
+And screen readers are not read the dash
 
 ### AC9: Ensemble parts show as E
 Given Alex is only in the "Pirates" ensemble in "Pirate Sketch"
@@ -112,6 +113,6 @@ Then it sits in a focusable region named "Who is in which item", styled like the
 
 - FRs: FR4, FR5, FR6, FR7, FR8, FR11
 - Depends on: casting-overview-grid.E1.S1
-- The grid is read-only. Colours are the ones lead, support, cameo and ensemble already use elsewhere.
+- The grid has lines round every cell and is read-only. Colours are the ones lead, support, cameo and ensemble already use elsewhere.
 - The by-person and grid views share one intro sentence, and the switch is named "Choose how to see the cast".
 - Out of scope: sticky columns, item header detail and sideways scrolling (E2.S2), the legend (E2.S3).

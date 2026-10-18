@@ -1004,14 +1004,17 @@ describe("Casting grid on the Overview", () => {
     expect(rowOf(wrapper, "Sam")[4]?.get("[data-test=grid-dot]").text()).toBe("L");
   });
 
-  it("leaves a cell empty where the person isn't cast", async () => {
+  it("shows a dash, and no dot, where the person isn't cast", async () => {
     theShowIs(cast);
 
     const wrapper = await openGrid();
 
     const cell = rowOf(wrapper, "Sam")[3];
     expect(cell?.find("[data-test=grid-dot]").exists()).toBe(false);
+    expect(cell?.text()).toBe("-");
     expect(cell?.classes()).toContain("grid-empty");
+    // Only a mark for sighted users: a screen reader isn't read a "dash" in every gap.
+    expect(cell?.get("[data-test=grid-dash]").attributes("aria-hidden")).toBe("true");
   });
 
   it("keeps someone with no parts, with every item empty", async () => {
@@ -1022,6 +1025,7 @@ describe("Casting grid on the Overview", () => {
     const items = rowOf(wrapper, "Jo").slice(3);
     expect(items).toHaveLength(3);
     expect(items.every((cell) => cell.classes().includes("grid-empty"))).toBe(true);
+    expect(items.map((cell) => cell.text())).toEqual(["-", "-", "-"]);
   });
 
   it("lets a screen reader hear the part, under the person and item headers", async () => {
