@@ -26,7 +26,7 @@ export const AccountSummary = z.strictObject({
 export const AccountList = z.strictObject({ accounts: z.array(AccountSummary) });
 
 /** POST /api/accounts takes this; the API chooses the temporary password. */
-export const NewAccount = z.strictObject({ username: Username });
+export const NewAccount = z.strictObject({ username: Username, role: TeamRole });
 
 /**
  * POST /api/accounts' 201, and POST /api/accounts/{username}/password's 200 (a reset): the

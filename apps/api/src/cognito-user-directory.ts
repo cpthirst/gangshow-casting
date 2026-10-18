@@ -36,6 +36,7 @@ export function cognitoUserDirectory(
   userPoolId: string,
 ): UserDirectory {
   const user = (username: string) => ({ UserPoolId: userPoolId, Username: username });
+  // For `pnpm account roles`, which moves accounts from before team roles (ADR 0020).
   async function joinCasting(username: string) {
     await cognito.send(
       new AdminAddUserToGroupCommand({ ...user(username), GroupName: CASTING_GROUP }),
@@ -96,7 +97,7 @@ export function cognitoUserDirectory(
         ),
       }));
     },
-    async create(username, temporaryPassword) {
+    async create(username, temporaryPassword, role) {
       try {
         await cognito.send(
           new AdminCreateUserCommand({
@@ -109,9 +110,11 @@ export function cognitoUserDirectory(
         if (error instanceof UsernameExistsException) throw new UsernameTaken(username);
         throw error;
       }
-      // As every non-admin team member could before team roles (ADR 0020). If this fails, the
-      // account is left read-only, which is safe; `pnpm account roles` makes it casting.
-      await joinCasting(username);
+      // If this fails, the account is in no role, so may only read (ADR 0020), and its
+      // password was never shown: an admin resets its password and gives it its role.
+      await cognito.send(
+        new AdminAddUserToGroupCommand({ ...user(username), GroupName: GROUP_OF[role] }),
+      );
     },
     async setPassword(username, password, kind) {
       await cognito.send(

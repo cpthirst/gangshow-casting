@@ -28,6 +28,8 @@ const accounts = computed(() =>
 const uid = useId();
 const adding = ref(false);
 const username = ref("");
+// Read-only unless the admin chooses more, so a slip never gives editing (team-roles FR8).
+const newRole = ref<TeamRole>("read-only");
 const usernameError = ref("");
 const formError = ref("");
 const saving = ref(false);
@@ -68,6 +70,7 @@ async function startAdding() {
   issued.value = null;
   notice.value = "";
   username.value = "";
+  newRole.value = "read-only";
   usernameError.value = "";
   formError.value = "";
   adding.value = true;
@@ -89,7 +92,7 @@ async function create() {
   if (!checked.success) return;
 
   saving.value = true;
-  const result = await postAccount(checked.data);
+  const result = await postAccount(checked.data, newRole.value);
   saving.value = false;
   if ("usernameError" in result) usernameError.value = result.usernameError;
   else if ("formError" in result) formError.value = result.formError;
@@ -113,12 +116,13 @@ const FAILED = { formError: "Couldn't add the account. Try again." };
 // reply can't be read is a failure: without the password the account is no use.
 async function postAccount(
   name: string,
+  role: TeamRole,
 ): Promise<CreatedAccount | { usernameError: string } | { formError: string }> {
   try {
     const res = await apiFetch(ACCOUNTS_PATH, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ username: name }),
+      body: JSON.stringify({ username: name, role }),
     });
     if (res.status === 409) return { usernameError: "That username is already taken." };
     if (res.status === 403) return { formError: "Only admins can add accounts." };
@@ -316,7 +320,7 @@ onMounted(load);
         Add account
       </button>
     </div>
-    <!-- The Cast page's form look: one field, Save and Cancel. -->
+    <!-- The Cast page's form look: the username and role, Save and Cancel. -->
     <form
       v-if="adding"
       data-test="create-account"
@@ -345,6 +349,14 @@ onMounted(load);
         <p v-if="usernameError" :id="`${uid}-username-error`" class="field-error">
           {{ usernameError }}
         </p>
+      </div>
+      <div class="field">
+        <label :for="`${uid}-role`">Role</label>
+        <select :id="`${uid}-role`" v-model="newRole" name="role">
+          <option v-for="(label, role) in ROLE_NAMES" :key="role" :value="role">
+            {{ label }}
+          </option>
+        </select>
       </div>
       <p v-if="formError" class="field-error form-error" role="alert">{{ formError }}</p>
       <div class="editor-actions">
@@ -390,7 +402,7 @@ onMounted(load);
       aria-label="Accounts"
     >
       <!-- The Cast list's look, so phones show each account as a card too. -->
-      <table class="cast-list">
+      <table class="cast-list accounts-list">
         <thead>
           <tr>
             <th scope="col" class="actions">Actions</th>

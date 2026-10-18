@@ -18,14 +18,14 @@ async function putAccount(
   if (existing) {
     await directory.setPassword(username, password, kind);
     await directory.setEnabled(username, true);
+    await directory.setRole(username, role);
     // A forgotten password may also be a stolen one.
     await directory.signOutEverywhere(username);
   } else {
-    await directory.create(username, password);
+    await directory.create(username, password, role);
     // A new account's password is always temporary, so a permanent one takes a second step.
     if (kind === "permanent") await directory.setPassword(username, password, kind);
   }
-  await directory.setRole(username, role);
   return { created: !existing, password };
 }
 

@@ -43,9 +43,10 @@ const rows = (wrapper: Page) =>
     }),
   );
 
-async function create(wrapper: Page, username: string) {
+async function create(wrapper: Page, username: string, role?: string) {
   await wrapper.get("[data-test=add-account]").trigger("click");
   await wrapper.get("input[name=username]").setValue(username);
+  if (role) await wrapper.get("select[name=role]").setValue(role);
   await wrapper.get("[data-test=create-account]").trigger("submit");
   await flushPromises();
 }
@@ -195,23 +196,66 @@ describe("Accounts page", () => {
     });
 
     const joCreated: CreatedAccount = {
-      account: account("jo"),
+      account: account("jo", { role: "read-only" }),
       temporaryPassword: "Made-up-temp-1",
     };
 
-    it("adds it to the list as an enabled Casting Team Member", async () => {
+    it("starts the new account's role at Read-Only Team Member, offering all three", async () => {
+      serve([]);
+      const wrapper = await openPage();
+
+      await wrapper.get("[data-test=add-account]").trigger("click");
+
+      const role = wrapper.get<HTMLSelectElement>("select[name=role]");
+      expect(role.element.selectedOptions[0]?.text).toBe("Read-Only Team Member");
+      expect(role.findAll("option").map((option) => option.text())).toEqual([
+        "Admin",
+        "Casting Team Member",
+        "Read-Only Team Member",
+      ]);
+      expect(wrapper.get(`label[for="${role.attributes("id")}"]`).text()).toBe("Role");
+    });
+
+    it("adds it to the list, read-only unless another role is chosen", async () => {
       serve([account("sam")], () => json(joCreated, 201));
       const wrapper = await openPage();
 
       await create(wrapper, "jo");
 
       expect(rows(wrapper)).toEqual([
-        ["jo", "Casting Team Member", "Enabled"],
+        ["jo", "Read-Only Team Member", "Enabled"],
         ["sam", "Casting Team Member", "Enabled"],
       ]);
     });
 
-    it("sends just the username", async () => {
+    it("sends the chosen role, then lists the account in it with its password shown once", async () => {
+      const fetchMock = serve([], () =>
+        json({ ...joCreated, account: account("jo", { role: "casting" }) }, 201),
+      );
+      const wrapper = await openPage();
+
+      await create(wrapper, "jo", "casting");
+
+      expect(posts(fetchMock).map(([, init]) => init?.body)).toEqual([
+        JSON.stringify({ username: "jo", role: "casting" }),
+      ]);
+      expect(rows(wrapper)).toEqual([["jo", "Casting Team Member", "Enabled"]]);
+      expect(wrapper.get("[data-test=temporary-password]").text()).toBe("Made-up-temp-1");
+    });
+
+    it("starts at read-only again each time the form opens", async () => {
+      serve([]);
+      const wrapper = await openPage();
+      await wrapper.get("[data-test=add-account]").trigger("click");
+      await wrapper.get("select[name=role]").setValue("admin");
+      await wrapper.get("[data-test=cancel]").trigger("click");
+
+      await wrapper.get("[data-test=add-account]").trigger("click");
+
+      expect(wrapper.get<HTMLSelectElement>("select[name=role]").element.value).toBe("read-only");
+    });
+
+    it("sends the username and the role, nothing else", async () => {
       const fetchMock = serve([], () => json(joCreated, 201));
       const wrapper = await openPage();
 
@@ -223,7 +267,7 @@ describe("Accounts page", () => {
           {
             method: "POST",
             headers: { "content-type": "application/json" },
-            body: JSON.stringify({ username: "jo" }),
+            body: JSON.stringify({ username: "jo", role: "read-only" }),
           },
         ],
       ]);

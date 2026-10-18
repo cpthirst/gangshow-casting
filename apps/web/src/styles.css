@@ -1072,8 +1072,7 @@ main a {
 }
 
 /* Why the signed-in admin can't change their own account, shown as phones have no tooltips. */
-.role-choice .hint,
-.cast-list .status .hint {
+.accounts-list .hint {
   margin: 0.25rem 0 0;
   font-size: 0.875rem;
 }

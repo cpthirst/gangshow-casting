@@ -16,10 +16,10 @@ export interface UserDirectory {
   find(username: string): Promise<Account | undefined>;
   list(): Promise<Account[]>;
   /**
-   * A new, enabled Casting Team Member that must choose a new password at first sign-in.
+   * A new, enabled account in the role, that must choose a new password at first sign-in.
    * Throws UsernameTaken if the username exists in any case.
    */
-  create(username: string, temporaryPassword: string): Promise<void>;
+  create(username: string, temporaryPassword: string, role: TeamRole): Promise<void>;
   setPassword(username: string, password: string, kind: PasswordKind): Promise<void>;
   setEnabled(username: string, enabled: boolean): Promise<void>;
   /** Puts the account in the role, and out of any other (ADR 0020). */
@@ -61,6 +61,11 @@ export function memoryUserDirectory(seed: StoredAccount[] = []) {
       ].filter((group) => typeof group === "string"),
     ),
   });
+  const groupsFor = (role: TeamRole) => ({
+    admin: role === "admin",
+    casting: role === "casting",
+    readOnly: role === "read-only",
+  });
   const existing = (username: string) => {
     const account = stored.get(key(username));
     if (!account) throw new Error(`No account named ${username}`);
@@ -75,14 +80,12 @@ export function memoryUserDirectory(seed: StoredAccount[] = []) {
     async list() {
       return [...stored.values()].map(summary);
     },
-    async create(username, temporaryPassword) {
+    async create(username, temporaryPassword, role) {
       if (stored.has(key(username))) throw new UsernameTaken(username);
       stored.set(key(username), {
         username,
         enabled: true,
-        admin: false,
-        casting: true,
-        readOnly: false,
+        ...groupsFor(role),
         password: temporaryPassword,
         passwordKind: "temporary",
         signedOutEverywhere: 0,
@@ -95,11 +98,7 @@ export function memoryUserDirectory(seed: StoredAccount[] = []) {
       existing(username).enabled = enabled;
     },
     async setRole(username, role) {
-      Object.assign(existing(username), {
-        admin: role === "admin",
-        casting: role === "casting",
-        readOnly: role === "read-only",
-      });
+      Object.assign(existing(username), groupsFor(role));
     },
     async withoutRole() {
       return [...stored.values()]

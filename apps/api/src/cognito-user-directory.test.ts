@@ -67,7 +67,7 @@ describe("the Cognito user directory", () => {
   });
 
   it("creates an account without sending an invitation, as accounts have no email or phone", async () => {
-    await directory().create("pat", "Made-up-1");
+    await directory().create("pat", "Made-up-1", "casting");
 
     expect(inputsOf(AdminCreateUserCommand)).toEqual([
       {
@@ -79,11 +79,15 @@ describe("the Cognito user directory", () => {
     ]);
   });
 
-  it("makes a new account a Casting Team Member", async () => {
-    await directory().create("pat", "Made-up-1");
+  it.each([
+    ["admin", "admin"],
+    ["casting", "casting"],
+    ["read-only", "read-only"],
+  ] as const)("puts a new account in the %s role's group", async (role, group) => {
+    await directory().create("pat", "Made-up-1", role);
 
     expect(inputsOf(AdminAddUserToGroupCommand)).toEqual([
-      { UserPoolId: POOL, Username: "pat", GroupName: "casting" },
+      { UserPoolId: POOL, Username: "pat", GroupName: group },
     ]);
   });
 
@@ -92,7 +96,7 @@ describe("the Cognito user directory", () => {
       .on(AdminCreateUserCommand)
       .rejects(new UsernameExistsException({ message: "User already exists", $metadata: {} }));
 
-    await expect(directory().create("Sam", "Made-up-1")).rejects.toThrow(UsernameTaken);
+    await expect(directory().create("Sam", "Made-up-1", "casting")).rejects.toThrow(UsernameTaken);
   });
 
   it("lists every account, page by page, with whether each is enabled and its role", async () => {

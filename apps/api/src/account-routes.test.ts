@@ -42,7 +42,9 @@ describe("the account routes", () => {
   it("refuse a non-admin's new account with 403, creating nothing", async () => {
     const { api, accounts } = setUp();
 
-    const res = await api(signedIn("POST", "[]", JSON.stringify({ username: "jo" })));
+    const res = await api(
+      signedIn("POST", "[]", JSON.stringify({ username: "jo", role: "casting" })),
+    );
 
     expect(res.statusCode).toBe(403);
     expect(accounts()).toEqual([]);
@@ -51,7 +53,9 @@ describe("the account routes", () => {
   it("let an admin create an account, which the list then shows", async () => {
     const { api } = setUp();
 
-    const created = await api(signedIn("POST", "[admin]", JSON.stringify({ username: "jo" })));
+    const created = await api(
+      signedIn("POST", "[admin]", JSON.stringify({ username: "jo", role: "casting" })),
+    );
     const listed = await api(signedIn("GET", "[admin]"));
 
     expect(created.statusCode).toBe(201);

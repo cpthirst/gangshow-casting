@@ -2,7 +2,7 @@
 id: team-roles.E3.S2
 title: Choose a role for a new account
 epic: E3
-status: ready
+status: done
 ---
 
 ## Story

@@ -28,14 +28,23 @@ describe("Username", () => {
 });
 
 describe("NewAccount", () => {
-  it("takes just a valid username", () => {
-    expect(NewAccount.parse({ username: "jo" })).toEqual({ username: "jo" });
-    expect(NewAccount.safeParse({ username: "jo smith" }).success).toBe(false);
+  it("takes a valid username and one of the three roles", () => {
+    expect(NewAccount.parse({ username: "jo", role: "read-only" })).toEqual({
+      username: "jo",
+      role: "read-only",
+    });
+    expect(NewAccount.safeParse({ username: "jo smith", role: "casting" }).success).toBe(false);
+  });
+
+  it("refuses a missing or unknown role", () => {
+    expect(NewAccount.safeParse({ username: "jo" }).success).toBe(false);
+    expect(NewAccount.safeParse({ username: "jo", role: "member" }).success).toBe(false);
   });
 
   it("refuses anything else, such as an email address or a password", () => {
-    expect(NewAccount.safeParse({ username: "jo", email: "jo@example.com" }).success).toBe(false);
-    expect(NewAccount.safeParse({ username: "jo", password: "chosen" }).success).toBe(false);
+    const jo = { username: "jo", role: "casting" };
+    expect(NewAccount.safeParse({ ...jo, email: "jo@example.com" }).success).toBe(false);
+    expect(NewAccount.safeParse({ ...jo, password: "chosen" }).success).toBe(false);
   });
 });
 

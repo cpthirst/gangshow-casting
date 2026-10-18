@@ -7,9 +7,8 @@ import { memoryUserDirectory, UsernameTaken } from "./user-directory.ts";
 describe("the in-memory user directory", () => {
   it("lists every account, with whether each is enabled and its role", async () => {
     const { directory } = memoryUserDirectory([anAccount("jo", { readOnly: true })]);
-    await directory.create("sam", "Made-up-1");
-    await directory.create("pat", "Made-up-2");
-    await directory.setRole("pat", "admin");
+    await directory.create("sam", "Made-up-1", "casting");
+    await directory.create("pat", "Made-up-2", "admin");
     await directory.setEnabled("sam", false);
 
     expect(await directory.list()).toEqual([
@@ -33,15 +32,15 @@ describe("the in-memory user directory", () => {
 
   it("refuses a username it already has, ignoring case, as the user pool does", async () => {
     const { directory, accounts } = memoryUserDirectory();
-    await directory.create("sam", "Made-up-1");
+    await directory.create("sam", "Made-up-1", "casting");
 
-    await expect(directory.create("Sam", "Made-up-2")).rejects.toThrow(UsernameTaken);
+    await expect(directory.create("Sam", "Made-up-2", "casting")).rejects.toThrow(UsernameTaken);
     expect(accounts().map((account) => account.username)).toEqual(["sam"]);
   });
 
   it("finds and changes an account whatever the case of its username, as the user pool does", async () => {
     const { directory, accounts } = memoryUserDirectory();
-    await directory.create("sam", "Made-up-1");
+    await directory.create("sam", "Made-up-1", "casting");
 
     await directory.setEnabled("SAM", false);
 
@@ -55,13 +54,17 @@ describe("the in-memory user directory", () => {
     ]);
   });
 
-  it("makes a new account a Casting Team Member, as team members are today", async () => {
+  it("creates an account in the role it's given, with a temporary password", async () => {
     const { directory, accounts } = memoryUserDirectory();
 
-    await directory.create("sam", "Made-up-1");
+    await directory.create("jo", "Made-up-1", "read-only");
 
-    expect(accounts()[0]?.casting).toBe(true);
-    expect(await directory.withoutRole()).toEqual([]);
+    expect(accounts()[0]).toMatchObject({
+      admin: false,
+      casting: false,
+      readOnly: true,
+      passwordKind: "temporary",
+    });
   });
 
   it.each([
