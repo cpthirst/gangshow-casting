@@ -66,4 +66,34 @@ export function behavesAsAnItemNoteStore(make: () => ItemNoteStore) {
       "pirate-sketch",
     ]);
   });
+
+  it("deletes the notes of items that aren't kept, and keeps the others", async () => {
+    const store = make();
+    await store.save("2027", "pirate-sketch", 0, "Hat change");
+    await store.save("2027", "finale", 0, "Everyone on");
+
+    await store.keepOnlyItems("2027", ["finale"]);
+
+    expect((await store.list("2027")).notes.map((note) => note.itemId)).toEqual(["finale"]);
+  });
+
+  it("lets an item that was dropped start again from revision 0", async () => {
+    const store = make();
+    await store.save("2027", "pirate-sketch", 0, "Hat change");
+    await store.keepOnlyItems("2027", []);
+
+    const saved = await store.save("2027", "pirate-sketch", 0, "Fresh start");
+
+    expect(saved).toEqual({ itemId: "pirate-sketch", text: "Fresh start", revision: 1 });
+  });
+
+  it("changes nothing when every item is kept, or none has notes", async () => {
+    const store = make();
+    await store.keepOnlyItems("2027", ["finale"]);
+    await store.save("2027", "finale", 0, "Everyone on");
+
+    await store.keepOnlyItems("2027", ["finale", "pirate-sketch"]);
+
+    expect((await store.list("2027")).notes).toHaveLength(1);
+  });
 }

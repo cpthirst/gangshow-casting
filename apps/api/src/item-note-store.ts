@@ -18,6 +18,9 @@ export interface ItemNoteStore {
     revision: number,
     text: string,
   ): Promise<ItemNote | "stale">;
+  /** Deletes the notes of every item not in `itemIds`, for good: nothing about an item
+   *  that has left the show is kept (running-order E3.S2). */
+  keepOnlyItems(productionId: string, itemIds: string[]): Promise<void>;
 }
 
 const empty = (productionId: string): ItemNoteList => ({ productionId, notes: [] });
@@ -38,6 +41,12 @@ function withNote(
   return { note, list: { ...list, notes } };
 }
 
+/** The list with only the notes of the given items. */
+const onlyItems = (list: ItemNoteList, itemIds: string[]): ItemNoteList => ({
+  ...list,
+  notes: list.notes.filter((note) => itemIds.includes(note.itemId)),
+});
+
 export function inMemoryItemNoteStore(): ItemNoteStore {
   const lists = new Map<string, ItemNoteList>();
   const listOf = (productionId: string) => lists.get(productionId) ?? empty(productionId);
@@ -48,6 +57,9 @@ export function inMemoryItemNoteStore(): ItemNoteStore {
       if (saved === "stale") return saved;
       lists.set(productionId, saved.list);
       return saved.note;
+    },
+    async keepOnlyItems(productionId, itemIds) {
+      lists.set(productionId, onlyItems(listOf(productionId), itemIds));
     },
   };
 }
@@ -81,6 +93,14 @@ export function fileItemNoteStore(dataDir: string): ItemNoteStore {
         if (saved === "stale") return saved;
         await writePrivateFile(fileFor(productionId), JSON.stringify(saved.list, null, 2));
         return saved.note;
+      }),
+    keepOnlyItems: (productionId, itemIds) =>
+      inTurn(async () => {
+        const list = await read(productionId);
+        const kept = onlyItems(list, itemIds);
+        // Nothing to write if every item stays (or there's no file yet).
+        if (kept.notes.length === list.notes.length) return;
+        await writePrivateFile(fileFor(productionId), JSON.stringify(kept, null, 2));
       }),
   };
 }

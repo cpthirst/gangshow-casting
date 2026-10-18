@@ -102,9 +102,12 @@ describe("data stores with a remote table", () => {
   });
 
   it("saves running order versions through the API in the remote table, refusing old ones", async () => {
-    const { runningOrders } = dataStores({ ...process.env, DATA_TABLE: table.tableName });
+    const { runningOrders, roles, itemNotes } = dataStores({
+      ...process.env,
+      DATA_TABLE: table.tableName,
+    });
     await runningOrders.save(aRunningOrder(4, { first: ["Curtain Up", "Finale"] }));
-    const save = createSaveRunningOrder(runningOrders);
+    const save = createSaveRunningOrder(runningOrders, { roles, itemNotes });
     const saveFrom = (baseVersion: number, titles: string[]) =>
       save({
         pathParameters: { productionId: "2027" },
@@ -120,7 +123,6 @@ describe("data stores with a remote table", () => {
         }),
       });
 
-    // Saves can reorder items, not add them.
     const saved = await saveFrom(4, ["Finale", "Curtain Up"]);
     const stale = await saveFrom(4, ["Curtain Up", "Finale"]);
     const read = await createGetRunningOrder(runningOrders)({

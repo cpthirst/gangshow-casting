@@ -28,6 +28,9 @@ export interface RoleStore {
   ): Promise<"removed" | Exclude<RoleRefusal, "name-taken">>;
   /** Takes a cast member out of every role (e.g. they've left the cast). The roles stay. */
   uncastMember(productionId: string, castMemberId: number): Promise<void>;
+  /** Removes every role of every item not in `itemIds`, with who was cast in them: nothing
+   *  about an item that has left the show is kept (running-order E3.S2). */
+  keepOnlyItems(productionId: string, itemIds: string[]): Promise<void>;
 }
 
 /** Why a change to one role was refused: it's gone, someone else changed it first, or
@@ -93,6 +96,14 @@ function withoutMember(file: RoleFile, castMemberId: number): RoleFile {
   return { ...file, roles };
 }
 
+/** The file without the roles of items outside `itemIds`. Keeps nextId, so their ids are
+ *  never reused. */
+const withOnlyItems = (file: RoleFile, itemIds: string[]): RoleFile => ({
+  ...file,
+  roles: file.roles.filter((role) => itemIds.includes(role.itemId)),
+  nextId: nextIdOf(file),
+});
+
 export function inMemoryRoleStore(initial: RoleList[] = []): RoleStore {
   const files = new Map<string, RoleFile>(initial.map((list) => [list.productionId, list]));
   const fileOf = (productionId: string) => files.get(productionId) ?? emptyFile(productionId);
@@ -118,6 +129,9 @@ export function inMemoryRoleStore(initial: RoleList[] = []): RoleStore {
     },
     async uncastMember(productionId, castMemberId) {
       files.set(productionId, withoutMember(fileOf(productionId), castMemberId));
+    },
+    async keepOnlyItems(productionId, itemIds) {
+      files.set(productionId, withOnlyItems(fileOf(productionId), itemIds));
     },
   };
 }
@@ -180,6 +194,13 @@ export function fileRoleStore(dataDir: string): RoleStore {
         // Nothing to save if they're in no roles (e.g. no roles file yet).
         if (!file.roles.some((role) => role.castMemberIds.includes(castMemberId))) return;
         await write(withoutMember(file, castMemberId));
+      }),
+    keepOnlyItems: (productionId, itemIds) =>
+      inTurn(async () => {
+        const file = await read(productionId);
+        // Nothing to save if every role's item stays (e.g. no roles file yet).
+        if (file.roles.every((role) => itemIds.includes(role.itemId))) return;
+        await write(withOnlyItems(file, itemIds));
       }),
   };
 }
