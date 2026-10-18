@@ -556,7 +556,7 @@ describe("Running order page", () => {
       afterEach(useLocalSignIn);
 
       it("shows the running order to everyone, but saves only for admins, saying why", async () => {
-        await signInAs([]);
+        await signInAs(["casting"]);
         fakeApi(threeItems());
         const wrapper = await openPage();
         await press(wrapper, "Move Curtain Up down");
@@ -1330,7 +1330,7 @@ describe("Running order page", () => {
     });
 
     it("lets only admins add or remove items, saying why", async () => {
-      await signInAs([]);
+      await signInAs(["casting"]);
       api(order());
       const wrapper = await openPage();
 
@@ -1354,5 +1354,128 @@ describe("Running order page", () => {
       );
       useLocalSignIn();
     });
+  });
+
+  describe("for a Read-Only Team Member", () => {
+    beforeEach(async () => {
+      sortables.length = 0;
+      await signInAs(["read-only"]);
+    });
+    afterEach(useLocalSignIn);
+
+    const order = () =>
+      aRunningOrder(
+        [anItem("Curtain Up"), anItem("Pirate Panic", { minutes: 18 }), anItem("Dance One")],
+        [anItem("Big Finish")],
+      );
+    type Page = Awaited<ReturnType<typeof openPage>>;
+    const controls = (wrapper: Page) =>
+      wrapper.findAll(
+        "button, .drag-handle, [data-move], [data-edit], [data-remove], [data-add-to]",
+      );
+
+    it("shows the whole running order, as everyone sees it", async () => {
+      serve(order());
+
+      const wrapper = await openPage();
+
+      expect(titlesIn(half(wrapper, "first-half"))).toEqual([
+        "Curtain Up",
+        "Pirate Panic",
+        "Dance One",
+      ]);
+      expect(titlesIn(half(wrapper, "second-half"))).toEqual(["Big Finish"]);
+      expect(rowFor(wrapper, "Pirate Panic").get("[data-test=minutes]").text()).toBe("18");
+      expect(rowFor(wrapper, "Dance One").get("[data-test=number]").text()).toBe("3");
+      expect(wrapper.get("[data-test=interval]").text()).toMatch(/^Interval/);
+      expect(rowFor(wrapper, "Pirate Panic").get("[data-test=starts]").text()).toBe("7:20 pm");
+      expect(half(wrapper, "first-half").get("[data-test=total]").text()).toBe("28 mins");
+      expect(half(wrapper, "second-half").get("[data-test=total]").text()).toBe("5 mins");
+      // 7:15 pm, 28 minutes, a 20-minute interval, then 5 minutes.
+      expect(wrapper.get("[data-test=finish]").text()).toBe("Projected finish 8:08 pm");
+      expect(wrapper.text()).toContain("Draft 6");
+    });
+
+    it("shows no editing controls at all", async () => {
+      serve(order());
+
+      const wrapper = await openPage();
+
+      expect(controls(wrapper)).toEqual([]);
+      expect(wrapper.findAll("th").map((th) => th.text())).not.toContain("Move");
+      expect(wrapper.find("td[data-label=Move]").exists()).toBe(false);
+    });
+
+    it("can't drag a row to another place", async () => {
+      serve(order());
+      const wrapper = await openPage();
+      const sortable = sortables.findLast(
+        (s) => s.el === wrapper.get('section[aria-labelledby="first-half"] tbody').element,
+      );
+
+      expect(sortable?.options).toMatchObject({ disabled: true });
+      const item = rowFor(wrapper, "Dance One").element;
+      const onEnd = sortable?.options.onEnd;
+      if (!(item instanceof HTMLElement && item.parentElement && onEnd)) {
+        throw new Error("expected a draggable list for the first half");
+      }
+      onEnd({ item, from: item.parentElement, to: item.parentElement, oldIndex: 2, newIndex: 0 });
+      await flushPromises();
+
+      expect(titlesIn(half(wrapper, "first-half"))).toEqual([
+        "Curtain Up",
+        "Pirate Panic",
+        "Dance One",
+      ]);
+      expect(wrapper.find("[data-test=unsaved]").exists()).toBe(false);
+    });
+
+    it("says on the page that the access is read-only", async () => {
+      serve(order());
+
+      const wrapper = await openPage();
+
+      // In the same place and style as the "Only admins …" line other members see.
+      const notice = wrapper.get(".draft-bar [data-test=read-only]");
+      expect(notice.text()).toBe("You have read-only access");
+      expect(notice.classes()).toContain("access-note");
+      expect(wrapper.find("[data-test=admin-only]").exists()).toBe(false);
+    });
+
+    it("shows an empty half as empty, without a hint to drag or add", async () => {
+      serve(aRunningOrder([anItem("Curtain Up")], []));
+
+      const wrapper = await openPage();
+
+      const empty = half(wrapper, "second-half").get(".empty-half");
+      expect(empty.text()).toBe("No items yet");
+      // Not styled as a place to drop an item into.
+      expect(empty.classes()).toContain("read-only");
+    });
+  });
+
+  describe("for other roles", () => {
+    afterEach(useLocalSignIn);
+
+    it.each([["casting"], ["admin"]])(
+      "keeps today's controls for %s, with no read-only line",
+      async (group) => {
+        await signInAs([group]);
+        serve(aRunningOrder([anItem("Curtain Up"), anItem("Pirate Panic")], []));
+
+        const wrapper = await openPage();
+
+        expect(wrapper.find('button[aria-label="Move Curtain Up down"]').exists()).toBe(true);
+        expect(wrapper.find('button[aria-label="Edit Curtain Up"]').exists()).toBe(true);
+        expect(wrapper.find("button[data-test=save]").exists()).toBe(true);
+        expect(wrapper.find('button[aria-label="Remove Curtain Up"]').exists()).toBe(true);
+        expect(wrapper.find("[data-add-to]").exists()).toBe(true);
+        // Casting Team Members still learn that only admins save.
+        expect(wrapper.find(".draft-bar .access-note[data-test=admin-only]").exists()).toBe(
+          group === "casting",
+        );
+        expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
+      },
+    );
   });
 });

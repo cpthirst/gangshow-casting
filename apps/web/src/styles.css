@@ -532,6 +532,12 @@ main a {
   font-style: italic;
 }
 
+/* Nothing can be dropped in for a Read-Only Team Member, so it isn't drawn as a target. */
+.running-order .empty-half.read-only td {
+  padding: 0.75rem;
+  border: none;
+}
+
 /* SortableJS's placeholder while dragging. */
 .running-order .sortable-ghost {
   background: var(--surface);

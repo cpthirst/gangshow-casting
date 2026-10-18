@@ -2,7 +2,7 @@
 id: team-roles.E2.S1
 title: Show the Running order read-only
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story
