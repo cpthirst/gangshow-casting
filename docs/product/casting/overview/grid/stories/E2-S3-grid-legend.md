@@ -2,7 +2,7 @@
 id: casting-overview-grid.E2.S3
 title: Explain the dots with a legend
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story
@@ -15,6 +15,7 @@ As a member of the production team, I want a legend under the grid, so that I kn
 Given the Overview is showing the grid
 When I look at the legend
 Then I see a Lead dot with L, a Support dot with S, a Cameo dot with C and an Ensemble dot with E, each with its size written out
+And a visible caption "What the dots mean" names it, above the grid so it is seen before scrolling
 
 ### AC2: Legend dots match the grid
 Given a lead dot in the grid

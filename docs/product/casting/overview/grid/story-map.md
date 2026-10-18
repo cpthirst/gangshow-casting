@@ -26,7 +26,7 @@ prd: ./prd.md
 |---|---|---|---|---|
 | [casting-overview-grid.E2.S1](stories/E2-S1-grid-view.md) | A switch on Overview changes between the by-person view and a grid: a row per cast member (first name, last name, section; ordered by section) and a column per item in running order, with one coloured dot and letter for the person's most impactful role in that item (ensemble included, with E) and empty cells left visibly empty | FR4, FR5, FR6, FR7, FR8, FR11 | E1.S1 | done |
 | [casting-overview-grid.E2.S2](stories/E2-S2-grid-headers-and-scrolling.md) | Item columns are headed by title and running-order position, name columns stay in view while the grid scrolls sideways inside its own area, and the page itself never scrolls sideways at 320px or 360px | FR10 | E2.S1 | done |
-| [casting-overview-grid.E2.S3](stories/E2-S3-grid-legend.md) | A legend explains the colour and letter for Lead, Support, Cameo and Ensemble | FR9 | E2.S1 | ready |
+| [casting-overview-grid.E2.S3](stories/E2-S3-grid-legend.md) | A legend explains the colour and letter for Lead, Support, Cameo and Ensemble | FR9 | E2.S1 | done |
 
 ## E3: Admins take the grid into Excel
 

@@ -1110,6 +1110,78 @@ describe("Casting grid on the Overview", () => {
     expect(rows(wrapper).every((cells) => cells.length === heads)).toBe(true);
   });
 
+  const legend = (wrapper: VueWrapper) =>
+    wrapper.findAll("[data-test=legend-item]").map((item) => ({
+      letter: item.get("[data-test=legend-dot]").text(),
+      classes: item.get("[data-test=legend-dot]").classes(),
+      words: item.get(".legend-size").text(),
+    }));
+
+  it("explains each size in a legend, with its letter and its name", async () => {
+    theShowIs(cast);
+
+    const wrapper = await openGrid();
+
+    expect(legend(wrapper).map(({ letter, words }) => [letter, words])).toEqual([
+      ["L", "Lead"],
+      ["S", "Support"],
+      ["C", "Cameo"],
+      ["E", "Ensemble"],
+    ]);
+  });
+
+  it("draws each legend dot like the same size in the grid", async () => {
+    theShowIs([
+      role("opening-number", "lead", [sam.id]),
+      role("pirate-sketch", "support", [sam.id]),
+      role("dance-one", "cameo", [sam.id]),
+      role("dance-one", "ensemble", [alex.id]),
+    ]);
+
+    const wrapper = await openGrid();
+
+    const inGrid = wrapper
+      .findAll("[data-test=grid-dot]")
+      .map((dot) => [dot.text(), dot.classes().sort()]);
+    const inLegend = legend(wrapper).map(({ letter, classes }) => [letter, classes.sort()]);
+    expect(inGrid).toHaveLength(4);
+    for (const dot of inGrid) expect(inLegend).toContainEqual(dot);
+  });
+
+  it("has no legend on the by-person view", async () => {
+    theShowIs(cast);
+
+    const wrapper = await openOverview();
+
+    expect(wrapper.find("[data-test=legend-item]").exists()).toBe(false);
+  });
+
+  it("names the legend in words, above the grid", async () => {
+    theShowIs(cast);
+
+    const wrapper = await openGrid();
+
+    const list = wrapper.get(".grid-legend");
+    const caption = wrapper.get("#grid-legend-caption");
+    expect(caption.text()).toBe("What the dots mean");
+    expect(list.attributes("aria-labelledby")).toBe("grid-legend-caption");
+    const table = wrapper.get("table").element;
+    expect(
+      list.element.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it("hides the legend's letters from screen readers, which hear the size words", async () => {
+    theShowIs(cast);
+
+    const wrapper = await openGrid();
+
+    for (const item of wrapper.findAll("[data-test=legend-item]")) {
+      expect(item.get("[data-test=legend-dot]").attributes("aria-hidden")).toBe("true");
+      expect(item.get(".legend-size").text()).not.toBe("");
+    }
+  });
+
   it("says the grid couldn't load when the casting fails", async () => {
     theShowIs(cast);
     const fetched = globalThis.fetch;

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { RoleSize } from "@app/shared";
 import ClashIcon from "./ClashIcon.vue";
 import type { ClashLine } from "./clashes.ts";
 import { type GridColumn, gridHeading, type TimelineSlot } from "./overview.ts";
@@ -23,6 +24,18 @@ defineProps<{
 </script>
 
 <template>
+  <!-- What the dots mean (casting-overview-grid FR9), above the grid so it's seen before any
+       scrolling: the same dot as in the grid, then the size in words. An explicit list role:
+       Safari drops list semantics once bullets are styled away. -->
+  <p id="grid-legend-caption" class="role-totals-caption">What the dots mean</p>
+  <ul class="grid-legend" role="list" aria-labelledby="grid-legend-caption">
+    <li v-for="size in RoleSize.options" :key="size" data-test="legend-item">
+      <span :class="['grid-dot', `grid-dot-${size}`]" aria-hidden="true" data-test="legend-dot">{{
+        roleSizeLetter(size)
+      }}</span>
+      <span class="legend-size">{{ roleSizeLabel(size) }}</span>
+    </li>
+  </ul>
   <div class="table-scroll grid-box" tabindex="0" role="region" aria-label="Who is in which item">
     <table class="casting-grid">
       <thead>
