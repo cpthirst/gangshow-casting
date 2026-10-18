@@ -44,7 +44,7 @@ prd: ./prd.md
 |---|---|---|---|---|
 | [hosting.E4.S1](stories/E4-S1-list-and-create-accounts.md) | An admin sees every account (username, admin, disabled) and creates one with a username and temporary password; refused for non-admins; works locally against an in-memory directory | FR9, FR11, FR18 | E3.S2, E2.S2 | done |
 | [hosting.E4.S2](stories/E4-S2-reset-and-disable-accounts.md) | An admin resets an account's password or disables and re-enables it, ending its access on every device within 1 hour; an admin can't disable themselves | FR11, FR12, FR13 | E4.S1 | done |
-| [hosting.E4.S3](stories/E4-S3-grant-and-remove-admin.md) | An admin makes an account an admin or removes admin; an admin can't remove their own admin role, so one admin always remains | FR11, FR13 | E4.S1 | ready |
+| [hosting.E4.S3](stories/E4-S3-grant-and-remove-admin.md) | An admin makes an account an admin or removes admin; an admin can't remove their own admin role, so one admin always remains | FR11, FR13 | E4.S1 | done |
 
 ## E5: A maintainer's guide to running the hosted app
 

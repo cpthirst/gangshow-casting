@@ -9,6 +9,7 @@ describe("adminOnlyRouteKeys", () => {
       "POST /api/accounts",
       "POST /api/accounts/{username}/password",
       "POST /api/productions/{productionId}/running-order/versions",
+      "PUT /api/accounts/{username}/admin",
       "PUT /api/accounts/{username}/enabled",
     ]);
   });
@@ -20,6 +21,7 @@ describe("accountRouteKeys", () => {
       "GET /api/accounts",
       "POST /api/accounts",
       "POST /api/accounts/{username}/password",
+      "PUT /api/accounts/{username}/admin",
       "PUT /api/accounts/{username}/enabled",
     ]);
     for (const key of accountRouteKeys) {

@@ -35,8 +35,12 @@ export const CreatedAccount = z.strictObject({
 /** PUT /api/accounts/{username}/enabled takes this; 200 returns the AccountSummary. */
 export const SetEnabled = z.strictObject({ enabled: z.boolean() });
 
+/** PUT /api/accounts/{username}/admin takes this; 200 returns the AccountSummary. */
+export const SetAdmin = z.strictObject({ admin: z.boolean() });
+
 export type AccountSummary = z.infer<typeof AccountSummary>;
 export type AccountList = z.infer<typeof AccountList>;
 export type NewAccount = z.infer<typeof NewAccount>;
 export type CreatedAccount = z.infer<typeof CreatedAccount>;
 export type SetEnabled = z.infer<typeof SetEnabled>;
+export type SetAdmin = z.infer<typeof SetAdmin>;

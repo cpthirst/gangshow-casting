@@ -1,6 +1,7 @@
-import { SetEnabled, Username } from "@app/shared";
+import { SetEnabled } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import { callerIs } from "./caller.ts";
+import { findAccount } from "./find-account.ts";
 import type { ApiEvent } from "./handler.ts";
 import { jsonResponse, messageResponse, parseJson } from "./json.ts";
 import type { UserDirectory } from "./user-directory.ts";
@@ -14,8 +15,7 @@ export function createSetEnabled(directory: UserDirectory) {
   return async (event: ApiEvent): Promise<APIGatewayProxyStructuredResultV2> => {
     const request = SetEnabled.safeParse(parseJson(event.body));
     if (!request.success) return { statusCode: 400 };
-    const username = Username.safeParse(event.pathParameters?.username);
-    const account = username.success ? await directory.find(username.data) : undefined;
+    const account = await findAccount(directory, event);
     if (!account) return { statusCode: 404 };
 
     const { enabled } = request.data;

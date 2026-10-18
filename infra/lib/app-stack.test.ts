@@ -281,6 +281,8 @@ describe("AppStack", () => {
             "cognito-idp:AdminEnableUser",
             "cognito-idp:AdminDisableUser",
             "cognito-idp:AdminUserGlobalSignOut",
+            "cognito-idp:AdminAddUserToGroup",
+            "cognito-idp:AdminRemoveUserFromGroup",
           ],
           Resource: { "Fn::GetAtt": [expect.stringMatching(/^UserPool/), "Arn"] },
         }),

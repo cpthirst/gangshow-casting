@@ -6,6 +6,8 @@ import {
   ACCOUNTS_PATH,
   accountPath,
   disableWarning,
+  makeAdminWarning,
+  removeAdminWarning,
   resetWarning,
   sortAccounts,
 } from "../accounts.ts";
@@ -140,7 +142,7 @@ async function passedOn() {
 }
 
 /** Focuses one of a row's buttons; after a change redraws the row, the button is a new one. */
-async function focusRowButton(name: string, action: "reset-password" | "disable" | "enable") {
+async function focusRowButton(name: string, action: RowAction) {
   await nextTick();
   document
     .querySelector<HTMLButtonElement>(`[data-username="${name}"] [data-test="${action}"]`)
@@ -196,36 +198,79 @@ async function resetPassword(account: AccountSummary) {
   await focusRowButton(name, "reset-password");
 }
 
-// Disabling ends their access everywhere, so it's confirmed first (hosting E4.S2).
-async function setEnabled(account: AccountSummary, enabled: boolean) {
+type RowAction = "reset-password" | "disable" | "enable" | "make-admin" | "remove-admin";
+
+interface AccessChange {
+  /** The account's address after its own, and the body to send it. */
+  field: "enabled" | "admin";
+  value: boolean;
+  failed: string;
+  /** What to say if the API refuses it as locking someone out (FR13). */
+  conflict: string;
+  done: string;
+  /** Where focus goes in the row: the button that undoes it, or this one again on failure. */
+  focusWhenDone: RowAction;
+  focusWhenFailed: RowAction;
+}
+
+/** Turns an account's access on or off, keeping focus in its row. */
+async function putAccess(account: AccountSummary, put: AccessChange) {
   const { username: name } = account;
-  if (busy.value || (!enabled && !window.confirm(disableWarning(name)))) return;
   const reply = await change(
     account,
-    `${accountPath(name)}/enabled`,
+    `${accountPath(name)}/${put.field}`,
     {
       method: "PUT",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ enabled }),
+      body: JSON.stringify({ [put.field]: put.value }),
     },
-    {
-      failed: `Couldn't ${enabled ? "enable" : "disable"} ${name}. Try again.`,
-      // The API's only refusal here: no one can lock themselves out (FR13).
-      conflict: "You can't disable your own account.",
-    },
+    put,
   );
   if (reply === undefined) {
-    await focusRowButton(name, enabled ? "enable" : "disable");
+    await focusRowButton(name, put.focusWhenFailed);
     return;
   }
   // Saved, even if the reply can't be read: show what was asked for.
   const updated = AccountSummary.safeParse(reply);
-  showAccount(updated.success ? updated.data : { ...account, enabled });
-  announcement.value = `${name} ${enabled ? "enabled" : "disabled"}.`;
-  await focusRowButton(name, enabled ? "disable" : "enable");
+  showAccount(updated.success ? updated.data : { ...account, [put.field]: put.value });
+  announcement.value = put.done;
+  await focusRowButton(name, put.focusWhenDone);
 }
 
-/** The signed-in admin's own account, which they can't disable (FR13). */
+// Disabling ends their access everywhere, so it's confirmed first (hosting FR12).
+async function setEnabled(account: AccountSummary, enabled: boolean) {
+  const { username: name } = account;
+  if (busy.value || (!enabled && !window.confirm(disableWarning(name)))) return;
+  await putAccess(account, {
+    field: "enabled",
+    value: enabled,
+    failed: `Couldn't ${enabled ? "enable" : "disable"} ${name}. Try again.`,
+    conflict: "You can't disable your own account.",
+    done: `${name} ${enabled ? "enabled" : "disabled"}.`,
+    focusWhenDone: enabled ? "disable" : "enable",
+    focusWhenFailed: enabled ? "enable" : "disable",
+  });
+}
+
+// Either way changes what they can do, so it's confirmed first (hosting FR11).
+async function setAdmin(account: AccountSummary, admin: boolean) {
+  const { username: name } = account;
+  const question = admin ? makeAdminWarning(name) : removeAdminWarning(name);
+  if (busy.value || !window.confirm(question)) return;
+  await putAccess(account, {
+    field: "admin",
+    value: admin,
+    failed: admin
+      ? `Couldn't make ${name} an admin. Try again.`
+      : `Couldn't remove admin from ${name}. Try again.`,
+    conflict: "You can't remove your own admin role.",
+    done: admin ? `${name} is now an admin.` : `${name} is no longer an admin.`,
+    focusWhenDone: admin ? "remove-admin" : "make-admin",
+    focusWhenFailed: admin ? "make-admin" : "remove-admin",
+  });
+}
+
+/** The signed-in admin's own account, which they can't disable or demote (FR13). */
 const isOwn = (account: AccountSummary) =>
   account.username.toLowerCase() === signedInUsername.value?.toLowerCase();
 
@@ -341,7 +386,7 @@ onMounted(load);
               <button
                 type="button"
                 class="icon-button"
-                :aria-label="`Reset password for ${account.username}`"
+                :aria-label="`Reset ${account.username}'s password`"
                 data-test="reset-password"
                 data-tooltip="Reset password"
                 :disabled="busy"
@@ -372,6 +417,32 @@ onMounted(load);
                 @click="setEnabled(account, true)"
               >
                 <FontAwesomeIcon :icon="icons.enable" />
+              </button>
+              <button
+                v-if="account.admin"
+                type="button"
+                class="icon-button"
+                :aria-label="`Remove ${account.username}'s admin role`"
+                data-test="remove-admin"
+                :data-tooltip="
+                  isOwn(account) ? 'You can\'t remove your own admin role' : 'Remove admin'
+                "
+                :disabled="busy || isOwn(account)"
+                @click="setAdmin(account, false)"
+              >
+                <FontAwesomeIcon :icon="icons.removeAdmin" />
+              </button>
+              <button
+                v-else
+                type="button"
+                class="icon-button"
+                :aria-label="`Make ${account.username} an admin`"
+                data-test="make-admin"
+                data-tooltip="Make admin"
+                :disabled="busy"
+                @click="setAdmin(account, true)"
+              >
+                <FontAwesomeIcon :icon="icons.makeAdmin" />
               </button>
             </td>
             <td class="username" data-label="Username">{{ account.username }}</td>

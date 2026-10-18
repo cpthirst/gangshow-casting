@@ -332,7 +332,7 @@ describe("Accounts page", () => {
         });
         const wrapper = await openPage();
 
-        await button(wrapper, "Reset password for sam").trigger("click");
+        await button(wrapper, "Reset sam's password").trigger("click");
         await flushPromises();
 
         const notice = wrapper.get("[data-test=created-account]");
@@ -348,13 +348,13 @@ describe("Accounts page", () => {
           "POST /api/accounts/sam/password": () => json(samReset),
         });
         const wrapper = await openPage();
-        await button(wrapper, "Reset password for sam").trigger("click");
+        await button(wrapper, "Reset sam's password").trigger("click");
         await flushPromises();
 
         await wrapper.get("[data-test=password-passed-on]").trigger("click");
 
         expect(wrapper.get("[data-test=announcement]").text()).toBe("sam's password reset.");
-        expect(document.activeElement).toBe(button(wrapper, "Reset password for sam").element);
+        expect(document.activeElement).toBe(button(wrapper, "Reset sam's password").element);
       });
 
       it("asks first, saying they'll be signed out everywhere, and does nothing if not", async () => {
@@ -362,7 +362,7 @@ describe("Accounts page", () => {
         const fetchMock = serveChanges([account("sam")], {});
         const wrapper = await openPage();
 
-        await button(wrapper, "Reset password for sam").trigger("click");
+        await button(wrapper, "Reset sam's password").trigger("click");
         await flushPromises();
 
         expect(confirm).toHaveBeenCalledWith(
@@ -378,7 +378,7 @@ describe("Accounts page", () => {
         });
         const wrapper = await openPage();
 
-        await button(wrapper, "Reset password for sam").trigger("click");
+        await button(wrapper, "Reset sam's password").trigger("click");
         await flushPromises();
 
         expect(wrapper.get(".notice[role=alert]").text()).toBe(
@@ -419,7 +419,7 @@ describe("Accounts page", () => {
         serveChanges([account("sam"), account("lee", { enabled: false })], {});
         const wrapper = await openPage();
 
-        expect(button(wrapper, "Reset password for sam").attributes("data-tooltip")).toBe(
+        expect(button(wrapper, "Reset sam's password").attributes("data-tooltip")).toBe(
           "Reset password",
         );
         expect(button(wrapper, "Disable sam").attributes("data-tooltip")).toBe("Disable account");
@@ -558,5 +558,139 @@ describe("Accounts page", () => {
 
       expect(wrapper.get(".notice[role=alert]").text()).toBe("Only admins can change accounts.");
     });
+
+    describe("making an account an admin, or not", () => {
+      it("asks first, saying they'll be signed out and what they'll be able to do, then shows them as an admin", async () => {
+        const confirm = confirmWith(true);
+        const fetchMock = serveChanges([account("sam")], {
+          "PUT /api/accounts/sam/admin": () => json(account("sam", { admin: true })),
+        });
+        const wrapper = await openPage();
+
+        await button(wrapper, "Make sam an admin").trigger("click");
+        await flushPromises();
+
+        expect(confirm).toHaveBeenCalledWith(
+          "Make sam an admin? They'll be signed out on every device, and can manage accounts, delete cast members and save running orders when they sign back in.",
+        );
+        expect(changes(fetchMock)).toEqual([
+          [
+            "/api/accounts/sam/admin",
+            {
+              method: "PUT",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ admin: true }),
+            },
+          ],
+        ]);
+        expect(rows(wrapper)).toEqual([["sam", "Admin", "Enabled"]]);
+        expect(wrapper.get("[data-test=announcement]").text()).toBe("sam is now an admin.");
+        expect(document.activeElement).toBe(button(wrapper, "Remove sam's admin role").element);
+      });
+
+      it("asks first, saying they'll be signed out, then shows them as a team member", async () => {
+        const confirm = confirmWith(true);
+        serveChanges([account("sam", { admin: true })], {
+          "PUT /api/accounts/sam/admin": () => json(account("sam")),
+        });
+        const wrapper = await openPage();
+
+        await button(wrapper, "Remove sam's admin role").trigger("click");
+        await flushPromises();
+
+        expect(confirm).toHaveBeenCalledWith(
+          "Remove admin from sam? They'll be signed out on every device, and can sign back in as a team member.",
+        );
+        expect(rows(wrapper)).toEqual([["sam", "Team member", "Enabled"]]);
+        expect(wrapper.get("[data-test=announcement]").text()).toBe("sam is no longer an admin.");
+        expect(document.activeElement).toBe(button(wrapper, "Make sam an admin").element);
+      });
+
+      it("changes nothing if the admin doesn't confirm", async () => {
+        confirmWith(false);
+        const fetchMock = serveChanges([account("sam")], {});
+        const wrapper = await openPage();
+
+        await button(wrapper, "Make sam an admin").trigger("click");
+        await flushPromises();
+
+        expect(changes(fetchMock)).toEqual([]);
+        expect(rows(wrapper)).toEqual([["sam", "Team member", "Enabled"]]);
+      });
+
+      it("names each action in its tooltip", async () => {
+        serveChanges([account("sam"), account("pat", { admin: true })], {});
+        const wrapper = await openPage();
+
+        expect(button(wrapper, "Make sam an admin").attributes("data-tooltip")).toBe("Make admin");
+        expect(button(wrapper, "Remove pat's admin role").attributes("data-tooltip")).toBe(
+          "Remove admin",
+        );
+      });
+
+      it("says an admin can't remove their own admin role", async () => {
+        confirmWith(true);
+        serveChanges([account("pat", { admin: true })], {
+          "PUT /api/accounts/pat/admin": () =>
+            json({ message: "You can't remove your own admin role." }, 409),
+        });
+        const wrapper = await openPage();
+
+        await button(wrapper, "Remove pat's admin role").trigger("click");
+        await flushPromises();
+
+        expect(wrapper.get(".notice[role=alert]").text()).toBe(
+          "You can't remove your own admin role.",
+        );
+        expect(rows(wrapper)).toEqual([["pat", "Admin", "Enabled"]]);
+        expect(document.activeElement).toBe(button(wrapper, "Remove pat's admin role").element);
+      });
+
+      it("won't offer to remove the signed-in admin's own role, saying why", async () => {
+        await signInAs(["admin"], "pat");
+        serveChanges([account("pat", { admin: true }), account("sam", { admin: true })], {});
+        const wrapper = await openPage();
+
+        const own = button(wrapper, "Remove pat's admin role");
+        expect(own.attributes("disabled")).toBeDefined();
+        expect(own.attributes("data-tooltip")).toBe("You can't remove your own admin role");
+        expect(button(wrapper, "Remove sam's admin role").attributes("disabled")).toBeUndefined();
+      });
+
+      it("says when the role couldn't be changed", async () => {
+        confirmWith(true);
+        serveChanges([account("sam")], { "PUT /api/accounts/sam/admin": () => json({}, 500) });
+        const wrapper = await openPage();
+
+        await button(wrapper, "Make sam an admin").trigger("click");
+        await flushPromises();
+
+        expect(wrapper.get(".notice[role=alert]").text()).toBe(
+          "Couldn't make sam an admin. Try again.",
+        );
+      });
+    });
+  });
+});
+
+describe("Accounts page icons", () => {
+  it("gives the admin actions shield icons, unlike Disable's", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(json({ accounts: [account("pat", { admin: true }), account("sam")] })),
+    );
+    useLocalSignIn();
+    const wrapper = await openPage();
+    const iconOf = (name: string) =>
+      wrapper.get(`button[aria-label="${name}"] svg`).attributes("data-icon");
+
+    expect([iconOf("Make sam an admin"), iconOf("Remove pat's admin role")]).toEqual([
+      "user-shield",
+      "shield-halved",
+    ]);
+    expect(iconOf("Disable sam")).toBe("user-slash");
+    vi.unstubAllGlobals();
   });
 });

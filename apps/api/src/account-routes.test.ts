@@ -107,6 +107,37 @@ describe("changing an account through the account routes", () => {
     expect(accounts().find((account) => account.username === "pat")?.enabled).toBe(true);
   });
 
+  it("refuses a non-admin making anyone an admin, themselves included, with 403", async () => {
+    const { api, accounts } = setUp();
+    const before = accounts();
+
+    for (const target of ["sam", "pat"]) {
+      const res = await api(
+        request("PUT", `/api/accounts/${target}/admin`, "sam", "[]", { admin: true }),
+      );
+
+      expect(res.statusCode).toBe(403);
+    }
+    expect(accounts()).toEqual(before);
+  });
+
+  it("won't let the only admin remove their admin role or disable themselves", async () => {
+    const { api, accounts } = setUp();
+
+    const demote = await api(
+      request("PUT", "/api/accounts/pat/admin", "pat", "[admin]", { admin: false }),
+    );
+    const disable = await api(
+      request("PUT", "/api/accounts/pat/enabled", "pat", "[admin]", { enabled: false }),
+    );
+
+    expect([demote.statusCode, disable.statusCode]).toEqual([409, 409]);
+    expect(accounts().find((account) => account.username === "pat")).toMatchObject({
+      admin: true,
+      enabled: true,
+    });
+  });
+
   it("lets an admin disable someone else", async () => {
     const { api, accounts } = setUp();
 

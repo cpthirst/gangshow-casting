@@ -2,7 +2,7 @@
 id: hosting.E4.S3
 title: Make an account an admin, or remove admin
 epic: E4
-status: ready
+status: done
 ---
 
 ## Story
@@ -48,3 +48,4 @@ Then the response is 403
 - AC4 follows from AC3 and E4.S2 AC5: only admins act, and no admin can disable or demote themselves.
 - Two admins demoting or disabling each other at the same moment could still leave none. That's rare, and the repo script (E1.S2, FR14) recovers from it.
 - Out of scope: other roles or per-production permissions.
+- As built: making an account an admin also signs it out everywhere, so both role changes follow one rule and take effect at the next sign-in (chosen at review for consistency).
