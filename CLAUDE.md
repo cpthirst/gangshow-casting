@@ -126,7 +126,7 @@ Hooks in `.claude/settings.json` enforce the rules above; their logic lives in `
 - **After** an edit (`post-edit.ts`): Biome-fixes the file, then typechecks its package. Treat its output as your next task.
 - **On stop** (`stop-gate.ts`): runs `pnpm check`; you can't finish while it's red.
 - **On commit**: Lefthook runs Biome on staged files and commitlint on the message.
-- **On push**: Lefthook blocks any push to `main` (`.lefthook/pre-push/protect-main.sh`), then runs `pnpm check`. This stands in for GitHub branch protection, which the free plan doesn't enforce on private repos.
+- **On push**: Lefthook blocks any push to `main` (`.lefthook/pre-push/protect-main.sh`), then runs `pnpm check`. GitHub itself also protects `main` (the repo is public, so a ruleset is free): changes need a PR, the four CI checks (`check`, `browser`, `database`, `commitlint`) must pass, merges are squash-only, and no force-push or deletion. Admins can bypass on a PR, which the release-please PR needs: GitHub never starts CI for a PR made with `GITHUB_TOKEN`, so its checks never report.
 
 If a hook blocks you, fix the cause; don't work around it. If you think the hook is wrong, tell the user.
 
