@@ -1,6 +1,8 @@
 // `pnpm release`: merges the release-please pull request, waits for its tag, then deploys
 // that tag from here with your own AWS profile, as docs/guides/hosting.md section 4 does by
-// hand. `pnpm release v0.1.0` deploys a version without merging anything, to redeploy or go
+// hand. It merges with your admin bypass of the ruleset on main, as a release PR never gets
+// the CI checks the ruleset requires (GitHub starts none for a PR made with GITHUB_TOKEN).
+// `pnpm release v0.1.0` deploys a version without merging anything, to redeploy or go
 // back. It asks before it merges and before it deploys, and it won't deploy a diff that would
 // replace the table or the user pool. For the maintainer only: it uses your real AWS account.
 // Every step that matters stops the release if it fails, so it never deploys a different
@@ -172,13 +174,17 @@ async function releaseFrom(requested: string | undefined, account: string, deps:
       print("To redeploy a version, or go back to one, give it: pnpm release v0.1.0");
       return 0;
     }
-    if (!(await ask(`Merge "${pr.title}" (#${pr.number}, by ${pr.author.login}) and deploy it?`)))
+    if (
+      !(await ask(
+        `Merge "${pr.title}" (#${pr.number}, by ${pr.author.login}) with your admin bypass, and deploy it?`,
+      ))
+    )
       return 0;
     if (
       !(await succeeds(
         deps,
         "gh",
-        ["pr", "merge", String(pr.number), "--squash"],
+        ["pr", "merge", String(pr.number), "--squash", "--admin"],
         "The merge failed, so nothing was merged or deployed.",
       ))
     )
