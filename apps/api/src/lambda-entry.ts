@@ -1,8 +1,8 @@
 // The hosted functions' shared Lambda entry (ADR 0017): API Gateway has already refused
 // anyone not signed in (ADR 0018), so this finds the route's handler, as dev-server.ts
-// does, and keeps admin-only routes for admins.
+// does, keeps changes from read-only members (ADR 0020) and admin-only routes for admins.
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
-import { adminOnlyRefusal, groupsFrom } from "./admin-only.ts";
+import { groupsFrom, roleRefusal } from "./admin-only.ts";
 import type { ApiEvent, Handler } from "./handler.ts";
 import { matchRoute } from "./match-route.ts";
 
@@ -34,7 +34,7 @@ async function respond(
   const route = matchRoute(table, event.requestContext.http.method, event.rawPath);
   if (!route) return { statusCode: 404 };
   const groups = groupsFrom(event.requestContext.authorizer?.jwt?.claims?.["cognito:groups"]);
-  const refused = adminOnlyRefusal(route.key, groups);
+  const refused = roleRefusal(route.key, groups);
   if (refused) return refused;
   // API Gateway base64-encodes bodies it doesn't take for text; handlers expect the text.
   const decoded =

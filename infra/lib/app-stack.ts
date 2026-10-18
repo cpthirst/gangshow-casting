@@ -1,5 +1,11 @@
 import { fileURLToPath } from "node:url";
-import { ADMIN_GROUP, isAccountRoute, routeKeys } from "@app/shared";
+import {
+  ADMIN_GROUP,
+  CASTING_GROUP,
+  isAccountRoute,
+  READ_ONLY_GROUP,
+  routeKeys,
+} from "@app/shared";
 import { CfnOutput, Duration, RemovalPolicy, Stack, type StackProps } from "aws-cdk-lib";
 import { AccessLogFormat } from "aws-cdk-lib/aws-apigateway";
 import {
@@ -136,6 +142,9 @@ export class AppStack extends Stack {
     });
     // Admins manage accounts, delete cast members and save running orders (ADR 0018).
     userPool.addGroup("AdminGroup", { groupName: ADMIN_GROUP });
+    // The other team roles (ADR 0020). An account in neither, nor admin, may only read.
+    userPool.addGroup("CastingGroup", { groupName: CASTING_GROUP });
+    userPool.addGroup("ReadOnlyGroup", { groupName: READ_ONLY_GROUP });
 
     // The API's handlers, one function per group (ADR 0017), with a month of logs each.
     const nodeFunction = (id: string, entry: string, environment: Record<string, string>) =>

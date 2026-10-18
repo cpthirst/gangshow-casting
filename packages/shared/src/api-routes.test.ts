@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { accountRouteKeys, adminOnlyRouteKeys, isAccountRoute, routeKeys } from "./api-routes.ts";
+import {
+  accountRouteKeys,
+  adminOnlyRouteKeys,
+  isAccountRoute,
+  isReadRoute,
+  roleFrom,
+  routeKeys,
+} from "./api-routes.ts";
 
 describe("adminOnlyRouteKeys", () => {
   it("keeps managing accounts, deleting a cast member, saving a running-order version and exporting the casting grid for admins", () => {
@@ -37,5 +44,36 @@ describe("isAccountRoute", () => {
     expect(isAccountRoute("POST /api/accounts")).toBe(true);
     expect(isAccountRoute("GET /api/health")).toBe(false);
     expect(isAccountRoute("$default")).toBe(false);
+  });
+});
+
+describe("roleFrom", () => {
+  it.each([
+    [["admin"], "admin"],
+    [["casting"], "casting"],
+    [["read-only"], "read-only"],
+    [["casting", "admin"], "admin"],
+    // An explicit read-only group wins, so a mistaken extra group can't widen access.
+    [["read-only", "casting"], "read-only"],
+    [["admin", "read-only"], "read-only"],
+  ])("gives %j the %s role", (groups, role) => {
+    expect(roleFrom(groups)).toBe(role);
+  });
+
+  it.each([[[]], [["crew"]], [["Admin"]], [["superadmin"]]])(
+    "treats %j, which names no role, as read-only",
+    (groups) => {
+      expect(roleFrom(groups)).toBe("read-only");
+    },
+  );
+});
+
+describe("isReadRoute", () => {
+  it("counts only GET routes as reads", () => {
+    expect(routeKeys.filter(isReadRoute)).toEqual(
+      routeKeys.filter((key) => key.startsWith("GET ")),
+    );
+    expect(isReadRoute("PUT /api/productions/{productionId}/cast/{castId}")).toBe(false);
+    expect(isReadRoute("POST /api/productions/{productionId}/casting-grid/export")).toBe(false);
   });
 });

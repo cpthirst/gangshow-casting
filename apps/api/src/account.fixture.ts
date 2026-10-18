@@ -3,10 +3,19 @@ import { memoryUserDirectory } from "./user-directory.ts";
 // Made-up usernames only (CLAUDE.md safeguarding).
 export const anAccount = (
   username: string,
-  flags: { admin?: boolean; enabled?: boolean; password?: string } = {},
+  flags: {
+    admin?: boolean;
+    casting?: boolean;
+    readOnly?: boolean;
+    enabled?: boolean;
+    password?: string;
+  } = {},
 ) => ({
   username,
   admin: flags.admin ?? false,
+  // In no role group unless asked, like every non-admin before team roles (ADR 0020).
+  casting: flags.casting ?? false,
+  readOnly: flags.readOnly ?? false,
   enabled: flags.enabled ?? true,
   password: flags.password ?? "Made-up-own-1",
   passwordKind: "permanent" as const,

@@ -71,6 +71,14 @@ describe("the Cognito user directory", () => {
     ]);
   });
 
+  it("makes a new account a Casting Team Member", async () => {
+    await directory().create("pat", "Made-up-1");
+
+    expect(inputsOf(AdminAddUserToGroupCommand)).toEqual([
+      { UserPoolId: POOL, Username: "pat", GroupName: "casting" },
+    ]);
+  });
+
   it("refuses a username the pool already has, ignoring case", async () => {
     cognito
       .on(AdminCreateUserCommand)
@@ -120,12 +128,60 @@ describe("the Cognito user directory", () => {
   });
 
   it("makes an account an admin, or not, through the admin group", async () => {
+    cognito.on(AdminListGroupsForUserCommand).resolves({ Groups: [{ GroupName: "casting" }] });
+
     await directory().setAdmin("pat", true);
     await directory().setAdmin("pat", false);
 
     const input = { UserPoolId: POOL, Username: "pat", GroupName: "admin" };
     expect(inputsOf(AdminAddUserToGroupCommand)).toEqual([input]);
     expect(inputsOf(AdminRemoveUserFromGroupCommand)).toEqual([input]);
+  });
+
+  it("makes an account left with no role a Casting Team Member when admin is removed", async () => {
+    cognito.on(AdminListGroupsForUserCommand).resolves({ Groups: [] });
+
+    await directory().setAdmin("pat", false);
+
+    expect(inputsOf(AdminRemoveUserFromGroupCommand)).toEqual([
+      { UserPoolId: POOL, Username: "pat", GroupName: "admin" },
+    ]);
+    expect(inputsOf(AdminAddUserToGroupCommand)).toEqual([
+      { UserPoolId: POOL, Username: "pat", GroupName: "casting" },
+    ]);
+  });
+
+  it("never promotes a read-only account when admin is removed from it", async () => {
+    cognito.on(AdminListGroupsForUserCommand).resolves({ Groups: [{ GroupName: "read-only" }] });
+
+    await directory().setAdmin("jo", false);
+
+    expect(inputsOf(AdminAddUserToGroupCommand)).toEqual([]);
+  });
+
+  it("lists the accounts in no role group, page by page", async () => {
+    cognito
+      .on(ListUsersCommand, { UserPoolId: POOL })
+      .resolves({ Users: [{ Username: "sam" }, { Username: "pat" }], PaginationToken: "next" })
+      .on(ListUsersCommand, { UserPoolId: POOL, PaginationToken: "next" })
+      .resolves({ Users: [{ Username: "kit" }, { Username: "jo" }, { Username: "lee" }] });
+    cognito
+      .on(ListUsersInGroupCommand, { UserPoolId: POOL, GroupName: "admin" })
+      .resolves({ Users: [{ Username: "pat" }] })
+      .on(ListUsersInGroupCommand, { UserPoolId: POOL, GroupName: "casting" })
+      .resolves({ Users: [{ Username: "kit" }] })
+      .on(ListUsersInGroupCommand, { UserPoolId: POOL, GroupName: "read-only" })
+      .resolves({ Users: [{ Username: "jo" }] });
+
+    expect(await directory().withoutRole()).toEqual(["sam", "lee"]);
+  });
+
+  it("makes an account a Casting Team Member through the casting group", async () => {
+    await directory().joinCasting("sam");
+
+    expect(inputsOf(AdminAddUserToGroupCommand)).toEqual([
+      { UserPoolId: POOL, Username: "sam", GroupName: "casting" },
+    ]);
   });
 
   it("signs an account out everywhere", async () => {

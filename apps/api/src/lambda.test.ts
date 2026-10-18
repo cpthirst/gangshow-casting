@@ -1,5 +1,12 @@
-import { CastList, HealthResponse, ItemNoteList } from "@app/shared";
-import { describe, expect, it } from "vitest";
+import {
+  adminOnlyRouteKeys,
+  CastList,
+  HealthResponse,
+  ItemNoteList,
+  isReadRoute,
+  routeKeys,
+} from "@app/shared";
+import { describe, expect, it, vi } from "vitest";
 import { aCastList, aCastMember } from "./cast.fixture.ts";
 import { inMemoryCastStore } from "./cast-store.ts";
 import type { Handler } from "./handler.ts";
@@ -12,10 +19,14 @@ import { createRoutes } from "./routes.ts";
 import { aRunningOrder, itemId } from "./running-order.fixture.ts";
 import { inMemoryRunningOrderStore } from "./running-order-store.ts";
 
-// The parts of an API Gateway HTTP API (payload v2) event that the entry point reads.
-const request = (method: string, rawPath: string, extra = {}) => ({
+// The parts of an API Gateway HTTP API (payload v2) event that the entry point reads, signed
+// in as a Casting Team Member unless a test says otherwise.
+const request = (method: string, rawPath: string, extra = {}, groups = "[casting]") => ({
   rawPath,
-  requestContext: { http: { method } },
+  requestContext: {
+    http: { method },
+    authorizer: { jwt: { claims: { sub: "made-up", "cognito:groups": groups } } },
+  },
   ...extra,
 });
 
@@ -161,7 +172,7 @@ describe("Lambda entry point", () => {
     it("refuses a non-admin's delete of a cast member, saying only admins can", async () => {
       const { api, cast } = setUp();
 
-      for (const groups of [undefined, "[]", "[crew]", "[superadmin]", "[crew,admin]"]) {
+      for (const groups of ["[casting]", "[crew casting]"]) {
         const res = await api(deleteAlex(groups));
 
         expect(res.statusCode).toBe(403);
@@ -184,7 +195,7 @@ describe("Lambda entry point", () => {
 
       for (const change of [removeAll, addEncore]) {
         const res = await api(
-          signedIn("POST", "/api/productions/2027/running-order/versions", "[crew]", {
+          signedIn("POST", "/api/productions/2027/running-order/versions", "[casting]", {
             body: JSON.stringify({ baseVersion: 4, change }),
           }),
         );
@@ -197,7 +208,7 @@ describe("Lambda entry point", () => {
     it("refuses a non-admin's new running-order version, keeping the latest", async () => {
       const { api, runningOrders } = setUp();
 
-      const res = await api(saveVersion("[crew]"));
+      const res = await api(saveVersion("[casting]"));
 
       expect(res.statusCode).toBe(403);
       expect((await runningOrders.latest("2027"))?.version).toBe(4);
@@ -214,7 +225,7 @@ describe("Lambda entry point", () => {
     it("refuses a non-admin's casting grid export, returning no file", async () => {
       const { api } = setUp();
 
-      for (const groups of [undefined, "[]", "[crew]", "[superadmin]"]) {
+      for (const groups of ["[casting]", "[crew casting]"]) {
         const res = await api(exportGrid(groups));
 
         expect(res.statusCode).toBe(403);
@@ -251,11 +262,11 @@ describe("Lambda entry point", () => {
       expect((await runningOrders.latest("2027"))?.version).toBe(5);
     });
 
-    it("lets a non-admin make every other change, such as adding a cast member", async () => {
+    it("lets a Casting Team Member make every other change, such as adding a cast member", async () => {
       const { api, cast } = setUp();
 
       const res = await api(
-        signedIn("POST", "/api/productions/2027/cast", "[crew]", {
+        signedIn("POST", "/api/productions/2027/cast", "[casting]", {
           body: JSON.stringify({ firstName: "Jo", lastName: "Sample", section: null, group: "" }),
         }),
       );
@@ -264,6 +275,178 @@ describe("Lambda entry point", () => {
       expect((await cast.list("2027"))?.members).toContainEqual(
         expect.objectContaining({ firstName: "Jo", lastName: "Sample" }),
       );
+    });
+  });
+
+  describe("read-only members (ADR 0020)", () => {
+    const READ_ONLY = { message: "You have read-only access." };
+    const setUp = () => {
+      const cast = inMemoryCastStore([aCastList([aCastMember(1)])]);
+      const roles = inMemoryRoleStore();
+      const itemNotes = inMemoryItemNoteStore();
+      const runningOrders = inMemoryRunningOrderStore([
+        aRunningOrder(4, { first: ["Pirate Sketch"] }),
+      ]);
+      const api = lambdaEntry(
+        createRoutes({
+          cast,
+          roles,
+          runningOrders,
+          itemNotes,
+          removeCastMember: uncastThenRemove(cast, roles),
+        }),
+      );
+      return { api, cast, roles, itemNotes, runningOrders };
+    };
+    const asReadOnly = (method: string, rawPath: string, body?: unknown) =>
+      request(
+        method,
+        rawPath,
+        body === undefined ? {} : { body: JSON.stringify(body) },
+        "[read-only]",
+      );
+    const pirate = itemId("Pirate Sketch");
+
+    it("lets a read-only member read the running order, cast, roles and item notes", async () => {
+      const { api } = setUp();
+      await api(
+        request("PUT", `/api/productions/2027/items/${pirate}/notes`, {
+          body: JSON.stringify({ revision: 0, text: "Hat change" }),
+        }),
+      );
+
+      for (const path of ["running-order", "cast", "roles", "item-notes"]) {
+        const asReader = await api(asReadOnly("GET", `/api/productions/2027/${path}`));
+        const asCasting = await api(request("GET", `/api/productions/2027/${path}`));
+
+        expect(asReader.statusCode, path).toBe(200);
+        expect(asReader.body, path).toEqual(asCasting.body);
+      }
+    });
+
+    it("lets a Casting Team Member save item notes and add a role", async () => {
+      const { api, roles, itemNotes } = setUp();
+
+      const notes = await api(
+        request("PUT", `/api/productions/2027/items/${pirate}/notes`, {
+          body: JSON.stringify({ revision: 0, text: "Hat change" }),
+        }),
+      );
+      const role = await api(
+        request("POST", `/api/productions/2027/items/${pirate}/roles`, {
+          body: JSON.stringify({ name: "Captain", size: "lead", castMemberIds: [] }),
+        }),
+      );
+
+      expect([notes.statusCode, role.statusCode]).toEqual([200, 201]);
+      expect((await itemNotes.list("2027")).notes[0]?.text).toBe("Hat change");
+      expect((await roles.list("2027")).roles.map((r) => r.name)).toEqual(["Captain"]);
+    });
+
+    it("refuses a read-only member's changes, saying why and changing nothing", async () => {
+      const { api, cast, roles, itemNotes, runningOrders } = setUp();
+      const changes = [
+        asReadOnly("POST", "/api/productions/2027/cast", {
+          firstName: "Jo",
+          lastName: "Sample",
+          section: null,
+          group: "",
+        }),
+        asReadOnly("PUT", `/api/productions/2027/items/${pirate}/notes`, {
+          revision: 0,
+          text: "x",
+        }),
+        asReadOnly("POST", `/api/productions/2027/items/${pirate}/roles`, {
+          name: "Captain",
+          size: "lead",
+          castMemberIds: [],
+        }),
+        asReadOnly("POST", "/api/productions/2027/running-order/versions", {
+          baseVersion: 4,
+          change: {
+            type: "update",
+            halves: aRunningOrder(4, { first: ["Pirate Sketch"] }).halves.map(({ id, items }) => ({
+              id,
+              items,
+            })),
+          },
+        }),
+      ];
+
+      for (const change of changes) {
+        const res = await api(change);
+
+        expect(res.statusCode).toBe(403);
+        expect(JSON.parse(res.body ?? "")).toEqual(READ_ONLY);
+      }
+      expect((await cast.list("2027"))?.members).toHaveLength(1);
+      expect((await itemNotes.list("2027")).notes).toEqual([]);
+      expect((await roles.list("2027")).roles).toEqual([]);
+      expect((await runningOrders.latest("2027"))?.version).toBe(4);
+    });
+
+    it("refuses every route that isn't a read before its handler runs, and lets every read through", async () => {
+      const handler = vi.fn(async () => ({ statusCode: 200 }));
+      const api = lambdaEntry(Object.fromEntries(routeKeys.map((key) => [key, handler])));
+
+      for (const key of routeKeys) {
+        handler.mockClear();
+        const [method = "", path = ""] = key.split(" ");
+        const res = await api(asReadOnly(method, path.replaceAll(/\{\w+\}/g, "x")));
+
+        if (isReadRoute(key) && !adminOnlyRouteKeys.includes(key)) {
+          expect(handler, key).toHaveBeenCalledOnce();
+        } else if (isReadRoute(key)) {
+          // Listing accounts is a read, but still admins' only.
+          expect(JSON.parse(res.body ?? ""), key).toEqual({ message: "Only admins can do this." });
+        } else {
+          expect(res.statusCode, key).toBe(403);
+          expect(handler, key).not.toHaveBeenCalled();
+        }
+      }
+    });
+
+    it.each([undefined, "[]", "[crew]", "[superadmin]", "[Casting]", "[crew,casting]"])(
+      "treats an account whose groups are %s as read-only",
+      async (groups) => {
+        const { api, cast } = setUp();
+        const event = {
+          rawPath: "/api/productions/2027/cast",
+          requestContext: {
+            http: { method: "POST" },
+            authorizer: {
+              jwt: { claims: { sub: "made-up", ...(groups ? { "cognito:groups": groups } : {}) } },
+            },
+          },
+          body: JSON.stringify({ firstName: "Jo", lastName: "Sample", section: null, group: "" }),
+        };
+
+        const res = await api(event);
+
+        expect(res.statusCode).toBe(403);
+        expect(JSON.parse(res.body ?? "")).toEqual(READ_ONLY);
+        expect((await cast.list("2027"))?.members).toHaveLength(1);
+      },
+    );
+
+    it("lets an admin make changes, admin-only ones included", async () => {
+      const { api, cast } = setUp();
+      const admin = (method: string, rawPath: string, extra = {}) =>
+        request(method, rawPath, extra, "[admin]");
+
+      const added = await api(
+        admin("POST", "/api/productions/2027/cast", {
+          body: JSON.stringify({ firstName: "Jo", lastName: "Sample", section: null, group: "" }),
+        }),
+      );
+      const deleted = await api(
+        admin("DELETE", "/api/productions/2027/cast/1", {
+          queryStringParameters: { revision: "1" },
+        }),
+      );
+
+      expect([added.statusCode, deleted.statusCode]).toEqual([201, 204]);
+      expect((await cast.list("2027"))?.members.map((m) => m.firstName)).toEqual(["Jo"]);
     });
   });
 });

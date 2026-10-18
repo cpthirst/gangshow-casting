@@ -197,6 +197,18 @@ describe("AppStack", () => {
       });
     });
 
+    it("has a group for each of the other team roles (ADR 0020)", () => {
+      const { template } = synth();
+
+      for (const groupName of ["casting", "read-only"]) {
+        template.hasResourceProperties("AWS::Cognito::UserPoolGroup", {
+          GroupName: groupName,
+          UserPoolId: { Ref: Match.stringLikeRegexp("UserPool") },
+        });
+      }
+      template.resourceCountIs("AWS::Cognito::UserPoolGroup", 3);
+    });
+
     it("gives the post-deploy check a client that only takes sign-ins made with AWS credentials", () => {
       const { template } = synth();
 

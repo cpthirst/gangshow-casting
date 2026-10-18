@@ -29,6 +29,28 @@ export type RouteKey = (typeof routeKeys)[number];
 
 /** The user pool's admin group (infra/lib/app-stack.ts), named in a token's cognito:groups. */
 export const ADMIN_GROUP = "admin";
+/** The user pool's group for Casting Team Members, who may change casting (ADR 0020). */
+export const CASTING_GROUP = "casting";
+/** The user pool's group for Read-Only Team Members, who may only read (ADR 0020). */
+export const READ_ONLY_GROUP = "read-only";
+
+/** What a signed-in team member may do (team-roles FR1). */
+export type TeamRole = "admin" | "casting" | "read-only";
+
+/**
+ * A token's groups as a role. An explicit read-only group always wins, so a mistaken extra
+ * group can't widen access; then admin, then casting. Anything else, no group included, is
+ * read-only, so a lost or unknown group never grants a change (ADR 0020).
+ */
+export function roleFrom(groups: readonly string[]): TeamRole {
+  if (groups.includes(READ_ONLY_GROUP)) return "read-only";
+  if (groups.includes(ADMIN_GROUP)) return "admin";
+  if (groups.includes(CASTING_GROUP)) return "casting";
+  return "read-only";
+}
+
+/** Reads change nothing, so every role may use them; every other route is a change. */
+export const isReadRoute = (key: string) => key.startsWith("GET ");
 
 /**
  * Routes only admins may use: permanent or show-wide changes (hosting FR9). The API refuses
