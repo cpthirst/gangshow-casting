@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/cpthirst/gangshow-casting/compare/v1.0.0...v1.1.0) (2026-10-18)
+
+
+### Features
+
+* **web:** add and remove items (running-order.E3.S2) ([#66](https://github.com/cpthirst/gangshow-casting/issues/66)) ([3aa4c6a](https://github.com/cpthirst/gangshow-casting/commit/3aa4c6aca4f92598b38343c0d59e119926498303))
+
 ## 1.0.0 (2026-10-18)
 
 
