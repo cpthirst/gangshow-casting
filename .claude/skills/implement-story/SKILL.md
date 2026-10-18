@@ -7,6 +7,8 @@ description: Implement a ready user story test-first, turning each acceptance cr
 
 Input: a story file in `docs/product/<feature>/stories/`. Done means: every AC has a passing test, `pnpm check` is green, and the story is marked `done`.
 
+**Documentation stories** (ACs met by writing docs, not code; see CLAUDE.md) take a short path: branch, mark `in-progress`, write the docs, run `pnpm check`, then close out and commit (steps 8–9). Skip test planning, Red/Green and the review loop.
+
 ## Steps
 
 1. **Pick the story.** If asked for "the next one", take the first `ready` story in `story-map.md` order whose dependencies are `done`. If the story is `draft`, refine it with the `write-story` skill first, and get the user's agreement.
@@ -19,7 +21,7 @@ Input: a story file in `docs/product/<feature>/stories/`. Done means: every AC h
    3. **Refactor** with all tests green.
 6. **Gate.** Run `pnpm check` and get it green.
 7. **Review.** Run the review loop in CLAUDE.md. `test-auditor` always runs for a story; give it the story path. Keep the non-blocking findings for the PR. If `ux-reviewer` ran, ask the user what to do with its findings (CLAUDE.md, review loop step 5). If the story adds a page or form the browser layout tests don't walk, ask whether to add one.
-8. **Close out.** Set `status: done` in the story and the story map, then run `pnpm lint:docs` (it checks the story's structure).
+8. **Close out.** Set `status: done` in the story and the story map.
 9. **Commit**: `feat(<package>): <story title> (<story id>)`. Offer the `open-pr` skill, passing along the review notes.
 
 ## When reality disagrees with the story

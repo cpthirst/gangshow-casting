@@ -1,11 +1,20 @@
 import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { parseFrontmatter } from "./validate-docs.ts";
+
+/** The flat `key: value` lines of a file's frontmatter. */
+function frontmatter(text: string): Record<string, string> {
+  const block = /^---\n([\s\S]*?)\n---/.exec(text)?.[1] ?? "";
+  const data: Record<string, string> = {};
+  for (const line of block.split("\n")) {
+    const kv = /^(\w[\w-]*):\s*(.*)$/.exec(line);
+    if (kv?.[1]) data[kv[1]] = (kv[2] ?? "").trim();
+  }
+  return data;
+}
 
 const claudeDir = new URL("../../.claude/", import.meta.url);
-const read = (path: string) =>
-  parseFrontmatter(readFileSync(new URL(path, claudeDir), "utf8")).data;
+const read = (path: string) => frontmatter(readFileSync(new URL(path, claudeDir), "utf8"));
 
 const agents = readdirSync(new URL("agents/", claudeDir)).filter((f) => f.endsWith(".md"));
 const skills = readdirSync(new URL("skills/", claudeDir), { withFileTypes: true })

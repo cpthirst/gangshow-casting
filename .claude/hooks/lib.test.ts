@@ -7,7 +7,7 @@ describe("typecheckFor", () => {
     ["apps/api/src/health.ts", ["--filter", "api", "typecheck"]],
     ["infra/lib/app-stack.ts", ["--filter", "infra", "typecheck"]],
     ["packages/shared/src/health.ts", ["--filter", "@app/shared", "typecheck"]],
-    ["tooling/src/validate-docs.ts", ["--filter", "tooling", "typecheck"]],
+    ["tooling/src/demo.ts", ["--filter", "tooling", "typecheck"]],
     [".claude/hooks/guard.ts", ["typecheck:harness"]],
   ])("%s → pnpm %j", (path, args) => {
     expect(typecheckFor(path)).toEqual(args);

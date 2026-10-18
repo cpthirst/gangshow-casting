@@ -22,5 +22,5 @@
 ## Checklist
 
 - [ ] `pnpm check` is green
-- [ ] Under ~400 changed lines (excluding the lockfile), or the split is explained
+- [ ] Under ~400 changed lines (excluding the lockfile and `.md` files), or the split is explained
 - [ ] No secrets, no skipped tests

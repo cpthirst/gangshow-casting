@@ -22,7 +22,6 @@ pnpm dev                         # web (vite :5173) + api (:3000) on the real re
 pnpm check                       # lint + typecheck + test + cdk synth — the definition of done
 pnpm demo                        # the app on a made-up demo show (:5190), fresh each start; see tooling/demo
 pnpm format                      # biome autofix (format + lint + import order)
-pnpm lint:docs                   # validate story structure (part of check)
 pnpm test:e2e                    # browser layout tests at phone widths (CI job, not in check)
 pnpm test:dynamo                 # API database tests against DynamoDB Local on :8000 (CI job, not in check; ADR 0016)
 ALERT_EMAIL=… AWS_PROFILE=… pnpm infra:deploy   # deploy the stack (ask first); `infra:diff` previews. Never `pnpm deploy`: pnpm's own command
@@ -40,7 +39,7 @@ pnpm --filter <pkg> exec vitest run <file> -t "<name>"   # one test
 | `apps/api` | Lambda-shaped handlers, no framework | One handler per route, listed in `routes.ts`; `dev-server.ts` (node:http) runs them locally (ADR 0006) |
 | `packages/shared` | zod schemas + inferred types | The API contract. Imported from source, no build step |
 | `infra` | CDK v2 app, one `AppStack` | Run directly by Node (`cdk.json`); add resources as stories need them |
-| `tooling` | Repo scripts | `validate-docs.ts` checks product docs |
+| `tooling` | Repo scripts | `demo.ts` runs `pnpm demo`; harness tests |
 | `docs/product/<feature>` | PRD, story map, stories | Written by the planning skills; see `docs/product/README.md` |
 | `docs/adr` | Architecture decisions | Read before changing anything an ADR covers |
 
@@ -53,6 +52,7 @@ pnpm --filter <pkg> exec vitest run <file> -t "<name>"   # one test
 
 Rules:
 - No production code without a test that exercised it first. Bug fixes start with a test that reproduces the bug.
+- **Documentation stories skip TDD.** A documentation story is one whose ACs are met by writing or changing docs (guides, README, ADRs, product docs) rather than app, API, infra or harness code. Write the docs, run the gate, done: no tests per AC, no Red/Green.
 - Name tests after the behaviour they check (`it("returns 404 for unknown routes")`), never after stories or tickets.
 - Changing or deleting a test is fine when the behaviour or design changes; say why in the commit. Never change a test only to make it pass, and never commit `.skip`/`.only` (the guard blocks them).
 - Test behaviour through public interfaces: call handlers directly (and the dev server over HTTP) for the API, `mount()` for components, `Template.fromStack()` assertions for infra.
@@ -68,15 +68,15 @@ Playwright walks each page and its forms at 320px and 360px, checking nothing sc
 ## Skills (`.claude/skills/`)
 
 Delivery chain: **write-prd → story-map → write-story → implement-story → open-pr**, plus **adr** for decisions.
-New feature work starts from a story with Given/When/Then ACs. If there isn't one, offer the chain rather than coding from a vague request. Every AC needs at least one test: `test-auditor` checks the mapping at review, and the PR lists which test covers each AC.
+New feature work starts from a story with Given/When/Then ACs. If there isn't one, offer the chain rather than coding from a vague request. Every AC needs at least one test, except in a documentation story (see Workflow): `test-auditor` checks the mapping at review, and the PR lists which test covers each AC.
 
 **batch-stories** (`/batch-stories on <feature>` / `off` / `status`) is a user-only toggle. It temporarily lets you build one feature's stories on one branch, committing and pushing each, with a single PR at the end. Then it restores the harness. Only the user can start it.
 
 ## Review loop (subagents, `.claude/agents/`)
 
-Run after the gate is green, before a story is `done` or a PR is opened. Launch the relevant reviewers **in parallel**, passing the story path if there is one.
+Run after the gate is green, before a story is `done` or a PR is opened. **Skip it entirely** for a documentation story (see Workflow), or any change whose diff touches only `*.md` files: no reviewers run. Launch the relevant reviewers **in parallel**, passing the story path if there is one.
 
-**Hand each reviewer the change**, so they don't each fetch it again. Run `git diff main...HEAD` (plus `git diff` for uncommitted work) once, and paste it into every reviewer's prompt, with the story path. Give `infra-reviewer` and `ux-reviewer` only the part of the diff in their own area. If `git diff --shortstat main...HEAD` reports over ~1,500 changed lines, paste `git diff --stat main...HEAD` instead, and say which files matter most. Reviewers already have CLAUDE.md, so don't paste it. Skip any reviewer whose row below doesn't match the diff; that's intended.
+**Hand each reviewer the change**, so they don't each fetch it again. Run `git diff main...HEAD` (plus `git diff` for uncommitted work) once, and paste it into every reviewer's prompt, with the story path. Give `infra-reviewer` and `ux-reviewer` only the part of the diff in their own area. If `git diff --shortstat main...HEAD -- . ':!*.md'` reports over ~1,500 changed lines, paste `git diff --stat main...HEAD` instead, and say which files matter most. Reviewers already have CLAUDE.md, so don't paste it. Skip any reviewer whose row below doesn't match the diff; that's intended.
 
 | Reviewer | Run when the diff (`git diff main...HEAD`) touches |
 |---|---|
@@ -104,7 +104,7 @@ Run after the gate is green, before a story is `done` or a PR is opened. Launch 
 ## Git
 
 Trunk-based. `main` is always releasable.
-- Branch per change: `feat/…`, `fix/…`, `chore/…`. Keep PRs small (aim < ~400 changed lines).
+- Branch per change: `feat/…`, `fix/…`, `chore/…`. Keep PRs small (aim < ~400 changed lines, not counting `.md` files or the lockfile).
 - Conventional Commits, enforced by commitlint on every commit and on PR titles: `feat(api): add story endpoint`. Scopes: `web api infra shared tooling harness deps docs release` (see `commitlint.config.js`; `main` is also allowed, but only release-please uses it).
 - **The type decides the version** (release-please, ADR 0004): `fix` → patch, `feat` → minor, `feat!` or a `BREAKING CHANGE:` footer → major. Below 1.0.0, breaking changes bump minor. `chore`/`ci`/`docs`/`test`/`refactor` don't release. Pick the type honestly; don't call a feature a `fix` or hide a breaking change.
 - Commit when the gate is green. Squash-merge PRs: **the PR title becomes the commit on `main`**, so it must be a correct Conventional Commit.
