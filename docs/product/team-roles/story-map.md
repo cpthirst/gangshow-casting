@@ -20,7 +20,7 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [team-roles.E1.S1](stories/E1-S1-read-only-enforced-by-the-api.md) | Walking skeleton: the three roles exist, existing team members become Casting Team Members on deploy, an unknown role fails safe to read-only, and the API refuses every change from a read-only member | FR1, FR2, FR3, FR7 | (none) | ready |
+| [team-roles.E1.S1](stories/E1-S1-read-only-enforced-by-the-api.md) | Walking skeleton: the three roles exist, existing team members become Casting Team Members on deploy, an unknown role fails safe to read-only, and the API refuses every change from a read-only member | FR1, FR2, FR3, FR7 | (none) | done |
 
 ## E2: Read-only pages
 

@@ -5,6 +5,8 @@ import { memoryUserDirectory } from "./user-directory.ts";
 const madeUp = (username: string, admin: boolean, enabled: boolean) => ({
   username,
   admin,
+  casting: !admin,
+  readOnly: false,
   enabled,
   password: "Made-up-local-1",
   passwordKind: "permanent" as const,

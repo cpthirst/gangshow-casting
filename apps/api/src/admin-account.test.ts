@@ -6,6 +6,8 @@ const pat = (changes = {}) => ({
   username: "pat",
   enabled: true,
   admin: true,
+  casting: false,
+  readOnly: false,
   password: "Old-password-9",
   passwordKind: "permanent" as const,
   signedOutEverywhere: 0,
@@ -88,6 +90,8 @@ describe("setUpCheckAccounts", () => {
         username: "check-member",
         enabled: true,
         admin: false,
+        // The post-deploy check's member is a Casting Team Member (ADR 0020).
+        casting: true,
         password: passwords.member,
         passwordKind: "permanent",
       }),
@@ -109,7 +113,12 @@ describe("setUpCheckAccounts", () => {
 
     expect(accounts()).toEqual([
       expect.objectContaining({ enabled: true, admin: true, password: passwords.admin }),
-      expect.objectContaining({ enabled: true, admin: false, password: passwords.member }),
+      expect.objectContaining({
+        enabled: true,
+        admin: false,
+        casting: true,
+        password: passwords.member,
+      }),
     ]);
   });
 });

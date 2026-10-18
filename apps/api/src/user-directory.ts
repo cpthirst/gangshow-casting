@@ -14,18 +14,27 @@ export interface UserDirectory {
   find(username: string): Promise<Account | undefined>;
   list(): Promise<Account[]>;
   /**
-   * A new, enabled, non-admin account that must choose a new password at first sign-in.
+   * A new, enabled Casting Team Member that must choose a new password at first sign-in.
    * Throws UsernameTaken if the username exists in any case.
    */
   create(username: string, temporaryPassword: string): Promise<void>;
   setPassword(username: string, password: string, kind: PasswordKind): Promise<void>;
   setEnabled(username: string, enabled: boolean): Promise<void>;
+  /** Makes the account an admin, or not. One left with no other role becomes a Casting Team
+   *  Member, as non-admins were before team roles; a read-only one stays read-only. */
   setAdmin(username: string, admin: boolean): Promise<void>;
+  /** The usernames of accounts in no role group, which the API treats as read-only (ADR 0020). */
+  withoutRole(): Promise<string[]>;
+  /** Makes the account a Casting Team Member. */
+  joinCasting(username: string): Promise<void>;
   /** Ends every sign-in the account has, on every device. */
   signOutEverywhere(username: string): Promise<void>;
 }
 
 type StoredAccount = Account & {
+  /** In the casting and read-only groups. */
+  casting: boolean;
+  readOnly: boolean;
   password: string;
   passwordKind: PasswordKind;
   signedOutEverywhere: number;
@@ -64,6 +73,8 @@ export function memoryUserDirectory(seed: StoredAccount[] = []) {
         username,
         enabled: true,
         admin: false,
+        casting: true,
+        readOnly: false,
         password: temporaryPassword,
         passwordKind: "temporary",
         signedOutEverywhere: 0,
@@ -76,7 +87,18 @@ export function memoryUserDirectory(seed: StoredAccount[] = []) {
       existing(username).enabled = enabled;
     },
     async setAdmin(username, admin) {
-      existing(username).admin = admin;
+      const account = existing(username);
+      account.admin = admin;
+      // Only an account left with no role becomes casting: read-only stays read-only.
+      if (!admin && !account.readOnly) account.casting = true;
+    },
+    async withoutRole() {
+      return [...stored.values()]
+        .filter((account) => !account.admin && !account.casting && !account.readOnly)
+        .map((account) => account.username);
+    },
+    async joinCasting(username) {
+      existing(username).casting = true;
     },
     async signOutEverywhere(username) {
       existing(username).signedOutEverywhere++;

@@ -7,6 +7,8 @@ import { memoryUserDirectory } from "./user-directory.ts";
 const account = (username: string, flags: { admin?: boolean; enabled?: boolean } = {}) => ({
   username,
   admin: flags.admin ?? false,
+  casting: false,
+  readOnly: false,
   enabled: flags.enabled ?? true,
   password: "Made-up-1",
   passwordKind: "permanent" as const,

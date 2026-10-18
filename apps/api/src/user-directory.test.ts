@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { anAccount } from "./account.fixture.ts";
 import { memoryUserDirectory, UsernameTaken } from "./user-directory.ts";
 
 // The in-memory directory stands in for the user pool locally and in tests, so it must
@@ -35,5 +36,45 @@ describe("the in-memory user directory", () => {
     expect(accounts().map(({ username, enabled }) => ({ username, enabled }))).toEqual([
       { username: "sam", enabled: false },
     ]);
+  });
+
+  it("makes a new account a Casting Team Member, as team members are today", async () => {
+    const { directory, accounts } = memoryUserDirectory();
+
+    await directory.create("sam", "Made-up-1");
+
+    expect(accounts()[0]?.casting).toBe(true);
+    expect(await directory.withoutRole()).toEqual([]);
+  });
+
+  it("keeps an account that loses admin as a Casting Team Member", async () => {
+    const { directory } = memoryUserDirectory([anAccount("pat", { admin: true })]);
+
+    await directory.setAdmin("pat", false);
+
+    expect(await directory.withoutRole()).toEqual([]);
+  });
+
+  it("never promotes a read-only account when admin is removed from it", async () => {
+    const { directory, accounts } = memoryUserDirectory([anAccount("jo", { readOnly: true })]);
+
+    await directory.setAdmin("jo", false);
+
+    expect(accounts()[0]).toMatchObject({ admin: false, casting: false, readOnly: true });
+  });
+
+  it("lists the accounts in no role, and moves one into Casting Team Member", async () => {
+    const { directory, accounts } = memoryUserDirectory([
+      anAccount("pat", { admin: true }),
+      anAccount("sam"),
+      anAccount("kit", { casting: true }),
+      anAccount("jo", { readOnly: true }),
+    ]);
+
+    expect(await directory.withoutRole()).toEqual(["sam"]);
+    await directory.joinCasting("sam");
+
+    expect(await directory.withoutRole()).toEqual([]);
+    expect(accounts().find((account) => account.username === "sam")?.casting).toBe(true);
   });
 });

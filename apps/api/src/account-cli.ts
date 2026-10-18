@@ -1,5 +1,5 @@
 import { Username } from "@app/shared";
-import { restoreAdmin, setUpCheckAccounts } from "./admin-account.ts";
+import { giveEveryoneARole, restoreAdmin, setUpCheckAccounts } from "./admin-account.ts";
 import { cognitoClientFor, cognitoUserDirectory } from "./cognito-user-directory.ts";
 import { generatePassword } from "./password.ts";
 import type { UserDirectory } from "./user-directory.ts";
@@ -15,11 +15,13 @@ const USAGE = [
   "Usage:",
   "  pnpm account admin <username>                            create or restore an admin",
   "  pnpm account check <admin username> <member username>    set up the post-deploy check's accounts",
+  "  pnpm account roles                                       make every account in no role a Casting Team Member",
 ];
 
 /** The usernames the command needs, or the lines saying why they can't be used. */
 function parse(args: string[]) {
   const [command, ...usernames] = args;
+  if (command === "roles") return usernames.length === 0 ? { roles: true } : { problem: USAGE };
   const wanted = command === "admin" ? 1 : command === "check" ? 2 : 0;
   if (!wanted || usernames.length !== wanted) return { problem: USAGE };
   for (const username of usernames) {
@@ -34,8 +36,9 @@ function parse(args: string[]) {
 }
 
 /**
- * Creates or restores an admin account (hosting FR14), or sets up the post-deploy check's
- * accounts, in the user pool named by USER_POOL_ID, with the maintainer's AWS credentials.
+ * Creates or restores an admin account (hosting FR14), sets up the post-deploy check's
+ * accounts, or gives every account a role after team roles' first deploy (ADR 0020), in the
+ * user pool named by USER_POOL_ID, with the maintainer's AWS credentials.
  * Each password is printed once and never written anywhere else. Returns the exit code.
  */
 export async function runAccount(args: string[], env: Env, deps: Deps): Promise<number> {
@@ -72,6 +75,16 @@ export async function runAccount(args: string[], env: Env, deps: Deps): Promise<
       print("Passwords, shown only now, for pnpm check:hosted:");
       print(`  ${admin}: ${passwords.admin}`);
       print(`  ${member}: ${passwords.member}`);
+    } else if (parsed.roles) {
+      const { checked, moved } = await giveEveryoneARole(directory);
+      if (moved.length === 0) {
+        print(`Checked ${checked} accounts. Every one already has a role.`);
+      } else {
+        print(
+          `Checked ${checked} accounts. Made ${moved.length} Casting Team Members: ${moved.join(", ")}.`,
+        );
+        print("They can change casting again once their sign-in renews, within the hour.");
+      }
     }
     return 0;
   } catch (error) {

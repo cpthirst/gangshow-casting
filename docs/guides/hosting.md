@@ -95,6 +95,19 @@ A username is all the app holds about each adult volunteer ([ADR 0018](../adr/00
 
 On the **Accounts** page, any admin can also reset a forgotten password, disable the account of someone who's left, and make an account an admin or remove admin. An admin can't disable their own account or remove their own admin role, so there's always at least one admin.
 
+### Team roles
+
+Every account has a role: Admin, Casting Team Member or Read-Only Team Member. An account the app can't place in one of these may only read ([ADR 0020](../adr/0020-team-roles-as-user-pool-groups.md)). Accounts added in the app are Casting Team Members.
+
+**Once, straight after the first deploy that brings team roles**, give every existing account a role:
+
+```bash
+export AWS_PROFILE=gangshow-admin USER_POOL_ID=<user pool id>
+pnpm account roles
+```
+
+It makes every account that has no role yet a Casting Team Member, and says how many it checked and moved. Until each person's sign-in renews, within the hour, the app refuses their changes with "You have read-only access". Signing out and back in fixes it straight away. It's safe to run again: accounts that already have a role are never touched.
+
 ## 4. Release a new version
 
 Releases come from `main` ([ADR 0004](../adr/0004-versioning-with-release-please.md)). As changes are merged, release-please keeps a pull request open called `chore(main): release <next version>`, listing what's new. When you want to release, either use the shortcut below or follow the steps by hand.

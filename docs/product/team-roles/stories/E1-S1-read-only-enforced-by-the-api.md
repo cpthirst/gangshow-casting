@@ -2,7 +2,7 @@
 id: team-roles.E1.S1
 title: Enforce the three roles in the API
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story
@@ -45,9 +45,9 @@ Then the response is 403 saying "You have read-only access."
 
 ### AC7: Existing team members become Casting Team Members
 Given "sam" is a non-admin team member before this change
-When the maintainer moves existing accounts to their roles from the repository, before the deploy, and then deploys
-Then sam is a Casting Team Member and can still change casting
-And sam is not asked to sign in again
+When the maintainer deploys and then moves existing accounts to their roles from the repository
+Then sam is a Casting Team Member
+And once sam's sign-in renews, within the hour, sam can change casting again without being asked to sign in
 
 ### AC8: Moving accounts is safe to repeat
 Given every non-admin account is already a Casting Team Member
@@ -59,7 +59,8 @@ And it says how many accounts it checked and how many it moved
 
 - FRs: FR1, FR2, FR3, FR7
 - Depends on: none
-- **Needs an ADR** amending ADR 0018: how each role is held, and the fail-safe default (security NFR). It must also cover how existing team members keep casting access through the deploy (AC7). Their current sign-ins must pick up the Casting Team Member role before the deploy starts refusing accounts with no role. One way is moving the accounts before deploying, at least one sign-in lifetime ahead.
+- ADR 0020 (amends ADR 0018): roles are user pool groups (`admin`, `casting`, `read-only`), and no group means read-only. It's one release, with the move run straight after the deploy. Until an existing member's sign-in renews, within an hour, they are read-only; the maintainer accepted this gap (2026-10-18).
+- Accounts created in the app join Casting Team Member, as today, until team-roles.E3.S2 lets admins choose.
 - "A change" means every route that isn't a read (`GET`). Admin-only routes stay admin-only.
 - Local dev, the demo and the browser tests still act as an admin (hosting FR18). Trying other roles locally is team-roles.E5.S2.
 - Out of scope: hiding controls on the pages (E2), and choosing or changing roles in the app (E3). Until E3, a read-only account can only be made from the repository, for testing.
