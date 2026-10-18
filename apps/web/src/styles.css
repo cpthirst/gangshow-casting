@@ -236,6 +236,15 @@ main a {
   cursor: not-allowed;
 }
 
+/* Why someone can't do something here: "You have read-only access", "Only admins can …".
+   The same look on every page, and visible text rather than a tooltip, so it shows on phones. */
+.access-note {
+  margin: 0 0 1rem;
+  padding: 0.25rem 0.75rem;
+  border-left: 4px solid var(--red-darker);
+  font-weight: 700;
+}
+
 /* Text as well as colour, so it doesn't rely on colour alone. */
 .unsaved {
   padding: 0.125rem 0.75rem;
@@ -790,6 +799,10 @@ main a {
 
 .cast-actions {
   margin: 0 0 1rem;
+}
+
+.cast-actions .access-note {
+  margin: 0.75rem 0 0;
 }
 
 .cast-actions button {
