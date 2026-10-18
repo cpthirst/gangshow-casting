@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/cpthirst/gangshow-casting/compare/v1.1.0...v1.2.0) (2026-10-18)
+
+
+### Features
+
+* **api:** enforce the three roles in the API (team-roles.E1.S1) ([#69](https://github.com/cpthirst/gangshow-casting/issues/69)) ([7bca672](https://github.com/cpthirst/gangshow-casting/commit/7bca6727a074f565854f2ad7c890d8d36a332954))
+
 ## [1.1.0](https://github.com/cpthirst/gangshow-casting/compare/v1.0.0...v1.1.0) (2026-10-18)
 
 
