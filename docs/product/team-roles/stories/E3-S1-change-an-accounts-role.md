@@ -2,7 +2,7 @@
 id: team-roles.E3.S1
 title: Change an account's role
 epic: E3
-status: ready
+status: done
 ---
 
 ## Story

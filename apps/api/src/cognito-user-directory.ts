@@ -1,4 +1,4 @@
-import { ADMIN_GROUP, CASTING_GROUP, READ_ONLY_GROUP } from "@app/shared";
+import { ADMIN_GROUP, CASTING_GROUP, READ_ONLY_GROUP, roleFrom, type TeamRole } from "@app/shared";
 import {
   AdminAddUserToGroupCommand,
   AdminCreateUserCommand,
@@ -22,6 +22,13 @@ export function cognitoClientFor(userPoolId: string) {
   const [region = ""] = userPoolId.split("_");
   return new CognitoIdentityProviderClient({ region });
 }
+
+const GROUP_OF: Record<TeamRole, string> = {
+  admin: ADMIN_GROUP,
+  casting: CASTING_GROUP,
+  "read-only": READ_ONLY_GROUP,
+};
+const ROLE_GROUPS = Object.values(GROUP_OF);
 
 /** The team's accounts in the hosted Cognito user pool (ADR 0018). */
 export function cognitoUserDirectory(
@@ -69,18 +76,24 @@ export function cognitoUserDirectory(
         const { Username = username, Enabled } = await cognito.send(
           new AdminGetUserCommand(user(username)),
         );
-        const admin = (await groupsOf(username)).includes(ADMIN_GROUP);
-        return { username: Username, enabled: Enabled === true, admin };
+        const role = roleFrom(await groupsOf(username));
+        return { username: Username, enabled: Enabled === true, role };
       } catch (error) {
         if (error instanceof UserNotFoundException) return undefined;
         throw error;
       }
     },
     async list() {
-      const admins = await membersOf(ADMIN_GROUP);
+      const members = await Promise.all(
+        ROLE_GROUPS.map(async (group) => [group, await membersOf(group)] as const),
+      );
       return (await everyone()).map((account) => ({
         ...account,
-        admin: admins.has(account.username),
+        role: roleFrom(
+          members
+            .filter(([, usernames]) => usernames.has(account.username))
+            .map(([group]) => group),
+        ),
       }));
     },
     async create(username, temporaryPassword) {
@@ -113,20 +126,24 @@ export function cognitoUserDirectory(
       const Command = enabled ? AdminEnableUserCommand : AdminDisableUserCommand;
       await cognito.send(new Command(user(username)));
     },
-    async setAdmin(username, admin) {
-      const Command = admin ? AdminAddUserToGroupCommand : AdminRemoveUserFromGroupCommand;
-      await cognito.send(new Command({ ...user(username), GroupName: ADMIN_GROUP }));
-      if (admin) return;
-      // Left with no role, they'd be read-only (ADR 0020), so they become casting as non-admins
-      // were before team roles. A read-only account stays read-only.
+    async setRole(username, role) {
+      const target = GROUP_OF[role];
       const groups = await groupsOf(username);
-      if (!groups.includes(CASTING_GROUP) && !groups.includes(READ_ONLY_GROUP)) {
-        await joinCasting(username);
+      // Out of the other roles first: in between, no role means read-only, never more (ADR 0020).
+      for (const group of ROLE_GROUPS.filter((g) => g !== target && groups.includes(g))) {
+        await cognito.send(
+          new AdminRemoveUserFromGroupCommand({ ...user(username), GroupName: group }),
+        );
+      }
+      if (!groups.includes(target)) {
+        await cognito.send(
+          new AdminAddUserToGroupCommand({ ...user(username), GroupName: target }),
+        );
       }
     },
     async withoutRole() {
       const withRole = new Set<string>();
-      for (const group of [ADMIN_GROUP, CASTING_GROUP, READ_ONLY_GROUP]) {
+      for (const group of ROLE_GROUPS) {
         for (const username of await membersOf(group)) withRole.add(username);
       }
       return (await everyone())

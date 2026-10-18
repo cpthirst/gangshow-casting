@@ -1,12 +1,13 @@
+import type { TeamRole } from "@app/shared";
 import { createAccountRoutes } from "./account-routes.ts";
 import { memoryUserDirectory } from "./user-directory.ts";
 
-// Made-up accounts (CLAUDE.md safeguarding): an admin, a member and a disabled member.
-const madeUp = (username: string, admin: boolean, enabled: boolean) => ({
+// Made-up accounts (CLAUDE.md safeguarding): one in each role, and a disabled one.
+const madeUp = (username: string, role: TeamRole, enabled: boolean) => ({
   username,
-  admin,
-  casting: !admin,
-  readOnly: false,
+  admin: role === "admin",
+  casting: role === "casting",
+  readOnly: role === "read-only",
   enabled,
   password: "Made-up-local-1",
   passwordKind: "permanent" as const,
@@ -20,8 +21,9 @@ const madeUp = (username: string, admin: boolean, enabled: boolean) => ({
 export const localAccountRoutes = () =>
   createAccountRoutes(
     memoryUserDirectory([
-      madeUp("alex", true, true),
-      madeUp("robin", false, true),
-      madeUp("kit", false, false),
+      madeUp("alex", "admin", true),
+      madeUp("robin", "casting", true),
+      madeUp("sky", "read-only", true),
+      madeUp("kit", "casting", false),
     ]).directory,
   );

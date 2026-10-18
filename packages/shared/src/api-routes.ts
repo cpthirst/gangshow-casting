@@ -1,3 +1,5 @@
+import type { TeamRole } from "./account.ts";
+
 /**
  * Every API route, as "<METHOD> <path>" with {name} path parameters. The API has a handler
  * for each (apps/api/src/routes.ts), and infra hosts exactly these, so a route can't be
@@ -9,7 +11,7 @@ export const routeKeys = [
   "POST /api/accounts",
   "POST /api/accounts/{username}/password",
   "PUT /api/accounts/{username}/enabled",
-  "PUT /api/accounts/{username}/admin",
+  "PUT /api/accounts/{username}/role",
   "GET /api/productions/{productionId}/running-order",
   "POST /api/productions/{productionId}/running-order/versions",
   "GET /api/productions/{productionId}/cast",
@@ -33,9 +35,6 @@ export const ADMIN_GROUP = "admin";
 export const CASTING_GROUP = "casting";
 /** The user pool's group for Read-Only Team Members, who may only read (ADR 0020). */
 export const READ_ONLY_GROUP = "read-only";
-
-/** What a signed-in team member may do (team-roles FR1). */
-export type TeamRole = "admin" | "casting" | "read-only";
 
 /**
  * A token's groups as a role. An explicit read-only group always wins, so a mistaken extra
@@ -61,7 +60,7 @@ export const adminOnlyRouteKeys: readonly RouteKey[] = [
   "POST /api/accounts",
   "POST /api/accounts/{username}/password",
   "PUT /api/accounts/{username}/enabled",
-  "PUT /api/accounts/{username}/admin",
+  "PUT /api/accounts/{username}/role",
   "DELETE /api/productions/{productionId}/cast/{castId}",
   "POST /api/productions/{productionId}/running-order/versions",
   "POST /api/productions/{productionId}/casting-grid/export",
@@ -76,7 +75,7 @@ export const accountRouteKeys = [
   "POST /api/accounts",
   "POST /api/accounts/{username}/password",
   "PUT /api/accounts/{username}/enabled",
-  "PUT /api/accounts/{username}/admin",
+  "PUT /api/accounts/{username}/role",
 ] as const satisfies readonly RouteKey[];
 
 export type AccountRouteKey = (typeof accountRouteKeys)[number];

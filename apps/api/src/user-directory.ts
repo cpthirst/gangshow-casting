@@ -1,5 +1,7 @@
+import { ADMIN_GROUP, CASTING_GROUP, READ_ONLY_GROUP, roleFrom, type TeamRole } from "@app/shared";
+
 /** What the app knows about a team member's account: their username and nothing else (ADR 0018). */
-export type Account = { username: string; enabled: boolean; admin: boolean };
+export type Account = { username: string; enabled: boolean; role: TeamRole };
 
 export type PasswordKind = "temporary" | "permanent";
 
@@ -20,9 +22,8 @@ export interface UserDirectory {
   create(username: string, temporaryPassword: string): Promise<void>;
   setPassword(username: string, password: string, kind: PasswordKind): Promise<void>;
   setEnabled(username: string, enabled: boolean): Promise<void>;
-  /** Makes the account an admin, or not. One left with no other role becomes a Casting Team
-   *  Member, as non-admins were before team roles; a read-only one stays read-only. */
-  setAdmin(username: string, admin: boolean): Promise<void>;
+  /** Puts the account in the role, and out of any other (ADR 0020). */
+  setRole(username: string, role: TeamRole): Promise<void>;
   /** The usernames of accounts in no role group, which the API treats as read-only (ADR 0020). */
   withoutRole(): Promise<string[]>;
   /** Makes the account a Casting Team Member. */
@@ -31,8 +32,9 @@ export interface UserDirectory {
   signOutEverywhere(username: string): Promise<void>;
 }
 
-type StoredAccount = Account & {
-  /** In the casting and read-only groups. */
+type StoredAccount = Omit<Account, "role"> & {
+  /** In the admin, casting and read-only groups. */
+  admin: boolean;
   casting: boolean;
   readOnly: boolean;
   password: string;
@@ -47,6 +49,18 @@ type StoredAccount = Account & {
 export function memoryUserDirectory(seed: StoredAccount[] = []) {
   const key = (username: string) => username.toLowerCase();
   const stored = new Map(seed.map((account) => [key(account.username), { ...account }]));
+  // Through roleFrom, as the API reads a token's groups: read-only wins, and no group is read-only.
+  const summary = ({ username, enabled, ...groups }: StoredAccount): Account => ({
+    username,
+    enabled,
+    role: roleFrom(
+      [
+        groups.admin && ADMIN_GROUP,
+        groups.casting && CASTING_GROUP,
+        groups.readOnly && READ_ONLY_GROUP,
+      ].filter((group) => typeof group === "string"),
+    ),
+  });
   const existing = (username: string) => {
     const account = stored.get(key(username));
     if (!account) throw new Error(`No account named ${username}`);
@@ -56,16 +70,10 @@ export function memoryUserDirectory(seed: StoredAccount[] = []) {
   const directory: UserDirectory = {
     async find(username) {
       const account = stored.get(key(username));
-      return (
-        account && { username: account.username, enabled: account.enabled, admin: account.admin }
-      );
+      return account && summary(account);
     },
     async list() {
-      return [...stored.values()].map(({ username, enabled, admin }) => ({
-        username,
-        enabled,
-        admin,
-      }));
+      return [...stored.values()].map(summary);
     },
     async create(username, temporaryPassword) {
       if (stored.has(key(username))) throw new UsernameTaken(username);
@@ -86,11 +94,12 @@ export function memoryUserDirectory(seed: StoredAccount[] = []) {
     async setEnabled(username, enabled) {
       existing(username).enabled = enabled;
     },
-    async setAdmin(username, admin) {
-      const account = existing(username);
-      account.admin = admin;
-      // Only an account left with no role becomes casting: read-only stays read-only.
-      if (!admin && !account.readOnly) account.casting = true;
+    async setRole(username, role) {
+      Object.assign(existing(username), {
+        admin: role === "admin",
+        casting: role === "casting",
+        readOnly: role === "read-only",
+      });
     },
     async withoutRole() {
       return [...stored.values()]

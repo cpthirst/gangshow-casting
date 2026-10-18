@@ -11,7 +11,7 @@ enableAutoUnmount(afterEach);
 // Made-up usernames only (CLAUDE.md safeguarding).
 const account = (username: string, flags: Partial<AccountSummary> = {}): AccountSummary => ({
   username,
-  admin: false,
+  role: "casting",
   enabled: true,
   ...flags,
 });
@@ -34,10 +34,14 @@ async function openPage() {
 }
 
 type Page = Awaited<ReturnType<typeof openPage>>;
+// A cell with a role choice reads as the chosen role.
 const rows = (wrapper: Page) =>
-  wrapper
-    .findAll("tbody tr")
-    .map((row) => row.findAll("td:not(.actions)").map((cell) => cell.text()));
+  wrapper.findAll("tbody tr").map((row) =>
+    row.findAll("td:not(.actions)").map((cell) => {
+      const choice = cell.find("select");
+      return choice.exists() ? (choice.element.selectedOptions[0]?.text ?? "") : cell.text();
+    }),
+  );
 
 async function create(wrapper: Page, username: string) {
   await wrapper.get("[data-test=add-account]").trigger("click");
@@ -54,8 +58,13 @@ describe("Accounts page", () => {
   beforeEach(useLocalSignIn);
   afterEach(() => vi.unstubAllGlobals());
 
-  it("lists every account alphabetically, showing which are admins and which are disabled", async () => {
-    serve([account("pat", { admin: true }), account("sam"), account("lee", { enabled: false })]);
+  it("lists every account alphabetically, showing each one's role and which are disabled", async () => {
+    serve([
+      account("pat", { role: "admin" }),
+      account("sam"),
+      account("jo", { role: "read-only" }),
+      account("lee", { enabled: false }),
+    ]);
 
     const wrapper = await openPage();
 
@@ -65,14 +74,30 @@ describe("Accounts page", () => {
       "Status",
     ]);
     expect(rows(wrapper)).toEqual([
-      ["lee", "Team member", "Disabled"],
+      ["jo", "Read-Only Team Member", "Enabled"],
+      ["lee", "Casting Team Member", "Disabled"],
       ["pat", "Admin", "Enabled"],
-      ["sam", "Team member", "Enabled"],
+      ["sam", "Casting Team Member", "Enabled"],
+    ]);
+    // The old label; the new ones have a capital M.
+    expect(wrapper.text()).not.toContain("Team member");
+  });
+
+  it("offers the three roles by name in each account's role choice, labelled for screen readers", async () => {
+    serve([account("sam")]);
+
+    const wrapper = await openPage();
+
+    const choice = wrapper.get("select[aria-label='Role for sam']");
+    expect(choice.findAll("option").map((option) => option.text())).toEqual([
+      "Admin",
+      "Casting Team Member",
+      "Read-Only Team Member",
     ]);
   });
 
   it("marks admins and disabled accounts with a badge, so they stand out", async () => {
-    serve([account("pat", { admin: true }), account("sam"), account("lee", { enabled: false })]);
+    serve([account("pat", { role: "admin" }), account("sam"), account("lee", { enabled: false })]);
 
     const wrapper = await openPage();
 
@@ -174,15 +199,15 @@ describe("Accounts page", () => {
       temporaryPassword: "Made-up-temp-1",
     };
 
-    it("adds it to the list, not an admin and enabled", async () => {
+    it("adds it to the list as an enabled Casting Team Member", async () => {
       serve([account("sam")], () => json(joCreated, 201));
       const wrapper = await openPage();
 
       await create(wrapper, "jo");
 
       expect(rows(wrapper)).toEqual([
-        ["jo", "Team member", "Enabled"],
-        ["sam", "Team member", "Enabled"],
+        ["jo", "Casting Team Member", "Enabled"],
+        ["sam", "Casting Team Member", "Enabled"],
       ]);
     });
 
@@ -258,7 +283,7 @@ describe("Accounts page", () => {
 
       expect(wrapper.get(".field-error").text()).toBe("That username is already taken.");
       expect(wrapper.get("input[name=username]").attributes("aria-invalid")).toBe("true");
-      expect(rows(wrapper)).toEqual([["sam", "Team member", "Enabled"]]);
+      expect(rows(wrapper)).toEqual([["sam", "Casting Team Member", "Enabled"]]);
       expect(wrapper.find("[data-test=created-account]").exists()).toBe(false);
     });
 
@@ -411,7 +436,7 @@ describe("Accounts page", () => {
             },
           ],
         ]);
-        expect(rows(wrapper)).toEqual([["sam", "Team member", "Disabled"]]);
+        expect(rows(wrapper)).toEqual([["sam", "Casting Team Member", "Disabled"]]);
         expect(wrapper.get("[data-test=announcement]").text()).toBe("sam disabled.");
       });
 
@@ -462,13 +487,17 @@ describe("Accounts page", () => {
 
       it("won't offer to disable the signed-in admin's own account, saying why", async () => {
         await signInAs(["admin"], "pat");
-        serveChanges([account("pat", { admin: true }), account("sam")], {});
+        serveChanges([account("pat", { role: "admin" }), account("sam")], {});
         const wrapper = await openPage();
 
         const own = button(wrapper, "Disable pat");
         expect(own.attributes("disabled")).toBeDefined();
         expect(own.attributes("data-tooltip")).toBe("You can't disable your own account");
+        // Phones show no tooltips, so the reason is on the page too.
+        const why = wrapper.get(`#${own.attributes("aria-describedby")}`);
+        expect(why.text()).toBe("You can't disable your own account");
         expect(button(wrapper, "Disable sam").attributes("disabled")).toBeUndefined();
+        expect(button(wrapper, "Disable sam").attributes("aria-describedby")).toBeUndefined();
       });
 
       it("leaves the account alone if the admin doesn't confirm", async () => {
@@ -480,7 +509,7 @@ describe("Accounts page", () => {
         await flushPromises();
 
         expect(changes(fetchMock)).toEqual([]);
-        expect(rows(wrapper)).toEqual([["sam", "Team member", "Enabled"]]);
+        expect(rows(wrapper)).toEqual([["sam", "Casting Team Member", "Enabled"]]);
       });
 
       it("enables a disabled account straight away", async () => {
@@ -494,13 +523,13 @@ describe("Accounts page", () => {
         await flushPromises();
 
         expect(confirm).not.toHaveBeenCalled();
-        expect(rows(wrapper)).toEqual([["sam", "Team member", "Enabled"]]);
+        expect(rows(wrapper)).toEqual([["sam", "Casting Team Member", "Enabled"]]);
         expect(wrapper.find('button[aria-label="Disable sam"]').exists()).toBe(true);
       });
 
       it("says an admin can't disable their own account", async () => {
         confirmWith(true);
-        serveChanges([account("pat", { admin: true })], {
+        serveChanges([account("pat", { role: "admin" })], {
           "PUT /api/accounts/pat/enabled": () =>
             json({ message: "You can't disable your own account." }, 409),
         });
@@ -524,7 +553,7 @@ describe("Accounts page", () => {
         await flushPromises();
 
         expect(wrapper.get(".notice[role=alert]").text()).toBe("Couldn't disable sam. Try again.");
-        expect(rows(wrapper)).toEqual([["sam", "Team member", "Enabled"]]);
+        expect(rows(wrapper)).toEqual([["sam", "Casting Team Member", "Enabled"]]);
       });
     });
 
@@ -545,7 +574,7 @@ describe("Accounts page", () => {
       expect(wrapper.get(".notice[role=alert]").text()).toBe(
         "sam no longer has an account. Showing the latest list.",
       );
-      expect(rows(wrapper)).toEqual([["lee", "Team member", "Enabled"]]);
+      expect(rows(wrapper)).toEqual([["lee", "Casting Team Member", "Enabled"]]);
     });
 
     it("says only admins can change accounts when the API refuses", async () => {
@@ -559,138 +588,128 @@ describe("Accounts page", () => {
       expect(wrapper.get(".notice[role=alert]").text()).toBe("Only admins can change accounts.");
     });
 
-    describe("making an account an admin, or not", () => {
-      it("asks first, saying they'll be signed out and what they'll be able to do, then shows them as an admin", async () => {
+    describe("changing an account's role", () => {
+      const choice = (wrapper: Page, username: string) =>
+        wrapper.get(`select[aria-label="Role for ${username}"]`);
+      const choose = async (wrapper: Page, username: string, role: string) => {
+        await choice(wrapper, username).setValue(role);
+        await flushPromises();
+      };
+
+      it("asks first, saying they'll be signed out and can only view, then shows them as read-only", async () => {
         const confirm = confirmWith(true);
         const fetchMock = serveChanges([account("sam")], {
-          "PUT /api/accounts/sam/admin": () => json(account("sam", { admin: true })),
+          "PUT /api/accounts/sam/role": () => json(account("sam", { role: "read-only" })),
         });
         const wrapper = await openPage();
 
-        await button(wrapper, "Make sam an admin").trigger("click");
-        await flushPromises();
+        await choose(wrapper, "sam", "read-only");
 
         expect(confirm).toHaveBeenCalledWith(
-          "Make sam an admin? They'll be signed out on every device, and can manage accounts, delete cast members and save running orders when they sign back in.",
+          "Make sam a Read-Only Team Member? They'll be signed out on every device, and can only view the show when they sign back in.",
         );
         expect(changes(fetchMock)).toEqual([
           [
-            "/api/accounts/sam/admin",
+            "/api/accounts/sam/role",
             {
               method: "PUT",
               headers: { "content-type": "application/json" },
-              body: JSON.stringify({ admin: true }),
+              body: JSON.stringify({ role: "read-only" }),
             },
           ],
         ]);
-        expect(rows(wrapper)).toEqual([["sam", "Admin", "Enabled"]]);
-        expect(wrapper.get("[data-test=announcement]").text()).toBe("sam is now an admin.");
-        expect(document.activeElement).toBe(button(wrapper, "Remove sam's admin role").element);
+        expect(rows(wrapper)).toEqual([["sam", "Read-Only Team Member", "Enabled"]]);
+        expect(wrapper.get("[data-test=announcement]").text()).toBe(
+          "sam is now a Read-Only Team Member.",
+        );
+        expect(document.activeElement).toBe(choice(wrapper, "sam").element);
       });
 
-      it("asks first, saying they'll be signed out, then shows them as a team member", async () => {
+      it("can give every role, each confirmation saying what they'll be able to do", async () => {
         const confirm = confirmWith(true);
-        serveChanges([account("sam", { admin: true })], {
-          "PUT /api/accounts/sam/admin": () => json(account("sam")),
+        serveChanges([account("jo", { role: "read-only" })], {
+          "PUT /api/accounts/jo/role": () => json(null),
         });
         const wrapper = await openPage();
 
-        await button(wrapper, "Remove sam's admin role").trigger("click");
-        await flushPromises();
+        await choose(wrapper, "jo", "casting");
+        expect(rows(wrapper)).toEqual([["jo", "Casting Team Member", "Enabled"]]);
+        await choose(wrapper, "jo", "admin");
+        expect(rows(wrapper)).toEqual([["jo", "Admin", "Enabled"]]);
 
-        expect(confirm).toHaveBeenCalledWith(
-          "Remove admin from sam? They'll be signed out on every device, and can sign back in as a team member.",
-        );
-        expect(rows(wrapper)).toEqual([["sam", "Team member", "Enabled"]]);
-        expect(wrapper.get("[data-test=announcement]").text()).toBe("sam is no longer an admin.");
-        expect(document.activeElement).toBe(button(wrapper, "Make sam an admin").element);
+        expect(confirm.mock.calls).toEqual([
+          [
+            "Make jo a Casting Team Member? They'll be signed out on every device, and can change the cast, casting and running order drafts when they sign back in.",
+          ],
+          [
+            "Make jo an Admin? They'll be signed out on every device, and can manage accounts, delete cast members and save running orders when they sign back in.",
+          ],
+        ]);
       });
 
-      it("changes nothing if the admin doesn't confirm", async () => {
+      it("changes nothing if the admin doesn't confirm, putting the choice back", async () => {
         confirmWith(false);
         const fetchMock = serveChanges([account("sam")], {});
         const wrapper = await openPage();
 
-        await button(wrapper, "Make sam an admin").trigger("click");
-        await flushPromises();
+        await choose(wrapper, "sam", "admin");
 
         expect(changes(fetchMock)).toEqual([]);
-        expect(rows(wrapper)).toEqual([["sam", "Team member", "Enabled"]]);
+        expect(rows(wrapper)).toEqual([["sam", "Casting Team Member", "Enabled"]]);
       });
 
-      it("names each action in its tooltip", async () => {
-        serveChanges([account("sam"), account("pat", { admin: true })], {});
+      it("won't let the signed-in admin change their own role, saying why", async () => {
+        await signInAs(["admin"], "pat");
+        serveChanges([account("pat", { role: "admin" }), account("sam", { role: "admin" })], {});
         const wrapper = await openPage();
 
-        expect(button(wrapper, "Make sam an admin").attributes("data-tooltip")).toBe("Make admin");
-        expect(button(wrapper, "Remove pat's admin role").attributes("data-tooltip")).toBe(
-          "Remove admin",
-        );
+        const own = choice(wrapper, "pat");
+        expect(own.attributes("disabled")).toBeDefined();
+        expect(own.attributes("aria-describedby")).toBeDefined();
+        const why = wrapper.get(`#${own.attributes("aria-describedby")}`);
+        expect(why.text()).toBe("You can't change your own role");
+        expect(choice(wrapper, "sam").attributes("disabled")).toBeUndefined();
       });
 
-      it("says an admin can't remove their own admin role", async () => {
+      it("shows why the API refused, such as keeping the only admin, and puts the choice back", async () => {
         confirmWith(true);
-        serveChanges([account("pat", { admin: true })], {
-          "PUT /api/accounts/pat/admin": () =>
-            json({ message: "You can't remove your own admin role." }, 409),
+        serveChanges([account("pat", { role: "admin" })], {
+          "PUT /api/accounts/pat/role": () =>
+            json({ message: "pat is the only enabled admin, so they stay an admin." }, 409),
         });
         const wrapper = await openPage();
 
-        await button(wrapper, "Remove pat's admin role").trigger("click");
-        await flushPromises();
+        await choose(wrapper, "pat", "casting");
 
         expect(wrapper.get(".notice[role=alert]").text()).toBe(
-          "You can't remove your own admin role.",
+          "pat is the only enabled admin, so they stay an admin.",
         );
         expect(rows(wrapper)).toEqual([["pat", "Admin", "Enabled"]]);
-        expect(document.activeElement).toBe(button(wrapper, "Remove pat's admin role").element);
-      });
-
-      it("won't offer to remove the signed-in admin's own role, saying why", async () => {
-        await signInAs(["admin"], "pat");
-        serveChanges([account("pat", { admin: true }), account("sam", { admin: true })], {});
-        const wrapper = await openPage();
-
-        const own = button(wrapper, "Remove pat's admin role");
-        expect(own.attributes("disabled")).toBeDefined();
-        expect(own.attributes("data-tooltip")).toBe("You can't remove your own admin role");
-        expect(button(wrapper, "Remove sam's admin role").attributes("disabled")).toBeUndefined();
+        expect(document.activeElement).toBe(choice(wrapper, "pat").element);
       });
 
       it("says when the role couldn't be changed", async () => {
         confirmWith(true);
-        serveChanges([account("sam")], { "PUT /api/accounts/sam/admin": () => json({}, 500) });
+        serveChanges([account("sam")], { "PUT /api/accounts/sam/role": () => json({}, 500) });
         const wrapper = await openPage();
 
-        await button(wrapper, "Make sam an admin").trigger("click");
-        await flushPromises();
+        await choose(wrapper, "sam", "admin");
 
         expect(wrapper.get(".notice[role=alert]").text()).toBe(
-          "Couldn't make sam an admin. Try again.",
+          "Couldn't change sam's role. Try again.",
         );
+        expect(rows(wrapper)).toEqual([["sam", "Casting Team Member", "Enabled"]]);
+      });
+
+      it("keeps the role choice still while another change is saving", async () => {
+        confirmWith(true);
+        serveChanges([account("sam")], {});
+        const wrapper = await openPage();
+
+        await wrapper.get("[data-test=add-account]").trigger("click");
+
+        expect(choice(wrapper, "sam").attributes("disabled")).toBeDefined();
       });
     });
-  });
-});
-
-describe("Accounts page icons", () => {
-  it("gives the admin actions shield icons, unlike Disable's", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi
-        .fn()
-        .mockResolvedValue(json({ accounts: [account("pat", { admin: true }), account("sam")] })),
-    );
-    useLocalSignIn();
-    const wrapper = await openPage();
-    const iconOf = (name: string) =>
-      wrapper.get(`button[aria-label="${name}"] svg`).attributes("data-icon");
-
-    expect([iconOf("Make sam an admin"), iconOf("Remove pat's admin role")]).toEqual([
-      "user-shield",
-      "shield-halved",
-    ]);
-    expect(iconOf("Disable sam")).toBe("user-slash");
-    vi.unstubAllGlobals();
   });
 });

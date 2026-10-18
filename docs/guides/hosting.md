@@ -89,15 +89,15 @@ It prints a temporary password once. Then:
 2. Sign in with your username and the temporary password.
 3. Choose your own password when asked. You'll use it from now on.
 4. Open **Accounts**, choose **Add account**, type a username and choose **Save**. The app shows a temporary password once. Pass it to that person yourself, in person or by message, never in the same message as their username, and never in the app's notes. They choose their own password when they first sign in.
-5. Do the same for everyone on the team. Make one other person you trust an admin too, with the **Make admin** action, so the team isn't stuck if you're away.
+5. Do the same for everyone on the team. Make one other person you trust an admin too, by choosing **Admin** in their **Role** column, so the team isn't stuck if you're away.
 
 A username is all the app holds about each adult volunteer ([ADR 0018](../adr/0018-access-control-with-cognito.md)), so choose one that doesn't need anything else, such as a first name and an initial.
 
-On the **Accounts** page, any admin can also reset a forgotten password, disable the account of someone who's left, and make an account an admin or remove admin. An admin can't disable their own account or remove their own admin role, so there's always at least one admin.
+On the **Accounts** page, any admin can also reset a forgotten password, disable the account of someone who's left, and change anyone else's role. An admin can't disable their own account or change their own role, and the only enabled admin stays an admin, so there's always at least one.
 
 ### Team roles
 
-Every account has a role: Admin, Casting Team Member or Read-Only Team Member. An account the app can't place in one of these may only read ([ADR 0020](../adr/0020-team-roles-as-user-pool-groups.md)). Accounts added in the app are Casting Team Members.
+Every account has a role: Admin, Casting Team Member or Read-Only Team Member. An account the app can't place in one of these may only read ([ADR 0020](../adr/0020-team-roles-as-user-pool-groups.md)). Accounts added in the app are Casting Team Members. Changing someone's role signs them out on every device, and the new role applies when they sign back in.
 
 **Once, straight after the first deploy that brings team roles**, give every existing account a role:
 

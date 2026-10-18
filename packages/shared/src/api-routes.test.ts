@@ -17,8 +17,8 @@ describe("adminOnlyRouteKeys", () => {
       "POST /api/accounts/{username}/password",
       "POST /api/productions/{productionId}/casting-grid/export",
       "POST /api/productions/{productionId}/running-order/versions",
-      "PUT /api/accounts/{username}/admin",
       "PUT /api/accounts/{username}/enabled",
+      "PUT /api/accounts/{username}/role",
     ]);
   });
 });
@@ -29,8 +29,8 @@ describe("accountRouteKeys", () => {
       "GET /api/accounts",
       "POST /api/accounts",
       "POST /api/accounts/{username}/password",
-      "PUT /api/accounts/{username}/admin",
       "PUT /api/accounts/{username}/enabled",
+      "PUT /api/accounts/{username}/role",
     ]);
     for (const key of accountRouteKeys) {
       expect(routeKeys).toContain(key);

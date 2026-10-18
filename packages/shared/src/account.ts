@@ -10,10 +10,15 @@ export const Username = z
 
 export type Username = z.infer<typeof Username>;
 
+/** What a signed-in team member may do (team-roles FR1, ADR 0020). */
+export const TeamRole = z.enum(["admin", "casting", "read-only"]);
+
+export type TeamRole = z.infer<typeof TeamRole>;
+
 /** An account as admins see it: who, and what they may do (hosting FR11). */
 export const AccountSummary = z.strictObject({
   username: Username,
-  admin: z.boolean(),
+  role: TeamRole,
   enabled: z.boolean(),
 });
 
@@ -35,12 +40,12 @@ export const CreatedAccount = z.strictObject({
 /** PUT /api/accounts/{username}/enabled takes this; 200 returns the AccountSummary. */
 export const SetEnabled = z.strictObject({ enabled: z.boolean() });
 
-/** PUT /api/accounts/{username}/admin takes this; 200 returns the AccountSummary. */
-export const SetAdmin = z.strictObject({ admin: z.boolean() });
+/** PUT /api/accounts/{username}/role takes this; 200 returns the AccountSummary. */
+export const SetRole = z.strictObject({ role: TeamRole });
 
 export type AccountSummary = z.infer<typeof AccountSummary>;
 export type AccountList = z.infer<typeof AccountList>;
 export type NewAccount = z.infer<typeof NewAccount>;
 export type CreatedAccount = z.infer<typeof CreatedAccount>;
 export type SetEnabled = z.infer<typeof SetEnabled>;
-export type SetAdmin = z.infer<typeof SetAdmin>;
+export type SetRole = z.infer<typeof SetRole>;

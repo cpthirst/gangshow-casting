@@ -154,7 +154,7 @@ describe("the account script", () => {
 
   it("doesn't show a password that a failed run never finished setting up", async () => {
     const failing = memoryUserDirectory();
-    failing.directory.setAdmin = async () => {
+    failing.directory.setRole = async () => {
       throw Object.assign(new Error("denied"), { name: "AccessDeniedException" });
     };
 

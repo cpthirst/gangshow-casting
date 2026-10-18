@@ -866,7 +866,8 @@ main a {
 }
 
 .cast-member-form input,
-.cast-member-form select {
+.cast-member-form select,
+.role-choice select {
   padding: 0.5rem;
   border: 1px solid var(--text);
   border-radius: 0.25rem;
@@ -1057,6 +1058,24 @@ main a {
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
+}
+
+/* An account's role, chosen in its row with the forms' dropdown (shared rules above). */
+.role-choice select {
+  max-width: 100%;
+  margin-right: 0.5rem;
+}
+
+.role-choice select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Why the signed-in admin can't change their own account, shown as phones have no tooltips. */
+.role-choice .hint,
+.cast-list .status .hint {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
 }
 
 .badge {

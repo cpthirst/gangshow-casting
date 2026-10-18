@@ -15,14 +15,14 @@ function setUp() {
 }
 
 describe("create account handler", () => {
-  it("creates an enabled, non-admin account and returns its temporary password once", async () => {
+  it("creates an enabled Casting Team Member and returns its temporary password once", async () => {
     const { handler, accounts } = setUp();
 
     const res = await handler(request({ username: "jo" }));
 
     expect(res.statusCode).toBe(201);
     expect(CreatedAccount.parse(JSON.parse(res.body ?? ""))).toEqual({
-      account: { username: "jo", admin: false, enabled: true },
+      account: { username: "jo", role: "casting", enabled: true },
       temporaryPassword: "Made-up-temp-1",
     });
     // A temporary password: Jo must choose a new one at first sign-in.

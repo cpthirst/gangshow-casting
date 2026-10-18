@@ -22,9 +22,10 @@ export const anAccount = (
   signedOutEverywhere: 0,
 });
 
-/** A directory holding "pat" (an admin) and "sam", both signed in with their own passwords. */
+/** A directory holding "pat" (an admin) and "sam" (a Casting Team Member), both signed in
+ *  with their own passwords. */
 export const aTeamDirectory = () =>
-  memoryUserDirectory([anAccount("pat", { admin: true }), anAccount("sam")]);
+  memoryUserDirectory([anAccount("pat", { admin: true }), anAccount("sam", { casting: true })]);
 
 /** A request to an account route, signed in as `caller`. */
 export const asCaller = (caller: string, username: string, body?: unknown) => ({

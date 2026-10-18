@@ -1,15 +1,16 @@
 <script setup lang="ts">
-import { AccountList, AccountSummary, CreatedAccount, Username } from "@app/shared";
+import { AccountList, AccountSummary, CreatedAccount, TeamRole, Username } from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, nextTick, onMounted, ref, useId } from "vue";
 import {
   ACCOUNTS_PATH,
   accountPath,
   disableWarning,
-  makeAdminWarning,
-  removeAdminWarning,
+  ROLE_NAMES,
   resetWarning,
+  roleWarning,
   sortAccounts,
+  withArticle,
 } from "../accounts.ts";
 import { icons } from "../icons.ts";
 import { apiFetch, signedInUsername } from "../sign-in.ts";
@@ -165,15 +166,27 @@ async function change(
   const res = await apiFetch(url, init).catch(() => undefined);
   saving.value = false;
   if (res?.ok) return res.json().catch(() => null);
+  if (res?.status === 409) {
+    // The API says why, such as keeping the only admin (FR14).
+    notice.value = (await refusalOf(res)) ?? conflict;
+    return undefined;
+  }
   if (res?.status === 404) {
     notice.value = `${account.username} no longer has an account. Showing the latest list.`;
     await load();
   } else if (res?.status === 403) {
     notice.value = "Only admins can change accounts.";
   } else {
-    notice.value = res?.status === 409 ? conflict : failed;
+    notice.value = failed;
   }
   return undefined;
+}
+
+/** The message a refusal carries, if it has one. */
+async function refusalOf(res: Response) {
+  const body: unknown = await res.json().catch(() => undefined);
+  if (typeof body !== "object" || body === null || !("message" in body)) return undefined;
+  return typeof body.message === "string" ? body.message : undefined;
 }
 
 // Ends their sign-ins everywhere, so it's always confirmed first.
@@ -198,14 +211,14 @@ async function resetPassword(account: AccountSummary) {
   await focusRowButton(name, "reset-password");
 }
 
-type RowAction = "reset-password" | "disable" | "enable" | "make-admin" | "remove-admin";
+type RowAction = "reset-password" | "disable" | "enable" | "role";
 
 interface AccessChange {
-  /** The account's address after its own, and the body to send it. */
-  field: "enabled" | "admin";
-  value: boolean;
+  /** The account's address after its own, and the change to send it. */
+  field: "enabled" | "role";
+  body: { enabled: boolean } | { role: TeamRole };
   failed: string;
-  /** What to say if the API refuses it as locking someone out (FR13). */
+  /** What to say if the API refuses it as locking someone out, and says nothing itself. */
   conflict: string;
   done: string;
   /** Where focus goes in the row: the button that undoes it, or this one again on failure. */
@@ -213,7 +226,7 @@ interface AccessChange {
   focusWhenFailed: RowAction;
 }
 
-/** Turns an account's access on or off, keeping focus in its row. */
+/** Changes an account's access, keeping focus in its row. Answers whether it saved. */
 async function putAccess(account: AccountSummary, put: AccessChange) {
   const { username: name } = account;
   const reply = await change(
@@ -222,19 +235,20 @@ async function putAccess(account: AccountSummary, put: AccessChange) {
     {
       method: "PUT",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ [put.field]: put.value }),
+      body: JSON.stringify(put.body),
     },
     put,
   );
   if (reply === undefined) {
     await focusRowButton(name, put.focusWhenFailed);
-    return;
+    return false;
   }
   // Saved, even if the reply can't be read: show what was asked for.
   const updated = AccountSummary.safeParse(reply);
-  showAccount(updated.success ? updated.data : { ...account, [put.field]: put.value });
+  showAccount(updated.success ? updated.data : { ...account, ...put.body });
   announcement.value = put.done;
   await focusRowButton(name, put.focusWhenDone);
+  return true;
 }
 
 // Disabling ends their access everywhere, so it's confirmed first (hosting FR12).
@@ -243,7 +257,7 @@ async function setEnabled(account: AccountSummary, enabled: boolean) {
   if (busy.value || (!enabled && !window.confirm(disableWarning(name)))) return;
   await putAccess(account, {
     field: "enabled",
-    value: enabled,
+    body: { enabled },
     failed: `Couldn't ${enabled ? "enable" : "disable"} ${name}. Try again.`,
     conflict: "You can't disable your own account.",
     done: `${name} ${enabled ? "enabled" : "disabled"}.`,
@@ -252,25 +266,30 @@ async function setEnabled(account: AccountSummary, enabled: boolean) {
   });
 }
 
-// Either way changes what they can do, so it's confirmed first (hosting FR11).
-async function setAdmin(account: AccountSummary, admin: boolean) {
+// It changes what they can do and signs them out, so it's confirmed first (team-roles FR10).
+async function setRole(account: AccountSummary, event: Event) {
+  const choice = event.currentTarget;
+  if (!(choice instanceof HTMLSelectElement)) return;
+  const role = TeamRole.safeParse(choice.value);
   const { username: name } = account;
-  const question = admin ? makeAdminWarning(name) : removeAdminWarning(name);
-  if (busy.value || !window.confirm(question)) return;
-  await putAccess(account, {
-    field: "admin",
-    value: admin,
-    failed: admin
-      ? `Couldn't make ${name} an admin. Try again.`
-      : `Couldn't remove admin from ${name}. Try again.`,
-    conflict: "You can't remove your own admin role.",
-    done: admin ? `${name} is now an admin.` : `${name} is no longer an admin.`,
-    focusWhenDone: admin ? "remove-admin" : "make-admin",
-    focusWhenFailed: admin ? "make-admin" : "remove-admin",
+  // Cancelled or refused: the choice goes back to the role they still have.
+  if (!role.success || busy.value || !window.confirm(roleWarning(name, role.data))) {
+    choice.value = account.role;
+    return;
+  }
+  const saved = await putAccess(account, {
+    field: "role",
+    body: { role: role.data },
+    failed: `Couldn't change ${name}'s role. Try again.`,
+    conflict: "You can't change your own role.",
+    done: `${name} is now ${withArticle(role.data)}.`,
+    focusWhenDone: "role",
+    focusWhenFailed: "role",
   });
+  if (!saved) choice.value = account.role;
 }
 
-/** The signed-in admin's own account, which they can't disable or demote (FR13). */
+/** The signed-in admin's own account, which they can't disable or change the role of (FR14). */
 const isOwn = (account: AccountSummary) =>
   account.username.toLowerCase() === signedInUsername.value?.toLowerCase();
 
@@ -401,6 +420,7 @@ onMounted(load);
                 :aria-label="`Disable ${account.username}`"
                 data-test="disable"
                 :data-tooltip="isOwn(account) ? 'You can\'t disable your own account' : 'Disable account'"
+                :aria-describedby="isOwn(account) ? `${uid}-own-disable` : undefined"
                 :disabled="busy || isOwn(account)"
                 @click="setEnabled(account, false)"
               >
@@ -418,42 +438,36 @@ onMounted(load);
               >
                 <FontAwesomeIcon :icon="icons.enable" />
               </button>
-              <button
-                v-if="account.admin"
-                type="button"
-                class="icon-button"
-                :aria-label="`Remove ${account.username}'s admin role`"
-                data-test="remove-admin"
-                :data-tooltip="
-                  isOwn(account) ? 'You can\'t remove your own admin role' : 'Remove admin'
-                "
-                :disabled="busy || isOwn(account)"
-                @click="setAdmin(account, false)"
-              >
-                <FontAwesomeIcon :icon="icons.removeAdmin" />
-              </button>
-              <button
-                v-else
-                type="button"
-                class="icon-button"
-                :aria-label="`Make ${account.username} an admin`"
-                data-test="make-admin"
-                data-tooltip="Make admin"
-                :disabled="busy"
-                @click="setAdmin(account, true)"
-              >
-                <FontAwesomeIcon :icon="icons.makeAdmin" />
-              </button>
             </td>
             <td class="username" data-label="Username">{{ account.username }}</td>
-            <!-- Badges only on the states a volunteer needs to notice. -->
-            <td data-label="Role">
-              <span v-if="account.admin" class="badge">Admin</span>
-              <template v-else>Team member</template>
+            <td class="role-choice" data-label="Role">
+              <!-- The column header (or the card's label on phones) is the visible label. -->
+              <select
+                :aria-label="`Role for ${account.username}`"
+                :value="account.role"
+                data-test="role"
+                :disabled="busy || isOwn(account)"
+                :aria-describedby="isOwn(account) ? `${uid}-own-role` : undefined"
+                @change="setRole(account, $event)"
+              >
+                <option v-for="(label, role) in ROLE_NAMES" :key="role" :value="role">
+                  {{ label }}
+                </option>
+              </select>
+              <!-- Admins can do the most, so they stand out at a glance. -->
+              <span v-if="account.role === 'admin'" class="badge">Admin</span>
+              <p v-if="isOwn(account)" :id="`${uid}-own-role`" class="hint">
+                You can't change your own role
+              </p>
             </td>
-            <td data-label="Status">
+            <!-- Badges only on the states a volunteer needs to notice. -->
+            <td class="status" data-label="Status">
               <span v-if="!account.enabled" class="badge">Disabled</span>
               <template v-else>Enabled</template>
+              <!-- Phones show no tooltips, so the reason is on the page too. -->
+              <p v-if="isOwn(account) && account.enabled" :id="`${uid}-own-disable`" class="hint">
+                You can't disable your own account
+              </p>
             </td>
           </tr>
         </tbody>

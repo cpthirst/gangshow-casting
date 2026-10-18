@@ -27,7 +27,7 @@ export function createCreateAccount(directory: UserDirectory, newPassword: () =>
       throw error;
     }
     const created: CreatedAccount = {
-      account: { username, admin: false, enabled: true },
+      account: { username, role: "casting", enabled: true },
       temporaryPassword,
     };
     return jsonResponse(201, created);
