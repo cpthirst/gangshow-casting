@@ -9,11 +9,15 @@ import {
   AdminSetUserPasswordCommand,
   AdminUserGlobalSignOutCommand,
   CognitoIdentityProviderClient,
+  ListUsersCommand,
+  ListUsersInGroupCommand,
   UserNotFoundException,
+  UsernameExistsException,
 } from "@aws-sdk/client-cognito-identity-provider";
 import { mockClient } from "aws-sdk-client-mock";
 import { beforeEach, describe, expect, it } from "vitest";
 import { cognitoClientFor, cognitoUserDirectory } from "./cognito-user-directory.ts";
+import { UsernameTaken } from "./user-directory.ts";
 
 const POOL = "eu-west-2_madeup";
 const cognito = mockClient(CognitoIdentityProviderClient);
@@ -57,6 +61,36 @@ describe("the Cognito user directory", () => {
         TemporaryPassword: "Made-up-1",
         MessageAction: "SUPPRESS",
       },
+    ]);
+  });
+
+  it("refuses a username the pool already has, ignoring case", async () => {
+    cognito
+      .on(AdminCreateUserCommand)
+      .rejects(new UsernameExistsException({ message: "User already exists", $metadata: {} }));
+
+    await expect(directory().create("Sam", "Made-up-1")).rejects.toThrow(UsernameTaken);
+  });
+
+  it("lists every account, page by page, with whether each is enabled and an admin", async () => {
+    cognito
+      .on(ListUsersCommand, { UserPoolId: POOL })
+      .resolves({ Users: [{ Username: "sam", Enabled: true }], PaginationToken: "next" })
+      .on(ListUsersCommand, { UserPoolId: POOL, PaginationToken: "next" })
+      .resolves({
+        Users: [
+          { Username: "lee", Enabled: false },
+          { Username: "pat", Enabled: true },
+        ],
+      });
+    cognito
+      .on(ListUsersInGroupCommand, { UserPoolId: POOL, GroupName: "admin" })
+      .resolves({ Users: [{ Username: "pat" }] });
+
+    expect(await directory().list()).toEqual([
+      { username: "sam", enabled: true, admin: false },
+      { username: "lee", enabled: false, admin: false },
+      { username: "pat", enabled: true, admin: true },
     ]);
   });
 

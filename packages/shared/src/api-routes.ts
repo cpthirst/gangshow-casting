@@ -5,6 +5,8 @@
  */
 export const routeKeys = [
   "GET /api/health",
+  "GET /api/accounts",
+  "POST /api/accounts",
   "GET /api/productions/{productionId}/running-order",
   "POST /api/productions/{productionId}/running-order/versions",
   "GET /api/productions/{productionId}/cast",
@@ -29,6 +31,24 @@ export const ADMIN_GROUP = "admin";
  * them for anyone else before the handler runs (ADR 0018), so a new one can't forget it.
  */
 export const adminOnlyRouteKeys: readonly RouteKey[] = [
+  "GET /api/accounts",
+  "POST /api/accounts",
   "DELETE /api/productions/{productionId}/cast/{castId}",
   "POST /api/productions/{productionId}/running-order/versions",
 ];
+
+/**
+ * Routes that manage the team's accounts. They run in their own function, the only one
+ * allowed to change accounts (ADR 0017), so the data routes can't.
+ */
+export const accountRouteKeys = [
+  "GET /api/accounts",
+  "POST /api/accounts",
+] as const satisfies readonly RouteKey[];
+
+export type AccountRouteKey = (typeof accountRouteKeys)[number];
+
+const accountRoutes = new Set<string>(accountRouteKeys);
+
+/** Whether a route key, such as one infra hosts, is an account route. */
+export const isAccountRoute = (key: string) => accountRoutes.has(key);

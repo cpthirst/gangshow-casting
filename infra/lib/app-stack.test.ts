@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { routeKeys } from "@app/shared";
+import { isAccountRoute, routeKeys } from "@app/shared";
 import { App } from "aws-cdk-lib";
 import { Match, Template } from "aws-cdk-lib/assertions";
 import { CachePolicy, OriginRequestPolicy } from "aws-cdk-lib/aws-cloudfront";
@@ -215,20 +215,73 @@ describe("AppStack", () => {
   });
 
   describe("hosted API (ADR 0017)", () => {
-    it("hosts exactly one route for each in the API's route list, served by the API's entry point", () => {
+    it("hosts exactly one route for each in the API's route list, on two Node functions", () => {
       const { template } = synth();
 
-      // The pages' deployment brings its own function, in Python; the API's is the only Node one.
+      // The pages' deployment brings its own function, in Python; the API's are the Node ones.
       const functions = resourcesOfType(template, "AWS::Lambda::Function");
       const apiFunctions = functions.filter((f) => f.Properties.Runtime.startsWith("nodejs"));
       expect(apiFunctions.map((f) => f.Properties)).toEqual([
+        expect.objectContaining({ Runtime: "nodejs24.x", Handler: "index.handler" }),
         expect.objectContaining({ Runtime: "nodejs24.x", Handler: "index.handler" }),
       ]);
       const routes = resourcesOfType(template, "AWS::ApiGatewayV2::Route");
       const hosted = routes.map((r) => r.Properties.RouteKey).filter((key) => key !== "$default");
       expect(hosted.sort()).toEqual([...routeKeys].sort());
-      const targets = new Set(routes.map((r) => JSON.stringify(r.Properties.Target)));
-      expect(targets.size).toBe(1);
+    });
+
+    it("sends the account routes to the accounts function, and every other route to the API's", () => {
+      const { template } = synth();
+
+      const integrations = template.findResources("AWS::ApiGatewayV2::Integration");
+      const functionOf = (routeTarget: unknown) => {
+        const target = JSON.stringify(routeTarget);
+        const [, integration] =
+          Object.entries(integrations).find(([id]) => target.includes(id)) ?? [];
+        return JSON.stringify(integration?.Properties.IntegrationUri).match(
+          /(Api|Accounts)Function/,
+        )?.[1];
+      };
+      const routes = resourcesOfType(template, "AWS::ApiGatewayV2::Route");
+      for (const route of routes) {
+        const expected = isAccountRoute(route.Properties.RouteKey) ? "Accounts" : "Api";
+        expect([route.Properties.RouteKey, functionOf(route.Properties.Target)]).toEqual([
+          route.Properties.RouteKey,
+          expected,
+        ]);
+      }
+    });
+
+    it("lets only the accounts function manage the team's accounts, and only list and create them", () => {
+      const { template } = synth();
+
+      template.hasResourceProperties("AWS::Lambda::Function", {
+        Environment: { Variables: { USER_POOL_ID: { Ref: Match.stringLikeRegexp("UserPool") } } },
+      });
+      const policies = resourcesOfType(template, "AWS::IAM::Policy");
+      const grants = policies.flatMap((p) =>
+        p.Properties.PolicyDocument.Statement.map((statement: { Action: unknown }) => ({
+          role: JSON.stringify(p.Properties.Roles),
+          statement,
+        })),
+      );
+      const cognito = grants.filter((g) =>
+        JSON.stringify(g.statement.Action).includes("cognito-idp:"),
+      );
+      expect(cognito.map((g) => g.role)).toEqual([expect.stringMatching(/AccountsFunction/)]);
+      expect(cognito[0]?.statement).toEqual(
+        expect.objectContaining({
+          Action: [
+            "cognito-idp:ListUsers",
+            "cognito-idp:ListUsersInGroup",
+            "cognito-idp:AdminCreateUser",
+          ],
+          Resource: { "Fn::GetAtt": [expect.stringMatching(/^UserPool/), "Arn"] },
+        }),
+      );
+      // The accounts function never touches the show's data.
+      const accountsGrants = grants.filter((g) => /AccountsFunction/.test(g.role));
+      expect(JSON.stringify(accountsGrants)).not.toContain("dynamodb:");
     });
 
     it("keeps the API's data in the data table, which is all of the data store it may use", () => {
@@ -299,14 +352,17 @@ describe("AppStack", () => {
       });
     });
 
-    it("keeps every log for 30 days: the API's, its function's and the pages' deployment's", () => {
+    it("keeps every log for 30 days: the API's, its functions' and the pages' deployment's", () => {
       const { template } = synth();
 
       const logGroups = resourcesOfType(template, "AWS::Logs::LogGroup");
-      expect(logGroups).toHaveLength(3);
+      expect(logGroups).toHaveLength(4);
       for (const group of logGroups) expect(group.Properties.RetentionInDays).toBe(30);
       template.hasResourceProperties("AWS::Lambda::Function", {
         LoggingConfig: { LogGroup: { Ref: Match.stringLikeRegexp("ApiFunctionLogs") } },
+      });
+      template.hasResourceProperties("AWS::Lambda::Function", {
+        LoggingConfig: { LogGroup: { Ref: Match.stringLikeRegexp("AccountsFunctionLogs") } },
       });
       template.hasResourceProperties("AWS::Lambda::Function", {
         LoggingConfig: { LogGroup: { Ref: Match.stringLikeRegexp("PagesDeploymentLogs") } },

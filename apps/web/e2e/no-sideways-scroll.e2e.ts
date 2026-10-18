@@ -56,6 +56,25 @@ test("the cast list and its add and edit forms fit the screen", async ({ page })
   await expectNoSidewaysScroll(page);
 });
 
+test("the accounts list, its add form and a new account's password fit the screen", async ({
+  page,
+}, testInfo) => {
+  // Both widths share one API, so each adds its own account: a long, unbroken username.
+  const username = `extraordinarily-long-name-${testInfo.project.name.slice(-3)}`;
+  await page.goto("/accounts");
+  await expect(page.getByRole("cell", { name: "robin" })).toBeVisible();
+  await expectNoSidewaysScroll(page);
+
+  await page.getByRole("button", { name: "Add account" }).click();
+  await page.getByLabel("Username").fill(username);
+  await expectNoSidewaysScroll(page);
+
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByText(`Pass this temporary password to ${username}`)).toBeVisible();
+  await expect(page.getByRole("cell", { name: username })).toBeVisible();
+  await expectNoSidewaysScroll(page);
+});
+
 test("the items list and an item's casting page fit the screen", async ({ page }) => {
   await page.goto("/casting/items");
   await expect(page.getByText(PIRATE_SKETCH)).toBeVisible();

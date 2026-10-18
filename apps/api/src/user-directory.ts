@@ -3,13 +3,20 @@ export type Account = { username: string; enabled: boolean; admin: boolean };
 
 export type PasswordKind = "temporary" | "permanent";
 
+/** Usernames are case-insensitive, so "Sam" is taken once "sam" exists. */
+export class UsernameTaken extends Error {}
+
 /**
  * The team's accounts: the Cognito user pool when hosted, in memory locally and in tests.
  * Creating an account never sends an invitation: accounts have no email or phone.
  */
 export interface UserDirectory {
   find(username: string): Promise<Account | undefined>;
-  /** A new, enabled, non-admin account that must choose a new password at first sign-in. */
+  list(): Promise<Account[]>;
+  /**
+   * A new, enabled, non-admin account that must choose a new password at first sign-in.
+   * Throws UsernameTaken if the username exists in any case.
+   */
   create(username: string, temporaryPassword: string): Promise<void>;
   setPassword(username: string, password: string, kind: PasswordKind): Promise<void>;
   setEnabled(username: string, enabled: boolean): Promise<void>;
@@ -38,8 +45,18 @@ export function memoryUserDirectory(seed: StoredAccount[] = []) {
       const account = stored.get(username);
       return account && { username, enabled: account.enabled, admin: account.admin };
     },
+    async list() {
+      return [...stored.values()].map(({ username, enabled, admin }) => ({
+        username,
+        enabled,
+        admin,
+      }));
+    },
     async create(username, temporaryPassword) {
-      if (stored.has(username)) throw new Error(`${username} already exists`);
+      const lower = username.toLowerCase();
+      if ([...stored.keys()].some((name) => name.toLowerCase() === lower)) {
+        throw new UsernameTaken(username);
+      }
       stored.set(username, {
         username,
         enabled: true,
