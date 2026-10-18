@@ -2,7 +2,7 @@
 id: casting-overview-grid.E2.S1
 title: See who is in which item in a grid
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story
@@ -86,9 +86,31 @@ Given the grid is showing
 When a screen reader reads Sam's "Pirate Sketch" cell
 Then it announces Sam, "Pirate Sketch" and "Lead"
 
+### AC15: A clash shows beside the name
+Given Sam is a lead in "Opening Number" and a support in "Pirate Sketch", back to back
+When I look at the grid
+Then Sam's name cell shows the same clash icon as on the by-person card
+And Alex, who has no clash, has none
+
+### AC16: No cast
+Given the cast is empty
+When I open the Overview
+Then I see "No cast members yet." with no switch and no table
+
+### AC17: The casting fails to load
+Given the roles can't be loaded
+When I choose the grid view
+Then I see "Couldn't load the grid." and no table
+
+### AC18: The grid scrolls in its own named box
+Given the grid is showing
+When a screen-reader or keyboard user reaches it
+Then it sits in a focusable region named "Who is in which item", styled like the app's other tables
+
 ## Notes
 
 - FRs: FR4, FR5, FR6, FR7, FR8, FR11
 - Depends on: casting-overview-grid.E1.S1
 - The grid is read-only. Colours are the ones lead, support, cameo and ensemble already use elsewhere.
+- The by-person and grid views share one intro sentence, and the switch is named "Choose how to see the cast".
 - Out of scope: sticky columns, item header detail and sideways scrolling (E2.S2), the legend (E2.S3).

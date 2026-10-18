@@ -26,6 +26,16 @@ const sizeLabels: Record<RoleSize, string> = {
 
 export const roleSizeLabel = (size: RoleSize) => sizeLabels[size];
 
+const sizeLetters: Record<RoleSize, string> = {
+  lead: "L",
+  support: "S",
+  cameo: "C",
+  ensemble: "E",
+};
+
+/** One letter per size, so a dot's size reads without its colour (casting-overview-grid FR7). */
+export const roleSizeLetter = (size: RoleSize) => sizeLetters[size];
+
 // RoleSize is declared biggest first (packages/shared), so its order is the ranking.
 const sizeRank = (size: RoleSize) => RoleSize.options.indexOf(size);
 

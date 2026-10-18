@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { CastList, type CastMember, RoleList, RunningOrder } from "@app/shared";
 import { computed, onMounted, ref } from "vue";
+import CastingGrid from "../CastingGrid.vue";
 import ClashIcon from "../ClashIcon.vue";
 import { CAST_PATH } from "../cast.ts";
 import { type Clash, clashesOfPerson, describeEach, findClashes } from "../clashes.ts";
@@ -37,6 +38,27 @@ const totals = ref<ReturnType<typeof roleTotals>>();
 const clashes = ref<Clash[]>([]);
 // The show and everyone's parts in it, for each person's timeline; none until both load.
 const timeline = ref<{ order: RunningOrder; parts: ReturnType<typeof biggestParts> }>();
+
+// The Overview's two views of the same cast: by person (default), or the grid of items.
+const view = ref<"people" | "grid">("people");
+
+// The grid: a column per item in running order, and the same people in the same order as
+// the by-person view, each with their part in every item.
+const gridColumns = computed(() =>
+  timeline.value ? timelineOf(timeline.value.order, undefined).flat() : [],
+);
+const gridRows = computed(() =>
+  sections.value.flatMap((section) =>
+    section.people.map(({ member, halves, clashLines }) => ({
+      id: member.id,
+      firstName: member.firstName,
+      lastName: member.lastName,
+      section: section.label,
+      clashLines,
+      slots: halves?.flat() ?? [],
+    })),
+  ),
+);
 
 // Each person carries their part counts: undefined while loading or unavailable, or
 // when they have no parts in the show.
@@ -108,7 +130,7 @@ async function loadCast() {
 
 <template>
   <h1>Overview</h1>
-  <p>Everyone in the cast, by section, and how much they're cast.</p>
+  <p>Everyone in the cast and how much they're cast.</p>
   <p v-if="state.status === 'error'" role="alert">Couldn't load the cast.</p>
   <template v-else-if="state.status === 'loaded'">
     <p v-if="parts === 'error'" class="notice" role="alert">Couldn't load the casting.</p>
@@ -124,6 +146,23 @@ async function loadCast() {
       </ul>
     </template>
     <p v-if="sections.length === 0">No cast members yet.</p>
+    <template v-else>
+    <div class="view-switch" role="group" aria-label="Choose how to see the cast">
+      <button
+        v-for="choice in ([['people', 'By person'], ['grid', 'Grid']] as const)"
+        :key="choice[0]"
+        type="button"
+        :aria-pressed="view === choice[0]"
+        @click="view = choice[0]">
+        {{ choice[1] }}
+      </button>
+    </div>
+    <template v-if="view === 'grid'">
+      <CastingGrid v-if="gridColumns.length > 0" :columns="gridColumns" :rows="gridRows" />
+      <p v-else-if="parts === 'error'">Couldn't load the grid.</p>
+      <p v-else-if="parts instanceof Map">No items in the running order yet.</p>
+    </template>
+    <template v-else>
     <section v-for="section in sections" :key="section.key" class="overview-section">
       <h2 :id="`section-${section.key}`">
         <span class="section-name">{{ section.label }}</span>
@@ -159,5 +198,7 @@ async function loadCast() {
         </li>
       </ul>
     </section>
+    </template>
+    </template>
   </template>
 </template>

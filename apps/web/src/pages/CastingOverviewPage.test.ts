@@ -821,3 +821,291 @@ describe("Casting overview role totals", () => {
     expect(totals(wrapper)).toEqual([]);
   });
 });
+
+describe("Casting grid on the Overview", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.body.innerHTML = "";
+  });
+
+  const show = aRunningOrder(
+    [anItem("Opening Number"), anItem("Pirate Sketch")],
+    [anItem("Dance One")],
+  );
+  let roleId = 1;
+  const role = (itemId: string, size: Role["size"], castMemberIds: number[]): Role => ({
+    id: roleId,
+    itemId,
+    name: `Role ${roleId++}`,
+    size,
+    castMemberIds,
+    revision: 1,
+  });
+
+  const sam = person("Sam", "Example", "scouts");
+  const alex = person("Alex", "Sample", "explorers");
+  const jo = person("Jo", "Newcomer", "scouts");
+
+  /** A stand-in API for the cast, roles and running order; `order: null` is no saved one. */
+  function theShowIs(
+    roles: Role[],
+    {
+      members = [sam, alex, jo],
+      order = show,
+    }: { members?: CastMember[]; order?: RunningOrder | null } = {},
+  ) {
+    const answers: Record<string, unknown> = {
+      [CAST_PATH]: { productionId: "2027", members },
+      [ROLES_PATH]: { productionId: "2027", roles },
+      [RUNNING_ORDER_PATH]: order,
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (url === RUNNING_ORDER_PATH && order === null)
+          return new Response(null, { status: 404 });
+        if (url in answers) return new Response(JSON.stringify(answers[url]));
+        return new Response(JSON.stringify({ status: "ok", version: "dev" }));
+      }),
+    );
+  }
+
+  const button = (wrapper: VueWrapper, label: string) =>
+    wrapper.findAll("main button").find((b) => b.text() === label);
+
+  async function openGrid() {
+    const wrapper = await openOverview();
+    await button(wrapper, "Grid")?.trigger("click");
+    return wrapper;
+  }
+
+  const rows = (wrapper: VueWrapper) =>
+    wrapper.findAll("tbody tr").map((row) => row.findAll("th, td"));
+  const rowOf = (wrapper: VueWrapper, firstName: string) =>
+    rows(wrapper).find((cells) => {
+      // A clash icon adds its words to the name cell, so match on the name it starts with.
+      const text = cells[0]?.text() ?? "";
+      return text === firstName || text.startsWith(`${firstName} `);
+    }) ?? [];
+
+  const cast = [
+    role("pirate-sketch", "lead", [sam.id]),
+    role("dance-one", "cameo", [sam.id]),
+    role("opening-number", "support", [alex.id]),
+  ];
+
+  it("switches to a grid on the same page", async () => {
+    theShowIs(cast);
+
+    const wrapper = await openGrid();
+
+    expect(wrapper.find("table").exists()).toBe(true);
+    expect(wrapper.get("main h1").text()).toBe("Overview");
+  });
+
+  it("switches back to the people by section", async () => {
+    theShowIs(cast);
+    const wrapper = await openGrid();
+
+    await button(wrapper, "By person")?.trigger("click");
+
+    expect(wrapper.find("table").exists()).toBe(false);
+    expect(sections(wrapper).map(({ heading }) => heading)).toEqual([
+      "Scouts 2 people",
+      "Explorers 1 person",
+    ]);
+  });
+
+  it("starts on the people by section, with the current view marked", async () => {
+    theShowIs(cast);
+
+    const wrapper = await openOverview();
+
+    expect(wrapper.find("table").exists()).toBe(false);
+    expect(button(wrapper, "By person")?.attributes("aria-pressed")).toBe("true");
+    expect(button(wrapper, "Grid")?.attributes("aria-pressed")).toBe("false");
+  });
+
+  it("has a row per person starting with first name, last name and section", async () => {
+    theShowIs(cast);
+
+    const wrapper = await openGrid();
+
+    expect(rows(wrapper).map((cells) => cells.slice(0, 3).map((cell) => cell.text()))).toEqual([
+      ["Sam", "Example", "Scouts"],
+      ["Jo", "Newcomer", "Scouts"],
+      ["Alex", "Sample", "Explorers"],
+    ]);
+  });
+
+  it("has a column per item in running order", async () => {
+    theShowIs(cast);
+
+    const wrapper = await openGrid();
+
+    const heads = wrapper.findAll("thead th").map((head) => head.text());
+    expect(heads.slice(3)).toEqual(["Opening Number", "Pirate Sketch", "Dance One"]);
+  });
+
+  it("shows a lead as one lead-coloured dot with the letter L", async () => {
+    theShowIs(cast);
+
+    const wrapper = await openGrid();
+
+    const dot = rowOf(wrapper, "Sam")[4]?.get("[data-test=grid-dot]");
+    expect(dot?.text()).toBe("L");
+    expect(dot?.classes()).toContain("grid-dot-lead");
+  });
+
+  it.each([
+    ["Alex", 3, "S", "grid-dot-support"],
+    ["Sam", 5, "C", "grid-dot-cameo"],
+  ])("shows %s's part in column %i as %s in its own colour", async (name, column, letter, tint) => {
+    theShowIs(cast);
+
+    const wrapper = await openGrid();
+
+    const dot = rowOf(wrapper, name)[column]?.get("[data-test=grid-dot]");
+    expect(dot?.text()).toBe(letter);
+    expect(dot?.classes()).toContain(tint);
+  });
+
+  it("shows an ensemble part as a dot with the letter E", async () => {
+    theShowIs([role("opening-number", "ensemble", [jo.id])]);
+
+    const wrapper = await openGrid();
+
+    const dot = rowOf(wrapper, "Jo")[3]?.get("[data-test=grid-dot]");
+    expect(dot?.text()).toBe("E");
+    expect(dot?.classes()).toContain("grid-dot-ensemble");
+  });
+
+  it("shows only the biggest of several parts in one item", async () => {
+    theShowIs([role("pirate-sketch", "cameo", [sam.id]), role("pirate-sketch", "lead", [sam.id])]);
+
+    const wrapper = await openGrid();
+
+    const dots = rowOf(wrapper, "Sam")[4]?.findAll("[data-test=grid-dot]");
+    expect(dots?.map((dot) => dot.text())).toEqual(["L"]);
+  });
+
+  it("lets a bigger part beat an ensemble part in the same item", async () => {
+    theShowIs([
+      role("pirate-sketch", "ensemble", [sam.id]),
+      role("pirate-sketch", "lead", [sam.id]),
+    ]);
+
+    const wrapper = await openGrid();
+
+    expect(rowOf(wrapper, "Sam")[4]?.get("[data-test=grid-dot]").text()).toBe("L");
+  });
+
+  it("leaves a cell empty where the person isn't cast", async () => {
+    theShowIs(cast);
+
+    const wrapper = await openGrid();
+
+    const cell = rowOf(wrapper, "Sam")[3];
+    expect(cell?.find("[data-test=grid-dot]").exists()).toBe(false);
+    expect(cell?.classes()).toContain("grid-empty");
+  });
+
+  it("keeps someone with no parts, with every item empty", async () => {
+    theShowIs(cast);
+
+    const wrapper = await openGrid();
+
+    const items = rowOf(wrapper, "Jo").slice(3);
+    expect(items).toHaveLength(3);
+    expect(items.every((cell) => cell.classes().includes("grid-empty"))).toBe(true);
+  });
+
+  it("lets a screen reader hear the part, under the person and item headers", async () => {
+    theShowIs(cast);
+
+    const wrapper = await openGrid();
+
+    const cell = rowOf(wrapper, "Sam")[4];
+    expect(cell?.get(".visually-hidden").text()).toBe("Lead");
+    expect(cell?.get("[data-test=grid-dot]").attributes("aria-hidden")).toBe("true");
+    expect(rowOf(wrapper, "Sam")[0]?.element.tagName).toBe("TH");
+    expect(rowOf(wrapper, "Sam")[0]?.attributes("scope")).toBe("row");
+    expect(rowOf(wrapper, "Sam")[1]?.element.tagName).toBe("TD");
+    expect(wrapper.findAll("thead th").every((head) => head.attributes("scope") === "col")).toBe(
+      true,
+    );
+  });
+
+  it.each([
+    ["has no saved running order", null],
+    ["has an empty running order", aRunningOrder([], [])],
+  ])("says there are no items when the show %s", async (_name, order) => {
+    theShowIs([], { order });
+
+    const wrapper = await openGrid();
+
+    expect(wrapper.find("table").exists()).toBe(false);
+    expect(wrapper.get("main").text()).toContain("No items in the running order yet.");
+  });
+
+  it("says the grid couldn't load when the casting fails", async () => {
+    theShowIs(cast);
+    const fetched = globalThis.fetch;
+    vi.stubGlobal("fetch", (url: string) =>
+      url === ROLES_PATH ? Promise.resolve(new Response(null, { status: 500 })) : fetched(url),
+    );
+
+    const wrapper = await openGrid();
+
+    expect(wrapper.find("table").exists()).toBe(false);
+    expect(wrapper.get("main").text()).toContain("Couldn't load the grid.");
+  });
+
+  it("says there are no cast members, without an empty table or a switch", async () => {
+    theShowIs(cast, { members: [] });
+
+    const wrapper = await openOverview();
+
+    expect(wrapper.get("main").text()).toContain("No cast members yet.");
+    expect(button(wrapper, "Grid")).toBeUndefined();
+    expect(wrapper.find("table").exists()).toBe(false);
+  });
+
+  it("puts the grid in a named, focusable box that scrolls on its own", async () => {
+    theShowIs(cast);
+
+    const wrapper = await openGrid();
+
+    const box = wrapper.get(".table-scroll");
+    expect(box.attributes("role")).toBe("region");
+    expect(box.attributes("aria-label")).toBe("Who is in which item");
+    expect(box.attributes("tabindex")).toBe("0");
+    expect(box.find("table").exists()).toBe(true);
+  });
+
+  it("names the switch for what it changes, and the page for both views", async () => {
+    theShowIs(cast);
+
+    const wrapper = await openOverview();
+
+    expect(wrapper.get(".view-switch").attributes("aria-label")).toBe("Choose how to see the cast");
+    expect(wrapper.get("main").text()).toContain("Everyone in the cast and how much they're cast.");
+    expect(wrapper.get("main").text()).not.toContain("by section");
+  });
+
+  it("flags a clash beside the name of someone who has one", async () => {
+    // Sam is a lead in two items back to back; Alex is in one item.
+    theShowIs([
+      role("opening-number", "lead", [sam.id]),
+      role("pirate-sketch", "support", [sam.id]),
+      role("dance-one", "lead", [alex.id]),
+    ]);
+
+    const wrapper = await openGrid();
+
+    expect(rowOf(wrapper, "Sam")[0]?.get("[data-test=clash]").attributes("data-severity")).toBe(
+      "error",
+    );
+    expect(rowOf(wrapper, "Alex")[0]?.find("[data-test=clash]").exists()).toBe(false);
+  });
+});
