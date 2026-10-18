@@ -289,6 +289,15 @@ describe("release: merging", () => {
     expect(asked[0]).toContain("app/github-actions");
   });
 
+  it("merges with the admin bypass, and says so, since a release PR never gets the checks the ruleset requires", async () => {
+    const { deps, commands, asked } = fakeMachine({ yes: [true, false], ...merged });
+
+    await release([], deps);
+
+    expect(commands).toContain("gh pr merge 62 --squash --admin");
+    expect(asked[0]).toContain("bypass");
+  });
+
   it("stops when you say no to merging", async () => {
     const { deps, commands } = fakeMachine({ yes: [false] });
 
@@ -300,7 +309,7 @@ describe("release: merging", () => {
   it("stops, deploying nothing, if the merge fails", async () => {
     const { deps, commands, printed } = fakeMachine({
       yes: [true],
-      fail: ["gh pr merge 62 --squash"],
+      fail: ["gh pr merge 62 --squash --admin"],
     });
 
     expect(await release([], deps)).toBe(1);
@@ -325,7 +334,7 @@ describe("release: deploying", () => {
     expect(await release([], deps)).toBe(0);
 
     const steps = [
-      "gh pr merge 62 --squash",
+      "gh pr merge 62 --squash --admin",
       "git switch --detach v0.2.0",
       "git describe --exact-match --tags HEAD",
       "pnpm install --frozen-lockfile",
