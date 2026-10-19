@@ -128,7 +128,7 @@ async function loadRunningOrder() {
   <p>The show's items, with how far each one's casting has got.</p>
   <p v-if="state.status === 'empty'">
     There's no saved running order yet. Set one up on the
-    <RouterLink to="/">Running order page</RouterLink>.
+    <RouterLink :to="{ name: 'running-order' }">Running order page</RouterLink>.
   </p>
   <p v-else-if="state.status === 'error'" role="alert">Couldn't load the items.</p>
   <template v-else-if="state.status === 'loaded'">

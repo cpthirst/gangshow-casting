@@ -32,7 +32,7 @@ async function expectNoSidewaysScroll(page: Page) {
 }
 
 test("the running order and its edit form fit the screen", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/running-order");
   await expect(page.getByText("Opening Number")).toBeVisible();
   await expectNoSidewaysScroll(page);
 

@@ -8,6 +8,7 @@ import CastPage from "./pages/CastPage.vue";
 import NotFoundPage from "./pages/NotFoundPage.vue";
 import PlaceholderPage from "./pages/PlaceholderPage.vue";
 import RunningOrderPage from "./pages/RunningOrderPage.vue";
+import WelcomePage from "./pages/WelcomePage.vue";
 
 declare module "vue-router" {
   interface RouteMeta {
@@ -44,8 +45,18 @@ interface MenuGroup {
 // The menu lists these in order. To add a page: add an entry here, or to a group's pages
 // (pages without a component yet show a placeholder).
 export const menuPages: (MenuPage | MenuGroup)[] = [
+  // Where signing in lands, and the app's own address (in-app-help FR1).
   {
     path: "/",
+    name: "welcome",
+    component: WelcomePage,
+    meta: {
+      title: "Welcome",
+      description: "What each page is for, and what its buttons do.",
+    },
+  },
+  {
+    path: "/running-order",
     name: "running-order",
     component: RunningOrderPage,
     meta: {

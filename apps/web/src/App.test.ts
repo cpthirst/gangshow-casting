@@ -54,12 +54,14 @@ describe("App shell", () => {
     const menu = wrapper.get("nav[aria-label=Main]");
     const topLevel = menu.findAll(":scope > ul > li").map((item) => item.text());
     expect(topLevel).toEqual([
+      "Welcome",
       "Running order",
       "Cast",
       expect.stringMatching(/^Casting/),
       "Accounts",
     ]);
     expect(menu.findAll("a").map((link) => link.text())).toEqual([
+      "Welcome",
       "Running order",
       "Cast",
       "Overview",
@@ -111,6 +113,7 @@ describe("App shell", () => {
 
       const links = wrapper.get("nav[aria-label=Main]").findAll("a");
       expect(links.map((link) => link.text())).toEqual([
+        "Welcome",
         "Running order",
         "Cast",
         "Overview",
@@ -133,7 +136,7 @@ describe("App shell", () => {
       await roleSwitch(wrapper).setValue("read-only");
       await flushPromises();
 
-      expect(router.currentRoute.value.path).toBe("/");
+      expect(router.currentRoute.value.path).toBe("/running-order");
     });
 
     it("stays on a page the chosen role can open", async () => {
@@ -157,7 +160,7 @@ describe("App shell", () => {
   it("lists Overview and Items as a list inside Casting", async () => {
     const { wrapper } = await openAppAt("/");
 
-    const subList = wrapper.get("nav[aria-label=Main] > ul > li:nth-child(3) > ul");
+    const subList = wrapper.get("nav[aria-label=Main] > ul > li:nth-child(4) > ul");
     const label = document.getElementById(subList.attributes("aria-labelledby") ?? "");
     expect(label?.textContent).toBe("Casting");
     expect(subList.findAll(":scope > li > a").map((link) => link.text())).toEqual([
@@ -166,17 +169,38 @@ describe("App shell", () => {
     ]);
   });
 
-  it("opens the Running order page at the root URL", async () => {
+  it("opens the Welcome page at the app's own address, marked as current", async () => {
     const { wrapper } = await openAppAt("/");
+
+    expect(wrapper.get("main h1").text()).toBe("Welcome");
+    expect(document.title).toBe("Welcome · Chester Gang Show casting");
+    const current = wrapper.findAll("nav a[aria-current=page]");
+    expect(current.map((link) => link.text())).toEqual(["Welcome"]);
+  });
+
+  it("opens the Running order at its own address, marked as current", async () => {
+    const { wrapper } = await openAppAt("/running-order");
 
     expect(wrapper.get("main h1").text()).toBe("Running order");
     expect(document.title).toBe("Running order · Chester Gang Show casting");
+    const current = wrapper.findAll("nav a[aria-current=page]");
+    expect(current.map((link) => link.text())).toEqual(["Running order"]);
   });
 
-  it("shows the running order itself at the root URL", async () => {
+  it("goes from Welcome to the Running order through the menu", async () => {
+    const { wrapper, router } = await openAppAt("/");
+
+    await wrapper.get("nav a[href='/running-order']").trigger("click");
+    await flushPromises();
+
+    expect(router.currentRoute.value.fullPath).toBe("/running-order");
+    expect(wrapper.get("main h1").text()).toBe("Running order");
+  });
+
+  it("shows the running order itself at its own address", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 404 })));
 
-    const { wrapper } = await openAppAt("/");
+    const { wrapper } = await openAppAt("/running-order");
 
     expect(wrapper.get("main").text()).toContain("No running order yet");
   });
@@ -213,14 +237,14 @@ describe("App shell", () => {
     );
     const confirm = vi.fn().mockReturnValue(false);
     vi.stubGlobal("confirm", confirm);
-    const { wrapper, router } = await openAppAt("/");
+    const { wrapper, router } = await openAppAt("/running-order");
     await wrapper.get("button[aria-label='Move Curtain Up down']").trigger("click");
 
     await wrapper.get("nav a[href='/cast']").trigger("click");
     await flushPromises();
 
     expect(confirm).toHaveBeenCalledWith("Discard unsaved changes?");
-    expect(router.currentRoute.value.fullPath).toBe("/");
+    expect(router.currentRoute.value.fullPath).toBe("/running-order");
     expect(wrapper.find("[data-test=unsaved]").exists()).toBe(true);
     expect(wrapper.findAll("main tbody [data-test=title]").map((cell) => cell.text())).toEqual([
       "Pirate Panic",
@@ -265,10 +289,10 @@ describe("App shell", () => {
     );
     const { wrapper, router } = await openAppAt("/casting/items");
 
-    await wrapper.get("main a[href='/']").trigger("click");
+    await wrapper.get("main a[href='/running-order']").trigger("click");
     await flushPromises();
 
-    expect(router.currentRoute.value.fullPath).toBe("/");
+    expect(router.currentRoute.value.fullPath).toBe("/running-order");
     expect(wrapper.get("main h1").text()).toBe("Running order");
   });
 
@@ -286,7 +310,7 @@ describe("App shell", () => {
   });
 
   it("returns to the previous page on back", async () => {
-    const { wrapper, router } = await openAppAt("/");
+    const { wrapper, router } = await openAppAt("/running-order");
     await router.push("/cast");
 
     const navigated = nextNavigation(router);
@@ -350,7 +374,7 @@ describe("App shell", () => {
     expect(wrapper.get("main h1").text()).toBe("Page not found");
     await wrapper.get("main a").trigger("click");
     await flushPromises();
-    expect(router.currentRoute.value.fullPath).toBe("/");
+    expect(router.currentRoute.value.fullPath).toBe("/running-order");
     expect(wrapper.get("main h1").text()).toBe("Running order");
   });
 
@@ -373,7 +397,7 @@ describe("App shell", () => {
   it("labels every page as demo data when serving the demo show", async () => {
     vi.stubEnv("VITE_DEMO", "true");
 
-    for (const path of ["/", "/cast", "/casting/items", "/casting/overview"]) {
+    for (const path of ["/", "/running-order", "/cast", "/casting/items", "/casting/overview"]) {
       const { wrapper } = await openAppAt(path);
       expect(wrapper.get("[data-test=demo-label]").text()).toContain("Demo data");
       wrapper.unmount();
@@ -390,7 +414,7 @@ describe("App shell", () => {
   it("still renders the shell when the API is unreachable", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
 
-    const { wrapper } = await openAppAt("/");
+    const { wrapper } = await openAppAt("/running-order");
 
     expect(wrapper.get("main h1").text()).toBe("Running order");
     expect(wrapper.text()).toContain("API: unavailable");
@@ -407,16 +431,20 @@ describe("App shell", () => {
     );
     beforeEach(() => vi.stubGlobal("fetch", refuseExceptCast));
 
-    it.each(["/", "/cast", "/casting/overview", "/casting/items", "/casting/items/1"])(
-      "shows no data on %s and says to sign in",
-      async (path) => {
-        const { wrapper } = await openAppAt(path);
+    it.each([
+      "/",
+      "/running-order",
+      "/cast",
+      "/casting/overview",
+      "/casting/items",
+      "/casting/items/1",
+    ])("shows no data on %s and says to sign in", async (path) => {
+      const { wrapper } = await openAppAt(path);
 
-        const main = wrapper.get("main");
-        expect(main.get("h1").text()).toBe("You need to sign in");
-        expect(main.text()).not.toContain("Testperson");
-      },
-    );
+      const main = wrapper.get("main");
+      expect(main.get("h1").text()).toBe("You need to sign in");
+      expect(main.text()).not.toContain("Testperson");
+    });
 
     it("announces why the page is empty, and says so in the tab and the API status", async () => {
       const { wrapper } = await openAppAt("/cast");
@@ -465,6 +493,14 @@ describe("App shell", () => {
       await wrapper.get("main button[data-test=sign-in]").trigger("click");
 
       expect(manager.startSignIn).toHaveBeenCalledWith("/cast");
+    });
+
+    it("lands on the Welcome page once signed in at the app's own address", async () => {
+      await useHostedSignIn(config, managerWith(sam), browserAt("/"));
+      const { wrapper } = await openAppAt("/");
+
+      expect(wrapper.get("main h1").text()).toBe("Welcome");
+      expect(document.title).toBe("Welcome · Chester Gang Show casting");
     });
 
     it("shows the page once signed in, with a way to sign out", async () => {

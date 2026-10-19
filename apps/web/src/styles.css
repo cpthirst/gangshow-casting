@@ -2039,3 +2039,52 @@ main a {
     text-transform: uppercase;
   }
 }
+
+/* In-app help: one line per action, the page's own icons first, then who can use it. The
+   access label is a word in a pill, so it never relies on colour. */
+.help-section {
+  max-width: 44rem;
+}
+
+.help-lines {
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.help-line {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  padding: 0.25rem 0;
+}
+
+/* Two boxes a row, so the column stays narrow on a phone; the Move line wraps to two. */
+.help-icons {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  width: 4.25rem;
+}
+
+/* Boxed like the buttons they stand for (.icon-button), so they're easy to match up. */
+.help-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--text);
+  border-radius: 0.25rem;
+  background: var(--white);
+}
+
+.help-access {
+  margin-left: 0.25rem;
+}
+
+.help-access-admins {
+  border-color: var(--red-darker);
+  color: var(--red-darker);
+}
