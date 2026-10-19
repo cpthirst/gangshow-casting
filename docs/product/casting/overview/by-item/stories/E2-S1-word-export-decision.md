@@ -2,7 +2,7 @@
 id: casting-overview-by-item.E2.S1
 title: Record how the Word documents are built
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story
@@ -43,5 +43,6 @@ Then both link to it
 ## Notes
 
 - FRs: none (non-functional: security, safeguarding, performance)
+- Decision: [ADR 0022](../../../../adr/0022-word-exports-built-in-the-browser.md), accepted 2026-10-19.
 - Depends on: none
 - Review loop is skipped: the change is docs only.

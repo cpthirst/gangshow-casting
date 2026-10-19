@@ -68,7 +68,7 @@ The Overview shows the cast by person and as a grid. Nothing shows the whole sho
 
 ## Constraints and assumptions
 
-- The Word documents are made with the `docx` library (github.com/dolanmiu/docx), as the user asked. Where they're built (browser or server) is decided in an ADR. That ADR also covers the new dependency and how it relates to ADRs 0019 and 0021.
+- The Word documents are made with the `docx` library (github.com/dolanmiu/docx), as the user asked. [ADR 0022](../../../../adr/0022-word-exports-built-in-the-browser.md) builds them in the browser and loads the library only when an export is used. It also says how this relates to ADRs 0019 and 0021.
 - "Role type" is the existing **role size**. Names, item numbers and halves are worked out the same way as on the rest of the Overview and the Running order page.
 - The production title is the running order's title.
 - Fits the existing team roles: nothing here changes stored data, so Read-Only Team Members can use everything.
