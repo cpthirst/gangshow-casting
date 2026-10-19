@@ -264,7 +264,7 @@ describe("App shell", () => {
     await flushPromises();
 
     expect(wrapper.get("main h1").text()).toBe("Overview");
-    expect(wrapper.get("main p").text()).toBe("Everyone in the cast and how much they're cast.");
+    expect(wrapper.get("main > p").text()).toBe("Everyone in the cast and how much they're cast.");
     expect(router.currentRoute.value.fullPath).toBe("/casting/overview");
     expect(document.title).toBe("Overview · Chester Gang Show casting");
   });
@@ -276,7 +276,7 @@ describe("App shell", () => {
     await flushPromises();
 
     expect(wrapper.get("main h1").text()).toBe("Items");
-    expect(wrapper.get("main p").text()).toBe(
+    expect(wrapper.get("main > p").text()).toBe(
       "The show's items, with how far each one's casting has got.",
     );
     expect(router.currentRoute.value.fullPath).toBe("/casting/items");

@@ -18,7 +18,9 @@ import PageHelp from "../PageHelp.vue";
     <h2 :id="`help-${help.page}`">{{ help.title }}</h2>
     <PageHelp :help="help" />
     <p>
-      <RouterLink :to="{ name: help.page }">Go to the {{ help.title }} page</RouterLink>
+      <RouterLink :to="{ name: (help.reachedFrom ?? help).page }"
+        >Go to the {{ (help.reachedFrom ?? help).title }} page</RouterLink
+      >
     </p>
   </section>
 </template>

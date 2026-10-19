@@ -1469,9 +1469,11 @@ main a {
   gap: 0.375rem;
 }
 
-/* A page's title, with its controls at the top right, such as the Running order's Help. */
+/* A page's title, with its controls at the top right, such as the Running order's Help.
+   Wraps, so a long item title on a phone pushes them onto the next line. */
 .page-title-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;

@@ -12,6 +12,7 @@ import { computed, onMounted, ref } from "vue";
 import ClashIcon from "../ClashIcon.vue";
 import { CAST_PATH } from "../cast.ts";
 import { clashesInItem, findClashes, summariseClashes } from "../clashes.ts";
+import HelpButton from "../HelpButton.vue";
 import { icons } from "../icons.ts";
 import { ITEM_NOTES_PATH } from "../item-notes.ts";
 import ReadOnlyNotice from "../ReadOnlyNotice.vue";
@@ -123,7 +124,10 @@ async function loadRunningOrder() {
 </script>
 
 <template>
-  <h1>Items</h1>
+  <div class="page-title-row">
+    <h1>Items</h1>
+    <HelpButton page="casting-items" />
+  </div>
   <ReadOnlyNotice />
   <p>The show's items, with how far each one's casting has got.</p>
   <p v-if="state.status === 'empty'">

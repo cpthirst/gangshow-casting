@@ -13,6 +13,7 @@ import {
   sectionLabel,
   sortCast,
 } from "../cast.ts";
+import HelpButton from "../HelpButton.vue";
 import { icons } from "../icons.ts";
 import ReadOnlyNotice from "../ReadOnlyNotice.vue";
 import { ROLES_PATH } from "../roles.ts";
@@ -265,7 +266,10 @@ onMounted(load);
 </script>
 
 <template>
-  <h1>Cast</h1>
+  <div class="page-title-row">
+    <h1>Cast</h1>
+    <HelpButton page="cast" />
+  </div>
   <!-- Outside the state switch: a conflict can leave the list empty, and it still needs explaining. -->
   <p v-if="notice" class="notice" role="alert">{{ notice }}</p>
   <!-- Above the states, so it explains an empty cast too. -->

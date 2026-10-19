@@ -2,7 +2,7 @@
 id: in-app-help.E2.S1
 title: Help for the Cast page
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story
