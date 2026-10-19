@@ -35,7 +35,7 @@ The Overview shows the cast by person and as a grid. Nothing shows the whole sho
 - Showing role names, clash warnings, timings or stage on the casting sheets.
 - Emailing, sharing or storing the documents anywhere. The app only downloads them.
 - Other formats (PDF, Excel) for these two documents.
-- Changing the existing Excel export.
+- Changing the existing Excel export, or what the By person view shows.
 
 ## Functional requirements
 
@@ -50,7 +50,7 @@ The Overview shows the cast by person and as a grid. Nothing shows the whole sho
 
 ### Word exports
 
-- **FR7**: On the By item view only, two buttons must sit where "Export to Excel" sits on the grid, shaped like it but **blue**: **Export Item Overview** and **Export Casting Sheets**. Every team role can use them.
+- **FR7**: Two Word export buttons, shaped like "Export to Excel" and placed where it sits on the grid (beside the view switch), but **blue**: **Export Item Overview** on the By item view only, and **Export Casting Sheets** on the By person view only. Every team role can use both.
 - **FR8**: **Export Item Overview** must download a Word document that reproduces the By item view: Heading 1 is the production's title, Heading 2 each half's name, Heading 3 each item (with its number, if printed). Under each item is a table of Role name, Role type and Cast. Unprinted items and uncast roles appear as they do on screen (FR3, FR5).
 - **FR9**: **Export Casting Sheets** must download one Word document with **one page per cast member**, for every member of the production's cast, including anyone not yet cast in anything.
 - **FR10**: Pages must be ordered by section (Scouts, Explorers, Network, then anyone with no section set), then by surname, then first name.
