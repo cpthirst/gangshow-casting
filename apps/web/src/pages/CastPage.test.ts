@@ -1167,4 +1167,35 @@ describe("Cast page", () => {
       expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
     });
   });
+
+  describe("its help (in-app-help E2.S1)", () => {
+    it("opens the Cast help from beside the page's heading", async () => {
+      serve(aCast([aMember("Ava", "Example")]));
+      const wrapper = await openPage();
+
+      await wrapper.get(".page-title-row button[aria-label='Help for Cast']").trigger("click");
+
+      expect(wrapper.get("dialog h2").text()).toBe("Cast help");
+      expect(wrapper.findAll("dialog [data-test=help-name]").map((name) => name.text())).toEqual([
+        "Filter",
+        "Clear filters",
+        "Add cast member",
+        "Edit",
+        "Delete",
+      ]);
+    });
+
+    it("keeps a half-filled form through opening and closing the help", async () => {
+      serve(aCast([aMember("Ava", "Example")]));
+      const wrapper = await openPage();
+      await wrapper.get("[data-test=add-member]").trigger("click");
+      const firstName = "form[data-test=cast-member-form] input[name=firstName]";
+      await wrapper.get(firstName).setValue("Ava");
+
+      await wrapper.get("button[aria-label='Help for Cast']").trigger("click");
+      await wrapper.get("dialog button").trigger("click");
+
+      expect(wrapper.get<HTMLInputElement>(firstName).element.value).toBe("Ava");
+    });
+  });
 });

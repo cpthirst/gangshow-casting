@@ -85,6 +85,40 @@ export const pageHelp: PageHelp[] = [
       },
     ],
   },
+  {
+    page: "cast",
+    title: "Cast",
+    summary: "Everyone in this production's cast, with their section, group and casting notes.",
+    lines: [
+      {
+        name: "Filter",
+        does: "Type a first or last name, or pick a section, to show only the people who match.",
+        access: "everyone",
+      },
+      {
+        name: "Clear filters",
+        does: "Shows the whole cast again.",
+        access: "everyone",
+      },
+      {
+        name: "Add cast member",
+        does: "Adds someone to this production's cast.",
+        access: "casting",
+      },
+      {
+        icons: [icons.edit],
+        name: "Edit",
+        does: "Changes someone's name, section, group or casting notes.",
+        access: "casting",
+      },
+      {
+        icons: [icons.remove],
+        name: "Delete",
+        does: "Takes someone out of the cast.",
+        access: "admins",
+      },
+    ],
+  },
 ];
 
 /** The named page's help. A page without any is a mistake in the code, so it fails loudly. */

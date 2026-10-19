@@ -20,19 +20,33 @@ const ACCESS_LABELS = ["Everyone", "Casting team and admins", "Admins only"];
 
 type Wrapper = Awaited<ReturnType<typeof openWelcome>>["wrapper"];
 
-const runningOrder = (wrapper: Wrapper) =>
-  wrapper.get("section[aria-labelledby='help-running-order']");
+const sectionFor = (wrapper: Wrapper, page: string) =>
+  wrapper.get(`section[aria-labelledby='help-${page}']`);
 
-const lines = (wrapper: Wrapper) => runningOrder(wrapper).findAll("[data-test=help-line]");
+const runningOrder = (wrapper: Wrapper) => sectionFor(wrapper, "running-order");
 
-const lineNamed = (wrapper: Wrapper, name: string) => {
-  const found = lines(wrapper).find((line) => line.get("[data-test=help-name]").text() === name);
+const lines = (wrapper: Wrapper, page = "running-order") =>
+  sectionFor(wrapper, page).findAll("[data-test=help-line]");
+
+const lineNamed = (wrapper: Wrapper, name: string, page = "running-order") => {
+  const found = lines(wrapper, page).find(
+    (line) => line.get("[data-test=help-name]").text() === name,
+  );
   if (!found) throw new Error(`No help line named ${name}`);
   return found;
 };
 
-const accessOf = (wrapper: Wrapper, name: string) =>
-  lineNamed(wrapper, name).get("[data-test=help-access]").text();
+const accessOf = (wrapper: Wrapper, name: string, page = "running-order") =>
+  lineNamed(wrapper, name, page).get("[data-test=help-access]").text();
+
+const sectionTitles = (wrapper: Wrapper) =>
+  wrapper.findAll("section.help-section h2").map((heading) => heading.text());
+
+async function followLink(wrapper: Wrapper, router: Wrapper["vm"]["$router"], page: string) {
+  await sectionFor(wrapper, page).get("a").trigger("click");
+  await flushPromises();
+  return router.currentRoute.value.name;
+}
 
 beforeEach(useLocalSignIn);
 
@@ -110,10 +124,12 @@ describe("Welcome page", () => {
     }
   });
 
-  it("keeps the Running order's help to at most 8 lines", async () => {
+  it("keeps each page's help to at most 8 lines", async () => {
     const { wrapper } = await openWelcome();
 
-    expect(lines(wrapper).length).toBeLessThanOrEqual(8);
+    for (const section of wrapper.findAll("section.help-section")) {
+      expect(section.findAll("[data-test=help-line]").length).toBeLessThanOrEqual(8);
+    }
   });
 
   it("shows every role the same help", async () => {
@@ -125,5 +141,39 @@ describe("Welcome page", () => {
       const { wrapper } = await openWelcome();
       expect(wrapper.html()).toBe(shown);
     }
+  });
+
+  describe("the Cast section", () => {
+    it("follows the Running order's and links to the Cast page", async () => {
+      const { wrapper, router } = await openWelcome();
+
+      expect(sectionTitles(wrapper).slice(0, 2)).toEqual(["Running order", "Cast"]);
+      expect(await followLink(wrapper, router, "cast")).toBe("cast");
+    });
+
+    it("explains each action in a line, with the page's icons and who can use it", async () => {
+      const { wrapper } = await openWelcome();
+
+      expect(
+        lines(wrapper, "cast").map((line) => line.get("[data-test=help-name]").text()),
+      ).toEqual(["Filter", "Clear filters", "Add cast member", "Edit", "Delete"]);
+      expect(lineNamed(wrapper, "Edit", "cast").get("svg").attributes("data-icon")).toBe(
+        icons.edit.iconName,
+      );
+      expect(lineNamed(wrapper, "Delete", "cast").get("svg").attributes("data-icon")).toBe(
+        icons.remove.iconName,
+      );
+      expect(
+        ["Filter", "Clear filters", "Add cast member", "Edit", "Delete"].map((name) =>
+          accessOf(wrapper, name, "cast"),
+        ),
+      ).toEqual([
+        "Everyone",
+        "Everyone",
+        "Casting team and admins",
+        "Casting team and admins",
+        "Admins only",
+      ]);
+    });
   });
 });

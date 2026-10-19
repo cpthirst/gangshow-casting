@@ -24,7 +24,7 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [in-app-help.E2.S1](stories/E2-S1-cast-help.md) | The Cast page's help, on Welcome and behind its help button | FR3, FR4, FR5, FR6, FR7, FR9 | E1.S2 | ready |
+| [in-app-help.E2.S1](stories/E2-S1-cast-help.md) | The Cast page's help, on Welcome and behind its help button | FR3, FR4, FR5, FR6, FR7, FR9 | E1.S2 | done |
 | [in-app-help.E2.S2](stories/E2-S2-casting-overview-help.md) | The Casting overview's help, on Welcome and behind its help button | FR3, FR4, FR5, FR6, FR7, FR9 | E1.S2 | ready |
 | [in-app-help.E2.S3](stories/E2-S3-items-and-item-help.md) | The Casting items list's and single item page's help, on Welcome and behind each page's help button; the item's help says how to reach it (Casting → Items) | FR3, FR4, FR5, FR6, FR7, FR9, FR10 | E1.S2 | ready |
 
