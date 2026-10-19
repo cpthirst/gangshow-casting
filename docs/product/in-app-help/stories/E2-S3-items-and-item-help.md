@@ -2,7 +2,7 @@
 id: in-app-help.E2.S3
 title: Help for the Items list and a single item
 epic: E2
-status: draft
+status: ready
 ---
 
 ## Story
