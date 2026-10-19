@@ -24,9 +24,15 @@ const headingOf = ({ number, title }: ShowItem) => (number === null ? title : `$
   <section v-for="half in halves" :key="half.id" class="by-item-half">
     <h2 :id="`by-item-${half.id}`">{{ half.name }}</h2>
     <section v-for="item in half.items" :key="item.itemId" class="by-item-item" data-test="show-item">
-      <h3>{{ headingOf(item) }}</h3>
+      <!-- Unprinted: red italics as on the grid, and the Items list's badge, so it's said in
+           words, not by colour alone. -->
+      <h3 :class="{ 'by-item-unprinted': item.number === null }">
+        {{ headingOf(item) }}
+        <span v-if="item.number === null" class="badge">Not in printed programme</span>
+      </h3>
+      <p v-if="item.roles.length === 0">No roles have been added yet.</p>
       <div
-        v-if="item.roles.length > 0"
+        v-else
         class="table-scroll"
         tabindex="0"
         role="region"
@@ -46,6 +52,7 @@ const headingOf = ({ number, title }: ShowItem) => (number === null ? title : `$
                 <span :class="['pill', `pill-${role.size}`]">{{ roleSizeLabel(role.size) }}</span>
               </td>
               <td data-label="Cast">
+                <span v-if="role.cast.length === 0" class="uncast">Uncast</span>
                 <template v-for="(member, i) in role.cast" :key="member.id"
                   ><template v-if="i > 0">, </template
                   ><span class="cast-name"

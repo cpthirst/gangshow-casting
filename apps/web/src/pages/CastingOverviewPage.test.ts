@@ -1621,6 +1621,15 @@ describe("The By item view on the Overview", () => {
   const show = aRunningOrder([anItem("Opening"), anItem("Campfire Song")], [anItem("Finale")]);
   show.halves[0].name = "Act One";
   show.halves[1].name = "Act Two";
+  // Items 1–3 printed, then one left out of the printed programme, then item 4.
+  const withUnprinted = aRunningOrder([
+    anItem("Opening"),
+    anItem("Campfire Song"),
+    anItem("Pirate Sketch"),
+    anItem("Scene Change Music", { printed: false }),
+    anItem("Finale"),
+  ]);
+  const unprintedHeading = "Scene Change Music Not in printed programme";
   let roleId = 1;
   const role = (
     itemId: string,
@@ -1796,6 +1805,56 @@ describe("The By item view on the Overview", () => {
     expect(clashIn("1 Opening")).toBe(true);
     expect(clashIn("2 Campfire Song")).toBe(true);
     expect(clashIn("1 Finale")).toBe(false);
+  });
+
+  it("marks an item left out of the printed programme in red italics, with no number", async () => {
+    theShowIs([], withUnprinted);
+
+    const wrapper = await openByItem();
+
+    const heading = itemNamed(wrapper, unprintedHeading)?.get("h3");
+    expect(heading?.classes()).toContain("by-item-unprinted");
+    expect(heading?.text()).toMatch(/^Scene Change Music/);
+  });
+
+  it("doesn't count an unprinted item in the programme numbers", async () => {
+    theShowIs([], withUnprinted);
+
+    const wrapper = await openByItem();
+
+    const headings = byItem(wrapper)
+      .findAll("h3")
+      .map((h) => h.text());
+    expect(headings.slice(3)).toEqual([unprintedHeading, "4 Finale"]);
+  });
+
+  it("says in words, not only colour, that an item isn't in the printed programme", async () => {
+    theShowIs([], withUnprinted);
+
+    const wrapper = await openByItem();
+
+    const badge = itemNamed(wrapper, unprintedHeading)?.get("h3 .badge");
+    expect(badge?.text()).toBe("Not in printed programme");
+    expect(badge?.classes()).not.toContain("visually-hidden");
+  });
+
+  it("says Uncast for a role nobody plays", async () => {
+    theShowIs([role("finale", "Narrator", "support")]);
+
+    const wrapper = await openByItem();
+
+    expect(rowsOf(wrapper, "1 Finale")).toEqual([["Narrator", "Support", "Uncast"]]);
+    expect(itemNamed(wrapper, "1 Finale")?.find(".uncast").exists()).toBe(true);
+  });
+
+  it("says an item with no roles has none yet, with no empty table", async () => {
+    theShowIs([role("opening", "Fairy Godmother", "lead", [ava.id])]);
+
+    const wrapper = await openByItem();
+
+    const finale = itemNamed(wrapper, "1 Finale");
+    expect(finale?.find("table").exists()).toBe(false);
+    expect(finale?.text()).toContain("No roles have been added yet.");
   });
 
   it("says there are no items yet when the running order is empty", async () => {

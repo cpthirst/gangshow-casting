@@ -1586,8 +1586,10 @@ main a {
   overflow-wrap: anywhere;
 }
 
-/* An item that isn't in the printed programme: italic red, as the team marks it. */
-.casting-grid .grid-unprinted {
+/* An item that isn't in the printed programme: italic red, as the team marks it, on the
+   grid and the By item view alike. */
+.casting-grid .grid-unprinted,
+.by-item-item h3.by-item-unprinted {
   color: var(--red-darker);
   font-style: italic;
 }
@@ -1949,6 +1951,12 @@ main a {
   margin: 1rem 0 0.5rem;
   font-size: 1.0625rem;
   font-weight: 800;
+}
+
+/* The badge reads as it does on the Items list, not in the heading's red. */
+.by-item-unprinted .badge {
+  color: var(--text);
+  vertical-align: middle;
 }
 
 .by-item-roles {
