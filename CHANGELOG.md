@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.0](https://github.com/cpthirst/gangshow-casting/compare/v1.6.0...v1.7.0) (2026-10-19)
+
+
+### Features
+
+* **web:** export the Overview to Word: item overview and casting sheets ([#80](https://github.com/cpthirst/gangshow-casting/issues/80)) ([3d86cf2](https://github.com/cpthirst/gangshow-casting/commit/3d86cf28cc9a231cd5888956431743a358c97237))
+
 ## [1.6.0](https://github.com/cpthirst/gangshow-casting/compare/v1.5.0...v1.6.0) (2026-10-19)
 
 
