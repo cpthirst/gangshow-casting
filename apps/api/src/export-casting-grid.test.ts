@@ -2,7 +2,14 @@ import { gridLetterColours, unprintedHeadingColour } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import { describe, expect, it } from "vitest";
 import { exportCastingGrid } from "./export-casting-grid.ts";
-import { readSheet, readStyledCells, type StyledCell, sheetXml } from "./xlsx.fixture.ts";
+import {
+  columnPixels,
+  readSheet,
+  readStyledCells,
+  rowHeight,
+  type StyledCell,
+  sheetXml,
+} from "./xlsx.fixture.ts";
 
 // Made-up names only: tests never use the real cast (CLAUDE.md safeguarding).
 const grid = {
@@ -117,6 +124,73 @@ describe("export casting grid handler", () => {
 
   it("returns 404 for a production id that can't be one", async () => {
     expect((await exportCastingGrid(request(grid, "../etc"))).statusCode).toBe(404);
+  });
+
+  describe("layout", () => {
+    const fileOf = async () => fileIn(await exportCastingGrid(request(grid)));
+
+    it("turns each item's heading to read upwards, leaving the name headings level", async () => {
+      const [headings] = readStyledCells(await fileOf());
+
+      expect(headings?.map(({ text, rotation }) => [text, rotation])).toEqual([
+        ["First name", 0],
+        ["Last name", 0],
+        ["Section", 0],
+        ["1.1 · Opening Number", 90],
+        ["1.2 · Pirate Sketch", 90],
+        ["Entr'acte", 90],
+      ]);
+    });
+
+    it("fixes each item's column at 60 pixels wide", async () => {
+      const widths = columnPixels(await fileOf());
+
+      expect([4, 5, 6].map((column) => widths.get(column))).toEqual([60, 60, 60]);
+      // The name columns keep Excel's own width.
+      expect([1, 2, 3].map((column) => widths.get(column))).toEqual([
+        undefined,
+        undefined,
+        undefined,
+      ]);
+    });
+
+    it("centres each item's heading across its column, all reading up from the bottom", async () => {
+      const [headings] = readStyledCells(await fileOf());
+
+      const items = headings?.slice(3) ?? [];
+      // At the bottom, so shorter headings start on the same line as the longest.
+      expect(items.map(({ horizontal, vertical }) => [horizontal, vertical])).toEqual([
+        ["center", "bottom"],
+        ["center", "bottom"],
+        ["center", "bottom"],
+      ]);
+    });
+
+    const heightFor = async (headings: string[]) => {
+      const items = headings.map((heading) => ({ heading, printed: true }));
+      const res = await exportCastingGrid(request({ items, rows: [] }));
+      return rowHeight(fileIn(res), 1) ?? 0;
+    };
+
+    it("fits the heading row to the longest item heading's text", async () => {
+      // "1.1 · Opening Number" is about 100 points long in bold 11 pt.
+      const height = await heightFor(["1.1 · Opening Number", "1.2 · Pirate Sketch"]);
+
+      expect(height).toBeGreaterThanOrEqual(100);
+      expect(height).toBeLessThanOrEqual(125);
+    });
+
+    it("sizes the row to the text, not its number of letters", async () => {
+      const narrow = await heightFor(["iiiiiiiiiiiiiiii"]);
+      const wide = await heightFor(["MMMMMMMMMMMMMMMM"]);
+
+      expect(wide).toBeGreaterThan(narrow * 2);
+    });
+
+    it("stops at Excel's tallest row for a very long heading", async () => {
+      // The longest heading the export accepts, in its widest letter.
+      expect(await heightFor(["W".repeat(130)])).toBe(409);
+    });
   });
 
   describe("colours", () => {

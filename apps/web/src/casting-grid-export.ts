@@ -1,4 +1,5 @@
 import type { CastingGridExportRequest } from "@app/shared";
+import { exportFileName, saveFile } from "./export-file.ts";
 import { fullGridHeading, type GridColumn, type GridRow } from "./overview.ts";
 import { roleSizeLetter } from "./roles.ts";
 import { apiFetch } from "./sign-in.ts";
@@ -25,29 +26,6 @@ export const exportRequestOf = (
   })),
 });
 
-/** Hands the user a file to keep, as a click on a link to it would. */
-export function saveFile(file: Blob, name: string) {
-  const url = URL.createObjectURL(file);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = name;
-  link.click();
-  URL.revokeObjectURL(url);
-}
-
-/** "Gang Show 2027 casting grid 2027-03-12.xlsx": the production and the day, on the user's
- *  clock, with characters a file name can't hold swapped for spaces. */
-export function exportFileName(production: string, day: Date) {
-  const name = production
-    .replace(/[\\/:*?"<>|]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  const date = [day.getFullYear(), day.getMonth() + 1, day.getDate()]
-    .map((part) => String(part).padStart(2, "0"))
-    .join("-");
-  return `${name} casting grid ${date}.xlsx`;
-}
-
 /** Asks the server for the grid as an Excel file and hands it to the user: false if that
  *  didn't work, so nothing was saved. */
 export async function downloadGridExport(
@@ -63,7 +41,7 @@ export async function downloadGridExport(
       body: JSON.stringify(exportRequestOf(columns, rows)),
     });
     if (!res.ok) return false;
-    saveFile(await res.blob(), exportFileName(production, day));
+    saveFile(await res.blob(), exportFileName(production, day, "casting grid", "xlsx"));
     return true;
   } catch {
     return false;

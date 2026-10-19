@@ -49,6 +49,11 @@ export interface StyledCell {
   textColour: string | undefined;
   bold: boolean;
   italic: boolean;
+  /** Degrees anticlockwise: 90 reads upwards, 0 is level. */
+  rotation: number;
+  /** Where the text sits across and down its cell; undefined is Excel's default. */
+  horizontal: string | undefined;
+  vertical: string | undefined;
 }
 
 const rgbOf = (xml: string, tag: string) => {
@@ -76,8 +81,10 @@ export function readStyledCells(file: Uint8Array): StyledCell[][] {
   const fonts = blocks(styles, "fonts", "font");
   const fills = blocks(styles, "fills", "fill");
   const formats = [
-    ...(/<cellXfs[^>]*>(.*?)<\/cellXfs>/s.exec(styles)?.[1] ?? "").matchAll(/<xf ([^>]*)>/g),
-  ].map((match) => match[1] ?? "");
+    ...(/<cellXfs[^>]*>(.*?)<\/cellXfs>/s.exec(styles)?.[1] ?? "").matchAll(
+      /<xf ([^>]*?)(?:\/>|>(.*?)<\/xf>)/gs,
+    ),
+  ].map((match) => `${match[1] ?? ""} ${match[2] ?? ""}`);
   const idOf = (xf: string, name: string) =>
     Number(new RegExp(`${name}="(\\d+)"`).exec(xf)?.[1] ?? 0);
 
@@ -93,8 +100,29 @@ export function readStyledCells(file: Uint8Array): StyledCell[][] {
           textColour: rgbOf(font, "color"),
           bold: font.includes("<b/>"),
           italic: font.includes("<i/>"),
+          rotation: Number(/textRotation="(\d+)"/.exec(xf)?.[1] ?? 0),
+          horizontal: /<alignment [^>]*horizontal="(\w+)"/.exec(xf)?.[1],
+          vertical: /<alignment [^>]*vertical="(\w+)"/.exec(xf)?.[1],
         };
       },
     ),
   );
 }
+
+/** Each column's width in screen pixels, by column number from 1, for the columns the sheet
+ *  sets: Excel's own conversion from its stored width at its default font. */
+export function columnPixels(file: Uint8Array) {
+  const widths = new Map<number, number>();
+  for (const [, attributes = ""] of sheetXml(file).matchAll(/<col ([^>]*)\/>/g)) {
+    const read = (name: string) => Number(new RegExp(`${name}="([\\d.]+)"`).exec(attributes)?.[1]);
+    const pixels = Math.trunc(((256 * read("width") + Math.trunc(128 / 7)) / 256) * 7);
+    for (let column = read("min"); column <= read("max"); column++) widths.set(column, pixels);
+  }
+  return widths;
+}
+
+/** A row's set height in points, by row number from 1; undefined if Excel sizes it. */
+export const rowHeight = (file: Uint8Array, row: number) => {
+  const height = new RegExp(`<row r="${row}"[^>]*\\sht="([\\d.]+)"`).exec(sheetXml(file))?.[1];
+  return height === undefined ? undefined : Number(height);
+};

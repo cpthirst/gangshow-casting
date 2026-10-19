@@ -1683,16 +1683,16 @@ describe("The By item view on the Overview", () => {
       ?.findAll("tbody tr")
       .map((row) => row.findAll("th, td").map((cell) => cell.text()));
 
-  it("offers By person, Grid and By item, and marks By item once chosen", async () => {
+  it("offers By person, By item and Grid, and marks By item once chosen", async () => {
     theShowIs([]);
 
     const wrapper = await openByItem();
 
-    expect(switchButtons(wrapper).map((b) => b.text())).toEqual(["By person", "Grid", "By item"]);
+    expect(switchButtons(wrapper).map((b) => b.text())).toEqual(["By person", "By item", "Grid"]);
     expect(switchButtons(wrapper).map((b) => b.attributes("aria-pressed"))).toEqual([
       "false",
-      "false",
       "true",
+      "false",
     ]);
     expect(wrapper.find("[data-test=by-item]").exists()).toBe(true);
   });

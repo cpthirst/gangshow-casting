@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import ClashIcon from "./ClashIcon.vue";
 import { type Clash, clashesOf, describeEach } from "./clashes.ts";
-import type { ShowHalf, ShowItem } from "./overview.ts";
+import { itemHeading, type ShowHalf } from "./overview.ts";
 import { roleSizeLabel } from "./roles.ts";
 
 // The whole show item by item (casting-overview-by-item FR2, FR4): each half under its name,
@@ -16,8 +16,6 @@ const props = defineProps<{
 
 const clashesHere = (memberId: number, itemId: string) =>
   describeEach(clashesOf(props.clashes, memberId, itemId));
-
-const headingOf = ({ number, title }: ShowItem) => (number === null ? title : `${number} ${title}`);
 </script>
 
 <template>
@@ -27,7 +25,7 @@ const headingOf = ({ number, title }: ShowItem) => (number === null ? title : `$
       <!-- Unprinted: red italics as on the grid, and the Items list's badge, so it's said in
            words, not by colour alone. -->
       <h3 :class="{ 'by-item-unprinted': item.number === null }">
-        {{ headingOf(item) }}
+        {{ itemHeading(item) }}
         <span v-if="item.number === null" class="badge">Not in printed programme</span>
       </h3>
       <p v-if="item.roles.length === 0">No roles have been added yet.</p>

@@ -2,7 +2,7 @@
 id: casting-overview-by-item.E2.S3
 title: Export a casting sheet page per cast member
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story
@@ -14,15 +14,17 @@ As a member of the production team, I want to export a Word document with a page
 ### AC1: The button shows on the By person view
 Given I am on the Overview showing "By person"
 When I look beside the view switch
-Then there is a blue "Export Casting Sheets" button, shaped like "Export to Excel", with a file icon and the words
+Then there is a blue "Export to Word" button, shaped like "Export to Excel", with a file icon and the words
 
-### AC2: The button shows on no other view
-Given I am on the Overview showing "Grid" or "By item"
-Then there is no "Export Casting Sheets" button
+### AC2: Each view's button makes its own document
+Given I am on the Overview showing "By item"
+When I press "Export to Word"
+Then I get the Item Overview, not the casting sheets
+And on "Grid" there is no "Export to Word" button
 
 ### AC3: Every team role can export
 Given I am signed in as an Admin, a Casting Team Member or a Read-Only Team Member
-When I press "Export Casting Sheets"
+When I press "Export to Word"
 Then a Word document downloads
 
 ### AC4: The document is named for the production and the day
@@ -56,14 +58,14 @@ When I export
 Then the document contains none of them
 
 ### AC10: The button shows it's busy, announces success and reports failure
-Given I press "Export Casting Sheets"
+Given I press "Export to Word"
 When the document is being made, then finishes or fails
 Then the button shows it's busy and can't start a second export, screen readers hear "Casting sheets exported." on success, and a failure shows "Couldn't export the casting sheets. Try again." with the button working again
 
 ### AC11: An empty cast exports nothing
 Given the production has no cast members
 When I look at the By person view
-Then there is no "Export Casting Sheets" button
+Then there is no "Export to Word" button
 
 ## Notes
 

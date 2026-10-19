@@ -25,7 +25,7 @@ The Overview shows the cast by person and as a grid. Nothing shows the whole sho
 |---|---|---|
 | The whole show's casting is readable in one place | Item pages opened to see every item's roles and cast | 0 (one view shows them all) |
 | The document matches the screen | Items, roles or cast names that differ between the By item view and the Item Overview document | 0 |
-| Every cast member gets an accurate sheet | Cast members without a page; ticks that don't match their roles in printed items | 0 |
+| Every cast member gets an accurate sheet | Cast members without a page; ticks that don't match their roles in items | 0 |
 | Anyone on the team can make the documents | Team roles that can't use either Word export | 0 |
 
 ## Non-goals
@@ -41,7 +41,7 @@ The Overview shows the cast by person and as a grid. Nothing shows the whole sho
 
 ### By item view
 
-- **FR1**: The Overview's view switch must gain a third choice, **By item**, beside "By person" and "Grid".
+- **FR1**: The Overview's view switch must gain a third choice, **By item**, between "By person" and "Grid", so it reads By person, By item, Grid. (Moved between them on 2026-10-19 at the user's request.)
 - **FR2**: The By item view must list every item of the latest saved running order in show order, split into the first and second half under each half's name. Each item shows its title and its programme number if it's in the printed programme.
 - **FR3**: Items left out of the printed programme must still appear, marked the way the grid marks them (red italics), with no number.
 - **FR4**: Under each item, its roles must be listed with three columns: **Role name**, **Role type** (its role size: lead, support, cameo or ensemble) and **Cast** (the cast member's first name and surname; for an ensemble, all of them). Roles are in the same order as on the item's page: by size, then role name ignoring case.
@@ -50,13 +50,13 @@ The Overview shows the cast by person and as a grid. Nothing shows the whole sho
 
 ### Word exports
 
-- **FR7**: Two Word export buttons, shaped like "Export to Excel" and placed where it sits on the grid (beside the view switch), but **blue**: **Export Item Overview** on the By item view only, and **Export Casting Sheets** on the By person view only. Every team role can use both.
-- **FR8**: **Export Item Overview** must download a Word document that reproduces the By item view: Heading 1 is the production's title, Heading 2 each half's name, Heading 3 each item (with its number, if printed). Under each item is a table of Role name, Role type and Cast. Unprinted items and uncast roles appear as they do on screen (FR3, FR5).
-- **FR9**: **Export Casting Sheets** must download one Word document with **one page per cast member**, for every member of the production's cast, including anyone not yet cast in anything.
+- **FR7**: An **Export to Word** button, shaped like "Export to Excel" and placed where it sits on the grid (beside the view switch), but **blue**, on the By item and By person views. It makes that view's document: the **Item Overview** on By item, and the **Casting Sheets** on By person. Every team role can use it. (One label for both, at the user's request on 2026-10-19.)
+- **FR8**: On the By item view, **Export to Word** must download a Word document that reproduces the By item view: Heading 1 is the production's title, Heading 2 each half's name, Heading 3 each item (with its number, if printed). Under each item is a table of Role name (25% of the width), Role type (15%) and Cast (60%). Unprinted items and uncast roles appear as they do on screen (FR3, FR5).
+- **FR9**: On the By person view, **Export to Word** must download one Word document with **one page per cast member**, for every member of the production's cast, including anyone not yet cast in anything.
 - **FR10**: Pages must be ordered by section (Scouts, Explorers, Network, then anyone with no section set), then by surname, then first name.
 - **FR11**: Each page must have a heading of the production's title, then the cast member's first name, surname, section and Scout group or Explorer unit.
-- **FR12**: Each page must have a three-column table: **Item Name**, **Am I cast** and **Costume from home**. It has one row per item in the printed programme, in show order with its programme number, and a break between the halves. Items left out of the printed programme are left out.
-- **FR13**: "Am I cast" must show a tick when the cast member holds any role in that item, and be empty otherwise. "Costume from home" is always empty, with room to write in by hand.
+- **FR12**: Each page must have a four-column table: **#** (7% of the width), **Item Name** (40%), **Cast** (10%) and **Costume from home** (43%). It has one row per item, in show order, with its programme number in the # column, and a break between the halves. An item left out of the printed programme has no number and its name is in the grid's red italics. Each item row is two lines of text tall, room to write in. (Columns, widths, row height and unprinted items changed on 2026-10-19 at the user's request; "Am I cast" renamed "Cast".)
+- **FR13**: "Cast" must show a tick when the cast member holds any role in that item, and be empty otherwise. "Costume from home" is always empty, with room to write in by hand.
 - **FR14**: While an export is being made, its button must show it's busy and can't be pressed twice. When it finishes, screen readers are told. If it fails, the user is told and can try again, as with the Excel export.
 - **FR15**: Both documents must reflect the latest saved running order, roles and cast at the moment of export, and have file names that say what they are and which production they're for.
 
@@ -68,7 +68,8 @@ The Overview shows the cast by person and as a grid. Nothing shows the whole sho
 
 ## Constraints and assumptions
 
-- The Word documents are made with the `docx` library (github.com/dolanmiu/docx), as the user asked. Where they're built (browser or server) is decided in an ADR. That ADR also covers the new dependency and how it relates to ADRs 0019 and 0021.
+- The Word documents are made with the `docx` library (github.com/dolanmiu/docx), as the user asked. [ADR 0022](../../../../adr/0022-word-exports-built-in-the-browser.md) builds them in the browser and loads the library only when an export is used. It also says how this relates to ADRs 0019 and 0021.
+- Both Word documents use Word's default font, **Aptos**, with headings spaced more the higher they are (Heading 1, then 2, then 3, then normal text), at the user's request on 2026-10-19. A computer without Aptos (older Word, LibreOffice) shows a similar font instead.
 - "Role type" is the existing **role size**. Names, item numbers and halves are worked out the same way as on the rest of the Overview and the Running order page.
 - The production title is the running order's title.
 - Fits the existing team roles: nothing here changes stored data, so Read-Only Team Members can use everything.

@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { CastList, type CastMember, type Role, RoleList, RunningOrder } from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-import { computed, nextTick, onMounted, ref } from "vue";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
 import CastingGrid from "../CastingGrid.vue";
 import ClashIcon from "../ClashIcon.vue";
 import { CAST_PATH } from "../cast.ts";
 import { downloadGridExport } from "../casting-grid-export.ts";
 import { type Clash, clashesOfPerson, describeEach, findClashes } from "../clashes.ts";
 import { icons } from "../icons.ts";
+import { type LatestShow, latestShow } from "../latest-show.ts";
 import {
   biggestParts,
   castBySection,
@@ -28,6 +29,7 @@ import { RUNNING_ORDER_PATH } from "../running-order.ts";
 import ShowByItem from "../ShowByItem.vue";
 import ShowTimeline from "../ShowTimeline.vue";
 import { apiFetch } from "../sign-in.ts";
+import { downloadCastingSheets, downloadItemOverview } from "../word-export.ts";
 
 const state = ref<
   { status: "loading" } | { status: "error" } | { status: "loaded"; cast: CastMember[] }
@@ -51,13 +53,13 @@ const timeline = ref<{
   parts: ReturnType<typeof biggestParts>;
 }>();
 
-// The Overview's three views of the same cast: by person (default), the grid of items, or
-// each item's roles in show order.
+// The Overview's three views of the same cast: by person (default), each item's roles in
+// show order, or the grid of items.
 const view = ref<"people" | "grid" | "items">("people");
 const VIEWS = [
   ["people", "By person"],
-  ["grid", "Grid"],
   ["items", "By item"],
+  ["grid", "Grid"],
 ] as const;
 
 const halvesByItem = computed(() =>
@@ -105,6 +107,51 @@ async function exportGrid() {
   exporting.value = false;
   await nextTick();
   exportButton.value?.focus();
+}
+
+// The Word exports are built in the browser for every role (ADR 0022), each from its view,
+// with the casting as saved at that moment (casting-overview-by-item FR15). One shows at a
+// time, beside the view switch, once its view has something to export: always "Export to
+// Word", making that view's document.
+const wordExportFailure = ref("");
+const wordExportButton = ref<HTMLButtonElement>();
+
+const wordExport = computed(() => {
+  if (view.value === "items" && halvesByItem.value.some((half) => half.items.length > 0)) {
+    return {
+      done: "Item overview exported.",
+      failure: "Couldn't export the item overview. Try again.",
+      download: ({ order, roles, cast }: LatestShow) =>
+        downloadItemOverview(order.title, showByItem(order, roles, cast)),
+    };
+  }
+  if (view.value === "people" && sections.value.length > 0) {
+    return {
+      done: "Casting sheets exported.",
+      failure: "Couldn't export the casting sheets. Try again.",
+      download: downloadCastingSheets,
+    };
+  }
+  return undefined;
+});
+
+// A failure belongs to the view it happened on: moving away forgets it.
+watch(view, () => {
+  wordExportFailure.value = "";
+});
+
+async function exportWord() {
+  const action = wordExport.value;
+  if (!action || exporting.value) return;
+  exporting.value = true;
+  exportAnnouncement.value = "";
+  wordExportFailure.value = "";
+  const saved = await latestShow().then(action.download, () => false);
+  if (saved) exportAnnouncement.value = action.done;
+  else wordExportFailure.value = action.failure;
+  exporting.value = false;
+  await nextTick();
+  wordExportButton.value?.focus();
 }
 
 // Beside the view switch, on the grid, once there is a grid to export.
@@ -225,7 +272,20 @@ async function loadCast() {
         <FontAwesomeIcon :icon="icons.exportFile" />
         Export to Excel
       </button>
+      <button
+        v-if="wordExport"
+        ref="wordExportButton"
+        type="button"
+        class="word-export-button"
+        :disabled="exporting"
+        @click="exportWord">
+        <FontAwesomeIcon :icon="icons.exportWord" />
+        Export to Word
+      </button>
     </div>
+    <p v-if="wordExportFailure" class="notice word-export-error" role="alert">
+      {{ wordExportFailure }}
+    </p>
     <template v-if="view === 'grid'">
       <template v-if="columnsOfGrid.length > 0">
         <p v-if="exportFailed" class="notice grid-export-error" role="alert">
