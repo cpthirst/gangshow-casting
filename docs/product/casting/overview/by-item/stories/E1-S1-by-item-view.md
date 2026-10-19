@@ -60,5 +60,5 @@ Then the view says there are no items yet, rather than showing an empty space
 - Depends on: none
 - "Role type" is the role size, shown as on the item page (Lead, Support, Cameo, Ensemble), in text, not colour alone.
 - Uses real headings per half and item, and table header cells, so screen readers can move by item (PRD accessibility NFR).
-- Browser layout test: a walk of this view at 320px and 360px is not added unless the user agrees (CLAUDE.md, ADR 0011). Offer it when implementing.
+- Browser layout test: no walk of this view is added; the maintainer declined it on 2026-10-19 (CLAUDE.md, ADR 0011).
 - Out of scope: unprinted items, "Uncast" and items with no roles (E1.S2); exports (E2).
