@@ -1,8 +1,15 @@
-import type { CastMember, Role } from "@app/shared";
+import { type CastMember, type Role, unprintedHeadingColour } from "@app/shared";
 import { Packer } from "docx";
 import { describe, expect, it } from "vitest";
 import { castingSheetsDocument } from "./casting-sheets-document.ts";
-import { type Block, documentXml, pageOf, readDocx, rowHeights } from "./docx.fixture.ts";
+import {
+  type Block,
+  columnShares,
+  documentXml,
+  pageOf,
+  readDocx,
+  rowHeights,
+} from "./docx.fixture.ts";
 import { anItem, aRunningOrder } from "./running-order.fixture.ts";
 
 // Made-up names only: tests never use the real cast (CLAUDE.md safeguarding).
@@ -135,79 +142,84 @@ describe("each casting sheet's table of items", () => {
 
   /** The rows for items: not the header row, nor the rows naming a half. */
   const itemRows = (table: { header: boolean; cells: string[] }[] | undefined) =>
-    (table ?? []).filter((row) => !row.header && row.cells.length === 3);
+    (table ?? []).filter((row) => !row.header && row.cells.length === 4);
 
   async function tablesOf(cast: CastMember[]) {
     const file = await sheetsOf(cast, { order: show, roles });
     return readDocx(file).flatMap((block) => (block.kind === "table" ? [block.rows] : []));
   }
 
-  it("has an Item Name, Am I cast and Costume from home header row", async () => {
+  it("has a #, Item Name, Cast and Costume from home header row", async () => {
     const [table] = await tablesOf([ava]);
 
     expect(table?.[0]).toEqual({
       header: true,
-      cells: ["Item Name", "Am I cast", "Costume from home"],
+      cells: ["#", "Item Name", "Cast", "Costume from home"],
     });
   });
 
-  it("lists the printed items in show order with their numbers, a row naming each half", async () => {
+  it("lists every item in show order, each number in its own column, a row naming each half", async () => {
     const [table] = await tablesOf([ava]);
 
-    expect(table?.slice(1).map((row) => row.cells[0])).toEqual([
-      "Act One",
-      "1 Opening",
-      "2 Campfire Song",
-      "Act Two",
-      "1 Finale",
+    expect(table?.slice(1).map((row) => row.cells.slice(0, 2))).toEqual([
+      ["Act One"],
+      ["1", "Opening"],
+      ["", "Scene Change Music"],
+      ["2", "Campfire Song"],
+      ["Act Two"],
+      ["1", "Finale"],
     ]);
   });
 
-  it("leaves out items not in the printed programme, even for someone cast in one", async () => {
-    const [table] = await tablesOf([ava]);
+  it("sets the columns at 7%, 40%, 10% and 43% of the page", async () => {
+    const file = await sheetsOf([ava], { order: show, roles });
 
-    expect(table?.map((row) => row.cells[0])).not.toContain("Scene Change Music");
+    expect(columnShares(file)).toEqual([[7, 40, 10, 43]]);
+  });
+
+  it("shows an item not in the printed programme in the grid's red italics, with no number", async () => {
+    const xml = documentXml(await sheetsOf([ava], { order: show, roles }));
+
+    const run = /<w:r>(?:(?!<w:r>).)*?Scene Change Music<\/w:t><\/w:r>/s.exec(xml)?.[0] ?? "";
+    expect(run).toMatch(/<w:i\/>/);
+    expect(run).toContain(`<w:color w:val="${unprintedHeadingColour.slice(1).toUpperCase()}"/>`);
   });
 
   it("ticks the items the person is in, whatever their part, and leaves the rest empty", async () => {
     const [table] = await tablesOf([ava]);
 
-    const ticks = itemRows(table).map((row) => row.cells[1]);
-    expect(ticks).toEqual(["✓", "", "✓"]);
+    const ticks = itemRows(table).map((row) => row.cells[2]);
+    expect(ticks).toEqual(["✓", "✓", "", "✓"]);
   });
 
   it("ticks nothing for someone with no parts", async () => {
     const [, table] = await tablesOf([ava, member("Bea", "Zed", "scouts")]);
 
-    const ticks = itemRows(table).map((row) => row.cells[1]);
-    expect(ticks).toEqual(["", "", ""]);
+    const ticks = itemRows(table).map((row) => row.cells[2]);
+    expect(ticks).toEqual(["", "", "", ""]);
   });
 
   it("leaves Costume from home empty on every item", async () => {
     const [table] = await tablesOf([ava]);
 
-    const costumes = itemRows(table).map((row) => row.cells[2]);
-    expect(costumes).toEqual(["", "", ""]);
+    const costumes = itemRows(table).map((row) => row.cells[3]);
+    expect(costumes).toEqual(["", "", "", ""]);
   });
 
-  it("makes each item row tall enough to write in, and 30 of them fit on one A4 page", async () => {
-    const thirty = aRunningOrder(Array.from({ length: 30 }, (_, i) => anItem(`Item ${i + 1}`)));
-    const file = await sheetsOf([ava], { order: thirty, roles: [] });
+  it("makes every item row two lines of text tall, room to write in", async () => {
+    const file = await sheetsOf([ava], { order: show, roles });
+
+    // Two lines of 11 pt text (a line is 1.2 times the size), in twentieths of a point,
+    // for each of the four items, the unprinted one included.
+    expect(rowHeights(file).filter((height) => height !== undefined)).toEqual(Array(4).fill(528));
+  });
+
+  it("prints on A4, with the table's first row marked to repeat on any page it runs onto", async () => {
+    const file = await sheetsOf([ava], { order: show, roles });
 
     const page = pageOf(file);
-    const heights = rowHeights(file).filter((height) => height !== undefined);
-    // Every item row has its height set.
-    expect(heights).toHaveLength(30);
-    // A4 portrait, in twentieths of a point.
     expect([page.width, page.height]).toEqual([11906, 16838]);
-    // At least 0.7 cm a row, room to write by hand.
-    expect(Math.min(...heights)).toBeGreaterThanOrEqual(397);
-    // Word sizes the headings, the header row and the half rows itself, so allow about 5.6 cm
-    // for them, with their spacing (word-styles.ts). A title long enough to wrap makes its
-    // row taller: the story accepts that.
-    const ROOM_FOR_HEADINGS = 3200;
-    expect(
-      heights.reduce((sum, height) => sum + height, 0) + ROOM_FOR_HEADINGS,
-    ).toBeLessThanOrEqual(page.bodyHeight);
+    const [table] = readDocx(file).flatMap((block) => (block.kind === "table" ? [block.rows] : []));
+    expect(table?.[0]?.header).toBe(true);
   });
 });

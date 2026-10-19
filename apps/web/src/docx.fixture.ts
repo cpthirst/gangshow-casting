@@ -121,3 +121,12 @@ export function styleOf(file: Uint8Array, styleId: string) {
     after: number(/<w:spacing [^>]*w:after="(\d+)"/),
   };
 }
+
+/** Each table's column widths, as shares of the table that add up to 100, rounded to the
+ *  nearest whole number: how the columns are laid out across the page. */
+export const columnShares = (file: Uint8Array) =>
+  [...documentXml(file).matchAll(/<w:tblGrid>(.*?)<\/w:tblGrid>/gs)].map(([, grid = ""]) => {
+    const widths = [...grid.matchAll(/<w:gridCol w:w="(\d+)"/g)].map(([, width]) => Number(width));
+    const total = widths.reduce((sum, width) => sum + width, 0);
+    return widths.map((width) => Math.round((width / total) * 100));
+  });

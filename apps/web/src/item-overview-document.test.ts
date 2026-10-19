@@ -1,7 +1,14 @@
 import { unprintedHeadingColour } from "@app/shared";
 import { Packer } from "docx";
 import { describe, expect, it } from "vitest";
-import { type Block, documentXml, outline, readDocx } from "./docx.fixture.ts";
+import {
+  type Block,
+  columnShares,
+  documentXml,
+  outline,
+  pageOf,
+  readDocx,
+} from "./docx.fixture.ts";
 import { itemOverviewDocument } from "./item-overview-document.ts";
 import type { ShowHalf, ShowItem } from "./overview.ts";
 
@@ -79,6 +86,19 @@ describe("the Item Overview document", () => {
     const title = heading?.kind === "paragraph" ? heading.runs[0] : undefined;
     expect(title).toMatchObject({ text: "Scene Change Music", italic: true });
     expect(`#${title?.color?.toLowerCase()}`).toBe(unprintedHeadingColour);
+  });
+
+  it("sets each roles table at 25% role name, 25% role type and 50% cast", async () => {
+    const file = await documentOf(show);
+
+    expect(columnShares(file)).toEqual([
+      [25, 25, 50],
+      [25, 25, 50],
+    ]);
+    // On A4, the page the widths are worked out for.
+    expect(pageOf(file)).toMatchObject({ width: 11906, height: 16838 });
+    // Fixed, so Word keeps the widths rather than fitting each table to its text.
+    expect(documentXml(file).match(/<w:tblLayout w:type="fixed"\/>/g)).toHaveLength(2);
   });
 
   it("says Uncast for a role nobody plays", async () => {

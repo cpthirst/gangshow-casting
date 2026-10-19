@@ -6,19 +6,28 @@ import {
   Paragraph,
   Table,
   TableCell,
+  TableLayoutType,
   TableRow,
   TextRun,
   WidthType,
 } from "docx";
 import { itemHeading, type ShowHalf, type ShowItem } from "./overview.ts";
 import { roleSizeLabel } from "./roles.ts";
-import { CELL_SPACING, wordStyles } from "./word-styles.ts";
+import { A4, CELL_SPACING, widthsOf, wordStyles } from "./word-styles.ts";
 
 // The By item view as a Word document (casting-overview-by-item FR8): the production's title,
 // each half and each item as Word headings, so Word's navigation pane lists them, and each
 // item's roles as a table. Text goes in as plain runs, never as markup (ADR 0022).
 
-const ROLE_COLUMNS = ["Role name", "Role type", "Cast"];
+// Each column's share of the page: the cast gets half, as an ensemble lists many names.
+const ROLE_COLUMNS = [
+  { name: "Role name", share: 25 },
+  { name: "Role type", share: 25 },
+  { name: "Cast", share: 50 },
+];
+// A4 with inch margins, set here so the fixed column widths always match the page.
+const MARGIN = { top: 1440, bottom: 1440, left: 1440, right: 1440 };
+const TEXT_WIDTH = A4.width - MARGIN.left - MARGIN.right;
 
 const cell = (text: string, bold = false) =>
   new TableCell({
@@ -28,9 +37,18 @@ const cell = (text: string, bold = false) =>
 const rolesTable = (roles: ShowItem["roles"]) =>
   new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
+    // Fixed, so Word keeps these widths rather than fitting each table to its text.
+    layout: TableLayoutType.FIXED,
+    columnWidths: widthsOf(
+      TEXT_WIDTH,
+      ROLE_COLUMNS.map(({ share }) => share),
+    ),
     rows: [
       // Repeated at the top of each page the table runs onto.
-      new TableRow({ tableHeader: true, children: ROLE_COLUMNS.map((name) => cell(name, true)) }),
+      new TableRow({
+        tableHeader: true,
+        children: ROLE_COLUMNS.map(({ name }) => cell(name, true)),
+      }),
       ...roles.map(
         (role) =>
           new TableRow({
@@ -75,6 +93,7 @@ export const itemOverviewDocument = (title: string, halves: ShowHalf[]) =>
     styles: wordStyles,
     sections: [
       {
+        properties: { page: { size: A4, margin: MARGIN } },
         children: [
           new Paragraph({
             heading: HeadingLevel.HEADING_1,
