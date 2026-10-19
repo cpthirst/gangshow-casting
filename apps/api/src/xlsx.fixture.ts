@@ -51,6 +51,9 @@ export interface StyledCell {
   italic: boolean;
   /** Degrees anticlockwise: 90 reads upwards, 0 is level. */
   rotation: number;
+  /** Where the text sits across and down its cell; undefined is Excel's default. */
+  horizontal: string | undefined;
+  vertical: string | undefined;
 }
 
 const rgbOf = (xml: string, tag: string) => {
@@ -98,6 +101,8 @@ export function readStyledCells(file: Uint8Array): StyledCell[][] {
           bold: font.includes("<b/>"),
           italic: font.includes("<i/>"),
           rotation: Number(/textRotation="(\d+)"/.exec(xf)?.[1] ?? 0),
+          horizontal: /<alignment [^>]*horizontal="(\w+)"/.exec(xf)?.[1],
+          vertical: /<alignment [^>]*vertical="(\w+)"/.exec(xf)?.[1],
         };
       },
     ),

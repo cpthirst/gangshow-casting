@@ -154,14 +154,41 @@ describe("export casting grid handler", () => {
       ]);
     });
 
-    it("makes the heading row tall enough for the longest item heading to read upwards", async () => {
-      const height = rowHeight(await fileOf(), 1) ?? 0;
+    it("centres each item's heading in its cell, across and down", async () => {
+      const [headings] = readStyledCells(await fileOf());
 
-      // "1.1 · Opening Number" is 20 characters, each about 5 points or more at 11 pt
-      // (the file allows 6, with room to spare).
-      expect(height).toBeGreaterThanOrEqual(20 * 5);
-      // Excel's tallest row.
-      expect(height).toBeLessThanOrEqual(409);
+      const items = headings?.slice(3) ?? [];
+      expect(items.map(({ horizontal, vertical }) => [horizontal, vertical])).toEqual([
+        ["center", "center"],
+        ["center", "center"],
+        ["center", "center"],
+      ]);
+    });
+
+    const heightFor = async (headings: string[]) => {
+      const items = headings.map((heading) => ({ heading, printed: true }));
+      const res = await exportCastingGrid(request({ items, rows: [] }));
+      return rowHeight(fileIn(res), 1) ?? 0;
+    };
+
+    it("fits the heading row to the longest item heading's text", async () => {
+      // "1.1 · Opening Number" is about 100 points long in bold 11 pt.
+      const height = await heightFor(["1.1 · Opening Number", "1.2 · Pirate Sketch"]);
+
+      expect(height).toBeGreaterThanOrEqual(100);
+      expect(height).toBeLessThanOrEqual(125);
+    });
+
+    it("sizes the row to the text, not its number of letters", async () => {
+      const narrow = await heightFor(["iiiiiiiiiiiiiiii"]);
+      const wide = await heightFor(["MMMMMMMMMMMMMMMM"]);
+
+      expect(wide).toBeGreaterThan(narrow * 2);
+    });
+
+    it("stops at Excel's tallest row for a very long heading", async () => {
+      // The longest heading the export accepts, in its widest letter.
+      expect(await heightFor(["W".repeat(130)])).toBe(409);
     });
   });
 

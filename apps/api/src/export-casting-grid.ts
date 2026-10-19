@@ -17,16 +17,36 @@ const bold = (value: string) => ({ value, fontWeight: "bold" as const });
 // An item's column is 60 pixels wide: Excel stores a width in its own units, and at its
 // default font 60 pixels is 8.57 of them (60 / 7).
 const ITEM_COLUMN_WIDTH = 8.57;
-// Excel's tallest row, in points: a heading longer than about 66 characters is cut short.
+// Excel's tallest row, in points: a heading longer than about 400 points of text is cut short.
 const TALLEST_ROW = 409;
-// About as many points as an 11 pt heading's characters take when turned to read upwards.
-const POINTS_PER_CHARACTER = 6;
+// Room above and below the text, in points.
+const ROW_PADDING = 10;
 
-/** Tall enough for the longest item heading to read upwards in full, within Excel's limit. */
+// Roughly how wide each character is in bold 11 pt Calibri, in points. The file names no
+// font, so Excel uses its own default (Calibri, or the slightly narrower Aptos Narrow in
+// newer Excel). The estimate errs wide, with Calibri's wider letters and some padding, so a
+// heading is rarely cut short; letters outside the table count as an average one.
+const NARROW = new Set("iljI.,:;'!|·()[]");
+const MEDIUM = new Set("frtJ-");
+const WIDE = new Set("mwMW");
+const characterWidth = (character: string) => {
+  if (character === " ") return 2.5;
+  if (NARROW.has(character)) return 2.8;
+  if (MEDIUM.has(character)) return 3.9;
+  if (WIDE.has(character)) return 9.8;
+  if (character >= "A" && character <= "Z") return 6.5;
+  return 5.6;
+};
+
+/** How long a heading's text runs, in points: its height once turned to read upwards. */
+const textLength = (text: string) =>
+  [...text].reduce((length, character) => length + characterWidth(character), 0);
+
+/** Just tall enough for the longest item heading to read upwards, within Excel's limit. */
 const headingRowHeight = (items: CastingGridExportRequest["items"]) =>
   Math.min(
     TALLEST_ROW,
-    Math.max(0, ...items.map(({ heading }) => heading.length)) * POINTS_PER_CHARACTER + 10,
+    Math.ceil(Math.max(0, ...items.map(({ heading }) => textLength(heading))) + ROW_PADDING),
   );
 
 /** The grid as sheet rows: a bold heading row, with each item's heading turned to read
@@ -43,6 +63,8 @@ function sheetOf({ items, rows }: CastingGridExportRequest) {
     ...items.map(({ heading, printed }) => ({
       ...bold(heading),
       textRotation: 90,
+      align: "center" as const,
+      alignVertical: "center" as const,
       ...(printed ? {} : { fontStyle: "italic" as const, textColor: unprintedHeadingColour }),
     })),
   ];
