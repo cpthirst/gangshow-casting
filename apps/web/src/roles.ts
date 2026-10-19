@@ -50,13 +50,13 @@ const sizeRank = (size: RoleSize) => RoleSize.options.indexOf(size);
  *  as a lead there. */
 export const biggerPart = (a: RoleSize, b: RoleSize) => (sizeRank(a) <= sizeRank(b) ? a : b);
 
-/** An item's roles in reading order: biggest first (lead → ensemble), then by name,
- *  ignoring case (PRD FR4). Returns a new array. */
+/** An item's roles in reading order: biggest first (lead → ensemble), then by name, ignoring
+ *  case and comparing numbers by value (1, 2 … 10, not 1, 10, 2) (PRD FR4). Returns a new array. */
 export const sortRoles = (roles: Role[]) =>
   [...roles].sort(
     (a, b) =>
       sizeRank(a.size) - sizeRank(b.size) ||
-      a.name.localeCompare(b.name, "en", { sensitivity: "base" }),
+      a.name.localeCompare(b.name, "en", { sensitivity: "base", numeric: true }),
   );
 
 /** The cast member field: what's typed, and who was chosen from the list (if anyone). */
