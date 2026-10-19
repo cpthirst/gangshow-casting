@@ -38,7 +38,6 @@ Users are non-technical volunteers, often working during or after a rehearsal, s
 - Showing role names, casting notes, group, age band or any other field in the grid or export.
 - Import from Excel, or any export format other than Excel (no CSV, PDF or print layout).
 - Carrying roles, casting or exports across productions.
-- Export for non-admin team members.
 - Changing how clashes, casting scores or the per-person Overview work today.
 
 ## Functional requirements
@@ -54,13 +53,13 @@ Users are non-technical volunteers, often working during or after a rehearsal, s
 - **FR9**: The grid has a legend explaining colour and letter for each role size.
 - **FR10**: Column headers identify each item (title and its running-order position), and the first columns (names) stay visible while scrolling sideways through items.
 - **FR11**: Rows are grouped or ordered by section, consistent with the existing Overview.
-- **FR12**: Admins see an "Export to Excel" action on the grid. Other signed-in users do not see it, and the server refuses it for them.
+- **FR12**: Every signed-in team member sees an "Export to Excel" action on the grid, and the server makes the file for them. (Amended 2026-10-19 by ADR 0021: it was admin-only.)
 - **FR13**: The exported Excel file contains exactly what the grid shows: first name, last name, section, then one column per item in running order, with each filled cell holding the role-size letter and a matching colour fill.
 - **FR14**: The exported file contains no other cast data (no group, age band, notes or role names) and is named for the production and date.
 
 ## Non-functional requirements
 
-- **Security and safeguarding**: The grid and export contain children's names, so they are for the production team only and must never be publicly reachable. Export is admin-only and enforced on the server, not just hidden in the page (ADR 0018). Export contains only first name, last name, section and role size (ADR 0010). It creates a copy outside the app's access control, so an ADR is needed recording who may export and why. Tests and fixtures use made-up names only.
+- **Security and safeguarding**: The grid and export contain children's names, so they are for the production team only and must never be publicly reachable. Any signed-in team member may export (ADR 0021; it was admin-only under ADR 0019). Export contains only first name, last name, section and role size (ADR 0010). It creates a copy outside the app's access control, so an ADR is needed recording who may export and why. Tests and fixtures use made-up names only.
 - **Accessibility**: WCAG 2.2 AA. Role size is never conveyed by colour alone (FR7). The grid is a real table with column and row headers so screen readers announce person and item. Dot colours meet 3:1 non-text contrast against the cell background. The counts are readable text, not an image.
 - **Performance**: Counts and grid render within 1 second for a show of up to 100 cast members and 40 items on a mid-range phone. The export downloads within 5 seconds for the same size.
 - **Responsive**: No page-level sideways scrolling at 320px and 360px (ADR 0011). Only the grid scrolls sideways within its own area.
@@ -77,7 +76,7 @@ Users are non-technical volunteers, often working during or after a rehearsal, s
 
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
-| Exported file with children's names is shared outside the team | M | H | Admin-only, minimum fields, file name carries no extra detail, ADR records the decision, and the admin button wording reminds users the file is team-only |
+| Exported file with children's names is shared outside the team | M | H | Signed-in team members only, minimum fields, file name carries no extra detail, ADR records the decision. (The button's "team only" note was removed 2026-10-19, ADR 0021.) |
 | A wide grid (many items) is hard to read on a phone | H | M | Sticky name columns, a compact cell, browser layout test at 320/360px |
 | Colour dots unreadable to colour-blind users | M | M | Letter on every dot and a legend (FR7, FR9) |
 | Excel generation adds a dependency or hosting cost | M | M | Decide approach in an ADR before building (see open questions) |
@@ -88,5 +87,5 @@ Users are non-technical volunteers, often working during or after a rehearsal, s
 - **Ensemble in the grid**: ensemble parts appear as a coloured dot with the letter E, but stay out of the headline counts and the export file gets the letter E too. Decided by cpthirst.
 - **Open roles in the counts**: not shown. The headline counts are totals only. Decided by cpthirst.
 - **Export made by the server from the grid the page sends**: FR12 needs the server to refuse non-admins, which a file built in the browser cannot do. An admin-only route turns the grid the admin sends into the file (ADR 0018). [ADR 0019](../../../../adr/0019-server-built-excel-export-for-admins.md) records this and the spreadsheet library (`write-excel-file`, chosen by cpthirst). Decided by Claude at cpthirst's request.
-- **Export is admin-only**: confirmed by cpthirst.
+- **Export is admin-only**: confirmed by cpthirst. Changed 2026-10-19 by cpthirst: every team role may export, from a button beside the view switch ([ADR 0021](../../../../adr/0021-excel-export-for-every-team-role.md)).
 - **Slug and folder**: `casting-overview-grid` under `casting/overview/grid/`. Confirmed by cpthirst.

@@ -5,7 +5,7 @@ import { computed, nextTick, onMounted, ref } from "vue";
 import CastingGrid from "../CastingGrid.vue";
 import ClashIcon from "../ClashIcon.vue";
 import { CAST_PATH } from "../cast.ts";
-import { downloadGridExport, EXPORT_NOTE } from "../casting-grid-export.ts";
+import { downloadGridExport } from "../casting-grid-export.ts";
 import { type Clash, clashesOfPerson, describeEach, findClashes } from "../clashes.ts";
 import { icons } from "../icons.ts";
 import {
@@ -25,7 +25,7 @@ import ReadOnlyNotice from "../ReadOnlyNotice.vue";
 import { ROLES_PATH, roleSizeLabel } from "../roles.ts";
 import { RUNNING_ORDER_PATH } from "../running-order.ts";
 import ShowTimeline from "../ShowTimeline.vue";
-import { apiFetch, isAdmin } from "../sign-in.ts";
+import { apiFetch } from "../sign-in.ts";
 
 const state = ref<
   { status: "loading" } | { status: "error" } | { status: "loaded"; cast: CastMember[] }
@@ -63,7 +63,8 @@ const gridRows = computed(() =>
   ),
 );
 
-// Admins only: the grid as shown goes to the server, which makes the Excel file (ADR 0019).
+// The grid as shown goes to the server, which makes the Excel file (ADR 0019), for every
+// role (ADR 0021).
 const exporting = ref(false);
 const exportFailed = ref(false);
 /** Screen-reader announcement of a finished export. */
@@ -87,14 +88,9 @@ async function exportGrid() {
   exportButton.value?.focus();
 }
 
-// The export icon, top right: admins only, on the grid, once there is a grid to export. The
-// server refuses anyone else, so this only decides what to show.
+// Beside the view switch, on the grid, once there is a grid to export.
 const canExport = computed(
-  () =>
-    isAdmin.value &&
-    view.value === "grid" &&
-    sections.value.length > 0 &&
-    columnsOfGrid.value.length > 0,
+  () => view.value === "grid" && sections.value.length > 0 && columnsOfGrid.value.length > 0,
 );
 
 // Each person carries their part counts: undefined while loading or unavailable, or
@@ -168,19 +164,6 @@ async function loadCast() {
 <template>
   <div class="page-title-row">
     <h1>Overview</h1>
-    <!-- An icon, named for screen readers and explained on hover. The file is a copy of the
-         cast's names outside the app, so the tooltip says who it's for (ADR 0019). -->
-    <button
-      v-if="canExport"
-      ref="exportButton"
-      type="button"
-      class="icon-button grid-export-button"
-      :disabled="exporting"
-      :aria-label="`Export to Excel. ${EXPORT_NOTE}`"
-      :data-tooltip="EXPORT_NOTE"
-      @click="exportGrid">
-      <FontAwesomeIcon :icon="icons.exportFile" />
-    </button>
   </div>
   <ReadOnlyNotice />
   <p>Everyone in the cast and how much they're cast.</p>
@@ -201,14 +184,27 @@ async function loadCast() {
     </template>
     <p v-if="sections.length === 0">No cast members yet.</p>
     <template v-else>
-    <div class="view-switch" role="group" aria-label="Choose how to see the cast">
+    <div class="view-bar">
+      <div class="view-switch" role="group" aria-label="Choose how to see the cast">
+        <button
+          v-for="choice in ([['people', 'By person'], ['grid', 'Grid']] as const)"
+          :key="choice[0]"
+          type="button"
+          :aria-pressed="view === choice[0]"
+          @click="view = choice[0]">
+          {{ choice[1] }}
+        </button>
+      </div>
+      <!-- Shaped like the switch's buttons but outside its group: it's an action, not a view. -->
       <button
-        v-for="choice in ([['people', 'By person'], ['grid', 'Grid']] as const)"
-        :key="choice[0]"
+        v-if="canExport"
+        ref="exportButton"
         type="button"
-        :aria-pressed="view === choice[0]"
-        @click="view = choice[0]">
-        {{ choice[1] }}
+        class="grid-export-button"
+        :disabled="exporting"
+        @click="exportGrid">
+        <FontAwesomeIcon :icon="icons.exportFile" />
+        Export to Excel
       </button>
     </div>
     <template v-if="view === 'grid'">

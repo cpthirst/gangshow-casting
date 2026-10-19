@@ -39,7 +39,7 @@ The creative team, such as the director and musical director, review casting dec
 - **Changing what a Casting Team Member or an Admin can do.** Their permissions stay exactly as they are; only the Casting Team Member's name changes.
 - **Access for anyone outside the production team**, such as parents or the public. Every role is still for the production team only (ADR 0010).
 - **Custom or per-page permissions**, or roles that differ by production.
-- **Excel export or account management for read-only members.** These stay admin-only.
+- **Account management for read-only members.** It stays admin-only. (Excel export was here too until ADR 0021 let every role export, 2026-10-19.)
 - **Hiding particular data from reviewers.** Read-only members see the same data as the casting team, casting notes included.
 
 ## Functional requirements
