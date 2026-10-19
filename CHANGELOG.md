@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.0](https://github.com/cpthirst/gangshow-casting/compare/v1.5.0...v1.6.0) (2026-10-19)
+
+
+### Features
+
+* **web:** list every item's roles and cast in a By item view (casting-overview-by-item E1) ([#78](https://github.com/cpthirst/gangshow-casting/issues/78)) ([8217a45](https://github.com/cpthirst/gangshow-casting/commit/8217a45edcd529ce8dee83aee30bdc50dbc40e3b))
+
 ## [1.5.0](https://github.com/cpthirst/gangshow-casting/compare/v1.4.0...v1.5.0) (2026-10-19)
 
 
