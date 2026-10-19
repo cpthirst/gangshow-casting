@@ -163,7 +163,7 @@ describe("Casting items page", () => {
     const wrapper = await openItemsPage();
 
     expect(wrapper.text()).toContain("There's no saved running order yet.");
-    expect(wrapper.get("a[href='/']").text()).toBe("Running order page");
+    expect(wrapper.get("a[href='/running-order']").text()).toBe("Running order page");
   });
 
   it("reports a failed load rather than an empty running order", async () => {

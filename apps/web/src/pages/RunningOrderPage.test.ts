@@ -1369,10 +1369,11 @@ describe("Running order page", () => {
         [anItem("Big Finish")],
       );
     type Page = Awaited<ReturnType<typeof openPage>>;
+    // The page's help is for everyone (in-app-help FR11), so it isn't an editing control.
     const controls = (wrapper: Page) =>
-      wrapper.findAll(
-        "button, .drag-handle, [data-move], [data-edit], [data-remove], [data-add-to]",
-      );
+      wrapper
+        .findAll("button, .drag-handle, [data-move], [data-edit], [data-remove], [data-add-to]")
+        .filter((control) => !control.element.closest(".help-button, .help-dialog"));
 
     it("shows the whole running order, as everyone sees it", async () => {
       serve(order());
@@ -1477,5 +1478,45 @@ describe("Running order page", () => {
         expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
       },
     );
+  });
+
+  describe("its help (in-app-help E1.S2)", () => {
+    const helpButton = (wrapper: Awaited<ReturnType<typeof openPage>>) =>
+      wrapper.get("button[aria-label='Help for Running order']");
+
+    it("has a help button beside the page's heading", async () => {
+      serve(aRunningOrder([anItem("Opening Number")]));
+
+      const wrapper = await openPage();
+
+      const titleRow = wrapper.get(".page-title-row");
+      expect(titleRow.get("h1").text()).toBe("Running order");
+      expect(titleRow.find("button[aria-label='Help for Running order']").exists()).toBe(true);
+    });
+
+    it("keeps unsaved changes through opening and closing the help", async () => {
+      serve(aRunningOrder([anItem("Opening Number"), anItem("Pirate Panic")]));
+      const wrapper = await openPage();
+      await wrapper.get("button[aria-label='Move Opening Number down']").trigger("click");
+
+      await helpButton(wrapper).trigger("click");
+      await wrapper.get("dialog button").trigger("click");
+
+      expect(titlesIn(half(wrapper, "first-half"))).toEqual(["Pirate Panic", "Opening Number"]);
+      expect(wrapper.find("[data-test=unsaved]").exists()).toBe(true);
+    });
+
+    it("offers read-only members the same help", async () => {
+      await signInAs(["read-only"]);
+      serve(aRunningOrder([anItem("Opening Number")]));
+      const wrapper = await openPage();
+
+      await helpButton(wrapper).trigger("click");
+
+      expect(wrapper.get("dialog").element.open).toBe(true);
+      expect(wrapper.findAll("dialog [data-test=help-name]").map((name) => name.text())).toContain(
+        "Save as Draft",
+      );
+    });
   });
 });

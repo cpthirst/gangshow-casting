@@ -2,7 +2,7 @@
 id: in-app-help.E1.S2
 title: Open the Running order's help from a button on the page
 epic: E1
-status: draft
+status: done
 ---
 
 ## Story

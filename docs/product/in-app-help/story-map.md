@@ -17,16 +17,16 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [in-app-help.E1.S1](stories/E1-S1-welcome-page.md) | Walking skeleton: signing in lands on a "Welcome" page, first in the menu, with a short introduction and the Running order's help (a line per action, with its real icon and an access label, linking to the page). The Running order keeps working from its own address | FR1, FR2, FR3, FR4, FR5, FR11 | (none) | ready |
-| [in-app-help.E1.S2](stories/E1-S2-help-button.md) | A help button at the top right of the Running order opens its help (the same text as on Welcome) in an accessible dialog, which closes with its close button, Escape or a click outside, without losing unsaved changes | FR6, FR7, FR8, FR9 | E1.S1 | draft |
+| [in-app-help.E1.S1](stories/E1-S1-welcome-page.md) | Walking skeleton: signing in lands on a "Welcome" page, first in the menu, with a short introduction and the Running order's help (a line per action, with its real icon and an access label, linking to the page). The Running order keeps working from its own address | FR1, FR2, FR3, FR4, FR5, FR11 | (none) | done |
+| [in-app-help.E1.S2](stories/E1-S2-help-button.md) | A help button at the top right of the Running order opens its help (the same text as on Welcome) in an accessible dialog, which closes with its close button, Escape or a click outside, without losing unsaved changes | FR6, FR7, FR8, FR9 | E1.S1 | done |
 
 ## E2: Help for each page
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [in-app-help.E2.S1](stories/E2-S1-cast-help.md) | The Cast page's help, on Welcome and behind its help button | FR3, FR4, FR5, FR6, FR7, FR9 | E1.S2 | draft |
-| [in-app-help.E2.S2](stories/E2-S2-casting-overview-help.md) | The Casting overview's help, on Welcome and behind its help button | FR3, FR4, FR5, FR6, FR7, FR9 | E1.S2 | draft |
-| [in-app-help.E2.S3](stories/E2-S3-items-and-item-help.md) | The Casting items list's and single item page's help, on Welcome and behind each page's help button; the item's help says how to reach it (Casting → Items) | FR3, FR4, FR5, FR6, FR7, FR9, FR10 | E1.S2 | draft |
+| [in-app-help.E2.S1](stories/E2-S1-cast-help.md) | The Cast page's help, on Welcome and behind its help button | FR3, FR4, FR5, FR6, FR7, FR9 | E1.S2 | ready |
+| [in-app-help.E2.S2](stories/E2-S2-casting-overview-help.md) | The Casting overview's help, on Welcome and behind its help button | FR3, FR4, FR5, FR6, FR7, FR9 | E1.S2 | ready |
+| [in-app-help.E2.S3](stories/E2-S3-items-and-item-help.md) | The Casting items list's and single item page's help, on Welcome and behind each page's help button; the item's help says how to reach it (Casting → Items) | FR3, FR4, FR5, FR6, FR7, FR9, FR10 | E1.S2 | ready |
 
 ## FR coverage
 
