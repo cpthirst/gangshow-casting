@@ -2,7 +2,7 @@
 id: casting-overview-by-item.E2.S3
 title: Export a casting sheet page per cast member
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story

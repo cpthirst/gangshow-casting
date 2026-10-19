@@ -41,13 +41,13 @@ const fairy: Role = {
 };
 
 /** The stand-in API: what it answers can change between the page loading and the export. */
-let api: { roles: Role[]; rolesStatus: number; holdRoles?: Promise<void> };
+let api: { cast: CastMember[]; roles: Role[]; rolesStatus: number; holdRoles?: Promise<void> };
 let saved: { name: string; file: Blob }[];
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["Date"], now: new Date(2027, 2, 12, 10, 0) });
   useLocalSignIn();
-  api = { roles: [fairy], rolesStatus: 200 };
+  api = { cast: [ava, ben], roles: [fairy], rolesStatus: 200 };
   saved = [];
   let lastFile: Blob | undefined;
   URL.createObjectURL = vi.fn((file: Blob) => {
@@ -70,7 +70,7 @@ beforeEach(() => {
           : new Response(null, { status: api.rolesStatus });
       }
       if (url === CAST_PATH) {
-        return new Response(JSON.stringify({ productionId: "2027", members: [ava, ben] }));
+        return new Response(JSON.stringify({ productionId: "2027", members: api.cast }));
       }
       if (url === RUNNING_ORDER_PATH) return new Response(JSON.stringify(show));
       return new Response(JSON.stringify({ status: "ok", version: "dev" }));
@@ -126,11 +126,11 @@ describe("Export to Word", () => {
     expect(wrapper.find(".view-switch button.word-export-button").exists()).toBe(false);
   });
 
-  // Until E2.S3 gives By person its own Word export (the casting sheets).
-  it.each([["By person"], ["Grid"]] as const)("isn't on the %s view", async (view) => {
-    const wrapper = await openView(view);
+  it("isn't on the Grid view, which exports to Excel", async () => {
+    const wrapper = await openView("Grid");
 
     expect(buttonNamed(wrapper, "Export to Word")).toBeUndefined();
+    expect(buttonNamed(wrapper, "Export to Excel")).toBeDefined();
   });
 
   it.each([["admin"], ["casting"], ["read-only"]])("lets %s export", async (group) => {
@@ -269,5 +269,109 @@ describe("Export to Word", () => {
     }
 
     expect(wrapper.find(".word-export-error").exists()).toBe(false);
+  });
+});
+
+describe("Export to Word on the By person view: the Casting Sheets", () => {
+  it("sits beside the view switch on the By person view, in blue, with a file icon", async () => {
+    const wrapper = await openView("By person");
+
+    const button = buttonNamed(wrapper, "Export to Word");
+    expect(button?.classes()).toContain("word-export-button");
+    expect(button?.find("svg").exists()).toBe(true);
+    expect(wrapper.get(".view-bar").find("button.word-export-button").exists()).toBe(true);
+    expect(wrapper.find(".view-switch button.word-export-button").exists()).toBe(false);
+  });
+
+  it.each([
+    ["By person", "Gang Show 2027 casting sheets 2027-03-12.docx"],
+    ["By item", "Gang Show 2027 item overview 2027-03-12.docx"],
+  ] as const)("makes the %s view's own document", async (view, name) => {
+    const wrapper = await openView(view);
+
+    await exportFrom(wrapper, "Export to Word");
+
+    expect(saved.map((file) => file.name)).toEqual([name]);
+  });
+
+  it.each([["admin"], ["casting"], ["read-only"]])("lets %s export", async (group) => {
+    await signInAs([group]);
+    const wrapper = await openView("By person");
+
+    await exportFrom(wrapper, "Export to Word");
+
+    expect(saved).toHaveLength(1);
+  });
+
+  it("has a page for everyone in the cast, including people in nothing yet", async () => {
+    const wrapper = await openView("By person");
+
+    await exportFrom(wrapper, "Export to Word");
+
+    const names = readDocx(await bytesOf(saved[0]?.file)).flatMap((block) =>
+      block.kind === "paragraph" && block.style === "Heading2" ? [block.text] : [],
+    );
+    expect(names).toEqual(["Ava Example", "Ben Sample"]);
+  });
+
+  it("holds nothing about the cast beyond name, section and group", async () => {
+    const wrapper = await openView("By person");
+
+    await exportFrom(wrapper, "Export to Word");
+
+    const xml = documentXml(await bytesOf(saved[0]?.file));
+    expect(xml).not.toContain("Strong alto voice");
+    expect(xml).not.toContain("Confident on stage");
+  });
+
+  it("announces a finished export to screen readers", async () => {
+    const wrapper = await openView("By person");
+
+    await exportFrom(wrapper, "Export to Word");
+
+    expect(wrapper.get("[data-test=announcement]").text()).toBe("Casting sheets exported.");
+  });
+
+  it("shows it's busy while the sheets are made, then gives focus back", async () => {
+    const wrapper = await openView("By person");
+    const button = wrapper.get<HTMLButtonElement>("button.word-export-button");
+    button.element.focus();
+    let release = () => {};
+    api.holdRoles = new Promise((resolve) => {
+      release = resolve;
+    });
+
+    await button.trigger("click");
+    expect(button.attributes("disabled")).toBeDefined();
+    await button.trigger("click");
+    release();
+    await vi.waitFor(() => expect(saved).toHaveLength(1));
+    await flushPromises();
+
+    expect(saved).toHaveLength(1);
+    expect(button.attributes("disabled")).toBeUndefined();
+    expect(document.activeElement).toBe(button.element);
+  });
+
+  it("isn't offered while the cast is empty", async () => {
+    api.cast = [];
+
+    const wrapper = await openView("By person");
+
+    expect(wrapper.text()).toContain("No cast members yet.");
+    expect(buttonNamed(wrapper, "Export to Word")).toBeUndefined();
+  });
+
+  it("says the export didn't work, saving no file", async () => {
+    const wrapper = await openView("By person");
+    api.rolesStatus = 500;
+
+    await exportFrom(wrapper, "Export to Word");
+
+    expect(wrapper.get(".word-export-error").text()).toBe(
+      "Couldn't export the casting sheets. Try again.",
+    );
+    expect(saved).toEqual([]);
+    expect(buttonNamed(wrapper, "Export to Word")?.attributes("disabled")).toBeUndefined();
   });
 });

@@ -29,7 +29,7 @@ import { RUNNING_ORDER_PATH } from "../running-order.ts";
 import ShowByItem from "../ShowByItem.vue";
 import ShowTimeline from "../ShowTimeline.vue";
 import { apiFetch } from "../sign-in.ts";
-import { downloadItemOverview } from "../word-export.ts";
+import { downloadCastingSheets, downloadItemOverview } from "../word-export.ts";
 
 const state = ref<
   { status: "loading" } | { status: "error" } | { status: "loaded"; cast: CastMember[] }
@@ -116,16 +116,24 @@ async function exportGrid() {
 const wordExportFailure = ref("");
 const wordExportButton = ref<HTMLButtonElement>();
 
-const wordExport = computed(() =>
-  view.value === "items" && halvesByItem.value.some((half) => half.items.length > 0)
-    ? {
-        done: "Item overview exported.",
-        failure: "Couldn't export the item overview. Try again.",
-        download: ({ order, roles, cast }: LatestShow) =>
-          downloadItemOverview(order.title, showByItem(order, roles, cast)),
-      }
-    : undefined,
-);
+const wordExport = computed(() => {
+  if (view.value === "items" && halvesByItem.value.some((half) => half.items.length > 0)) {
+    return {
+      done: "Item overview exported.",
+      failure: "Couldn't export the item overview. Try again.",
+      download: ({ order, roles, cast }: LatestShow) =>
+        downloadItemOverview(order.title, showByItem(order, roles, cast)),
+    };
+  }
+  if (view.value === "people" && sections.value.length > 0) {
+    return {
+      done: "Casting sheets exported.",
+      failure: "Couldn't export the casting sheets. Try again.",
+      download: downloadCastingSheets,
+    };
+  }
+  return undefined;
+});
 
 // A failure belongs to the view it happened on: moving away forgets it.
 watch(view, () => {
