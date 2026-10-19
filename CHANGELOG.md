@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.0](https://github.com/cpthirst/gangshow-casting/compare/v1.7.0...v1.8.0) (2026-10-19)
+
+
+### Features
+
+* **web:** a Welcome page, and the Running order's help behind a help button (in-app-help E1) ([#84](https://github.com/cpthirst/gangshow-casting/issues/84)) ([a05e25e](https://github.com/cpthirst/gangshow-casting/commit/a05e25e97585b12efb7eb70a1979bd1eac9103ee))
+
 ## [1.7.0](https://github.com/cpthirst/gangshow-casting/compare/v1.6.0...v1.7.0) (2026-10-19)
 
 
