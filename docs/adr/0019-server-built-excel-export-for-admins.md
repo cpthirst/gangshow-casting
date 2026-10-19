@@ -1,6 +1,6 @@
 # 0019. The casting grid's Excel export: made by the server for admins, from the grid they send
 
-- **Status**: Proposed
+- **Status**: Accepted. Amended by [ADR 0021](0021-excel-export-for-every-team-role.md): every team role may export
 - **Date**: 2026-10-18
 - **Deciders**: Nick Hirst
 

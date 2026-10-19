@@ -9,13 +9,12 @@ import {
 } from "./api-routes.ts";
 
 describe("adminOnlyRouteKeys", () => {
-  it("keeps managing accounts, deleting a cast member, saving a running-order version and exporting the casting grid for admins", () => {
+  it("keeps managing accounts, deleting a cast member and saving a running-order version for admins", () => {
     expect([...adminOnlyRouteKeys].sort()).toEqual([
       "DELETE /api/productions/{productionId}/cast/{castId}",
       "GET /api/accounts",
       "POST /api/accounts",
       "POST /api/accounts/{username}/password",
-      "POST /api/productions/{productionId}/casting-grid/export",
       "POST /api/productions/{productionId}/running-order/versions",
       "PUT /api/accounts/{username}/enabled",
       "PUT /api/accounts/{username}/role",
@@ -69,11 +68,12 @@ describe("roleFrom", () => {
 });
 
 describe("isReadRoute", () => {
-  it("counts only GET routes as reads", () => {
-    expect(routeKeys.filter(isReadRoute)).toEqual(
-      routeKeys.filter((key) => key.startsWith("GET ")),
-    );
+  it("counts GET routes and the casting grid export, which changes nothing, as reads", () => {
+    expect(routeKeys.filter((key) => key.startsWith("GET ")).every(isReadRoute)).toBe(true);
+    expect(routeKeys.filter((key) => !key.startsWith("GET ") && isReadRoute(key))).toEqual([
+      "POST /api/productions/{productionId}/casting-grid/export",
+    ]);
     expect(isReadRoute("PUT /api/productions/{productionId}/cast/{castId}")).toBe(false);
-    expect(isReadRoute("POST /api/productions/{productionId}/casting-grid/export")).toBe(false);
+    expect(isReadRoute("POST /api/productions/{productionId}/running-order/versions")).toBe(false);
   });
 });

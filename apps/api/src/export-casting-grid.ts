@@ -48,9 +48,9 @@ function sheetOf({ items, rows }: CastingGridExportRequest) {
   ];
 }
 
-// POST /api/productions/{productionId}/casting-grid/export: the grid the admin sees as an
-// Excel file (ADR 0019). Admin-only, which the entry point enforces before this runs
-// (ADR 0018); the strict body holds only names, section, item headings and role letters.
+// POST /api/productions/{productionId}/casting-grid/export: the grid the page sends, as an
+// Excel file (ADR 0019). Open to every signed-in role, as it changes nothing (ADR 0021); the
+// strict body holds only names, section, item headings and role letters.
 export async function exportCastingGrid(
   event: ApiEvent,
 ): Promise<APIGatewayProxyStructuredResultV2> {

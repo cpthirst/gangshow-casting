@@ -1353,12 +1353,8 @@ describe("Excel export from the grid", () => {
     document.body.innerHTML = "";
   });
 
-  const NOTE = "The file holds the cast's names: for the production team only.";
-  // An icon: its name is the label, which also tells a screen reader who the file is for.
   const exportButton = (wrapper: VueWrapper) =>
-    wrapper
-      .findAll("main button")
-      .find((b) => b.attributes("aria-label")?.startsWith("Export to Excel"));
+    wrapper.findAll("main button").find((b) => b.text() === "Export to Excel");
   async function openGrid() {
     const wrapper = await openOverview();
     await wrapper
@@ -1368,33 +1364,38 @@ describe("Excel export from the grid", () => {
     return wrapper;
   }
 
-  it("shows an admin an Export to Excel icon button on the grid", async () => {
+  it("shows an Export to Excel button on the grid, with the Excel file icon and its name", async () => {
     const wrapper = await openGrid();
 
     const button = exportButton(wrapper);
-    expect(button?.exists()).toBe(true);
-    expect(button?.text()).toBe("");
+    expect(button?.text()).toBe("Export to Excel");
     expect(button?.find("svg").exists()).toBe(true);
     expect(button?.classes()).toContain("grid-export-button");
   });
 
-  it("puts the button at the top right, beside the page title", async () => {
+  it("puts the button beside the By person / Grid switch, not beside the page title", async () => {
     const wrapper = await openGrid();
 
-    const row = wrapper.get(".page-title-row");
-    expect(row.find("h1").exists()).toBe(true);
-    expect(row.find("button.grid-export-button").exists()).toBe(true);
-    // After the title, so it sits at the right of the row.
-    expect(row.element.lastElementChild?.tagName).toBe("BUTTON");
+    const bar = wrapper.get(".view-bar");
+    expect(bar.find(".view-switch").exists()).toBe(true);
+    expect(bar.find("button.grid-export-button").exists()).toBe(true);
+    // Beside the switch, not one of its choices.
+    expect(wrapper.find(".view-switch button.grid-export-button").exists()).toBe(false);
+    expect(wrapper.get(".page-title-row").find("button").exists()).toBe(false);
   });
 
-  it("shows a member who isn't an admin no button", async () => {
-    await signInAs([]);
-
+  it.each([
+    ["a Casting Team Member", ["casting"]],
+    ["a Read-Only Team Member", ["read-only"]],
+  ])("shows %s the button too, and exports for them", async (_who, groups) => {
+    await signInAs(groups);
     const wrapper = await openGrid();
 
-    expect(wrapper.find("table").exists()).toBe(true);
-    expect(exportButton(wrapper)).toBeUndefined();
+    await exportButton(wrapper)?.trigger("click");
+    await flushPromises();
+
+    expect(exportRequests).toHaveLength(1);
+    expect(downloads).toHaveLength(1);
   });
 
   it("shows no button on the by-person view", async () => {
@@ -1403,13 +1404,13 @@ describe("Excel export from the grid", () => {
     expect(exportButton(wrapper)).toBeUndefined();
   });
 
-  it("says who the file is for in the button's hover tooltip, and nowhere else on screen", async () => {
+  it("is named by its words alone, with no hover note", async () => {
     const wrapper = await openGrid();
 
     const button = exportButton(wrapper);
-    expect(button?.attributes("data-tooltip")).toBe(NOTE);
-    expect(button?.attributes("aria-label")).toBe(`Export to Excel. ${NOTE}`);
-    expect(wrapper.text()).not.toContain(NOTE);
+    expect(button?.attributes("aria-label")).toBeUndefined();
+    expect(button?.attributes("data-tooltip")).toBeUndefined();
+    expect(wrapper.text()).not.toContain("production team only");
   });
 
   it("sends the grid as shown: names, section, whole item headings and role letters", async () => {
@@ -1472,7 +1473,7 @@ describe("Excel export from the grid", () => {
   it.each([
     ["finishes", 200],
     ["fails", 500],
-  ])("puts keyboard focus back on the icon when an export %s", async (_name, status) => {
+  ])("puts keyboard focus back on the button when an export %s", async (_name, status) => {
     exportStatus = status;
     const wrapper = await openGrid();
     const button = wrapper.get<HTMLButtonElement>(".grid-export-button");
@@ -1571,13 +1572,13 @@ describe("The Overview for a Read-Only Team Member", () => {
     expect(wrapper.find("table").exists()).toBe(true);
   });
 
-  it("has no Export to Excel button on the grid", async () => {
+  it("has the Export to Excel button on the grid, like every role (ADR 0021)", async () => {
     showIs();
 
     const wrapper = await openOverview();
     await showGrid(wrapper);
 
-    expect(wrapper.find("button.grid-export-button").exists()).toBe(false);
+    expect(wrapper.get("button.grid-export-button").text()).toBe("Export to Excel");
   });
 
   it("says on the page that the access is read-only", async () => {

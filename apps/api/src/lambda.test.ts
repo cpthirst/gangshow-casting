@@ -223,22 +223,15 @@ describe("Lambda entry point", () => {
         }),
       });
 
-    it("refuses a non-admin's casting grid export, returning no file", async () => {
+    it.each([
+      ["an admin", "[crew admin]"],
+      ["a Casting Team Member", "[casting]"],
+      ["a Read-Only Team Member", "[read-only]"],
+      ["someone in no known group", "[crew]"],
+    ])("lets %s export the casting grid (ADR 0021)", async (_who, groups) => {
       const { api } = setUp();
 
-      for (const groups of ["[casting]", "[crew casting]"]) {
-        const res = await api(exportGrid(groups));
-
-        expect(res.statusCode).toBe(403);
-        expect(res.isBase64Encoded).toBeUndefined();
-        expect(JSON.parse(res.body ?? "")).toEqual({ message: "Only admins can do this." });
-      }
-    });
-
-    it("lets an admin export the casting grid", async () => {
-      const { api } = setUp();
-
-      const res = await api(exportGrid("[crew admin]"));
+      const res = await api(exportGrid(groups));
 
       expect(res.statusCode).toBe(200);
       expect(res.isBase64Encoded).toBe(true);

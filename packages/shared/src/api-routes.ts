@@ -57,8 +57,16 @@ export const READ_ONLY_REFUSAL = "You have read-only access.";
  */
 export const LOCAL_ROLE_HEADER = "x-local-role";
 
-/** Reads change nothing, so every role may use them; every other route is a change. */
-export const isReadRoute = (key: string) => key.startsWith("GET ");
+/**
+ * Routes that aren't a GET but change nothing stored. The export only turns the grid the page
+ * sends into a file, so every role may use it (ADR 0021). Add one only for the same reason.
+ */
+const readsSentAsPost: ReadonlySet<string> = new Set<RouteKey>([
+  "POST /api/productions/{productionId}/casting-grid/export",
+]);
+
+/** Reads change nothing stored, so every role may use them: every GET, plus the POSTs above. */
+export const isReadRoute = (key: string) => key.startsWith("GET ") || readsSentAsPost.has(key);
 
 /**
  * Routes only admins may use: permanent or show-wide changes (hosting FR9). The API refuses
@@ -72,7 +80,6 @@ export const adminOnlyRouteKeys: readonly RouteKey[] = [
   "PUT /api/accounts/{username}/role",
   "DELETE /api/productions/{productionId}/cast/{castId}",
   "POST /api/productions/{productionId}/running-order/versions",
-  "POST /api/productions/{productionId}/casting-grid/export",
 ];
 
 /**

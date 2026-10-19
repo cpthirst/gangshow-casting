@@ -28,7 +28,7 @@ export const GridSection = z.enum(["Scouts", "Explorers", "Network", "Not set"])
 export type GridSection = z.infer<typeof GridSection>;
 
 /**
- * POST /api/productions/{productionId}/casting-grid/export (admins only, ADR 0019): the grid
+ * POST /api/productions/{productionId}/casting-grid/export (every role, ADRs 0019 and 0021): the grid
  * as the page shows it, which the server turns into an Excel file. Strict, and nothing but
  * names, section, item headings and role letters fits, so no group, age band, note or role
  * name can reach the file (ADR 0010, ADR 0014). 200 returns the .xlsx file.

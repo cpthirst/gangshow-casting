@@ -15,11 +15,12 @@ const ADMIN_ONLY = adminOnlyRouteKeys.map((key) => key.replaceAll(/\{\w+\}/g, "c
 
 type Answer = (method: string, path: string, headers: Headers) => Response;
 // The API as deployed: only the check accounts' real tokens get through, the admin-only
-// routes refuse the member, and every change refuses the read-only account.
+// routes refuse the member, and every change refuses the read-only account. The casting
+// grid export changes nothing, so it works for every role (ADR 0021).
 const asDeployed: Answer = (method, path, headers) => {
   const authorization = headers.get("authorization");
   if (authorization === `Bearer ${READ_ONLY_TOKEN}`) {
-    return method === "GET"
+    return method === "GET" || path.endsWith("/casting-grid/export")
       ? Response.json({ status: "ok", version: "0.0.0" })
       : Response.json({ message: "You have read-only access." }, { status: 403 });
   }
@@ -35,11 +36,13 @@ const run = async ({
   answer = asDeployed,
   args = [API, "check-admin", "check-member", "check-read-only"],
   env = ENV,
+  routes = ROUTES,
   signIn = tokenFor,
 }: {
   answer?: Answer;
   args?: string[];
   env?: Record<string, string>;
+  routes?: string[];
   signIn?: SignIn;
 } = {}) => {
   const requests: { method: string; path: string; authorization: string | null }[] = [];
@@ -55,7 +58,7 @@ const run = async ({
   const code = await runHostedCheck(args, env, {
     print: (line) => lines.push(line),
     fetch: fakeFetch,
-    routeKeys: ROUTES,
+    routeKeys: routes,
     signIn: async (account) => {
       signIns.push(account);
       return signIn(account);
@@ -185,6 +188,15 @@ describe("the post-deploy check", () => {
     expect(
       lines.filter((line) => /signed in as check-read-only \(expected 403\)$/.test(line)),
     ).toHaveLength(changes.length);
+    expect(code).toBe(0);
+  });
+
+  it("expects the casting grid export to work for the member and the read-only account (ADR 0021)", async () => {
+    const { lines, code } = await run({ routes: [...routeKeys] });
+
+    const exportLines = lines.filter((line) => line.includes("/casting-grid/export"));
+    // It is checked: anyone not signed in is refused it.
+    expect(exportLines).toEqual([expect.stringMatching(/no token \(expected 401\)$/)]);
     expect(code).toBe(0);
   });
 
