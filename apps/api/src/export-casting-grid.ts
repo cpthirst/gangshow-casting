@@ -14,19 +14,37 @@ const XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 const bold = (value: string) => ({ value, fontWeight: "bold" as const });
 
-/** The grid as sheet rows: a bold heading row (an item left out of the printed programme in
- *  red italics), then a row per person with each role letter on its dot's fill. Text goes in
- *  as text, so a name that looks like a formula stays a name. */
+// An item's column is 60 pixels wide: Excel stores a width in its own units, and at its
+// default font 60 pixels is 8.57 of them (60 / 7).
+const ITEM_COLUMN_WIDTH = 8.57;
+// Excel's tallest row, in points: a heading longer than about 66 characters is cut short.
+const TALLEST_ROW = 409;
+// About as many points as an 11 pt heading's characters take when turned to read upwards.
+const POINTS_PER_CHARACTER = 6;
+
+/** Tall enough for the longest item heading to read upwards in full, within Excel's limit. */
+const headingRowHeight = (items: CastingGridExportRequest["items"]) =>
+  Math.min(
+    TALLEST_ROW,
+    Math.max(0, ...items.map(({ heading }) => heading.length)) * POINTS_PER_CHARACTER + 10,
+  );
+
+/** The grid as sheet rows: a bold heading row, with each item's heading turned to read
+ *  upwards (one left out of the printed programme in red italics), then a row per person with
+ *  each role letter on its dot's fill. Text goes in as text, so a name that looks like a
+ *  formula stays a name. */
 function sheetOf({ items, rows }: CastingGridExportRequest) {
+  const height = headingRowHeight(items);
   const heading = [
-    bold("First name"),
+    // write-excel-file takes a row's height from its first cell.
+    { ...bold("First name"), height },
     bold("Last name"),
     bold("Section"),
-    ...items.map(({ heading, printed }) =>
-      printed
-        ? bold(heading)
-        : { ...bold(heading), fontStyle: "italic" as const, textColor: unprintedHeadingColour },
-    ),
+    ...items.map(({ heading, printed }) => ({
+      ...bold(heading),
+      textRotation: 90,
+      ...(printed ? {} : { fontStyle: "italic" as const, textColor: unprintedHeadingColour }),
+    })),
   ];
   return [
     heading,
@@ -59,7 +77,9 @@ export async function exportCastingGrid(
   const grid = CastingGridExportRequest.safeParse(parseJson(event.body));
   if (!grid.success) return { statusCode: 400 };
 
-  const file = await writeExcelFile(sheetOf(grid.data)).toBuffer();
+  // The name columns keep Excel's own width; each item's is fixed.
+  const columns = [{}, {}, {}, ...grid.data.items.map(() => ({ width: ITEM_COLUMN_WIDTH }))];
+  const file = await writeExcelFile(sheetOf(grid.data), { columns }).toBuffer();
   return {
     statusCode: 200,
     headers: { "content-type": XLSX },

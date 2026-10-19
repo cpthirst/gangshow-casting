@@ -88,12 +88,12 @@ describe("the Item Overview document", () => {
     expect(`#${title?.color?.toLowerCase()}`).toBe(unprintedHeadingColour);
   });
 
-  it("sets each roles table at 25% role name, 25% role type and 50% cast", async () => {
+  it("sets each roles table at 25% role name, 15% role type and 60% cast", async () => {
     const file = await documentOf(show);
 
     expect(columnShares(file)).toEqual([
-      [25, 25, 50],
-      [25, 25, 50],
+      [25, 15, 60],
+      [25, 15, 60],
     ]);
     // On A4, the page the widths are worked out for.
     expect(pageOf(file)).toMatchObject({ width: 11906, height: 16838 });

@@ -19,11 +19,11 @@ import { A4, CELL_SPACING, widthsOf, wordStyles } from "./word-styles.ts";
 // each half and each item as Word headings, so Word's navigation pane lists them, and each
 // item's roles as a table. Text goes in as plain runs, never as markup (ADR 0022).
 
-// Each column's share of the page: the cast gets half, as an ensemble lists many names.
+// Each column's share of the page: the cast gets most of it, as an ensemble lists many names.
 const ROLE_COLUMNS = [
   { name: "Role name", share: 25 },
-  { name: "Role type", share: 25 },
-  { name: "Cast", share: 50 },
+  { name: "Role type", share: 15 },
+  { name: "Cast", share: 60 },
 ];
 // A4 with inch margins, set here so the fixed column widths always match the page.
 const MARGIN = { top: 1440, bottom: 1440, left: 1440, right: 1440 };

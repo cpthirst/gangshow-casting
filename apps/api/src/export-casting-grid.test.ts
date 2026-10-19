@@ -2,7 +2,14 @@ import { gridLetterColours, unprintedHeadingColour } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import { describe, expect, it } from "vitest";
 import { exportCastingGrid } from "./export-casting-grid.ts";
-import { readSheet, readStyledCells, type StyledCell, sheetXml } from "./xlsx.fixture.ts";
+import {
+  columnPixels,
+  readSheet,
+  readStyledCells,
+  rowHeight,
+  type StyledCell,
+  sheetXml,
+} from "./xlsx.fixture.ts";
 
 // Made-up names only: tests never use the real cast (CLAUDE.md safeguarding).
 const grid = {
@@ -117,6 +124,45 @@ describe("export casting grid handler", () => {
 
   it("returns 404 for a production id that can't be one", async () => {
     expect((await exportCastingGrid(request(grid, "../etc"))).statusCode).toBe(404);
+  });
+
+  describe("layout", () => {
+    const fileOf = async () => fileIn(await exportCastingGrid(request(grid)));
+
+    it("turns each item's heading to read upwards, leaving the name headings level", async () => {
+      const [headings] = readStyledCells(await fileOf());
+
+      expect(headings?.map(({ text, rotation }) => [text, rotation])).toEqual([
+        ["First name", 0],
+        ["Last name", 0],
+        ["Section", 0],
+        ["1.1 · Opening Number", 90],
+        ["1.2 · Pirate Sketch", 90],
+        ["Entr'acte", 90],
+      ]);
+    });
+
+    it("fixes each item's column at 60 pixels wide", async () => {
+      const widths = columnPixels(await fileOf());
+
+      expect([4, 5, 6].map((column) => widths.get(column))).toEqual([60, 60, 60]);
+      // The name columns keep Excel's own width.
+      expect([1, 2, 3].map((column) => widths.get(column))).toEqual([
+        undefined,
+        undefined,
+        undefined,
+      ]);
+    });
+
+    it("makes the heading row tall enough for the longest item heading to read upwards", async () => {
+      const height = rowHeight(await fileOf(), 1) ?? 0;
+
+      // "1.1 · Opening Number" is 20 characters, each about 5 points or more at 11 pt
+      // (the file allows 6, with room to spare).
+      expect(height).toBeGreaterThanOrEqual(20 * 5);
+      // Excel's tallest row.
+      expect(height).toBeLessThanOrEqual(409);
+    });
   });
 
   describe("colours", () => {
