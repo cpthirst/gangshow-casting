@@ -202,9 +202,10 @@ describe("each casting sheet's table of items", () => {
     expect([page.width, page.height]).toEqual([11906, 16838]);
     // At least 0.7 cm a row, room to write by hand.
     expect(Math.min(...heights)).toBeGreaterThanOrEqual(397);
-    // Word sizes the headings, the header row and the half rows itself, so allow about 4 cm
-    // for them. A title long enough to wrap makes its row taller: the story accepts that.
-    const ROOM_FOR_HEADINGS = 2268;
+    // Word sizes the headings, the header row and the half rows itself, so allow about 5.6 cm
+    // for them, with their spacing (word-styles.ts). A title long enough to wrap makes its
+    // row taller: the story accepts that.
+    const ROOM_FOR_HEADINGS = 3200;
     expect(
       heights.reduce((sum, height) => sum + height, 0) + ROOM_FOR_HEADINGS,
     ).toBeLessThanOrEqual(page.bodyHeight);

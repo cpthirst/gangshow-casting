@@ -12,6 +12,7 @@ import {
 } from "docx";
 import { itemHeading, type ShowHalf, type ShowItem } from "./overview.ts";
 import { roleSizeLabel } from "./roles.ts";
+import { CELL_SPACING, wordStyles } from "./word-styles.ts";
 
 // The By item view as a Word document (casting-overview-by-item FR8): the production's title,
 // each half and each item as Word headings, so Word's navigation pane lists them, and each
@@ -20,7 +21,9 @@ import { roleSizeLabel } from "./roles.ts";
 const ROLE_COLUMNS = ["Role name", "Role type", "Cast"];
 
 const cell = (text: string, bold = false) =>
-  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text, bold })] })] });
+  new TableCell({
+    children: [new Paragraph({ spacing: CELL_SPACING, children: [new TextRun({ text, bold })] })],
+  });
 
 const rolesTable = (roles: ShowItem["roles"]) =>
   new Table({
@@ -69,6 +72,7 @@ const itemBlocks = (item: ShowItem) => [
 export const itemOverviewDocument = (title: string, halves: ShowHalf[]) =>
   new Document({
     title,
+    styles: wordStyles,
     sections: [
       {
         children: [

@@ -16,6 +16,7 @@ import { sectionLabel } from "./cast.ts";
 import type { LatestShow } from "./latest-show.ts";
 import { castBySection, itemHeading } from "./overview.ts";
 import { runningClock } from "./running-order.ts";
+import { CELL_SPACING, wordStyles } from "./word-styles.ts";
 
 // A casting sheet for every cast member, to print and hand out (casting-overview-by-item
 // FR9–FR13): one page each, headed with the show and who it's for, then the printed
@@ -46,6 +47,7 @@ const cell = (text: string, options: { bold?: boolean; centred?: boolean; span?:
     children: [
       new Paragraph({
         alignment: options.centred ? AlignmentType.CENTER : AlignmentType.LEFT,
+        spacing: CELL_SPACING,
         children: [new TextRun({ text, bold: options.bold ?? false })],
       }),
     ],
@@ -123,6 +125,7 @@ export function castingSheetsDocument(show: LatestShow) {
   const members = castBySection(show.cast).flatMap((section) => section.members);
   const halves = printedHalves(show);
   return new Document({
+    styles: wordStyles,
     title: `${show.order.title} casting sheets`,
     sections: [
       {

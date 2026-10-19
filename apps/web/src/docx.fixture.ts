@@ -100,3 +100,24 @@ export function pageOf(file: Uint8Array) {
   const bottom = number(/<w:pgMar [^>]*w:bottom="(\d+)"/);
   return { width, height, bodyHeight: height - top - bottom };
 }
+
+/** A paragraph style's font, size (in half-points) and spacing before and after (in
+ *  twentieths of a point), as the document's styles define it; "defaults" reads the
+ *  document's defaults, which every style starts from. */
+export function styleOf(file: Uint8Array, styleId: string) {
+  const xml = strFromU8(unzipSync(file)["word/styles.xml"] ?? new Uint8Array());
+  const style =
+    styleId === "defaults"
+      ? /<w:docDefaults>(.*?)<\/w:docDefaults>/s.exec(xml)?.[1]
+      : new RegExp(`<w:style [^>]*w:styleId="${styleId}"[^>]*>(.*?)</w:style>`, "s").exec(xml)?.[1];
+  const number = (pattern: RegExp) => {
+    const value = pattern.exec(style ?? "")?.[1];
+    return value === undefined ? undefined : Number(value);
+  };
+  return {
+    font: /<w:rFonts [^>]*w:ascii="([^"]+)"/.exec(style ?? "")?.[1],
+    size: number(/<w:sz w:val="(\d+)"/),
+    before: number(/<w:spacing [^>]*w:before="(\d+)"/),
+    after: number(/<w:spacing [^>]*w:after="(\d+)"/),
+  };
+}
