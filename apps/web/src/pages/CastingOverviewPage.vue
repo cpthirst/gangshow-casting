@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CastList, type CastMember, RoleList, RunningOrder } from "@app/shared";
+import { CastList, type CastMember, type Role, RoleList, RunningOrder } from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, nextTick, onMounted, ref } from "vue";
 import CastingGrid from "../CastingGrid.vue";
@@ -17,6 +17,7 @@ import {
   partsByMember,
   peopleCount,
   roleTotals,
+  showByItem,
   sizesHeld,
   spokenParts,
   timelineOf,
@@ -24,6 +25,7 @@ import {
 import ReadOnlyNotice from "../ReadOnlyNotice.vue";
 import { ROLES_PATH, roleSizeLabel } from "../roles.ts";
 import { RUNNING_ORDER_PATH } from "../running-order.ts";
+import ShowByItem from "../ShowByItem.vue";
 import ShowTimeline from "../ShowTimeline.vue";
 import { apiFetch } from "../sign-in.ts";
 
@@ -41,11 +43,28 @@ const totals = ref<ReturnType<typeof roleTotals>>();
 // From the same roles and running order, so they fail together: no icons then
 // (casting-rules FR9, FR13).
 const clashes = ref<Clash[]>([]);
-// The show and everyone's parts in it, for each person's timeline; none until both load.
-const timeline = ref<{ order: RunningOrder; parts: ReturnType<typeof biggestParts> }>();
+// The show, its roles and everyone's parts in it, for each person's timeline and the By item
+// view; none until both load.
+const timeline = ref<{
+  order: RunningOrder;
+  roles: Role[];
+  parts: ReturnType<typeof biggestParts>;
+}>();
 
-// The Overview's two views of the same cast: by person (default), or the grid of items.
-const view = ref<"people" | "grid">("people");
+// The Overview's three views of the same cast: by person (default), the grid of items, or
+// each item's roles in show order.
+const view = ref<"people" | "grid" | "items">("people");
+const VIEWS = [
+  ["people", "By person"],
+  ["grid", "Grid"],
+  ["items", "By item"],
+] as const;
+
+const halvesByItem = computed(() =>
+  timeline.value && state.value.status === "loaded"
+    ? showByItem(timeline.value.order, timeline.value.roles, state.value.cast)
+    : [],
+);
 
 // The grid: a column per item in running order, and the same people in the same order as
 // the by-person view, each with their part in every item.
@@ -132,7 +151,7 @@ async function loadParts() {
     if (!orderRes.ok) throw new Error(`HTTP ${orderRes.status}`);
     const order = RunningOrder.parse(await orderRes.json());
     clashes.value = findClashes(order, roles);
-    timeline.value = { order, parts: biggestParts(roles) };
+    timeline.value = { order, roles, parts: biggestParts(roles) };
     const itemsInShow = itemIdsInOrder(order);
     parts.value = partsByMember(roles, itemsInShow);
     totals.value = roleTotals(roles, itemsInShow);
@@ -187,7 +206,7 @@ async function loadCast() {
     <div class="view-bar">
       <div class="view-switch" role="group" aria-label="Choose how to see the cast">
         <button
-          v-for="choice in ([['people', 'By person'], ['grid', 'Grid']] as const)"
+          v-for="choice in VIEWS"
           :key="choice[0]"
           type="button"
           :aria-pressed="view === choice[0]"
@@ -217,6 +236,12 @@ async function loadCast() {
       <p v-else-if="parts === 'error'">Couldn't load the grid.</p>
       <p v-else-if="parts instanceof Map">No items in the running order yet.</p>
     </template>
+    <!-- As on the grid, the error and empty messages follow the casting's load (parts). -->
+    <div v-else-if="view === 'items'" data-test="by-item">
+      <ShowByItem v-if="halvesByItem.some((half) => half.items.length > 0)" :halves="halvesByItem" :clashes="clashes" />
+      <p v-else-if="parts === 'error'">Couldn't load the items.</p>
+      <p v-else-if="parts instanceof Map">No items in the running order yet.</p>
+    </div>
     <template v-else>
     <section v-for="section in sections" :key="section.key" class="overview-section">
       <h2 :id="`section-${section.key}`">

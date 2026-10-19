@@ -1607,3 +1607,202 @@ describe("The Overview for other roles", () => {
     expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
   });
 });
+
+describe("The By item view on the Overview", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.body.innerHTML = "";
+    useLocalSignIn();
+  });
+
+  const ava = person("Ava", "Example", "scouts");
+  const ben = person("Ben", "Sample", "explorers");
+  const cara = person("Cara", "Test", "scouts");
+  const show = aRunningOrder([anItem("Opening"), anItem("Campfire Song")], [anItem("Finale")]);
+  show.halves[0].name = "Act One";
+  show.halves[1].name = "Act Two";
+  let roleId = 1;
+  const role = (
+    itemId: string,
+    name: string,
+    size: Role["size"],
+    castMemberIds: number[] = [],
+  ) => ({
+    id: roleId++,
+    itemId,
+    name,
+    size,
+    castMemberIds,
+    revision: 1,
+  });
+
+  /** A stand-in API for the cast, roles and running order. */
+  function theShowIs(roles: Role[], order: RunningOrder = show) {
+    const answers: Record<string, unknown> = {
+      // Not in surname order, so the view's own ordering is what's tested.
+      [CAST_PATH]: { productionId: "2027", members: [cara, ava, ben] },
+      [ROLES_PATH]: { productionId: "2027", roles },
+      [RUNNING_ORDER_PATH]: order,
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) =>
+        url in answers
+          ? new Response(JSON.stringify(answers[url]))
+          : new Response(JSON.stringify({ status: "ok", version: "dev" })),
+      ),
+    );
+  }
+
+  const switchButtons = (wrapper: VueWrapper) => wrapper.findAll(".view-switch button");
+
+  async function openByItem() {
+    const wrapper = await openOverview();
+    await switchButtons(wrapper)
+      .find((b) => b.text() === "By item")
+      ?.trigger("click");
+    return wrapper;
+  }
+
+  const byItem = (wrapper: VueWrapper) => wrapper.get("[data-test=by-item]");
+  const itemNamed = (wrapper: VueWrapper, heading: string) =>
+    byItem(wrapper)
+      .findAll("[data-test=show-item]")
+      .find((item) => item.get("h3").text() === heading);
+  const rowsOf = (wrapper: VueWrapper, heading: string) =>
+    itemNamed(wrapper, heading)
+      ?.findAll("tbody tr")
+      .map((row) => row.findAll("th, td").map((cell) => cell.text()));
+
+  it("offers By person, Grid and By item, and marks By item once chosen", async () => {
+    theShowIs([]);
+
+    const wrapper = await openByItem();
+
+    expect(switchButtons(wrapper).map((b) => b.text())).toEqual(["By person", "Grid", "By item"]);
+    expect(switchButtons(wrapper).map((b) => b.attributes("aria-pressed"))).toEqual([
+      "false",
+      "false",
+      "true",
+    ]);
+    expect(wrapper.find("[data-test=by-item]").exists()).toBe(true);
+  });
+
+  it("lists the items in show order under their half, as real headings", async () => {
+    theShowIs([]);
+
+    const wrapper = await openByItem();
+
+    const headings = byItem(wrapper)
+      .findAll("h2, h3")
+      .map((h) => `${h.element.tagName} ${h.text()}`);
+    expect(headings).toEqual([
+      "H2 Act One",
+      "H3 1 Opening",
+      "H3 2 Campfire Song",
+      "H2 Act Two",
+      "H3 1 Finale",
+    ]);
+  });
+
+  it("shows each item's roles in a table of role name, role type and cast", async () => {
+    theShowIs([role("opening", "Fairy Godmother", "lead", [ava.id])]);
+
+    const wrapper = await openByItem();
+
+    const headers = itemNamed(wrapper, "1 Opening")
+      ?.findAll("thead th")
+      .map((th) => th.text());
+    expect(headers).toEqual(["Role name", "Role type", "Cast"]);
+    expect(rowsOf(wrapper, "1 Opening")).toEqual([["Fairy Godmother", "Lead", "Ava Example"]]);
+  });
+
+  it("lists everyone in an ensemble, in the item page's order", async () => {
+    theShowIs([role("opening", "Villagers", "ensemble", [cara.id, ben.id])]);
+
+    const wrapper = await openByItem();
+
+    expect(rowsOf(wrapper, "1 Opening")).toEqual([
+      ["Villagers", "Ensemble", "Ben Sample, Cara Test"],
+    ]);
+  });
+
+  it("orders an item's roles by size, then name", async () => {
+    theShowIs([
+      role("finale", "Villagers", "ensemble", [ben.id]),
+      role("finale", "zebra", "cameo", [ava.id]),
+      role("finale", "Apple", "cameo", [cara.id]),
+      role("finale", "Fairy Godmother", "lead", [ava.id]),
+    ]);
+
+    const wrapper = await openByItem();
+
+    expect(rowsOf(wrapper, "1 Finale")?.map((row) => row[0])).toEqual([
+      "Fairy Godmother",
+      "Apple",
+      "zebra",
+      "Villagers",
+    ]);
+  });
+
+  it.each([["admin"], ["casting"], ["read-only"]])(
+    "shows %s the same view, with nothing to edit",
+    async (group) => {
+      await signInAs([group]);
+      theShowIs([role("opening", "Fairy Godmother", "lead", [ava.id])]);
+
+      const wrapper = await openByItem();
+
+      expect(rowsOf(wrapper, "1 Opening")).toEqual([["Fairy Godmother", "Lead", "Ava Example"]]);
+      expect(byItem(wrapper).findAll("button, a, input, select, textarea")).toEqual([]);
+    },
+  );
+
+  it("puts each item's roles in a labelled box a keyboard can scroll", async () => {
+    theShowIs([role("opening", "Fairy Godmother", "lead", [ava.id])]);
+
+    const wrapper = await openByItem();
+
+    const box = itemNamed(wrapper, "1 Opening")?.get(".table-scroll");
+    expect(box?.attributes()).toMatchObject({
+      tabindex: "0",
+      role: "region",
+      "aria-label": "Roles in Opening",
+    });
+  });
+
+  it("labels each role's details, so they still read on a phone when stacked", async () => {
+    theShowIs([role("opening", "Fairy Godmother", "lead", [ava.id])]);
+
+    const wrapper = await openByItem();
+
+    const labels = itemNamed(wrapper, "1 Opening")
+      ?.findAll("tbody td")
+      .map((cell) => cell.attributes("data-label"));
+    expect(labels).toEqual(["Role type", "Cast"]);
+  });
+
+  it("shows a clash icon beside a name in back-to-back items, as the item page does", async () => {
+    theShowIs([
+      role("opening", "Fairy Godmother", "lead", [ava.id]),
+      role("campfire-song", "Singer", "support", [ava.id]),
+      role("finale", "Villagers", "ensemble", [ben.id]),
+    ]);
+
+    const wrapper = await openByItem();
+
+    const clashIn = (heading: string) =>
+      itemNamed(wrapper, heading)?.find("tbody [data-test=clash]").exists();
+    expect(clashIn("1 Opening")).toBe(true);
+    expect(clashIn("2 Campfire Song")).toBe(true);
+    expect(clashIn("1 Finale")).toBe(false);
+  });
+
+  it("says there are no items yet when the running order is empty", async () => {
+    theShowIs([], aRunningOrder([]));
+
+    const wrapper = await openByItem();
+
+    expect(byItem(wrapper).text()).toBe("No items in the running order yet.");
+  });
+});

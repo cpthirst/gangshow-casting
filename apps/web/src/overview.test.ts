@@ -7,6 +7,7 @@ import {
   dotLabel,
   type PartCounts,
   partsByMember,
+  showByItem,
   spokenParts,
   timelineOf,
   timelineSummary,
@@ -326,5 +327,88 @@ describe("a person's timeline", () => {
 
     expect(halves.flat().every((slot) => slot.part === undefined)).toBe(true);
     expect(halves.flat()).toHaveLength(5);
+  });
+});
+
+describe("the show by item", () => {
+  let roleId = 1;
+  const role = (
+    itemId: string,
+    name: string,
+    size: Role["size"],
+    castMemberIds: number[] = [],
+  ) => ({
+    id: roleId++,
+    itemId,
+    name,
+    size,
+    castMemberIds,
+    revision: 1,
+  });
+  const ava = person("Ava", "Example", "scouts");
+  const cara = person("Cara", "Test", "scouts");
+  const ben = person("Ben", "Sample", "explorers");
+  const order = aRunningOrder([anItem("Opening"), anItem("Campfire Song")], [anItem("Finale")]);
+  order.halves[0].name = "Act One";
+  order.halves[1].name = "Act Two";
+
+  it("lists each half's items in show order, with their programme numbers", () => {
+    const halves = showByItem(order, [], [ava]);
+
+    expect(halves.map(({ name, items }) => [name, items.map((i) => [i.number, i.title])])).toEqual([
+      [
+        "Act One",
+        [
+          [1, "Opening"],
+          [2, "Campfire Song"],
+        ],
+      ],
+      ["Act Two", [[1, "Finale"]]],
+    ]);
+  });
+
+  it("gives each role its name, size and the names of who plays it", () => {
+    const halves = showByItem(order, [role("opening", "Fairy Godmother", "lead", [ava.id])], [ava]);
+
+    expect(halves[0]?.items[0]?.roles).toEqual([
+      {
+        id: expect.any(Number),
+        name: "Fairy Godmother",
+        size: "lead",
+        cast: [{ id: ava.id, name: "Ava Example" }],
+      },
+    ]);
+  });
+
+  it("lists everyone in an ensemble in surname order, as the item's page does", () => {
+    const halves = showByItem(
+      order,
+      [role("opening", "Villagers", "ensemble", [cara.id, ben.id])],
+      [cara, ava, ben],
+    );
+
+    expect(halves[0]?.items[0]?.roles[0]?.cast.map((member) => member.name)).toEqual([
+      "Ben Sample",
+      "Cara Test",
+    ]);
+  });
+
+  it("orders an item's roles by size, then by name ignoring case", () => {
+    const roles = [
+      role("finale", "Villagers", "ensemble"),
+      role("finale", "zebra", "cameo"),
+      role("finale", "Apple", "cameo"),
+      role("finale", "Fairy Godmother", "lead"),
+    ];
+
+    const names = showByItem(order, roles, [])[1]?.items[0]?.roles.map((r) => r.name);
+
+    expect(names).toEqual(["Fairy Godmother", "Apple", "zebra", "Villagers"]);
+  });
+
+  it("leaves out roles in items that aren't in the running order", () => {
+    const halves = showByItem(order, [role("cut-item", "Narrator", "lead")], []);
+
+    expect(halves.flatMap((half) => half.items.flatMap((item) => item.roles))).toEqual([]);
   });
 });

@@ -2,7 +2,7 @@
 id: casting-overview-by-item.E1.S1
 title: See every item's roles and cast in show order
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story
@@ -61,4 +61,5 @@ Then the view says there are no items yet, rather than showing an empty space
 - "Role type" is the role size, shown as on the item page (Lead, Support, Cameo, Ensemble), in text, not colour alone.
 - Uses real headings per half and item, and table header cells, so screen readers can move by item (PRD accessibility NFR).
 - Browser layout test: no walk of this view is added; the maintainer declined it on 2026-10-19 (CLAUDE.md, ADR 0011).
+- Added at review (2026-10-19, the maintainer chose these ux-reviewer findings): a clash icon beside each cast name, as on the item page; each table in a labelled, keyboard-scrollable box; and on narrow screens each role stacks into a labelled card, as the Running order's items do.
 - Out of scope: unprinted items, "Uncast" and items with no roles (E1.S2); exports (E2).

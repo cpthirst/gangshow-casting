@@ -8,7 +8,7 @@ import {
 } from "@app/shared";
 import { sectionLabel, sortCast } from "./cast.ts";
 import type { ClashLine } from "./clashes.ts";
-import { biggerPart, roleSizeLabel } from "./roles.ts";
+import { biggerPart, roleSizeLabel, sortRoles } from "./roles.ts";
 import { runningClock } from "./running-order.ts";
 
 /** One section of the Overview: its people, in display order. */
@@ -224,4 +224,54 @@ export function timelineSummary(halves: TimelineSlot[][]) {
   return theirs.length === 0
     ? `In none of the ${total}`
     : `In ${theirs.length} of ${total}: ${theirs.join(", ")}`;
+}
+
+/** One role as the By item view lists it: who plays it, in surname order. */
+export interface ItemRole {
+  id: number;
+  name: string;
+  size: RoleSize;
+  cast: { id: number; name: string }[];
+}
+
+/** One item in the By item view: its programme number (null if not printed) and roles. */
+export interface ShowItem {
+  itemId: string;
+  title: string;
+  number: number | null;
+  roles: ItemRole[];
+}
+
+/** One half of the show in the By item view: its id, name and items in show order. */
+export interface ShowHalf {
+  id: string;
+  name: string;
+  items: ShowItem[];
+}
+
+/** The whole show item by item (casting-overview-by-item FR2, FR4): each half's items in show
+ *  order, each with its roles ordered as on the item's page and the names of who plays them. */
+export function showByItem(order: RunningOrder, roles: Role[], cast: CastMember[]): ShowHalf[] {
+  const castOf = (role: Role) =>
+    sortCast(cast.filter((member) => role.castMemberIds.includes(member.id))).map((member) => ({
+      id: member.id,
+      name: `${member.firstName} ${member.lastName}`,
+    }));
+  return runningClock(order).halves.map(({ half, rows }) => ({
+    id: half.id,
+    name: half.name,
+    items: rows.map(
+      ({ item, number }): ShowItem => ({
+        itemId: item.id,
+        title: item.title,
+        number,
+        roles: sortRoles(roles.filter((role) => role.itemId === item.id)).map((role) => ({
+          id: role.id,
+          name: role.name,
+          size: role.size,
+          cast: castOf(role),
+        })),
+      }),
+    ),
+  }));
 }

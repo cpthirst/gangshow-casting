@@ -280,7 +280,8 @@ main a {
 
 /* Section headings: the Running order's halves, and the Casting overview's sections. */
 .half h2,
-.overview-section h2 {
+.overview-section h2,
+.by-item-half h2 {
   margin: 1.5rem 0 0.5rem;
   font-size: 1.375rem;
   font-weight: 900;
@@ -1935,4 +1936,82 @@ main a {
   font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   font-size: 1.25rem;
   overflow-wrap: anywhere;
+}
+
+/* The By item view (casting-overview-by-item): a heading per half and item, each item's roles
+   in a table like the running order's. */
+/* Each item sizes its roles table to its own width, so a phone stacks it (below). */
+.by-item-item {
+  container-type: inline-size;
+}
+
+.by-item-item h3 {
+  margin: 1rem 0 0.5rem;
+  font-size: 1.0625rem;
+  font-weight: 800;
+}
+
+.by-item-roles {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.by-item-roles th,
+.by-item-roles td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--surface);
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: break-word;
+}
+
+.by-item-roles thead th {
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.by-item-roles tbody th {
+  font-weight: 700;
+}
+
+/* Narrow boxes: each role stacks into a labelled card, as the running order's items do,
+   so the cast names never sit off to the right. */
+@container (max-width: 36rem) {
+  .by-item-roles,
+  .by-item-roles tbody,
+  .by-item-roles tr,
+  .by-item-roles th,
+  .by-item-roles td {
+    display: block;
+    width: auto;
+  }
+
+  .by-item-roles thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .by-item-roles tbody tr {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 4px solid var(--surface);
+  }
+
+  .by-item-roles th,
+  .by-item-roles td {
+    padding: 0.125rem 0;
+    border: none;
+  }
+
+  .by-item-roles td[data-label]::before {
+    content: attr(data-label) " ";
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
 }
