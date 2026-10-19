@@ -117,6 +117,20 @@ describe("sortRoles", () => {
     revision: 1,
   });
 
+  it("sorts numbered parts by their number, not digit by digit", () => {
+    const names = ["10", "2", "13", "1", "11", "3", "12"];
+
+    const sorted = sortRoles(names.map((name) => role(name, "support")));
+
+    expect(sorted.map((r) => r.name)).toEqual(["1", "2", "3", "10", "11", "12", "13"]);
+  });
+
+  it("sorts a number inside a name by its value", () => {
+    const sorted = sortRoles([role("Villager 10", "ensemble"), role("Villager 2", "ensemble")]);
+
+    expect(sorted.map((r) => r.name)).toEqual(["Villager 2", "Villager 10"]);
+  });
+
   it("puts bigger roles first, then sorts by name ignoring case", () => {
     const sorted = sortRoles([
       role("Pirates", "ensemble"),

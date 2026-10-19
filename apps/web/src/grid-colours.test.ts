@@ -39,6 +39,14 @@ describe("the grid's colours", () => {
     expect(resolved(colour.trim()).toLowerCase()).toBe(unprintedHeadingColour);
   });
 
+  it("marks an unprinted item on the By item view in the grid's red italics", () => {
+    const rule = ruleFor(".by-item-unprinted");
+    const colour = /(?:^|\s)color:\s*([^;]+);/.exec(rule)?.[1] ?? "";
+
+    expect(resolved(colour.trim()).toLowerCase()).toBe(unprintedHeadingColour);
+    expect(rule).toMatch(/font-style:\s*italic/);
+  });
+
   it("sets the letters in the text colour the file uses", () => {
     expect(/--text:\s*(#[0-9a-f]{6})/i.exec(css)?.[1]?.toLowerCase()).toBe(gridTextColour);
   });

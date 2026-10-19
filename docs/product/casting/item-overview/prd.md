@@ -38,7 +38,7 @@ Each item has its own set of parts: a few leads, some supporting and cameo parts
 - **FR1**: Each item's page must show the item's **name** and its **position in the running order**: its number (if it's in the printed programme) and its half, for example "Item 7 · First half".
 - **FR2**: If the item has no roles, the page must show only the name, the position and an empty state that says no roles have been added yet.
 - **FR3**: Once an item has roles, each role must appear as a card with its role name, a small **pill** showing its role size, and the cast member or members in it, or a clear "uncast" marker.
-- **FR4**: Roles must be ordered by role size (lead, support, cameo, ensemble) and then alphabetically by role name, ignoring case.
+- **FR4**: Roles must be ordered by role size (lead, support, cameo, ensemble) and then alphabetically by role name, ignoring case. Numbers in a role name sort by their value, so parts named "1" to "13" read 1, 2 … 13, and "Villager 2" comes before "Villager 10". (Numbers by value added on 2026-10-19 at the user's request.)
 - **FR5**: Each item's page must have its own URL, so it loads directly and survives a refresh. The browser tab names the item.
 - **FR6**: An item that isn't in the latest saved running order must show a "not found" message with a link back to the Items list.
 - **FR7**: The page must offer a way back to the Items list.

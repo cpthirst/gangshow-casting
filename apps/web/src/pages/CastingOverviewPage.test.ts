@@ -1607,3 +1607,261 @@ describe("The Overview for other roles", () => {
     expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
   });
 });
+
+describe("The By item view on the Overview", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.body.innerHTML = "";
+    useLocalSignIn();
+  });
+
+  const ava = person("Ava", "Example", "scouts");
+  const ben = person("Ben", "Sample", "explorers");
+  const cara = person("Cara", "Test", "scouts");
+  const show = aRunningOrder([anItem("Opening"), anItem("Campfire Song")], [anItem("Finale")]);
+  show.halves[0].name = "Act One";
+  show.halves[1].name = "Act Two";
+  // Items 1–3 printed, then one left out of the printed programme, then item 4.
+  const withUnprinted = aRunningOrder([
+    anItem("Opening"),
+    anItem("Campfire Song"),
+    anItem("Pirate Sketch"),
+    anItem("Scene Change Music", { printed: false }),
+    anItem("Finale"),
+  ]);
+  const unprintedHeading = "Scene Change Music Not in printed programme";
+  let roleId = 1;
+  const role = (
+    itemId: string,
+    name: string,
+    size: Role["size"],
+    castMemberIds: number[] = [],
+  ) => ({
+    id: roleId++,
+    itemId,
+    name,
+    size,
+    castMemberIds,
+    revision: 1,
+  });
+
+  /** A stand-in API for the cast, roles and running order. */
+  function theShowIs(roles: Role[], order: RunningOrder = show) {
+    const answers: Record<string, unknown> = {
+      // Not in surname order, so the view's own ordering is what's tested.
+      [CAST_PATH]: { productionId: "2027", members: [cara, ava, ben] },
+      [ROLES_PATH]: { productionId: "2027", roles },
+      [RUNNING_ORDER_PATH]: order,
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) =>
+        url in answers
+          ? new Response(JSON.stringify(answers[url]))
+          : new Response(JSON.stringify({ status: "ok", version: "dev" })),
+      ),
+    );
+  }
+
+  const switchButtons = (wrapper: VueWrapper) => wrapper.findAll(".view-switch button");
+
+  async function openByItem() {
+    const wrapper = await openOverview();
+    await switchButtons(wrapper)
+      .find((b) => b.text() === "By item")
+      ?.trigger("click");
+    return wrapper;
+  }
+
+  const byItem = (wrapper: VueWrapper) => wrapper.get("[data-test=by-item]");
+  const itemNamed = (wrapper: VueWrapper, heading: string) =>
+    byItem(wrapper)
+      .findAll("[data-test=show-item]")
+      .find((item) => item.get("h3").text() === heading);
+  const rowsOf = (wrapper: VueWrapper, heading: string) =>
+    itemNamed(wrapper, heading)
+      ?.findAll("tbody tr")
+      .map((row) => row.findAll("th, td").map((cell) => cell.text()));
+
+  it("offers By person, Grid and By item, and marks By item once chosen", async () => {
+    theShowIs([]);
+
+    const wrapper = await openByItem();
+
+    expect(switchButtons(wrapper).map((b) => b.text())).toEqual(["By person", "Grid", "By item"]);
+    expect(switchButtons(wrapper).map((b) => b.attributes("aria-pressed"))).toEqual([
+      "false",
+      "false",
+      "true",
+    ]);
+    expect(wrapper.find("[data-test=by-item]").exists()).toBe(true);
+  });
+
+  it("lists the items in show order under their half, as real headings", async () => {
+    theShowIs([]);
+
+    const wrapper = await openByItem();
+
+    const headings = byItem(wrapper)
+      .findAll("h2, h3")
+      .map((h) => `${h.element.tagName} ${h.text()}`);
+    expect(headings).toEqual([
+      "H2 Act One",
+      "H3 1 Opening",
+      "H3 2 Campfire Song",
+      "H2 Act Two",
+      "H3 1 Finale",
+    ]);
+  });
+
+  it("shows each item's roles in a table of role name, role type and cast", async () => {
+    theShowIs([role("opening", "Fairy Godmother", "lead", [ava.id])]);
+
+    const wrapper = await openByItem();
+
+    const headers = itemNamed(wrapper, "1 Opening")
+      ?.findAll("thead th")
+      .map((th) => th.text());
+    expect(headers).toEqual(["Role name", "Role type", "Cast"]);
+    expect(rowsOf(wrapper, "1 Opening")).toEqual([["Fairy Godmother", "Lead", "Ava Example"]]);
+  });
+
+  it("lists everyone in an ensemble, in the item page's order", async () => {
+    theShowIs([role("opening", "Villagers", "ensemble", [cara.id, ben.id])]);
+
+    const wrapper = await openByItem();
+
+    expect(rowsOf(wrapper, "1 Opening")).toEqual([
+      ["Villagers", "Ensemble", "Ben Sample, Cara Test"],
+    ]);
+  });
+
+  it("orders an item's roles by size, then name", async () => {
+    theShowIs([
+      role("finale", "Villagers", "ensemble", [ben.id]),
+      role("finale", "zebra", "cameo", [ava.id]),
+      role("finale", "Apple", "cameo", [cara.id]),
+      role("finale", "Fairy Godmother", "lead", [ava.id]),
+    ]);
+
+    const wrapper = await openByItem();
+
+    expect(rowsOf(wrapper, "1 Finale")?.map((row) => row[0])).toEqual([
+      "Fairy Godmother",
+      "Apple",
+      "zebra",
+      "Villagers",
+    ]);
+  });
+
+  it.each([["admin"], ["casting"], ["read-only"]])(
+    "shows %s the same view, with nothing to edit",
+    async (group) => {
+      await signInAs([group]);
+      theShowIs([role("opening", "Fairy Godmother", "lead", [ava.id])]);
+
+      const wrapper = await openByItem();
+
+      expect(rowsOf(wrapper, "1 Opening")).toEqual([["Fairy Godmother", "Lead", "Ava Example"]]);
+      expect(byItem(wrapper).findAll("button, a, input, select, textarea")).toEqual([]);
+    },
+  );
+
+  it("puts each item's roles in a labelled box a keyboard can scroll", async () => {
+    theShowIs([role("opening", "Fairy Godmother", "lead", [ava.id])]);
+
+    const wrapper = await openByItem();
+
+    const box = itemNamed(wrapper, "1 Opening")?.get(".table-scroll");
+    expect(box?.attributes()).toMatchObject({
+      tabindex: "0",
+      role: "region",
+      "aria-label": "Roles in Opening",
+    });
+  });
+
+  it("labels each role's details, so they still read on a phone when stacked", async () => {
+    theShowIs([role("opening", "Fairy Godmother", "lead", [ava.id])]);
+
+    const wrapper = await openByItem();
+
+    const labels = itemNamed(wrapper, "1 Opening")
+      ?.findAll("tbody td")
+      .map((cell) => cell.attributes("data-label"));
+    expect(labels).toEqual(["Role type", "Cast"]);
+  });
+
+  it("shows a clash icon beside a name in back-to-back items, as the item page does", async () => {
+    theShowIs([
+      role("opening", "Fairy Godmother", "lead", [ava.id]),
+      role("campfire-song", "Singer", "support", [ava.id]),
+      role("finale", "Villagers", "ensemble", [ben.id]),
+    ]);
+
+    const wrapper = await openByItem();
+
+    const clashIn = (heading: string) =>
+      itemNamed(wrapper, heading)?.find("tbody [data-test=clash]").exists();
+    expect(clashIn("1 Opening")).toBe(true);
+    expect(clashIn("2 Campfire Song")).toBe(true);
+    expect(clashIn("1 Finale")).toBe(false);
+  });
+
+  it("marks an item left out of the printed programme in red italics, with no number", async () => {
+    theShowIs([], withUnprinted);
+
+    const wrapper = await openByItem();
+
+    const heading = itemNamed(wrapper, unprintedHeading)?.get("h3");
+    expect(heading?.classes()).toContain("by-item-unprinted");
+    expect(heading?.text()).toMatch(/^Scene Change Music/);
+  });
+
+  it("doesn't count an unprinted item in the programme numbers", async () => {
+    theShowIs([], withUnprinted);
+
+    const wrapper = await openByItem();
+
+    const headings = byItem(wrapper)
+      .findAll("h3")
+      .map((h) => h.text());
+    expect(headings.slice(3)).toEqual([unprintedHeading, "4 Finale"]);
+  });
+
+  it("says in words, not only colour, that an item isn't in the printed programme", async () => {
+    theShowIs([], withUnprinted);
+
+    const wrapper = await openByItem();
+
+    const badge = itemNamed(wrapper, unprintedHeading)?.get("h3 .badge");
+    expect(badge?.text()).toBe("Not in printed programme");
+    expect(badge?.classes()).not.toContain("visually-hidden");
+  });
+
+  it("says Uncast for a role nobody plays", async () => {
+    theShowIs([role("finale", "Narrator", "support")]);
+
+    const wrapper = await openByItem();
+
+    expect(rowsOf(wrapper, "1 Finale")).toEqual([["Narrator", "Support", "Uncast"]]);
+    expect(itemNamed(wrapper, "1 Finale")?.find(".uncast").exists()).toBe(true);
+  });
+
+  it("says an item with no roles has none yet, with no empty table", async () => {
+    theShowIs([role("opening", "Fairy Godmother", "lead", [ava.id])]);
+
+    const wrapper = await openByItem();
+
+    const finale = itemNamed(wrapper, "1 Finale");
+    expect(finale?.find("table").exists()).toBe(false);
+    expect(finale?.text()).toContain("No roles have been added yet.");
+  });
+
+  it("says there are no items yet when the running order is empty", async () => {
+    theShowIs([], aRunningOrder([]));
+
+    const wrapper = await openByItem();
+
+    expect(byItem(wrapper).text()).toBe("No items in the running order yet.");
+  });
+});

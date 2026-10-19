@@ -17,8 +17,8 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [casting-overview-by-item.E1.S1](stories/E1-S1-by-item-view.md) | A third "By item" choice on the Overview's view switch lists every item in show order under its half's name, with its title and programme number, and under each a table of Role name, Role type and Cast (all names for an ensemble), roles ordered by size then name; the same read-only view for every team role (walking skeleton) | FR1, FR2, FR4, FR6 | (none) | ready |
-| [casting-overview-by-item.E1.S2](stories/E1-S2-unprinted-and-uncast.md) | Items left out of the printed programme show in red italics with no number, an empty role says "Uncast", and an item with no roles says it has none yet | FR3, FR5 | E1.S1 | ready |
+| [casting-overview-by-item.E1.S1](stories/E1-S1-by-item-view.md) | A third "By item" choice on the Overview's view switch lists every item in show order under its half's name, with its title and programme number, and under each a table of Role name, Role type and Cast (all names for an ensemble), roles ordered by size then name; the same read-only view for every team role (walking skeleton) | FR1, FR2, FR4, FR6 | (none) | done |
+| [casting-overview-by-item.E1.S2](stories/E1-S2-unprinted-and-uncast.md) | Items left out of the printed programme show in red italics with no number, an empty role says "Uncast", and an item with no roles says it has none yet | FR3, FR5 | E1.S1 | done |
 
 ## E2: The team takes the show's casting into Word
 

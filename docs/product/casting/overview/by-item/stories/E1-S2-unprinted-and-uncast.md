@@ -2,7 +2,7 @@
 id: casting-overview-by-item.E1.S2
 title: Mark unprinted items, uncast roles and items with no roles
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story
@@ -41,4 +41,5 @@ Then it hears that the item is not in the printed programme
 - FRs: FR3, FR5
 - Depends on: E1.S1
 - The red italics match the grid's unprinted headings (`unprintedHeadingColour`), so the two views agree.
+- Added at review (2026-10-19, the maintainer's choice of a ux-reviewer finding): the unprinted heading also shows the Items list's visible "Not in printed programme" badge, which is what a screen reader hears (AC5).
 - Out of scope: exports (E2).
