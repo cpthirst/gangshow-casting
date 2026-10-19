@@ -244,7 +244,7 @@ export interface ShowItem {
 
 /** An item's heading on the By item view and in its document: "2 Campfire Song", or only the
  *  title for an item left out of the printed programme. */
-export const itemHeading = ({ number, title }: ShowItem) =>
+export const itemHeading = ({ number, title }: Pick<ShowItem, "number" | "title">) =>
   number === null ? title : `${number} ${title}`;
 
 /** One half of the show in the By item view: its id, name and items in show order. */

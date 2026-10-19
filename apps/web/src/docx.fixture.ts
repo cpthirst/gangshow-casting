@@ -80,3 +80,23 @@ const unescapeXml = (text: string) =>
     .replaceAll("&quot;", '"')
     .replaceAll("&apos;", "'")
     .replaceAll("&amp;", "&");
+
+/** Each table row's set height in twentieths of a point (undefined where Word sizes it to
+ *  fit), across every table in the document, top to bottom. */
+export const rowHeights = (file: Uint8Array) =>
+  [...documentXml(file).matchAll(/<w:tr(?:\s[^>]*)?>(.*?)<\/w:tr>/gs)].map(([, row = ""]) => {
+    const height = /<w:trHeight [^>]*w:val="(\d+)"/.exec(row)?.[1];
+    return height === undefined ? undefined : Number(height);
+  });
+
+/** The page's size and the height left for content once the top and bottom margins are
+ *  taken off, in twentieths of a point, as the document's last section sets them. */
+export function pageOf(file: Uint8Array) {
+  const xml = documentXml(file);
+  const number = (pattern: RegExp) => Number(pattern.exec(xml)?.[1] ?? Number.NaN);
+  const width = number(/<w:pgSz [^>]*w:w="(\d+)"/);
+  const height = number(/<w:pgSz [^>]*w:h="(\d+)"/);
+  const top = number(/<w:pgMar [^>]*w:top="(\d+)"/);
+  const bottom = number(/<w:pgMar [^>]*w:bottom="(\d+)"/);
+  return { width, height, bodyHeight: height - top - bottom };
+}

@@ -2,7 +2,7 @@
 id: casting-overview-by-item.E2.S4
 title: Show each cast member's items on their casting sheet
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story
@@ -17,9 +17,9 @@ When I open any page
 Then under the heading is a table with a header row "Item Name", "Am I cast", "Costume from home"
 
 ### AC2: Every printed item is a row, in show order, with its number
-Given a running order with printed items 1 "Opening", 2 "Campfire Song" and 3 "Finale"
+Given a running order whose first half has printed items 1 "Opening" and 2 "Campfire Song", and whose second half has 1 "Finale" (numbers restart each half, as in the running order)
 When I open a page
-Then the rows read "1 Opening", "2 Campfire Song", "3 Finale" in that order
+Then the item rows read "1 Opening", "2 Campfire Song", "1 Finale" in that order
 
 ### AC3: Unprinted items are left out
 Given "Scene Change Music" is not in the printed programme

@@ -1,8 +1,8 @@
-import type { CastMember } from "@app/shared";
+import type { CastMember, Role } from "@app/shared";
 import { Packer } from "docx";
 import { describe, expect, it } from "vitest";
 import { castingSheetsDocument } from "./casting-sheets-document.ts";
-import { type Block, documentXml, readDocx } from "./docx.fixture.ts";
+import { type Block, documentXml, pageOf, readDocx, rowHeights } from "./docx.fixture.ts";
 import { anItem, aRunningOrder } from "./running-order.fixture.ts";
 
 // Made-up names only: tests never use the real cast (CLAUDE.md safeguarding).
@@ -25,8 +25,8 @@ const member = (
 
 const order = aRunningOrder([anItem("Opening")], [anItem("Finale")]);
 
-async function sheetsOf(cast: CastMember[]) {
-  const doc = castingSheetsDocument({ order, roles: [], cast });
+async function sheetsOf(cast: CastMember[], show: { order?: typeof order; roles?: Role[] } = {}) {
+  const doc = castingSheetsDocument({ order: show.order ?? order, roles: show.roles ?? [], cast });
   return new Uint8Array(await Packer.toBuffer(doc));
 }
 
@@ -106,5 +106,107 @@ describe("the Casting Sheets document", () => {
 
     expect(xml).not.toContain("Strong alto voice");
     expect(xml).not.toContain("Shy");
+  });
+});
+
+describe("each casting sheet's table of items", () => {
+  const ava = member("Ava", "Example", "scouts");
+  const cara = member("Cara", "Test", "scouts");
+  const show = aRunningOrder(
+    [anItem("Opening"), anItem("Scene Change Music", { printed: false }), anItem("Campfire Song")],
+    [anItem("Finale")],
+  );
+  show.halves[0].name = "Act One";
+  show.halves[1].name = "Act Two";
+  let roleId = 1;
+  const role = (itemId: string, size: Role["size"], castMemberIds: number[]): Role => ({
+    id: roleId,
+    itemId,
+    name: `Role ${roleId++}`,
+    size,
+    castMemberIds,
+    revision: 1,
+  });
+  const roles = [
+    role("opening", "lead", [ava.id]),
+    role("finale", "ensemble", [ava.id, cara.id]),
+    role("scene-change-music", "cameo", [ava.id]),
+  ];
+
+  /** The rows for items: not the header row, nor the rows naming a half. */
+  const itemRows = (table: { header: boolean; cells: string[] }[] | undefined) =>
+    (table ?? []).filter((row) => !row.header && row.cells.length === 3);
+
+  async function tablesOf(cast: CastMember[]) {
+    const file = await sheetsOf(cast, { order: show, roles });
+    return readDocx(file).flatMap((block) => (block.kind === "table" ? [block.rows] : []));
+  }
+
+  it("has an Item Name, Am I cast and Costume from home header row", async () => {
+    const [table] = await tablesOf([ava]);
+
+    expect(table?.[0]).toEqual({
+      header: true,
+      cells: ["Item Name", "Am I cast", "Costume from home"],
+    });
+  });
+
+  it("lists the printed items in show order with their numbers, a row naming each half", async () => {
+    const [table] = await tablesOf([ava]);
+
+    expect(table?.slice(1).map((row) => row.cells[0])).toEqual([
+      "Act One",
+      "1 Opening",
+      "2 Campfire Song",
+      "Act Two",
+      "1 Finale",
+    ]);
+  });
+
+  it("leaves out items not in the printed programme, even for someone cast in one", async () => {
+    const [table] = await tablesOf([ava]);
+
+    expect(table?.map((row) => row.cells[0])).not.toContain("Scene Change Music");
+  });
+
+  it("ticks the items the person is in, whatever their part, and leaves the rest empty", async () => {
+    const [table] = await tablesOf([ava]);
+
+    const ticks = itemRows(table).map((row) => row.cells[1]);
+    expect(ticks).toEqual(["✓", "", "✓"]);
+  });
+
+  it("ticks nothing for someone with no parts", async () => {
+    const [, table] = await tablesOf([ava, member("Bea", "Zed", "scouts")]);
+
+    const ticks = itemRows(table).map((row) => row.cells[1]);
+    expect(ticks).toEqual(["", "", ""]);
+  });
+
+  it("leaves Costume from home empty on every item", async () => {
+    const [table] = await tablesOf([ava]);
+
+    const costumes = itemRows(table).map((row) => row.cells[2]);
+    expect(costumes).toEqual(["", "", ""]);
+  });
+
+  it("makes each item row tall enough to write in, and 30 of them fit on one A4 page", async () => {
+    const thirty = aRunningOrder(Array.from({ length: 30 }, (_, i) => anItem(`Item ${i + 1}`)));
+    const file = await sheetsOf([ava], { order: thirty, roles: [] });
+
+    const page = pageOf(file);
+    const heights = rowHeights(file).filter((height) => height !== undefined);
+    // Every item row has its height set.
+    expect(heights).toHaveLength(30);
+    // A4 portrait, in twentieths of a point.
+    expect([page.width, page.height]).toEqual([11906, 16838]);
+    // At least 0.7 cm a row, room to write by hand.
+    expect(Math.min(...heights)).toBeGreaterThanOrEqual(397);
+    // Word sizes the headings, the header row and the half rows itself, so allow about 4 cm
+    // for them. A title long enough to wrap makes its row taller: the story accepts that.
+    const ROOM_FOR_HEADINGS = 2268;
+    expect(
+      heights.reduce((sum, height) => sum + height, 0) + ROOM_FOR_HEADINGS,
+    ).toBeLessThanOrEqual(page.bodyHeight);
   });
 });
