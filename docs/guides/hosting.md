@@ -9,7 +9,7 @@ Throughout, replace:
 - `<app address>` with the app's address, which the deploy prints as `AppUrl`;
 - `<user pool id>` and `<check client id>` with the deploy's `UserPoolId` and `CheckClientId`;
 - `<your username>` with the username you'll sign in with;
-- `<check admin>` and `<check member>` with two usernames kept for the post-deploy check, such as `check-admin` and `check-member`;
+- `<check admin>`, `<check member>` and `<check read-only>` with three usernames kept for the post-deploy check, such as `check-admin`, `check-member` and `check-read-only`;
 - `<version>` with a release's tag, for example `v0.9.0`.
 
 None of these ever go in the repository. The deploy's outputs aren't secret, but keep them out of it too.
@@ -54,25 +54,25 @@ aws cloudformation describe-stacks --stack-name GangshowCasting --region eu-west
 
 ## 2. Run the post-deploy check
 
-After every deploy, check the app refuses anyone not signed in, lets an admin in, and keeps the admin-only actions from everyone else. The check signs in as two accounts kept for it, one admin and one not. This command creates them, or gives them fresh passwords and enables them if they already exist:
+After every deploy, check the app refuses anyone not signed in, lets an admin in, keeps the admin-only actions from everyone else, and lets a Read-Only Team Member read but change nothing. The check signs in as three accounts kept for it: an Admin, a Casting Team Member and a Read-Only Team Member. This command creates them, or gives them fresh passwords, their roles, and enables them if they already exist. The three usernames must differ:
 
 ```bash
 export AWS_PROFILE=gangshow-admin USER_POOL_ID=<user pool id> CHECK_CLIENT_ID=<check client id>
-pnpm account check <check admin> <check member>
+pnpm account check <check admin> <check member> <check read-only>
 ```
 
-It prints both passwords once. Then run the check:
+It prints the three passwords once. Then run the check:
 
 ```bash
-pnpm check:hosted <app address> <check admin> <check member>
+pnpm check:hosted <app address> <check admin> <check member> <check read-only>
 ```
 
-It asks for each password without showing what you type, then lists every request it made, each with `PASS` or `FAIL`.
+It asks for each password without showing what you type, then lists every request it made, each with `PASS` or `FAIL`. Type the passwords one after another: each sign-in lasts only 5 minutes. As the read-only account it sends every change the API has, and passes only if each is refused.
 
 - **It ends with `PASS`**: the deploy is good.
 - **It ends with `FAIL`**: don't use this deploy. If it's a release, go back to the previous version (section 5). If it's the first deploy, ask for help before giving anyone an account.
 
-The check admin is a real admin with a password that never expires, so once the check has passed, sign in to the app and disable both check accounts on the **Accounts** page. The next `pnpm account check` enables them again. Forget the passwords: the next run makes new ones.
+The check admin is a real admin with a password that never expires, so once the check has passed, sign in to the app and disable the three check accounts on the **Accounts** page. The next `pnpm account check` enables them again. Forget the passwords: the next run makes new ones.
 
 ## 3. Create the first admin and the team's accounts
 
@@ -119,7 +119,7 @@ export ALERT_EMAIL=you@example.com AWS_PROFILE=gangshow-admin
 pnpm release
 ```
 
-It needs a clean working tree, and it stops at the first thing that goes wrong rather than carrying on. It checks your AWS profile works before it touches anything, then switches to `main`, finds the open release pull request (by its branch, not just its title) and asks before it merges it. It merges with your admin bypass of the branch ruleset (`gh pr merge --admin`), because GitHub never runs the required checks on a release PR. Then it waits for the release's tag, checks the code really is at that tag, and shows you the `cdk diff`, listing anything it would remove or replace. It refuses a diff it can't read, and one that would replace or remove the table or the user pool. It asks before it deploys, naming the AWS account. After the deploy it offers the post-deploy check, reading the stack's outputs itself and using the check accounts `check-admin` and `check-member` (set `CHECK_ADMIN` and `CHECK_MEMBER` for other names), then returns you to `main`. On a release it also says which version you replaced, so you know what to go back to. If you stop a deploy half way (Ctrl+C), check the stack's status in the AWS console before you run `pnpm release <version>` again: CloudFormation may still be updating.
+It needs a clean working tree, and it stops at the first thing that goes wrong rather than carrying on. It checks your AWS profile works before it touches anything, then switches to `main`, finds the open release pull request (by its branch, not just its title) and asks before it merges it. It merges with your admin bypass of the branch ruleset (`gh pr merge --admin`), because GitHub never runs the required checks on a release PR. Then it waits for the release's tag, checks the code really is at that tag, and shows you the `cdk diff`, listing anything it would remove or replace. It refuses a diff it can't read, and one that would replace or remove the table or the user pool. It asks before it deploys, naming the AWS account. After the deploy it offers the post-deploy check, reading the stack's outputs itself and using the check accounts `check-admin`, `check-member` and `check-read-only` (set `CHECK_ADMIN`, `CHECK_MEMBER` and `CHECK_READ_ONLY` for other names), then returns you to `main`. On a release it also says which version you replaced, so you know what to go back to. If you stop a deploy half way (Ctrl+C), check the stack's status in the AWS console before you run `pnpm release <version>` again: CloudFormation may still be updating.
 
 By hand:
 

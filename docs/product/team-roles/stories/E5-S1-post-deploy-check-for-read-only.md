@@ -2,7 +2,7 @@
 id: team-roles.E5.S1
 title: Check read-only access after a deploy
 epic: E5
-status: ready
+status: done
 ---
 
 ## Story

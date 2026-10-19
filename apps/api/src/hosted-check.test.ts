@@ -1,4 +1,4 @@
-import { adminOnlyRouteKeys, routeKeys } from "@app/shared";
+import { adminOnlyRouteKeys, isReadRoute, routeKeys } from "@app/shared";
 import { describe, expect, it } from "vitest";
 import { runHostedCheck, type SignIn } from "./hosted-check.ts";
 
@@ -7,16 +7,22 @@ const ROUTES = ["GET /api/health", "DELETE /api/productions/{productionId}/cast/
 const ENV = { USER_POOL_ID: "eu-west-2_madeup", CHECK_CLIENT_ID: "made-up-check-client" };
 const TOKEN = "made-up-access-token";
 const MEMBER_TOKEN = "made-up-member-access-token";
+const READ_ONLY_TOKEN = "made-up-read-only-access-token";
 const tokenFor = async ({ username }: { username: string }) =>
-  username === "check-admin" ? TOKEN : MEMBER_TOKEN;
+  ({ "check-admin": TOKEN, "check-read-only": READ_ONLY_TOKEN })[username] ?? MEMBER_TOKEN;
 // Each admin-only route, as the check requests it.
 const ADMIN_ONLY = adminOnlyRouteKeys.map((key) => key.replaceAll(/\{\w+\}/g, "check"));
 
 type Answer = (method: string, path: string, headers: Headers) => Response;
-// The API as deployed: only the check accounts' real tokens get through, and the admin-only
-// routes refuse the member.
+// The API as deployed: only the check accounts' real tokens get through, the admin-only
+// routes refuse the member, and every change refuses the read-only account.
 const asDeployed: Answer = (method, path, headers) => {
   const authorization = headers.get("authorization");
+  if (authorization === `Bearer ${READ_ONLY_TOKEN}`) {
+    return method === "GET"
+      ? Response.json({ status: "ok", version: "0.0.0" })
+      : Response.json({ message: "You have read-only access." }, { status: 403 });
+  }
   if (authorization === `Bearer ${MEMBER_TOKEN}` && ADMIN_ONLY.includes(`${method} ${path}`)) {
     return Response.json({ message: "Only admins can do this." }, { status: 403 });
   }
@@ -27,7 +33,7 @@ const asDeployed: Answer = (method, path, headers) => {
 
 const run = async ({
   answer = asDeployed,
-  args = [API, "check-admin", "check-member"],
+  args = [API, "check-admin", "check-member", "check-read-only"],
   env = ENV,
   signIn = tokenFor,
 }: {
@@ -71,7 +77,7 @@ describe("the post-deploy check", () => {
       { method: "GET", path: "/api/nope", authorization: null },
     ]);
     expect(lines.at(-1)).toBe(
-      "PASS: the API refuses anyone not signed in, lets the check admin in, and keeps admin-only routes for admins",
+      "PASS: the API refuses anyone not signed in, lets the check admin in, keeps admin-only routes for admins, and lets the read-only account change nothing",
     );
   });
 
@@ -159,17 +165,26 @@ describe("the post-deploy check", () => {
       return asDeployed(init.method ?? "GET", pathname, new Headers(init.headers));
     };
 
-    const code = await runHostedCheck([API, "check-admin", "check-member"], ENV, {
-      print: (line) => lines.push(line),
-      fetch: fakeFetch,
-      signIn: tokenFor,
-    });
+    const code = await runHostedCheck(
+      [API, "check-admin", "check-member", "check-read-only"],
+      ENV,
+      {
+        print: (line) => lines.push(line),
+        fetch: fakeFetch,
+        signIn: tokenFor,
+      },
+    );
 
     const pathFor = (key: string) => key.replaceAll(/\{\w+\}/g, "check");
     expect(requested).toEqual(expect.arrayContaining(routeKeys.map(pathFor)));
     expect(lines.filter((line) => line.endsWith("no token (expected 401)"))).toHaveLength(
       routeKeys.length + 1,
     );
+    // Every change route, current and future, as the read-only account.
+    const changes = routeKeys.filter((key) => !isReadRoute(key));
+    expect(
+      lines.filter((line) => /signed in as check-read-only \(expected 403\)$/.test(line)),
+    ).toHaveLength(changes.length);
     expect(code).toBe(0);
   });
 
@@ -196,7 +211,11 @@ describe("the post-deploy check", () => {
     const { code, lines, requests, signIns } = await run();
 
     expect(code).toBe(0);
-    expect(signIns.map((account) => account.username)).toEqual(["check-admin", "check-member"]);
+    expect(signIns.map((account) => account.username)).toEqual([
+      "check-admin",
+      "check-member",
+      "check-read-only",
+    ]);
     expect(
       requests.filter((r) => r.authorization === `Bearer ${MEMBER_TOKEN}`).map(withoutToken),
     ).toEqual(ADMIN_ONLY);
@@ -228,26 +247,81 @@ describe("the post-deploy check", () => {
     );
   });
 
-  it("refuses the same account for both checks, as one can't be admin and not", async () => {
-    const { code, lines, signIns } = await run({ args: [API, "check-admin", "check-admin"] });
+  it("sends each change route as the read-only account, passing when each is refused", async () => {
+    const { code, lines, requests } = await run();
+
+    expect(code).toBe(0);
+    expect(
+      requests.filter((r) => r.authorization === `Bearer ${READ_ONLY_TOKEN}`).map(withoutToken),
+    ).toEqual(["DELETE /api/productions/check/cast/check", "GET /api/health"]);
+    expect(lines).toContain(
+      "PASS 403 DELETE /api/productions/check/cast/check, signed in as check-read-only (expected 403)",
+    );
+  });
+
+  it("lets the read-only account read", async () => {
+    const { lines } = await run();
+
+    expect(lines).toContain(
+      "PASS 200 GET /api/health, signed in as check-read-only (expected 200)",
+    );
+  });
+
+  it("fails, naming the route and its status but no data, when a change accepts the read-only account", async () => {
+    const { code, lines } = await run({
+      answer: (method, path, headers) =>
+        method === "DELETE" && headers.get("authorization") === `Bearer ${READ_ONLY_TOKEN}`
+          ? Response.json({ members: ["Alex Example"] })
+          : asDeployed(method, path, headers),
+    });
 
     expect(code).toBe(1);
-    expect(lines).toEqual(["The check admin and check member must be different accounts."]);
+    expect(lines).toContain(
+      "FAIL 200 DELETE /api/productions/check/cast/check, signed in as check-read-only (expected 403)",
+    );
+    expect(lines.join("\n")).not.toContain("Alex Example");
+    expect(lines.at(-1)).toBe("FAIL: the API didn't answer as it should; don't use this deploy");
+  });
+
+  it("fails when the read-only account can't read", async () => {
+    const { code, lines } = await run({
+      answer: (method, path, headers) =>
+        headers.get("authorization") === `Bearer ${READ_ONLY_TOKEN}`
+          ? new Response(null, { status: 403 })
+          : asDeployed(method, path, headers),
+    });
+
+    expect(code).toBe(1);
+    expect(lines).toContain(
+      "FAIL 403 GET /api/health, signed in as check-read-only (expected 200)",
+    );
+  });
+
+  it.each([
+    ["check-admin", "check-admin", "check-read-only"],
+    ["check-admin", "check-member", "check-member"],
+    ["check-admin", "check-member", "Check-Admin"],
+  ])("refuses a username used for two check accounts (%s, %s, %s)", async (...usernames) => {
+    const { code, lines, signIns } = await run({ args: [API, ...usernames] });
+
+    expect(code).toBe(1);
+    expect(lines).toEqual(["The check accounts need different usernames."]);
     expect(signIns).toEqual([]);
   });
 
-  it("explains how to run it when not given an https address and both check accounts", async () => {
+  it("explains how to run it when not given an https address and all three check accounts", async () => {
     for (const args of [
       [],
-      ["http://example.com", "check-admin", "check-member"],
+      ["http://example.com", "check-admin", "check-member", "check-read-only"],
       [API],
       [API, "check-admin"],
+      [API, "check-admin", "check-member"],
     ]) {
       const { code, lines, requests, signIns } = await run({ args });
 
       expect(code).toBe(1);
       expect(lines).toEqual([
-        "Usage: pnpm check:hosted <https address of the app> <check admin username> <check member username>",
+        "Usage: pnpm check:hosted <https address of the app> <check admin username> <check member username> <check read-only username>",
       ]);
       expect(requests).toEqual([]);
       expect(signIns).toEqual([]);

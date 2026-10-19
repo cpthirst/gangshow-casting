@@ -47,7 +47,7 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [team-roles.E5.S1](stories/E5-S1-post-deploy-check-for-read-only.md) | The post-deploy check confirms a read-only account is refused every change, with its account set up from the repository | FR15 | E1.S1 | ready |
+| [team-roles.E5.S1](stories/E5-S1-post-deploy-check-for-read-only.md) | The post-deploy check confirms a read-only account is refused every change, with its account set up from the repository | FR15 | E1.S1 | done |
 | [team-roles.E5.S2](stories/E5-S2-role-switch-in-dev-and-demo.md) | Local development and the demo offer a switch between the three roles (starting as admin), never shown in the hosted app | FR16 | E1.S1 | ready |
 
 ## Order

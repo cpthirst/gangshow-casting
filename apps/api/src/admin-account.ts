@@ -37,28 +37,25 @@ export function restoreAdmin(directory: UserDirectory, username: string, newPass
   return putAccount(directory, username, { role: "admin", kind: "temporary" }, newPassword);
 }
 
+/** The post-deploy check's accounts: one in each role (hosting FR17, team-roles FR15). */
+export type CheckAccounts = { admin: string; member: string; readOnly: string };
+
 /**
- * The post-deploy check's two accounts, an admin and a Casting Team Member, with permanent
- * passwords so the check can sign in without the first-login change (hosting FR17).
+ * Sets up the check's accounts with permanent passwords, so the check can sign in without
+ * the first-login change. Returns each one's password.
  */
 export async function setUpCheckAccounts(
   directory: UserDirectory,
-  usernames: { admin: string; member: string },
+  usernames: CheckAccounts,
   newPassword: NewPassword,
-) {
-  const admin = await putAccount(
-    directory,
-    usernames.admin,
-    { role: "admin", kind: "permanent" },
-    newPassword,
-  );
-  const member = await putAccount(
-    directory,
-    usernames.member,
-    { role: "casting", kind: "permanent" },
-    newPassword,
-  );
-  return { admin: admin.password, member: member.password };
+): Promise<CheckAccounts> {
+  const put = async (username: string, role: TeamRole) =>
+    (await putAccount(directory, username, { role, kind: "permanent" }, newPassword)).password;
+  return {
+    admin: await put(usernames.admin, "admin"),
+    member: await put(usernames.member, "casting"),
+    readOnly: await put(usernames.readOnly, "read-only"),
+  };
 }
 
 /**

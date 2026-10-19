@@ -69,14 +69,12 @@ describe("restoreAdmin", () => {
 });
 
 describe("setUpCheckAccounts", () => {
-  it("makes the first an admin and the second not, both with permanent passwords", async () => {
+  const usernames = { admin: "check-admin", member: "check-member", readOnly: "check-read-only" };
+
+  it("makes an admin, a Casting Team Member and a Read-Only Team Member, all with permanent passwords", async () => {
     const { directory, accounts } = memoryUserDirectory();
 
-    const passwords = await setUpCheckAccounts(
-      directory,
-      { admin: "check-admin", member: "check-member" },
-      newPassword,
-    );
+    const passwords = await setUpCheckAccounts(directory, usernames, newPassword);
 
     expect(accounts()).toEqual([
       expect.objectContaining({
@@ -95,21 +93,27 @@ describe("setUpCheckAccounts", () => {
         password: passwords.member,
         passwordKind: "permanent",
       }),
+      expect.objectContaining({
+        username: "check-read-only",
+        enabled: true,
+        admin: false,
+        casting: false,
+        readOnly: true,
+        password: passwords.readOnly,
+        passwordKind: "permanent",
+      }),
     ]);
-    expect(passwords.admin).not.toBe(passwords.member);
+    expect(new Set(Object.values(passwords)).size).toBe(3);
   });
 
   it("puts existing check accounts back the same way", async () => {
     const { directory, accounts } = memoryUserDirectory([
       pat({ username: "check-admin", enabled: false, admin: false }),
       pat({ username: "check-member", admin: true }),
+      pat({ username: "check-read-only", enabled: false, admin: true }),
     ]);
 
-    const passwords = await setUpCheckAccounts(
-      directory,
-      { admin: "check-admin", member: "check-member" },
-      newPassword,
-    );
+    const passwords = await setUpCheckAccounts(directory, usernames, newPassword);
 
     expect(accounts()).toEqual([
       expect.objectContaining({ enabled: true, admin: true, password: passwords.admin }),
@@ -118,6 +122,12 @@ describe("setUpCheckAccounts", () => {
         admin: false,
         casting: true,
         password: passwords.member,
+      }),
+      expect.objectContaining({
+        enabled: true,
+        admin: false,
+        readOnly: true,
+        password: passwords.readOnly,
       }),
     ]);
   });

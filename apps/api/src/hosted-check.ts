@@ -1,7 +1,7 @@
 import { createInterface } from "node:readline/promises";
 import { Writable } from "node:stream";
 // Every route infra hosts, so a route added later is checked from its first deploy.
-import { adminOnlyRouteKeys, routeKeys as allRouteKeys } from "@app/shared";
+import { adminOnlyRouteKeys, routeKeys as allRouteKeys, isReadRoute } from "@app/shared";
 import { signInWithPassword } from "./cognito-sign-in.ts";
 import { cognitoClientFor } from "./cognito-user-directory.ts";
 
@@ -19,7 +19,7 @@ type Deps = {
 };
 
 const USAGE =
-  "Usage: pnpm check:hosted <https address of the app> <check admin username> <check member username>";
+  "Usage: pnpm check:hosted <https address of the app> <check admin username> <check member username> <check read-only username>";
 
 // Shaped like a sign-in token but signed by nobody, so the API must refuse it.
 const toBase64Url = (value: object) => Buffer.from(JSON.stringify(value)).toString("base64url");
@@ -48,19 +48,21 @@ function requestsToRefuse(routeKeys: string[]): CheckRequest[] {
 }
 
 /**
- * Checks a deployed API refuses everyone not signed in, lets the check admin in, and keeps
- * admin-only routes from the check member (hosting FR17). Prints only statuses, never what
- * the API sent back, which could hold cast data if the check fails. Returns the exit code.
+ * Checks a deployed API refuses everyone not signed in, lets the check admin in, keeps
+ * admin-only routes from the check member (hosting FR17), and lets the read-only account
+ * read but change nothing (team-roles FR15). Prints only statuses, never what the API sent
+ * back, which could hold cast data if the check fails. Returns the exit code.
  */
 export async function runHostedCheck(args: string[], env: Env, deps: Deps): Promise<number> {
   const { print, fetch: fetchFn = fetch, routeKeys = [...allRouteKeys] } = deps;
-  const [address = "", admin = "", member = ""] = args;
-  if (!address.startsWith("https://") || !admin || !member) {
+  const [address = "", admin = "", member = "", readOnly = ""] = args;
+  if (!address.startsWith("https://") || !admin || !member || !readOnly) {
     print(USAGE);
     return 1;
   }
-  if (admin === member) {
-    print("The check admin and check member must be different accounts.");
+  // Usernames ignore case in the pool, so "Check-Admin" is "check-admin".
+  if (new Set([admin, member, readOnly].map((name) => name.toLowerCase())).size !== 3) {
+    print("The check accounts need different usernames.");
     return 1;
   }
   const { USER_POOL_ID: userPoolId, CHECK_CLIENT_ID: clientId } = env;
@@ -81,8 +83,9 @@ export async function runHostedCheck(args: string[], env: Env, deps: Deps): Prom
   // First, so the passwords are asked for before the requests start.
   const adminToken = await signInAs(admin);
   const memberToken = await signInAs(member);
+  const readOnlyToken = await signInAs(readOnly);
 
-  let allPassed = adminToken !== undefined && memberToken !== undefined;
+  let allPassed = [adminToken, memberToken, readOnlyToken].every((token) => token !== undefined);
   const checkStatus = async (request: CheckRequest, expected: number) => {
     const status = await statusOf(fetchFn, new URL(request.path, address).href, request);
     allPassed &&= status === expected;
@@ -103,9 +106,20 @@ export async function runHostedCheck(args: string[], env: Env, deps: Deps): Prom
       await checkStatus({ method, path, token: memberToken, label }, 403);
     }
   }
+  // Changes only as the read-only account, which the API refuses before any handler runs
+  // (ADR 0020). The requests carry no body, so even a wrongly accepted one changes nothing.
+  if (readOnlyToken) {
+    for (const key of routeKeys.filter((key) => !isReadRoute(key))) {
+      const { method, path } = requestFor(key);
+      const label = `${method} ${path}, signed in as ${readOnly}`;
+      await checkStatus({ method, path, token: readOnlyToken, label }, 403);
+    }
+    const label = `GET /api/health, signed in as ${readOnly}`;
+    await checkStatus({ method: "GET", path: "/api/health", token: readOnlyToken, label }, 200);
+  }
   print(
     allPassed
-      ? "PASS: the API refuses anyone not signed in, lets the check admin in, and keeps admin-only routes for admins"
+      ? "PASS: the API refuses anyone not signed in, lets the check admin in, keeps admin-only routes for admins, and lets the read-only account change nothing"
       : "FAIL: the API didn't answer as it should; don't use this deploy",
   );
   return allPassed ? 0 : 1;

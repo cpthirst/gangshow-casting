@@ -313,7 +313,8 @@ async function runHostedCheck({ env, run, print }: ReleaseDeps) {
   }
   const admin = env.CHECK_ADMIN ?? "check-admin";
   const member = env.CHECK_MEMBER ?? "check-member";
-  const check = await run("pnpm", ["check:hosted", AppUrl, admin, member], {
+  const readOnly = env.CHECK_READ_ONLY ?? "check-read-only";
+  const check = await run("pnpm", ["check:hosted", AppUrl, admin, member, readOnly], {
     env: { USER_POOL_ID: UserPoolId, CHECK_CLIENT_ID: CheckClientId },
     output: "none",
   });
