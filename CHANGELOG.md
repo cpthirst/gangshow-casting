@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/cpthirst/gangshow-casting/compare/v1.4.0...v1.5.0) (2026-10-19)
+
+
+### Features
+
+* **web:** export the grid to Excel as any role, by the view switch (casting-overview-grid.E3.S4) ([#75](https://github.com/cpthirst/gangshow-casting/issues/75)) ([d16b944](https://github.com/cpthirst/gangshow-casting/commit/d16b944432cd8904d4553c784cf15c21321c0d7f))
+
 ## [1.4.0](https://github.com/cpthirst/gangshow-casting/compare/v1.3.0...v1.4.0) (2026-10-19)
 
 
