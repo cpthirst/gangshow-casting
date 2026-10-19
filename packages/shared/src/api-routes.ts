@@ -51,6 +51,12 @@ export function roleFrom(groups: readonly string[]): TeamRole {
 /** The API's answer to a change from a read-only member, which pages recognise (team-roles FR12). */
 export const READ_ONLY_REFUSAL = "You have read-only access.";
 
+/**
+ * Which role pnpm dev and pnpm demo act for, chosen with the local role switch (team-roles
+ * FR16). Only the local API reads it; the hosted API takes the role from the sign-in alone.
+ */
+export const LOCAL_ROLE_HEADER = "x-local-role";
+
 /** Reads change nothing, so every role may use them; every other route is a change. */
 export const isReadRoute = (key: string) => key.startsWith("GET ");
 

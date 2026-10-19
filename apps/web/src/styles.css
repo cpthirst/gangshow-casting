@@ -164,6 +164,19 @@ body {
   margin-top: 0.5rem;
 }
 
+/* pnpm dev and pnpm demo's role switch, in the sidebar footer where the hosted app has
+   Sign out: the forms' dropdown (shared rules below), labelled above it. */
+.local-role {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+}
+
+.local-role select {
+  max-width: 100%;
+}
+
 main {
   padding: 2.5rem;
   min-width: 0;
@@ -867,7 +880,8 @@ main a {
 
 .cast-member-form input,
 .cast-member-form select,
-.role-choice select {
+.role-choice select,
+.local-role select {
   padding: 0.5rem;
   border: 1px solid var(--text);
   border-radius: 0.25rem;
@@ -1879,6 +1893,16 @@ main a {
   /* The Menu button's size, and easy to tap with a thumb. */
   .sign-out-button {
     margin-top: 0;
+    min-height: 2.75rem;
+    font-size: 1rem;
+  }
+
+  /* As easy to tap as Sign out, which it stands in for locally. */
+  .local-role {
+    margin-top: 0;
+  }
+
+  .local-role select {
     min-height: 2.75rem;
     font-size: 1rem;
   }

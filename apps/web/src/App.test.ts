@@ -86,6 +86,74 @@ describe("App shell", () => {
     expect(wrapper.get("nav[aria-label=Main] a[href='/accounts']").text()).toBe("Accounts");
   });
 
+  describe("the local role switch (team-roles FR16)", () => {
+    const roleSwitch = (wrapper: Awaited<ReturnType<typeof openAppAt>>["wrapper"]) =>
+      wrapper.get<HTMLSelectElement>("select[data-test=local-role]");
+
+    it("starts as an Admin, labelled as the local role", async () => {
+      const { wrapper } = await openAppAt("/");
+
+      const choice = roleSwitch(wrapper);
+      const label = document.querySelector(`label[for="${choice.attributes("id")}"]`);
+      expect(label?.textContent?.trim()).toBe("Local role");
+      expect(choice.element.selectedOptions[0]?.text).toBe("Admin");
+      expect(choice.findAll("option").map((option) => option.text())).toEqual([
+        "Admin",
+        "Casting Team Member",
+        "Read-Only Team Member",
+      ]);
+    });
+
+    it("leaves Accounts out of the menu once switched to Casting Team Member", async () => {
+      const { wrapper } = await openAppAt("/");
+
+      await roleSwitch(wrapper).setValue("casting");
+
+      const links = wrapper.get("nav[aria-label=Main]").findAll("a");
+      expect(links.map((link) => link.text())).toEqual([
+        "Running order",
+        "Cast",
+        "Overview",
+        "Items",
+      ]);
+    });
+
+    it("shows the read-only view once switched to Read-Only Team Member", async () => {
+      const { wrapper } = await openAppAt("/cast");
+      expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
+
+      await roleSwitch(wrapper).setValue("read-only");
+
+      expect(wrapper.get("[data-test=read-only]").text()).toBe("You have read-only access");
+    });
+
+    it("moves to the Running order when the chosen role can't open the page shown", async () => {
+      const { wrapper, router } = await openAppAt("/accounts");
+
+      await roleSwitch(wrapper).setValue("read-only");
+      await flushPromises();
+
+      expect(router.currentRoute.value.path).toBe("/");
+    });
+
+    it("stays on a page the chosen role can open", async () => {
+      const { wrapper, router } = await openAppAt("/cast");
+
+      await roleSwitch(wrapper).setValue("casting");
+      await flushPromises();
+
+      expect(router.currentRoute.value.path).toBe("/cast");
+    });
+
+    it("isn't in the hosted app", async () => {
+      await signInAs(["admin"]);
+
+      const { wrapper } = await openAppAt("/");
+
+      expect(wrapper.find("[data-test=local-role]").exists()).toBe(false);
+    });
+  });
+
   it("lists Overview and Items as a list inside Casting", async () => {
     const { wrapper } = await openAppAt("/");
 
@@ -355,7 +423,7 @@ describe("App shell", () => {
 
       expect(wrapper.get("main [role=alert]").text()).toContain("Sign in to see it");
       expect(document.title).toBe("Sign in · Chester Gang Show casting");
-      expect(wrapper.get(".sidebar-footer").text()).toBe("API: sign in needed");
+      expect(wrapper.get(".sidebar-footer > p").text()).toBe("API: sign in needed");
     });
 
     it("keeps the tab saying sign in after moving to another page", async () => {

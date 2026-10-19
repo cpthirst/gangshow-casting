@@ -1,5 +1,11 @@
 import { request, type Server } from "node:http";
-import { AccountList, adminOnlyRouteKeys, HealthResponse } from "@app/shared";
+import {
+  AccountList,
+  adminOnlyRouteKeys,
+  HealthResponse,
+  LOCAL_ROLE_HEADER,
+  READ_ONLY_REFUSAL,
+} from "@app/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createDevServer, devRoutes } from "./dev-server.ts";
 import { routes } from "./routes.ts";
@@ -273,5 +279,86 @@ describe("dev server routes", () => {
     } finally {
       await new Promise<void>((resolve) => server.close(() => resolve()));
     }
+  });
+});
+
+describe("dev server local role (team-roles FR16)", () => {
+  const reached: string[] = [];
+  const table = {
+    "GET /api/productions/{productionId}/cast": async () => {
+      reached.push("read");
+      return { statusCode: 200 };
+    },
+    "POST /api/productions/{productionId}/cast": async () => {
+      reached.push("add");
+      return { statusCode: 201 };
+    },
+    "DELETE /api/productions/{productionId}/cast/{castId}": async () => {
+      reached.push("delete");
+      return { statusCode: 204 };
+    },
+  };
+  let server: Server;
+  let baseUrl: string;
+
+  beforeAll(async () => {
+    server = createDevServer(table);
+    await new Promise<void>((resolve) => server.listen(0, resolve));
+    const address = server.address();
+    if (typeof address !== "object" || address === null) throw new Error("server not listening");
+    baseUrl = `http://localhost:${address.port}`;
+  });
+
+  afterAll(() => new Promise<void>((resolve) => server.close(() => resolve())));
+
+  const send = (method: string, path: string, role?: string) =>
+    fetch(`${baseUrl}${path}`, {
+      method,
+      headers: {
+        "content-type": "application/json",
+        ...(role === undefined ? {} : { [LOCAL_ROLE_HEADER]: role }),
+      },
+      body: method === "POST" ? "{}" : null,
+    });
+
+  it("refuses the read-only role's changes as the hosted API does, and lets it read", async () => {
+    reached.length = 0;
+
+    const add = await send("POST", "/api/productions/2027/cast", "read-only");
+    const read = await send("GET", "/api/productions/2027/cast", "read-only");
+
+    expect(add.status).toBe(403);
+    expect(await add.json()).toEqual({ message: READ_ONLY_REFUSAL });
+    expect(read.status).toBe(200);
+    expect(reached).toEqual(["read"]);
+  });
+
+  it("lets the casting role change casting but keeps admin-only routes from it", async () => {
+    reached.length = 0;
+
+    const add = await send("POST", "/api/productions/2027/cast", "casting");
+    const remove = await send("DELETE", "/api/productions/2027/cast/1", "casting");
+
+    expect(add.status).toBe(201);
+    expect(remove.status).toBe(403);
+    expect(reached).toEqual(["add"]);
+  });
+
+  it("acts for an admin when no role is chosen", async () => {
+    reached.length = 0;
+
+    const remove = await send("DELETE", "/api/productions/2027/cast/1");
+
+    expect(remove.status).toBe(204);
+    expect(reached).toEqual(["delete"]);
+  });
+
+  it("treats a role it doesn't know as read-only", async () => {
+    reached.length = 0;
+
+    const add = await send("POST", "/api/productions/2027/cast", "owner");
+
+    expect(add.status).toBe(403);
+    expect(reached).toEqual([]);
   });
 });

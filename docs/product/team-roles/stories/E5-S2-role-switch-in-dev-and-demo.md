@@ -2,7 +2,7 @@
 id: team-roles.E5.S2
 title: Switch roles in local development and the demo
 epic: E5
-status: ready
+status: done
 ---
 
 ## Story

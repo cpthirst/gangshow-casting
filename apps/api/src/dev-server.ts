@@ -1,5 +1,8 @@
 // Local stand-in for API Gateway: serves the same handlers Lambda will run (ADR 0006).
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { LOCAL_ROLE_HEADER, TeamRole } from "@app/shared";
+import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
+import { roleRefusal } from "./admin-only.ts";
 import type { Handler } from "./handler.ts";
 import { localAccountRoutes } from "./local-accounts.ts";
 import { matchRoute } from "./match-route.ts";
@@ -19,6 +22,12 @@ export function createDevServer(table: Record<string, Handler>) {
       res.writeHead(404).end();
       return;
     }
+    // Like the hosted entry point, before the handler runs (ADR 0020).
+    const refusedRole = roleRefusal(route.key, localRole(req));
+    if (refusedRole) {
+      send(res, refusedRole);
+      return;
+    }
     if (Number(req.headers["content-length"] ?? 0) > MAX_BODY_BYTES) {
       tooLarge(res);
       return;
@@ -33,18 +42,7 @@ export function createDevServer(table: Record<string, Handler>) {
           ? {}
           : { queryStringParameters: Object.fromEntries(url.searchParams) }),
       };
-      const {
-        statusCode = 200,
-        headers = {},
-        body: responseBody,
-        isBase64Encoded,
-      } = await route.handler(event);
-      // Lambda allows boolean/number header values; node:http wants strings.
-      const outgoing = Object.fromEntries(Object.entries(headers).map(([k, v]) => [k, String(v)]));
-      // API Gateway turns a base64 body back into bytes (an Excel file); so do we.
-      res
-        .writeHead(statusCode, outgoing)
-        .end(isBase64Encoded && responseBody ? Buffer.from(responseBody, "base64") : responseBody);
+      send(res, await route.handler(event));
     } catch (error) {
       if (error instanceof PayloadTooLargeError) {
         tooLarge(res);
@@ -54,6 +52,18 @@ export function createDevServer(table: Record<string, Handler>) {
       res.writeHead(500).end();
     }
   });
+}
+
+function send(
+  res: ServerResponse,
+  { statusCode = 200, headers = {}, body, isBase64Encoded }: APIGatewayProxyStructuredResultV2,
+) {
+  // Lambda allows boolean/number header values; node:http wants strings.
+  const outgoing = Object.fromEntries(Object.entries(headers).map(([k, v]) => [k, String(v)]));
+  // API Gateway turns a base64 body back into bytes (an Excel file); so do we.
+  res
+    .writeHead(statusCode, outgoing)
+    .end(isBase64Encoded && body ? Buffer.from(body, "base64") : body);
 }
 
 // The dev API serves real cast data with no sign-in, so only the local web app may use it:
@@ -77,6 +87,17 @@ function refusal(req: IncomingMessage): 403 | 415 | undefined {
   const sendsBody = req.method === "POST" || req.method === "PUT" || req.method === "PATCH";
   const isJson = (req.headers["content-type"] ?? "").startsWith("application/json");
   return sendsBody && !isJson ? 415 : undefined;
+}
+
+/**
+ * The role the local role switch chose (team-roles FR16): an admin when none is chosen, as
+ * the app starts, and read-only for anything it doesn't know, as the hosted API would.
+ */
+function localRole(req: IncomingMessage): TeamRole {
+  const chosen = req.headers[LOCAL_ROLE_HEADER];
+  if (chosen === undefined) return "admin";
+  const role = TeamRole.safeParse(chosen);
+  return role.success ? role.data : "read-only";
 }
 
 // API Gateway caps payloads too; a running order is a few KB.

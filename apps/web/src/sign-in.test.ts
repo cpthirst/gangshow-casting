@@ -1,11 +1,13 @@
-import type { SignInConfig } from "@app/shared";
+import { LOCAL_ROLE_HEADER, type SignInConfig } from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   apiFetch,
   changeRefusedAsReadOnly,
+  chooseLocalRole,
   isAdmin,
   isReadOnly,
   isSignedIn,
+  localRole,
   type SignedInUser,
   SignInEnded,
   type SignInManager,
@@ -346,5 +348,54 @@ describe("signing in", () => {
       expect(isAdmin.value).toBe(true);
       expect(fetchMock).toHaveBeenCalledWith("/api/health");
     });
+
+    it("tells the local API which role was chosen, starting as an admin", async () => {
+      useLocalSignIn();
+      const sentRole = () =>
+        new Headers(fetchMock.mock.calls.at(-1)?.[1]?.headers).get(LOCAL_ROLE_HEADER);
+
+      await apiFetch("/api/health");
+      const first = sentRole();
+      chooseLocalRole("read-only");
+      await apiFetch("/api/health");
+
+      expect([first, sentRole()]).toEqual([null, "read-only"]);
+    });
+
+    it("shows the pages for the chosen role", () => {
+      useLocalSignIn();
+
+      chooseLocalRole("casting");
+      const casting = [isAdmin.value, isReadOnly.value];
+      chooseLocalRole("read-only");
+
+      expect([localRole.value, casting, isReadOnly.value]).toEqual([
+        "read-only",
+        [false, false],
+        true,
+      ]);
+    });
+
+    it("starts as an admin again each time the app starts", () => {
+      useLocalSignIn();
+      chooseLocalRole("read-only");
+
+      useLocalSignIn();
+
+      expect([localRole.value, isAdmin.value]).toEqual(["admin", true]);
+    });
+  });
+
+  it("never lets the hosted app choose a role, or send one", async () => {
+    await useHostedSignIn(config, managerWith(sam({ groups: ["read-only"] })), browserAt("/"));
+
+    chooseLocalRole("admin");
+    await apiFetch("/api/health");
+
+    expect(isAdmin.value).toBe(false);
+    expect(isReadOnly.value).toBe(true);
+    expect(new Headers(fetchMock.mock.calls.at(-1)?.[1]?.headers).has(LOCAL_ROLE_HEADER)).toBe(
+      false,
+    );
   });
 });
