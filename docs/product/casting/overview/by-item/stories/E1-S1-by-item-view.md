@@ -14,7 +14,7 @@ As a member of the production team, I want a "By item" view on the Overview that
 ### AC1: The view switch has a By item choice
 Given I am on the Overview
 When I look at the view switch
-Then it offers "By person", "Grid" and "By item", in that order
+Then it offers "By person", "By item" and "Grid", in that order
 And choosing "By item" shows the By item view and marks it as the chosen view
 
 ### AC2: Items are listed in show order under their half

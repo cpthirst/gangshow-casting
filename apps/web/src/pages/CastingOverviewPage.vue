@@ -51,13 +51,13 @@ const timeline = ref<{
   parts: ReturnType<typeof biggestParts>;
 }>();
 
-// The Overview's three views of the same cast: by person (default), the grid of items, or
-// each item's roles in show order.
+// The Overview's three views of the same cast: by person (default), each item's roles in
+// show order, or the grid of items.
 const view = ref<"people" | "grid" | "items">("people");
 const VIEWS = [
   ["people", "By person"],
-  ["grid", "Grid"],
   ["items", "By item"],
+  ["grid", "Grid"],
 ] as const;
 
 const halvesByItem = computed(() =>

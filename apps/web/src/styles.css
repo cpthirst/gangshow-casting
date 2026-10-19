@@ -1475,7 +1475,7 @@ main a {
   gap: 1rem;
 }
 
-/* Casting overview: the By person / Grid switch, filled for the view showing, with Export to
+/* Casting overview: the view switch (By person / By item / Grid), filled for the view showing, with Export to
    Excel at the end of the same row, wrapping beneath it on a narrow phone. */
 .view-bar {
   display: flex;

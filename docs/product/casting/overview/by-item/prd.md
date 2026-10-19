@@ -41,7 +41,7 @@ The Overview shows the cast by person and as a grid. Nothing shows the whole sho
 
 ### By item view
 
-- **FR1**: The Overview's view switch must gain a third choice, **By item**, beside "By person" and "Grid".
+- **FR1**: The Overview's view switch must gain a third choice, **By item**, between "By person" and "Grid", so it reads By person, By item, Grid. (Moved between them on 2026-10-19 at the user's request.)
 - **FR2**: The By item view must list every item of the latest saved running order in show order, split into the first and second half under each half's name. Each item shows its title and its programme number if it's in the printed programme.
 - **FR3**: Items left out of the printed programme must still appear, marked the way the grid marks them (red italics), with no number.
 - **FR4**: Under each item, its roles must be listed with three columns: **Role name**, **Role type** (its role size: lead, support, cameo or ensemble) and **Cast** (the cast member's first name and surname; for an ensemble, all of them). Roles are in the same order as on the item's page: by size, then role name ignoring case.
