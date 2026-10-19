@@ -154,14 +154,15 @@ describe("export casting grid handler", () => {
       ]);
     });
 
-    it("centres each item's heading in its cell, across and down", async () => {
+    it("centres each item's heading across its column, all reading up from the bottom", async () => {
       const [headings] = readStyledCells(await fileOf());
 
       const items = headings?.slice(3) ?? [];
+      // At the bottom, so shorter headings start on the same line as the longest.
       expect(items.map(({ horizontal, vertical }) => [horizontal, vertical])).toEqual([
-        ["center", "center"],
-        ["center", "center"],
-        ["center", "center"],
+        ["center", "bottom"],
+        ["center", "bottom"],
+        ["center", "bottom"],
       ]);
     });
 

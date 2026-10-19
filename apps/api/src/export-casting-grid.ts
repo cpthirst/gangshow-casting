@@ -64,7 +64,7 @@ function sheetOf({ items, rows }: CastingGridExportRequest) {
       ...bold(heading),
       textRotation: 90,
       align: "center" as const,
-      alignVertical: "center" as const,
+      alignVertical: "bottom" as const,
       ...(printed ? {} : { fontStyle: "italic" as const, textColor: unprintedHeadingColour }),
     })),
   ];

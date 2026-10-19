@@ -54,7 +54,7 @@ Users are non-technical volunteers, often working during or after a rehearsal, s
 - **FR10**: Column headers identify each item (title and its running-order position), and the first columns (names) stay visible while scrolling sideways through items.
 - **FR11**: Rows are grouped or ordered by section, consistent with the existing Overview.
 - **FR12**: Every signed-in team member sees an "Export to Excel" action on the grid, and the server makes the file for them. (Amended 2026-10-19 by ADR 0021: it was admin-only.)
-- **FR13**: The exported Excel file contains exactly what the grid shows: first name, last name, section, then one column per item in running order, with each filled cell holding the role-size letter and a matching colour fill. Each item's heading is turned to read upwards, centred in a column fixed at 60 pixels wide, with the heading row fitted to the longest heading's text. (Layout added on 2026-10-19 at the user's request.)
+- **FR13**: The exported Excel file contains exactly what the grid shows: first name, last name, section, then one column per item in running order, with each filled cell holding the role-size letter and a matching colour fill. Each item's heading is turned to read upwards from the bottom of the heading row, centred across a column fixed at 60 pixels wide, with the heading row fitted to the longest heading's text. (Layout added on 2026-10-19 at the user's request.)
 - **FR14**: The exported file contains no other cast data (no group, age band, notes or role names) and is named for the production and date.
 
 ## Non-functional requirements
