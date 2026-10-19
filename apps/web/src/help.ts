@@ -86,3 +86,10 @@ export const pageHelp: PageHelp[] = [
     ],
   },
 ];
+
+/** The named page's help. A page without any is a mistake in the code, so it fails loudly. */
+export function helpFor(page: string): PageHelp {
+  const help = pageHelp.find((candidate) => candidate.page === page);
+  if (!help) throw new Error(`No help written for the page "${page}"`);
+  return help;
+}

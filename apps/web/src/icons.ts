@@ -10,6 +10,7 @@ import {
   faCircle,
   faCircleDot,
   faCircleInfo,
+  faCircleQuestion,
   faFileExcel,
   faFileWord,
   faGripVertical,
@@ -47,6 +48,8 @@ export const icons = {
   error: faSquareXmark,
   warning: faTriangleExclamation,
   info: faCircleInfo,
+  // Opens a page's help (in-app-help).
+  help: faCircleQuestion,
   // A person's timeline on the Overview: in an item, or not. Different shapes, so it never
   // relies on colour alone.
   inItem: faCircleDot,

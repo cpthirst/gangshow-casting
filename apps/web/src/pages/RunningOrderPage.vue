@@ -3,6 +3,7 @@ import { ItemNoteList, RoleList, RunningOrder, type RunningOrderItem } from "@ap
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
 import { onBeforeRouteLeave } from "vue-router";
+import HelpButton from "../HelpButton.vue";
 import { icons } from "../icons.ts";
 import { ITEM_NOTES_PATH } from "../item-notes.ts";
 import ReadOnlyNotice from "../ReadOnlyNotice.vue";
@@ -309,7 +310,10 @@ function refocus(itemId: string, direction: Move) {
 </script>
 
 <template>
-  <h1>Running order</h1>
+  <div class="page-title-row">
+    <h1>Running order</h1>
+    <HelpButton page="running-order" />
+  </div>
   <p v-if="state.status === 'loading'">Loading…</p>
   <p v-else-if="state.status === 'empty'">No running order yet.</p>
   <p v-else-if="state.status === 'error'" role="alert">Couldn't load the running order.</p>
