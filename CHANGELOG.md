@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/cpthirst/gangshow-casting/compare/v1.3.0...v1.4.0) (2026-10-19)
+
+
+### Features
+
+* **web:** manage team roles, with access changes within 5 minutes (team-roles E3–E5) ([#73](https://github.com/cpthirst/gangshow-casting/issues/73)) ([7959aac](https://github.com/cpthirst/gangshow-casting/commit/7959aacaa9ccdf911e9a80100c619e934ebd8370))
+
 ## [1.3.0](https://github.com/cpthirst/gangshow-casting/compare/v1.2.0...v1.3.0) (2026-10-18)
 
 
