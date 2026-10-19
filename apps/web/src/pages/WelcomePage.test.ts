@@ -208,4 +208,62 @@ describe("Welcome page", () => {
       }
     });
   });
+
+  describe("the Items and item sections", () => {
+    const names = (wrapper: Wrapper, page: string) =>
+      lines(wrapper, page).map((line) => line.get("[data-test=help-name]").text());
+
+    it("follow the Overview's, both linking to the Items page", async () => {
+      const { wrapper, router } = await openWelcome();
+
+      expect(sectionTitles(wrapper).slice(2)).toEqual(["Overview", "Items", "An item"]);
+      expect(await followLink(wrapper, router, "casting-items")).toBe("casting-items");
+      await router.push("/");
+      expect(await followLink(wrapper, router, "casting-item")).toBe("casting-items");
+    });
+
+    it("explain the Items list's icon, clash and badge, open to everyone", async () => {
+      const { wrapper } = await openWelcome();
+
+      expect(names(wrapper, "casting-items")).toEqual([
+        "Open an item",
+        "Clash",
+        "Not in printed programme",
+      ]);
+      expect(
+        lineNamed(wrapper, "Open an item", "casting-items").get("svg").attributes("data-icon"),
+      ).toBe(icons.cast.iconName);
+      for (const line of lines(wrapper, "casting-items")) {
+        expect(line.get("[data-test=help-access]").text()).toBe("Everyone");
+      }
+    });
+
+    it("say how to reach an item, then explain its actions and who can use each", async () => {
+      const { wrapper } = await openWelcome();
+
+      expect(sectionFor(wrapper, "casting-item").get("p").text()).toContain("Casting → Items");
+      expect(names(wrapper, "casting-item")).toEqual([
+        "All items",
+        "Previous and Next",
+        "Add role",
+        "Edit",
+        "Remove",
+        "Notes",
+      ]);
+      const iconOf = (name: string) =>
+        lineNamed(wrapper, name, "casting-item").get("svg").attributes("data-icon");
+      expect(iconOf("Edit")).toBe(icons.edit.iconName);
+      expect(iconOf("Remove")).toBe(icons.remove.iconName);
+      const access = (name: string) =>
+        lineNamed(wrapper, name, "casting-item")
+          .findAll("[data-test=help-access]")
+          .map((label) => label.text());
+      expect(access("All items")).toEqual(["Everyone"]);
+      expect(access("Previous and Next")).toEqual(["Everyone"]);
+      for (const name of ["Add role", "Edit", "Remove"]) {
+        expect(access(name)).toEqual(["Casting team and admins"]);
+      }
+      expect(access("Notes")).toEqual(["Reading: Everyone", "Changing: Casting team and admins"]);
+    });
+  });
 });

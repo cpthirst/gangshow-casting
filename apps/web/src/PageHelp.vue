@@ -20,9 +20,22 @@ defineProps<{ help: PageHelp }>();
       <span>
         <strong data-test="help-name">{{ line.name }}</strong>:
         <span data-test="help-does">{{ line.does }}</span>
-        <span :class="['badge', 'help-access', `help-access-${line.access}`]" data-test="help-access">{{
-          accessLabel(line.access)
-        }}</span>
+        <template v-if="line.changeAccess">
+          <span :class="['badge', 'help-access', `help-access-${line.access}`]" data-test="help-access"
+            >Reading: {{ accessLabel(line.access) }}</span
+          >
+          <span
+            :class="['badge', 'help-access', `help-access-${line.changeAccess}`]"
+            data-test="help-access"
+            >Changing: {{ accessLabel(line.changeAccess) }}</span
+          >
+        </template>
+        <span
+          v-else
+          :class="['badge', 'help-access', `help-access-${line.access}`]"
+          data-test="help-access"
+          >{{ accessLabel(line.access) }}</span
+        >
       </span>
     </li>
   </ul>

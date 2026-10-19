@@ -7,7 +7,8 @@ import PageHelp from "./PageHelp.vue";
 
 // A page's help, opened where you are (in-app-help FR6–FR8). A modal dialog, so the page
 // behind, and anything unsaved on it, waits untouched until the help closes.
-const props = defineProps<{ page: string }>();
+// label and title name the button and dialog for a page whose own title changes (an item's).
+const props = defineProps<{ page: string; label?: string; title?: string }>();
 
 const help = computed(() => helpFor(props.page));
 const titleId = useId();
@@ -39,7 +40,7 @@ function closeIfOutside(event: MouseEvent) {
     ref="button"
     type="button"
     class="help-button"
-    :aria-label="`Help for ${help.title}`"
+    :aria-label="label ?? `Help for ${help.title}`"
     @click="open"
   >
     <FontAwesomeIcon :icon="icons.help" />
@@ -56,7 +57,7 @@ function closeIfOutside(event: MouseEvent) {
   >
     <div class="help-dialog-content">
       <div class="help-dialog-title">
-        <h2 :id="titleId">{{ help.title }} help</h2>
+        <h2 :id="titleId">{{ title ?? `${help.title} help` }}</h2>
         <button ref="closeButton" type="button" @click="close">Close</button>
       </div>
       <PageHelp :help="help" />

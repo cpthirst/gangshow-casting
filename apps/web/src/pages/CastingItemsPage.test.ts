@@ -122,7 +122,23 @@ describe("Casting items page", () => {
     const wrapper = await openItemsPage();
 
     expect(wrapper.find(".drag-handle").exists()).toBe(false);
-    expect(wrapper.find("button").exists()).toBe(false);
+    // The page's help is for everyone, so it isn't a running-order control.
+    const buttons = wrapper
+      .findAll("button")
+      .filter((button) => !button.element.closest(".help-button, .help-dialog"));
+    expect(buttons).toEqual([]);
+  });
+
+  it("opens the Items help from beside the page's heading", async () => {
+    savedRunningOrderIs(aRunningOrder([anItem("Opening Number")]));
+    const wrapper = await openItemsPage();
+
+    await wrapper.get(".page-title-row button[aria-label='Help for Items']").trigger("click");
+
+    expect(wrapper.get("dialog h2").text()).toBe("Items help");
+    expect(wrapper.findAll("dialog [data-test=help-name]").map((name) => name.text())).toContain(
+      "Not in printed programme",
+    );
   });
 
   it("shows which saved draft the list is based on", async () => {

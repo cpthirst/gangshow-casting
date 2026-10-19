@@ -19,6 +19,8 @@ export interface HelpLine {
   name: string;
   does: string;
   access: Access;
+  /** Who can change it, for a line where reading and changing differ (an item's notes). */
+  changeAccess?: Access;
 }
 
 export interface PageHelp {
@@ -27,6 +29,8 @@ export interface PageHelp {
   title: string;
   /** A line about the page as a whole, before its actions. */
   summary: string;
+  /** The page the Welcome page links to instead, for a page with no menu entry of its own. */
+  reachedFrom?: { page: string; title: string };
   lines: HelpLine[];
 }
 
@@ -156,6 +160,73 @@ export const pageHelp: PageHelp[] = [
         name: "Clash",
         does: "Marks a clash, such as someone in back-to-back items. Point at it or tap it to read the clash.",
         access: "everyone",
+      },
+    ],
+  },
+  {
+    page: "casting-items",
+    title: "Items",
+    summary: "The show's items in running order, with how far each one's casting has got.",
+    lines: [
+      {
+        icons: [icons.cast],
+        name: "Open an item",
+        does: "Opens the item to cast it, or to view it if your access is read-only.",
+        access: "everyone",
+      },
+      {
+        icons: [icons.error],
+        name: "Clash",
+        does: "Someone in the item has a clash. Point at it or tap it to read the clash.",
+        access: "everyone",
+      },
+      {
+        name: "Not in printed programme",
+        does: "The item has no number in the printed programme.",
+        access: "everyone",
+      },
+    ],
+  },
+  {
+    page: "casting-item",
+    title: "An item",
+    summary: "One item's roles and notes. Open an item from Casting → Items.",
+    reachedFrom: { page: "casting-items", title: "Items" },
+    lines: [
+      {
+        icons: [icons.allItems],
+        name: "All items",
+        does: "Goes back to the list of items.",
+        access: "everyone",
+      },
+      {
+        icons: [icons.back, icons.forward],
+        name: "Previous and Next",
+        does: "Steps to the item before or after this one in the show.",
+        access: "everyone",
+      },
+      {
+        name: "Add role",
+        does: "Adds a role to the item, with its size and who plays it.",
+        access: "casting",
+      },
+      {
+        icons: [icons.edit],
+        name: "Edit",
+        does: "Changes a role's name, size or who plays it.",
+        access: "casting",
+      },
+      {
+        icons: [icons.remove],
+        name: "Remove",
+        does: "Takes a role off the item.",
+        access: "casting",
+      },
+      {
+        name: "Notes",
+        does: "Anything the team needs to know about the item.",
+        access: "everyone",
+        changeAccess: "casting",
       },
     ],
   },

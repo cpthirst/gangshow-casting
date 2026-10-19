@@ -14,6 +14,7 @@ import { useRoute } from "vue-router";
 import ClashIcon from "../ClashIcon.vue";
 import { CAST_PATH, sortCast } from "../cast.ts";
 import { clashesOf, describeEach, findClashes } from "../clashes.ts";
+import HelpButton from "../HelpButton.vue";
 import { icons } from "../icons.ts";
 import ReadOnlyNotice from "../ReadOnlyNotice.vue";
 import {
@@ -311,7 +312,10 @@ async function postRole(itemId: string, details: AddRoleRequest) {
   </nav>
   <p v-if="status === 'error'" role="alert">Couldn't load the item.</p>
   <template v-else-if="place">
-    <h1>{{ place.item.title }}</h1>
+    <div class="page-title-row">
+      <h1>{{ place.item.title }}</h1>
+      <HelpButton page="casting-item" label="Help for this item" title="Item help" />
+    </div>
     <p class="item-position" data-test="position">{{ position }}</p>
     <!-- Read-only members see the roles and notes with nothing to change them (team-roles FR6). -->
     <ReadOnlyNotice />

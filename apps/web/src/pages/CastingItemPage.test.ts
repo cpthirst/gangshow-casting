@@ -2235,4 +2235,33 @@ describe("An item's page for other roles", () => {
     expect(notesSection().find("textarea").exists()).toBe(false);
     expect(wrapper.find("[data-test=add-role]").exists()).toBe(false);
   });
+
+  describe("its help (in-app-help E2.S3)", () => {
+    const helpButton = (wrapper: Awaited<ReturnType<typeof openAppAt>>["wrapper"]) =>
+      wrapper.get(".page-title-row button[aria-label='Help for this item']");
+
+    it("opens the item's help, saying how to reach an item, and keeps unsaved notes", async () => {
+      savedRunningOrderIs(show);
+      const { wrapper } = await openAppAt("/casting/items/opening-number");
+      await wrapper.get("main textarea").setValue("Needs a quick change");
+
+      await helpButton(wrapper).trigger("click");
+      const dialog = wrapper.get("main dialog");
+      expect(dialog.get("h2").text()).toBe("Item help");
+      expect(dialog.text()).toContain("Casting → Items");
+      await dialog.get("button").trigger("click");
+
+      expect(wrapper.get<HTMLTextAreaElement>("main textarea").element.value).toBe(
+        "Needs a quick change",
+      );
+    });
+
+    it("has no help button on an item that isn't found", async () => {
+      savedRunningOrderIs(show);
+      const { wrapper } = await openAppAt("/casting/items/no-such-item");
+
+      expect(wrapper.get("main h1").text()).toBe("Item not found");
+      expect(wrapper.find("main .help-button").exists()).toBe(false);
+    });
+  });
 });
