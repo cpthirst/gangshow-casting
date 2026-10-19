@@ -176,4 +176,36 @@ describe("Welcome page", () => {
       ]);
     });
   });
+
+  describe("the Overview section", () => {
+    it("follows the Cast section and links to the Overview page", async () => {
+      const { wrapper, router } = await openWelcome();
+
+      expect(sectionTitles(wrapper).slice(1, 3)).toEqual(["Cast", "Overview"]);
+      expect(await followLink(wrapper, router, "casting-overview")).toBe("casting-overview");
+    });
+
+    it("explains each view, export and the clash icon, all open to everyone", async () => {
+      await signInAs(["read-only"]);
+      const { wrapper } = await openWelcome();
+
+      const overviewLines = lines(wrapper, "casting-overview");
+      expect(overviewLines.map((line) => line.get("[data-test=help-name]").text())).toEqual([
+        "By person",
+        "By item",
+        "Grid",
+        "Export to Excel",
+        "Export to Word",
+        "Clash",
+      ]);
+      const iconOf = (name: string) =>
+        lineNamed(wrapper, name, "casting-overview").get("svg").attributes("data-icon");
+      expect(iconOf("Export to Excel")).toBe(icons.exportFile.iconName);
+      expect(iconOf("Export to Word")).toBe(icons.exportWord.iconName);
+      expect(iconOf("Clash")).toBe(icons.error.iconName);
+      for (const line of overviewLines) {
+        expect(line.get("[data-test=help-access]").text()).toBe("Everyone");
+      }
+    });
+  });
 });

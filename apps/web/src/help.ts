@@ -119,6 +119,46 @@ export const pageHelp: PageHelp[] = [
       },
     ],
   },
+  {
+    page: "casting-overview",
+    title: "Overview",
+    summary: "Everyone in the cast and how much they're cast, three ways.",
+    lines: [
+      {
+        name: "By person",
+        does: "Each person and their roles, with when they're on stage.",
+        access: "everyone",
+      },
+      {
+        name: "By item",
+        does: "Each item's roles in show order, and who plays them.",
+        access: "everyone",
+      },
+      {
+        name: "Grid",
+        does: "Everyone against every item, in one table.",
+        access: "everyone",
+      },
+      {
+        icons: [icons.exportFile],
+        name: "Export to Excel",
+        does: "On the Grid, saves the grid as an Excel file.",
+        access: "everyone",
+      },
+      {
+        icons: [icons.exportWord],
+        name: "Export to Word",
+        does: "On By person, saves casting sheets; on By item, an item overview.",
+        access: "everyone",
+      },
+      {
+        icons: [icons.error],
+        name: "Clash",
+        does: "Marks a clash, such as someone in back-to-back items. Point at it or tap it to read the clash.",
+        access: "everyone",
+      },
+    ],
+  },
 ];
 
 /** The named page's help. A page without any is a mistake in the code, so it fails loudly. */

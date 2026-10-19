@@ -1381,7 +1381,7 @@ describe("Excel export from the grid", () => {
     expect(bar.find("button.grid-export-button").exists()).toBe(true);
     // Beside the switch, not one of its choices.
     expect(wrapper.find(".view-switch button.grid-export-button").exists()).toBe(false);
-    expect(wrapper.get(".page-title-row").find("button").exists()).toBe(false);
+    expect(wrapper.get(".page-title-row").find("button.grid-export-button").exists()).toBe(false);
   });
 
   it.each([
@@ -1863,5 +1863,32 @@ describe("The By item view on the Overview", () => {
     const wrapper = await openByItem();
 
     expect(byItem(wrapper).text()).toBe("No items in the running order yet.");
+  });
+});
+
+describe("Casting overview help (in-app-help E2.S2)", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    useLocalSignIn();
+    document.body.innerHTML = "";
+  });
+
+  it("opens the Overview help from the title row and keeps the chosen view", async () => {
+    await signInAs(["read-only"]);
+    castIs([person("Sam", "Example", "scouts")]);
+    const wrapper = await openOverview();
+    await wrapper
+      .findAll(".view-switch button")
+      .find((b) => b.text() === "Grid")
+      ?.trigger("click");
+
+    await wrapper.get(".page-title-row button[aria-label='Help for Overview']").trigger("click");
+    const dialog = wrapper.get("main dialog");
+    expect(dialog.get("h2").text()).toBe("Overview help");
+    expect(dialog.findAll("[data-test=help-name]").map((name) => name.text())).toContain("Clash");
+    await dialog.get("button").trigger("click");
+
+    const pressed = wrapper.findAll(".view-switch button[aria-pressed=true]");
+    expect(pressed.map((b) => b.text())).toEqual(["Grid"]);
   });
 });

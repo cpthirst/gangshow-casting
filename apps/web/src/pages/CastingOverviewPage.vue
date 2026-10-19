@@ -7,6 +7,7 @@ import ClashIcon from "../ClashIcon.vue";
 import { CAST_PATH } from "../cast.ts";
 import { downloadGridExport } from "../casting-grid-export.ts";
 import { type Clash, clashesOfPerson, describeEach, findClashes } from "../clashes.ts";
+import HelpButton from "../HelpButton.vue";
 import { icons } from "../icons.ts";
 import { type LatestShow, latestShow } from "../latest-show.ts";
 import {
@@ -230,6 +231,7 @@ async function loadCast() {
 <template>
   <div class="page-title-row">
     <h1>Overview</h1>
+    <HelpButton page="casting-overview" />
   </div>
   <ReadOnlyNotice />
   <p>Everyone in the cast and how much they're cast.</p>
