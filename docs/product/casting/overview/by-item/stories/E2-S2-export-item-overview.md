@@ -2,7 +2,7 @@
 id: casting-overview-by-item.E2.S2
 title: Export the By item view as a Word document
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story
@@ -14,15 +14,15 @@ As a member of the production team, I want to export the By item view as a Word 
 ### AC1: The button shows on the By item view
 Given I am on the Overview showing "By item"
 When I look beside the view switch
-Then there is a blue "Export Item Overview" button, shaped like "Export to Excel", with a file icon and the words
+Then there is a blue "Export to Word" button, shaped like "Export to Excel", with a file icon and the words
 
-### AC2: The button shows on no other view
-Given I am on the Overview showing "By person" or "Grid"
-Then there is no "Export Item Overview" button
+### AC2: The grid has no Word export
+Given I am on the Overview showing "Grid"
+Then there is no "Export to Word" button, only "Export to Excel"
 
 ### AC3: Every team role can export
 Given I am signed in as an Admin, a Casting Team Member or a Read-Only Team Member
-When I press "Export Item Overview"
+When I press "Export to Word"
 Then a Word document downloads
 
 ### AC4: The document is named for the production and the day
@@ -53,19 +53,19 @@ When I export
 Then the document contains none of them
 
 ### AC9: The button shows it's busy
-Given I have pressed "Export Item Overview"
+Given I have pressed "Export to Word"
 When the document is still being made
 Then the button shows it's busy and pressing it again starts no second export
 And when it finishes, keyboard focus is back on the button
 
 ### AC10: A finished export is announced
-Given I pressed "Export Item Overview"
+Given I pressed "Export to Word"
 When the document has downloaded
 Then screen readers hear "Item overview exported."
 
 ### AC11: A failed export says so and can be retried
 Given making the document fails
-When I press "Export Item Overview"
+When I press "Export to Word"
 Then I see "Couldn't export the item overview. Try again." and the button works again
 
 ### AC12: The document reflects the latest saved casting
@@ -76,6 +76,7 @@ Then the document includes that role
 ## Notes
 
 - FRs: FR7, FR8, FR14, FR15
+- The button's label was "Export Item Overview" until review (2026-10-19), when the maintainer chose one label, "Export to Word", for each view's own document. The By person view's button makes the casting sheets (E2.S3).
 - Depends on: E1.S2, E2.S1 (the ADR decides where the document is built, which shapes AC3 and AC12)
 - Busy, announcement and failure follow the Excel export's behaviour on the grid.
 - Tests use made-up names only.

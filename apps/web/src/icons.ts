@@ -11,6 +11,7 @@ import {
   faCircleDot,
   faCircleInfo,
   faFileExcel,
+  faFileWord,
   faGripVertical,
   faKey,
   faList,
@@ -33,6 +34,8 @@ export const icons = {
   cast: faUsers,
   // Admins export the casting grid as an Excel file.
   exportFile: faFileExcel,
+  // Every role exports Word documents from the Overview.
+  exportWord: faFileWord,
   drag: faGripVertical,
   moveUp: faArrowUp,
   moveDown: faArrowDown,
