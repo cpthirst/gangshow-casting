@@ -1,4 +1,4 @@
-import type { AccountSummary } from "@app/shared";
+import type { AccountSummary, TeamRole } from "@app/shared";
 
 export const ACCOUNTS_PATH = "/api/accounts";
 
@@ -17,12 +17,25 @@ export const resetWarning = (username: string) =>
 
 /** Asked before disabling, which ends the person's access everywhere (hosting FR12). */
 export const disableWarning = (username: string) =>
-  `Disable ${username}? They'll be signed out on every device within the hour, and can't sign in until an admin enables them again.`;
+  `Disable ${username}? They'll be signed out on every device within 5 minutes, and can't sign in until an admin enables them again.`;
 
-/** Asked before making someone an admin, which signs them out so it takes effect (FR11). */
-export const makeAdminWarning = (username: string) =>
-  `Make ${username} an admin? They'll be signed out on every device, and can manage accounts, delete cast members and save running orders when they sign back in.`;
+/** Each role by the name the team knows it by (team-roles FR4), in the order offered. */
+export const ROLE_NAMES: Record<TeamRole, string> = {
+  admin: "Admin",
+  casting: "Casting Team Member",
+  "read-only": "Read-Only Team Member",
+};
 
-/** Asked before removing admin, which signs the person out so it takes effect (FR11). */
-export const removeAdminWarning = (username: string) =>
-  `Remove admin from ${username}? They'll be signed out on every device, and can sign back in as a team member.`;
+/** A role's name after "a" or "an", as in "Make sam a Casting Team Member". */
+export const withArticle = (role: TeamRole) =>
+  `${role === "admin" ? "an" : "a"} ${ROLE_NAMES[role]}`;
+
+const CAN_DO: Record<TeamRole, string> = {
+  admin: "can manage accounts, delete cast members and save running orders",
+  casting: "can change the cast, casting and running order drafts",
+  "read-only": "can only view the show",
+};
+
+/** Asked before a role change, which signs the person out so it takes effect (FR10). */
+export const roleWarning = (username: string, role: TeamRole) =>
+  `Make ${username} ${withArticle(role)}? They'll be signed out on every device, and ${CAN_DO[role]} when they sign back in.`;

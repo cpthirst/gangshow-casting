@@ -20,14 +20,14 @@ The API uses no framework, only plain handlers in the AWS Lambda / API Gateway s
 pnpm install                     # Node 26, pnpm 12
 pnpm dev                         # web (vite :5173) + api (:3000) on the real remote table (AWS profile `default`); vite proxies /api
 pnpm check                       # lint + typecheck + test + cdk synth — the definition of done
-pnpm demo                        # the app on a made-up demo show (:5190), fresh each start; see tooling/demo
+pnpm demo                        # the app on a made-up demo show (:5190), fresh each start; see tooling/demo. Dev and demo start as an admin; the sidebar's "Local role" switch tries the others
 pnpm format                      # biome autofix (format + lint + import order)
 pnpm test:e2e                    # browser layout tests at phone widths (CI job, not in check)
 pnpm test:dynamo                 # API database tests against DynamoDB Local on :8000 (CI job, not in check; ADR 0016)
 ALERT_EMAIL=… AWS_PROFILE=… pnpm infra:deploy   # deploy the stack (ask first); `infra:diff` previews. Never `pnpm deploy`: pnpm's own command
 ALERT_EMAIL=… AWS_PROFILE=… pnpm release [version]   # the maintainer's release: merges the release-please PR, waits for its tag, then diffs and deploys it (never a diff that replaces the table or user pool), and offers the post-deploy check. With a version, only deploys that tag (redeploy, or go back). Asks before merging and deploying; user-only, see below
-USER_POOL_ID=… CHECK_CLIENT_ID=… pnpm check:hosted <app url> <check admin> <check member>   # after a deploy: refuses anyone not signed in, lets the check admin in, refuses the member admin-only routes (ids from the stack outputs)
-USER_POOL_ID=… pnpm account admin <username>   # create or restore an admin; `account check <admin> <member>` sets up the check's accounts; `account roles` gives every account in no role the Casting Team Member role (ADR 0020)
+USER_POOL_ID=… CHECK_CLIENT_ID=… pnpm check:hosted <app url> <check admin> <check member> <check read-only>   # after a deploy: refuses anyone not signed in, lets the check admin in, refuses the member admin-only routes and the read-only account every change (ids from the stack outputs)
+USER_POOL_ID=… pnpm account admin <username>   # create or restore an admin; `account check <admin> <member> <read-only>` sets up the check's accounts; `account roles` gives every account in no role the Casting Team Member role (ADR 0020)
 pnpm --filter <pkg> test         # one package: web | api | infra | @app/shared
 pnpm --filter <pkg> exec vitest run <file> -t "<name>"   # one test
 ```

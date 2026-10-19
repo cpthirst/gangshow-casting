@@ -13,26 +13,28 @@ type Deps = {
 
 const USAGE = [
   "Usage:",
-  "  pnpm account admin <username>                            create or restore an admin",
-  "  pnpm account check <admin username> <member username>    set up the post-deploy check's accounts",
-  "  pnpm account roles                                       make every account in no role a Casting Team Member",
+  "  pnpm account admin <username>    create or restore an admin",
+  "  pnpm account check <admin username> <member username> <read-only username>",
+  "                                   set up the post-deploy check's accounts",
+  "  pnpm account roles               make every account in no role a Casting Team Member",
 ];
 
 /** The usernames the command needs, or the lines saying why they can't be used. */
 function parse(args: string[]) {
   const [command, ...usernames] = args;
   if (command === "roles") return usernames.length === 0 ? { roles: true } : { problem: USAGE };
-  const wanted = command === "admin" ? 1 : command === "check" ? 2 : 0;
+  const wanted = command === "admin" ? 1 : command === "check" ? 3 : 0;
   if (!wanted || usernames.length !== wanted) return { problem: USAGE };
   for (const username of usernames) {
     const result = Username.safeParse(username);
     if (!result.success) return { problem: result.error.issues.map((issue) => issue.message) };
   }
-  if (usernames[0] === usernames[1]) {
-    return { problem: ["The two check accounts need different usernames."] };
+  // Usernames ignore case in the pool, so "Check-Admin" is "check-admin".
+  if (new Set(usernames.map((username) => username.toLowerCase())).size !== usernames.length) {
+    return { problem: ["The check accounts need different usernames."] };
   }
-  const [first = "", second = ""] = usernames;
-  return command === "admin" ? { admin: first } : { check: { admin: first, member: second } };
+  const [first = "", member = "", readOnly = ""] = usernames;
+  return command === "admin" ? { admin: first } : { check: { admin: first, member, readOnly } };
 }
 
 /**
@@ -64,17 +66,20 @@ export async function runAccount(args: string[], env: Env, deps: Deps): Promise<
       print(
         created
           ? `Created ${username} as an admin.`
-          : `Restored ${username}: enabled, an admin, and signed out on every device within the hour.`,
+          : `Restored ${username}: enabled, an admin, and signed out on every device within 5 minutes.`,
       );
       print(`Temporary password, shown only now: ${password}`);
       print(`${username} must choose a new password at first sign-in.`);
     } else if (parsed.check) {
-      const { admin, member } = parsed.check;
+      const { admin, member, readOnly } = parsed.check;
       const passwords = await setUpCheckAccounts(directory, parsed.check, deps.newPassword);
-      print(`${admin} is an admin and ${member} isn't, both with permanent passwords.`);
+      print(
+        `${admin} is an Admin, ${member} a Casting Team Member and ${readOnly} a Read-Only Team Member, all with permanent passwords.`,
+      );
       print("Passwords, shown only now, for pnpm check:hosted:");
       print(`  ${admin}: ${passwords.admin}`);
       print(`  ${member}: ${passwords.member}`);
+      print(`  ${readOnly}: ${passwords.readOnly}`);
     } else if (parsed.roles) {
       const { checked, moved } = await giveEveryoneARole(directory);
       if (moved.length === 0) {
@@ -83,7 +88,7 @@ export async function runAccount(args: string[], env: Env, deps: Deps): Promise<
         print(
           `Checked ${checked} accounts. Made ${moved.length} Casting Team Members: ${moved.join(", ")}.`,
         );
-        print("They can change casting again once their sign-in renews, within the hour.");
+        print("They can change casting again once their sign-in renews, within 5 minutes.");
       }
     }
     return 0;

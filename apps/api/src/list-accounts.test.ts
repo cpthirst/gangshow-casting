@@ -4,11 +4,14 @@ import { createListAccounts } from "./list-accounts.ts";
 import { memoryUserDirectory } from "./user-directory.ts";
 
 // Made-up usernames only (CLAUDE.md safeguarding).
-const account = (username: string, flags: { admin?: boolean; enabled?: boolean } = {}) => ({
+const account = (
+  username: string,
+  flags: { admin?: boolean; readOnly?: boolean; enabled?: boolean } = {},
+) => ({
   username,
   admin: flags.admin ?? false,
-  casting: false,
-  readOnly: false,
+  casting: !flags.admin && !flags.readOnly,
+  readOnly: flags.readOnly ?? false,
   enabled: flags.enabled ?? true,
   password: "Made-up-1",
   passwordKind: "permanent" as const,
@@ -16,10 +19,11 @@ const account = (username: string, flags: { admin?: boolean; enabled?: boolean }
 });
 
 describe("list accounts handler", () => {
-  it("returns every account, with which are admins and which are disabled", async () => {
+  it("returns every account, with its role and whether it is disabled", async () => {
     const { directory } = memoryUserDirectory([
       account("pat", { admin: true }),
       account("sam"),
+      account("jo", { readOnly: true }),
       account("lee", { enabled: false }),
     ]);
 
@@ -27,9 +31,10 @@ describe("list accounts handler", () => {
 
     expect(res.statusCode).toBe(200);
     expect(AccountList.parse(JSON.parse(res.body ?? "")).accounts).toEqual([
-      { username: "pat", admin: true, enabled: true },
-      { username: "sam", admin: false, enabled: true },
-      { username: "lee", admin: false, enabled: false },
+      { username: "pat", role: "admin", enabled: true },
+      { username: "sam", role: "casting", enabled: true },
+      { username: "jo", role: "read-only", enabled: true },
+      { username: "lee", role: "casting", enabled: false },
     ]);
   });
 });

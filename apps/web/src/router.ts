@@ -92,6 +92,14 @@ export const menuPages: (MenuPage | MenuGroup)[] = [
   },
 ];
 
+/** Whether the named page is only for admins, such as Accounts. */
+export const isAdminOnlyPage = (name: unknown) =>
+  menuPages.some((entry) =>
+    (isMenuGroup(entry) ? entry.pages : [entry]).some(
+      (page) => page.name === name && page.adminOnly === true,
+    ),
+  );
+
 export const isMenuGroup = (entry: MenuPage | MenuGroup): entry is MenuGroup => "pages" in entry;
 
 export function createAppRouter(history: RouterHistory = createWebHistory()) {

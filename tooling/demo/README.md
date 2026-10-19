@@ -31,3 +31,4 @@ The details behind each one:
 - **Cause a clash:**
   - cast a member of the Opening Chorus in Pirate Sketch, for a back-to-back warning;
   - move Wide Game out from between Night Hike and Thank You Leaders and save, turning Pip's quick change into a back-to-back error.
+- **See each role:** the demo starts as an Admin. Use the "Local role" switch in the sidebar to see what a Casting Team Member or a Read-Only Team Member sees. The demo's API refuses their changes as the live app would.

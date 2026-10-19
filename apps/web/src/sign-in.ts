@@ -1,9 +1,15 @@
-import { roleFrom, type SignInConfig, type TeamRole } from "@app/shared";
+import {
+  LOCAL_ROLE_HEADER,
+  READ_ONLY_REFUSAL,
+  roleFrom,
+  type SignInConfig,
+  type TeamRole,
+} from "@app/shared";
 import { computed, ref, shallowRef } from "vue";
 
 /** A signed-in person, as the sign-in library keeps them on this device. */
 export interface SignedInUser {
-  /** The hour-long token the API's sign-in check accepts. */
+  /** The 5-minute token the API's sign-in check accepts. */
   accessToken: string;
   /** When that token runs out, in milliseconds since 1970. */
   expiresAt: number;
@@ -19,7 +25,7 @@ export class SignInEnded extends Error {}
 /** What the app needs from the sign-in library; cognito-sign-in.ts wraps oidc-client-ts. */
 export interface SignInManager {
   storedUser(): Promise<SignedInUser | null>;
-  /** A new hour-long token; throws SignInEnded once the day's sign-in has run out. */
+  /** A new 5-minute token; throws SignInEnded once the day's sign-in has run out. */
   refresh(): Promise<SignedInUser>;
   /** Completes a sign-in on returning from the login pages; throws if it failed. */
   finishSignIn(): Promise<SignedInUser>;
@@ -51,14 +57,17 @@ const theBrowser: Browser = {
 type Session =
   // Until the app has started its sign-in (main.ts), and in component tests.
   | { kind: "starting" }
-  // pnpm dev and pnpm demo: the local API needs no sign-in, and acts for an admin.
-  | { kind: "local" }
+  // pnpm dev and pnpm demo: the local API needs no sign-in, and acts for the role chosen
+  // with the local role switch (team-roles FR16).
+  | { kind: "local"; role: TeamRole }
   // The built app couldn't load its sign-in config, or read the stored sign-in.
   | { kind: "unavailable" }
   | { kind: "hosted"; config: SignInConfig; manager: SignInManager; browser: Browser };
 
 const session = shallowRef<Session>({ kind: "starting" });
 const user = shallowRef<SignedInUser | null>(null);
+/** The API refused a change as read-only, though this sign-in's role allowed it. */
+const refusedAsReadOnly = ref(false);
 // A page asks for several things at once: they share one renewal.
 let renewing: Promise<string | undefined> | undefined;
 
@@ -66,30 +75,48 @@ let renewing: Promise<string | undefined> | undefined;
 export const signInNeeded = ref(false);
 /** Signing in is through the login pages: never locally. */
 export const isHosted = computed(() => session.value.kind === "hosted");
+/** pnpm dev and pnpm demo, where anyone can switch role to try each one. */
+export const isLocal = computed(() => session.value.kind === "local");
 export const isSignedIn = computed(() => isHosted.value && user.value !== null);
 export const isSignInUnavailable = computed(() => session.value.kind === "unavailable");
 /** Who's signed in; no one locally, where the app acts for an admin who is no account. */
 export const signedInUsername = computed(() => user.value?.username);
 // What to show, not what's allowed: the API checks the role for itself (ADR 0020). Locally
-// the app acts for an admin; otherwise no sign-in, like no known group, may only read.
-const role = computed<TeamRole>(() =>
-  session.value.kind === "local" ? "admin" : roleFrom(user.value?.groups ?? []),
-);
+// the app acts for the chosen role; otherwise no sign-in, like no known group, may only read.
+// After the API refuses a change as read-only, pages show the read-only view at once, not
+// only once the sign-in renews with the new role (team-roles FR12).
+const role = computed<TeamRole>(() => {
+  if (refusedAsReadOnly.value) return "read-only";
+  return session.value.kind === "local" ? session.value.role : roleFrom(user.value?.groups ?? []);
+});
+/** The role the local role switch shows. */
+export const localRole = computed(() => role.value);
 export const isAdmin = computed(() => role.value === "admin");
 /** Read-Only Team Members see every page with no controls that change data (team-roles FR6). */
 export const isReadOnly = computed(() => role.value === "read-only");
+/** A change was refused because the person may only read: pages say it wasn't saved. */
+export const changeRefusedAsReadOnly = computed(() => refusedAsReadOnly.value);
 
 /** The app couldn't start its sign-in, so it can sign no one in. */
 export function signInUnavailable() {
+  refusedAsReadOnly.value = false;
   session.value = { kind: "unavailable" };
   user.value = null;
   signInNeeded.value = true;
 }
 
 export function useLocalSignIn() {
-  session.value = { kind: "local" };
+  refusedAsReadOnly.value = false;
+  session.value = { kind: "local", role: "admin" };
   user.value = null;
   signInNeeded.value = false;
+}
+
+/** Acts for another role locally; the hosted app's role is only ever the account's own. */
+export function chooseLocalRole(chosen: TeamRole) {
+  if (session.value.kind !== "local") return;
+  refusedAsReadOnly.value = false;
+  session.value = { kind: "local", role: chosen };
 }
 
 /** Signs in through the team's login pages (ADR 0018), picking up any sign-in already made. */
@@ -98,6 +125,7 @@ export async function useHostedSignIn(
   manager: SignInManager,
   browser: Browser = theBrowser,
 ) {
+  refusedAsReadOnly.value = false;
   session.value = { kind: "hosted", config, manager, browser };
   const params = new URLSearchParams(browser.search);
   // The login pages always send state back, with a code or an error.
@@ -171,17 +199,41 @@ function isOwnApi(input: RequestInfo | URL) {
 /** fetch for the API's routes: sends the sign-in, and notices when the API refuses it. */
 export async function apiFetch(...args: Parameters<typeof fetch>) {
   const [input, init] = args;
-  const token = isOwnApi(input) ? await currentToken() : undefined;
+  const extra = isOwnApi(input) ? await ownApiHeader() : undefined;
   // Sent even with no token, so every refusal is handled in one place: the 401 below.
-  const res = token
-    ? await fetch(input, { ...init, headers: withToken(init?.headers, token) })
+  const res = extra
+    ? await fetch(input, { ...init, headers: withHeader(init?.headers, ...extra) })
     : await fetch(...args);
   if (res.status === 401 || (isHosted.value && !user.value)) signInNeeded.value = true;
+  if (res.status === 403 && (await refusalOf(res)) === READ_ONLY_REFUSAL) {
+    refusedAsReadOnly.value = true;
+  }
   return res;
 }
 
-function withToken(headers: HeadersInit | undefined, token: string) {
+/** A refusal's message, read from a copy so the page can still read the reply. */
+async function refusalOf(res: Response) {
+  const body: unknown = await res
+    .clone()
+    .json()
+    .catch(() => undefined);
+  return typeof body === "object" && body !== null && "message" in body ? body.message : undefined;
+}
+
+/**
+ * What the API needs to know who's asking: the sign-in when hosted, or locally the role
+ * chosen with the switch. The local API acts for an admin unless told otherwise.
+ */
+async function ownApiHeader(): Promise<[string, string] | undefined> {
+  if (session.value.kind === "local") {
+    return session.value.role === "admin" ? undefined : [LOCAL_ROLE_HEADER, session.value.role];
+  }
+  const token = await currentToken();
+  return token ? ["authorization", `Bearer ${token}`] : undefined;
+}
+
+function withHeader(headers: HeadersInit | undefined, name: string, value: string) {
   const merged = new Headers(headers);
-  merged.set("authorization", `Bearer ${token}`);
+  merged.set(name, value);
   return merged;
 }

@@ -34,21 +34,21 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [team-roles.E3.S1](stories/E3-S1-change-an-accounts-role.md) | The Accounts page shows each account's role by its new name; an admin changes it with one role choice, confirming first, never their own and never the last admin | FR4, FR10, FR11, FR14 | E1.S1 | ready |
-| [team-roles.E3.S2](stories/E3-S2-choose-a-role-for-a-new-account.md) | An admin chooses the role when creating an account, defaulting to Read-Only Team Member, who can then sign in like anyone else | FR8, FR9 | E3.S1 | ready |
+| [team-roles.E3.S1](stories/E3-S1-change-an-accounts-role.md) | The Accounts page shows each account's role by its new name; an admin changes it with one role choice, confirming first, never their own and never the last admin | FR4, FR10, FR11, FR14 | E1.S1 | done |
+| [team-roles.E3.S2](stories/E3-S2-choose-a-role-for-a-new-account.md) | An admin chooses the role when creating an account, defaulting to Read-Only Team Member, who can then sign in like anyone else | FR8, FR9 | E3.S1 | done |
 
 ## E4: Access changes bite quickly
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [team-roles.E4.S1](stories/E4-S1-access-changes-within-5-minutes.md) | A role change, disable or password reset reaches every device within 5 minutes; pages pick up the new role and explain a refused change | FR12, FR13 | E3.S1 | ready |
+| [team-roles.E4.S1](stories/E4-S1-access-changes-within-5-minutes.md) | A role change, disable or password reset reaches every device within 5 minutes; a page explains a change refused as read-only | FR12, FR13 | E3.S1 | done |
 
 ## E5: Maintainer and local tooling
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [team-roles.E5.S1](stories/E5-S1-post-deploy-check-for-read-only.md) | The post-deploy check confirms a read-only account is refused every change, with its account set up from the repository | FR15 | E1.S1 | ready |
-| [team-roles.E5.S2](stories/E5-S2-role-switch-in-dev-and-demo.md) | Local development and the demo offer a switch between the three roles (starting as admin), never shown in the hosted app | FR16 | E1.S1 | ready |
+| [team-roles.E5.S1](stories/E5-S1-post-deploy-check-for-read-only.md) | The post-deploy check confirms a read-only account is refused every change, with its account set up from the repository | FR15 | E1.S1 | done |
+| [team-roles.E5.S2](stories/E5-S2-role-switch-in-dev-and-demo.md) | Local development and the demo offer a switch between the three roles (starting as admin), never shown in the hosted app | FR16 | E1.S1 | done |
 
 ## Order
 

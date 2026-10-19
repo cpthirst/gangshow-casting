@@ -3,8 +3,8 @@ import {
   AccountList,
   CreatedAccount,
   NewAccount,
-  SetAdmin,
   SetEnabled,
+  SetRole,
   Username,
 } from "./account.ts";
 
@@ -28,20 +28,29 @@ describe("Username", () => {
 });
 
 describe("NewAccount", () => {
-  it("takes just a valid username", () => {
-    expect(NewAccount.parse({ username: "jo" })).toEqual({ username: "jo" });
-    expect(NewAccount.safeParse({ username: "jo smith" }).success).toBe(false);
+  it("takes a valid username and one of the three roles", () => {
+    expect(NewAccount.parse({ username: "jo", role: "read-only" })).toEqual({
+      username: "jo",
+      role: "read-only",
+    });
+    expect(NewAccount.safeParse({ username: "jo smith", role: "casting" }).success).toBe(false);
+  });
+
+  it("refuses a missing or unknown role", () => {
+    expect(NewAccount.safeParse({ username: "jo" }).success).toBe(false);
+    expect(NewAccount.safeParse({ username: "jo", role: "member" }).success).toBe(false);
   });
 
   it("refuses anything else, such as an email address or a password", () => {
-    expect(NewAccount.safeParse({ username: "jo", email: "jo@example.com" }).success).toBe(false);
-    expect(NewAccount.safeParse({ username: "jo", password: "chosen" }).success).toBe(false);
+    const jo = { username: "jo", role: "casting" };
+    expect(NewAccount.safeParse({ ...jo, email: "jo@example.com" }).success).toBe(false);
+    expect(NewAccount.safeParse({ ...jo, password: "chosen" }).success).toBe(false);
   });
 });
 
 describe("AccountList", () => {
-  it("holds each account's username and whether it's an admin and enabled, nothing more", () => {
-    const list = { accounts: [{ username: "pat", admin: true, enabled: true }] };
+  it("holds each account's username, role and whether it's enabled, nothing more", () => {
+    const list = { accounts: [{ username: "pat", role: "admin", enabled: true }] };
 
     expect(AccountList.parse(list)).toEqual(list);
     expect(
@@ -49,12 +58,18 @@ describe("AccountList", () => {
         .success,
     ).toBe(false);
   });
+
+  it("refuses a role that isn't one of the three", () => {
+    const account = { username: "pat", role: "superadmin", enabled: true };
+
+    expect(AccountList.safeParse({ accounts: [account] }).success).toBe(false);
+  });
 });
 
 describe("CreatedAccount", () => {
   it("holds the new account and its temporary password", () => {
     const created = {
-      account: { username: "jo", admin: false, enabled: true },
+      account: { username: "jo", role: "casting", enabled: true },
       temporaryPassword: "Made-up-temp-1",
     };
 
@@ -66,14 +81,18 @@ describe("SetEnabled", () => {
   it("takes whether the account is enabled, and nothing else", () => {
     expect(SetEnabled.parse({ enabled: false })).toEqual({ enabled: false });
     expect(SetEnabled.safeParse({ enabled: "no" }).success).toBe(false);
-    expect(SetEnabled.safeParse({ enabled: true, admin: true }).success).toBe(false);
+    expect(SetEnabled.safeParse({ enabled: true, role: "admin" }).success).toBe(false);
   });
 });
 
-describe("SetAdmin", () => {
-  it("takes whether the account is an admin, and nothing else", () => {
-    expect(SetAdmin.parse({ admin: true })).toEqual({ admin: true });
-    expect(SetAdmin.safeParse({ admin: "yes" }).success).toBe(false);
-    expect(SetAdmin.safeParse({ admin: true, enabled: false }).success).toBe(false);
+describe("SetRole", () => {
+  it.each(["admin", "casting", "read-only"])("takes the %s role", (role) => {
+    expect(SetRole.parse({ role })).toEqual({ role });
+  });
+
+  it("refuses any other role, or anything else", () => {
+    expect(SetRole.safeParse({ role: "Admin" }).success).toBe(false);
+    expect(SetRole.safeParse({ role: "member" }).success).toBe(false);
+    expect(SetRole.safeParse({ role: "admin", enabled: false }).success).toBe(false);
   });
 });

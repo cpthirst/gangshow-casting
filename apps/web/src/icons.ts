@@ -15,12 +15,10 @@ import {
   faKey,
   faList,
   faPen,
-  faShieldHalved,
   faSquareXmark,
   faTrashCan,
   faTriangleExclamation,
   faUserCheck,
-  faUserShield,
   faUserSlash,
   faUsers,
 } from "@fortawesome/free-solid-svg-icons";
@@ -32,9 +30,6 @@ export const icons = {
   resetPassword: faKey,
   disable: faUserSlash,
   enable: faUserCheck,
-  makeAdmin: faUserShield,
-  // Shields for admin, so neither looks like Disable's crossed-out person.
-  removeAdmin: faShieldHalved,
   cast: faUsers,
   // Admins export the casting grid as an Excel file.
   exportFile: faFileExcel,

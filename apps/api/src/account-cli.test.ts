@@ -6,9 +6,10 @@ import { memoryUserDirectory } from "./user-directory.ts";
 const POOL = "eu-west-2_madeup";
 const USAGE = [
   "Usage:",
-  "  pnpm account admin <username>                            create or restore an admin",
-  "  pnpm account check <admin username> <member username>    set up the post-deploy check's accounts",
-  "  pnpm account roles                                       make every account in no role a Casting Team Member",
+  "  pnpm account admin <username>    create or restore an admin",
+  "  pnpm account check <admin username> <member username> <read-only username>",
+  "                                   set up the post-deploy check's accounts",
+  "  pnpm account roles               make every account in no role a Casting Team Member",
 ];
 
 const run = async (args: string[], env = { USER_POOL_ID: POOL }, seed = memoryUserDirectory()) => {
@@ -63,7 +64,7 @@ describe("the account script", () => {
 
     expect(code).toBe(0);
     expect(lines).toContain(
-      "Restored pat: enabled, an admin, and signed out on every device within the hour.",
+      "Restored pat: enabled, an admin, and signed out on every device within 5 minutes.",
     );
     expect(timesShown(lines, "Made-up-password-1")).toBe(1);
   });
@@ -73,6 +74,7 @@ describe("the account script", () => {
       [],
       ["admin"],
       ["check", "check-admin"],
+      ["check", "check-admin", "check-member"],
       ["remove", "pat"],
       ["roles", "sam"],
     ]) {
@@ -87,8 +89,9 @@ describe("the account script", () => {
   it("says what a username may be, and changes nothing, when one isn't valid", async () => {
     for (const args of [
       ["admin", "pat smith"],
-      ["check", "check admin", "check-member"],
-      ["check", "check-admin", "check member"],
+      ["check", "check admin", "check-member", "check-read-only"],
+      ["check", "check-admin", "check member", "check-read-only"],
+      ["check", "check-admin", "check-member", "check read-only"],
     ]) {
       const { code, lines, pools } = await run(args);
 
@@ -98,11 +101,15 @@ describe("the account script", () => {
     }
   });
 
-  it("refuses the same username for both check accounts", async () => {
-    const { code, lines, pools } = await run(["check", "check-admin", "check-admin"]);
+  it.each([
+    ["check-admin", "check-admin", "check-read-only"],
+    ["check-admin", "check-member", "check-member"],
+    ["check-admin", "check-member", "CHECK-ADMIN"],
+  ])("refuses a username used for two check accounts (%s, %s, %s)", async (...usernames) => {
+    const { code, lines, pools } = await run(["check", ...usernames]);
 
     expect(code).toBe(1);
-    expect(lines).toEqual(["The two check accounts need different usernames."]);
+    expect(lines).toEqual(["The check accounts need different usernames."]);
     expect(pools).toEqual([]);
   });
 
@@ -117,23 +124,34 @@ describe("the account script", () => {
   });
 
   it("sets up the check accounts and prints each permanent password once", async () => {
-    const { code, lines, accounts } = await run(["check", "check-admin", "check-member"]);
+    const { code, lines, accounts } = await run([
+      "check",
+      "check-admin",
+      "check-member",
+      "check-read-only",
+    ]);
 
     expect(code).toBe(0);
     expect(accounts).toEqual([
       expect.objectContaining({ username: "check-admin", admin: true, passwordKind: "permanent" }),
       expect.objectContaining({
         username: "check-member",
-        admin: false,
+        casting: true,
+        passwordKind: "permanent",
+      }),
+      expect.objectContaining({
+        username: "check-read-only",
+        readOnly: true,
         passwordKind: "permanent",
       }),
     ]);
     expect(lines).toEqual([
       `Using user pool ${POOL}.`,
-      "check-admin is an admin and check-member isn't, both with permanent passwords.",
+      "check-admin is an Admin, check-member a Casting Team Member and check-read-only a Read-Only Team Member, all with permanent passwords.",
       "Passwords, shown only now, for pnpm check:hosted:",
       "  check-admin: Made-up-password-1",
       "  check-member: Made-up-password-2",
+      "  check-read-only: Made-up-password-3",
     ]);
   });
 
@@ -154,7 +172,7 @@ describe("the account script", () => {
 
   it("doesn't show a password that a failed run never finished setting up", async () => {
     const failing = memoryUserDirectory();
-    failing.directory.setAdmin = async () => {
+    failing.directory.create = async () => {
       throw Object.assign(new Error("denied"), { name: "AccessDeniedException" });
     };
 
@@ -178,7 +196,7 @@ describe("the account script", () => {
     expect(lines).toEqual([
       `Using user pool ${POOL}.`,
       "Checked 4 accounts. Made 2 Casting Team Members: sam, kit.",
-      "They can change casting again once their sign-in renews, within the hour.",
+      "They can change casting again once their sign-in renews, within 5 minutes.",
     ]);
     expect(accounts.filter((account) => !account.admin && !account.casting)).toEqual([]);
     expect(accounts.find((account) => account.username === "pat")).toMatchObject({

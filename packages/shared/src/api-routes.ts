@@ -1,3 +1,5 @@
+import type { TeamRole } from "./account.ts";
+
 /**
  * Every API route, as "<METHOD> <path>" with {name} path parameters. The API has a handler
  * for each (apps/api/src/routes.ts), and infra hosts exactly these, so a route can't be
@@ -9,7 +11,7 @@ export const routeKeys = [
   "POST /api/accounts",
   "POST /api/accounts/{username}/password",
   "PUT /api/accounts/{username}/enabled",
-  "PUT /api/accounts/{username}/admin",
+  "PUT /api/accounts/{username}/role",
   "GET /api/productions/{productionId}/running-order",
   "POST /api/productions/{productionId}/running-order/versions",
   "GET /api/productions/{productionId}/cast",
@@ -34,9 +36,6 @@ export const CASTING_GROUP = "casting";
 /** The user pool's group for Read-Only Team Members, who may only read (ADR 0020). */
 export const READ_ONLY_GROUP = "read-only";
 
-/** What a signed-in team member may do (team-roles FR1). */
-export type TeamRole = "admin" | "casting" | "read-only";
-
 /**
  * A token's groups as a role. An explicit read-only group always wins, so a mistaken extra
  * group can't widen access; then admin, then casting. Anything else, no group included, is
@@ -48,6 +47,15 @@ export function roleFrom(groups: readonly string[]): TeamRole {
   if (groups.includes(CASTING_GROUP)) return "casting";
   return "read-only";
 }
+
+/** The API's answer to a change from a read-only member, which pages recognise (team-roles FR12). */
+export const READ_ONLY_REFUSAL = "You have read-only access.";
+
+/**
+ * Which role pnpm dev and pnpm demo act for, chosen with the local role switch (team-roles
+ * FR16). Only the local API reads it; the hosted API takes the role from the sign-in alone.
+ */
+export const LOCAL_ROLE_HEADER = "x-local-role";
 
 /** Reads change nothing, so every role may use them; every other route is a change. */
 export const isReadRoute = (key: string) => key.startsWith("GET ");
@@ -61,7 +69,7 @@ export const adminOnlyRouteKeys: readonly RouteKey[] = [
   "POST /api/accounts",
   "POST /api/accounts/{username}/password",
   "PUT /api/accounts/{username}/enabled",
-  "PUT /api/accounts/{username}/admin",
+  "PUT /api/accounts/{username}/role",
   "DELETE /api/productions/{productionId}/cast/{castId}",
   "POST /api/productions/{productionId}/running-order/versions",
   "POST /api/productions/{productionId}/casting-grid/export",
@@ -76,7 +84,7 @@ export const accountRouteKeys = [
   "POST /api/accounts",
   "POST /api/accounts/{username}/password",
   "PUT /api/accounts/{username}/enabled",
-  "PUT /api/accounts/{username}/admin",
+  "PUT /api/accounts/{username}/role",
 ] as const satisfies readonly RouteKey[];
 
 export type AccountRouteKey = (typeof accountRouteKeys)[number];

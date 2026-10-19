@@ -4,6 +4,7 @@ import {
   HealthResponse,
   ItemNoteList,
   isReadRoute,
+  LOCAL_ROLE_HEADER,
   routeKeys,
 } from "@app/shared";
 import { describe, expect, it, vi } from "vitest";
@@ -447,6 +448,34 @@ describe("Lambda entry point", () => {
 
       expect([added.statusCode, deleted.statusCode]).toEqual([201, 204]);
       expect((await cast.list("2027"))?.members.map((m) => m.firstName)).toEqual(["Jo"]);
+    });
+
+    it("ignores a request choosing a role the way the local switch does, using only the token's", async () => {
+      const { api, cast } = setUp();
+      const choosingAdmin = { headers: { [LOCAL_ROLE_HEADER]: "admin" } };
+
+      const added = await api(
+        request(
+          "POST",
+          "/api/productions/2027/cast",
+          {
+            ...choosingAdmin,
+            body: JSON.stringify({ firstName: "Jo", lastName: "Sample", section: null, group: "" }),
+          },
+          "[read-only]",
+        ),
+      );
+      const deleted = await api(
+        request(
+          "DELETE",
+          "/api/productions/2027/cast/1",
+          { ...choosingAdmin, queryStringParameters: { revision: "1" } },
+          "[casting]",
+        ),
+      );
+
+      expect([added.statusCode, deleted.statusCode]).toEqual([403, 403]);
+      expect((await cast.list("2027"))?.members).toHaveLength(1);
     });
   });
 });

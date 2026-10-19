@@ -2,10 +2,12 @@
 import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import HealthStatus from "./HealthStatus.vue";
+import LocalRoleSwitch from "./LocalRoleSwitch.vue";
 import { isMenuGroup, menuPages, showPageTitle } from "./router.ts";
 import {
   isAdmin,
   isHosted,
+  isLocal,
   isSignedIn,
   isSignInUnavailable,
   signIn,
@@ -131,6 +133,7 @@ function onEscape() {
       </nav>
       <footer class="sidebar-footer">
         <HealthStatus />
+        <LocalRoleSwitch v-if="isLocal" />
         <button
           v-if="isSignedIn"
           class="sign-out-button"

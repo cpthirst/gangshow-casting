@@ -56,7 +56,7 @@ describe("the accounts function's entry point", () => {
     const res = await handler({
       ...listAccounts("[admin]"),
       requestContext: { ...listAccounts("[admin]").requestContext, http: { method: "POST" } },
-      body: JSON.stringify({ username: "Sam" }),
+      body: JSON.stringify({ username: "Sam", role: "casting" }),
     });
 
     expect(res.statusCode).toBe(409);

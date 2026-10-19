@@ -42,7 +42,9 @@ describe("the account routes", () => {
   it("refuse a non-admin's new account with 403, creating nothing", async () => {
     const { api, accounts } = setUp();
 
-    const res = await api(signedIn("POST", "[]", JSON.stringify({ username: "jo" })));
+    const res = await api(
+      signedIn("POST", "[]", JSON.stringify({ username: "jo", role: "casting" })),
+    );
 
     expect(res.statusCode).toBe(403);
     expect(accounts()).toEqual([]);
@@ -51,12 +53,14 @@ describe("the account routes", () => {
   it("let an admin create an account, which the list then shows", async () => {
     const { api } = setUp();
 
-    const created = await api(signedIn("POST", "[admin]", JSON.stringify({ username: "jo" })));
+    const created = await api(
+      signedIn("POST", "[admin]", JSON.stringify({ username: "jo", role: "casting" })),
+    );
     const listed = await api(signedIn("GET", "[admin]"));
 
     expect(created.statusCode).toBe(201);
     expect(AccountList.parse(JSON.parse(listed.body ?? "")).accounts).toEqual([
-      { username: "jo", admin: false, enabled: true },
+      { username: "jo", role: "casting", enabled: true },
     ]);
   });
 });
@@ -107,13 +111,13 @@ describe("changing an account through the account routes", () => {
     expect(accounts().find((account) => account.username === "pat")?.enabled).toBe(true);
   });
 
-  it("refuses a non-admin making anyone an admin, themselves included, with 403", async () => {
+  it("refuses a non-admin changing anyone's role, themselves included, with 403", async () => {
     const { api, accounts } = setUp();
     const before = accounts();
 
     for (const target of ["sam", "pat"]) {
       const res = await api(
-        request("PUT", `/api/accounts/${target}/admin`, "sam", "[]", { admin: true }),
+        request("PUT", `/api/accounts/${target}/role`, "sam", "[casting]", { role: "admin" }),
       );
 
       expect(res.statusCode).toBe(403);
@@ -121,11 +125,11 @@ describe("changing an account through the account routes", () => {
     expect(accounts()).toEqual(before);
   });
 
-  it("won't let the only admin remove their admin role or disable themselves", async () => {
+  it("won't let the only admin change their own role or disable themselves", async () => {
     const { api, accounts } = setUp();
 
     const demote = await api(
-      request("PUT", "/api/accounts/pat/admin", "pat", "[admin]", { admin: false }),
+      request("PUT", "/api/accounts/pat/role", "pat", "[admin]", { role: "casting" }),
     );
     const disable = await api(
       request("PUT", "/api/accounts/pat/enabled", "pat", "[admin]", { enabled: false }),

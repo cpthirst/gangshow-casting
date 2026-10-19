@@ -18,7 +18,7 @@ describe("reset password handler", () => {
 
     expect(res.statusCode).toBe(200);
     expect(CreatedAccount.parse(JSON.parse(res.body ?? ""))).toEqual({
-      account: { username: "sam", admin: false, enabled: true },
+      account: { username: "sam", role: "casting", enabled: true },
       temporaryPassword: "Made-up-temp-2",
     });
     expect(sam(accounts)).toMatchObject({ password: "Made-up-temp-2", passwordKind: "temporary" });

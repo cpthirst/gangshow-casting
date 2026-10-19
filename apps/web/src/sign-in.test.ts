@@ -1,9 +1,13 @@
-import type { SignInConfig } from "@app/shared";
+import { LOCAL_ROLE_HEADER, type SignInConfig } from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   apiFetch,
+  changeRefusedAsReadOnly,
+  chooseLocalRole,
   isAdmin,
+  isReadOnly,
   isSignedIn,
+  localRole,
   type SignedInUser,
   SignInEnded,
   type SignInManager,
@@ -21,11 +25,12 @@ const config: SignInConfig = {
   appUrl: "https://d111111abcdef8.cloudfront.net/",
 };
 
-const HOUR = 60 * 60 * 1000;
+const MINUTE = 60 * 1000;
+const HOUR = 60 * MINUTE;
 // A rehearsal morning.
 const MORNING = Date.UTC(2026, 9, 17, 9, 0);
 
-/** Signed in this morning: the hour-long token runs out at 10 o'clock. */
+/** Signed in this morning: the token runs out at 10 o'clock. */
 const sam = (overrides: Partial<SignedInUser> = {}): SignedInUser => ({
   accessToken: "sams-token",
   expiresAt: MORNING + HOUR,
@@ -144,7 +149,7 @@ describe("signing in", () => {
     expect(sentToken(fetchMock)).toBe("Bearer sams-token");
   });
 
-  it("renews the hour-long token when it runs out with the app open", async () => {
+  it("renews the token when it runs out with the app open", async () => {
     const refresh = vi.fn(async () =>
       sam({ accessToken: "renewed-token", expiresAt: MORNING + 2 * HOUR }),
     );
@@ -207,6 +212,70 @@ describe("signing in", () => {
     // The request goes as before, so the page reports the poor signal, not a sign-in.
     expect(signInNeeded.value).toBe(false);
     expect(sentToken(fetchMock)).toBe("Bearer sams-token");
+  });
+
+  it("keeps a 5-minute token renewed all afternoon, without asking to sign in or failing a request", async () => {
+    // Each token is named after when it runs out.
+    const expiring = (expiresAt: number) => sam({ accessToken: `${expiresAt}`, expiresAt });
+    const refresh = vi.fn(async () => expiring(Date.now() + 5 * MINUTE));
+    await useHostedSignIn(
+      config,
+      managerWith(expiring(MORNING + 5 * MINUTE), { refresh }),
+      browserAt("/"),
+    );
+
+    // A request every 3 minutes from 9 until 5.
+    for (let at = MORNING; at < MORNING + 8 * HOUR; at += 3 * MINUTE) {
+      vi.setSystemTime(at);
+      expect((await apiFetch("/api/health")).ok).toBe(true);
+      // Never a token with less than a minute left, so none runs out on the way.
+      const expiresAt = Number(sentToken(fetchMock)?.replace("Bearer ", ""));
+      expect(expiresAt - at).toBeGreaterThan(MINUTE);
+    }
+
+    expect(signInNeeded.value).toBe(false);
+    expect(isSignedIn.value).toBe(true);
+    expect(refresh).toHaveBeenCalled();
+  });
+
+  it("treats someone as read-only once the API refuses a change as read-only, saying so", async () => {
+    await useHostedSignIn(config, managerWith(sam({ groups: ["casting"] })), browserAt("/"));
+    expect(isReadOnly.value).toBe(false);
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ message: "You have read-only access." }), { status: 403 }),
+    );
+
+    const res = await apiFetch("/api/productions/p/items/i/notes", { method: "PUT" });
+
+    expect(isReadOnly.value).toBe(true);
+    expect(changeRefusedAsReadOnly.value).toBe(true);
+    // The page can still read the refusal for itself.
+    expect(await res.json()).toEqual({ message: "You have read-only access." });
+  });
+
+  it("keeps someone's role when the API refuses a change for another reason", async () => {
+    await useHostedSignIn(config, managerWith(sam({ groups: ["casting"] })), browserAt("/"));
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ message: "Only admins can do this." }), { status: 403 }),
+    );
+
+    await apiFetch("/api/productions/p/cast/c", { method: "DELETE" });
+
+    expect(isReadOnly.value).toBe(false);
+    expect(changeRefusedAsReadOnly.value).toBe(false);
+  });
+
+  it("forgets a read-only refusal when someone else signs in", async () => {
+    await useHostedSignIn(config, managerWith(sam({ groups: ["casting"] })), browserAt("/"));
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ message: "You have read-only access." }), { status: 403 }),
+    );
+    await apiFetch("/api/productions/p/cast", { method: "POST" });
+
+    await useHostedSignIn(config, managerWith(sam({ groups: ["admin"] })), browserAt("/"));
+
+    expect(isAdmin.value).toBe(true);
+    expect(changeRefusedAsReadOnly.value).toBe(false);
   });
 
   it("asks to sign in when the API refuses the sign-in", async () => {
@@ -279,5 +348,54 @@ describe("signing in", () => {
       expect(isAdmin.value).toBe(true);
       expect(fetchMock).toHaveBeenCalledWith("/api/health");
     });
+
+    it("tells the local API which role was chosen, starting as an admin", async () => {
+      useLocalSignIn();
+      const sentRole = () =>
+        new Headers(fetchMock.mock.calls.at(-1)?.[1]?.headers).get(LOCAL_ROLE_HEADER);
+
+      await apiFetch("/api/health");
+      const first = sentRole();
+      chooseLocalRole("read-only");
+      await apiFetch("/api/health");
+
+      expect([first, sentRole()]).toEqual([null, "read-only"]);
+    });
+
+    it("shows the pages for the chosen role", () => {
+      useLocalSignIn();
+
+      chooseLocalRole("casting");
+      const casting = [isAdmin.value, isReadOnly.value];
+      chooseLocalRole("read-only");
+
+      expect([localRole.value, casting, isReadOnly.value]).toEqual([
+        "read-only",
+        [false, false],
+        true,
+      ]);
+    });
+
+    it("starts as an admin again each time the app starts", () => {
+      useLocalSignIn();
+      chooseLocalRole("read-only");
+
+      useLocalSignIn();
+
+      expect([localRole.value, isAdmin.value]).toEqual(["admin", true]);
+    });
+  });
+
+  it("never lets the hosted app choose a role, or send one", async () => {
+    await useHostedSignIn(config, managerWith(sam({ groups: ["read-only"] })), browserAt("/"));
+
+    chooseLocalRole("admin");
+    await apiFetch("/api/health");
+
+    expect(isAdmin.value).toBe(false);
+    expect(isReadOnly.value).toBe(true);
+    expect(new Headers(fetchMock.mock.calls.at(-1)?.[1]?.headers).has(LOCAL_ROLE_HEADER)).toBe(
+      false,
+    );
   });
 });

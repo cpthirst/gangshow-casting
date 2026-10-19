@@ -381,7 +381,9 @@ describe("release: deploying", () => {
 
     expect(optionsOf["pnpm infra:deploy"]).toEqual({ output: "none" });
     expect(
-      optionsOf["pnpm check:hosted https://made-up.example/ check-admin check-member"],
+      optionsOf[
+        "pnpm check:hosted https://made-up.example/ check-admin check-member check-read-only"
+      ],
     ).toMatchObject({
       output: "none",
     });
@@ -528,7 +530,7 @@ describe("release: the post-deploy check", () => {
     expect(await release(["v0.2.0"], deps)).toBe(0);
     expect(checks).toEqual([
       {
-        line: "pnpm check:hosted https://made-up.example/ check-admin check-member",
+        line: "pnpm check:hosted https://made-up.example/ check-admin check-member check-read-only",
         env: { USER_POOL_ID: "eu-west-2_madeup", CHECK_CLIENT_ID: "made-up-client" },
       },
     ]);
@@ -543,12 +545,13 @@ describe("release: the post-deploy check", () => {
         AWS_PROFILE: "made-up",
         CHECK_ADMIN: "boss",
         CHECK_MEMBER: "helper",
+        CHECK_READ_ONLY: "looker",
       },
     });
 
     await release(["v0.2.0"], deps);
 
-    expect(checks[0]?.line).toBe("pnpm check:hosted https://made-up.example/ boss helper");
+    expect(checks[0]?.line).toBe("pnpm check:hosted https://made-up.example/ boss helper looker");
   });
 
   it("reminds the maintainer to disable the check accounts", async () => {
@@ -570,7 +573,7 @@ describe("release: the post-deploy check", () => {
     const { deps } = fakeMachine({
       yes: [true, true, true],
       ...both,
-      fail: ["pnpm check:hosted https://made-up.example/ check-admin check-member"],
+      fail: ["pnpm check:hosted https://made-up.example/ check-admin check-member check-read-only"],
     });
 
     expect(await release(["v0.2.0"], deps)).toBe(1);

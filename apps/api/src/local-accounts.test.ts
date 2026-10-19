@@ -19,12 +19,14 @@ async function serve() {
 
 // pnpm dev and pnpm demo run the dev server, which never contacts AWS (ADR 0018).
 describe("accounts locally", () => {
-  it("lists made-up accounts, including an admin and a disabled one", async () => {
+  it("lists made-up accounts, including one in each role and a disabled one", async () => {
     const url = await serve();
 
     const { accounts } = AccountList.parse(await (await fetch(url)).json());
 
-    expect(accounts.some((account) => account.admin)).toBe(true);
+    expect(new Set(accounts.map((account) => account.role))).toEqual(
+      new Set(["admin", "casting", "read-only"]),
+    );
     expect(accounts.some((account) => !account.enabled)).toBe(true);
   });
 
@@ -34,18 +36,20 @@ describe("accounts locally", () => {
     const res = await fetch(url, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ username: "jo" }),
+      body: JSON.stringify({ username: "jo", role: "casting" }),
     });
     const { accounts } = AccountList.parse(await (await fetch(url)).json());
 
     expect(res.status).toBe(201);
     expect(CreatedAccount.parse(await res.json()).temporaryPassword).not.toBe("");
-    expect(accounts).toContainEqual({ username: "jo", admin: false, enabled: true });
+    expect(accounts).toContainEqual({ username: "jo", role: "casting", enabled: true });
   });
 
   it("starts afresh each time, so nothing created lasts past a restart", async () => {
     const created = localAccountRoutes();
-    await created["POST /api/accounts"]({ body: JSON.stringify({ username: "jo" }) });
+    await created["POST /api/accounts"]({
+      body: JSON.stringify({ username: "jo", role: "casting" }),
+    });
 
     const res = await localAccountRoutes()["GET /api/accounts"]({});
 
