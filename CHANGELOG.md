@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.0](https://github.com/cpthirst/gangshow-casting/compare/v1.8.0...v1.9.0) (2026-10-19)
+
+
+### Features
+
+* **web:** help for Cast, Overview, Items and an item (in-app-help E2) ([#86](https://github.com/cpthirst/gangshow-casting/issues/86)) ([5e0324b](https://github.com/cpthirst/gangshow-casting/commit/5e0324bc71acdfaa320a8cdfc147b74f35cce87c))
+
 ## [1.8.0](https://github.com/cpthirst/gangshow-casting/compare/v1.7.0...v1.8.0) (2026-10-19)
 
 
