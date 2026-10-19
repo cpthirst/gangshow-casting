@@ -1,6 +1,6 @@
 ---
 feature: casting-overview-by-item
-status: draft
+status: approved
 owner: cpthirst
 date: 2026-10-19
 ---
