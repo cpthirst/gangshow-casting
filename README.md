@@ -28,15 +28,17 @@ Chester Gang Show is a volunteer-led Scouting variety show: comedy, music, dance
 
 ## What iCUE does today
 
-iCUE is hosted on AWS and is open only to the production team. Everyone signs in with an account an admin gives them. Each page has a help button, and the Welcome page brings all the help together.
+iCUE is hosted on AWS and is open only to the production team. Everyone signs in with an account an admin gives them. Each page has a help button, and the Help page brings all the help together. The menu has three areas: **Show**, **Production** and **Casting**.
 
 | Page | What it's for | Product docs |
 |---|---|---|
-| **Running order** | The show's items in performance order, in two halves, with timings, stage and notes. Drag to reorder, then save a new version, so everyone knows which order is current. Items left out of the printed programme still take stage time | [running-order](docs/product/running-order) |
-| **Cast** | The Scouts, Explorers and Network members in this production: name, section, Scout group or Explorer unit, age band, and short Singing and Acting notes. Search and filter, add, edit and remove | [cast-management](docs/product/cast-management) |
+| **Show → Running order** | The show's items in performance order, in two halves, with timings, stage and notes. Drag to reorder, then save a new version, so everyone knows which order is current. Items left out of the printed programme still take stage time | [running-order](docs/product/running-order) |
+| **Show → Cast** | The Scouts, Explorers and Network members in this production: name, section, Scout group or Explorer unit, age band, and short Singing and Acting notes. Search and filter, add, edit and remove | [cast-management](docs/product/cast-management) |
 | **Casting → Overview** | The whole cast at once, three ways: **By person** (who carries how many parts, and of what size, section by section), **By item** (each item's parts in show order) and **Grid** (people against items). Clashes are flagged. Export the grid to Excel and the other two views to Word | [casting/overview](docs/product/casting/overview) |
 | **Casting → Items** | Every item in running order, with how far its casting has got | [casting/items](docs/product/casting/items) |
+| **Production → Mic plot, Props, Scenery, SFX** | Placeholders that say "Coming soon", open to every role, until each is built as its own feature | none yet |
 | **An item's page** | The item's parts (lead, supporting, cameo, ensemble), who plays each, warnings about quick changes and short gaps between appearances, and the item's notes. Step to the previous or next item | [casting/item-overview](docs/product/casting/item-overview), [roles](docs/product/casting/roles), [rules](docs/product/casting/rules) |
+| **Help** | What each page is for and what its buttons do, with who can use each | [in-app-help](docs/product/in-app-help) |
 | **Accounts** (admins) | Create the team's sign-in accounts, choose each one's role, reset passwords, and disable or enable accounts | [hosting](docs/product/hosting), [team-roles](docs/product/team-roles) |
 | **Usage** (admins) | Who on the team uses iCUE and how often, so admins can see who might need help getting started | [usage-tracking](docs/product/usage-tracking) |
 

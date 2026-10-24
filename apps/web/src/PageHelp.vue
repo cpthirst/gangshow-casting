@@ -2,7 +2,7 @@
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { accessLabel, type PageHelp } from "./help.ts";
 
-// One page's help: the same on the Welcome page and behind the page's help button (FR9).
+// One page's help: the same on the Help page and behind the page's help button (FR9).
 defineProps<{ help: PageHelp }>();
 </script>
 

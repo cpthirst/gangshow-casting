@@ -2,7 +2,7 @@ import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory } from "vue-router";
 import HelpButton from "./HelpButton.vue";
-import WelcomePage from "./pages/WelcomePage.vue";
+import HelpPage from "./pages/HelpPage.vue";
 import { createAppRouter } from "./router.ts";
 
 enableAutoUnmount(afterEach);
@@ -47,16 +47,16 @@ describe("Help button", () => {
     expect(title?.textContent).toBe("Running order help");
   });
 
-  it("shows the same help as the Welcome page", async () => {
+  it("shows the same help as the Help page", async () => {
     const wrapper = openPageWithHelp();
 
     await openHelp(wrapper);
 
     const router = createAppRouter(createMemoryHistory());
-    const welcome = mount(WelcomePage, { global: { plugins: [router] } });
+    const helpPage = mount(HelpPage, { global: { plugins: [router] } });
     await flushPromises();
-    const onWelcome = welcome.get("section[aria-labelledby='help-running-order'] .help-lines");
-    expect(dialog(wrapper).get(".help-lines").html()).toBe(onWelcome.html());
+    const onHelp = helpPage.get("section[aria-labelledby='help-running-order'] .help-lines");
+    expect(dialog(wrapper).get(".help-lines").html()).toBe(onHelp.html());
   });
 
   it("opens as a modal, so the page behind can't be reached until it closes", async () => {

@@ -2169,3 +2169,25 @@ main a {
 .help-dialog-title h2 {
   margin: 0;
 }
+
+/* The Welcome page: the logo, title and introduction are centred; the guide below reads left-aligned. */
+.welcome {
+  text-align: center;
+}
+
+.welcome-logo {
+  display: block;
+  width: 100%;
+  max-width: 28rem;
+  height: auto;
+  margin: 0 auto 1rem;
+}
+
+.welcome-areas dt {
+  margin-top: 1rem;
+  font-weight: 700;
+}
+
+.welcome-areas dd {
+  margin: 0.25rem 0 0;
+}

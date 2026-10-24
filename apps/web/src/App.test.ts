@@ -57,9 +57,10 @@ describe("App shell", () => {
     const topLevel = menu.findAll(":scope > ul > li").map((item) => item.text());
     expect(topLevel).toEqual([
       "Welcome",
-      "Running order",
-      "Cast",
+      expect.stringMatching(/^Show/),
+      expect.stringMatching(/^Production/),
       expect.stringMatching(/^Casting/),
+      "Help",
       "Accounts",
       "Usage",
     ]);
@@ -67,8 +68,13 @@ describe("App shell", () => {
       "Welcome",
       "Running order",
       "Cast",
+      "Mic plot",
+      "Props",
+      "Scenery",
+      "SFX",
       "Overview",
       "Items",
+      "Help",
       "Accounts",
       "Usage",
     ]);
@@ -271,8 +277,13 @@ describe("App shell", () => {
         "Welcome",
         "Running order",
         "Cast",
+        "Mic plot",
+        "Props",
+        "Scenery",
+        "SFX",
         "Overview",
         "Items",
+        "Help",
       ]);
     });
 

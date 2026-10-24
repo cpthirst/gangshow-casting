@@ -16,8 +16,13 @@ describe("RecordUsageRequest", () => {
     "welcome",
     "running-order",
     "cast",
+    "mic-plot",
+    "props",
+    "scenery",
+    "sfx",
     "casting-overview",
     "casting-items",
+    "help",
     "accounts",
     "usage",
   ])("accepts opening the menu page %s", (page) => {
