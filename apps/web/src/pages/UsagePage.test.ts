@@ -1,6 +1,8 @@
 import type { AccountSummary, UsageSummary } from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createMemoryHistory } from "vue-router";
+import { createAppRouter } from "../router.ts";
 import { useLocalSignIn } from "../sign-in.ts";
 import UsagePage from "./UsagePage.vue";
 
@@ -25,7 +27,9 @@ function serve(usage: UsageSummary | Response, accountList: Response = json({ ac
 }
 
 async function openPage() {
-  const wrapper = mount(UsagePage);
+  const wrapper = mount(UsagePage, {
+    global: { plugins: [createAppRouter(createMemoryHistory())] },
+  });
   await flushPromises();
   return wrapper;
 }
@@ -43,8 +47,8 @@ describe("Usage page", () => {
     serve({
       recordedSince: "2026-10-01T18:00:00.000Z",
       people: [
-        { username: "robin", sessions: 2, lastSession: "2026-10-20T18:00:00.000Z" },
-        { username: "alex", sessions: 1, lastSession: "2026-10-22T18:00:00.000Z" },
+        { username: "robin", sessions: 2, lastSession: "2026-10-20T18:00:00.000Z", uses: {} },
+        { username: "alex", sessions: 1, lastSession: "2026-10-22T18:00:00.000Z", uses: {} },
       ],
     });
 
@@ -56,36 +60,95 @@ describe("Usage page", () => {
       "Username",
       "Sessions",
       "Last session",
+      "Uses",
     ]);
     expect(rows(wrapper)).toEqual([
-      ["alex", "1", "22 October 2026"],
-      ["kit", "0", "None"],
-      ["robin", "2", "20 October 2026"],
-      ["sky", "0", "None"],
+      ["alex", "1", "22 October 2026", "No pages opened"],
+      ["kit", "0", "No sessions", "No pages opened"],
+      ["robin", "2", "20 October 2026", "No pages opened"],
+      ["sky", "0", "No sessions", "No pages opened"],
     ]);
+  });
+
+  it("shows how often each person opened each page, in the menu's order", async () => {
+    serve({
+      recordedSince: "2026-10-01T18:00:00.000Z",
+      people: [
+        {
+          username: "robin",
+          sessions: 2,
+          lastSession: "2026-10-20T18:00:00.000Z",
+          uses: { cast: 1, "running-order": 3 },
+        },
+        { username: "alex", sessions: 1, lastSession: "2026-10-22T18:00:00.000Z", uses: {} },
+      ],
+    });
+
+    const wrapper = await openPage();
+
+    expect(rows(wrapper)).toContainEqual([
+      "robin",
+      "2",
+      "20 October 2026",
+      "Running order 3, Cast 1",
+    ]);
+    expect(rows(wrapper)).toContainEqual(["alex", "1", "22 October 2026", "No pages opened"]);
+  });
+
+  it("names each page as the menu does", async () => {
+    serve({
+      recordedSince: "2026-10-01T18:00:00.000Z",
+      people: [
+        {
+          username: "robin",
+          sessions: 1,
+          lastSession: "2026-10-20T18:00:00.000Z",
+          uses: { "casting-overview": 2, "casting-items": 1 },
+        },
+      ],
+    });
+
+    const wrapper = await openPage();
+
+    expect(rows(wrapper)).toContainEqual(["robin", "1", "20 October 2026", "Overview 2, Items 1"]);
+  });
+
+  it("shows no last session for someone who only opened pages in the period", async () => {
+    serve({
+      recordedSince: "2026-10-01T18:00:00.000Z",
+      people: [{ username: "kit", sessions: 0, lastSession: null, uses: { welcome: 1 } }],
+    });
+
+    const wrapper = await openPage();
+
+    expect(rows(wrapper)).toContainEqual(["kit", "0", "No sessions", "Welcome 1"]);
   });
 
   it("matches usage to accounts whatever the case of the username", async () => {
     serve({
       recordedSince: "2026-10-01T18:00:00.000Z",
-      people: [{ username: "Robin", sessions: 3, lastSession: "2026-10-20T18:00:00.000Z" }],
+      people: [
+        { username: "Robin", sessions: 3, lastSession: "2026-10-20T18:00:00.000Z", uses: {} },
+      ],
     });
 
     const wrapper = await openPage();
 
-    expect(rows(wrapper)).toContainEqual(["robin", "3", "20 October 2026"]);
+    expect(rows(wrapper)).toContainEqual(["robin", "3", "20 October 2026", "No pages opened"]);
   });
 
   it("shows dates as they are in the UK", async () => {
     serve({
       recordedSince: "2026-10-01T18:00:00.000Z",
       // 23:30 UTC is 00:30 the next day in British Summer Time.
-      people: [{ username: "alex", sessions: 1, lastSession: "2026-10-20T23:30:00.000Z" }],
+      people: [
+        { username: "alex", sessions: 1, lastSession: "2026-10-20T23:30:00.000Z", uses: {} },
+      ],
     });
 
     const wrapper = await openPage();
 
-    expect(rows(wrapper)).toContainEqual(["alex", "1", "21 October 2026"]);
+    expect(rows(wrapper)).toContainEqual(["alex", "1", "21 October 2026", "No pages opened"]);
   });
 
   it("says when usage started being recorded", async () => {

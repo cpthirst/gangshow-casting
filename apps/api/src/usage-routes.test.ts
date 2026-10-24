@@ -1,7 +1,7 @@
-import { UsageSummary } from "@app/shared";
+import { type MenuPageName, UsageSummary } from "@app/shared";
 import { describe, expect, it } from "vitest";
 import { createUsageRoutes } from "./usage-routes.ts";
-import { inMemoryUsageStore } from "./usage-store.ts";
+import { inMemoryUsageStore, type UsageRecord } from "./usage-store.ts";
 
 const NOW = new Date("2026-10-23T12:00:00.000Z");
 const daysAgo = (days: number) => new Date(NOW.getTime() - days * 86_400_000).toISOString();
@@ -10,8 +10,14 @@ const signedInAs = (username: string, body: unknown = { event: "session" }) => (
   requestContext: { authorizer: { jwt: { claims: { username } } } },
 });
 const session = (username: string, at: string) => ({ username, event: "session" as const, at });
+const opened = (username: string, page: MenuPageName, at: string) => ({
+  username,
+  event: "page" as const,
+  page,
+  at,
+});
 
-function setUp(records: ReturnType<typeof session>[] = []) {
+function setUp(records: UsageRecord[] = []) {
   const store = inMemoryUsageStore();
   const routes = createUsageRoutes(store, { now: () => NOW });
   const ready = Promise.all(records.map((record) => store.record(record)));
@@ -42,17 +48,29 @@ describe("recording usage", () => {
     expect(await store.since(daysAgo(1))).toEqual([session("robin", NOW.toISOString())]);
   });
 
-  it.each([["not JSON"], [JSON.stringify({ event: "Admin secrets" })]])(
-    "refuses %s as invalid, recording nothing",
-    async (body) => {
-      const { store, record } = setUp();
+  it("records opening a menu page for the person signed in", async () => {
+    const { store, record } = setUp();
 
-      const res = await record({ ...signedInAs("robin"), body });
+    const res = await record(signedInAs("robin", { event: "page", page: "running-order" }));
 
-      expect(res.statusCode).toBe(400);
-      expect(await store.since(daysAgo(1))).toEqual([]);
-    },
-  );
+    expect(res.statusCode).toBe(204);
+    expect(await store.since(daysAgo(1))).toEqual([
+      opened("robin", "running-order", NOW.toISOString()),
+    ]);
+  });
+
+  it.each([
+    ["not JSON"],
+    [JSON.stringify({ event: "Admin secrets" })],
+    [JSON.stringify({ event: "page", page: "Admin secrets" })],
+  ])("refuses %s as invalid, recording nothing", async (body) => {
+    const { store, record } = setUp();
+
+    const res = await record({ ...signedInAs("robin"), body });
+
+    expect(res.statusCode).toBe(400);
+    expect(await store.since(daysAgo(1))).toEqual([]);
+  });
 
   it("refuses a signed-in request that doesn't say who it's from, rather than guess", async () => {
     const { store, record } = setUp();
@@ -76,8 +94,8 @@ describe("reading usage", () => {
     ]);
 
     expect((await summary()).people).toEqual([
-      { username: "alex", sessions: 1, lastSession: "2026-10-22T19:00:00.000Z" },
-      { username: "robin", sessions: 2, lastSession: "2026-10-20T19:00:00.000Z" },
+      { username: "alex", sessions: 1, lastSession: "2026-10-22T19:00:00.000Z", uses: {} },
+      { username: "robin", sessions: 2, lastSession: "2026-10-20T19:00:00.000Z", uses: {} },
     ]);
   });
 
@@ -85,7 +103,7 @@ describe("reading usage", () => {
     const { summary } = setUp([session("Robin", daysAgo(3)), session("robin", daysAgo(2))]);
 
     expect((await summary()).people).toEqual([
-      { username: "Robin", sessions: 2, lastSession: daysAgo(2) },
+      { username: "Robin", sessions: 2, lastSession: daysAgo(2), uses: {} },
     ]);
   });
 
@@ -93,7 +111,7 @@ describe("reading usage", () => {
     const { summary } = setUp([session("robin", daysAgo(31)), session("robin", daysAgo(2))]);
 
     expect((await summary()).people).toEqual([
-      { username: "robin", sessions: 1, lastSession: daysAgo(2) },
+      { username: "robin", sessions: 1, lastSession: daysAgo(2), uses: {} },
     ]);
   });
 
@@ -101,6 +119,35 @@ describe("reading usage", () => {
     const { summary } = setUp([session("robin", daysAgo(91))]);
 
     expect((await summary()).people).toEqual([]);
+  });
+
+  it("counts each menu page each person opened", async () => {
+    const { summary } = setUp([
+      session("robin", daysAgo(3)),
+      opened("robin", "running-order", daysAgo(3)),
+      opened("robin", "running-order", daysAgo(2)),
+      opened("robin", "cast", daysAgo(2)),
+      opened("Robin", "running-order", daysAgo(1)),
+      session("alex", daysAgo(1)),
+    ]);
+
+    expect((await summary()).people).toEqual([
+      { username: "alex", sessions: 1, lastSession: daysAgo(1), uses: {} },
+      {
+        username: "robin",
+        sessions: 1,
+        lastSession: daysAgo(3),
+        uses: { "running-order": 3, cast: 1 },
+      },
+    ]);
+  });
+
+  it("lists someone who only opened pages in the period, with no last session", async () => {
+    const { summary } = setUp([session("robin", daysAgo(31)), opened("robin", "cast", daysAgo(2))]);
+
+    expect((await summary()).people).toEqual([
+      { username: "robin", sessions: 0, lastSession: null, uses: { cast: 1 } },
+    ]);
   });
 
   it("says when recording started", async () => {

@@ -2,7 +2,7 @@
 id: usage-tracking.E2.S1
 title: Record opening a menu page, and count it per person
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story

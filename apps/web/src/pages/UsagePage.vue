@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { AccountList, UsageSummary } from "@app/shared";
+import { AccountList, type UsageFeature, UsageSummary } from "@app/shared";
 import { computed, onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
 import { ACCOUNTS_PATH } from "../accounts.ts";
 import { apiFetch } from "../sign-in.ts";
-import { dayOf, USAGE_PATH, usageByAccount } from "../usage.ts";
+import { dayOf, USAGE_PATH, usageByAccount, usesOf } from "../usage.ts";
 
 type State =
   | { status: "loading" }
@@ -11,6 +12,9 @@ type State =
   | { status: "loaded"; accounts: AccountList; usage: UsageSummary };
 
 const state = ref<State>({ status: "loading" });
+const router = useRouter();
+// Each page by its title in the menu, so the two always agree.
+const nameOf = (feature: UsageFeature) => router.resolve({ name: feature }).meta.title;
 const rows = computed(() =>
   state.value.status === "loaded"
     ? usageByAccount(state.value.accounts.accounts, state.value.usage.people)
@@ -61,6 +65,7 @@ onMounted(load);
             <th scope="col">Username</th>
             <th scope="col">Sessions</th>
             <th scope="col">Last session</th>
+            <th scope="col">Uses</th>
           </tr>
         </thead>
         <tbody>
@@ -68,8 +73,9 @@ onMounted(load);
             <td class="username" data-label="Username">{{ row.username }}</td>
             <td data-label="Sessions">{{ row.usage?.sessions ?? 0 }}</td>
             <td data-label="Last session">
-              {{ row.usage ? dayOf(row.usage.lastSession) : "None" }}
+              {{ row.usage?.lastSession ? dayOf(row.usage.lastSession) : "No sessions" }}
             </td>
+            <td data-label="Uses">{{ usesOf(row.usage?.uses ?? {}, nameOf) }}</td>
           </tr>
         </tbody>
       </table>

@@ -1,4 +1,4 @@
-import { type PersonUsage, RecordUsageRequest, type UsageSummary } from "@app/shared";
+import { featureOf, type PersonUsage, RecordUsageRequest, type UsageSummary } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import { callerUsername } from "./caller.ts";
 import type { ApiEvent, Handler } from "./handler.ts";
@@ -41,17 +41,31 @@ export function createUsageRoutes(
   };
 }
 
-/** Each person's sessions and latest one. Usernames ignore case in the pool, as on the page. */
+/** Each person's sessions, latest session and uses. Usernames ignore case in the pool, as on the page. */
 function byPerson(records: UsageRecord[]): PersonUsage[] {
   const people = new Map<string, PersonUsage>();
-  for (const { username, at } of records) {
-    const key = username.toLowerCase();
-    const person = people.get(key) ?? { username, sessions: 0, lastSession: at };
-    people.set(key, {
-      ...person,
-      sessions: person.sessions + 1,
-      lastSession: at > person.lastSession ? at : person.lastSession,
-    });
+  for (const record of records) {
+    const key = record.username.toLowerCase();
+    const person = people.get(key) ?? {
+      username: record.username,
+      sessions: 0,
+      lastSession: null,
+      uses: {},
+    };
+    people.set(key, withRecord(person, record));
   }
   return [...people.values()].sort((a, b) => a.username.localeCompare(b.username));
+}
+
+function withRecord(person: PersonUsage, record: UsageRecord): PersonUsage {
+  const feature = featureOf(record);
+  if (feature) {
+    return { ...person, uses: { ...person.uses, [feature]: (person.uses[feature] ?? 0) + 1 } };
+  }
+  const { lastSession } = person;
+  return {
+    ...person,
+    sessions: person.sessions + 1,
+    lastSession: lastSession && lastSession > record.at ? lastSession : record.at,
+  };
 }
