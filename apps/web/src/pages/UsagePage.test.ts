@@ -2,10 +2,10 @@ import type { AccountSummary, RunningOrder, UsageActivity, UsageSummary } from "
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory } from "vue-router";
-import { createAppRouter } from "../router.ts";
-import { anItem, aRunningOrder } from "../running-order.fixture.ts";
-import { RUNNING_ORDER_PATH } from "../running-order.ts";
-import { useLocalSignIn } from "../sign-in.ts";
+import { createAppRouter } from "@/router/index.ts";
+import { useLocalSignIn } from "@/services/sign-in.ts";
+import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
+import { RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
 import UsagePage from "./UsagePage.vue";
 
 enableAutoUnmount(afterEach);

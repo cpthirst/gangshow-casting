@@ -9,16 +9,16 @@ import {
 } from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, onMounted, ref } from "vue";
-import ClashIcon from "../ClashIcon.vue";
-import { CAST_PATH } from "../cast.ts";
-import { clashesInItem, findClashes, summariseClashes } from "../clashes.ts";
-import HelpButton from "../HelpButton.vue";
-import { icons } from "../icons.ts";
-import { ITEM_NOTES_PATH } from "../item-notes.ts";
-import ReadOnlyNotice from "../ReadOnlyNotice.vue";
-import { ROLES_PATH, roleCounts, spokenCounts } from "../roles.ts";
-import { RUNNING_ORDER_PATH, runningClock } from "../running-order.ts";
-import { apiFetch, isReadOnly } from "../sign-in.ts";
+import ClashIcon from "@/components/common/ClashIcon.vue";
+import HelpButton from "@/components/common/HelpButton.vue";
+import ReadOnlyNotice from "@/components/common/ReadOnlyNotice.vue";
+import { apiFetch, isReadOnly } from "@/services/sign-in.ts";
+import { CAST_PATH } from "@/utils/cast.ts";
+import { clashesInItem, findClashes, summariseClashes } from "@/utils/clashes.ts";
+import { icons } from "@/utils/icons.ts";
+import { ITEM_NOTES_PATH } from "@/utils/item-notes.ts";
+import { ROLES_PATH, roleCounts, spokenCounts } from "@/utils/roles.ts";
+import { RUNNING_ORDER_PATH, runningClock } from "@/utils/running-order.ts";
 
 type State =
   | { status: "loading" }

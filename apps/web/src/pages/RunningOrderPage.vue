@@ -3,11 +3,14 @@ import { ItemNoteList, RoleList, RunningOrder, type RunningOrderItem } from "@ap
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
 import { onBeforeRouteLeave } from "vue-router";
-import HelpButton from "../HelpButton.vue";
-import { icons } from "../icons.ts";
-import { ITEM_NOTES_PATH } from "../item-notes.ts";
-import ReadOnlyNotice from "../ReadOnlyNotice.vue";
-import { ROLES_PATH } from "../roles.ts";
+import HelpButton from "@/components/common/HelpButton.vue";
+import ReadOnlyNotice from "@/components/common/ReadOnlyNotice.vue";
+import ItemEditor from "@/components/show/ItemEditor.vue";
+import { type RowDrop, vSortableRows } from "@/directives/sortable-rows.ts";
+import { apiFetch, isAdmin, isReadOnly } from "@/services/sign-in.ts";
+import { icons } from "@/utils/icons.ts";
+import { ITEM_NOTES_PATH } from "@/utils/item-notes.ts";
+import { ROLES_PATH } from "@/utils/roles.ts";
 import {
   addItem,
   aNewItem,
@@ -26,10 +29,7 @@ import {
   sameContent,
   stageLabel,
   updateOf,
-} from "../running-order.ts";
-import { apiFetch, isAdmin, isReadOnly } from "../sign-in.ts";
-import { type RowDrop, vSortableRows } from "../sortable-rows.ts";
-import ItemEditor from "./ItemEditor.vue";
+} from "@/utils/running-order.ts";
 
 // Moves change the working copy only; "Save as Draft N+1" turns it into the next
 // saved version, and "Reset" goes back to the saved one (PRD FR6).

@@ -9,18 +9,18 @@ import {
 } from "@app/shared";
 import { computed, nextTick, onMounted, ref, useId, useTemplateRef, watch } from "vue";
 import { useRouter } from "vue-router";
-import { ACCOUNTS_PATH } from "../accounts.ts";
-import { RUNNING_ORDER_PATH } from "../running-order.ts";
-import { apiFetch } from "../sign-in.ts";
+import { apiFetch } from "@/services/sign-in.ts";
+import { USAGE_PATH } from "@/services/usage.ts";
+import { ACCOUNTS_PATH } from "@/utils/accounts.ts";
+import { RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
 import {
   dayOf,
   featureName,
-  USAGE_PATH,
   usageByAccount,
   usesOf,
   whatHappened,
   whenOf,
-} from "../usage.ts";
+} from "@/utils/usage-report.ts";
 
 /** Each item's title by production and id; null when the running order couldn't be loaded. */
 type ItemTitles = Map<string, string> | null;

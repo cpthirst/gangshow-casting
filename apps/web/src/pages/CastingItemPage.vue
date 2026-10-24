@@ -11,12 +11,17 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, nextTick, onMounted, ref, watch, watchEffect } from "vue";
 import { useRoute } from "vue-router";
-import ClashIcon from "../ClashIcon.vue";
-import { CAST_PATH, sortCast } from "../cast.ts";
-import { clashesOf, describeEach, findClashes } from "../clashes.ts";
-import HelpButton from "../HelpButton.vue";
-import { icons } from "../icons.ts";
-import ReadOnlyNotice from "../ReadOnlyNotice.vue";
+import ItemNotes from "@/components/casting/ItemNotes.vue";
+import RoleForm from "@/components/casting/RoleForm.vue";
+import ClashIcon from "@/components/common/ClashIcon.vue";
+import HelpButton from "@/components/common/HelpButton.vue";
+import ReadOnlyNotice from "@/components/common/ReadOnlyNotice.vue";
+import { showPageTitle } from "@/router/index.ts";
+import { apiFetch, isReadOnly } from "@/services/sign-in.ts";
+import { recordItemUse } from "@/services/usage.ts";
+import { CAST_PATH, sortCast } from "@/utils/cast.ts";
+import { clashesOf, describeEach, findClashes } from "@/utils/clashes.ts";
+import { icons } from "@/utils/icons.ts";
 import {
   addRolePath,
   nameTakenMessage,
@@ -25,13 +30,8 @@ import {
   roleSizeLabel,
   sortRoles,
   updateRolePath,
-} from "../roles.ts";
-import { showPageTitle } from "../router.ts";
-import { neighboursOf, placeOf, RUNNING_ORDER_PATH } from "../running-order.ts";
-import { apiFetch, isReadOnly } from "../sign-in.ts";
-import { recordItemUse } from "../usage.ts";
-import ItemNotes from "./ItemNotes.vue";
-import RoleForm from "./RoleForm.vue";
+} from "@/utils/roles.ts";
+import { neighboursOf, placeOf, RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
 
 const route = useRoute();
 const order = ref<RunningOrder>();

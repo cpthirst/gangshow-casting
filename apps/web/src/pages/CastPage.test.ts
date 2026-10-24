@@ -7,9 +7,9 @@ import {
 } from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ROLES_PATH } from "../roles.ts";
-import { signInAs } from "../sign-in.fixture.ts";
-import { useLocalSignIn } from "../sign-in.ts";
+import { signInAs } from "@/services/sign-in.fixture.ts";
+import { useLocalSignIn } from "@/services/sign-in.ts";
+import { ROLES_PATH } from "@/utils/roles.ts";
 import CastPage from "./CastPage.vue";
 
 enableAutoUnmount(afterEach);

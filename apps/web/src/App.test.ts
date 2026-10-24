@@ -1,16 +1,16 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory, type Router } from "vue-router";
-import App from "./App.vue";
-import { createAppRouter } from "./router.ts";
-import { signInAs } from "./sign-in.fixture.ts";
+import { createAppRouter } from "@/router/index.ts";
+import { signInAs } from "@/services/sign-in.fixture.ts";
 import {
   SignInEnded,
   type SignInManager,
   signInUnavailable,
   useHostedSignIn,
   useLocalSignIn,
-} from "./sign-in.ts";
+} from "@/services/sign-in.ts";
+import App from "./App.vue";
 
 async function openAppAt(path: string) {
   const router = createAppRouter(createMemoryHistory());
