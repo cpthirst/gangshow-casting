@@ -1,6 +1,6 @@
 # 0020. Team roles as user pool groups, with read-only as the fail-safe
 
-- **Status**: Accepted. Amended by [ADR 0021](0021-excel-export-for-every-team-role.md): the Excel export counts as a read
+- **Status**: Accepted. Amended by [ADR 0021](0021-excel-export-for-every-team-role.md): the Excel export counts as a read. Amended by [ADR 0023](0023-usage-records-in-the-data-table.md): recording usage is open to every role
 - **Date**: 2026-10-18
 - **Deciders**: Nick Hirst
 
