@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import logoSmall from "./assets/logo-small.jpg";
 import HealthStatus from "./HealthStatus.vue";
 import LocalRoleSwitch from "./LocalRoleSwitch.vue";
-import { isMenuGroup, menuPages, showPageTitle } from "./router.ts";
+import MainMenu from "./MainMenu.vue";
+import { showPageTitle } from "./router.ts";
 import {
-  isAdmin,
   isHosted,
   isLocal,
   isSignedIn,
@@ -27,37 +27,6 @@ const router = useRouter();
 
 // Set by `pnpm demo`, so its made-up show can't be mistaken for the real one.
 const isDemo = import.meta.env.VITE_DEMO === "true";
-
-// Replaces RouterLink's own aria-current (an explicit attribute wins), so a page outside
-// the menu, such as an item, can mark its menu page (Items) as current.
-const ariaCurrent = (pageName: string) =>
-  route.name === pageName || route.meta.menuPage === pageName ? "page" : undefined;
-
-const shownMenuPages = computed(() =>
-  menuPages.filter((entry) => isMenuGroup(entry) || !entry.adminOnly || isAdmin.value),
-);
-
-// Groups the person has opened. All start folded away, so the menu is short until they choose.
-const openGroups = ref(new Set<string>());
-const isGroupOpen = (name: string) => openGroups.value.has(name);
-function setGroup(name: string, open: boolean) {
-  const next = new Set(openGroups.value);
-  if (open) next.add(name);
-  else next.delete(name);
-  openGroups.value = next;
-}
-
-// Going to a page opens its group, so the current page is never hidden in the menu.
-watch(
-  () => route.name,
-  (pageName) => {
-    const group = menuPages.find(
-      (entry) => isMenuGroup(entry) && entry.pages.some((page) => page.name === pageName),
-    );
-    if (group) setGroup(group.name, true);
-  },
-  { immediate: true },
-);
 
 const main = ref<HTMLElement>();
 const menuButton = ref<HTMLButtonElement>();
@@ -155,39 +124,7 @@ function onEscape() {
       >
         Menu
       </button>
-      <nav v-show="!isPhone || isMenuOpen" id="main-menu" aria-label="Main" @click="onMenuChoice">
-        <ul>
-          <li v-for="entry in shownMenuPages" :key="entry.name">
-            <template v-if="isMenuGroup(entry)">
-              <button
-                :id="`menu-${entry.name}`"
-                class="menu-group"
-                type="button"
-                :aria-expanded="isGroupOpen(entry.name)"
-                :aria-controls="`menu-${entry.name}-pages`"
-                @click="setGroup(entry.name, !isGroupOpen(entry.name))"
-              >
-                {{ entry.title }}
-              </button>
-              <ul
-                v-show="isGroupOpen(entry.name)"
-                :id="`menu-${entry.name}-pages`"
-                class="menu-group-pages"
-                :aria-labelledby="`menu-${entry.name}`"
-              >
-                <li v-for="page in entry.pages" :key="page.name">
-                  <RouterLink :to="page.path" :aria-current="ariaCurrent(page.name)">{{
-                    page.meta.title
-                  }}</RouterLink>
-                </li>
-              </ul>
-            </template>
-            <RouterLink v-else :to="entry.path" :aria-current="ariaCurrent(entry.name)">{{
-              entry.meta.title
-            }}</RouterLink>
-          </li>
-        </ul>
-      </nav>
+      <MainMenu v-show="!isPhone || isMenuOpen" id="main-menu" @click="onMenuChoice" />
       <footer class="sidebar-footer">
         <HealthStatus />
         <LocalRoleSwitch v-if="isLocal" />

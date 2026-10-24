@@ -335,12 +335,22 @@ describe("App shell", () => {
     await label.trigger("click");
     expect(label.attributes("aria-expanded")).toBe("true");
     expect(pages().isVisible()).toBe(true);
-    // Opening one group leaves the others as they were.
-    expect(wrapper.get("#menu-casting-pages").isVisible()).toBe(false);
 
     await label.trigger("click");
     expect(label.attributes("aria-expanded")).toBe("false");
     expect(pages().isVisible()).toBe(false);
+  });
+
+  it("keeps one group open at a time, closing the open one when another opens", async () => {
+    const { wrapper } = await openAppAt("/");
+    const isOpen = (group: string) => wrapper.get(`#menu-${group}-pages`).isVisible();
+
+    await wrapper.get("#menu-show").trigger("click");
+    await wrapper.get("#menu-production").trigger("click");
+
+    expect(isOpen("production")).toBe(true);
+    expect(isOpen("show")).toBe(false);
+    expect(wrapper.get("#menu-show").attributes("aria-expanded")).toBe("false");
   });
 
   it("opens a page's group when the app opens on it, and when it's reached later", async () => {
@@ -352,6 +362,51 @@ describe("App shell", () => {
     await flushPromises();
 
     expect(wrapper.get("#menu-casting-pages").isVisible()).toBe(true);
+    expect(wrapper.get("#menu-show-pages").isVisible()).toBe(false);
+  });
+
+  it("opens Casting for an item's page, which sits under Items", async () => {
+    const { wrapper } = await openAppAt("/casting/items/made-up-item");
+
+    expect(wrapper.get("#menu-casting-pages").isVisible()).toBe(true);
+  });
+
+  it("marks a folded group's label when the current page is inside it", async () => {
+    const { wrapper } = await openAppAt("/cast");
+    const show = wrapper.get("#menu-show");
+    expect(show.classes()).toContain("holds-current");
+
+    await show.trigger("click");
+
+    expect(show.attributes("aria-expanded")).toBe("false");
+    expect(show.classes()).toContain("holds-current");
+    expect(wrapper.get("#menu-casting").classes()).not.toContain("holds-current");
+  });
+
+  it("folds a group away on Escape from its label, and leaves it folded on a second Escape", async () => {
+    const { wrapper } = await openAppAt("/");
+    const label = wrapper.get("#menu-show");
+    await label.trigger("click");
+
+    await label.trigger("keydown", { key: "Escape" });
+
+    expect(label.attributes("aria-expanded")).toBe("false");
+    // Escape again, with nothing open, does nothing to the groups.
+    await label.trigger("keydown", { key: "Escape" });
+    expect(label.attributes("aria-expanded")).toBe("false");
+  });
+
+  it("folds a group away on Escape and gives its label focus", async () => {
+    const { wrapper } = await openAppAt("/");
+    await wrapper.get("#menu-casting").trigger("click");
+    const overview = wrapper.get("#menu-casting-pages a");
+    if (overview.element instanceof HTMLElement) overview.element.focus();
+
+    await overview.trigger("keydown", { key: "Escape" });
+    await flushPromises();
+
+    expect(wrapper.get("#menu-casting-pages").isVisible()).toBe(false);
+    expect(document.activeElement?.id).toBe("menu-casting");
   });
 
   it("lists Overview and Items as a list inside Casting", async () => {
