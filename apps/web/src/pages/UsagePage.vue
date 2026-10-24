@@ -3,10 +3,11 @@ import {
   AccountList,
   type MenuPageName,
   RunningOrder,
+  USAGE_RANGES,
   type UsageFeature,
   UsageSummary,
 } from "@app/shared";
-import { computed, nextTick, onMounted, ref, useTemplateRef } from "vue";
+import { computed, nextTick, onMounted, ref, useId, useTemplateRef, watch } from "vue";
 import { useRouter } from "vue-router";
 import { ACCOUNTS_PATH } from "../accounts.ts";
 import { RUNNING_ORDER_PATH } from "../running-order.ts";
@@ -26,7 +27,7 @@ type ItemTitles = Map<string, string> | null;
 
 type State =
   | { status: "loading" }
-  | { status: "error"; message: string }
+  | { status: "error"; message: string; forbidden?: true }
   | { status: "loaded"; accounts: AccountList; usage: UsageSummary; itemTitles: ItemTitles };
 
 const state = ref<State>({ status: "loading" });
@@ -68,33 +69,49 @@ const activity = computed(() =>
 const recordedSince = computed(() => {
   if (state.value.status !== "loaded") return "";
   const since = state.value.usage.recordedSince;
-  return since
+  const recorded = since
     ? `Usage has been recorded since ${dayOf(since)}.`
     : "Nothing has been recorded yet.";
+  // The start date isn't the period: say which the figures below cover.
+  return `Showing the last ${days.value} days. ${recorded}`;
 });
+
+// The page opens on 30 days each time; it needn't remember a choice (usage-tracking FR8).
+const days = ref<(typeof USAGE_RANGES)[number]>("30");
+const rangeChoices = USAGE_RANGES.map((choice) => ({ days: choice, label: `Last ${choice} days` }));
+const rangeId = useId();
+watch(days, load);
 
 // Every account comes from the account list, so people who've never signed in are listed too.
 // The running order loads alongside, so items never show before their titles are known.
 async function load() {
+  const asked = days.value;
+  state.value = { status: "loading" };
+  activityShown.value = ACTIVITY_PAGE;
+  const loaded = await usageFor(asked);
+  // A range chosen since has its own load on the way: this answer is out of date.
+  if (asked === days.value) state.value = loaded;
+}
+
+async function usageFor(range: string): Promise<State> {
   try {
     const [accounts, usage, itemTitles] = await Promise.all([
       apiFetch(ACCOUNTS_PATH),
-      apiFetch(USAGE_PATH),
+      apiFetch(`${USAGE_PATH}?days=${range}`),
       loadItemTitles(),
     ]);
     if (accounts.status === 403 || usage.status === 403) {
-      state.value = { status: "error", message: "Only admins can see usage." };
-      return;
+      return { status: "error", message: "Only admins can see usage.", forbidden: true };
     }
     if (!accounts.ok || !usage.ok) throw new Error(`HTTP ${accounts.status} ${usage.status}`);
-    state.value = {
+    return {
       status: "loaded",
       accounts: AccountList.parse(await accounts.json()),
       usage: UsageSummary.parse(await usage.json()),
       itemTitles,
     };
   } catch {
-    state.value = { status: "error", message: "Couldn't load usage." };
+    return { status: "error", message: "Couldn't load usage." };
   }
 }
 
@@ -121,11 +138,23 @@ onMounted(load);
 
 <template>
   <h1>Usage</h1>
+  <!-- Outside the loading switch, so it keeps focus while the page loads the new range, and
+       stays when a range fails so another can be tried. -->
+  <!-- The Cast page's filter look, so it matches the app's other dropdowns. -->
+  <div v-if="!(state.status === 'error' && state.forbidden)" class="cast-filters">
+    <div class="field">
+      <label :for="rangeId">Period</label>
+      <select :id="rangeId" v-model="days" data-test="range">
+        <option v-for="choice in rangeChoices" :key="choice.days" :value="choice.days">
+          {{ choice.label }}
+        </option>
+      </select>
+    </div>
+  </div>
   <p v-if="state.status === 'loading'">Loading…</p>
   <p v-else-if="state.status === 'error'" role="alert">{{ state.message }}</p>
   <template v-else>
     <p data-test="recorded-since">{{ recordedSince }}</p>
-    <p data-test="range">Last 30 days</p>
     <h2>By feature</h2>
     <div
       class="table-scroll cast-table"

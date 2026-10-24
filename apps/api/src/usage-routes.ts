@@ -5,6 +5,7 @@ import {
   type PersonUsage,
   RecordUsageRequest,
   UsageFeature,
+  UsageQuery,
   type UsageSummary,
 } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
@@ -13,7 +14,6 @@ import type { ApiEvent, Handler } from "./handler.ts";
 import { jsonResponse, parseJson } from "./json.ts";
 import type { UsageRecord, UsageStore } from "./usage-store.ts";
 
-const PERIOD_DAYS = 30;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 type Options = {
@@ -38,8 +38,12 @@ export function createUsageRoutes(
       return { statusCode: 204 };
     },
 
-    async "GET /api/usage"() {
-      const from = new Date(now().getTime() - PERIOD_DAYS * DAY_MS).toISOString();
+    async "GET /api/usage"(event) {
+      const query = UsageQuery.safeParse(event.queryStringParameters ?? {});
+      if (!query.success) return { statusCode: 400 };
+      // The schema caps the range at 90 days, the retention period (FR9), so a row the table
+      // hasn't yet expired is never counted.
+      const from = new Date(now().getTime() - query.data.days * DAY_MS).toISOString();
       const records = await store.since(from);
       const summary: UsageSummary = {
         recordedSince: (await store.recordedSince()) ?? null,

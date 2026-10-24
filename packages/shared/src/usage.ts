@@ -89,6 +89,12 @@ export const UsageActivity = z.intersection(
   z.object({ username: z.string().min(1).max(128), at: z.iso.datetime() }),
 );
 
+/** GET /api/usage's query: the last 7, 30 or 90 days, 30 when not given (FR8). */
+export const USAGE_RANGES = ["7", "30", "90"] as const;
+export const UsageQuery = z.object({
+  days: z.enum(USAGE_RANGES).transform(Number).default(30),
+});
+
 /** The most activity GET /api/usage sends, keeping its answer far below Lambda's 6 MB. */
 export const ACTIVITY_LIMIT = 1000;
 

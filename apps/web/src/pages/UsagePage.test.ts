@@ -23,19 +23,24 @@ type Summary = Omit<UsageSummary, "activity"> & Partial<Pick<UsageSummary, "acti
 
 /** The stand-in API; with no running order saved unless one is given. */
 function serve(
-  usage: Summary | Response,
+  // A function answers by range: null fails that range.
+  usage: Summary | Response | ((days: string | null) => Summary | null),
   accountList: Response = json({ accounts }),
   order?: RunningOrder | "unavailable",
 ) {
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string) => {
-      if (url === "/api/accounts") return accountList;
+      // A copy each time: the page asks again whenever the range changes.
+      if (url === "/api/accounts") return accountList.clone();
       if (url === RUNNING_ORDER_PATH) {
         if (order === "unavailable") return json({}, 500);
         return order ? json(order) : json({}, 404);
       }
-      return usage instanceof Response ? usage : json({ activity: [], ...usage });
+      if (usage instanceof Response) return usage;
+      const days = new URL(url, "http://localhost").searchParams.get("days");
+      const answer = typeof usage === "function" ? usage(days) : usage;
+      return answer ? json({ activity: [], ...answer }) : json({}, 500);
     }),
   );
 }
@@ -68,6 +73,7 @@ const activity = (wrapper: Page) =>
   wrapper
     .findAll("[data-test=activity] tbody tr")
     .map((row) => row.findAll("td").map((cell) => cell.text()));
+const range = (wrapper: Page) => wrapper.get<HTMLSelectElement>("select[data-test=range]");
 const since = { recordedSince: "2026-10-01T18:00:00.000Z", people: [], features: [] };
 
 describe("Usage page", () => {
@@ -88,7 +94,7 @@ describe("Usage page", () => {
     const wrapper = await openPage();
 
     expect(wrapper.get("h1").text()).toBe("Usage");
-    expect(wrapper.get("[data-test=range]").text()).toBe("Last 30 days");
+    expect(range(wrapper).element.value).toBe("30");
     expect(wrapper.findAll("h2").map((h2) => h2.text())).toEqual([
       "By feature",
       "By person",
@@ -279,7 +285,7 @@ describe("Usage page", () => {
     const wrapper = await openPage();
 
     expect(wrapper.get("[data-test=recorded-since]").text()).toBe(
-      "Usage has been recorded since 24 October 2026.",
+      "Showing the last 30 days. Usage has been recorded since 24 October 2026.",
     );
   });
 
@@ -288,7 +294,9 @@ describe("Usage page", () => {
 
     const wrapper = await openPage();
 
-    expect(wrapper.get("[data-test=recorded-since]").text()).toBe("Nothing has been recorded yet.");
+    expect(wrapper.get("[data-test=recorded-since]").text()).toBe(
+      "Showing the last 30 days. Nothing has been recorded yet.",
+    );
     expect(rows(wrapper).map(([username]) => username)).toEqual(["alex", "kit", "robin", "sky"]);
   });
 
@@ -301,6 +309,7 @@ describe("Usage page", () => {
     const wrapper = await openPage();
 
     expect(wrapper.get("[role=alert]").text()).toBe("Only admins can see usage.");
+    expect(wrapper.find("select[data-test=range]").exists()).toBe(false);
     expect(wrapper.find("table").exists()).toBe(false);
   });
 
@@ -451,6 +460,114 @@ describe("Usage page", () => {
       const wrapper = await openPage();
 
       expect(activity(wrapper)[0]?.[2]).toBe("1 December 2026 18:00");
+    });
+  });
+
+  describe("the date range", () => {
+    const at = "2026-10-20T18:00:00.000Z";
+    const byRange = (days: string | null): Summary =>
+      days === "7"
+        ? {
+            ...since,
+            people: [{ username: "robin", sessions: 1, lastSession: at, uses: {} }],
+            features: [{ feature: "cast", uses: 0, people: 0 }],
+            activity: [{ username: "robin", at, event: "session" }],
+          }
+        : {
+            ...since,
+            people: [{ username: "robin", sessions: 2, lastSession: at, uses: { cast: 1 } }],
+            features: [{ feature: "cast", uses: 1, people: 1 }],
+            activity: [
+              { username: "robin", at, event: "session" },
+              { username: "robin", at: "2026-10-10T18:00:00.000Z", event: "session" },
+            ],
+          };
+
+    it("opens on the last 30 days, offering 7, 30 and 90", async () => {
+      serve(byRange);
+
+      const wrapper = await openPage();
+
+      expect(range(wrapper).element.value).toBe("30");
+      expect(
+        range(wrapper)
+          .findAll("option")
+          .map((option) => option.text()),
+      ).toEqual(["Last 7 days", "Last 30 days", "Last 90 days"]);
+      expect(vi.mocked(fetch)).toHaveBeenCalledWith("/api/usage?days=30");
+    });
+
+    it("changes every part of the page to the range chosen", async () => {
+      serve(byRange);
+      const wrapper = await openPage();
+
+      await range(wrapper).setValue("7");
+      await flushPromises();
+
+      expect(wrapper.get("[data-test=recorded-since]").text()).toMatch(
+        /^Showing the last 7 days\. /,
+      );
+      expect(rows(wrapper)).toContainEqual(["robin", "1", "20 October 2026", "No uses"]);
+      expect(totals(wrapper)).toEqual([["Cast", "0", "0"]]);
+      expect(activity(wrapper)).toEqual([["robin", "session", "20 October 2026 19:00"]]);
+    });
+
+    it("asks for the last 90 days when chosen", async () => {
+      serve(byRange);
+      const wrapper = await openPage();
+
+      await range(wrapper).setValue("90");
+      await flushPromises();
+
+      expect(vi.mocked(fetch)).toHaveBeenCalledWith("/api/usage?days=90");
+    });
+
+    it("keeps the range choice when a range fails to load, so another can be tried", async () => {
+      serve((days) => (days === "90" ? null : byRange(days)));
+      const wrapper = await openPage();
+
+      await range(wrapper).setValue("90");
+      await flushPromises();
+
+      expect(wrapper.get("[role=alert]").text()).toBe("Couldn't load usage.");
+      await range(wrapper).setValue("7");
+      await flushPromises();
+      expect(activity(wrapper)).toEqual([["robin", "session", "20 October 2026 19:00"]]);
+    });
+
+    it("shows the range chosen last, even if an earlier one answers after it", async () => {
+      let answer7 = () => {};
+      const slow7 = new Promise<void>((resolve) => {
+        answer7 = resolve;
+      });
+      serve(byRange);
+      const wrapper = await openPage();
+      const answer = vi.mocked(fetch).getMockImplementation();
+      vi.mocked(fetch).mockImplementation(async (input, init) => {
+        if (String(input).endsWith("days=7")) await slow7;
+        return answer ? answer(input, init) : new Response(null, { status: 500 });
+      });
+
+      await range(wrapper).setValue("7");
+      await range(wrapper).setValue("30");
+      await flushPromises();
+      answer7();
+      await flushPromises();
+
+      expect(rows(wrapper)).toContainEqual(["robin", "2", "20 October 2026", ["Cast 1"]]);
+    });
+
+    it("names the range choice for screen readers, keeping focus on it as the page changes", async () => {
+      serve(byRange);
+      const wrapper = await openPage();
+      const select = range(wrapper);
+
+      expect(wrapper.get(`label[for="${select.attributes("id")}"]`).text()).toBe("Period");
+      select.element.focus();
+      await select.setValue("7");
+      await flushPromises();
+
+      expect(document.activeElement).toBe(range(wrapper).element);
     });
   });
 });

@@ -21,13 +21,15 @@ function setUp(records: UsageRecord[] = []) {
   const store = inMemoryUsageStore();
   const routes = createUsageRoutes(store, { now: () => NOW });
   const ready = Promise.all(records.map((record) => store.record(record)));
-  const summary = async () => {
+  const summary = async (days?: string) => {
     await ready;
-    const res = await routes["GET /api/usage"]({});
+    const res = await routes["GET /api/usage"](
+      days === undefined ? {} : { queryStringParameters: { days } },
+    );
     expect(res.statusCode).toBe(200);
     return UsageSummary.parse(JSON.parse(res.body ?? ""));
   };
-  return { store, record: routes["POST /api/usage"], summary };
+  return { store, routes, record: routes["POST /api/usage"], summary };
 }
 
 describe("recording usage", () => {
@@ -329,5 +331,50 @@ describe("reading usage", () => {
       features: UsageFeature.options.map((feature) => ({ feature, uses: 0, people: 0 })),
       activity: [],
     });
+  });
+});
+
+describe("choosing the range", () => {
+  it("counts, totals and lists only the last 7 days when asked", async () => {
+    const { summary } = setUp([
+      session("robin", daysAgo(10)),
+      session("robin", daysAgo(2)),
+      opened("robin", "cast", daysAgo(10)),
+    ]);
+
+    const { people, features, activity } = await summary("7");
+
+    expect(people).toEqual([{ username: "robin", sessions: 1, lastSession: daysAgo(2), uses: {} }]);
+    expect(features).toContainEqual({ feature: "cast", uses: 0, people: 0 });
+    expect(activity).toEqual([session("robin", daysAgo(2))]);
+  });
+
+  it("covers the last 30 days when no range is asked for", async () => {
+    const { summary } = setUp([session("robin", daysAgo(40)), session("robin", daysAgo(2))]);
+
+    expect((await summary()).people[0]?.sessions).toBe(1);
+  });
+
+  it("counts and lists everything kept over the last 90 days", async () => {
+    const { summary } = setUp([session("robin", daysAgo(60))]);
+
+    const { people, activity } = await summary("90");
+
+    expect(people[0]?.sessions).toBe(1);
+    expect(activity).toEqual([session("robin", daysAgo(60))]);
+  });
+
+  it("never counts a session older than 90 days, even before the table removes it", async () => {
+    const { summary } = setUp([session("robin", daysAgo(91))]);
+
+    expect((await summary("90")).people).toEqual([]);
+  });
+
+  it.each(["365", "seven"])("refuses %s days as invalid", async (days) => {
+    const { routes } = setUp();
+
+    const res = await routes["GET /api/usage"]({ queryStringParameters: { days } });
+
+    expect(res.statusCode).toBe(400);
   });
 });

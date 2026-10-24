@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { featureOf, RecordUsageRequest, UsageSummary } from "./usage.ts";
+import { featureOf, RecordUsageRequest, UsageQuery, UsageSummary } from "./usage.ts";
 
 describe("RecordUsageRequest", () => {
   it("accepts a session", () => {
@@ -138,5 +138,19 @@ describe("UsageSummary", () => {
       UsageSummary.parse({ recordedSince: null, people: [], features: [], activity: [] })
         .recordedSince,
     ).toBeNull();
+  });
+});
+
+describe("UsageQuery", () => {
+  it.each([7, 30, 90])("accepts the last %i days", (days) => {
+    expect(UsageQuery.parse({ days: String(days) })).toEqual({ days });
+  });
+
+  it("covers the last 30 days when no range is given", () => {
+    expect(UsageQuery.parse({})).toEqual({ days: 30 });
+  });
+
+  it.each(["365", "0", "-7", "7.5", "seven", ""])("refuses %j days", (days) => {
+    expect(UsageQuery.safeParse({ days }).success).toBe(false);
   });
 });
