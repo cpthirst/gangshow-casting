@@ -59,7 +59,7 @@ The app is a bare walking skeleton: a heading and an API status line. Before any
   - Gang Show red `#ed3f23` for large text, accents and the active-page indicator. Use the deeper `#e22e12` wherever normal-size white text sits on red, because white on `#ed3f23` is only 3.94:1.
   - Text `#404040` on white, with `#f1f1f1` surfaces.
   - Nunito Sans type.
-- **Wordmark**: text only, "Chester Gang Show" with "Casting" as a subtitle. No logo image.
+- **Wordmark**: text only, "Chester Gang Show" with the app's name, "iCUE", under it, and "Show Management App" in italics beneath that. No logo image. (Changed on 2026-10-24: the subtitle was "Casting" until the app was named iCUE.)
 - **Routing**: page-level URLs mean adding a client-side router, a new dependency. Per CLAUDE.md, that needs an ADR, recorded alongside the first story.
 - **Assumption**: the existing walking-skeleton heading is replaced by the shell, and its health check moves into the shell (FR7).
 

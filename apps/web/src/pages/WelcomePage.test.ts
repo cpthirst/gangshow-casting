@@ -56,6 +56,9 @@ describe("Welcome page", () => {
 
     expect(wrapper.get("h1").text()).toBe("Welcome");
     const intro = wrapper.get("[data-test=intro]").text();
+    expect(intro).toContain("iCUE");
+    // It's more than a casting tool: say what's coming, so people know where it's going.
+    expect(intro).toMatch(/props lists, sound effects and mic plots/);
     expect(intro).toContain("Chester Gang Show");
     expect(intro.split(/(?<=\.)\s+/).length).toBeLessThanOrEqual(2);
   });

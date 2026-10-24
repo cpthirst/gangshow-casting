@@ -138,7 +138,7 @@ describe("Casting item page", () => {
     expect(wrapper.get("main h1").text()).toBe("Pirate Sketch");
     expect(wrapper.get("[data-test=position]").text()).toBe("Item 2 · First half");
     expect(router.currentRoute.value.fullPath).toBe("/casting/items/pirate-sketch");
-    expect(document.title).toBe("Pirate Sketch · Chester Gang Show casting");
+    expect(document.title).toBe("Pirate Sketch · iCUE");
   });
 
   it("shows only the half for an item not in the printed programme", async () => {
@@ -161,7 +161,7 @@ describe("Casting item page", () => {
     savedRunningOrderIs(show);
     await openAppAt("/casting/items/pirate-sketch");
 
-    expect(document.title).toBe("Pirate Sketch · Chester Gang Show casting");
+    expect(document.title).toBe("Pirate Sketch · iCUE");
   });
 
   it("loads directly from its URL", async () => {
@@ -265,7 +265,7 @@ describe("Casting item page", () => {
       "Previous Pirate Sketch",
       "Next Mystery Act",
     ]);
-    expect(document.title).toBe("Campfire Song · Chester Gang Show casting");
+    expect(document.title).toBe("Campfire Song · iCUE");
   });
 
   it("goes back to the Items list from All items", async () => {
@@ -286,7 +286,7 @@ describe("Casting item page", () => {
 
     expect(wrapper.get("main h1").text()).toBe("Item not found");
     expect(wrapper.get("main nav[aria-label='Item navigation'] a").text()).toBe("All items");
-    expect(document.title).toBe("Item not found · Chester Gang Show casting");
+    expect(document.title).toBe("Item not found · iCUE");
   });
 
   it("shows not found when there's no saved running order at all", async () => {

@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-A casting tool for the **Chester Gang Show** production team: it shows which Scouts and Explorers are in which show items, and when. TypeScript monorepo: Vue SPA, a framework-free API of Lambda-shaped handlers, and an AWS CDK app. Domain background is in `README.md` → "The domain".
+**iCUE**, the **Chester Gang Show**'s online show management app: one consistent system of record that helps the show's departments co-ordinate. Today it covers casting for the production team, showing which Scouts and Explorers are in which show items, and when. Props lists, sound effects per item and mic plots are planned, each as its own feature. TypeScript monorepo: Vue SPA, a framework-free API of Lambda-shaped handlers, and an AWS CDK app. Domain background is in `README.md` → "The domain".
 
 ## Domain rules
 
