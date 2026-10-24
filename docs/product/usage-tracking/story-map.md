@@ -35,7 +35,7 @@ prd: ./prd.md
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
 | [usage-tracking.E3.S1](stories/E3-S1-feature-totals.md) | Per-feature totals: for each page, view and export, the number of uses and of different people | FR6 | E2.S1 | done |
-| [usage-tracking.E3.S2](stories/E3-S2-recent-activity.md) | A recent activity list of every session and use, newest first, with who, what and when | FR7 | E2.S1 | ready |
+| [usage-tracking.E3.S2](stories/E3-S2-recent-activity.md) | A recent activity list of every session and use, newest first, with who, what and when | FR7 | E2.S1 | done |
 | [usage-tracking.E3.S3](stories/E3-S3-date-range.md) | A date range choice (last 7, 30 or 90 days, 30 by default) that every part of the Usage page follows | FR8 | E3.S1, E3.S2 | ready |
 
 ## E4: Sessions and limits

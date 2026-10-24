@@ -102,6 +102,10 @@ describe("UsageSummary", () => {
         },
       ],
       features: [{ feature: "running-order", uses: 3, people: 1 }],
+      activity: [
+        { username: "robin", at: "2026-10-20T19:01:00.000Z", event: "page", page: "running-order" },
+        { username: "robin", at: "2026-10-20T19:00:00.000Z", event: "session" },
+      ],
     };
     expect(UsageSummary.parse(summary)).toEqual(summary);
   });
@@ -109,14 +113,16 @@ describe("UsageSummary", () => {
   it("holds someone with uses but no session in the period", () => {
     const person = { username: "robin", sessions: 0, lastSession: null, uses: { cast: 1 } };
     expect(
-      UsageSummary.parse({ recordedSince: null, people: [person], features: [] }).people,
+      UsageSummary.parse({ recordedSince: null, people: [person], features: [], activity: [] })
+        .people,
     ).toEqual([person]);
   });
 
   it("refuses a use of something that isn't recorded", () => {
     const person = { username: "robin", sessions: 0, lastSession: null, uses: { secrets: 1 } };
     expect(
-      UsageSummary.safeParse({ recordedSince: null, people: [person], features: [] }).success,
+      UsageSummary.safeParse({ recordedSince: null, people: [person], features: [], activity: [] })
+        .success,
     ).toBe(false);
   });
 
@@ -129,7 +135,8 @@ describe("UsageSummary", () => {
 
   it("says nothing has been recorded yet with no start date", () => {
     expect(
-      UsageSummary.parse({ recordedSince: null, people: [], features: [] }).recordedSince,
+      UsageSummary.parse({ recordedSince: null, people: [], features: [], activity: [] })
+        .recordedSince,
     ).toBeNull();
   });
 });

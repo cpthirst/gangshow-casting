@@ -48,6 +48,56 @@ const ukDay = new Intl.DateTimeFormat("en-GB", {
 /** An ISO time as its UK date, such as "24 October 2026". */
 export const dayOf = (iso: string) => ukDay.format(new Date(iso));
 
+const ukClock = new Intl.DateTimeFormat("en-GB", {
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+  timeZone: "Europe/London",
+});
+
+/** An ISO time as its UK date and time, such as "24 October 2026 19:01". */
+export const whenOf = (iso: string) => `${dayOf(iso)} ${ukClock.format(new Date(iso))}`;
+
+const viewNames: Record<OverviewView, string> = {
+  "by-person": "By person",
+  "by-item": "By item",
+  grid: "Grid",
+};
+
+const exportNames: Record<UsageExport, string> = {
+  "excel-grid": "the Excel grid",
+  "word-casting-sheets": "the Word casting sheets",
+  "word-item-overview": "the Word item overview",
+};
+
+type Titles = {
+  page: (page: MenuPageName) => string;
+  /**
+   * An item's title; undefined once it's no longer in the running order, and null while
+   * the running order can't be loaded.
+   */
+  item: (productionId: string, itemId: string) => string | undefined | null;
+};
+
+/** What a session or use was, as the activity list says it, such as "opened Running order". */
+export function whatHappened(entry: RecordUsageRequest, titles: Titles) {
+  switch (entry.event) {
+    case "session":
+      return "session";
+    case "page":
+      return `opened ${titles.page(entry.page)}`;
+    case "view":
+      return `switched the Overview to ${viewNames[entry.view]}`;
+    case "item": {
+      const title = titles.item(entry.productionId, entry.itemId);
+      if (title === null) return "opened an item";
+      return title ? `opened ${title}` : "opened an item no longer in the running order";
+    }
+    case "export":
+      return `exported ${exportNames[entry.export]}`;
+  }
+}
+
 /** Records switching the Casting Overview to another view. */
 export const recordView = (view: OverviewView) => record({ event: "view", view });
 

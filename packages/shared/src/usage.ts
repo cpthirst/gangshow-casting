@@ -83,6 +83,15 @@ export const FeatureTotal = z.strictObject({
   people: z.number().int().min(0),
 });
 
+/** One session or use in the activity list (FR7): who, what and when. */
+export const UsageActivity = z.intersection(
+  RecordUsageRequest,
+  z.object({ username: z.string().min(1).max(128), at: z.iso.datetime() }),
+);
+
+/** The most activity GET /api/usage sends, keeping its answer far below Lambda's 6 MB. */
+export const ACTIVITY_LIMIT = 1000;
+
 /**
  * GET /api/usage, admins only: the last 30 days' usage of everyone who has any. The page
  * lists every account, so people with none are added from the account list.
@@ -93,6 +102,8 @@ export const UsageSummary = z.strictObject({
   people: z.array(PersonUsage).max(1000),
   /** Every feature, used or not, in UsageFeature's order. */
   features: z.array(FeatureTotal).max(UsageFeature.options.length),
+  /** The period's sessions and uses, newest first; only the newest ACTIVITY_LIMIT. */
+  activity: z.array(UsageActivity).max(ACTIVITY_LIMIT),
 });
 
 export type MenuPageName = z.infer<typeof MenuPageName>;
@@ -102,4 +113,5 @@ export type RecordUsageRequest = z.infer<typeof RecordUsageRequest>;
 export type UsageFeature = z.infer<typeof UsageFeature>;
 export type PersonUsage = z.infer<typeof PersonUsage>;
 export type FeatureTotal = z.infer<typeof FeatureTotal>;
+export type UsageActivity = z.infer<typeof UsageActivity>;
 export type UsageSummary = z.infer<typeof UsageSummary>;

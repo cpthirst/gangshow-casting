@@ -2,7 +2,7 @@
 id: usage-tracking.E3.S2
 title: Show a recent activity list on the Usage page
 epic: E3
-status: ready
+status: done
 ---
 
 ## Story
@@ -52,4 +52,5 @@ Then the activity list doesn't scroll sideways
 - FRs: FR7
 - Depends on: usage-tracking.E2.S1. AC2 and AC3 need E2.S2's item uses.
 - AC6: the team is in Chester, so UK time (BST or GMT as it applies).
+- AC4: the API sends at most the newest 1,000 activities in the range, which keeps its answer well inside a Lambda response's 6 MB. That's far more than a month's use by about 30 accounts.
 - Out of scope: filtering the list by person or feature.

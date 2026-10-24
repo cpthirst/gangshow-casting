@@ -1,8 +1,10 @@
-import type { AccountSummary, UsageSummary } from "@app/shared";
+import type { AccountSummary, RunningOrder, UsageActivity, UsageSummary } from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory } from "vue-router";
 import { createAppRouter } from "../router.ts";
+import { anItem, aRunningOrder } from "../running-order.fixture.ts";
+import { RUNNING_ORDER_PATH } from "../running-order.ts";
 import { useLocalSignIn } from "../sign-in.ts";
 import UsagePage from "./UsagePage.vue";
 
@@ -17,18 +19,31 @@ const accounts: AccountSummary[] = ["robin", "alex", "sky", "kit"].map((username
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 
-function serve(usage: UsageSummary | Response, accountList: Response = json({ accounts })) {
+type Summary = Omit<UsageSummary, "activity"> & Partial<Pick<UsageSummary, "activity">>;
+
+/** The stand-in API; with no running order saved unless one is given. */
+function serve(
+  usage: Summary | Response,
+  accountList: Response = json({ accounts }),
+  order?: RunningOrder | "unavailable",
+) {
   vi.stubGlobal(
     "fetch",
-    vi.fn(async (url: string) =>
-      url === "/api/accounts" ? accountList : usage instanceof Response ? usage : json(usage),
-    ),
+    vi.fn(async (url: string) => {
+      if (url === "/api/accounts") return accountList;
+      if (url === RUNNING_ORDER_PATH) {
+        if (order === "unavailable") return json({}, 500);
+        return order ? json(order) : json({}, 404);
+      }
+      return usage instanceof Response ? usage : json({ activity: [], ...usage });
+    }),
   );
 }
 
 async function openPage() {
   const wrapper = mount(UsagePage, {
     global: { plugins: [createAppRouter(createMemoryHistory())] },
+    attachTo: document.body,
   });
   await flushPromises();
   return wrapper;
@@ -49,6 +64,12 @@ const totals = (wrapper: Page) =>
     .findAll("[data-test=by-feature] tbody tr")
     .map((row) => row.findAll("th, td").map((cell) => cell.text()));
 
+const activity = (wrapper: Page) =>
+  wrapper
+    .findAll("[data-test=activity] tbody tr")
+    .map((row) => row.findAll("td").map((cell) => cell.text()));
+const since = { recordedSince: "2026-10-01T18:00:00.000Z", people: [], features: [] };
+
 describe("Usage page", () => {
   // As on pnpm dev: the local app acts as an admin.
   beforeEach(useLocalSignIn);
@@ -68,7 +89,11 @@ describe("Usage page", () => {
 
     expect(wrapper.get("h1").text()).toBe("Usage");
     expect(wrapper.get("[data-test=range]").text()).toBe("Last 30 days");
-    expect(wrapper.findAll("h2").map((h2) => h2.text())).toEqual(["By feature", "By person"]);
+    expect(wrapper.findAll("h2").map((h2) => h2.text())).toEqual([
+      "By feature",
+      "By person",
+      "Recent activity",
+    ]);
     expect(wrapper.findAll("[data-test=by-person] thead th").map((th) => th.text())).toEqual([
       "Username",
       "Sessions",
@@ -285,5 +310,147 @@ describe("Usage page", () => {
     const wrapper = await openPage();
 
     expect(wrapper.get("[role=alert]").text()).toBe("Couldn't load usage.");
+  });
+
+  describe("recent activity", () => {
+    it("lists each session and use newest first, with who, what and when", async () => {
+      serve({
+        ...since,
+        activity: [
+          {
+            username: "robin",
+            at: "2026-10-20T18:01:00.000Z",
+            event: "page",
+            page: "running-order",
+          },
+          { username: "robin", at: "2026-10-20T18:00:00.000Z", event: "session" },
+        ],
+      });
+
+      const wrapper = await openPage();
+
+      expect(wrapper.get("[data-test=activity]").attributes("aria-label")).toBe("Usage activity");
+      expect(wrapper.findAll("[data-test=activity] thead th").map((th) => th.text())).toEqual([
+        "Username",
+        "What",
+        "When",
+      ]);
+      expect(activity(wrapper)).toEqual([
+        ["robin", "opened Running order", "20 October 2026 19:01"],
+        ["robin", "session", "20 October 2026 19:00"],
+      ]);
+    });
+
+    it("says what each kind of use was", async () => {
+      const at = "2026-10-20T18:00:00.000Z";
+      serve({
+        ...since,
+        activity: [
+          { username: "robin", at, event: "view", view: "grid" },
+          { username: "robin", at, event: "export", export: "word-casting-sheets" },
+        ],
+      });
+
+      const wrapper = await openPage();
+
+      expect(activity(wrapper).map(([, what]) => what)).toEqual([
+        "switched the Overview to Grid",
+        "exported the Word casting sheets",
+      ]);
+    });
+
+    it("names an item by its title in the running order", async () => {
+      const order = aRunningOrder([anItem("Night at the movies")]);
+      const use = { event: "item" as const, productionId: "2027", itemId: "night-at-the-movies" };
+      serve(
+        { ...since, activity: [{ username: "robin", at: "2026-10-20T18:00:00.000Z", ...use }] },
+        json({ accounts }),
+        order,
+      );
+
+      const wrapper = await openPage();
+
+      expect(activity(wrapper)[0]?.[1]).toBe("opened Night at the movies");
+    });
+
+    it.each([
+      ["an item since removed", "2027", "removed-item"],
+      ["an item of another production", "2026", "night-at-the-movies"],
+    ])("says %s is no longer in the running order", async (_what, productionId, itemId) => {
+      const order = aRunningOrder([anItem("Night at the movies")]);
+      const use = { event: "item" as const, productionId, itemId };
+      serve(
+        { ...since, activity: [{ username: "robin", at: "2026-10-20T18:00:00.000Z", ...use }] },
+        json({ accounts }),
+        order,
+      );
+
+      const wrapper = await openPage();
+
+      expect(activity(wrapper)[0]?.[1]).toBe("opened an item no longer in the running order");
+    });
+
+    it("still lists an item's use, as an item, when the running order can't be loaded", async () => {
+      const use = { event: "item" as const, productionId: "2027", itemId: "night-at-the-movies" };
+      serve(
+        {
+          ...since,
+          features: [{ feature: "item-page", uses: 1, people: 1 }],
+          activity: [{ username: "robin", at: "2026-10-20T18:00:00.000Z", ...use }],
+        },
+        json({ accounts }),
+        "unavailable",
+      );
+
+      const wrapper = await openPage();
+
+      expect(activity(wrapper)[0]?.[1]).toBe("opened an item");
+      expect(totals(wrapper)).toEqual([["Item pages", "1", "1"]]);
+    });
+
+    it("shows the newest 50, and the next 50 on asking", async () => {
+      const entries: UsageActivity[] = Array.from({ length: 120 }, (_, n) => ({
+        username: "robin",
+        at: new Date(Date.UTC(2026, 9, 20, 12, 120 - n)).toISOString(),
+        event: "session",
+      }));
+      serve({ ...since, activity: entries });
+
+      const wrapper = await openPage();
+      expect(activity(wrapper)).toHaveLength(50);
+      expect(activity(wrapper)[0]?.[2]).toBe("20 October 2026 15:00");
+
+      await wrapper.get("[data-test=more-activity]").trigger("click");
+      await flushPromises();
+      expect(activity(wrapper)).toHaveLength(100);
+      // Keyboard and screen-reader users carry on from the first row just shown.
+      const rows = wrapper.findAll("[data-test=activity] tbody tr");
+      expect(document.activeElement).toBe(rows[50]?.element);
+
+      await wrapper.get("[data-test=more-activity]").trigger("click");
+      await flushPromises();
+      expect(activity(wrapper)).toHaveLength(120);
+      expect(wrapper.find("[data-test=more-activity]").exists()).toBe(false);
+    });
+
+    it("says there's no activity in the period", async () => {
+      serve(since);
+
+      const wrapper = await openPage();
+
+      expect(wrapper.get("[data-test=no-activity]").text()).toBe("No activity in this period.");
+      expect(wrapper.find("[data-test=activity]").exists()).toBe(false);
+    });
+
+    it("shows times as they are in the UK, in winter too", async () => {
+      serve({
+        ...since,
+        activity: [{ username: "robin", at: "2026-12-01T18:00:00.000Z", event: "session" }],
+      });
+
+      const wrapper = await openPage();
+
+      expect(activity(wrapper)[0]?.[2]).toBe("1 December 2026 18:00");
+    });
   });
 });

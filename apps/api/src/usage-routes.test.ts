@@ -286,6 +286,34 @@ describe("reading usage", () => {
     expect(features.every(({ uses, people }) => uses === 0 && people === 0)).toBe(true);
   });
 
+  it("lists each session and use, newest first", async () => {
+    const { summary } = setUp([
+      session("robin", "2026-10-20T19:00:00.000Z"),
+      opened("robin", "running-order", "2026-10-20T19:01:00.000Z"),
+      session("alex", "2026-09-20T19:00:00.000Z"),
+    ]);
+
+    expect((await summary()).activity).toEqual([
+      opened("robin", "running-order", "2026-10-20T19:01:00.000Z"),
+      session("robin", "2026-10-20T19:00:00.000Z"),
+    ]);
+  });
+
+  it("lists at most the newest 1,000 activities", async () => {
+    const minutesAgo = (minutes: number) =>
+      new Date(NOW.getTime() - minutes * 60_000).toISOString();
+    const { summary } = setUp(
+      Array.from({ length: 1001 }, (_, minutes) => session("robin", minutesAgo(minutes))),
+    );
+
+    const { activity, people } = await summary();
+
+    expect(activity).toHaveLength(1000);
+    expect(activity[0]?.at).toBe(minutesAgo(0));
+    expect(activity.at(-1)?.at).toBe(minutesAgo(999));
+    expect(people[0]?.sessions).toBe(1001);
+  });
+
   it("says when recording started", async () => {
     const { summary } = setUp([session("robin", "2026-10-01T19:00:00.000Z")]);
 
@@ -299,6 +327,7 @@ describe("reading usage", () => {
       recordedSince: null,
       people: [],
       features: UsageFeature.options.map((feature) => ({ feature, uses: 0, people: 0 })),
+      activity: [],
     });
   });
 });

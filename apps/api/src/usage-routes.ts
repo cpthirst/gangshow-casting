@@ -1,4 +1,5 @@
 import {
+  ACTIVITY_LIMIT,
   type FeatureTotal,
   featureOf,
   type PersonUsage,
@@ -44,6 +45,8 @@ export function createUsageRoutes(
         recordedSince: (await store.recordedSince()) ?? null,
         people: byPerson(records),
         features: byFeature(records),
+        // UsageStore.since gives oldest first, so the newest are at the end.
+        activity: records.slice(-ACTIVITY_LIMIT).reverse(),
       };
       return jsonResponse(200, summary);
     },
