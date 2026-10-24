@@ -1,6 +1,6 @@
 # 0025. Group the web app's source into folders by kind
 
-- **Status**: Proposed
+- **Status**: Accepted
 - **Date**: 2026-10-24
 - **Deciders**: Nick Hirst
 

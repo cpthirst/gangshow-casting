@@ -1,10 +1,10 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createMemoryHistory } from "vue-router";
-import { icons } from "../icons.ts";
-import { createAppRouter } from "../router.ts";
-import { signInAs } from "../sign-in.fixture.ts";
-import { useLocalSignIn } from "../sign-in.ts";
+import { createAppRouter } from "@/router/index.ts";
+import { signInAs } from "@/services/sign-in.fixture.ts";
+import { useLocalSignIn } from "@/services/sign-in.ts";
+import { icons } from "@/utils/icons.ts";
 import HelpPage from "./HelpPage.vue";
 
 async function openHelp() {

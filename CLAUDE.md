@@ -36,7 +36,7 @@ pnpm --filter <pkg> exec vitest run <file> -t "<name>"   # one test
 
 | Path | What | Notes |
 |---|---|---|
-| `apps/web` | Vue 3 + Vite SPA | Vitest + `@vue/test-utils` + happy-dom; Playwright layout tests in `e2e/` |
+| `apps/web` | Vue 3 + Vite SPA | `src/` by kind (ADR 0025): `pages/` (one per route), `components/{app,common,show,casting}`, `services/` (calls the API or browser), `utils/` (plain logic), `router/`, `assets/`, `composables/`, `directives/`. Vitest + `@vue/test-utils` + happy-dom; Playwright layout tests in `e2e/` |
 | `apps/api` | Lambda-shaped handlers, no framework | One handler per route, listed in `routes.ts`; `dev-server.ts` (node:http) runs them locally (ADR 0006) |
 | `packages/shared` | zod schemas + inferred types | The API contract. Imported from source, no build step |
 | `infra` | CDK v2 app, one `AppStack` | Run directly by Node (`cdk.json`); add resources as stories need them |
@@ -97,6 +97,7 @@ Run after the gate is green, before a story is `done` or a PR is opened. **Skip 
 
 - Strict TypeScript (`noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`). No `any`, no `as` casts to silence errors, no non-null `!`.
 - ESM everywhere; relative imports include the `.ts` extension.
+- In `apps/web`, import across `src/` folders with the `@/` alias (`@/utils/cast.ts`), and within a folder relatively (`./cast.ts`).
 - Biome owns formatting and lint — don't hand-format, run `pnpm format`.
 - Tests live next to code: `foo.ts` → `foo.test.ts`.
 - Keep handlers/adapters thin; logic goes in plain functions that are easy to test.

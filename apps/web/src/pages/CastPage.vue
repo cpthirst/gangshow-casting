@@ -2,6 +2,10 @@
 import { CastList, CastMember, type CastMemberDetails, RoleList } from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, nextTick, onMounted, ref, useId } from "vue";
+import HelpButton from "@/components/common/HelpButton.vue";
+import ReadOnlyNotice from "@/components/common/ReadOnlyNotice.vue";
+import CastMemberForm from "@/components/show/CastMemberForm.vue";
+import { apiFetch, isAdmin, isReadOnly } from "@/services/sign-in.ts";
 import {
   CAST_PATH,
   type CastFilters,
@@ -12,13 +16,9 @@ import {
   NO_FILTERS,
   sectionLabel,
   sortCast,
-} from "../cast.ts";
-import HelpButton from "../HelpButton.vue";
-import { icons } from "../icons.ts";
-import ReadOnlyNotice from "../ReadOnlyNotice.vue";
-import { ROLES_PATH } from "../roles.ts";
-import { apiFetch, isAdmin, isReadOnly } from "../sign-in.ts";
-import CastMemberForm from "./CastMemberForm.vue";
+} from "@/utils/cast.ts";
+import { icons } from "@/utils/icons.ts";
+import { ROLES_PATH } from "@/utils/roles.ts";
 
 type State =
   | { status: "loading" }

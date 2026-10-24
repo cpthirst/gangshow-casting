@@ -1,8 +1,8 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createMemoryHistory } from "vue-router";
-import { createAppRouter, isMenuGroup, menuPages } from "../router.ts";
-import { useLocalSignIn } from "../sign-in.ts";
+import { createAppRouter, isMenuGroup, menuPages } from "@/router/index.ts";
+import { useLocalSignIn } from "@/services/sign-in.ts";
 import WelcomePage from "./WelcomePage.vue";
 
 async function openWelcome() {

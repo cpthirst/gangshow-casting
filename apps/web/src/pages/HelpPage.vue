@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { pageHelp } from "../help.ts";
-import PageHelp from "../PageHelp.vue";
+import PageHelp from "@/components/common/PageHelp.vue";
+import { pageHelp } from "@/utils/help.ts";
 </script>
 
 <template>

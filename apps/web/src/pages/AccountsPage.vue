@@ -2,6 +2,7 @@
 import { AccountList, AccountSummary, CreatedAccount, TeamRole, Username } from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, nextTick, onMounted, ref, useId } from "vue";
+import { apiFetch, signedInUsername } from "@/services/sign-in.ts";
 import {
   ACCOUNTS_PATH,
   accountPath,
@@ -11,9 +12,8 @@ import {
   roleWarning,
   sortAccounts,
   withArticle,
-} from "../accounts.ts";
-import { icons } from "../icons.ts";
-import { apiFetch, signedInUsername } from "../sign-in.ts";
+} from "@/utils/accounts.ts";
+import { icons } from "@/utils/icons.ts";
 
 type State =
   | { status: "loading" }

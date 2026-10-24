@@ -11,14 +11,14 @@ import {
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory } from "vue-router";
-import App from "../App.vue";
-import { CAST_PATH } from "../cast.ts";
-import { ITEM_NOTES_PATH } from "../item-notes.ts";
-import { ROLES_PATH } from "../roles.ts";
-import { createAppRouter } from "../router.ts";
-import { anItem, aRunningOrder } from "../running-order.fixture.ts";
-import { signInAs } from "../sign-in.fixture.ts";
-import { useLocalSignIn } from "../sign-in.ts";
+import App from "@/App.vue";
+import { createAppRouter } from "@/router/index.ts";
+import { signInAs } from "@/services/sign-in.fixture.ts";
+import { useLocalSignIn } from "@/services/sign-in.ts";
+import { CAST_PATH } from "@/utils/cast.ts";
+import { ITEM_NOTES_PATH } from "@/utils/item-notes.ts";
+import { ROLES_PATH } from "@/utils/roles.ts";
+import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
 
 enableAutoUnmount(afterEach);
 // As on pnpm dev: everyone acts as an admin, unless a test signs someone in.

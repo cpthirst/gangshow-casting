@@ -122,6 +122,13 @@ CI runs both of these as separate jobs.
 .
 ├── apps/
 │   ├── web/                 Vue 3 + Vite SPA; Playwright layout tests in e2e/
+│   │   └── src/                 By kind (ADR 0025); tests sit beside their code
+│   │       ├── pages/               One component per route
+│   │       ├── components/          app/ (sidebar), common/, show/, casting/
+│   │       ├── services/            Calls to the API or the browser: sign-in, usage, exports
+│   │       ├── utils/               Plain show logic: cast, roles, running order, clashes; word/
+│   │       ├── router/              Routes and the menu
+│   │       └── assets/              Logos and styles.css
 │   └── api/                 Framework-free API: Lambda-shaped handlers (ADR 0006)
 │       └── src/
 │           ├── routes.ts        "<METHOD> <path>" → handler table
@@ -321,6 +328,8 @@ These cover humans and agents alike, and `pnpm install` installs them.
 | [0021](docs/adr/0021-excel-export-for-every-team-role.md) | The casting grid's Excel export for every team role |
 | [0022](docs/adr/0022-word-exports-built-in-the-browser.md) | The Word exports: built in the browser with `docx`, loaded only when used |
 | [0023](docs/adr/0023-usage-records-in-the-data-table.md) | Usage records in the data table, recorded through our own API |
+| [0024](docs/adr/0024-limit-usage-recording-and-count-sign-ins.md) | Usage recording limited at API Gateway, and a session counted per sign-in |
+| [0025](docs/adr/0025-web-source-folders.md) | The web app's source grouped into folders by kind, with a `@/` import alias |
 
 ---
 

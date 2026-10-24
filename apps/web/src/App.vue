@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import logoSmall from "./assets/logo-small.jpg";
-import HealthStatus from "./HealthStatus.vue";
-import LocalRoleSwitch from "./LocalRoleSwitch.vue";
-import MainMenu from "./MainMenu.vue";
-import { showPageTitle } from "./router.ts";
+import logoSmall from "@/assets/logo-small.jpg";
+import HealthStatus from "@/components/app/HealthStatus.vue";
+import LocalRoleSwitch from "@/components/app/LocalRoleSwitch.vue";
+import MainMenu from "@/components/app/MainMenu.vue";
+import { useMediaQuery } from "@/composables/useMediaQuery.ts";
+import { showPageTitle } from "@/router/index.ts";
 import {
   isHosted,
   isLocal,
@@ -15,9 +16,8 @@ import {
   signIn,
   signInNeeded,
   signOut,
-} from "./sign-in.ts";
-import { recordPageUse, recordSession } from "./usage.ts";
-import { useMediaQuery } from "./useMediaQuery.ts";
+} from "@/services/sign-in.ts";
+import { recordPageUse, recordSession } from "@/services/usage.ts";
 
 // Must match the phone @media query in styles.css.
 const PHONE_QUERY = "(max-width: 767px)";

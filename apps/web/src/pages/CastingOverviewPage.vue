@@ -2,14 +2,20 @@
 import { CastList, type CastMember, type Role, RoleList, RunningOrder } from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, nextTick, onMounted, ref, watch } from "vue";
-import CastingGrid from "../CastingGrid.vue";
-import ClashIcon from "../ClashIcon.vue";
-import { CAST_PATH } from "../cast.ts";
-import { downloadGridExport } from "../casting-grid-export.ts";
-import { type Clash, clashesOfPerson, describeEach, findClashes } from "../clashes.ts";
-import HelpButton from "../HelpButton.vue";
-import { icons } from "../icons.ts";
-import { type LatestShow, latestShow } from "../latest-show.ts";
+import CastingGrid from "@/components/casting/CastingGrid.vue";
+import ShowByItem from "@/components/casting/ShowByItem.vue";
+import ShowTimeline from "@/components/casting/ShowTimeline.vue";
+import ClashIcon from "@/components/common/ClashIcon.vue";
+import HelpButton from "@/components/common/HelpButton.vue";
+import ReadOnlyNotice from "@/components/common/ReadOnlyNotice.vue";
+import { downloadGridExport } from "@/services/casting-grid-export.ts";
+import { type LatestShow, latestShow } from "@/services/latest-show.ts";
+import { apiFetch } from "@/services/sign-in.ts";
+import { recordExport, recordView } from "@/services/usage.ts";
+import { downloadCastingSheets, downloadItemOverview } from "@/services/word-export.ts";
+import { CAST_PATH } from "@/utils/cast.ts";
+import { type Clash, clashesOfPerson, describeEach, findClashes } from "@/utils/clashes.ts";
+import { icons } from "@/utils/icons.ts";
 import {
   biggestParts,
   castBySection,
@@ -23,15 +29,9 @@ import {
   sizesHeld,
   spokenParts,
   timelineOf,
-} from "../overview.ts";
-import ReadOnlyNotice from "../ReadOnlyNotice.vue";
-import { ROLES_PATH, roleSizeLabel } from "../roles.ts";
-import { RUNNING_ORDER_PATH } from "../running-order.ts";
-import ShowByItem from "../ShowByItem.vue";
-import ShowTimeline from "../ShowTimeline.vue";
-import { apiFetch } from "../sign-in.ts";
-import { recordExport, recordView } from "../usage.ts";
-import { downloadCastingSheets, downloadItemOverview } from "../word-export.ts";
+} from "@/utils/overview.ts";
+import { ROLES_PATH, roleSizeLabel } from "@/utils/roles.ts";
+import { RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
 
 const state = ref<
   { status: "loading" } | { status: "error" } | { status: "loaded"; cast: CastMember[] }
