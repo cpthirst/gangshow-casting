@@ -644,10 +644,11 @@ describe("App shell", () => {
     expect(document.activeElement).toBe(wrapper.get("main").element);
   });
 
-  it("keeps the API status visible in the shell", async () => {
+  it("keeps the API status, and the release under it, visible in the shell", async () => {
     const { wrapper } = await openAppAt("/cast");
 
-    expect(wrapper.text()).toContain("API: ok (1.2.3)");
+    const footer = wrapper.get(".sidebar-footer");
+    expect(footer.findAll("p").map((line) => line.text())).toEqual(["API: ok", "v1.2.3"]);
   });
 
   it("labels every page as demo data when serving the demo show", async () => {
@@ -707,7 +708,7 @@ describe("App shell", () => {
 
       expect(wrapper.get("main [role=alert]").text()).toContain("Sign in to see it");
       expect(document.title).toBe("Sign in · iCUE");
-      expect(wrapper.get(".sidebar-footer > p").text()).toBe("API: sign in needed");
+      expect(wrapper.get(".sidebar-footer p").text()).toBe("API: sign in needed");
     });
 
     it("keeps the tab saying sign in after moving to another page", async () => {
