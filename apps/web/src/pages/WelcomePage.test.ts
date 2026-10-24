@@ -1,7 +1,7 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createMemoryHistory } from "vue-router";
-import { createAppRouter } from "../router.ts";
+import { createAppRouter, isMenuGroup, menuPages } from "../router.ts";
 import { useLocalSignIn } from "../sign-in.ts";
 import WelcomePage from "./WelcomePage.vue";
 
@@ -41,6 +41,21 @@ describe("Welcome page", () => {
     expect(areas).toEqual(["Show", "Casting", "Production"]);
     const production = wrapper.findAll("dd")[2]?.text() ?? "";
     for (const page of ["Mic plot", "Props", "Scenery", "SFX"]) expect(production).toContain(page);
+  });
+
+  it.each([
+    ["show", "running-order"],
+    ["casting", "casting-overview"],
+    ["production", "mic-plot"],
+  ])("takes the %s area's name to the first page in that menu group", async (area, first) => {
+    const { wrapper, router } = await openWelcome();
+    const group = menuPages.find((entry) => isMenuGroup(entry) && entry.name === area);
+    expect(group && isMenuGroup(group) ? group.pages[0]?.name : undefined).toBe(first);
+
+    await wrapper.get(`[data-test=area-${area}]`).trigger("click");
+    await flushPromises();
+
+    expect(router.currentRoute.value.name).toBe(first);
   });
 
   it("tells someone new to check out Help first, before the guide to the menu", async () => {

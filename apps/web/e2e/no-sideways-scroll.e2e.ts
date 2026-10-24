@@ -252,7 +252,7 @@ test.describe("on a desktop screen", () => {
   });
 });
 
-test("the menu opens on a phone and its groups open, fold away and open from Welcome", async ({
+test("the menu opens on a phone and its groups open and fold away, and Welcome leads to them", async ({
   page,
 }) => {
   await page.goto("/");
@@ -274,10 +274,16 @@ test("the menu opens on a phone and its groups open, fold away and open from Wel
   await production.click();
   await expect(menu.getByRole("link", { name: "Mic plot" })).toBeHidden();
 
-  // The guide on Welcome opens the menu itself, so a phone user needn't hunt for it.
+  // The guide on Welcome goes to a group's first page, and the menu has that group open.
   await page.getByRole("button", { name: "Menu" }).click();
   await expect(menu).toBeHidden();
-  await page.getByRole("main").getByRole("button", { name: "Casting" }).click();
-  await expect(menu.getByRole("link", { name: "Overview" })).toBeVisible();
+  await page.getByRole("main").getByRole("link", { name: "Casting" }).click();
+  await expect(page).toHaveURL(/\/casting\/overview$/);
+  await page.getByRole("button", { name: "Menu" }).click();
+  await expect(menu.getByRole("button", { name: "Casting" })).toHaveAttribute(
+    "aria-expanded",
+    "true",
+  );
+  await expect(menu.getByRole("link", { name: "Items" })).toBeVisible();
   await expectNoSidewaysScroll(page);
 });

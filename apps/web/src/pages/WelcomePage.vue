@@ -1,10 +1,5 @@
 <script setup lang="ts">
-import { inject } from "vue";
 import logo from "../assets/logo.jpg";
-import { showMenuGroupKey } from "../menu.ts";
-
-// A button, not a link: it opens a group in the menu rather than going to a page.
-const showInMenu = inject(showMenuGroupKey, () => {});
 </script>
 
 <template>
@@ -24,14 +19,13 @@ const showInMenu = inject(showMenuGroupKey, () => {});
   <section class="welcome-areas" aria-labelledby="welcome-areas-heading">
     <h2 id="welcome-areas-heading">Where to find things</h2>
     <p>
-      Use the menu to move around. It has three areas: choose one below to open it in the menu.
+      Use the menu to move around. It has three areas: choose one below to go to its first page.
       Help and, for admins, Accounts and Usage sit beside them.
     </p>
     <dl>
       <dt>
-        <button type="button" class="link-button" data-test="show-show" @click="showInMenu('show')">
-          Show
-        </button>
+        <!-- The first page in the group: the menu opens the group when it arrives. -->
+        <RouterLink :to="{ name: 'running-order' }" data-test="area-show">Show</RouterLink>
       </dt>
       <dd>
         The show itself: the <RouterLink :to="{ name: 'running-order' }">Running order</RouterLink>
@@ -39,9 +33,8 @@ const showInMenu = inject(showMenuGroupKey, () => {});
         Explorers.
       </dd>
       <dt>
-        <button type="button" class="link-button" data-test="show-casting" @click="showInMenu('casting')">
-          Casting
-        </button>
+        <!-- The first page in the group: the menu opens the group when it arrives. -->
+        <RouterLink :to="{ name: 'casting-overview' }" data-test="area-casting">Casting</RouterLink>
       </dt>
       <dd>
         Who is in which item: the
@@ -50,9 +43,8 @@ const showInMenu = inject(showMenuGroupKey, () => {});
         far each one's casting has got.
       </dd>
       <dt>
-        <button type="button" class="link-button" data-test="show-production" @click="showInMenu('production')">
-          Production
-        </button>
+        <!-- The first page in the group: the menu opens the group when it arrives. -->
+        <RouterLink :to="{ name: 'mic-plot' }" data-test="area-production">Production</RouterLink>
       </dt>
       <dd>
         What each item needs backstage: the Mic plot, Props, Scenery and SFX (sound effects). These

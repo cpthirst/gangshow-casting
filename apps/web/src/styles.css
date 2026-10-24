@@ -2230,18 +2230,6 @@ main a {
   text-transform: uppercase;
 }
 
-/* A button that looks like the page's links, for choices that act rather than navigate. */
-.link-button {
-  padding: 0;
-  border: none;
-  background: none;
-  color: var(--red-darker);
-  font: inherit;
-  font-weight: 700;
-  text-decoration: underline;
-  cursor: pointer;
-}
-
 .welcome-areas dt {
   margin-top: 1rem;
   font-weight: 700;

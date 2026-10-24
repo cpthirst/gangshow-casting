@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { computed, nextTick, provide, ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import logoSmall from "./assets/logo-small.jpg";
 import HealthStatus from "./HealthStatus.vue";
 import LocalRoleSwitch from "./LocalRoleSwitch.vue";
-import { showMenuGroupKey } from "./menu.ts";
 import { isMenuGroup, menuPages, showPageTitle } from "./router.ts";
 import {
   isAdmin,
@@ -59,16 +58,6 @@ watch(
   },
   { immediate: true },
 );
-
-// Offered to the Welcome page's guide: show where a group is in the menu. On a phone the
-// menu is behind its button, so that opens too; the label gets focus so it can be seen.
-async function showMenuGroup(name: string) {
-  setGroup(name, true);
-  if (isPhone.value) isMenuOpen.value = true;
-  await nextTick();
-  document.getElementById(`menu-${name}`)?.focus();
-}
-provide(showMenuGroupKey, showMenuGroup);
 
 const main = ref<HTMLElement>();
 const menuButton = ref<HTMLButtonElement>();

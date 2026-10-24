@@ -354,17 +354,6 @@ describe("App shell", () => {
     expect(wrapper.get("#menu-casting-pages").isVisible()).toBe(true);
   });
 
-  it("opens and focuses a group in the menu when the Welcome page's guide names it", async () => {
-    const { wrapper } = await openAppAt("/");
-
-    await wrapper.get("[data-test=show-production]").trigger("click");
-    await flushPromises();
-
-    expect(wrapper.get("#menu-production-pages").isVisible()).toBe(true);
-    expect(document.activeElement?.id).toBe("menu-production");
-    expect(wrapper.get("#menu-show-pages").isVisible()).toBe(false);
-  });
-
   it("lists Overview and Items as a list inside Casting", async () => {
     const { wrapper } = await openAppAt("/");
 
