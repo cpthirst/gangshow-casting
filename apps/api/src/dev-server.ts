@@ -4,9 +4,11 @@ import { LOCAL_ROLE_HEADER, TeamRole } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import { roleRefusal } from "./admin-only.ts";
 import type { Handler } from "./handler.ts";
-import { localAccountRoutes } from "./local-accounts.ts";
+import { LOCAL_ADMIN, localAccountRoutes } from "./local-accounts.ts";
 import { matchRoute } from "./match-route.ts";
 import { dataLocation, routes } from "./routes.ts";
+import { createUsageRoutes } from "./usage-routes.ts";
+import { inMemoryUsageStore } from "./usage-store.ts";
 
 export function createDevServer(table: Record<string, Handler>) {
   return createServer(async (req, res) => {
@@ -122,9 +124,16 @@ async function readBody(req: IncomingMessage) {
   return chunks.length ? Buffer.concat(chunks).toString("utf8") : undefined;
 }
 
-/** What pnpm dev and pnpm demo serve: the data routes, and accounts that are always made up
- * locally, even when the data is remote (ADR 0018). */
-export const devRoutes = () => ({ ...routes, ...localAccountRoutes() });
+/**
+ * What pnpm dev and pnpm demo serve: the data routes, with accounts that are always made up
+ * locally, even when the data is remote (ADR 0018), and so usage too, kept in memory for
+ * the made-up admin the local app acts as (ADR 0023).
+ */
+export const devRoutes = (dataRoutes = routes) => ({
+  ...dataRoutes,
+  ...localAccountRoutes(),
+  ...createUsageRoutes(inMemoryUsageStore(), { who: () => LOCAL_ADMIN }),
+});
 
 if (import.meta.main) {
   const port = Number(process.env.PORT ?? 3000);

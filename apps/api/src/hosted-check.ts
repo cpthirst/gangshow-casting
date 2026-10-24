@@ -1,7 +1,7 @@
 import { createInterface } from "node:readline/promises";
 import { Writable } from "node:stream";
 // Every route infra hosts, so a route added later is checked from its first deploy.
-import { adminOnlyRouteKeys, routeKeys as allRouteKeys, isReadRoute } from "@app/shared";
+import { adminOnlyRouteKeys, routeKeys as allRouteKeys, readOnlyMayUse } from "@app/shared";
 import { signInWithPassword } from "./cognito-sign-in.ts";
 import { cognitoClientFor } from "./cognito-user-directory.ts";
 
@@ -109,7 +109,7 @@ export async function runHostedCheck(args: string[], env: Env, deps: Deps): Prom
   // Changes only as the read-only account, which the API refuses before any handler runs
   // (ADR 0020). The requests carry no body, so even a wrongly accepted one changes nothing.
   if (readOnlyToken) {
-    for (const key of routeKeys.filter((key) => !isReadRoute(key))) {
+    for (const key of routeKeys.filter((key) => !readOnlyMayUse(key))) {
       const { method, path } = requestFor(key);
       const label = `${method} ${path}, signed in as ${readOnly}`;
       await checkStatus({ method, path, token: readOnlyToken, label }, 403);

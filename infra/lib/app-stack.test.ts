@@ -74,6 +74,12 @@ describe("AppStack", () => {
       });
     });
 
+    it("removes each usage record once its expiry passes, 90 days on (ADR 0023)", () => {
+      synth().template.hasResourceProperties("AWS::DynamoDB::GlobalTable", {
+        TimeToLiveSpecification: { AttributeName: "expiresAt", Enabled: true },
+      });
+    });
+
     it("outputs the table's name, for the API's configuration", () => {
       synth().template.hasOutput("DataTableName", {});
     });

@@ -2,7 +2,7 @@
 id: usage-tracking.E1.S1
 title: Record sessions and show them on an admin-only Usage page
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story
@@ -102,6 +102,6 @@ Then nothing scrolls sideways
 - AC3: ADR 0023 opens `POST /api/usage` to every role, as an exception to ADR 0020.
 - AC4: who comes from the sign-in token, never from the request body.
 - AC14: locally, accounts are the made-up ones in `local-accounts.ts`, so usage for them must stay in memory, like the accounts do.
-- AC15 is covered by the browser layout tests. Ask the user before adding the Usage page to the walks (CLAUDE.md).
+- AC15 is covered by the browser layout tests, which walk the Usage page (added with the user's agreement).
 - The per-person summary shows only sessions here. E2 adds page, view and export counts to it.
 - Out of scope: recording page, view or export use (E2), totals per feature (E3.S1), the activity list (E3.S2), choosing a date range (E3.S3).

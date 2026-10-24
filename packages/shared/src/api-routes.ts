@@ -25,6 +25,8 @@ export const routeKeys = [
   "POST /api/productions/{productionId}/items/{itemId}/roles",
   "PUT /api/productions/{productionId}/roles/{roleId}",
   "DELETE /api/productions/{productionId}/roles/{roleId}",
+  "POST /api/usage",
+  "GET /api/usage",
 ] as const;
 
 export type RouteKey = (typeof routeKeys)[number];
@@ -69,6 +71,15 @@ const readsSentAsPost: ReadonlySet<string> = new Set<RouteKey>([
 export const isReadRoute = (key: string) => key.startsWith("GET ") || readsSentAsPost.has(key);
 
 /**
+ * The one change read-only members may make: recording their own usage, which only ever
+ * adds a record about the caller (ADR 0023). Add another only for the same reason.
+ */
+const recordsAboutTheCaller: ReadonlySet<string> = new Set<RouteKey>(["POST /api/usage"]);
+
+/** What a read-only member may use: the reads, and recording their own usage. */
+export const readOnlyMayUse = (key: string) => isReadRoute(key) || recordsAboutTheCaller.has(key);
+
+/**
  * Routes only admins may use: permanent or show-wide changes (hosting FR9). The API refuses
  * them for anyone else before the handler runs (ADR 0018), so a new one can't forget it.
  */
@@ -80,6 +91,8 @@ export const adminOnlyRouteKeys: readonly RouteKey[] = [
   "PUT /api/accounts/{username}/role",
   "DELETE /api/productions/{productionId}/cast/{castId}",
   "POST /api/productions/{productionId}/running-order/versions",
+  // Usage is about the team, so only admins read it (usage-tracking FR4).
+  "GET /api/usage",
 ];
 
 /**

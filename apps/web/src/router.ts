@@ -8,6 +8,7 @@ import CastPage from "./pages/CastPage.vue";
 import NotFoundPage from "./pages/NotFoundPage.vue";
 import PlaceholderPage from "./pages/PlaceholderPage.vue";
 import RunningOrderPage from "./pages/RunningOrderPage.vue";
+import UsagePage from "./pages/UsagePage.vue";
 import WelcomePage from "./pages/WelcomePage.vue";
 
 declare module "vue-router" {
@@ -99,6 +100,13 @@ export const menuPages: (MenuPage | MenuGroup)[] = [
     name: "accounts",
     component: AccountsPage,
     meta: { title: "Accounts", description: "The production team's sign-in accounts." },
+    adminOnly: true,
+  },
+  {
+    path: "/usage",
+    name: "usage",
+    component: UsagePage,
+    meta: { title: "Usage", description: "Who on the team uses the app, and how often." },
     adminOnly: true,
   },
 ];

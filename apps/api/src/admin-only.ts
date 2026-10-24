@@ -1,4 +1,4 @@
-import { adminOnlyRouteKeys, isReadRoute, READ_ONLY_REFUSAL, type TeamRole } from "@app/shared";
+import { adminOnlyRouteKeys, READ_ONLY_REFUSAL, readOnlyMayUse, type TeamRole } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 
 /**
@@ -22,14 +22,14 @@ const refusal = (message: string): APIGatewayProxyStructuredResultV2 => ({
 
 /**
  * A 403 if the caller's role doesn't allow the route; undefined to go ahead. Read-only
- * members, which includes anyone in no known group, may only read (ADR 0020), and
- * admin-only routes need an admin (ADR 0018).
+ * members, which includes anyone in no known group, may only read (ADR 0020) and record
+ * their own usage (ADR 0023), and admin-only routes need an admin (ADR 0018).
  */
 export function roleRefusal(
   routeKey: string,
   role: TeamRole,
 ): APIGatewayProxyStructuredResultV2 | undefined {
-  if (!isReadRoute(routeKey) && role === "read-only") return refusal(READ_ONLY_REFUSAL);
+  if (!readOnlyMayUse(routeKey) && role === "read-only") return refusal(READ_ONLY_REFUSAL);
   const adminOnly = adminOnlyRouteKeys.some((key) => key === routeKey);
   if (adminOnly && role !== "admin") return refusal("Only admins can do this.");
   return undefined;

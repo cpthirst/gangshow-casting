@@ -45,7 +45,7 @@ We will use option 1.
   - **Recording-since marker:** one row, `pk = USAGE` and `sk = SINCE`. It is written once with the date of the first event, never expires and holds no personal data.
 - **Expiry:** the table gets time-to-live on `expiresAt`. DynamoDB can take a day or two to delete a row, so reads also skip anything older than 90 days.
 - **Every account listed:** the data function has no user-pool access (ADR 0018). The Usage page therefore merges the account list it already gets from `GET /api/accounts` with the usage by username. No new grant is needed.
-- **The page never waits on recording:** the page sends events without awaiting them and ignores failures. It sends no events in the browser tests.
+- **The page never waits on recording:** the page sends events without awaiting them and ignores failures.
 - **Local:** `pnpm dev` and `pnpm demo` keep usage in memory against the made-up local accounts, as accounts are. Usage never reaches the remote table from a local run.
 - This amends ADR 0018's "no new personal data" about the team: each account's usage is added, kept 90 days, and readable only by admins. Its other decisions stand.
 

@@ -5,6 +5,7 @@ import {
   HealthResponse,
   LOCAL_ROLE_HEADER,
   READ_ONLY_REFUSAL,
+  UsageSummary,
 } from "@app/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createDevServer, devRoutes } from "./dev-server.ts";
@@ -279,6 +280,39 @@ describe("dev server routes", () => {
     } finally {
       await new Promise<void>((resolve) => server.close(() => resolve()));
     }
+  });
+});
+
+describe("dev server usage (usage-tracking AC14)", () => {
+  // Stands in for the data routes on the remote table, which local usage must never reach.
+  const remote = {
+    ...routes,
+    "POST /api/usage": async () => {
+      throw new Error("wrote usage to the remote table");
+    },
+    "GET /api/usage": async () => {
+      throw new Error("read usage from the remote table");
+    },
+  };
+
+  it("keeps usage in memory for the made-up local admin, never in the remote table", async () => {
+    const local = devRoutes(remote);
+
+    const recorded = await local["POST /api/usage"]({ body: JSON.stringify({ event: "session" }) });
+    const read = await local["GET /api/usage"]({});
+
+    expect(recorded.statusCode).toBe(204);
+    expect(UsageSummary.parse(JSON.parse(read.body ?? "")).people).toEqual([
+      expect.objectContaining({ username: "alex", sessions: 1 }),
+    ]);
+  });
+
+  it("starts with no usage each time the local API starts", async () => {
+    await devRoutes(remote)["POST /api/usage"]({ body: JSON.stringify({ event: "session" }) });
+
+    const read = await devRoutes(remote)["GET /api/usage"]({});
+
+    expect(UsageSummary.parse(JSON.parse(read.body ?? "")).people).toEqual([]);
   });
 });
 

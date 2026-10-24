@@ -18,7 +18,8 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [usage-tracking.E1.S1](stories/E1-S1-sessions-on-the-usage-page.md) | Walking skeleton: each sign-in or return to the app records a session (failures ignored, records expire after 90 days), and admins get a Usage page listing every account with its last session and number of sessions in the last 30 days, and when recording started. Needs the ADR first | FR1, FR3, FR4, FR5, FR9, FR11 | (none) | ready |
+| [usage-tracking.E1.S1](stories/E1-S1-sessions-on-the-usage-page.md) | Walking skeleton: each sign-in or return to the app records a session (failures ignored, records expire after 90 days), and admins get a Usage page listing every account with its last session and number of sessions in the last 30 days, and when recording started. Needs the ADR first | FR1, FR3, FR4, FR5, FR9, FR11 | (none) | done |
+| [usage-tracking.E1.S2](stories/E1-S2-limit-recording.md) | Follow-up from the E1.S1 security review: one account sending usage over and over can't inflate its counts without limit or slow the Usage page | Security NFR | E1.S1 | draft |
 
 ## E2: Recording uses
 
@@ -38,7 +39,7 @@ prd: ./prd.md
 
 ## Order
 
-E1.S1 → E2.S1 → E2.S2 → E2.S3 → E3.S1 → E3.S2 → E3.S3
+E1.S1 → E1.S2 → E2.S1 → E2.S2 → E2.S3 → E3.S1 → E3.S2 → E3.S3
 
 Records expire from the first story on, so nothing is ever kept longer than 90 days. Recording comes before the rest of the dashboard, so the page has real data to show while it's built. E2.S2, E2.S3, E3.S1 and E3.S2 only need E2.S1, so they can go in any order.
 
@@ -57,3 +58,4 @@ Records expire from the first story on, so nothing is ever kept longer than 90 d
 | FR9 | E1.S1 |
 | FR10 | Dropped (see PRD) |
 | FR11 | E1.S1 |
+| Security NFR (no flooding) | E1.S2 |

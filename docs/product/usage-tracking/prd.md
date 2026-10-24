@@ -63,6 +63,7 @@ The app has grown quickly: a running order, cast list, casting overview with thr
   - Usage data is personal data about adult volunteers (UK GDPR). It is kept only for the purpose above (understanding feature use), for 90 days.
   - Only admins can read it. The API, not just the menu, enforces this.
   - A use is recorded only for the signed-in person making it. Nobody can record a use for someone else or invent a username.
+  - One account can't flood the records: recording it many times quickly mustn't inflate its counts without limit or slow the Usage page (added on 2026-10-24 after the E1.S1 security review).
   - No data about the cast goes in usage records. The "opened an item" use records the item, never a cast member's name.
   - This widens what the app stores about the team beyond a username (ADR 0018), so it needs an ADR before it's built.
 - **Accessibility**: WCAG 2.2 AA. The Usage page's tables work with a screen reader and a keyboard, and fit a phone at 320px without scrolling sideways, as every other page does.

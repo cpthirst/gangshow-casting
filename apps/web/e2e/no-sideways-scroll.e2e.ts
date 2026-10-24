@@ -75,6 +75,14 @@ test("the accounts list, its add form and a new account's password fit the scree
   await expectNoSidewaysScroll(page);
 });
 
+test("the usage list fits the screen", async ({ page }) => {
+  // Opening the app records a session for the made-up local admin, so their row has a date.
+  await page.goto("/usage");
+  await expect(page.getByRole("cell", { name: "alex", exact: true })).toBeVisible();
+  await expect(page.getByText("Usage has been recorded since")).toBeVisible();
+  await expectNoSidewaysScroll(page);
+});
+
 test("the items list and an item's casting page fit the screen", async ({ page }) => {
   await page.goto("/casting/items");
   await expect(page.getByText(PIRATE_SKETCH)).toBeVisible();
