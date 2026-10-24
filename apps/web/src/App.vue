@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import HealthStatus from "./HealthStatus.vue";
 import LocalRoleSwitch from "./LocalRoleSwitch.vue";
@@ -14,6 +14,7 @@ import {
   signInNeeded,
   signOut,
 } from "./sign-in.ts";
+import { recordSession } from "./usage.ts";
 import { useMediaQuery } from "./useMediaQuery.ts";
 
 // Must match the phone @media query in styles.css.
@@ -50,6 +51,12 @@ watch(
   },
   { flush: "post" },
 );
+
+// Each time the app opens signed in, by signing in or coming back still signed in, is a
+// session (usage-tracking FR1).
+onMounted(() => {
+  if (!signInNeeded.value) recordSession();
+});
 
 // Focus the content directly: a plain #main link would also change the URL.
 function focusContent() {

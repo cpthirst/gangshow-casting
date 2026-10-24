@@ -3,9 +3,10 @@ import {
   CastList,
   HealthResponse,
   ItemNoteList,
-  isReadRoute,
   LOCAL_ROLE_HEADER,
+  readOnlyMayUse,
   routeKeys,
+  UsageSummary,
 } from "@app/shared";
 import { describe, expect, it, vi } from "vitest";
 import { aCastList, aCastMember } from "./cast.fixture.ts";
@@ -19,6 +20,7 @@ import { inMemoryRoleStore } from "./role-store.ts";
 import { createRoutes } from "./routes.ts";
 import { aRunningOrder, itemId } from "./running-order.fixture.ts";
 import { inMemoryRunningOrderStore } from "./running-order-store.ts";
+import { inMemoryUsageStore } from "./usage-store.ts";
 
 // The parts of an API Gateway HTTP API (payload v2) event that the entry point reads, signed
 // in as a Casting Team Member unless a test says otherwise.
@@ -95,15 +97,18 @@ describe("Lambda entry point", () => {
       const cast = inMemoryCastStore([aCastList([aCastMember(1)])]);
       const roles = inMemoryRoleStore();
       return lambdaEntry(
-        createRoutes({
-          cast,
-          roles,
-          runningOrders: inMemoryRunningOrderStore([
-            aRunningOrder(3, { first: ["Pirate Sketch"] }),
-          ]),
-          itemNotes: inMemoryItemNoteStore(),
-          removeCastMember: uncastThenRemove(cast, roles),
-        }),
+        createRoutes(
+          {
+            cast,
+            roles,
+            runningOrders: inMemoryRunningOrderStore([
+              aRunningOrder(3, { first: ["Pirate Sketch"] }),
+            ]),
+            itemNotes: inMemoryItemNoteStore(),
+            removeCastMember: uncastThenRemove(cast, roles),
+          },
+          inMemoryUsageStore(),
+        ),
       );
     };
 
@@ -137,13 +142,16 @@ describe("Lambda entry point", () => {
       const roles = inMemoryRoleStore();
       const runningOrders = inMemoryRunningOrderStore([aRunningOrder(4)]);
       const api = lambdaEntry(
-        createRoutes({
-          cast,
-          roles,
-          runningOrders,
-          itemNotes: inMemoryItemNoteStore(),
-          removeCastMember: uncastThenRemove(cast, roles),
-        }),
+        createRoutes(
+          {
+            cast,
+            roles,
+            runningOrders,
+            itemNotes: inMemoryItemNoteStore(),
+            removeCastMember: uncastThenRemove(cast, roles),
+          },
+          inMemoryUsageStore(),
+        ),
       );
       return { api, cast, runningOrders };
     };
@@ -282,13 +290,16 @@ describe("Lambda entry point", () => {
         aRunningOrder(4, { first: ["Pirate Sketch"] }),
       ]);
       const api = lambdaEntry(
-        createRoutes({
-          cast,
-          roles,
-          runningOrders,
-          itemNotes,
-          removeCastMember: uncastThenRemove(cast, roles),
-        }),
+        createRoutes(
+          {
+            cast,
+            roles,
+            runningOrders,
+            itemNotes,
+            removeCastMember: uncastThenRemove(cast, roles),
+          },
+          inMemoryUsageStore(),
+        ),
       );
       return { api, cast, roles, itemNotes, runningOrders };
     };
@@ -379,7 +390,7 @@ describe("Lambda entry point", () => {
       expect((await runningOrders.latest("2027"))?.version).toBe(4);
     });
 
-    it("refuses every route that isn't a read before its handler runs, and lets every read through", async () => {
+    it("refuses every route a read-only member may not use before its handler runs, and lets the rest through", async () => {
       const handler = vi.fn(async () => ({ statusCode: 200 }));
       const api = lambdaEntry(Object.fromEntries(routeKeys.map((key) => [key, handler])));
 
@@ -388,10 +399,10 @@ describe("Lambda entry point", () => {
         const [method = "", path = ""] = key.split(" ");
         const res = await api(asReadOnly(method, path.replaceAll(/\{\w+\}/g, "x")));
 
-        if (isReadRoute(key) && !adminOnlyRouteKeys.includes(key)) {
+        if (readOnlyMayUse(key) && !adminOnlyRouteKeys.includes(key)) {
           expect(handler, key).toHaveBeenCalledOnce();
-        } else if (isReadRoute(key)) {
-          // Listing accounts is a read, but still admins' only.
+        } else if (readOnlyMayUse(key)) {
+          // Listing accounts, or reading usage, is a read, but still admins' only.
           expect(JSON.parse(res.body ?? ""), key).toEqual({ message: "Only admins can do this." });
         } else {
           expect(res.statusCode, key).toBe(403);
@@ -469,6 +480,68 @@ describe("Lambda entry point", () => {
 
       expect([added.statusCode, deleted.statusCode]).toEqual([403, 403]);
       expect((await cast.list("2027"))?.members).toHaveLength(1);
+    });
+  });
+
+  describe("usage (ADR 0023)", () => {
+    const setUp = () => {
+      const cast = inMemoryCastStore([aCastList([aCastMember(1)])]);
+      const roles = inMemoryRoleStore();
+      return lambdaEntry(
+        createRoutes(
+          {
+            cast,
+            roles,
+            runningOrders: inMemoryRunningOrderStore([aRunningOrder(3)]),
+            itemNotes: inMemoryItemNoteStore(),
+            removeCastMember: uncastThenRemove(cast, roles),
+          },
+          inMemoryUsageStore(),
+        ),
+      );
+    };
+    const signedInAs = (username: string, groups: string, method: string, body?: unknown) => ({
+      rawPath: "/api/usage",
+      requestContext: {
+        http: { method },
+        authorizer: { jwt: { claims: { username, "cognito:groups": groups } } },
+      },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    });
+    const usageSeenByAdmin = async (api: ReturnType<typeof setUp>) => {
+      const res = await api(signedInAs("alex", "[admin]", "GET"));
+      expect(res.statusCode).toBe(200);
+      return UsageSummary.parse(JSON.parse(res.body ?? "")).people;
+    };
+
+    it("records a read-only member's session, though they can change nothing else", async () => {
+      const api = setUp();
+
+      const res = await api(signedInAs("sky", "[read-only]", "POST", { event: "session" }));
+
+      expect(res.statusCode).toBe(204);
+      expect((await usageSeenByAdmin(api)).map((person) => person.username)).toEqual(["sky"]);
+    });
+
+    it("records the session for the account signed in, not one the request names", async () => {
+      const api = setUp();
+
+      await api(signedInAs("robin", "[casting]", "POST", { event: "session", username: "alex" }));
+
+      expect((await usageSeenByAdmin(api)).map((person) => person.username)).toEqual(["robin"]);
+    });
+
+    it.each([
+      ["a Casting Team Member", "[casting]"],
+      ["a Read-Only Team Member", "[read-only]"],
+    ])("refuses usage to %s, sending none of it", async (_who, groups) => {
+      const api = setUp();
+      await api(signedInAs("robin", "[casting]", "POST", { event: "session" }));
+
+      const res = await api(signedInAs("sky", groups, "GET"));
+
+      expect(res.statusCode).toBe(403);
+      expect(JSON.parse(res.body ?? "")).toEqual({ message: "Only admins can do this." });
     });
   });
 });

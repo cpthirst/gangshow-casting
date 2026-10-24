@@ -59,6 +59,7 @@ describe("App shell", () => {
       "Cast",
       expect.stringMatching(/^Casting/),
       "Accounts",
+      "Usage",
     ]);
     expect(menu.findAll("a").map((link) => link.text())).toEqual([
       "Welcome",
@@ -67,6 +68,7 @@ describe("App shell", () => {
       "Overview",
       "Items",
       "Accounts",
+      "Usage",
     ]);
     expect(menu.text()).not.toContain("Casting grid");
   });
@@ -79,6 +81,35 @@ describe("App shell", () => {
     const links = wrapper.get("nav[aria-label=Main]").findAll("a");
     expect(links.map((link) => link.text())).not.toContain("Accounts");
   });
+
+  it("says the Usage page is for admins only to a team member who goes to its address", async () => {
+    await signInAs(["casting"]);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) =>
+        url === "/api/usage" || url === "/api/accounts"
+          ? new Response(JSON.stringify({ message: "Only admins can do this." }), { status: 403 })
+          : new Response(JSON.stringify({ status: "ok", version: "1.2.3" })),
+      ),
+    );
+
+    const { wrapper } = await openAppAt("/usage");
+
+    expect(wrapper.get("main h1").text()).toBe("Usage");
+    expect(wrapper.get("main [role=alert]").text()).toBe("Only admins can see usage.");
+  });
+
+  it.each([[["casting"]], [["read-only"]]])(
+    "leaves Usage out of the menu for a signed-in team member in %j",
+    async (groups) => {
+      await signInAs(groups);
+
+      const { wrapper } = await openAppAt("/");
+
+      const links = wrapper.get("nav[aria-label=Main]").findAll("a");
+      expect(links.map((link) => link.text())).not.toContain("Usage");
+    },
+  );
 
   it("shows Accounts in the menu to a signed-in admin", async () => {
     await signInAs(["admin"]);
@@ -544,6 +575,67 @@ describe("App shell", () => {
         "Couldn't set up sign-in. Reload the page to try again.",
       );
       expect(wrapper.find("[data-test=sign-in]").exists()).toBe(false);
+    });
+
+    describe("recording sessions (usage-tracking FR1)", () => {
+      const usagePosts = (fetchMock: ReturnType<typeof vi.fn>) =>
+        fetchMock.mock.calls.filter(
+          ([url, init]) => url === "/api/usage" && init?.method === "POST",
+        );
+
+      it("records a session on arriving back from signing in", async () => {
+        const fetchMock = respondWith(204, {});
+        vi.stubGlobal("fetch", fetchMock);
+        const browser = { ...browserAt("/"), search: "?state=made-up&code=made-up" };
+        await useHostedSignIn(config, managerWith(null), browser);
+
+        await openAppAt("/");
+
+        const [post, ...more] = usagePosts(fetchMock);
+        expect(more).toEqual([]);
+        expect(post?.[1]?.body).toBe(JSON.stringify({ event: "session" }));
+        expect(new Headers(post?.[1]?.headers).get("authorization")).toBe("Bearer sams-token");
+      });
+
+      it("records a session on opening or reloading the app while still signed in", async () => {
+        const fetchMock = respondWith(204, {});
+        vi.stubGlobal("fetch", fetchMock);
+        await useHostedSignIn(config, managerWith(sam), browserAt("/cast"));
+
+        await openAppAt("/cast");
+
+        expect(usagePosts(fetchMock)).toHaveLength(1);
+      });
+
+      it("records no session while someone still has to sign in", async () => {
+        const fetchMock = respondWith(401, {});
+        vi.stubGlobal("fetch", fetchMock);
+        await useHostedSignIn(config, managerWith(null), browserAt("/"));
+
+        await openAppAt("/");
+
+        expect(usagePosts(fetchMock)).toEqual([]);
+      });
+
+      it.each([
+        ["the API refuses it", () => Promise.resolve(new Response("", { status: 500 }))],
+        ["the API can't be reached", () => Promise.reject(new TypeError("fetch failed"))],
+      ])("lands on the Welcome page as normal when %s", async (_why, answer) => {
+        vi.stubGlobal(
+          "fetch",
+          vi.fn(async (url: string) =>
+            url === "/api/usage"
+              ? answer()
+              : new Response(JSON.stringify({ status: "ok", version: "1.2.3" })),
+          ),
+        );
+        await useHostedSignIn(config, managerWith(sam), browserAt("/"));
+
+        const { wrapper } = await openAppAt("/");
+
+        expect(wrapper.get("main h1").text()).toBe("Welcome");
+        expect(wrapper.find("main [role=alert]").exists()).toBe(false);
+      });
     });
 
     it("has no sign-in or sign-out locally", async () => {

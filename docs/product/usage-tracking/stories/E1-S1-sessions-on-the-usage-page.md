@@ -2,7 +2,7 @@
 id: usage-tracking.E1.S1
 title: Record sessions and show them on an admin-only Usage page
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story
@@ -98,10 +98,10 @@ Then nothing scrolls sideways
 ## Notes
 
 - FRs: FR1, FR3, FR4, FR5, FR9, FR11
-- Depends on: none. **Write the ADR first** (PRD Security NFR). It covers storing team activity beyond the username (ADR 0018), where the records live, and how they expire.
-- AC3 needs an exception to ADR 0020's rule that refuses every route that isn't a `GET` for read-only members. The ADR should say how recording a session stays open to them without widening what they can change.
+- Depends on: none. [ADR 0023](../../../adr/0023-usage-records-in-the-data-table.md) decides where usage is stored, the routes, and how records expire. It amends ADR 0018's team data.
+- AC3: ADR 0023 opens `POST /api/usage` to every role, as an exception to ADR 0020.
 - AC4: who comes from the sign-in token, never from the request body.
 - AC14: locally, accounts are the made-up ones in `local-accounts.ts`, so usage for them must stay in memory, like the accounts do.
-- AC15 is covered by the browser layout tests. Ask the user before adding the Usage page to the walks (CLAUDE.md).
+- AC15 is covered by the browser layout tests, which walk the Usage page (added with the user's agreement).
 - The per-person summary shows only sessions here. E2 adds page, view and export counts to it.
 - Out of scope: recording page, view or export use (E2), totals per feature (E3.S1), the activity list (E3.S2), choosing a date range (E3.S3).

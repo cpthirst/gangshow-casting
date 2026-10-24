@@ -1,7 +1,7 @@
 import type { AccountRouteKey, RouteKey } from "@app/shared";
 import { createAddCastMember } from "./add-cast-member.ts";
 import { createAddRole } from "./add-role.ts";
-import { dataStores, type Stores } from "./data-stores.ts";
+import { dataStores, type Stores, usageStore } from "./data-stores.ts";
 import { createDeleteCastMember } from "./delete-cast-member.ts";
 import { exportCastingGrid } from "./export-casting-grid.ts";
 import { createGetCast } from "./get-cast.ts";
@@ -15,18 +15,17 @@ import { createSaveItemNote } from "./save-item-note.ts";
 import { createSaveRunningOrder } from "./save-running-order.ts";
 import { createUpdateCastMember } from "./update-cast-member.ts";
 import { createUpdateRole } from "./update-role.ts";
+import { createUsageRoutes } from "./usage-routes.ts";
+import type { UsageStore } from "./usage-store.ts";
 
 /**
  * A handler for each route in the shared route list, which infra hosts one-for-one, but for
  * the account routes: those run in their own function (account-routes.ts, ADR 0017).
  */
-export function createRoutes({
-  runningOrders,
-  cast,
-  roles,
-  removeCastMember,
-  itemNotes,
-}: Stores): Record<Exclude<RouteKey, AccountRouteKey>, Handler> {
+export function createRoutes(
+  { runningOrders, cast, roles, removeCastMember, itemNotes }: Stores,
+  usage: UsageStore,
+): Record<Exclude<RouteKey, AccountRouteKey>, Handler> {
   return {
     "GET /api/health": health,
     "GET /api/productions/{productionId}/running-order": createGetRunningOrder(runningOrders),
@@ -53,6 +52,7 @@ export function createRoutes({
     ),
     "PUT /api/productions/{productionId}/roles/{roleId}": createUpdateRole(roles, cast),
     "DELETE /api/productions/{productionId}/roles/{roleId}": createRemoveRole(roles),
+    ...createUsageRoutes(usage),
   };
 }
 
@@ -61,4 +61,4 @@ const { where, ...stores } = dataStores();
 export const dataLocation = where;
 
 /** The routes on the data the environment names (data-stores.ts). */
-export const routes = createRoutes(stores);
+export const routes = createRoutes(stores, usageStore());

@@ -59,6 +59,9 @@ export class AppStack extends Stack {
     const table = new TableV2(this, "DataTable", {
       partitionKey: { name: "pk", type: AttributeType.STRING },
       sortKey: { name: "sk", type: AttributeType.STRING },
+      // Rows with this time (epoch seconds) are removed once it passes: usage after 90 days
+      // (ADR 0023). Changing it in place keeps the table and its data.
+      timeToLiveAttribute: "expiresAt",
       // 7 days, so data deleted in the app is gone from every copy within a week (ADR 0010).
       pointInTimeRecoverySpecification: {
         pointInTimeRecoveryEnabled: true,

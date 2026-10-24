@@ -7,9 +7,14 @@ import type { ApiEvent } from "./handler.ts";
  * and acts for an admin who is no account (ADR 0018), so there it's always "other".
  */
 export function callerIs(event: ApiEvent, username: string): "self" | "other" | "unidentified" {
-  const claims = event.requestContext?.authorizer?.jwt?.claims;
-  if (claims === undefined) return "other";
-  const caller = claims.username;
-  if (typeof caller !== "string") return "unidentified";
+  if (event.requestContext?.authorizer?.jwt?.claims === undefined) return "other";
+  const caller = callerUsername(event);
+  if (caller === undefined) return "unidentified";
   return caller.toLowerCase() === username.toLowerCase() ? "self" : "other";
+}
+
+/** The signed-in caller's username, from the access token; undefined when it has none. */
+export function callerUsername(event: ApiEvent): string | undefined {
+  const caller = event.requestContext?.authorizer?.jwt?.claims?.username;
+  return typeof caller === "string" ? caller : undefined;
 }

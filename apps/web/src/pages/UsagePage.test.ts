@@ -1,0 +1,129 @@
+import type { AccountSummary, UsageSummary } from "@app/shared";
+import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { useLocalSignIn } from "../sign-in.ts";
+import UsagePage from "./UsagePage.vue";
+
+enableAutoUnmount(afterEach);
+
+// Made-up usernames only (CLAUDE.md safeguarding).
+const accounts: AccountSummary[] = ["robin", "alex", "sky", "kit"].map((username) => ({
+  username,
+  role: "casting",
+  enabled: true,
+}));
+
+const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
+
+function serve(usage: UsageSummary | Response, accountList: Response = json({ accounts })) {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string) =>
+      url === "/api/accounts" ? accountList : usage instanceof Response ? usage : json(usage),
+    ),
+  );
+}
+
+async function openPage() {
+  const wrapper = mount(UsagePage);
+  await flushPromises();
+  return wrapper;
+}
+
+type Page = Awaited<ReturnType<typeof openPage>>;
+const rows = (wrapper: Page) =>
+  wrapper.findAll("tbody tr").map((row) => row.findAll("td").map((cell) => cell.text()));
+
+describe("Usage page", () => {
+  // As on pnpm dev: the local app acts as an admin.
+  beforeEach(useLocalSignIn);
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("lists every account with its sessions in the last 30 days and its last one", async () => {
+    serve({
+      recordedSince: "2026-10-01T18:00:00.000Z",
+      people: [
+        { username: "robin", sessions: 2, lastSession: "2026-10-20T18:00:00.000Z" },
+        { username: "alex", sessions: 1, lastSession: "2026-10-22T18:00:00.000Z" },
+      ],
+    });
+
+    const wrapper = await openPage();
+
+    expect(wrapper.get("h1").text()).toBe("Usage");
+    expect(wrapper.text()).toContain("Last 30 days");
+    expect(wrapper.findAll("thead th").map((th) => th.text())).toEqual([
+      "Username",
+      "Sessions",
+      "Last session",
+    ]);
+    expect(rows(wrapper)).toEqual([
+      ["alex", "1", "22 October 2026"],
+      ["kit", "0", "None"],
+      ["robin", "2", "20 October 2026"],
+      ["sky", "0", "None"],
+    ]);
+  });
+
+  it("matches usage to accounts whatever the case of the username", async () => {
+    serve({
+      recordedSince: "2026-10-01T18:00:00.000Z",
+      people: [{ username: "Robin", sessions: 3, lastSession: "2026-10-20T18:00:00.000Z" }],
+    });
+
+    const wrapper = await openPage();
+
+    expect(rows(wrapper)).toContainEqual(["robin", "3", "20 October 2026"]);
+  });
+
+  it("shows dates as they are in the UK", async () => {
+    serve({
+      recordedSince: "2026-10-01T18:00:00.000Z",
+      // 23:30 UTC is 00:30 the next day in British Summer Time.
+      people: [{ username: "alex", sessions: 1, lastSession: "2026-10-20T23:30:00.000Z" }],
+    });
+
+    const wrapper = await openPage();
+
+    expect(rows(wrapper)).toContainEqual(["alex", "1", "21 October 2026"]);
+  });
+
+  it("says when usage started being recorded", async () => {
+    serve({ recordedSince: "2026-10-24T08:00:00.000Z", people: [] });
+
+    const wrapper = await openPage();
+
+    expect(wrapper.get("[data-test=recorded-since]").text()).toBe(
+      "Usage has been recorded since 24 October 2026.",
+    );
+  });
+
+  it("says nothing has been recorded yet, still listing every account", async () => {
+    serve({ recordedSince: null, people: [] });
+
+    const wrapper = await openPage();
+
+    expect(wrapper.get("[data-test=recorded-since]").text()).toBe("Nothing has been recorded yet.");
+    expect(rows(wrapper).map(([username]) => username)).toEqual(["alex", "kit", "robin", "sky"]);
+  });
+
+  it.each([
+    ["usage", json({ message: "Only admins can do this." }, 403), json({ accounts })],
+    ["the accounts", json({ recordedSince: null, people: [] }), json({}, 403)],
+  ])("says the page is for admins only when %s is refused", async (_what, usage, list) => {
+    serve(usage, list);
+
+    const wrapper = await openPage();
+
+    expect(wrapper.get("[role=alert]").text()).toBe("Only admins can see usage.");
+    expect(wrapper.find("table").exists()).toBe(false);
+  });
+
+  it("says when usage couldn't be loaded", async () => {
+    serve(json({}, 500));
+
+    const wrapper = await openPage();
+
+    expect(wrapper.get("[role=alert]").text()).toBe("Couldn't load usage.");
+  });
+});

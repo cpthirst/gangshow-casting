@@ -8,10 +8,12 @@ import { dynamoRemoveCastMember } from "./dynamo-remove-cast-member.ts";
 import { dynamoRoleStore } from "./dynamo-role-store.ts";
 import { dynamoRunningOrderStore } from "./dynamo-running-order-store.ts";
 import { documentClient } from "./dynamo-table.ts";
+import { dynamoUsageStore } from "./dynamo-usage-store.ts";
 import { fileItemNoteStore } from "./item-note-store.ts";
 import { uncastThenRemove } from "./remove-cast-member.ts";
 import { fileRoleStore } from "./role-store.ts";
 import { fileRunningOrderStore } from "./running-order-store.ts";
+import { inMemoryUsageStore } from "./usage-store.ts";
 
 // Git-ignored: real production data never goes in the repo (CLAUDE.md safeguarding).
 const defaultDataDir = fileURLToPath(new URL("../data", import.meta.url));
@@ -74,4 +76,13 @@ export function dataStores(env: Env = process.env) {
   }
   const dataDir = dataDirFrom(env);
   return { ...fileStores(dataDir), where: `everything in files at ${dataDir}` };
+}
+
+/**
+ * Where usage is kept: the remote table when there is one, otherwise only in memory. Never
+ * in the files, and never in Stores, so moving the show's data never copies it (ADR 0023).
+ */
+export function usageStore(env: Env = process.env) {
+  const remote = remoteTableFrom(env);
+  return remote ? dynamoUsageStore(remote.db, remote.table) : inMemoryUsageStore();
 }

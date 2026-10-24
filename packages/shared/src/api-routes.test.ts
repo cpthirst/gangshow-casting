@@ -4,15 +4,17 @@ import {
   adminOnlyRouteKeys,
   isAccountRoute,
   isReadRoute,
+  readOnlyMayUse,
   roleFrom,
   routeKeys,
 } from "./api-routes.ts";
 
 describe("adminOnlyRouteKeys", () => {
-  it("keeps managing accounts, deleting a cast member and saving a running-order version for admins", () => {
+  it("keeps managing accounts, deleting a cast member, saving a running-order version and reading usage for admins", () => {
     expect([...adminOnlyRouteKeys].sort()).toEqual([
       "DELETE /api/productions/{productionId}/cast/{castId}",
       "GET /api/accounts",
+      "GET /api/usage",
       "POST /api/accounts",
       "POST /api/accounts/{username}/password",
       "POST /api/productions/{productionId}/running-order/versions",
@@ -75,5 +77,14 @@ describe("isReadRoute", () => {
     ]);
     expect(isReadRoute("PUT /api/productions/{productionId}/cast/{castId}")).toBe(false);
     expect(isReadRoute("POST /api/productions/{productionId}/running-order/versions")).toBe(false);
+  });
+});
+
+describe("readOnlyMayUse", () => {
+  it("lets read-only members use every read, and record their own usage, but nothing else", () => {
+    expect(routeKeys.filter(readOnlyMayUse).sort()).toEqual(
+      [...routeKeys.filter(isReadRoute), "POST /api/usage"].sort(),
+    );
+    expect(isReadRoute("POST /api/usage")).toBe(false);
   });
 });

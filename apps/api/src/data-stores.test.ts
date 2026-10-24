@@ -1,8 +1,8 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { dataStores } from "./data-stores.ts";
+import { dataStores, usageStore } from "./data-stores.ts";
 
 describe("data stores", () => {
   let dataDir: string;
@@ -21,6 +21,15 @@ describe("data stores", () => {
     const file = JSON.parse(await readFile(join(dataDir, "2027", "item-notes.json"), "utf8"));
     expect(file.notes).toEqual([{ itemId: "finale", text: "Bows", revision: 1 }]);
     expect(stores.where).toBe(`everything in files at ${dataDir}`);
+  });
+
+  it("keeps usage only in memory, never in the local files, when no remote table is configured", async () => {
+    const usage = usageStore({ DATA_DIR: dataDir });
+
+    await usage.record({ username: "robin", event: "session", at: "2026-10-24T09:00:00.000Z" });
+
+    expect(await usage.recordedSince()).toBe("2026-10-24T09:00:00.000Z");
+    expect(await readdir(dataDir)).toEqual([]);
   });
 
   it("says where item notes are kept when a remote table is configured", () => {

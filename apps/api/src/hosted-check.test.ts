@@ -1,4 +1,4 @@
-import { adminOnlyRouteKeys, isReadRoute, routeKeys } from "@app/shared";
+import { adminOnlyRouteKeys, readOnlyMayUse, routeKeys } from "@app/shared";
 import { describe, expect, it } from "vitest";
 import { runHostedCheck, type SignIn } from "./hosted-check.ts";
 
@@ -184,7 +184,7 @@ describe("the post-deploy check", () => {
       routeKeys.length + 1,
     );
     // Every change route, current and future, as the read-only account.
-    const changes = routeKeys.filter((key) => !isReadRoute(key));
+    const changes = routeKeys.filter((key) => !readOnlyMayUse(key));
     expect(
       lines.filter((line) => /signed in as check-read-only \(expected 403\)$/.test(line)),
     ).toHaveLength(changes.length);
@@ -197,6 +197,14 @@ describe("the post-deploy check", () => {
     const exportLines = lines.filter((line) => line.includes("/casting-grid/export"));
     // It is checked: anyone not signed in is refused it.
     expect(exportLines).toEqual([expect.stringMatching(/no token \(expected 401\)$/)]);
+    expect(code).toBe(0);
+  });
+
+  it("doesn't expect the read-only account to be refused recording its own usage (ADR 0023)", async () => {
+    const { lines, code } = await run({ routes: [...routeKeys] });
+
+    const recordLines = lines.filter((line) => line.includes("POST /api/usage"));
+    expect(recordLines).toEqual([expect.stringMatching(/no token \(expected 401\)$/)]);
     expect(code).toBe(0);
   });
 
