@@ -76,6 +76,13 @@ export const PersonUsage = z.strictObject({
   uses: z.partialRecord(UsageFeature, z.number().int().min(1)),
 });
 
+/** One feature's uses in the period, and how many different people made them (FR6). */
+export const FeatureTotal = z.strictObject({
+  feature: UsageFeature,
+  uses: z.number().int().min(0),
+  people: z.number().int().min(0),
+});
+
 /**
  * GET /api/usage, admins only: the last 30 days' usage of everyone who has any. The page
  * lists every account, so people with none are added from the account list.
@@ -84,6 +91,8 @@ export const UsageSummary = z.strictObject({
   /** When the first usage was recorded (FR11); null while nothing has been. */
   recordedSince: z.iso.datetime().nullable(),
   people: z.array(PersonUsage).max(1000),
+  /** Every feature, used or not, in UsageFeature's order. */
+  features: z.array(FeatureTotal).max(UsageFeature.options.length),
 });
 
 export type MenuPageName = z.infer<typeof MenuPageName>;
@@ -92,4 +101,5 @@ export type UsageExport = z.infer<typeof UsageExport>;
 export type RecordUsageRequest = z.infer<typeof RecordUsageRequest>;
 export type UsageFeature = z.infer<typeof UsageFeature>;
 export type PersonUsage = z.infer<typeof PersonUsage>;
+export type FeatureTotal = z.infer<typeof FeatureTotal>;
 export type UsageSummary = z.infer<typeof UsageSummary>;

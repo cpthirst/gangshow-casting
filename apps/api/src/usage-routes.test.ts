@@ -1,4 +1,4 @@
-import { type MenuPageName, UsageSummary } from "@app/shared";
+import { type MenuPageName, UsageFeature, UsageSummary } from "@app/shared";
 import { describe, expect, it } from "vitest";
 import { createUsageRoutes } from "./usage-routes.ts";
 import { inMemoryUsageStore, type UsageRecord } from "./usage-store.ts";
@@ -228,6 +228,64 @@ describe("reading usage", () => {
     ]);
   });
 
+  it("totals each feature's uses and the different people who used it", async () => {
+    const { summary } = setUp([
+      opened("robin", "running-order", daysAgo(3)),
+      opened("robin", "running-order", daysAgo(2)),
+      opened("Robin", "running-order", daysAgo(1)),
+      opened("alex", "running-order", daysAgo(2)),
+      opened("alex", "running-order", daysAgo(1)),
+    ]);
+
+    expect((await summary()).features).toContainEqual({
+      feature: "running-order",
+      uses: 5,
+      people: 2,
+    });
+  });
+
+  it("lists every feature once, in a fixed order, with none for those unused", async () => {
+    const { summary } = setUp([opened("robin", "cast", daysAgo(1))]);
+
+    const { features } = await summary();
+
+    expect(features.map(({ feature }) => feature)).toEqual([
+      "welcome",
+      "running-order",
+      "cast",
+      "casting-overview",
+      "casting-items",
+      "accounts",
+      "usage",
+      "overview-by-person",
+      "overview-by-item",
+      "overview-grid",
+      "item-page",
+      "export-excel-grid",
+      "export-word-casting-sheets",
+      "export-word-item-overview",
+    ]);
+    expect(features).toContainEqual({ feature: "export-word-item-overview", uses: 0, people: 0 });
+    expect(features).toContainEqual({ feature: "export-word-casting-sheets", uses: 0, people: 0 });
+  });
+
+  it("totals only the last 30 days", async () => {
+    const { summary } = setUp([
+      opened("robin", "cast", daysAgo(31)),
+      opened("alex", "cast", daysAgo(2)),
+    ]);
+
+    expect((await summary()).features).toContainEqual({ feature: "cast", uses: 1, people: 1 });
+  });
+
+  it("counts no session towards any feature", async () => {
+    const { summary } = setUp([session("robin", daysAgo(1)), session("robin", daysAgo(2))]);
+
+    const { features } = await summary();
+
+    expect(features.every(({ uses, people }) => uses === 0 && people === 0)).toBe(true);
+  });
+
   it("says when recording started", async () => {
     const { summary } = setUp([session("robin", "2026-10-01T19:00:00.000Z")]);
 
@@ -237,6 +295,10 @@ describe("reading usage", () => {
   it("says nothing has been recorded yet", async () => {
     const { summary } = setUp();
 
-    expect(await summary()).toEqual({ recordedSince: null, people: [] });
+    expect(await summary()).toEqual({
+      recordedSince: null,
+      people: [],
+      features: UsageFeature.options.map((feature) => ({ feature, uses: 0, people: 0 })),
+    });
   });
 });

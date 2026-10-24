@@ -1,4 +1,11 @@
-import { featureOf, type PersonUsage, RecordUsageRequest, type UsageSummary } from "@app/shared";
+import {
+  type FeatureTotal,
+  featureOf,
+  type PersonUsage,
+  RecordUsageRequest,
+  UsageFeature,
+  type UsageSummary,
+} from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import { callerUsername } from "./caller.ts";
 import type { ApiEvent, Handler } from "./handler.ts";
@@ -32,9 +39,11 @@ export function createUsageRoutes(
 
     async "GET /api/usage"() {
       const from = new Date(now().getTime() - PERIOD_DAYS * DAY_MS).toISOString();
+      const records = await store.since(from);
       const summary: UsageSummary = {
         recordedSince: (await store.recordedSince()) ?? null,
-        people: byPerson(await store.since(from)),
+        people: byPerson(records),
+        features: byFeature(records),
       };
       return jsonResponse(200, summary);
     },
@@ -68,4 +77,13 @@ function withRecord(person: PersonUsage, record: UsageRecord): PersonUsage {
     sessions: person.sessions + 1,
     lastSession: lastSession && lastSession > record.at ? lastSession : record.at,
   };
+}
+
+/** Every feature's uses and the different people who made them; sessions aren't uses. */
+function byFeature(records: UsageRecord[]): FeatureTotal[] {
+  return UsageFeature.options.map((feature) => {
+    const uses = records.filter((record) => featureOf(record) === feature);
+    const people = new Set(uses.map(({ username }) => username.toLowerCase()));
+    return { feature, uses: uses.length, people: people.size };
+  });
 }

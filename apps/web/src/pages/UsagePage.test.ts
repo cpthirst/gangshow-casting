@@ -37,12 +37,17 @@ async function openPage() {
 type Page = Awaited<ReturnType<typeof openPage>>;
 // A cell listing several things gives each list item, one per line; any other its text.
 const rows = (wrapper: Page) =>
-  wrapper.findAll("tbody tr").map((row) =>
+  wrapper.findAll("[data-test=by-person] tbody tr").map((row) =>
     row.findAll("td").map((cell) => {
       const lines = cell.findAll("li").map((line) => line.text());
       return lines.length > 0 ? lines : cell.text();
     }),
   );
+
+const totals = (wrapper: Page) =>
+  wrapper
+    .findAll("[data-test=by-feature] tbody tr")
+    .map((row) => row.findAll("th, td").map((cell) => cell.text()));
 
 describe("Usage page", () => {
   // As on pnpm dev: the local app acts as an admin.
@@ -52,6 +57,7 @@ describe("Usage page", () => {
   it("lists every account with its sessions in the last 30 days and its last one", async () => {
     serve({
       recordedSince: "2026-10-01T18:00:00.000Z",
+      features: [],
       people: [
         { username: "robin", sessions: 2, lastSession: "2026-10-20T18:00:00.000Z", uses: {} },
         { username: "alex", sessions: 1, lastSession: "2026-10-22T18:00:00.000Z", uses: {} },
@@ -61,8 +67,9 @@ describe("Usage page", () => {
     const wrapper = await openPage();
 
     expect(wrapper.get("h1").text()).toBe("Usage");
-    expect(wrapper.text()).toContain("Last 30 days");
-    expect(wrapper.findAll("thead th").map((th) => th.text())).toEqual([
+    expect(wrapper.get("[data-test=range]").text()).toBe("Last 30 days");
+    expect(wrapper.findAll("h2").map((h2) => h2.text())).toEqual(["By feature", "By person"]);
+    expect(wrapper.findAll("[data-test=by-person] thead th").map((th) => th.text())).toEqual([
       "Username",
       "Sessions",
       "Last session",
@@ -79,6 +86,7 @@ describe("Usage page", () => {
   it("shows how often each person opened each page, in the menu's order", async () => {
     serve({
       recordedSince: "2026-10-01T18:00:00.000Z",
+      features: [],
       people: [
         {
           username: "robin",
@@ -104,6 +112,7 @@ describe("Usage page", () => {
   it("names each page as the menu does", async () => {
     serve({
       recordedSince: "2026-10-01T18:00:00.000Z",
+      features: [],
       people: [
         {
           username: "robin",
@@ -127,6 +136,7 @@ describe("Usage page", () => {
   it("shows Overview views and item pages after the pages", async () => {
     serve({
       recordedSince: "2026-10-01T18:00:00.000Z",
+      features: [],
       people: [
         {
           username: "robin",
@@ -150,6 +160,7 @@ describe("Usage page", () => {
   it("shows exports after everything else", async () => {
     serve({
       recordedSince: "2026-10-01T18:00:00.000Z",
+      features: [],
       people: [
         {
           username: "alex",
@@ -173,6 +184,7 @@ describe("Usage page", () => {
   it("shows no last session for someone who only opened pages in the period", async () => {
     serve({
       recordedSince: "2026-10-01T18:00:00.000Z",
+      features: [],
       people: [{ username: "kit", sessions: 0, lastSession: null, uses: { welcome: 1 } }],
     });
 
@@ -184,6 +196,7 @@ describe("Usage page", () => {
   it("matches usage to accounts whatever the case of the username", async () => {
     serve({
       recordedSince: "2026-10-01T18:00:00.000Z",
+      features: [],
       people: [
         { username: "Robin", sessions: 3, lastSession: "2026-10-20T18:00:00.000Z", uses: {} },
       ],
@@ -197,6 +210,7 @@ describe("Usage page", () => {
   it("shows dates as they are in the UK", async () => {
     serve({
       recordedSince: "2026-10-01T18:00:00.000Z",
+      features: [],
       // 23:30 UTC is 00:30 the next day in British Summer Time.
       people: [
         { username: "alex", sessions: 1, lastSession: "2026-10-20T23:30:00.000Z", uses: {} },
@@ -208,8 +222,34 @@ describe("Usage page", () => {
     expect(rows(wrapper)).toContainEqual(["alex", "1", "21 October 2026", "No uses"]);
   });
 
+  it("totals each feature's uses and people, listing unused ones with none", async () => {
+    serve({
+      recordedSince: "2026-10-01T18:00:00.000Z",
+      people: [],
+      features: [
+        { feature: "running-order", uses: 5, people: 2 },
+        { feature: "export-word-item-overview", uses: 0, people: 0 },
+        { feature: "export-word-casting-sheets", uses: 0, people: 0 },
+      ],
+    });
+
+    const wrapper = await openPage();
+
+    expect(wrapper.get("[data-test=by-feature]").attributes("aria-label")).toBe("Usage by feature");
+    expect(wrapper.findAll("[data-test=by-feature] thead th").map((th) => th.text())).toEqual([
+      "Feature",
+      "Uses",
+      "People",
+    ]);
+    expect(totals(wrapper)).toEqual([
+      ["Running order", "5", "2"],
+      ["Export: Word item overview", "0", "0"],
+      ["Export: Word casting sheets", "0", "0"],
+    ]);
+  });
+
   it("says when usage started being recorded", async () => {
-    serve({ recordedSince: "2026-10-24T08:00:00.000Z", people: [] });
+    serve({ recordedSince: "2026-10-24T08:00:00.000Z", people: [], features: [] });
 
     const wrapper = await openPage();
 
@@ -219,7 +259,7 @@ describe("Usage page", () => {
   });
 
   it("says nothing has been recorded yet, still listing every account", async () => {
-    serve({ recordedSince: null, people: [] });
+    serve({ recordedSince: null, people: [], features: [] });
 
     const wrapper = await openPage();
 
@@ -229,7 +269,7 @@ describe("Usage page", () => {
 
   it.each([
     ["usage", json({ message: "Only admins can do this." }, 403), json({ accounts })],
-    ["the accounts", json({ recordedSince: null, people: [] }), json({}, 403)],
+    ["the accounts", json({ recordedSince: null, people: [], features: [] }), json({}, 403)],
   ])("says the page is for admins only when %s is refused", async (_what, usage, list) => {
     serve(usage, list);
 

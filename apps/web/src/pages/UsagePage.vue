@@ -59,8 +59,38 @@ onMounted(load);
   <p v-else-if="state.status === 'error'" role="alert">{{ state.message }}</p>
   <template v-else>
     <p data-test="recorded-since">{{ recordedSince }}</p>
-    <h2>Last 30 days</h2>
-    <div class="table-scroll cast-table" tabindex="0" role="region" aria-label="Usage by person">
+    <p data-test="range">Last 30 days</p>
+    <h2>By feature</h2>
+    <div
+      class="table-scroll cast-table"
+      tabindex="0"
+      role="region"
+      aria-label="Usage by feature"
+      data-test="by-feature">
+      <table class="cast-list">
+        <thead>
+          <tr>
+            <th scope="col">Feature</th>
+            <th scope="col">Uses</th>
+            <th scope="col">People</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="total in state.usage.features" :key="total.feature">
+            <td class="username" data-label="Feature">{{ nameOf(total.feature) }}</td>
+            <td data-label="Uses">{{ total.uses }}</td>
+            <td data-label="People">{{ total.people }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <h2>By person</h2>
+    <div
+      class="table-scroll cast-table"
+      tabindex="0"
+      role="region"
+      aria-label="Usage by person"
+      data-test="by-person">
       <!-- The Accounts page's look, so phones show each person as a card too. -->
       <table class="cast-list">
         <thead>
