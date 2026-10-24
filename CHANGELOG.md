@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.0](https://github.com/cpthirst/gangshow-casting/compare/v1.12.0...v1.13.0) (2026-10-24)
+
+
+### Features
+
+* **web:** add Help and Production pages, group the menu, and a logo on Welcome ([#95](https://github.com/cpthirst/gangshow-casting/issues/95)) ([57911ca](https://github.com/cpthirst/gangshow-casting/commit/57911ca3523532e2e49831bc6d38af5837654ccc))
+
 ## [1.12.0](https://github.com/cpthirst/gangshow-casting/compare/v1.11.0...v1.12.0) (2026-10-24)
 
 
