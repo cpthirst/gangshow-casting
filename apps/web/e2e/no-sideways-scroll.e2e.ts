@@ -78,7 +78,9 @@ test("the accounts list, its add form and a new account's password fit the scree
 test("the usage list fits the screen", async ({ page }) => {
   // Opening the app records a session for the made-up local admin, so their row has a date.
   await page.goto("/usage");
-  await expect(page.getByRole("cell", { name: "alex", exact: true })).toBeVisible();
+  // alex is in the activity list too: look in the per-person table.
+  const byPerson = page.getByRole("region", { name: "Usage by person" });
+  await expect(byPerson.getByRole("cell", { name: "alex", exact: true })).toBeVisible();
   await expect(page.getByText("Usage has been recorded since")).toBeVisible();
   await expectNoSidewaysScroll(page);
 });

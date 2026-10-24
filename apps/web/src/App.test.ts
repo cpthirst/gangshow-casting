@@ -5,6 +5,7 @@ import App from "./App.vue";
 import { createAppRouter } from "./router.ts";
 import { signInAs } from "./sign-in.fixture.ts";
 import {
+  SignInEnded,
   type SignInManager,
   signInUnavailable,
   useHostedSignIn,
@@ -133,6 +134,19 @@ describe("App shell", () => {
       );
     const recorded = () => answering(async () => new Response(null, { status: 204 }));
 
+    it("records a session each time the app opens locally, where there's no sign-in", async () => {
+      vi.stubGlobal("fetch", recorded());
+
+      await openAppAt("/");
+
+      const sessions = vi
+        .mocked(fetch)
+        .mock.calls.filter(
+          ([url, init]) => url === "/api/usage" && String(init?.body).includes('"session"'),
+        );
+      expect(sessions).toHaveLength(1);
+    });
+
     it("records opening the Running order page", async () => {
       const fetchMock = recorded();
       vi.stubGlobal("fetch", fetchMock);
@@ -216,6 +230,7 @@ describe("App shell", () => {
 
     it.each([
       ["the API refuses it", async () => new Response("", { status: 500 })],
+      ["it's refused as too many (ADR 0024)", async () => new Response("", { status: 429 })],
       ["the API can't be reached", () => Promise.reject(new TypeError("fetch failed"))],
     ])("shows the Cast page as normal when recording fails because %s", async (_why, usage) => {
       vi.stubGlobal("fetch", answering(usage));
@@ -709,14 +724,48 @@ describe("App shell", () => {
         expect(new Headers(post?.[1]?.headers).get("authorization")).toBe("Bearer sams-token");
       });
 
-      it("records a session on opening or reloading the app while still signed in", async () => {
+      // A session is one day-long sign-in (usage-tracking FR1, ADR 0024).
+      it("records no session on reopening or reloading the app while the day's sign-in lasts", async () => {
         const fetchMock = respondWith(204, {});
         vi.stubGlobal("fetch", fetchMock);
         await useHostedSignIn(config, managerWith(sam), browserAt("/cast"));
 
         await openAppAt("/cast");
 
+        expect(usagePosts(fetchMock)).toEqual([]);
+      });
+
+      it("records a new session on signing in again once the day's sign-in has ended", async () => {
+        const fetchMock = respondWith(204, {});
+        vi.stubGlobal("fetch", fetchMock);
+        const ended = {
+          ...managerWith(null),
+          refresh: vi.fn(async () => Promise.reject(new SignInEnded())),
+        };
+        await useHostedSignIn(config, ended, browserAt("/cast"));
+        await openAppAt("/cast");
+        expect(usagePosts(fetchMock)).toEqual([]);
+
+        const back = { ...browserAt("/"), search: "?state=made-up&code=made-up" };
+        await useHostedSignIn(config, managerWith(null), back);
+        await openAppAt("/");
+
         expect(usagePosts(fetchMock)).toHaveLength(1);
+      });
+
+      it("records no session when someone comes back from the login pages without signing in", async () => {
+        const fetchMock = respondWith(204, {});
+        vi.stubGlobal("fetch", fetchMock);
+        const cancelled = {
+          ...managerWith(null),
+          finishSignIn: vi.fn(async () => Promise.reject(new Error("access_denied"))),
+        };
+        const back = { ...browserAt("/"), search: "?state=made-up&error=access_denied" };
+        await useHostedSignIn(config, cancelled, back);
+
+        await openAppAt("/");
+
+        expect(usagePosts(fetchMock)).toEqual([]);
       });
 
       it("records no session while someone still has to sign in", async () => {

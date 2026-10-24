@@ -180,6 +180,11 @@ onMounted(load);
       </table>
     </div>
     <h2>By person</h2>
+    <!-- A session is one sign-in (usage-tracking FR1, ADR 0024): say so, or a recent user
+         whose sign-in began days ago looks as if they've stopped. -->
+    <p data-test="sign-in-note">
+      A sign-in lasts the day, so reopening the app within it isn't counted again.
+    </p>
     <div
       class="table-scroll cast-table"
       tabindex="0"
@@ -191,17 +196,17 @@ onMounted(load);
         <thead>
           <tr>
             <th scope="col">Username</th>
-            <th scope="col">Sessions</th>
-            <th scope="col">Last session</th>
+            <th scope="col">Sign-ins</th>
+            <th scope="col">Last sign-in</th>
             <th scope="col">Uses</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="row in rows" :key="row.username">
             <td class="username" data-label="Username">{{ row.username }}</td>
-            <td data-label="Sessions">{{ row.usage?.sessions ?? 0 }}</td>
-            <td data-label="Last session">
-              {{ row.usage?.lastSession ? dayOf(row.usage.lastSession) : "No sessions" }}
+            <td data-label="Sign-ins">{{ row.usage?.sessions ?? 0 }}</td>
+            <td data-label="Last sign-in">
+              {{ row.usage?.lastSession ? dayOf(row.usage.lastSession) : "No sign-ins" }}
             </td>
             <td data-label="Uses">
               <!-- One use a line: a long run of names and counts is hard to scan on a phone. -->

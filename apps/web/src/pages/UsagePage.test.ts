@@ -95,6 +95,9 @@ describe("Usage page", () => {
 
     expect(wrapper.get("h1").text()).toBe("Usage");
     expect(range(wrapper).element.value).toBe("30");
+    expect(wrapper.get("[data-test=sign-in-note]").text()).toBe(
+      "A sign-in lasts the day, so reopening the app within it isn't counted again.",
+    );
     expect(wrapper.findAll("h2").map((h2) => h2.text())).toEqual([
       "By feature",
       "By person",
@@ -102,15 +105,15 @@ describe("Usage page", () => {
     ]);
     expect(wrapper.findAll("[data-test=by-person] thead th").map((th) => th.text())).toEqual([
       "Username",
-      "Sessions",
-      "Last session",
+      "Sign-ins",
+      "Last sign-in",
       "Uses",
     ]);
     expect(rows(wrapper)).toEqual([
       ["alex", "1", "22 October 2026", "No uses"],
-      ["kit", "0", "No sessions", "No uses"],
+      ["kit", "0", "No sign-ins", "No uses"],
       ["robin", "2", "20 October 2026", "No uses"],
-      ["sky", "0", "No sessions", "No uses"],
+      ["sky", "0", "No sign-ins", "No uses"],
     ]);
   });
 
@@ -221,7 +224,7 @@ describe("Usage page", () => {
 
     const wrapper = await openPage();
 
-    expect(rows(wrapper)).toContainEqual(["kit", "0", "No sessions", ["Welcome 1"]]);
+    expect(rows(wrapper)).toContainEqual(["kit", "0", "No sign-ins", ["Welcome 1"]]);
   });
 
   it("matches usage to accounts whatever the case of the username", async () => {
@@ -346,7 +349,7 @@ describe("Usage page", () => {
       ]);
       expect(activity(wrapper)).toEqual([
         ["robin", "opened Running order", "20 October 2026 19:01"],
-        ["robin", "session", "20 October 2026 19:00"],
+        ["robin", "signed in", "20 October 2026 19:00"],
       ]);
     });
 
@@ -509,7 +512,7 @@ describe("Usage page", () => {
       );
       expect(rows(wrapper)).toContainEqual(["robin", "1", "20 October 2026", "No uses"]);
       expect(totals(wrapper)).toEqual([["Cast", "0", "0"]]);
-      expect(activity(wrapper)).toEqual([["robin", "session", "20 October 2026 19:00"]]);
+      expect(activity(wrapper)).toEqual([["robin", "signed in", "20 October 2026 19:00"]]);
     });
 
     it("asks for the last 90 days when chosen", async () => {
@@ -532,7 +535,7 @@ describe("Usage page", () => {
       expect(wrapper.get("[role=alert]").text()).toBe("Couldn't load usage.");
       await range(wrapper).setValue("7");
       await flushPromises();
-      expect(activity(wrapper)).toEqual([["robin", "session", "20 October 2026 19:00"]]);
+      expect(activity(wrapper)).toEqual([["robin", "signed in", "20 October 2026 19:00"]]);
     });
 
     it("shows the range chosen last, even if an earlier one answers after it", async () => {

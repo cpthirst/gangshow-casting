@@ -83,7 +83,7 @@ type Titles = {
 export function whatHappened(entry: RecordUsageRequest, titles: Titles) {
   switch (entry.event) {
     case "session":
-      return "session";
+      return "signed in";
     case "page":
       return `opened ${titles.page(entry.page)}`;
     case "view":

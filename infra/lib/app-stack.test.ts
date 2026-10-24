@@ -382,6 +382,26 @@ describe("AppStack", () => {
       });
     });
 
+    // ADR 0024.
+    it("limits recording usage to 5 a second, with bursts of up to 10, and nothing else", () => {
+      const [stage] = resourcesOfType(synth().template, "AWS::ApiGatewayV2::Stage");
+
+      expect(stage?.Properties.RouteSettings).toEqual({
+        "POST /api/usage": { ThrottlingRateLimit: 5, ThrottlingBurstLimit: 10 },
+      });
+    });
+
+    it("sets the usage limit only once the usage route exists, as CloudFormation needs", () => {
+      const { template } = synth();
+      const [stage] = resourcesOfType(template, "AWS::ApiGatewayV2::Stage");
+      const routes = Object.entries(template.findResources("AWS::ApiGatewayV2::Route"));
+      const usageRoute = routes.find(
+        ([, route]) => route.Properties.RouteKey === "POST /api/usage",
+      );
+
+      expect(stage?.DependsOn).toContain(usageRoute?.[0]);
+    });
+
     it("keeps every log for 30 days: the API's, its functions' and the pages' deployment's", () => {
       const { template } = synth();
 

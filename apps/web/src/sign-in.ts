@@ -71,6 +71,11 @@ const refusedAsReadOnly = ref(false);
 // A page asks for several things at once: they share one renewal.
 let renewing: Promise<string | undefined> | undefined;
 
+/**
+ * Set when this page load completed a sign-in at the login pages. A sign-in lasts the day,
+ * so only then does a session start; reopening or reloading is the same one (ADR 0024).
+ */
+export const justSignedIn = ref(false);
 /** Set when no one is signed in, or the API refuses the sign-in: the app shows only how to sign in. */
 export const signInNeeded = ref(false);
 /** Signing in is through the login pages: never locally. */
@@ -99,6 +104,7 @@ export const changeRefusedAsReadOnly = computed(() => refusedAsReadOnly.value);
 
 /** The app couldn't start its sign-in, so it can sign no one in. */
 export function signInUnavailable() {
+  justSignedIn.value = false;
   refusedAsReadOnly.value = false;
   session.value = { kind: "unavailable" };
   user.value = null;
@@ -106,6 +112,7 @@ export function signInUnavailable() {
 }
 
 export function useLocalSignIn() {
+  justSignedIn.value = false;
   refusedAsReadOnly.value = false;
   session.value = { kind: "local", role: "admin" };
   user.value = null;
@@ -133,6 +140,7 @@ export async function useHostedSignIn(
   user.value = returning
     ? await manager.finishSignIn().catch(() => null)
     : await manager.storedUser();
+  justSignedIn.value = returning && user.value !== null;
   // Drop the sign-in's code from the address, landing on the page they asked for.
   if (returning) browser.replacePath(ownPage(user.value?.returnTo));
   signInNeeded.value = (await currentToken()) === undefined;

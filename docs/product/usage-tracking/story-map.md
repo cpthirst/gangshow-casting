@@ -42,7 +42,7 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [usage-tracking.E4.S1](stories/E4-S1-limit-recording.md) | A session is one day-long sign-in, not every reload, and recording usage is throttled so one account can't flood it | FR1, Security NFR | E1.S1 | ready |
+| [usage-tracking.E4.S1](stories/E4-S1-limit-recording.md) | A session is one day-long sign-in, not every reload, and recording usage is throttled so one account can't flood it | FR1, Security NFR | E1.S1 | done |
 
 ## Order
 

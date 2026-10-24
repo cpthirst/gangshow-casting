@@ -10,6 +10,7 @@ import {
   isLocal,
   isSignedIn,
   isSignInUnavailable,
+  justSignedIn,
   signIn,
   signInNeeded,
   signOut,
@@ -52,10 +53,11 @@ watch(
   { flush: "post" },
 );
 
-// Each time the app opens signed in, by signing in or coming back still signed in, is a
-// session (usage-tracking FR1), and each menu page opened is a use of it (FR2). In setup,
-// not onMounted, so the session is sent before the watch below sends the first page use.
-if (!signInNeeded.value) recordSession();
+// A session is one sign-in, which lasts the day (usage-tracking FR1, ADR 0024): reloading or
+// reopening the app within it starts none. Locally there's no sign-in, so each opening does.
+// Each menu page opened is a use (FR2). In setup, not onMounted, so the session is sent
+// before the watch below sends the first page use.
+if (!signInNeeded.value && (justSignedIn.value || isLocal.value)) recordSession();
 watch(
   () => route.name,
   (pageName) => {
