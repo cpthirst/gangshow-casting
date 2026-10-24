@@ -111,7 +111,8 @@ function onEscape() {
     <aside class="sidebar" @keydown.esc="onEscape">
       <p class="wordmark" data-test="wordmark">
         <span class="wordmark-name">Chester Gang Show</span>
-        <span class="wordmark-sub">Casting</span>
+        <span class="wordmark-app">iCUE</span>
+        <span class="wordmark-tagline">Show Management App</span>
       </p>
       <p v-if="isDemo" class="demo-label" data-test="demo-label">
         Demo data: a made-up show, reset each time the demo starts

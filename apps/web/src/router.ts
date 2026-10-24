@@ -20,7 +20,7 @@ declare module "vue-router" {
   }
 }
 
-const APP_NAME = "Chester Gang Show casting";
+const APP_NAME = "iCUE";
 
 /** Names the page in the browser tab, e.g. once a page knows which item it shows. */
 export function showPageTitle(title: string) {

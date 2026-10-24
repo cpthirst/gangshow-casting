@@ -6,8 +6,9 @@ import PageHelp from "../PageHelp.vue";
 <template>
   <h1>Welcome</h1>
   <p data-test="intro">
-    This is the Chester Gang Show's casting tool. It shows who is in which item, and when, so the
-    production team can cast the show.
+    This is iCUE, the Chester Gang Show's app for managing the show, so every department works from
+    the same information. Today it covers casting, showing who is in which item and when; props
+    lists, sound effects and mic plots are to come.
   </p>
   <section
     v-for="help in pageHelp"

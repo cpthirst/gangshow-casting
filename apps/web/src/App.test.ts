@@ -50,7 +50,8 @@ describe("App shell", () => {
     const wordmark = wrapper.get("[data-test=wordmark]");
     expect(wordmark.findAll("span").map((line) => line.text())).toEqual([
       "Chester Gang Show",
-      "Casting",
+      "iCUE",
+      "Show Management App",
     ]);
     const menu = wrapper.get("nav[aria-label=Main]");
     const topLevel = menu.findAll(":scope > ul > li").map((item) => item.text());
@@ -327,7 +328,7 @@ describe("App shell", () => {
     const { wrapper } = await openAppAt("/");
 
     expect(wrapper.get("main h1").text()).toBe("Welcome");
-    expect(document.title).toBe("Welcome · Chester Gang Show casting");
+    expect(document.title).toBe("Welcome · iCUE");
     const current = wrapper.findAll("nav a[aria-current=page]");
     expect(current.map((link) => link.text())).toEqual(["Welcome"]);
   });
@@ -336,7 +337,7 @@ describe("App shell", () => {
     const { wrapper } = await openAppAt("/running-order");
 
     expect(wrapper.get("main h1").text()).toBe("Running order");
-    expect(document.title).toBe("Running order · Chester Gang Show casting");
+    expect(document.title).toBe("Running order · iCUE");
     const current = wrapper.findAll("nav a[aria-current=page]");
     expect(current.map((link) => link.text())).toEqual(["Running order"]);
   });
@@ -420,7 +421,7 @@ describe("App shell", () => {
     expect(wrapper.get("main h1").text()).toBe("Overview");
     expect(wrapper.get("main > p").text()).toBe("Everyone in the cast and how much they're cast.");
     expect(router.currentRoute.value.fullPath).toBe("/casting/overview");
-    expect(document.title).toBe("Overview · Chester Gang Show casting");
+    expect(document.title).toBe("Overview · iCUE");
   });
 
   it("shows the Items page with its description and URL when chosen", async () => {
@@ -604,7 +605,7 @@ describe("App shell", () => {
       const { wrapper } = await openAppAt("/cast");
 
       expect(wrapper.get("main [role=alert]").text()).toContain("Sign in to see it");
-      expect(document.title).toBe("Sign in · Chester Gang Show casting");
+      expect(document.title).toBe("Sign in · iCUE");
       expect(wrapper.get(".sidebar-footer > p").text()).toBe("API: sign in needed");
     });
 
@@ -614,7 +615,7 @@ describe("App shell", () => {
       await router.push("/casting/overview");
       await flushPromises();
 
-      expect(document.title).toBe("Sign in · Chester Gang Show casting");
+      expect(document.title).toBe("Sign in · iCUE");
     });
   });
 
@@ -654,7 +655,7 @@ describe("App shell", () => {
       const { wrapper } = await openAppAt("/");
 
       expect(wrapper.get("main h1").text()).toBe("Welcome");
-      expect(document.title).toBe("Welcome · Chester Gang Show casting");
+      expect(document.title).toBe("Welcome · iCUE");
     });
 
     it("shows the page once signed in, with a way to sign out", async () => {

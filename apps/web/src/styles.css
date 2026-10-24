@@ -86,11 +86,18 @@ body {
   line-height: 1.2;
 }
 
-.wordmark-sub {
-  font-size: 0.875rem;
+/* The app's name keeps its own capitals: "iCUE", never "ICUE". */
+.wordmark-app {
+  font-size: 1rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+}
+
+.wordmark-tagline {
+  font-size: 0.875rem;
+  font-style: italic;
+  line-height: 1.2;
 }
 
 /* Stands out on every page, so the demo can't be mistaken for the real show. */
@@ -1854,6 +1861,11 @@ main a {
 
   .wordmark-name {
     font-size: 1.125rem;
+  }
+
+  /* Three lines beside the Menu button: keep the header short on a small screen. */
+  .wordmark-tagline {
+    font-size: 0.75rem;
   }
 
   /* Easy to tap with a thumb, with Previous and Next side by side. */
