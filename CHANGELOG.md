@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.10.0](https://github.com/cpthirst/gangshow-casting/compare/v1.9.0...v1.10.0) (2026-10-24)
+
+
+### Features
+
+* **web:** record sessions and show them on an admin-only Usage page (usage-tracking.E1.S1) ([#89](https://github.com/cpthirst/gangshow-casting/issues/89)) ([791fb81](https://github.com/cpthirst/gangshow-casting/commit/791fb81ed2ca88fbd853ee666dc571764c67ab19))
+
 ## [1.9.0](https://github.com/cpthirst/gangshow-casting/compare/v1.8.0...v1.9.0) (2026-10-19)
 
 
