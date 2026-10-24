@@ -74,8 +74,22 @@ body {
   outline-color: var(--yellow);
 }
 
-.wordmark {
+.brand {
   margin: 0 1.5rem 2rem;
+}
+
+/* On its own white card: the logo's background is white, the sidebar's isn't. */
+.brand-logo {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-bottom: 0.75rem;
+  border-radius: 6px;
+  background: var(--white);
+}
+
+.wordmark {
+  margin: 0;
   display: flex;
   flex-direction: column;
 }
@@ -125,37 +139,89 @@ body {
   padding: 0;
 }
 
-.sidebar nav a {
-  display: block;
-  padding: 0.75rem 1.5rem;
+/* Every top-level entry, link or group label, looks and lines up the same: same box, same
+   left edge (the 4px border is there even when it's transparent), same capitals. Only the
+   chevron says a group label opens rather than goes somewhere. */
+.menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.625rem 1.5rem 0.625rem calc(1.5rem - 4px);
+  border: none;
+  border-left: 4px solid transparent;
+  background: none;
+  color: var(--white);
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.3;
+  text-align: left;
+  text-decoration: none;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+/* A group's pages sit beneath its label, indented and in their own case. */
+.menu-subitem {
+  display: flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0.5rem 1.5rem 0.5rem calc(2.5rem - 4px);
+  font-size: 0.9375rem;
   border-left: 4px solid transparent;
   color: var(--white);
   font-weight: 700;
   text-decoration: none;
 }
 
-.sidebar nav a:hover {
+.menu-item:hover,
+.menu-subitem:hover {
   background: var(--red-darker);
 }
 
-.sidebar nav a[aria-current="page"] {
+.menu-item[aria-current="page"],
+.menu-subitem[aria-current="page"] {
   background: var(--white);
   border-left-color: var(--yellow);
   color: var(--red-deep);
 }
 
-/* A group label (Casting) isn't a link: quieter than the pages, which sit indented beneath it. */
-.menu-group {
-  display: block;
-  padding: 1rem 1.5rem 0.25rem;
-  font-size: 0.8125rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+/* Folded away with the current page inside: the label carries the marker instead, so the
+   menu still says where you are. */
+.menu-group.holds-current[aria-expanded="false"] {
+  border-left-color: var(--yellow);
 }
 
-.sidebar nav .menu-group-pages a {
-  padding-left: 2.5rem;
+/* Points right when folded, down when open; yellow when hovered or focused, like the marker. */
+.menu-group::after {
+  content: "";
+  flex: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-right: 0.25rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 150ms ease;
+}
+
+.menu-group[aria-expanded="true"]::after {
+  transform: rotate(45deg);
+}
+
+.menu-group:hover::after,
+.menu-group:focus-visible::after {
+  border-color: var(--yellow);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu-group::after {
+    transition: none;
+  }
 }
 
 .sidebar-footer {
@@ -1855,7 +1921,17 @@ main a {
     padding: 0.75rem 1rem;
   }
 
-  .wordmark {
+  /* The logo sits small beside the wordmark, so the header stays short. */
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0;
+  }
+
+  .brand-logo {
+    width: auto;
+    height: 2.75rem;
     margin: 0;
   }
 
@@ -2168,4 +2244,35 @@ main a {
 
 .help-dialog-title h2 {
   margin: 0;
+}
+
+/* The logo is centred; the text beneath it reads like every other page, left-aligned. */
+.welcome-logo {
+  display: block;
+  width: 100%;
+  max-width: 28rem;
+  height: auto;
+  margin: 0 auto 1rem;
+}
+
+.welcome h1 {
+  text-transform: uppercase;
+}
+
+.welcome-areas dt {
+  margin-top: 1rem;
+  font-weight: 700;
+}
+
+.welcome-areas dd {
+  margin: 0.25rem 0 0;
+}
+
+/* The logo is wide: on a phone, keep it short so the title shows without scrolling. */
+@media (max-width: 767px) {
+  .welcome-logo {
+    width: auto;
+    max-width: 100%;
+    max-height: 6rem;
+  }
 }

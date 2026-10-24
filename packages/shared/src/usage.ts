@@ -6,8 +6,13 @@ export const MenuPageName = z.enum([
   "welcome",
   "running-order",
   "cast",
+  "mic-plot",
+  "props",
+  "scenery",
+  "sfx",
   "casting-overview",
   "casting-items",
+  "help",
   "accounts",
   "usage",
 ]);

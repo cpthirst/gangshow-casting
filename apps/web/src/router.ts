@@ -5,6 +5,7 @@ import CastingItemPage from "./pages/CastingItemPage.vue";
 import CastingItemsPage from "./pages/CastingItemsPage.vue";
 import CastingOverviewPage from "./pages/CastingOverviewPage.vue";
 import CastPage from "./pages/CastPage.vue";
+import HelpPage from "./pages/HelpPage.vue";
 import NotFoundPage from "./pages/NotFoundPage.vue";
 import PlaceholderPage from "./pages/PlaceholderPage.vue";
 import RunningOrderPage from "./pages/RunningOrderPage.vue";
@@ -54,23 +55,29 @@ export const menuPages: (MenuPage | MenuGroup)[] = [
     component: WelcomePage,
     meta: {
       title: "Welcome",
-      description: "What each page is for, and what its buttons do.",
+      description: "Where iCUE starts, and what is in each area of the menu.",
     },
   },
   {
-    path: "/running-order",
-    name: "running-order",
-    component: RunningOrderPage,
-    meta: {
-      title: "Running order",
-      description: "The show's items in the order they're performed.",
-    },
-  },
-  {
-    path: "/cast",
-    name: "cast",
-    component: CastPage,
-    meta: { title: "Cast", description: "The Scouts and Explorers in this production." },
+    name: "show",
+    title: "Show",
+    pages: [
+      {
+        path: "/running-order",
+        name: "running-order",
+        component: RunningOrderPage,
+        meta: {
+          title: "Running order",
+          description: "The show's items in the order they're performed.",
+        },
+      },
+      {
+        path: "/cast",
+        name: "cast",
+        component: CastPage,
+        meta: { title: "Cast", description: "The Scouts and Explorers in this production." },
+      },
+    ],
   },
   {
     name: "casting",
@@ -97,6 +104,32 @@ export const menuPages: (MenuPage | MenuGroup)[] = [
     ],
   },
   {
+    name: "production",
+    title: "Production",
+    pages: [
+      {
+        path: "/production/mic-plot",
+        name: "mic-plot",
+        meta: { title: "Mic plot", description: "Which microphone is on whom, item by item." },
+      },
+      {
+        path: "/production/props",
+        name: "props",
+        meta: { title: "Props", description: "The props each item needs." },
+      },
+      {
+        path: "/production/scenery",
+        name: "scenery",
+        meta: { title: "Scenery", description: "The scenery each item needs." },
+      },
+      {
+        path: "/production/sfx",
+        name: "sfx",
+        meta: { title: "SFX", description: "The sound effects for each item." },
+      },
+    ],
+  },
+  {
     path: "/accounts",
     name: "accounts",
     component: AccountsPage,
@@ -109,6 +142,12 @@ export const menuPages: (MenuPage | MenuGroup)[] = [
     component: UsagePage,
     meta: { title: "Usage", description: "Who on the team uses the app, and how often." },
     adminOnly: true,
+  },
+  {
+    path: "/help",
+    name: "help",
+    component: HelpPage,
+    meta: { title: "Help", description: "What each page is for, and what its buttons do." },
   },
 ];
 

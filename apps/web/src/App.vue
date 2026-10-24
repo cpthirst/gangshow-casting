@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import logoSmall from "./assets/logo-small.jpg";
 import HealthStatus from "./HealthStatus.vue";
 import LocalRoleSwitch from "./LocalRoleSwitch.vue";
-import { isMenuGroup, menuPages, showPageTitle } from "./router.ts";
+import MainMenu from "./MainMenu.vue";
+import { showPageTitle } from "./router.ts";
 import {
-  isAdmin,
   isHosted,
   isLocal,
   isSignedIn,
@@ -26,15 +27,6 @@ const router = useRouter();
 
 // Set by `pnpm demo`, so its made-up show can't be mistaken for the real one.
 const isDemo = import.meta.env.VITE_DEMO === "true";
-
-// Replaces RouterLink's own aria-current (an explicit attribute wins), so a page outside
-// the menu, such as an item, can mark its menu page (Items) as current.
-const ariaCurrent = (pageName: string) =>
-  route.name === pageName || route.meta.menuPage === pageName ? "page" : undefined;
-
-const shownMenuPages = computed(() =>
-  menuPages.filter((entry) => isMenuGroup(entry) || !entry.adminOnly || isAdmin.value),
-);
 
 const main = ref<HTMLElement>();
 const menuButton = ref<HTMLButtonElement>();
@@ -109,11 +101,15 @@ function onEscape() {
   </a>
   <div class="shell">
     <aside class="sidebar" @keydown.esc="onEscape">
-      <p class="wordmark" data-test="wordmark">
-        <span class="wordmark-name">Chester Gang Show</span>
-        <span class="wordmark-app">iCUE</span>
-        <span class="wordmark-tagline">Show Management App</span>
-      </p>
+      <div class="brand">
+        <!-- Decorative: the wordmark beside it already names the show. -->
+        <img class="brand-logo" :src="logoSmall" alt="" width="360" height="146" />
+        <p class="wordmark" data-test="wordmark">
+          <span class="wordmark-name">Chester Gang Show</span>
+          <span class="wordmark-app">iCUE</span>
+          <span class="wordmark-tagline">Show Management App</span>
+        </p>
+      </div>
       <p v-if="isDemo" class="demo-label" data-test="demo-label">
         Demo data: a made-up show, reset each time the demo starts
       </p>
@@ -128,25 +124,7 @@ function onEscape() {
       >
         Menu
       </button>
-      <nav v-show="!isPhone || isMenuOpen" id="main-menu" aria-label="Main" @click="onMenuChoice">
-        <ul>
-          <li v-for="entry in shownMenuPages" :key="entry.name">
-            <template v-if="isMenuGroup(entry)">
-              <span :id="`menu-${entry.name}`" class="menu-group">{{ entry.title }}</span>
-              <ul class="menu-group-pages" :aria-labelledby="`menu-${entry.name}`">
-                <li v-for="page in entry.pages" :key="page.name">
-                  <RouterLink :to="page.path" :aria-current="ariaCurrent(page.name)">{{
-                    page.meta.title
-                  }}</RouterLink>
-                </li>
-              </ul>
-            </template>
-            <RouterLink v-else :to="entry.path" :aria-current="ariaCurrent(entry.name)">{{
-              entry.meta.title
-            }}</RouterLink>
-          </li>
-        </ul>
-      </nav>
+      <MainMenu v-show="!isPhone || isMenuOpen" id="main-menu" @click="onMenuChoice" />
       <footer class="sidebar-footer">
         <HealthStatus />
         <LocalRoleSwitch v-if="isLocal" />

@@ -24,17 +24,17 @@ export interface HelpLine {
 }
 
 export interface PageHelp {
-  /** The page's route name, exactly as in router.ts: the Welcome page links to it by name. */
+  /** The page's route name, exactly as in router.ts: the Help page links to it by name. */
   page: string;
   title: string;
   /** A line about the page as a whole, before its actions. */
   summary: string;
-  /** The page the Welcome page links to instead, for a page with no menu entry of its own. */
+  /** The page the Help page links to instead, for a page with no menu entry of its own. */
   reachedFrom?: { page: string; title: string };
   lines: HelpLine[];
 }
 
-// Written once, shown on the Welcome page and behind each page's help button (FR9). Keep each
+// Written once, shown on the Help page and behind each page's help button (FR9). Keep each
 // page to about 8 lines: one per action.
 export const pageHelp: PageHelp[] = [
   {
