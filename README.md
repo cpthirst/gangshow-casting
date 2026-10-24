@@ -123,12 +123,12 @@ CI runs both of these as separate jobs.
 ├── apps/
 │   ├── web/                 Vue 3 + Vite SPA; Playwright layout tests in e2e/
 │   │   └── src/                 By kind (ADR 0025); tests sit beside their code
-│   │       ├── pages/               One component per route
-│   │       ├── components/          app/ (sidebar), common/, show/, casting/
-│   │       ├── services/            Calls to the API or the browser: sign-in, usage, exports
-│   │       ├── utils/               Plain show logic: cast, roles, running order, clashes; word/
-│   │       ├── router/              Routes and the menu
-│   │       └── assets/              Logos and styles.css
+│   │       ├── pages/           One component per route
+│   │       ├── components/      app/ (sidebar), common/, show/, casting/
+│   │       ├── services/        Calls to the API or the browser: sign-in, usage, exports
+│   │       ├── utils/           Plain show logic: cast, roles, running order, clashes; word/
+│   │       ├── router/          Routes and the menu
+│   │       └── assets/          Logos and styles.css
 │   └── api/                 Framework-free API: Lambda-shaped handlers (ADR 0006)
 │       └── src/
 │           ├── routes.ts        "<METHOD> <path>" → handler table
