@@ -30,6 +30,7 @@ import { RUNNING_ORDER_PATH } from "../running-order.ts";
 import ShowByItem from "../ShowByItem.vue";
 import ShowTimeline from "../ShowTimeline.vue";
 import { apiFetch } from "../sign-in.ts";
+import { recordView } from "../usage.ts";
 import { downloadCastingSheets, downloadItemOverview } from "../word-export.ts";
 
 const state = ref<
@@ -140,6 +141,10 @@ const wordExport = computed(() => {
 watch(view, () => {
   wordExportFailure.value = "";
 });
+
+// Each switch is a use of that view; the one the page opens on isn't (usage-tracking FR2).
+const VIEW_USES = { people: "by-person", items: "by-item", grid: "grid" } as const;
+watch(view, (shown) => recordView(VIEW_USES[shown]));
 
 async function exportWord() {
   const action = wordExport.value;

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ProductionId } from "./running-order.ts";
 
 /** The menu pages whose opening is recorded (usage-tracking FR2), by their page name. */
 export const MenuPageName = z.enum([
@@ -11,6 +12,9 @@ export const MenuPageName = z.enum([
   "usage",
 ]);
 
+/** The Casting Overview's views, whose switching is recorded (FR2). */
+export const OverviewView = z.enum(["by-person", "by-item", "grid"]);
+
 /**
  * POST /api/usage: one thing a team member did (usage-tracking FR1, FR2). Only what happened:
  * who comes from the sign-in, never the body, so anything else sent is dropped (ADR 0023).
@@ -19,14 +23,38 @@ export const MenuPageName = z.enum([
 export const RecordUsageRequest = z.discriminatedUnion("event", [
   z.object({ event: z.literal("session") }),
   z.object({ event: z.literal("page"), page: MenuPageName }),
+  z.object({ event: z.literal("view"), view: OverviewView }),
+  // Which item, never its title or cast: the Usage page looks the title up (FR2).
+  z.object({
+    event: z.literal("item"),
+    productionId: ProductionId,
+    // Ids are UUIDs (or slugs in tests): nothing else, so no free text can ride along.
+    itemId: z.string().regex(/^[a-z0-9-]{1,40}$/i),
+  }),
 ]);
 
 /** Everything counted as a use. Its order is the order the Usage page lists them in. */
-export const UsageFeature = MenuPageName;
+export const UsageFeature = z.enum([
+  ...MenuPageName.options,
+  "overview-by-person",
+  "overview-by-item",
+  "overview-grid",
+  // Every item's page together: the summary doesn't count items one by one.
+  "item-page",
+]);
 
 /** What a use is a use of; a session isn't a use of anything. */
 export function featureOf(request: RecordUsageRequest): UsageFeature | undefined {
-  return request.event === "page" ? request.page : undefined;
+  switch (request.event) {
+    case "page":
+      return request.page;
+    case "view":
+      return `overview-${request.view}`;
+    case "item":
+      return "item-page";
+    case "session":
+      return undefined;
+  }
 }
 
 /** One person's sessions and uses in the period, by their username. */
@@ -50,6 +78,7 @@ export const UsageSummary = z.strictObject({
 });
 
 export type MenuPageName = z.infer<typeof MenuPageName>;
+export type OverviewView = z.infer<typeof OverviewView>;
 export type RecordUsageRequest = z.infer<typeof RecordUsageRequest>;
 export type UsageFeature = z.infer<typeof UsageFeature>;
 export type PersonUsage = z.infer<typeof PersonUsage>;

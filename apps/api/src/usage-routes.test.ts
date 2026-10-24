@@ -59,10 +59,32 @@ describe("recording usage", () => {
     ]);
   });
 
+  it("records an Overview view switch and an item's page, naming only the item", async () => {
+    const { store, record } = setUp();
+
+    await record(signedInAs("robin", { event: "view", view: "grid" }));
+    await record(
+      signedInAs("robin", {
+        event: "item",
+        productionId: "2027",
+        itemId: "made-up-item",
+        title: "Night at the movies",
+      }),
+    );
+
+    const at = NOW.toISOString();
+    expect(await store.since(daysAgo(1))).toEqual([
+      { username: "robin", event: "view", view: "grid", at },
+      { username: "robin", event: "item", productionId: "2027", itemId: "made-up-item", at },
+    ]);
+  });
+
   it.each([
     ["not JSON"],
     [JSON.stringify({ event: "Admin secrets" })],
     [JSON.stringify({ event: "page", page: "Admin secrets" })],
+    [JSON.stringify({ event: "item", productionId: "2027", itemId: "" })],
+    [JSON.stringify({ event: "item", productionId: "../secrets", itemId: "made-up-item" })],
   ])("refuses %s as invalid, recording nothing", async (body) => {
     const { store, record } = setUp();
 
@@ -138,6 +160,39 @@ describe("reading usage", () => {
         sessions: 1,
         lastSession: daysAgo(3),
         uses: { "running-order": 3, cast: 1 },
+      },
+    ]);
+  });
+
+  it("counts each person's Overview views and item pages", async () => {
+    const view = (at: string) => ({
+      username: "robin",
+      event: "view" as const,
+      view: "grid" as const,
+      at,
+    });
+    const item = (itemId: string, at: string) => ({
+      username: "robin",
+      event: "item" as const,
+      productionId: "2027",
+      itemId,
+      at,
+    });
+    const { summary } = setUp([
+      view(daysAgo(3)),
+      view(daysAgo(2)),
+      item("made-up-item", daysAgo(3)),
+      item("made-up-item", daysAgo(2)),
+      item("another-item", daysAgo(2)),
+      item("another-item", daysAgo(1)),
+    ]);
+
+    expect((await summary()).people).toEqual([
+      {
+        username: "robin",
+        sessions: 0,
+        lastSession: null,
+        uses: { "overview-grid": 2, "item-page": 4 },
       },
     ]);
   });

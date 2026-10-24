@@ -34,6 +34,20 @@ export function behavesAsAUsageStore(make: () => UsageStore) {
     ]);
   });
 
+  it("keeps which item an item's page use is of", async () => {
+    const store = make();
+    const use = {
+      username: "robin",
+      event: "item" as const,
+      productionId: "2027",
+      itemId: "made-up-item",
+      at: "2026-10-20T19:00:00.000Z",
+    };
+    await store.record(use);
+
+    expect(await store.since("2026-10-01T00:00:00.000Z")).toEqual([use]);
+  });
+
   it("keeps two sessions at the same moment apart", async () => {
     const store = make();
     await store.record(session("robin", "2026-10-20T19:00:00.000Z"));

@@ -3,6 +3,7 @@ import { enableAutoUnmount, flushPromises, mount, type VueWrapper } from "@vue/t
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory } from "vue-router";
 import App from "../App.vue";
+import CastingGrid from "../CastingGrid.vue";
 import { CAST_PATH } from "../cast.ts";
 import { ROLES_PATH } from "../roles.ts";
 import { createAppRouter } from "../router.ts";
@@ -1890,5 +1891,93 @@ describe("Casting overview help (in-app-help E2.S2)", () => {
 
     const pressed = wrapper.findAll(".view-switch button[aria-pressed=true]");
     expect(pressed.map((b) => b.text())).toEqual(["Grid"]);
+  });
+});
+
+describe("Recording Overview view switches (usage-tracking FR2)", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.body.innerHTML = "";
+  });
+
+  /** A cast to show, with recording usage answered by `usage`. */
+  function castAndUsage(
+    usage: () => Promise<Response> = async () => new Response(null, { status: 204 }),
+  ) {
+    const members = [person("Sam", "Example", "scouts")];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (url === "/api/usage") return usage();
+        if (url === RUNNING_ORDER_PATH)
+          return new Response(JSON.stringify(aRunningOrder([anItem("Opening Number")])));
+        if (url === ROLES_PATH)
+          return new Response(JSON.stringify({ productionId: "2027", roles: [] }));
+        if (url === CAST_PATH)
+          return new Response(JSON.stringify({ productionId: "2027", members }));
+        return new Response(JSON.stringify({ status: "ok", version: "dev" }));
+      }),
+    );
+  }
+  const viewUses = () =>
+    vi
+      .mocked(fetch)
+      .mock.calls.filter(([url, init]) => url === "/api/usage" && init?.method === "POST")
+      .map(([, init]) => JSON.parse(String(init?.body)))
+      .filter((body) => body.event === "view");
+  const choose = (wrapper: VueWrapper, label: string) =>
+    wrapper
+      .findAll("main .view-switch button")
+      .find((b) => b.text() === label)
+      ?.trigger("click");
+
+  it("records switching to Grid", async () => {
+    castAndUsage();
+    const wrapper = await openOverview();
+
+    await choose(wrapper, "Grid");
+    await flushPromises();
+
+    expect(viewUses()).toEqual([{ event: "view", view: "grid" }]);
+  });
+
+  it("records each view switched to, in order", async () => {
+    castAndUsage();
+    const wrapper = await openOverview();
+
+    await choose(wrapper, "By item");
+    await choose(wrapper, "Grid");
+    await choose(wrapper, "By person");
+    await flushPromises();
+
+    expect(viewUses()).toEqual([
+      { event: "view", view: "by-item" },
+      { event: "view", view: "grid" },
+      { event: "view", view: "by-person" },
+    ]);
+  });
+
+  it("records no view on opening, nor on choosing the view already shown", async () => {
+    castAndUsage();
+    const wrapper = await openOverview();
+
+    await choose(wrapper, "By person");
+    await flushPromises();
+
+    expect(viewUses()).toEqual([]);
+  });
+
+  it.each([
+    ["the API refuses it", async () => new Response("", { status: 500 })],
+    ["the API can't be reached", () => Promise.reject(new TypeError("fetch failed"))],
+  ])("shows the Grid as normal when recording fails because %s", async (_why, usage) => {
+    castAndUsage(usage);
+    const wrapper = await openOverview();
+
+    await choose(wrapper, "Grid");
+    await flushPromises();
+
+    expect(wrapper.findComponent(CastingGrid).exists()).toBe(true);
+    expect(wrapper.get("main").text()).not.toMatch(/usage|record/i);
   });
 });

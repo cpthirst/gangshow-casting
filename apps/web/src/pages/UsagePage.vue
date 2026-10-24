@@ -4,7 +4,7 @@ import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { ACCOUNTS_PATH } from "../accounts.ts";
 import { apiFetch } from "../sign-in.ts";
-import { dayOf, USAGE_PATH, usageByAccount, usesOf } from "../usage.ts";
+import { dayOf, featureName, USAGE_PATH, usageByAccount, usesOf } from "../usage.ts";
 
 type State =
   | { status: "loading" }
@@ -13,8 +13,8 @@ type State =
 
 const state = ref<State>({ status: "loading" });
 const router = useRouter();
-// Each page by its title in the menu, so the two always agree.
-const nameOf = (feature: UsageFeature) => router.resolve({ name: feature }).meta.title;
+const nameOf = (feature: UsageFeature) =>
+  featureName(feature, (page) => router.resolve({ name: page }).meta.title);
 const rows = computed(() =>
   state.value.status === "loaded"
     ? usageByAccount(state.value.accounts.accounts, state.value.usage.people)

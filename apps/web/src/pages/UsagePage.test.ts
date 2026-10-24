@@ -63,10 +63,10 @@ describe("Usage page", () => {
       "Uses",
     ]);
     expect(rows(wrapper)).toEqual([
-      ["alex", "1", "22 October 2026", "No pages opened"],
-      ["kit", "0", "No sessions", "No pages opened"],
-      ["robin", "2", "20 October 2026", "No pages opened"],
-      ["sky", "0", "No sessions", "No pages opened"],
+      ["alex", "1", "22 October 2026", "No uses"],
+      ["kit", "0", "No sessions", "No uses"],
+      ["robin", "2", "20 October 2026", "No uses"],
+      ["sky", "0", "No sessions", "No uses"],
     ]);
   });
 
@@ -92,7 +92,7 @@ describe("Usage page", () => {
       "20 October 2026",
       "Running order 3, Cast 1",
     ]);
-    expect(rows(wrapper)).toContainEqual(["alex", "1", "22 October 2026", "No pages opened"]);
+    expect(rows(wrapper)).toContainEqual(["alex", "1", "22 October 2026", "No uses"]);
   });
 
   it("names each page as the menu does", async () => {
@@ -111,6 +111,29 @@ describe("Usage page", () => {
     const wrapper = await openPage();
 
     expect(rows(wrapper)).toContainEqual(["robin", "1", "20 October 2026", "Overview 2, Items 1"]);
+  });
+
+  it("shows Overview views and item pages after the pages", async () => {
+    serve({
+      recordedSince: "2026-10-01T18:00:00.000Z",
+      people: [
+        {
+          username: "robin",
+          sessions: 1,
+          lastSession: "2026-10-20T18:00:00.000Z",
+          uses: { "item-page": 4, "overview-grid": 2, cast: 1 },
+        },
+      ],
+    });
+
+    const wrapper = await openPage();
+
+    expect(rows(wrapper)).toContainEqual([
+      "robin",
+      "1",
+      "20 October 2026",
+      "Cast 1, Overview: Grid 2, Item pages 4",
+    ]);
   });
 
   it("shows no last session for someone who only opened pages in the period", async () => {
@@ -134,7 +157,7 @@ describe("Usage page", () => {
 
     const wrapper = await openPage();
 
-    expect(rows(wrapper)).toContainEqual(["robin", "3", "20 October 2026", "No pages opened"]);
+    expect(rows(wrapper)).toContainEqual(["robin", "3", "20 October 2026", "No uses"]);
   });
 
   it("shows dates as they are in the UK", async () => {
@@ -148,7 +171,7 @@ describe("Usage page", () => {
 
     const wrapper = await openPage();
 
-    expect(rows(wrapper)).toContainEqual(["alex", "1", "21 October 2026", "No pages opened"]);
+    expect(rows(wrapper)).toContainEqual(["alex", "1", "21 October 2026", "No uses"]);
   });
 
   it("says when usage started being recorded", async () => {

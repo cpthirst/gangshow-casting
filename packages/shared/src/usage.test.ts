@@ -24,6 +24,20 @@ describe("RecordUsageRequest", () => {
     expect(RecordUsageRequest.parse({ event: "page", page })).toEqual({ event: "page", page });
   });
 
+  it.each(["by-person", "by-item", "grid"])("accepts switching the Overview to %s", (view) => {
+    expect(RecordUsageRequest.parse({ event: "view", view })).toEqual({ event: "view", view });
+  });
+
+  it("accepts opening an item's page, naming the item and its production", () => {
+    const use = { event: "item", productionId: "2027", itemId: "made-up-item" };
+    expect(RecordUsageRequest.parse(use)).toEqual(use);
+  });
+
+  it("drops an item's title, keeping only which item it is", () => {
+    const use = { event: "item", productionId: "2027", itemId: "made-up-item" };
+    expect(RecordUsageRequest.parse({ ...use, title: "Night at the movies" })).toEqual(use);
+  });
+
   it.each([
     [{}],
     [{ event: "Admin secrets" }],
@@ -31,6 +45,12 @@ describe("RecordUsageRequest", () => {
     [{ event: "page" }],
     [{ event: "page", page: "Admin secrets" }],
     [{ event: "page", page: "not-found" }],
+    [{ event: "view", view: "timeline" }],
+    [{ event: "item", productionId: "2027" }],
+    [{ event: "item", productionId: "../2027", itemId: "made-up-item" }],
+    [{ event: "item", productionId: "2027", itemId: "" }],
+    [{ event: "item", productionId: "2027", itemId: "x".repeat(41) }],
+    [{ event: "item", productionId: "2027", itemId: "Sam Example in the front row" }],
   ])("refuses %j", (body) => {
     expect(RecordUsageRequest.safeParse(body).success).toBe(false);
   });
@@ -39,6 +59,16 @@ describe("RecordUsageRequest", () => {
 describe("featureOf", () => {
   it("names the menu page a page use is of", () => {
     expect(featureOf({ event: "page", page: "running-order" })).toBe("running-order");
+  });
+
+  it("names the Overview view switched to", () => {
+    expect(featureOf({ event: "view", view: "grid" })).toBe("overview-grid");
+  });
+
+  it("counts every item's page as one feature", () => {
+    expect(featureOf({ event: "item", productionId: "2027", itemId: "made-up-item" })).toBe(
+      "item-page",
+    );
   });
 
   it("names no feature for a session, which isn't a use", () => {
