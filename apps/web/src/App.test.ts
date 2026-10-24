@@ -58,25 +58,25 @@ describe("App shell", () => {
     expect(topLevel).toEqual([
       "Welcome",
       expect.stringMatching(/^Show/),
-      expect.stringMatching(/^Production/),
       expect.stringMatching(/^Casting/),
-      "Help",
+      expect.stringMatching(/^Production/),
       "Accounts",
       "Usage",
+      "Help",
     ]);
     expect(menu.findAll("a").map((link) => link.text())).toEqual([
       "Welcome",
       "Running order",
       "Cast",
+      "Overview",
+      "Items",
       "Mic plot",
       "Props",
       "Scenery",
       "SFX",
-      "Overview",
-      "Items",
-      "Help",
       "Accounts",
       "Usage",
+      "Help",
     ]);
     expect(menu.text()).not.toContain("Casting grid");
   });
@@ -277,12 +277,12 @@ describe("App shell", () => {
         "Welcome",
         "Running order",
         "Cast",
+        "Overview",
+        "Items",
         "Mic plot",
         "Props",
         "Scenery",
         "SFX",
-        "Overview",
-        "Items",
         "Help",
       ]);
     });
@@ -323,10 +323,39 @@ describe("App shell", () => {
     });
   });
 
+  it("folds a group away and opens it again from its label", async () => {
+    const { wrapper } = await openAppAt("/");
+    const label = wrapper.get("button.menu-group[aria-controls='menu-production-pages']");
+    const pages = () => wrapper.get("#menu-production-pages");
+    expect(label.attributes("aria-expanded")).toBe("true");
+    expect(pages().isVisible()).toBe(true);
+
+    await label.trigger("click");
+    expect(label.attributes("aria-expanded")).toBe("false");
+    expect(pages().isVisible()).toBe(false);
+    // Folding one group leaves the others as they were.
+    expect(wrapper.get("#menu-casting-pages").isVisible()).toBe(true);
+
+    await label.trigger("click");
+    expect(label.attributes("aria-expanded")).toBe("true");
+    expect(pages().isVisible()).toBe(true);
+  });
+
+  it("opens a folded group again when its page is opened", async () => {
+    const { wrapper, router } = await openAppAt("/");
+    await wrapper.get("button.menu-group[aria-controls='menu-show-pages']").trigger("click");
+    expect(wrapper.get("#menu-show-pages").isVisible()).toBe(false);
+
+    await router.push("/cast");
+    await flushPromises();
+
+    expect(wrapper.get("#menu-show-pages").isVisible()).toBe(true);
+  });
+
   it("lists Overview and Items as a list inside Casting", async () => {
     const { wrapper } = await openAppAt("/");
 
-    const subList = wrapper.get("nav[aria-label=Main] > ul > li:nth-child(4) > ul");
+    const subList = wrapper.get("nav[aria-label=Main] > ul > li:nth-child(3) > ul");
     const label = document.getElementById(subList.attributes("aria-labelledby") ?? "");
     expect(label?.textContent).toBe("Casting");
     expect(subList.findAll(":scope > li > a").map((link) => link.text())).toEqual([

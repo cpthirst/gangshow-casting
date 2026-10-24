@@ -80,6 +80,30 @@ export const menuPages: (MenuPage | MenuGroup)[] = [
     ],
   },
   {
+    name: "casting",
+    title: "Casting",
+    pages: [
+      {
+        path: "/casting/overview",
+        name: "casting-overview",
+        component: CastingOverviewPage,
+        meta: {
+          title: "Overview",
+          description: "Everyone in the cast, by section, and how much they're cast.",
+        },
+      },
+      {
+        path: "/casting/items",
+        name: "casting-items",
+        component: CastingItemsPage,
+        meta: {
+          title: "Items",
+          description: "The show's items, with how far each one's casting has got.",
+        },
+      },
+    ],
+  },
+  {
     name: "production",
     title: "Production",
     pages: [
@@ -106,36 +130,6 @@ export const menuPages: (MenuPage | MenuGroup)[] = [
     ],
   },
   {
-    name: "casting",
-    title: "Casting",
-    pages: [
-      {
-        path: "/casting/overview",
-        name: "casting-overview",
-        component: CastingOverviewPage,
-        meta: {
-          title: "Overview",
-          description: "Everyone in the cast, by section, and how much they're cast.",
-        },
-      },
-      {
-        path: "/casting/items",
-        name: "casting-items",
-        component: CastingItemsPage,
-        meta: {
-          title: "Items",
-          description: "The show's items, with how far each one's casting has got.",
-        },
-      },
-    ],
-  },
-  {
-    path: "/help",
-    name: "help",
-    component: HelpPage,
-    meta: { title: "Help", description: "What each page is for, and what its buttons do." },
-  },
-  {
     path: "/accounts",
     name: "accounts",
     component: AccountsPage,
@@ -148,6 +142,12 @@ export const menuPages: (MenuPage | MenuGroup)[] = [
     component: UsagePage,
     meta: { title: "Usage", description: "Who on the team uses the app, and how often." },
     adminOnly: true,
+  },
+  {
+    path: "/help",
+    name: "help",
+    component: HelpPage,
+    meta: { title: "Help", description: "What each page is for, and what its buttons do." },
   },
 ];
 

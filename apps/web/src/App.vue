@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import logoSmall from "./assets/logo-small.jpg";
 import HealthStatus from "./HealthStatus.vue";
 import LocalRoleSwitch from "./LocalRoleSwitch.vue";
 import { isMenuGroup, menuPages, showPageTitle } from "./router.ts";
@@ -34,6 +35,25 @@ const ariaCurrent = (pageName: string) =>
 
 const shownMenuPages = computed(() =>
   menuPages.filter((entry) => isMenuGroup(entry) || !entry.adminOnly || isAdmin.value),
+);
+
+// Groups the person has folded away. All start open, so nothing is hidden until they choose.
+const collapsedGroups = ref(new Set<string>());
+const toggleGroup = (name: string) => {
+  const next = new Set(collapsedGroups.value);
+  if (!next.delete(name)) next.add(name);
+  collapsedGroups.value = next;
+};
+
+// Going to a page opens its group, so the current page is never hidden in the menu.
+watch(
+  () => route.name,
+  (pageName) => {
+    const group = menuPages.find(
+      (entry) => isMenuGroup(entry) && entry.pages.some((page) => page.name === pageName),
+    );
+    if (group && collapsedGroups.value.has(group.name)) toggleGroup(group.name);
+  },
 );
 
 const main = ref<HTMLElement>();
@@ -109,11 +129,15 @@ function onEscape() {
   </a>
   <div class="shell">
     <aside class="sidebar" @keydown.esc="onEscape">
-      <p class="wordmark" data-test="wordmark">
-        <span class="wordmark-name">Chester Gang Show</span>
-        <span class="wordmark-app">iCUE</span>
-        <span class="wordmark-tagline">Show Management App</span>
-      </p>
+      <div class="brand">
+        <!-- Decorative: the wordmark beside it already names the show. -->
+        <img class="brand-logo" :src="logoSmall" alt="" width="360" height="146" />
+        <p class="wordmark" data-test="wordmark">
+          <span class="wordmark-name">Chester Gang Show</span>
+          <span class="wordmark-app">iCUE</span>
+          <span class="wordmark-tagline">Show Management App</span>
+        </p>
+      </div>
       <p v-if="isDemo" class="demo-label" data-test="demo-label">
         Demo data: a made-up show, reset each time the demo starts
       </p>
@@ -132,8 +156,22 @@ function onEscape() {
         <ul>
           <li v-for="entry in shownMenuPages" :key="entry.name">
             <template v-if="isMenuGroup(entry)">
-              <span :id="`menu-${entry.name}`" class="menu-group">{{ entry.title }}</span>
-              <ul class="menu-group-pages" :aria-labelledby="`menu-${entry.name}`">
+              <button
+                :id="`menu-${entry.name}`"
+                class="menu-group"
+                type="button"
+                :aria-expanded="!collapsedGroups.has(entry.name)"
+                :aria-controls="`menu-${entry.name}-pages`"
+                @click="toggleGroup(entry.name)"
+              >
+                {{ entry.title }}
+              </button>
+              <ul
+                v-show="!collapsedGroups.has(entry.name)"
+                :id="`menu-${entry.name}-pages`"
+                class="menu-group-pages"
+                :aria-labelledby="`menu-${entry.name}`"
+              >
                 <li v-for="page in entry.pages" :key="page.name">
                   <RouterLink :to="page.path" :aria-current="ariaCurrent(page.name)">{{
                     page.meta.title

@@ -74,8 +74,22 @@ body {
   outline-color: var(--yellow);
 }
 
-.wordmark {
+.brand {
   margin: 0 1.5rem 2rem;
+}
+
+/* On its own white card: the logo's background is white, the sidebar's isn't. */
+.brand-logo {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-bottom: 0.75rem;
+  border-radius: 6px;
+  background: var(--white);
+}
+
+.wordmark {
+  margin: 0;
   display: flex;
   flex-direction: column;
 }
@@ -144,14 +158,37 @@ body {
   color: var(--red-deep);
 }
 
-/* A group label (Casting) isn't a link: quieter than the pages, which sit indented beneath it. */
+/* A group label (Casting) isn't a link: quieter than the pages, which sit indented beneath it.
+   It's a button that folds the group away; the arrow shows which way it goes. */
 .menu-group {
-  display: block;
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  border: none;
+  background: none;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
   padding: 1rem 1.5rem 0.25rem;
   font-size: 0.8125rem;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+}
+
+.menu-group::after {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+}
+
+.menu-group[aria-expanded="false"]::after {
+  transform: rotate(-45deg);
 }
 
 .sidebar nav .menu-group-pages a {
@@ -1855,7 +1892,17 @@ main a {
     padding: 0.75rem 1rem;
   }
 
-  .wordmark {
+  /* The logo sits small beside the wordmark, so the header stays short. */
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0;
+  }
+
+  .brand-logo {
+    width: auto;
+    height: 2.75rem;
     margin: 0;
   }
 
@@ -2170,17 +2217,13 @@ main a {
   margin: 0;
 }
 
-/* The Welcome page: the logo, title and introduction are centred; the guide below reads left-aligned. */
-.welcome {
-  text-align: center;
-}
-
+/* The Welcome page reads like every other page: left-aligned. */
 .welcome-logo {
   display: block;
   width: 100%;
   max-width: 28rem;
   height: auto;
-  margin: 0 auto 1rem;
+  margin: 0 0 1rem;
 }
 
 .welcome-areas dt {
@@ -2190,4 +2233,13 @@ main a {
 
 .welcome-areas dd {
   margin: 0.25rem 0 0;
+}
+
+/* The logo is wide: on a phone, keep it short so the title shows without scrolling. */
+@media (max-width: 767px) {
+  .welcome-logo {
+    width: auto;
+    max-width: 100%;
+    max-height: 6rem;
+  }
 }

@@ -24,12 +24,13 @@ describe("Welcome page", () => {
     expect(logo.attributes("alt")).toBe("Chester Gang Show");
     expect(wrapper.get("h1").text()).toBe("Welcome");
     const parts = wrapper.get(".welcome").element.children;
-    expect([...parts].map((part) => part.tagName)).toEqual(["IMG", "H1", "P"]);
+    expect([...parts].map((part) => part.tagName)).toEqual(["IMG", "H1", "P", "P"]);
     const intro = wrapper.get("[data-test=intro]").text();
     expect(intro).toContain("iCUE");
     // It's more than a casting tool: say what's coming, so people know where it's going.
     expect(intro).toMatch(/props lists, sound effects and mic plots/);
     expect(intro).toContain("Chester Gang Show");
+    expect(intro.split(/(?<=\.)\s+/).length).toBeLessThanOrEqual(2);
   });
 
   it("explains what is under Show, Production and Casting, and points to the menu", async () => {
@@ -37,22 +38,33 @@ describe("Welcome page", () => {
 
     expect(wrapper.get("section.welcome-areas").text()).toContain("Use the menu");
     const areas = wrapper.findAll("dt").map((term) => term.text());
-    expect(areas).toEqual(["Show", "Production", "Casting"]);
-    const production = wrapper.findAll("dd")[1]?.text() ?? "";
+    expect(areas).toEqual(["Show", "Casting", "Production"]);
+    const production = wrapper.findAll("dd")[2]?.text() ?? "";
     for (const page of ["Mic plot", "Props", "Scenery", "SFX"]) expect(production).toContain(page);
+  });
+
+  it("tells someone new to check out Help first, before the guide to the menu", async () => {
+    const { wrapper } = await openWelcome();
+
+    const note = wrapper.get("[data-test=help-note]");
+    expect(note.text()).toContain("New here?");
+    expect(note.get("a").attributes("href")).toBe("/help");
+    expect(wrapper.get(".welcome").element.contains(note.element)).toBe(true);
   });
 
   it("links to the pages it names, and to Help", async () => {
     const { wrapper, router } = await openWelcome();
 
     const hrefs = wrapper.findAll("a").map((link) => link.attributes("href"));
-    expect(hrefs).toEqual([
+    for (const href of [
       "/running-order",
       "/cast",
       "/casting/overview",
       "/casting/items",
       "/help",
-    ]);
+    ]) {
+      expect(hrefs).toContain(href);
+    }
     await wrapper.get("a[href='/help']").trigger("click");
     await flushPromises();
     expect(router.currentRoute.value.name).toBe("help");

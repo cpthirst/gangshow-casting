@@ -251,3 +251,26 @@ test.describe("on a desktop screen", () => {
     expect(layouts.map((layout) => layout.smallest)).toEqual(layouts.map(() => 14));
   });
 });
+
+test("the menu opens on a phone and its groups fold away and open again", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Welcome" })).toBeVisible();
+  await expectNoSidewaysScroll(page);
+
+  const menu = page.getByRole("navigation", { name: "Main" });
+  await expect(menu).toBeHidden();
+  await page.getByRole("button", { name: "Menu" }).click();
+  await expect(menu.getByRole("link", { name: "Mic plot" })).toBeVisible();
+  await expectNoSidewaysScroll(page);
+
+  const production = menu.getByRole("button", { name: "Production" });
+  await production.click();
+  await expect(production).toHaveAttribute("aria-expanded", "false");
+  await expect(menu.getByRole("link", { name: "Mic plot" })).toBeHidden();
+  await expect(menu.getByRole("link", { name: "Overview" })).toBeVisible();
+
+  await production.click();
+  await expect(production).toHaveAttribute("aria-expanded", "true");
+  await expect(menu.getByRole("link", { name: "Mic plot" })).toBeVisible();
+  await expectNoSidewaysScroll(page);
+});

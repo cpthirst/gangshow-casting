@@ -11,21 +11,23 @@ import logo from "../assets/logo.jpg";
       from the same information. Today it covers casting, showing who is in which item and when;
       props lists, sound effects and mic plots are to come.
     </p>
+    <p data-test="help-note">
+      New here? Check out <RouterLink :to="{ name: 'help' }">Help</RouterLink> first: it explains
+      what each page is for and what its buttons do.
+    </p>
   </div>
   <section class="welcome-areas" aria-labelledby="welcome-areas-heading">
     <h2 id="welcome-areas-heading">Where to find things</h2>
-    <p>Use the menu to move around. It is split into three areas.</p>
+    <p>
+      Use the menu to move around. It has three areas, with Help and, for admins, Accounts and
+      Usage beside them.
+    </p>
     <dl>
       <dt>Show</dt>
       <dd>
         The show itself: the <RouterLink :to="{ name: 'running-order' }">Running order</RouterLink>
         of items, and the <RouterLink :to="{ name: 'cast' }">Cast</RouterLink> of Scouts and
         Explorers.
-      </dd>
-      <dt>Production</dt>
-      <dd>
-        What each item needs backstage: the Mic plot, Props, Scenery and SFX (sound effects). These
-        pages are coming soon.
       </dd>
       <dt>Casting</dt>
       <dd>
@@ -34,10 +36,11 @@ import logo from "../assets/logo.jpg";
         as a grid, and the <RouterLink :to="{ name: 'casting-items' }">Items</RouterLink> with how
         far each one's casting has got.
       </dd>
+      <dt>Production</dt>
+      <dd>
+        What each item needs backstage: the Mic plot, Props, Scenery and SFX (sound effects). These
+        pages are coming soon.
+      </dd>
     </dl>
-    <p>
-      Not sure what a page or button does? The
-      <RouterLink :to="{ name: 'help' }">Help</RouterLink> page explains each one.
-    </p>
   </section>
 </template>
