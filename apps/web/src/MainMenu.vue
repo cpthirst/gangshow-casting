@@ -42,11 +42,10 @@ function toggle(name: string) {
   openGroup.value = openGroup.value === name ? undefined : name;
 }
 
-// Escape folds the open group away and puts focus back on its label. Stopped there, so on a
-// phone a second Escape is what closes the whole menu.
-function foldAway(event: KeyboardEvent, name: string) {
+// Escape folds the open group away and puts focus back on its label. It carries on up, so on
+// a phone the same Escape closes the whole menu, as Escape closes things everywhere else.
+function foldAway(name: string) {
   if (openGroup.value !== name) return;
-  event.stopPropagation();
   openGroup.value = undefined;
   document.getElementById(`menu-${name}`)?.focus();
 }
@@ -55,7 +54,7 @@ function foldAway(event: KeyboardEvent, name: string) {
 <template>
   <nav aria-label="Main">
     <ul class="menu">
-      <li v-for="entry in entries" :key="entry.name" @keydown.esc="foldAway($event, entry.name)">
+      <li v-for="entry in entries" :key="entry.name" @keydown.esc="foldAway(entry.name)">
         <template v-if="isMenuGroup(entry)">
           <button
             :id="`menu-${entry.name}`"
@@ -67,6 +66,12 @@ function foldAway(event: KeyboardEvent, name: string) {
             @click="toggle(entry.name)"
           >
             {{ entry.title }}
+            <!-- The yellow bar's meaning, for screen readers, while the current page is hidden. -->
+            <span
+              v-if="currentGroup === entry.name && openGroup !== entry.name"
+              class="visually-hidden"
+              >(current page inside)</span
+            >
           </button>
           <ul
             v-show="openGroup === entry.name"

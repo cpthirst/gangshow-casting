@@ -371,16 +371,20 @@ describe("App shell", () => {
     expect(wrapper.get("#menu-casting-pages").isVisible()).toBe(true);
   });
 
-  it("marks a folded group's label when the current page is inside it", async () => {
+  it("marks a folded group's label, in words too, when the current page is inside it", async () => {
     const { wrapper } = await openAppAt("/cast");
     const show = wrapper.get("#menu-show");
     expect(show.classes()).toContain("holds-current");
+    // Open, the current page itself says so: the label needn't.
+    expect(show.text()).toBe("Show");
 
     await show.trigger("click");
 
     expect(show.attributes("aria-expanded")).toBe("false");
     expect(show.classes()).toContain("holds-current");
+    expect(show.get(".visually-hidden").text()).toBe("(current page inside)");
     expect(wrapper.get("#menu-casting").classes()).not.toContain("holds-current");
+    expect(wrapper.get("#menu-casting").text()).toBe("Casting");
   });
 
   it("folds a group away on Escape from its label, and leaves it folded on a second Escape", async () => {
@@ -414,7 +418,7 @@ describe("App shell", () => {
 
     const subList = wrapper.get("nav[aria-label=Main] > ul > li:nth-child(3) > ul");
     const label = document.getElementById(subList.attributes("aria-labelledby") ?? "");
-    expect(label?.textContent).toBe("Casting");
+    expect(label?.textContent?.trim()).toBe("Casting");
     expect(subList.findAll(":scope > li > a").map((link) => link.text())).toEqual([
       "Overview",
       "Items",
@@ -1003,6 +1007,17 @@ describe("App shell on a phone", () => {
     await menuButton(wrapper).trigger("click");
 
     await wrapper.get("#main-menu a").trigger("keydown", { key: "Escape" });
+
+    expect(menuIsVisible(wrapper)).toBe(false);
+    expect(document.activeElement).toBe(menuButton(wrapper).element);
+  });
+
+  it("closes the whole menu on one Escape, even from inside an open group", async () => {
+    const { wrapper } = await openAppAt("/");
+    await menuButton(wrapper).trigger("click");
+    await wrapper.get("#menu-casting").trigger("click");
+
+    await wrapper.get("#menu-casting-pages a").trigger("keydown", { key: "Escape" });
 
     expect(menuIsVisible(wrapper)).toBe(false);
     expect(document.activeElement).toBe(menuButton(wrapper).element);

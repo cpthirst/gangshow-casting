@@ -171,6 +171,7 @@ body {
   align-items: center;
   min-height: 2.75rem;
   padding: 0.5rem 1.5rem 0.5rem calc(2.5rem - 4px);
+  font-size: 0.9375rem;
   border-left: 4px solid transparent;
   color: var(--white);
   font-weight: 700;
