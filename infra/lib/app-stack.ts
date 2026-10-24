@@ -4,13 +4,16 @@ import {
   CASTING_GROUP,
   isAccountRoute,
   READ_ONLY_GROUP,
+  type RouteKey,
   routeKeys,
 } from "@app/shared";
 import { CfnOutput, Duration, RemovalPolicy, Stack, type StackProps } from "aws-cdk-lib";
 import { AccessLogFormat } from "aws-cdk-lib/aws-apigateway";
 import {
+  CfnStage,
   HttpApi,
   HttpMethod,
+  type HttpRoute,
   HttpStage,
   LogGroupLogDestination,
 } from "aws-cdk-lib/aws-apigatewayv2";
@@ -35,6 +38,9 @@ const entryPoint = (file: string) =>
   fileURLToPath(new URL(`../../apps/api/src/${file}`, import.meta.url));
 
 // The methods the API's route list uses.
+// Open to every role, so it has its own limit (ADR 0024).
+const USAGE_ROUTE: RouteKey = "POST /api/usage";
+
 const HTTP_METHODS: Record<string, HttpMethod> = {
   GET: HttpMethod.GET,
   POST: HttpMethod.POST,
@@ -207,12 +213,14 @@ export class AppStack extends Stack {
       defaultIntegration: apiIntegration,
     });
     // Exactly the API's own route list, so every route it serves is hosted and guarded.
+    let usageRoute: HttpRoute[] = [];
     for (const key of routeKeys) {
       const [method = "", path = ""] = key.split(" ");
       const httpMethod = HTTP_METHODS[method];
       if (!httpMethod) throw new Error(`No HTTP method for the route ${key}`);
       const integration = isAccountRoute(key) ? accountsIntegration : apiIntegration;
-      api.addRoutes({ path, methods: [httpMethod], integration });
+      const added = api.addRoutes({ path, methods: [httpMethod], integration });
+      if (key === USAGE_ROUTE) usageRoute = added;
     }
 
     const accessLogs = new LogGroup(this, "ApiAccessLogs", {
@@ -240,6 +248,16 @@ export class AppStack extends Stack {
         ),
       },
     });
+    // Recording usage is open to every role, so one account mustn't flood it: it gets its own,
+    // tighter limit on top of the stage's (ADR 0024). The route must exist before its setting.
+    if (usageRoute.length === 0) throw new Error(`No route ${USAGE_ROUTE} to limit`);
+    const stageResource = stage.node.defaultChild;
+    if (!(stageResource instanceof CfnStage)) throw new Error("No API stage resource");
+    // Passed to CloudFormation as it is, so in its own spelling.
+    stageResource.routeSettings = {
+      [USAGE_ROUTE]: { ThrottlingRateLimit: 5, ThrottlingBurstLimit: 10 },
+    };
+    stageResource.node.addDependency(...usageRoute);
 
     const pages = new Pages(this, "Pages", {
       api,

@@ -9,7 +9,7 @@ import {
   RunningOrder,
 } from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-import { computed, nextTick, onMounted, ref, watchEffect } from "vue";
+import { computed, nextTick, onMounted, ref, watch, watchEffect } from "vue";
 import { useRoute } from "vue-router";
 import ClashIcon from "../ClashIcon.vue";
 import { CAST_PATH, sortCast } from "../cast.ts";
@@ -29,6 +29,7 @@ import {
 import { showPageTitle } from "../router.ts";
 import { neighboursOf, placeOf, RUNNING_ORDER_PATH } from "../running-order.ts";
 import { apiFetch, isReadOnly } from "../sign-in.ts";
+import { recordItemUse } from "../usage.ts";
 import ItemNotes from "./ItemNotes.vue";
 import RoleForm from "./RoleForm.vue";
 
@@ -88,6 +89,14 @@ const position = computed(() => {
     ? `${half.name} · Not in printed programme`
     : `Item ${number} · ${half.name}`;
 });
+
+// Each item opened is a use, once it's found in the running order (usage-tracking FR2).
+watch(
+  () => place.value?.item.id,
+  (itemId) => {
+    if (order.value && itemId) recordItemUse(order.value.productionId, itemId);
+  },
+);
 
 // Follows the item even if the page is reused for another one (back/forward between items).
 watchEffect(() => {

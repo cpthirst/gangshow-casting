@@ -2,7 +2,7 @@
 id: usage-tracking.E2.S3
 title: Record each export, and count it per person
 epic: E2
-status: draft
+status: done
 ---
 
 ## Story

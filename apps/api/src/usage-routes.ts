@@ -1,11 +1,19 @@
-import { type PersonUsage, RecordUsageRequest, type UsageSummary } from "@app/shared";
+import {
+  ACTIVITY_LIMIT,
+  type FeatureTotal,
+  featureOf,
+  type PersonUsage,
+  RecordUsageRequest,
+  UsageFeature,
+  UsageQuery,
+  type UsageSummary,
+} from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import { callerUsername } from "./caller.ts";
 import type { ApiEvent, Handler } from "./handler.ts";
 import { jsonResponse, parseJson } from "./json.ts";
 import type { UsageRecord, UsageStore } from "./usage-store.ts";
 
-const PERIOD_DAYS = 30;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 type Options = {
@@ -30,28 +38,59 @@ export function createUsageRoutes(
       return { statusCode: 204 };
     },
 
-    async "GET /api/usage"() {
-      const from = new Date(now().getTime() - PERIOD_DAYS * DAY_MS).toISOString();
+    async "GET /api/usage"(event) {
+      const query = UsageQuery.safeParse(event.queryStringParameters ?? {});
+      if (!query.success) return { statusCode: 400 };
+      // The schema caps the range at 90 days, the retention period (FR9), so a row the table
+      // hasn't yet expired is never counted.
+      const from = new Date(now().getTime() - query.data.days * DAY_MS).toISOString();
+      const records = await store.since(from);
       const summary: UsageSummary = {
         recordedSince: (await store.recordedSince()) ?? null,
-        people: byPerson(await store.since(from)),
+        people: byPerson(records),
+        features: byFeature(records),
+        // UsageStore.since gives oldest first, so the newest are at the end.
+        activity: records.slice(-ACTIVITY_LIMIT).reverse(),
       };
       return jsonResponse(200, summary);
     },
   };
 }
 
-/** Each person's sessions and latest one. Usernames ignore case in the pool, as on the page. */
+/** Each person's sessions, latest session and uses. Usernames ignore case in the pool, as on the page. */
 function byPerson(records: UsageRecord[]): PersonUsage[] {
   const people = new Map<string, PersonUsage>();
-  for (const { username, at } of records) {
-    const key = username.toLowerCase();
-    const person = people.get(key) ?? { username, sessions: 0, lastSession: at };
-    people.set(key, {
-      ...person,
-      sessions: person.sessions + 1,
-      lastSession: at > person.lastSession ? at : person.lastSession,
-    });
+  for (const record of records) {
+    const key = record.username.toLowerCase();
+    const person = people.get(key) ?? {
+      username: record.username,
+      sessions: 0,
+      lastSession: null,
+      uses: {},
+    };
+    people.set(key, withRecord(person, record));
   }
   return [...people.values()].sort((a, b) => a.username.localeCompare(b.username));
+}
+
+function withRecord(person: PersonUsage, record: UsageRecord): PersonUsage {
+  const feature = featureOf(record);
+  if (feature) {
+    return { ...person, uses: { ...person.uses, [feature]: (person.uses[feature] ?? 0) + 1 } };
+  }
+  const { lastSession } = person;
+  return {
+    ...person,
+    sessions: person.sessions + 1,
+    lastSession: lastSession && lastSession > record.at ? lastSession : record.at,
+  };
+}
+
+/** Every feature's uses and the different people who made them; sessions aren't uses. */
+function byFeature(records: UsageRecord[]): FeatureTotal[] {
+  return UsageFeature.options.map((feature) => {
+    const uses = records.filter((record) => featureOf(record) === feature);
+    const people = new Set(uses.map(({ username }) => username.toLowerCase()));
+    return { feature, uses: uses.length, people: people.size };
+  });
 }

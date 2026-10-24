@@ -1,6 +1,6 @@
 # 0023. Usage records in the data table, recorded through our own API
 
-- **Status**: Accepted
+- **Status**: Accepted. Amended by [ADR 0024](0024-limit-usage-recording-and-count-sign-ins.md): recording is limited, and a session is one sign-in
 - **Date**: 2026-10-24
 - **Deciders**: Nick Hirst
 

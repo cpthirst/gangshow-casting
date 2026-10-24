@@ -2265,3 +2265,44 @@ describe("An item's page for other roles", () => {
     });
   });
 });
+
+describe("Recording an item's page (usage-tracking FR2)", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.body.innerHTML = "";
+  });
+
+  const itemUses = () =>
+    vi
+      .mocked(fetch)
+      .mock.calls.filter(([url, init]) => url === "/api/usage" && init?.method === "POST")
+      .map(([, init]) => JSON.parse(String(init?.body)))
+      .filter((body) => body.event === "item");
+
+  it("records opening an item's page, naming the item and its production", async () => {
+    savedRunningOrderIs(show);
+
+    await openAppAt("/casting/items/pirate-sketch");
+
+    expect(itemUses()).toEqual([{ event: "item", productionId: "2027", itemId: "pirate-sketch" }]);
+  });
+
+  it("records each item stepped to with Next", async () => {
+    savedRunningOrderIs(show);
+    const { wrapper, router } = await openAppAt("/casting/items/opening-number");
+
+    await wrapper.get("main a[rel=next]").trigger("click");
+    await router.isReady();
+    await flushPromises();
+
+    expect(itemUses().map(({ itemId }) => itemId)).toEqual(["opening-number", "pirate-sketch"]);
+  });
+
+  it("records nothing for an item that isn't in the running order", async () => {
+    savedRunningOrderIs(show);
+
+    await openAppAt("/casting/items/no-such-item");
+
+    expect(itemUses()).toEqual([]);
+  });
+});

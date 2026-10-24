@@ -41,7 +41,7 @@ The app has grown quickly: a running order, cast list, casting overview with thr
 
 ## Functional requirements
 
-- **FR1**: The app must record a **session** each time a team member starts using the app: who (their username) and when. A session starts both when they sign in and when they come back to the app while still signed in (opening it again, or reloading it), not only when they type their password.
+- **FR1**: The app must record a **session** each time a team member starts using the app: who (their username) and when. A session is one sign-in, which lasts a day: coming back to the app or reloading it while still signed in is part of the same session, and the first time they use the app after the day's sign-in has run out starts a new one (changed on 2026-10-24; it was every opening or reload).
 - **FR2**: The app must record these **uses**, each with who, what and when:
   - opening a menu page (Welcome, Running order, Cast, Casting Overview, Casting Items, Accounts, and the new Usage page from FR4);
   - switching the Overview between its views (By person, By item, Grid);
@@ -63,7 +63,7 @@ The app has grown quickly: a running order, cast list, casting overview with thr
   - Usage data is personal data about adult volunteers (UK GDPR). It is kept only for the purpose above (understanding feature use), for 90 days.
   - Only admins can read it. The API, not just the menu, enforces this.
   - A use is recorded only for the signed-in person making it. Nobody can record a use for someone else or invent a username.
-  - One account can't flood the records: recording it many times quickly mustn't inflate its counts without limit or slow the Usage page (added on 2026-10-24 after the E1.S1 security review).
+  - One account can't flood the records: recording it many times quickly mustn't inflate its counts without limit or slow the Usage page (added on 2026-10-24 after the E1.S1 security review). The API limits how often usage can be recorded.
   - No data about the cast goes in usage records. The "opened an item" use records the item, never a cast member's name.
   - This widens what the app stores about the team beyond a username (ADR 0018), so it needs an ADR before it's built.
 - **Accessibility**: WCAG 2.2 AA. The Usage page's tables work with a screen reader and a keyboard, and fit a phone at 320px without scrolling sideways, as every other page does.
@@ -85,9 +85,9 @@ The app has grown quickly: a running order, cast list, casting overview with thr
 | Team members aren't told and feel watched, or it isn't lawful | M | H | The maintainer tells the team before release (see Constraints). Only feature use is recorded, kept 90 days, admins only |
 | A failed recording breaks or slows a page | L | H | FR3; recording happens in the background and its failures are ignored |
 | Someone records fake uses for another person | L | M | Who comes only from the person's own sign-in, never from what the page sends |
-| Counts look wrong because of reloads or double-clicks | M | L | Accept: counts show rough use, not exact clicks. Revisit if it misleads |
+| Counts look wrong because of reloads or double-clicks | M | L | Sessions count sign-ins, not reloads (FR1). Page, view and export counts show rough use, not exact clicks. Revisit if it misleads |
 | Usage records grow the database cost | L | L | 90-day removal, small records |
 
 ## Open questions
 
-- None. Answered on 2026-10-23: coming back while still signed in counts (FR1, now called a session); accounts that have never signed in are listed (FR5); help isn't recorded (Non-goals).
+- None. Answered on 2026-10-23: coming back while still signed in counts (FR1, now called a session); accounts that have never signed in are listed (FR5); help isn't recorded (Non-goals). Changed on 2026-10-24: a session is one day-long sign-in, not every opening or reload (FR1).

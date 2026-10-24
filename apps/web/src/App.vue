@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import HealthStatus from "./HealthStatus.vue";
 import LocalRoleSwitch from "./LocalRoleSwitch.vue";
@@ -10,11 +10,12 @@ import {
   isLocal,
   isSignedIn,
   isSignInUnavailable,
+  justSignedIn,
   signIn,
   signInNeeded,
   signOut,
 } from "./sign-in.ts";
-import { recordSession } from "./usage.ts";
+import { recordPageUse, recordSession } from "./usage.ts";
 import { useMediaQuery } from "./useMediaQuery.ts";
 
 // Must match the phone @media query in styles.css.
@@ -52,11 +53,18 @@ watch(
   { flush: "post" },
 );
 
-// Each time the app opens signed in, by signing in or coming back still signed in, is a
-// session (usage-tracking FR1).
-onMounted(() => {
-  if (!signInNeeded.value) recordSession();
-});
+// A session is one sign-in, which lasts the day (usage-tracking FR1, ADR 0024): reloading or
+// reopening the app within it starts none. Locally there's no sign-in, so each opening does.
+// Each menu page opened is a use (FR2). In setup, not onMounted, so the session is sent
+// before the watch below sends the first page use.
+if (!signInNeeded.value && (justSignedIn.value || isLocal.value)) recordSession();
+watch(
+  () => route.name,
+  (pageName) => {
+    if (!signInNeeded.value) recordPageUse(pageName);
+  },
+  { immediate: true },
+);
 
 // Focus the content directly: a plain #main link would also change the URL.
 function focusContent() {

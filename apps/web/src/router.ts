@@ -44,7 +44,8 @@ interface MenuGroup {
 }
 
 // The menu lists these in order. To add a page: add an entry here, or to a group's pages
-// (pages without a component yet show a placeholder).
+// (pages without a component yet show a placeholder). Each name is also what the Usage page
+// records it as (MenuPageName in @app/shared), so a new or renamed page goes there too.
 export const menuPages: (MenuPage | MenuGroup)[] = [
   // Where signing in lands, and the app's own address (in-app-help FR1).
   {

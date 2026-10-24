@@ -2,7 +2,7 @@
 id: usage-tracking.E2.S1
 title: Record opening a menu page, and count it per person
 epic: E2
-status: draft
+status: done
 ---
 
 ## Story
@@ -54,6 +54,6 @@ Then no use is recorded
 - Depends on: usage-tracking.E1.S1
 - A use is always recorded for the person signed in, as sessions are (E1.S1 AC4), and expires after 90 days like them.
 - Recording uses is open to read-only members, like sessions (E1.S1 AC3).
-- A reload counts as a session and as a page use. Counts show rough use, not exact clicks (PRD Risks).
+- A reload counts as a page use, but not as a new session (PRD FR1, changed on 2026-10-24). Counts show rough use, not exact clicks (PRD Risks).
 - The summary must still fit a 320px screen (E1.S1 AC15) as it grows.
 - Out of scope: Overview views and item pages (E2.S2), exports (E2.S3).

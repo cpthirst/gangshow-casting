@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { RecordUsageRequest } from "@app/shared";
 import {
   type DynamoDBDocumentClient,
   GetCommand,
@@ -83,8 +84,9 @@ export function dynamoUsageStore(db: DynamoDBDocumentClient, tableName: string):
 /** A stored row as a record, without its keys and expiry. */
 function asRecord(row: Record<string, unknown>): UsageRecord {
   const { username, at } = row;
-  if (typeof username !== "string" || typeof at !== "string" || row.event !== "session") {
+  const request = RecordUsageRequest.safeParse(row);
+  if (typeof username !== "string" || typeof at !== "string" || !request.success) {
     throw new Error(`Usage row ${String(row.sk)} is invalid`);
   }
-  return { username, event: "session", at };
+  return { ...request.data, username, at };
 }

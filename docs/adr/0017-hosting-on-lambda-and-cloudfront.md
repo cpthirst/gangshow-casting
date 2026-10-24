@@ -1,6 +1,6 @@
 # 0017. Hosting on Lambda, API Gateway and CloudFront
 
-- **Status**: Accepted
+- **Status**: Accepted. Amended by [ADR 0024](0024-limit-usage-recording-and-count-sign-ins.md): a tighter limit on recording usage
 - **Date**: 2026-10-17
 - **Deciders**: Nick Hirst
 

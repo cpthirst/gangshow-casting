@@ -5,6 +5,7 @@ import App from "./App.vue";
 import { createAppRouter } from "./router.ts";
 import { signInAs } from "./sign-in.fixture.ts";
 import {
+  SignInEnded,
   type SignInManager,
   signInUnavailable,
   useHostedSignIn,
@@ -117,6 +118,128 @@ describe("App shell", () => {
     const { wrapper } = await openAppAt("/");
 
     expect(wrapper.get("nav[aria-label=Main] a[href='/accounts']").text()).toBe("Accounts");
+  });
+
+  describe("recording page uses (usage-tracking FR2)", () => {
+    const pageUses = (fetchMock: ReturnType<typeof vi.fn>) =>
+      fetchMock.mock.calls
+        .filter(([url, init]) => url === "/api/usage" && init?.method === "POST")
+        .map(([, init]) => JSON.parse(String(init?.body)))
+        .filter((body) => body.event === "page");
+    const answering = (usage: () => Promise<Response>) =>
+      vi.fn(async (url: string) =>
+        url === "/api/usage"
+          ? usage()
+          : new Response(JSON.stringify({ status: "ok", version: "1.2.3" })),
+      );
+    const recorded = () => answering(async () => new Response(null, { status: 204 }));
+
+    it("records a session each time the app opens locally, where there's no sign-in", async () => {
+      vi.stubGlobal("fetch", recorded());
+
+      await openAppAt("/");
+
+      const sessions = vi
+        .mocked(fetch)
+        .mock.calls.filter(
+          ([url, init]) => url === "/api/usage" && String(init?.body).includes('"session"'),
+        );
+      expect(sessions).toHaveLength(1);
+    });
+
+    it("records opening the Running order page", async () => {
+      const fetchMock = recorded();
+      vi.stubGlobal("fetch", fetchMock);
+
+      await openAppAt("/running-order");
+
+      expect(pageUses(fetchMock)).toEqual([{ event: "page", page: "running-order" }]);
+    });
+
+    it.each([
+      ["/", "welcome"],
+      ["/running-order", "running-order"],
+      ["/cast", "cast"],
+      ["/casting/overview", "casting-overview"],
+      ["/casting/items", "casting-items"],
+      ["/accounts", "accounts"],
+      ["/usage", "usage"],
+    ])(
+      "records opening %s at its address, as a link, bookmark or reload does",
+      async (path, page) => {
+        const fetchMock = recorded();
+        vi.stubGlobal("fetch", fetchMock);
+
+        await openAppAt(path);
+
+        expect(pageUses(fetchMock)).toEqual([{ event: "page", page }]);
+      },
+    );
+
+    it("records each page opened from the menu", async () => {
+      const fetchMock = recorded();
+      vi.stubGlobal("fetch", fetchMock);
+      const { wrapper, router } = await openAppAt("/");
+
+      const arrived = nextNavigation(router);
+      await wrapper.get("nav[aria-label=Main] a[href='/cast']").trigger("click");
+      await arrived;
+      await flushPromises();
+
+      expect(pageUses(fetchMock)).toEqual([
+        { event: "page", page: "welcome" },
+        { event: "page", page: "cast" },
+      ]);
+    });
+
+    it.each([
+      ["an address that doesn't exist", "/no-such-page"],
+      ["an item's page, which isn't a menu page", "/casting/items/made-up-item"],
+    ])("records no page use for %s", async (_what, path) => {
+      const fetchMock = recorded();
+      vi.stubGlobal("fetch", fetchMock);
+
+      await openAppAt(path);
+
+      expect(pageUses(fetchMock)).toEqual([]);
+    });
+
+    it("records no page use on signing out", async () => {
+      const fetchMock = recorded();
+      vi.stubGlobal("fetch", fetchMock);
+      const { router } = await openAppAt("/cast");
+
+      await router.push("/signing-out");
+      await flushPromises();
+
+      expect(pageUses(fetchMock)).toEqual([{ event: "page", page: "cast" }]);
+    });
+
+    it("records no use on opening a page's help", async () => {
+      const fetchMock = recorded();
+      vi.stubGlobal("fetch", fetchMock);
+      const { wrapper } = await openAppAt("/running-order");
+      const usageCalls = () => fetchMock.mock.calls.filter(([url]) => url === "/api/usage");
+      const before = usageCalls().length;
+
+      await wrapper.get("button[aria-label='Help for Running order']").trigger("click");
+      await flushPromises();
+
+      expect(usageCalls()).toHaveLength(before);
+    });
+
+    it.each([
+      ["the API refuses it", async () => new Response("", { status: 500 })],
+      ["it's refused as too many (ADR 0024)", async () => new Response("", { status: 429 })],
+      ["the API can't be reached", () => Promise.reject(new TypeError("fetch failed"))],
+    ])("shows the Cast page as normal when recording fails because %s", async (_why, usage) => {
+      vi.stubGlobal("fetch", answering(usage));
+
+      const { wrapper } = await openAppAt("/cast");
+
+      expect(wrapper.get("main h1").text()).toBe("Cast");
+      expect(wrapper.get("main").text()).not.toMatch(/usage|record/i);
+    });
   });
 
   describe("the local role switch (team-roles FR16)", () => {
@@ -578,9 +701,13 @@ describe("App shell", () => {
     });
 
     describe("recording sessions (usage-tracking FR1)", () => {
+      // Page uses are recorded too (FR2): only sessions count here.
       const usagePosts = (fetchMock: ReturnType<typeof vi.fn>) =>
         fetchMock.mock.calls.filter(
-          ([url, init]) => url === "/api/usage" && init?.method === "POST",
+          ([url, init]) =>
+            url === "/api/usage" &&
+            init?.method === "POST" &&
+            JSON.parse(String(init.body)).event === "session",
         );
 
       it("records a session on arriving back from signing in", async () => {
@@ -597,14 +724,48 @@ describe("App shell", () => {
         expect(new Headers(post?.[1]?.headers).get("authorization")).toBe("Bearer sams-token");
       });
 
-      it("records a session on opening or reloading the app while still signed in", async () => {
+      // A session is one day-long sign-in (usage-tracking FR1, ADR 0024).
+      it("records no session on reopening or reloading the app while the day's sign-in lasts", async () => {
         const fetchMock = respondWith(204, {});
         vi.stubGlobal("fetch", fetchMock);
         await useHostedSignIn(config, managerWith(sam), browserAt("/cast"));
 
         await openAppAt("/cast");
 
+        expect(usagePosts(fetchMock)).toEqual([]);
+      });
+
+      it("records a new session on signing in again once the day's sign-in has ended", async () => {
+        const fetchMock = respondWith(204, {});
+        vi.stubGlobal("fetch", fetchMock);
+        const ended = {
+          ...managerWith(null),
+          refresh: vi.fn(async () => Promise.reject(new SignInEnded())),
+        };
+        await useHostedSignIn(config, ended, browserAt("/cast"));
+        await openAppAt("/cast");
+        expect(usagePosts(fetchMock)).toEqual([]);
+
+        const back = { ...browserAt("/"), search: "?state=made-up&code=made-up" };
+        await useHostedSignIn(config, managerWith(null), back);
+        await openAppAt("/");
+
         expect(usagePosts(fetchMock)).toHaveLength(1);
+      });
+
+      it("records no session when someone comes back from the login pages without signing in", async () => {
+        const fetchMock = respondWith(204, {});
+        vi.stubGlobal("fetch", fetchMock);
+        const cancelled = {
+          ...managerWith(null),
+          finishSignIn: vi.fn(async () => Promise.reject(new Error("access_denied"))),
+        };
+        const back = { ...browserAt("/"), search: "?state=made-up&error=access_denied" };
+        await useHostedSignIn(config, cancelled, back);
+
+        await openAppAt("/");
+
+        expect(usagePosts(fetchMock)).toEqual([]);
       });
 
       it("records no session while someone still has to sign in", async () => {

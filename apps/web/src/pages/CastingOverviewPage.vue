@@ -30,6 +30,7 @@ import { RUNNING_ORDER_PATH } from "../running-order.ts";
 import ShowByItem from "../ShowByItem.vue";
 import ShowTimeline from "../ShowTimeline.vue";
 import { apiFetch } from "../sign-in.ts";
+import { recordExport, recordView } from "../usage.ts";
 import { downloadCastingSheets, downloadItemOverview } from "../word-export.ts";
 
 const state = ref<
@@ -104,7 +105,10 @@ async function exportGrid() {
     columnsOfGrid.value,
     gridRows.value,
   ));
-  if (!exportFailed.value) exportAnnouncement.value = "Casting grid exported.";
+  if (!exportFailed.value) {
+    exportAnnouncement.value = "Casting grid exported.";
+    recordExport("excel-grid");
+  }
   exporting.value = false;
   await nextTick();
   exportButton.value?.focus();
@@ -121,6 +125,7 @@ const wordExport = computed(() => {
   if (view.value === "items" && halvesByItem.value.some((half) => half.items.length > 0)) {
     return {
       done: "Item overview exported.",
+      use: "word-item-overview" as const,
       failure: "Couldn't export the item overview. Try again.",
       download: ({ order, roles, cast }: LatestShow) =>
         downloadItemOverview(order.title, showByItem(order, roles, cast)),
@@ -129,6 +134,7 @@ const wordExport = computed(() => {
   if (view.value === "people" && sections.value.length > 0) {
     return {
       done: "Casting sheets exported.",
+      use: "word-casting-sheets" as const,
       failure: "Couldn't export the casting sheets. Try again.",
       download: downloadCastingSheets,
     };
@@ -141,6 +147,10 @@ watch(view, () => {
   wordExportFailure.value = "";
 });
 
+// Each switch is a use of that view; the one the page opens on isn't (usage-tracking FR2).
+const VIEW_USES = { people: "by-person", items: "by-item", grid: "grid" } as const;
+watch(view, (shown) => recordView(VIEW_USES[shown]));
+
 async function exportWord() {
   const action = wordExport.value;
   if (!action || exporting.value) return;
@@ -148,8 +158,12 @@ async function exportWord() {
   exportAnnouncement.value = "";
   wordExportFailure.value = "";
   const saved = await latestShow().then(action.download, () => false);
-  if (saved) exportAnnouncement.value = action.done;
-  else wordExportFailure.value = action.failure;
+  if (!saved) {
+    wordExportFailure.value = action.failure;
+  } else {
+    exportAnnouncement.value = action.done;
+    recordExport(action.use);
+  }
   exporting.value = false;
   await nextTick();
   wordExportButton.value?.focus();
