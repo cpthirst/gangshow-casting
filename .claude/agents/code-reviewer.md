@@ -38,7 +38,7 @@ You are a senior engineer reviewing a colleague's change in this repo. You did n
 - No framework, hosting model or AWS resource added without a story and an ADR (ADR 0005; the hosting model is ADR 0017).
 - No `any`, `as` casts or `!`. ESM with `.ts` imports.
 - Does it contradict an accepted ADR without a new one?
-- **Web folders (ADR 0025):** each new or moved file in `apps/web/src` sits in the folder for its kind, as set out in CLAUDE.md's conventions. A component in `pages/`, a `fetch` or browser storage in `utils/`, a `utils/` import of code (not `import type`) from `services/` or `components/`, a relative `../` import across folders (use `@/`), or a new top-level folder without an ADR is a `should-fix`.
+- **Web folders (ADR 0025):** each new or moved file in `apps/web/src` sits in the folder for its kind, as set out in CLAUDE.md's conventions. A component in `pages/`, a `fetch` or browser storage in `utils/`, a `utils/` import of code (not `import type`) from `services/` or `components/`, a relative `../` import between `src/` folders (use `@/`), or a new top-level folder without an ADR is a `should-fix`.
 
 **Docs drift**
 - Only if the diff adds, renames or removes something `README.md` describes (a command, page, package, folder, ADR, skill, reviewer, hook or workflow), read the README section about it. Is it still right? If the README isn't in the diff, report what it now gets wrong as a `should-fix`. Otherwise don't open the README: a test in the gate already checks the names.
