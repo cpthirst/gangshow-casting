@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.11.0](https://github.com/cpthirst/gangshow-casting/compare/v1.10.0...v1.11.0) (2026-10-24)
+
+
+### Features
+
+* **web:** record page, view and export use; Usage totals, activity, range (usage-tracking E2-E4) ([#91](https://github.com/cpthirst/gangshow-casting/issues/91)) ([ae018dd](https://github.com/cpthirst/gangshow-casting/commit/ae018dd461b6187c27baaae47ae60595726d03ff))
+
 ## [1.10.0](https://github.com/cpthirst/gangshow-casting/compare/v1.9.0...v1.10.0) (2026-10-24)
 
 
