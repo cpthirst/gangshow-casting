@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.12.0](https://github.com/cpthirst/gangshow-casting/compare/v1.11.0...v1.12.0) (2026-10-24)
+
+
+### Features
+
+* **web:** rename the app to iCUE, the Chester Gang Show's show management app ([#93](https://github.com/cpthirst/gangshow-casting/issues/93)) ([f5be502](https://github.com/cpthirst/gangshow-casting/commit/f5be5029974c7f4c076f897cdc6ca03e37cafdc8))
+
 ## [1.11.0](https://github.com/cpthirst/gangshow-casting/compare/v1.10.0...v1.11.0) (2026-10-24)
 
 
