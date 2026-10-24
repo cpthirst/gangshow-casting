@@ -2217,13 +2217,29 @@ main a {
   margin: 0;
 }
 
-/* The Welcome page reads like every other page: left-aligned. */
+/* The logo is centred; the text beneath it reads like every other page, left-aligned. */
 .welcome-logo {
   display: block;
   width: 100%;
   max-width: 28rem;
   height: auto;
-  margin: 0 0 1rem;
+  margin: 0 auto 1rem;
+}
+
+.welcome h1 {
+  text-transform: uppercase;
+}
+
+/* A button that looks like the page's links, for choices that act rather than navigate. */
+.link-button {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--red-darker);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 .welcome-areas dt {

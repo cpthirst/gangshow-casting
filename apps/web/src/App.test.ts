@@ -323,33 +323,46 @@ describe("App shell", () => {
     });
   });
 
-  it("folds a group away and opens it again from its label", async () => {
+  it("starts with every group folded away, then opens one from its label and folds it again", async () => {
     const { wrapper } = await openAppAt("/");
     const label = wrapper.get("button.menu-group[aria-controls='menu-production-pages']");
     const pages = () => wrapper.get("#menu-production-pages");
+    for (const group of ["show", "casting", "production"]) {
+      expect(wrapper.get(`#menu-${group}`).attributes("aria-expanded")).toBe("false");
+      expect(wrapper.get(`#menu-${group}-pages`).isVisible()).toBe(false);
+    }
+
+    await label.trigger("click");
     expect(label.attributes("aria-expanded")).toBe("true");
     expect(pages().isVisible()).toBe(true);
+    // Opening one group leaves the others as they were.
+    expect(wrapper.get("#menu-casting-pages").isVisible()).toBe(false);
 
     await label.trigger("click");
     expect(label.attributes("aria-expanded")).toBe("false");
     expect(pages().isVisible()).toBe(false);
-    // Folding one group leaves the others as they were.
-    expect(wrapper.get("#menu-casting-pages").isVisible()).toBe(true);
-
-    await label.trigger("click");
-    expect(label.attributes("aria-expanded")).toBe("true");
-    expect(pages().isVisible()).toBe(true);
   });
 
-  it("opens a folded group again when its page is opened", async () => {
-    const { wrapper, router } = await openAppAt("/");
-    await wrapper.get("button.menu-group[aria-controls='menu-show-pages']").trigger("click");
-    expect(wrapper.get("#menu-show-pages").isVisible()).toBe(false);
+  it("opens a page's group when the app opens on it, and when it's reached later", async () => {
+    const { wrapper, router } = await openAppAt("/cast");
+    expect(wrapper.get("#menu-show-pages").isVisible()).toBe(true);
+    expect(wrapper.get("#menu-casting-pages").isVisible()).toBe(false);
 
-    await router.push("/cast");
+    await router.push("/casting/items");
     await flushPromises();
 
-    expect(wrapper.get("#menu-show-pages").isVisible()).toBe(true);
+    expect(wrapper.get("#menu-casting-pages").isVisible()).toBe(true);
+  });
+
+  it("opens and focuses a group in the menu when the Welcome page's guide names it", async () => {
+    const { wrapper } = await openAppAt("/");
+
+    await wrapper.get("[data-test=show-production]").trigger("click");
+    await flushPromises();
+
+    expect(wrapper.get("#menu-production-pages").isVisible()).toBe(true);
+    expect(document.activeElement?.id).toBe("menu-production");
+    expect(wrapper.get("#menu-show-pages").isVisible()).toBe(false);
   });
 
   it("lists Overview and Items as a list inside Casting", async () => {

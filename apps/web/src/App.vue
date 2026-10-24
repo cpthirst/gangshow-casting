@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, nextTick, provide, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import logoSmall from "./assets/logo-small.jpg";
 import HealthStatus from "./HealthStatus.vue";
 import LocalRoleSwitch from "./LocalRoleSwitch.vue";
+import { showMenuGroupKey } from "./menu.ts";
 import { isMenuGroup, menuPages, showPageTitle } from "./router.ts";
 import {
   isAdmin,
@@ -37,13 +38,15 @@ const shownMenuPages = computed(() =>
   menuPages.filter((entry) => isMenuGroup(entry) || !entry.adminOnly || isAdmin.value),
 );
 
-// Groups the person has folded away. All start open, so nothing is hidden until they choose.
-const collapsedGroups = ref(new Set<string>());
-const toggleGroup = (name: string) => {
-  const next = new Set(collapsedGroups.value);
-  if (!next.delete(name)) next.add(name);
-  collapsedGroups.value = next;
-};
+// Groups the person has opened. All start folded away, so the menu is short until they choose.
+const openGroups = ref(new Set<string>());
+const isGroupOpen = (name: string) => openGroups.value.has(name);
+function setGroup(name: string, open: boolean) {
+  const next = new Set(openGroups.value);
+  if (open) next.add(name);
+  else next.delete(name);
+  openGroups.value = next;
+}
 
 // Going to a page opens its group, so the current page is never hidden in the menu.
 watch(
@@ -52,9 +55,20 @@ watch(
     const group = menuPages.find(
       (entry) => isMenuGroup(entry) && entry.pages.some((page) => page.name === pageName),
     );
-    if (group && collapsedGroups.value.has(group.name)) toggleGroup(group.name);
+    if (group) setGroup(group.name, true);
   },
+  { immediate: true },
 );
+
+// Offered to the Welcome page's guide: show where a group is in the menu. On a phone the
+// menu is behind its button, so that opens too; the label gets focus so it can be seen.
+async function showMenuGroup(name: string) {
+  setGroup(name, true);
+  if (isPhone.value) isMenuOpen.value = true;
+  await nextTick();
+  document.getElementById(`menu-${name}`)?.focus();
+}
+provide(showMenuGroupKey, showMenuGroup);
 
 const main = ref<HTMLElement>();
 const menuButton = ref<HTMLButtonElement>();
@@ -160,14 +174,14 @@ function onEscape() {
                 :id="`menu-${entry.name}`"
                 class="menu-group"
                 type="button"
-                :aria-expanded="!collapsedGroups.has(entry.name)"
+                :aria-expanded="isGroupOpen(entry.name)"
                 :aria-controls="`menu-${entry.name}-pages`"
-                @click="toggleGroup(entry.name)"
+                @click="setGroup(entry.name, !isGroupOpen(entry.name))"
               >
                 {{ entry.title }}
               </button>
               <ul
-                v-show="!collapsedGroups.has(entry.name)"
+                v-show="isGroupOpen(entry.name)"
                 :id="`menu-${entry.name}-pages`"
                 class="menu-group-pages"
                 :aria-labelledby="`menu-${entry.name}`"

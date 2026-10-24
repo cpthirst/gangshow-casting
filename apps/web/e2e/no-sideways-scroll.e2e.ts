@@ -252,7 +252,9 @@ test.describe("on a desktop screen", () => {
   });
 });
 
-test("the menu opens on a phone and its groups fold away and open again", async ({ page }) => {
+test("the menu opens on a phone and its groups open, fold away and open from Welcome", async ({
+  page,
+}) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Welcome" })).toBeVisible();
   await expectNoSidewaysScroll(page);
@@ -260,17 +262,22 @@ test("the menu opens on a phone and its groups fold away and open again", async 
   const menu = page.getByRole("navigation", { name: "Main" });
   await expect(menu).toBeHidden();
   await page.getByRole("button", { name: "Menu" }).click();
-  await expect(menu.getByRole("link", { name: "Mic plot" })).toBeVisible();
-  await expectNoSidewaysScroll(page);
-
   const production = menu.getByRole("button", { name: "Production" });
-  await production.click();
   await expect(production).toHaveAttribute("aria-expanded", "false");
   await expect(menu.getByRole("link", { name: "Mic plot" })).toBeHidden();
-  await expect(menu.getByRole("link", { name: "Overview" })).toBeVisible();
 
   await production.click();
   await expect(production).toHaveAttribute("aria-expanded", "true");
   await expect(menu.getByRole("link", { name: "Mic plot" })).toBeVisible();
+  await expectNoSidewaysScroll(page);
+
+  await production.click();
+  await expect(menu.getByRole("link", { name: "Mic plot" })).toBeHidden();
+
+  // The guide on Welcome opens the menu itself, so a phone user needn't hunt for it.
+  await page.getByRole("button", { name: "Menu" }).click();
+  await expect(menu).toBeHidden();
+  await page.getByRole("main").getByRole("button", { name: "Casting" }).click();
+  await expect(menu.getByRole("link", { name: "Overview" })).toBeVisible();
   await expectNoSidewaysScroll(page);
 });

@@ -1,5 +1,10 @@
 <script setup lang="ts">
+import { inject } from "vue";
 import logo from "../assets/logo.jpg";
+import { showMenuGroupKey } from "../menu.ts";
+
+// A button, not a link: it opens a group in the menu rather than going to a page.
+const showInMenu = inject(showMenuGroupKey, () => {});
 </script>
 
 <template>
@@ -19,24 +24,36 @@ import logo from "../assets/logo.jpg";
   <section class="welcome-areas" aria-labelledby="welcome-areas-heading">
     <h2 id="welcome-areas-heading">Where to find things</h2>
     <p>
-      Use the menu to move around. It has three areas, with Help and, for admins, Accounts and
-      Usage beside them.
+      Use the menu to move around. It has three areas: choose one below to open it in the menu.
+      Help and, for admins, Accounts and Usage sit beside them.
     </p>
     <dl>
-      <dt>Show</dt>
+      <dt>
+        <button type="button" class="link-button" data-test="show-show" @click="showInMenu('show')">
+          Show
+        </button>
+      </dt>
       <dd>
         The show itself: the <RouterLink :to="{ name: 'running-order' }">Running order</RouterLink>
         of items, and the <RouterLink :to="{ name: 'cast' }">Cast</RouterLink> of Scouts and
         Explorers.
       </dd>
-      <dt>Casting</dt>
+      <dt>
+        <button type="button" class="link-button" data-test="show-casting" @click="showInMenu('casting')">
+          Casting
+        </button>
+      </dt>
       <dd>
         Who is in which item: the
         <RouterLink :to="{ name: 'casting-overview' }">Overview</RouterLink> by person, by item or
         as a grid, and the <RouterLink :to="{ name: 'casting-items' }">Items</RouterLink> with how
         far each one's casting has got.
       </dd>
-      <dt>Production</dt>
+      <dt>
+        <button type="button" class="link-button" data-test="show-production" @click="showInMenu('production')">
+          Production
+        </button>
+      </dt>
       <dd>
         What each item needs backstage: the Mic plot, Props, Scenery and SFX (sound effects). These
         pages are coming soon.
