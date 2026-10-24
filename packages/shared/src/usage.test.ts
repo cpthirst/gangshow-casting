@@ -38,6 +38,14 @@ describe("RecordUsageRequest", () => {
     expect(RecordUsageRequest.parse({ ...use, title: "Night at the movies" })).toEqual(use);
   });
 
+  it.each(["excel-grid", "word-casting-sheets", "word-item-overview"])(
+    "accepts the export %s",
+    (exported) => {
+      const use = { event: "export", export: exported };
+      expect(RecordUsageRequest.parse(use)).toEqual(use);
+    },
+  );
+
   it.each([
     [{}],
     [{ event: "Admin secrets" }],
@@ -46,6 +54,7 @@ describe("RecordUsageRequest", () => {
     [{ event: "page", page: "Admin secrets" }],
     [{ event: "page", page: "not-found" }],
     [{ event: "view", view: "timeline" }],
+    [{ event: "export", export: "pdf" }],
     [{ event: "item", productionId: "2027" }],
     [{ event: "item", productionId: "../2027", itemId: "made-up-item" }],
     [{ event: "item", productionId: "2027", itemId: "" }],
@@ -69,6 +78,10 @@ describe("featureOf", () => {
     expect(featureOf({ event: "item", productionId: "2027", itemId: "made-up-item" })).toBe(
       "item-page",
     );
+  });
+
+  it("names the export made", () => {
+    expect(featureOf({ event: "export", export: "excel-grid" })).toBe("export-excel-grid");
   });
 
   it("names no feature for a session, which isn't a use", () => {

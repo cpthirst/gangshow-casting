@@ -17,7 +17,10 @@ const nameOf = (feature: UsageFeature) =>
   featureName(feature, (page) => router.resolve({ name: page }).meta.title);
 const rows = computed(() =>
   state.value.status === "loaded"
-    ? usageByAccount(state.value.accounts.accounts, state.value.usage.people)
+    ? usageByAccount(state.value.accounts.accounts, state.value.usage.people).map((row) => ({
+        ...row,
+        uses: usesOf(row.usage?.uses ?? {}, nameOf),
+      }))
     : [],
 );
 const recordedSince = computed(() => {
@@ -75,7 +78,13 @@ onMounted(load);
             <td data-label="Last session">
               {{ row.usage?.lastSession ? dayOf(row.usage.lastSession) : "No sessions" }}
             </td>
-            <td data-label="Uses">{{ usesOf(row.usage?.uses ?? {}, nameOf) }}</td>
+            <td data-label="Uses">
+              <!-- One use a line: a long run of names and counts is hard to scan on a phone. -->
+              <ul v-if="row.uses.length > 0" class="uses-list">
+                <li v-for="use in row.uses" :key="use">{{ use }}</li>
+              </ul>
+              <template v-else>No uses</template>
+            </td>
           </tr>
         </tbody>
       </table>

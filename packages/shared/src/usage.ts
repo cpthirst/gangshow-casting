@@ -15,6 +15,9 @@ export const MenuPageName = z.enum([
 /** The Casting Overview's views, whose switching is recorded (FR2). */
 export const OverviewView = z.enum(["by-person", "by-item", "grid"]);
 
+/** The exports, whose use is recorded once the file is made (FR2). */
+export const UsageExport = z.enum(["excel-grid", "word-casting-sheets", "word-item-overview"]);
+
 /**
  * POST /api/usage: one thing a team member did (usage-tracking FR1, FR2). Only what happened:
  * who comes from the sign-in, never the body, so anything else sent is dropped (ADR 0023).
@@ -31,6 +34,7 @@ export const RecordUsageRequest = z.discriminatedUnion("event", [
     // Ids are UUIDs (or slugs in tests): nothing else, so no free text can ride along.
     itemId: z.string().regex(/^[a-z0-9-]{1,40}$/i),
   }),
+  z.object({ event: z.literal("export"), export: UsageExport }),
 ]);
 
 /** Everything counted as a use. Its order is the order the Usage page lists them in. */
@@ -41,6 +45,9 @@ export const UsageFeature = z.enum([
   "overview-grid",
   // Every item's page together: the summary doesn't count items one by one.
   "item-page",
+  "export-excel-grid",
+  "export-word-casting-sheets",
+  "export-word-item-overview",
 ]);
 
 /** What a use is a use of; a session isn't a use of anything. */
@@ -52,6 +59,8 @@ export function featureOf(request: RecordUsageRequest): UsageFeature | undefined
       return `overview-${request.view}`;
     case "item":
       return "item-page";
+    case "export":
+      return `export-${request.export}`;
     case "session":
       return undefined;
   }
@@ -79,6 +88,7 @@ export const UsageSummary = z.strictObject({
 
 export type MenuPageName = z.infer<typeof MenuPageName>;
 export type OverviewView = z.infer<typeof OverviewView>;
+export type UsageExport = z.infer<typeof UsageExport>;
 export type RecordUsageRequest = z.infer<typeof RecordUsageRequest>;
 export type UsageFeature = z.infer<typeof UsageFeature>;
 export type PersonUsage = z.infer<typeof PersonUsage>;

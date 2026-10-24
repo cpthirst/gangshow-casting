@@ -1486,6 +1486,32 @@ describe("Excel export from the grid", () => {
     expect(document.activeElement).toBe(button.element);
   });
 
+  const exportUses = () =>
+    vi
+      .mocked(fetch)
+      .mock.calls.filter(([url, init]) => url === "/api/usage" && init?.method === "POST")
+      .map(([, init]) => JSON.parse(String(init?.body)))
+      .filter((body) => body.event === "export");
+
+  it("records the export once the file is made (usage-tracking FR2)", async () => {
+    const wrapper = await openGrid();
+
+    await exportButton(wrapper)?.trigger("click");
+    await flushPromises();
+
+    expect(exportUses()).toEqual([{ event: "export", export: "excel-grid" }]);
+  });
+
+  it("records no export when it fails", async () => {
+    exportStatus = 500;
+    const wrapper = await openGrid();
+
+    await exportButton(wrapper)?.trigger("click");
+    await flushPromises();
+
+    expect(exportUses()).toEqual([]);
+  });
+
   it("says the export didn't work, saving no file, and lets the admin try again", async () => {
     exportStatus = 500;
     const wrapper = await openGrid();

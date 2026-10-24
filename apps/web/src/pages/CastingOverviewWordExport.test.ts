@@ -41,7 +41,13 @@ const fairy: Role = {
 };
 
 /** The stand-in API: what it answers can change between the page loading and the export. */
-let api: { cast: CastMember[]; roles: Role[]; rolesStatus: number; holdRoles?: Promise<void> };
+let api: {
+  cast: CastMember[];
+  roles: Role[];
+  rolesStatus: number;
+  holdRoles?: Promise<void>;
+  usageFails?: boolean;
+};
 let saved: { name: string; file: Blob }[];
 
 beforeEach(() => {
@@ -63,6 +69,7 @@ beforeEach(() => {
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string) => {
+      if (url === "/api/usage" && api.usageFails) throw new TypeError("fetch failed");
       if (url === ROLES_PATH) {
         await api.holdRoles;
         return api.rolesStatus === 200
@@ -373,5 +380,51 @@ describe("Export to Word on the By person view: the Casting Sheets", () => {
     );
     expect(saved).toEqual([]);
     expect(buttonNamed(wrapper, "Export to Word")?.attributes("disabled")).toBeUndefined();
+  });
+});
+
+describe("Recording Word exports (usage-tracking FR2)", () => {
+  const exportUses = () =>
+    vi
+      .mocked(fetch)
+      .mock.calls.filter(([url, init]) => url === "/api/usage" && init?.method === "POST")
+      .map(([, init]) => JSON.parse(String(init?.body)))
+      .filter((body) => body.event === "export");
+
+  it("records each Word export by name, from By person and then By item", async () => {
+    const wrapper = await openView("By person");
+    await exportFrom(wrapper, "Export to Word");
+    saved = [];
+    await wrapper
+      .findAll(".view-switch button")
+      .find((b) => b.text() === "By item")
+      ?.trigger("click");
+    await exportFrom(wrapper, "Export to Word");
+
+    expect(exportUses()).toEqual([
+      { event: "export", export: "word-casting-sheets" },
+      { event: "export", export: "word-item-overview" },
+    ]);
+  });
+
+  it("records no export when it fails", async () => {
+    const wrapper = await openView("By item");
+    api.rolesStatus = 500;
+
+    await exportFrom(wrapper, "Export to Word");
+
+    expect(wrapper.find(".word-export-error").exists()).toBe(true);
+    expect(exportUses()).toEqual([]);
+  });
+
+  it("still makes the file, saying only that it's exported, when recording fails", async () => {
+    api.usageFails = true;
+    const wrapper = await openView("By person");
+
+    await exportFrom(wrapper, "Export to Word");
+
+    expect(saved).toHaveLength(1);
+    expect(wrapper.get("[data-test=announcement]").text()).toBe("Casting sheets exported.");
+    expect(wrapper.find(".word-export-error").exists()).toBe(false);
   });
 });

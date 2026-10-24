@@ -4,6 +4,7 @@ import {
   type OverviewView,
   type PersonUsage,
   type RecordUsageRequest,
+  type UsageExport,
   UsageFeature,
 } from "@app/shared";
 import { sortAccounts } from "./accounts.ts";
@@ -50,6 +51,9 @@ export const dayOf = (iso: string) => ukDay.format(new Date(iso));
 /** Records switching the Casting Overview to another view. */
 export const recordView = (view: OverviewView) => record({ event: "view", view });
 
+/** Records an export, once its file is made. */
+export const recordExport = (kind: UsageExport) => record({ event: "export", export: kind });
+
 /** Records opening an item's page: which item only, never its title or cast. */
 export const recordItemUse = (productionId: string, itemId: string) =>
   record({ event: "item", productionId, itemId });
@@ -62,6 +66,9 @@ const otherNames: Record<OtherFeature, string> = {
   "overview-by-item": "Overview: By item",
   "overview-grid": "Overview: Grid",
   "item-page": "Item pages",
+  "export-excel-grid": "Export: Excel grid",
+  "export-word-casting-sheets": "Export: Word casting sheets",
+  "export-word-item-overview": "Export: Word item overview",
 };
 
 const isOtherFeature = (feature: UsageFeature): feature is OtherFeature =>
@@ -71,14 +78,12 @@ const isOtherFeature = (feature: UsageFeature): feature is OtherFeature =>
 export const featureName = (feature: UsageFeature, titleOf: (page: MenuPageName) => string) =>
   isOtherFeature(feature) ? otherNames[feature] : titleOf(feature);
 
-/** A person's uses, such as "Running order 3, Cast 1", in the order features are listed. */
-export function usesOf(uses: PersonUsage["uses"], nameOf: (feature: UsageFeature) => string) {
-  const used = UsageFeature.options.flatMap((feature) => {
+/** A person's uses, such as ["Running order 3", "Cast 1"], in the order features are listed. */
+export const usesOf = (uses: PersonUsage["uses"], nameOf: (feature: UsageFeature) => string) =>
+  UsageFeature.options.flatMap((feature) => {
     const count = uses[feature];
     return count ? [`${nameOf(feature)} ${count}`] : [];
   });
-  return used.length > 0 ? used.join(", ") : "No uses";
-}
 
 /** Every account, alphabetically, with its usage; none for an account with no usage. */
 export function usageByAccount(accounts: AccountSummary[], people: PersonUsage[]) {

@@ -197,6 +197,29 @@ describe("reading usage", () => {
     ]);
   });
 
+  it("counts each person's exports", async () => {
+    const exported = (kind: "excel-grid" | "word-casting-sheets", at: string) => ({
+      username: "alex",
+      event: "export" as const,
+      export: kind,
+      at,
+    });
+    const { summary } = setUp([
+      exported("excel-grid", daysAgo(3)),
+      exported("excel-grid", daysAgo(2)),
+      exported("word-casting-sheets", daysAgo(1)),
+    ]);
+
+    expect((await summary()).people).toEqual([
+      {
+        username: "alex",
+        sessions: 0,
+        lastSession: null,
+        uses: { "export-excel-grid": 2, "export-word-casting-sheets": 1 },
+      },
+    ]);
+  });
+
   it("lists someone who only opened pages in the period, with no last session", async () => {
     const { summary } = setUp([session("robin", daysAgo(31)), opened("robin", "cast", daysAgo(2))]);
 

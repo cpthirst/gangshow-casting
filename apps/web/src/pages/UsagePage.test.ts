@@ -35,8 +35,14 @@ async function openPage() {
 }
 
 type Page = Awaited<ReturnType<typeof openPage>>;
+// A cell listing several things gives each list item, one per line; any other its text.
 const rows = (wrapper: Page) =>
-  wrapper.findAll("tbody tr").map((row) => row.findAll("td").map((cell) => cell.text()));
+  wrapper.findAll("tbody tr").map((row) =>
+    row.findAll("td").map((cell) => {
+      const lines = cell.findAll("li").map((line) => line.text());
+      return lines.length > 0 ? lines : cell.text();
+    }),
+  );
 
 describe("Usage page", () => {
   // As on pnpm dev: the local app acts as an admin.
@@ -90,7 +96,7 @@ describe("Usage page", () => {
       "robin",
       "2",
       "20 October 2026",
-      "Running order 3, Cast 1",
+      ["Running order 3", "Cast 1"],
     ]);
     expect(rows(wrapper)).toContainEqual(["alex", "1", "22 October 2026", "No uses"]);
   });
@@ -110,7 +116,12 @@ describe("Usage page", () => {
 
     const wrapper = await openPage();
 
-    expect(rows(wrapper)).toContainEqual(["robin", "1", "20 October 2026", "Overview 2, Items 1"]);
+    expect(rows(wrapper)).toContainEqual([
+      "robin",
+      "1",
+      "20 October 2026",
+      ["Overview 2", "Items 1"],
+    ]);
   });
 
   it("shows Overview views and item pages after the pages", async () => {
@@ -132,7 +143,30 @@ describe("Usage page", () => {
       "robin",
       "1",
       "20 October 2026",
-      "Cast 1, Overview: Grid 2, Item pages 4",
+      ["Cast 1", "Overview: Grid 2", "Item pages 4"],
+    ]);
+  });
+
+  it("shows exports after everything else", async () => {
+    serve({
+      recordedSince: "2026-10-01T18:00:00.000Z",
+      people: [
+        {
+          username: "alex",
+          sessions: 1,
+          lastSession: "2026-10-22T18:00:00.000Z",
+          uses: { "export-word-casting-sheets": 1, "export-excel-grid": 2, "item-page": 1 },
+        },
+      ],
+    });
+
+    const wrapper = await openPage();
+
+    expect(rows(wrapper)).toContainEqual([
+      "alex",
+      "1",
+      "22 October 2026",
+      ["Item pages 1", "Export: Excel grid 2", "Export: Word casting sheets 1"],
     ]);
   });
 
@@ -144,7 +178,7 @@ describe("Usage page", () => {
 
     const wrapper = await openPage();
 
-    expect(rows(wrapper)).toContainEqual(["kit", "0", "No sessions", "Welcome 1"]);
+    expect(rows(wrapper)).toContainEqual(["kit", "0", "No sessions", ["Welcome 1"]]);
   });
 
   it("matches usage to accounts whatever the case of the username", async () => {

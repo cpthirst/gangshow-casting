@@ -28,7 +28,7 @@ prd: ./prd.md
 |---|---|---|---|---|
 | [usage-tracking.E2.S1](stories/E2-S1-menu-page-uses.md) | Opening a menu page is recorded, and the per-person summary shows how often each person opened each page | FR2, FR3, FR5 | E1.S1 | done |
 | [usage-tracking.E2.S2](stories/E2-S2-overview-views-and-items.md) | Switching the Overview between By person, By item and Grid, and opening an item's page, are recorded and counted per person | FR2, FR3, FR5 | E2.S1 | done |
-| [usage-tracking.E2.S3](stories/E2-S3-export-uses.md) | Each Excel and Word export is recorded and counted per person | FR2, FR3, FR5 | E2.S1 | ready |
+| [usage-tracking.E2.S3](stories/E2-S3-export-uses.md) | Each Excel and Word export is recorded and counted per person | FR2, FR3, FR5 | E2.S1 | done |
 
 ## E3: The rest of the Usage page
 
