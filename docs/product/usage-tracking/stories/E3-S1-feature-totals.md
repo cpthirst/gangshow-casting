@@ -2,7 +2,7 @@
 id: usage-tracking.E3.S1
 title: Show totals for each page, view and export on the Usage page
 epic: E3
-status: draft
+status: ready
 ---
 
 ## Story

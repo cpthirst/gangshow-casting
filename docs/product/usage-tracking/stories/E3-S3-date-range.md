@@ -2,7 +2,7 @@
 id: usage-tracking.E3.S3
 title: Choose the Usage page's date range
 epic: E3
-status: draft
+status: ready
 ---
 
 ## Story

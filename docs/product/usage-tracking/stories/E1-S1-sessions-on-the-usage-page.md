@@ -104,4 +104,5 @@ Then nothing scrolls sideways
 - AC14: locally, accounts are the made-up ones in `local-accounts.ts`, so usage for them must stay in memory, like the accounts do.
 - AC15 is covered by the browser layout tests, which walk the Usage page (added with the user's agreement).
 - The per-person summary shows only sessions here. E2 adds page, view and export counts to it.
+- AC2 is changed by usage-tracking.E4.S1: coming back while still signed in is part of the same day-long session (PRD FR1, changed on 2026-10-24).
 - Out of scope: recording page, view or export use (E2), totals per feature (E3.S1), the activity list (E3.S2), choosing a date range (E3.S3).

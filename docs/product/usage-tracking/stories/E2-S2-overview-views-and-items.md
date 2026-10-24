@@ -2,7 +2,7 @@
 id: usage-tracking.E2.S2
 title: Record Overview view switches and item pages, and count them per person
 epic: E2
-status: draft
+status: ready
 ---
 
 ## Story

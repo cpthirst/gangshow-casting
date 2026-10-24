@@ -2,7 +2,7 @@
 id: usage-tracking.E3.S2
 title: Show a recent activity list on the Usage page
 epic: E3
-status: draft
+status: ready
 ---
 
 ## Story
