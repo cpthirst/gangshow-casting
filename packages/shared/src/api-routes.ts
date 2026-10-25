@@ -18,6 +18,7 @@ export const routeKeys = [
   "DELETE /api/productions/{productionId}/cast/{castId}",
   "GET /api/productions/{productionId}/roles",
   "GET /api/productions/{productionId}/item-notes",
+  "GET /api/productions/{productionId}/props",
   "POST /api/productions/{productionId}/casting-grid/export",
   "PUT /api/productions/{productionId}/items/{itemId}/notes",
   "POST /api/productions/{productionId}/items/{itemId}/roles",

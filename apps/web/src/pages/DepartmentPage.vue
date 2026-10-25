@@ -3,7 +3,9 @@ import type { PageView } from "@app/shared";
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import HelpButton from "@/components/common/HelpButton.vue";
+import ReadOnlyNotice from "@/components/common/ReadOnlyNotice.vue";
 import ViewSwitch from "@/components/common/ViewSwitch.vue";
+import PropsList from "@/components/production/PropsList.vue";
 import { recordView } from "@/services/usage.ts";
 import { type DepartmentName, departments, viewNamed } from "@/utils/departments.ts";
 
@@ -45,8 +47,11 @@ function choose(name: PageView) {
     </div>
     <!-- Named for screen readers by its view, as the switch shows it chosen. -->
     <section data-test="department-view" :aria-label="shown.title">
+      <!-- Straight under the switch, before the description, as on the casting pages. -->
+      <ReadOnlyNotice v-if="shown.name === 'props'" about="props" />
       <p>{{ shown.description }}</p>
-      <p class="coming-soon">Coming soon</p>
+      <PropsList v-if="shown.name === 'props'" />
+      <p v-else class="coming-soon">Coming soon</p>
     </section>
   </template>
   <p v-else class="coming-soon">Coming soon</p>

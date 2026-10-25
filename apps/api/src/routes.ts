@@ -6,6 +6,7 @@ import { createDeleteCastMember } from "./delete-cast-member.ts";
 import { exportCastingGrid } from "./export-casting-grid.ts";
 import { createGetCast } from "./get-cast.ts";
 import { createGetItemNotes } from "./get-item-notes.ts";
+import { createGetProps } from "./get-props.ts";
 import { createGetRoles } from "./get-roles.ts";
 import { createGetRunningOrder } from "./get-running-order.ts";
 import type { Handler } from "./handler.ts";
@@ -23,7 +24,7 @@ import type { UsageStore } from "./usage-store.ts";
  * the account routes: those run in their own function (account-routes.ts, ADR 0017).
  */
 export function createRoutes(
-  { runningOrders, cast, roles, removeCastMember, itemNotes }: Stores,
+  { runningOrders, cast, roles, removeCastMember, itemNotes, props }: Stores,
   usage: UsageStore,
 ): Record<Exclude<RouteKey, AccountRouteKey>, Handler> {
   return {
@@ -44,6 +45,7 @@ export function createRoutes(
       itemNotes,
       runningOrders,
     ),
+    "GET /api/productions/{productionId}/props": createGetProps(props),
     "POST /api/productions/{productionId}/casting-grid/export": exportCastingGrid,
     "POST /api/productions/{productionId}/items/{itemId}/roles": createAddRole(
       roles,

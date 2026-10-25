@@ -36,7 +36,7 @@ iCUE is hosted on AWS and is open only to the production team. Everyone signs in
 | **Show → Cast** | The Scouts, Explorers and Network members in this production: name, section, Scout group or Explorer unit, age band, and short Singing and Acting notes. Search and filter, add, edit and remove | [cast-management](docs/product/cast-management) |
 | **Casting → Overview** | The whole cast at once, three ways: **By person** (who carries how many parts, and of what size, section by section), **By item** (each item's parts in show order) and **Grid** (people against items). Clashes are flagged. Export the grid to Excel and the other two views to Word | [casting/overview](docs/product/casting/overview) |
 | **Casting → Items** | Every item in running order, with how far its casting has got | [casting/items](docs/product/casting/items) |
-| **Production → Stage, Tech, Costume** | A page per department, open to every role. Stage switches between Scenery and Props, and Tech between the Mic plot and SFX, like the Overview's views; each view, and Costume, says "Coming soon" until it's built | [stage-props](docs/product/stage/props) |
+| **Production → Stage, Tech, Costume** | A page per department, open to every role. Stage switches between Scenery and Props, and Tech between the Mic plot and SFX, like the Overview's views. Props lists the show's items in running order with how many props each has; the other views, and Costume, say "Coming soon" until they're built | [stage-props](docs/product/stage/props) |
 | **An item's page** | The item's parts (lead, supporting, cameo, ensemble), who plays each, warnings about quick changes and short gaps between appearances, and the item's notes. Step to the previous or next item | [casting/item-overview](docs/product/casting/item-overview), [roles](docs/product/casting/roles), [rules](docs/product/casting/rules) |
 | **Help** | What each page is for and what its buttons do, with who can use each | [in-app-help](docs/product/in-app-help) |
 | **Accounts** (admins) | Create the team's sign-in accounts, see and change each one's access (Admin, or any mix of Casting, Stage, Tech and Costume), reset passwords, and disable or enable accounts | [hosting](docs/product/hosting), [team-roles](docs/product/team-roles) |
@@ -125,7 +125,7 @@ CI runs both of these as separate jobs.
 │   ├── web/                 Vue 3 + Vite SPA; Playwright layout tests in e2e/
 │   │   └── src/                 By kind (ADR 0025); tests sit beside their code
 │   │       ├── pages/           One component per route
-│   │       ├── components/      app/ (sidebar), common/, show/, casting/
+│   │       ├── components/      app/ (sidebar), common/, show/, casting/, production/
 │   │       ├── services/        Calls to the API or the browser: sign-in, usage, exports
 │   │       ├── utils/           Plain show logic: cast, roles, running order, clashes; word/
 │   │       ├── router/          Routes and the menu

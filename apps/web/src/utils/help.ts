@@ -238,7 +238,11 @@ export const pageHelp: PageHelp[] = [
       "The scenery and props each item needs, as two views. Accounts with Stage, and admins, can change it.",
     lines: [
       { name: "Scenery", does: "The scenery each item needs. Coming soon.", access: "everyone" },
-      { name: "Props", does: "The props each item needs. Coming soon.", access: "everyone" },
+      {
+        name: "Props",
+        does: "The show's items, with how many props each one needs. Open an item to see its props.",
+        access: "everyone",
+      },
     ],
   },
   {

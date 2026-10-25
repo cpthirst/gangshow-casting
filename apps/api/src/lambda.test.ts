@@ -16,6 +16,7 @@ import type { Handler } from "./handler.ts";
 import { inMemoryItemNoteStore } from "./item-note-store.ts";
 import { handler } from "./lambda.ts";
 import { lambdaEntry } from "./lambda-entry.ts";
+import { inMemoryPropStore } from "./prop-store.ts";
 import { uncastThenRemove } from "./remove-cast-member.ts";
 import { inMemoryRoleStore } from "./role-store.ts";
 import { createRoutes } from "./routes.ts";
@@ -111,6 +112,7 @@ describe("Lambda entry point", () => {
               aRunningOrder(3, { first: ["Pirate Sketch"] }),
             ]),
             itemNotes: inMemoryItemNoteStore(),
+            props: inMemoryPropStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
@@ -154,6 +156,7 @@ describe("Lambda entry point", () => {
             roles,
             runningOrders,
             itemNotes: inMemoryItemNoteStore(),
+            props: inMemoryPropStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
@@ -302,6 +305,7 @@ describe("Lambda entry point", () => {
             roles,
             runningOrders,
             itemNotes,
+            props: inMemoryPropStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
@@ -512,6 +516,7 @@ describe("Lambda entry point", () => {
             roles,
             runningOrders,
             itemNotes,
+            props: inMemoryPropStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
@@ -739,6 +744,7 @@ describe("Lambda entry point", () => {
             roles,
             runningOrders: inMemoryRunningOrderStore([aRunningOrder(3)]),
             itemNotes: inMemoryItemNoteStore(),
+            props: inMemoryPropStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),

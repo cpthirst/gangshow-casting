@@ -5,6 +5,9 @@ import App from "@/App.vue";
 import { createAppRouter } from "@/router/index.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
+import { PROPS_PATH } from "@/utils/props.ts";
+import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
+import { RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
 
 enableAutoUnmount(afterEach);
 
@@ -109,7 +112,6 @@ describe("Tech page", () => {
 describe("Views not built yet", () => {
   it.each([
     ["/production/stage", "Scenery"],
-    ["/production/stage", "Props"],
     ["/production/tech", "Mic plot"],
     ["/production/tech", "SFX"],
   ])("on %s, %s says Coming soon", async (path, view) => {
@@ -119,6 +121,57 @@ describe("Views not built yet", () => {
 
     expect(shownView(wrapper).attributes("aria-label")).toBe(view);
     expect(shownView(wrapper).get(".coming-soon").text()).toBe("Coming soon");
+  });
+});
+
+describe("Stage's Props view", () => {
+  it("lists the show's items in place of Coming soon", async () => {
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      if (input === RUNNING_ORDER_PATH) {
+        return new Response(JSON.stringify(aRunningOrder([anItem("Pirate Sketch")])));
+      }
+      if (input === PROPS_PATH)
+        return new Response(JSON.stringify({ productionId: "2027", props: [] }));
+      return new Response(null, { status: 204 });
+    });
+
+    const { wrapper } = await openAppAt("/production/stage?view=props");
+
+    expect(shownView(wrapper).find(".coming-soon").exists()).toBe(false);
+    expect(shownView(wrapper).get("[data-test=title]").text()).toBe("Pirate Sketch");
+  });
+});
+
+describe("Stage's Props view, by permission", () => {
+  beforeEach(() => {
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      if (input === RUNNING_ORDER_PATH) {
+        return new Response(JSON.stringify(aRunningOrder([anItem("Pirate Sketch")])));
+      }
+      if (input === PROPS_PATH)
+        return new Response(JSON.stringify({ productionId: "2027", props: [] }));
+      return new Response(null, { status: 204 });
+    });
+  });
+
+  it("tells someone without Stage, before the view's description, that they can only view the props", async () => {
+    await signInAs(["casting"], "sam");
+
+    const { wrapper } = await openAppAt("/production/stage?view=props");
+
+    const notice = shownView(wrapper).get("[data-test=read-only]");
+    expect(notice.text()).toBe("You can view the props, but not change them.");
+    expect(notice.element.nextElementSibling?.textContent).toBe(
+      "The show's items, with how many props each one needs.",
+    );
+  });
+
+  it("doesn't say the props can only be viewed to someone with Stage", async () => {
+    await signInAs(["stage"], "pat");
+
+    const { wrapper } = await openAppAt("/production/stage?view=props");
+
+    expect(shownView(wrapper).find("[data-test=read-only]").exists()).toBe(false);
   });
 });
 
