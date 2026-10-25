@@ -95,6 +95,15 @@ describe("routeNeeds", () => {
     expect(needOf("POST /api/productions/{productionId}/items/{itemId}/props")).toBe("stage");
   });
 
+  it("has saving props notes need Stage", () => {
+    expect(needOf("PUT /api/productions/{productionId}/items/{itemId}/props-notes")).toBe("stage");
+  });
+
+  it("leaves reading props notes open to everyone", () => {
+    expect(routeKeys).toContain("GET /api/productions/{productionId}/props-notes");
+    expect(needOf("GET /api/productions/{productionId}/props-notes")).toBeUndefined();
+  });
+
   it("has every other change route today need Casting, or stay admin-only", () => {
     const changes = routeKeys.filter((key) => !readOnlyMayUse(key) && needOf(key) !== "stage");
     expect(changes.filter((key) => needOf(key) === "casting").sort()).toEqual([

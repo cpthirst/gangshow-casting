@@ -7,6 +7,7 @@ import type { RunningOrderStore } from "./running-order-store.ts";
 
 // PUT /api/productions/{productionId}/items/{itemId}/notes: replace an item's notes, unless
 // someone else saved them since the revision in the body (casting-item-overview FR8, FR10).
+// Also saves props notes at /props-notes, into their own store (stage-props FR20).
 export function createSaveItemNote(notes: ItemNoteStore, runningOrders: RunningOrderStore) {
   return async (event: ApiEvent): Promise<APIGatewayProxyStructuredResultV2> => {
     const productionId = ProductionId.safeParse(event.pathParameters?.productionId);

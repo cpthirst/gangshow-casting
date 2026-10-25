@@ -11,10 +11,10 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, nextTick, onMounted, ref, watch, watchEffect } from "vue";
 import { useRoute } from "vue-router";
-import ItemNotes from "@/components/casting/ItemNotes.vue";
 import RoleForm from "@/components/casting/RoleForm.vue";
 import ClashIcon from "@/components/common/ClashIcon.vue";
 import HelpButton from "@/components/common/HelpButton.vue";
+import ItemNotes from "@/components/common/ItemNotes.vue";
 import ItemStepNav from "@/components/common/ItemStepNav.vue";
 import ReadOnlyNotice from "@/components/common/ReadOnlyNotice.vue";
 import { showPageTitle } from "@/router/index.ts";
@@ -23,6 +23,7 @@ import { recordItemUse } from "@/services/usage.ts";
 import { CAST_PATH, sortCast } from "@/utils/cast.ts";
 import { clashesOf, describeEach, findClashes } from "@/utils/clashes.ts";
 import { icons } from "@/utils/icons.ts";
+import { ITEM_NOTES_PATH, saveNotesPath } from "@/utils/item-notes.ts";
 import {
   addRolePath,
   nameTakenMessage,
@@ -399,7 +400,14 @@ async function postRole(itemId: string, details: AddRoleRequest) {
     </ul>
     <p v-else>No roles have been added yet.</p>
     <!-- A fresh instance per item, so stepping to another never mixes their notes. -->
-    <ItemNotes :key="place.item.id" :item-id="place.item.id" />
+    <ItemNotes
+      :key="place.item.id"
+      :item-id="place.item.id"
+      heading="Notes"
+      :list-path="ITEM_NOTES_PATH"
+      :save-path="saveNotesPath(place.item.id)"
+      :can-change="canChangeCasting"
+    />
   </template>
   <template v-else-if="notFound">
     <h1>Item not found</h1>

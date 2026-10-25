@@ -3,14 +3,14 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import type { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import { fileCastStore } from "./cast-store.ts";
 import { dynamoCastStore } from "./dynamo-cast-store.ts";
-import { dynamoItemNoteStore } from "./dynamo-item-note-store.ts";
+import { dynamoItemNoteStore, PROPS_NOTE } from "./dynamo-item-note-store.ts";
 import { dynamoPropStore } from "./dynamo-prop-store.ts";
 import { dynamoRemoveCastMember } from "./dynamo-remove-cast-member.ts";
 import { dynamoRoleStore } from "./dynamo-role-store.ts";
 import { dynamoRunningOrderStore } from "./dynamo-running-order-store.ts";
 import { documentClient } from "./dynamo-table.ts";
 import { dynamoUsageStore } from "./dynamo-usage-store.ts";
-import { fileItemNoteStore } from "./item-note-store.ts";
+import { fileItemNoteStore, PROPS_NOTES_FILE } from "./item-note-store.ts";
 import { filePropStore } from "./prop-store.ts";
 import { uncastThenRemove } from "./remove-cast-member.ts";
 import { fileRoleStore } from "./role-store.ts";
@@ -52,6 +52,7 @@ export function fileStores(dataDir: string) {
     removeCastMember: uncastThenRemove(cast, roles),
     itemNotes: fileItemNoteStore(dataDir),
     props: filePropStore(dataDir),
+    propsNotes: fileItemNoteStore(dataDir, PROPS_NOTES_FILE),
   };
 }
 
@@ -67,6 +68,7 @@ export function remoteStores(db: DynamoDBDocumentClient, table: string): Stores 
     removeCastMember: dynamoRemoveCastMember(db, table),
     itemNotes: dynamoItemNoteStore(db, table),
     props: dynamoPropStore(db, table),
+    propsNotes: dynamoItemNoteStore(db, table, PROPS_NOTE),
   };
 }
 

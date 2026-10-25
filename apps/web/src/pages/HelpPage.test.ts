@@ -297,11 +297,22 @@ describe("Help page", () => {
     it("say how to reach an item's props, then explain its actions and who can use each", async () => {
       const { wrapper } = await openHelp();
 
+      expect(summaryOf(wrapper, "props-item")).toContain("One item's props and notes.");
       expect(summaryOf(wrapper, "props-item")).toContain("Production → Stage");
-      expect(names(wrapper, "props-item")).toEqual(["All items", "Previous and Next", "Add prop"]);
+      expect(names(wrapper, "props-item")).toEqual([
+        "All items",
+        "Previous and Next",
+        "Add prop",
+        "Props notes",
+      ]);
       expect(accessOf(wrapper, "All items", "props-item")).toBe("Everyone");
       expect(accessOf(wrapper, "Previous and Next", "props-item")).toBe("Everyone");
       expect(accessOf(wrapper, "Add prop", "props-item")).toBe("Accounts with Stage, and admins");
+      expect(
+        lineNamed(wrapper, "Props notes", "props-item")
+          .findAll("[data-test=help-access]")
+          .map((label) => label.text()),
+      ).toEqual(["Reading: Everyone", "Changing: Accounts with Stage, and admins"]);
     });
 
     it("name the views on Stage and Tech, open to everyone", async () => {

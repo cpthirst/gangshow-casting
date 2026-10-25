@@ -115,6 +115,7 @@ describe("Lambda entry point", () => {
             ]),
             itemNotes: inMemoryItemNoteStore(),
             props: inMemoryPropStore(),
+            propsNotes: inMemoryItemNoteStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
@@ -159,6 +160,7 @@ describe("Lambda entry point", () => {
             runningOrders,
             itemNotes: inMemoryItemNoteStore(),
             props: inMemoryPropStore(),
+            propsNotes: inMemoryItemNoteStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
@@ -308,6 +310,7 @@ describe("Lambda entry point", () => {
             runningOrders,
             itemNotes,
             props: inMemoryPropStore(),
+            propsNotes: inMemoryItemNoteStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
@@ -519,6 +522,7 @@ describe("Lambda entry point", () => {
             runningOrders,
             itemNotes,
             props: inMemoryPropStore(),
+            propsNotes: inMemoryItemNoteStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
@@ -736,6 +740,7 @@ describe("Lambda entry point", () => {
               ]),
               itemNotes: inMemoryItemNoteStore(),
               props,
+              propsNotes: inMemoryItemNoteStore(),
               removeCastMember: uncastThenRemove(cast, roles),
             },
             inMemoryUsageStore(),
@@ -775,6 +780,126 @@ describe("Lambda entry point", () => {
       );
     });
 
+    describe("props notes, which need Stage", () => {
+      const PROPS_READ_ONLY = { message: "You can view the props, but not change them." };
+      const setUpNotes = () => {
+        const cast = inMemoryCastStore();
+        const roles = inMemoryRoleStore();
+        const itemNotes = inMemoryItemNoteStore();
+        const api = lambdaEntry(
+          createRoutes(
+            {
+              cast,
+              roles,
+              runningOrders: inMemoryRunningOrderStore([
+                aRunningOrder(4, { first: ["Pirate Sketch"] }),
+              ]),
+              itemNotes,
+              props: inMemoryPropStore(),
+              propsNotes: inMemoryItemNoteStore(),
+              removeCastMember: uncastThenRemove(cast, roles),
+            },
+            inMemoryUsageStore(),
+          ),
+        );
+        return { api, itemNotes };
+      };
+      const NOTES_PATH = `/api/productions/2027/items/${pirate}/props-notes`;
+      const saveNotes = (groups: string, revision: number, text: string) =>
+        as(groups)("PUT", NOTES_PATH, { revision, text });
+      const propsNotes = async (api: ReturnType<typeof setUpNotes>["api"]) =>
+        ItemNoteList.parse(
+          JSON.parse(
+            (await api(as("[casting]")("GET", "/api/productions/2027/props-notes"))).body ?? "",
+          ),
+        ).notes;
+
+      it.each([
+        ["pat, with Stage", "[stage]"],
+        ["alex, an admin", "[admin]"],
+      ])("saves props notes from %s, kept for the next read", async (_who, groups) => {
+        const { api } = setUpNotes();
+
+        const res = await api(saveNotes(groups, 0, "Chest set stage left before the blackout"));
+
+        expect(res.statusCode).toBe(200);
+        expect(await propsNotes(api)).toEqual([
+          { itemId: pirate, text: "Chest set stage left before the blackout", revision: 1 },
+        ]);
+      });
+
+      it("keeps props notes apart from the casting notes", async () => {
+        const { api, itemNotes } = setUpNotes();
+        await itemNotes.save("2027", pirate, 0, "Captain needs a sword fight rehearsal");
+
+        await api(saveNotes("[stage]", 0, "Chest set stage left"));
+
+        expect((await itemNotes.list("2027")).notes.map((note) => note.text)).toEqual([
+          "Captain needs a sword fight rehearsal",
+        ]);
+        expect((await propsNotes(api)).map((note) => note.text)).toEqual(["Chest set stage left"]);
+      });
+
+      it("refuses props notes over 500 characters, saving nothing", async () => {
+        const { api } = setUpNotes();
+
+        const res = await api(saveNotes("[stage]", 0, "x".repeat(501)));
+
+        expect(res.statusCode).toBe(400);
+        expect(await propsNotes(api)).toEqual([]);
+      });
+
+      it("clears props notes saved as empty text", async () => {
+        const { api } = setUpNotes();
+        await api(saveNotes("[stage]", 0, "Chest set stage left"));
+
+        await api(saveNotes("[stage]", 1, "  "));
+
+        expect((await propsNotes(api)).map((note) => note.text)).toEqual([""]);
+      });
+
+      it("refuses a save made since someone else saved, keeping theirs", async () => {
+        const { api } = setUpNotes();
+        await api(saveNotes("[stage]", 0, "Theirs"));
+
+        const res = await api(saveNotes("[stage]", 0, "Mine"));
+
+        expect(res.statusCode).toBe(409);
+        expect((await propsNotes(api)).map((note) => note.text)).toEqual(["Theirs"]);
+      });
+
+      it("keeps props notes when a new running-order version keeps the item", async () => {
+        const { api } = setUpNotes();
+        await api(saveNotes("[stage]", 0, "Chest set stage left"));
+
+        const saved = await api(
+          as("[admin]")("POST", "/api/productions/2027/running-order/versions", {
+            baseVersion: 4,
+            change: {
+              type: "update",
+              // Pirate Sketch moved to the second half, its props notes kept with it.
+              halves: aRunningOrder(4, { second: ["Pirate Sketch"], first: [] }).halves.map(
+                ({ id, items }) => ({ id, items }),
+              ),
+            },
+          }),
+        );
+
+        expect(saved.statusCode).toBe(201);
+        expect((await propsNotes(api)).map((note) => note.text)).toEqual(["Chest set stage left"]);
+      });
+
+      it("refuses props notes from sam, with Casting only, saying the props are read-only", async () => {
+        const { api } = setUpNotes();
+
+        const res = await api(saveNotes("[casting]", 0, "Chest"));
+
+        expect(res.statusCode).toBe(403);
+        expect(JSON.parse(res.body ?? "")).toEqual(PROPS_READ_ONLY);
+        expect(await propsNotes(api)).toEqual([]);
+      });
+    });
+
     it.each(["[props]", "[crew Stage CASTING]", "[superadmin]"])(
       "refuses a change from a sign-in whose groups are only unknown ones, %s, saying read-only",
       async (groups) => {
@@ -803,6 +928,7 @@ describe("Lambda entry point", () => {
             runningOrders: inMemoryRunningOrderStore([aRunningOrder(3)]),
             itemNotes: inMemoryItemNoteStore(),
             props: inMemoryPropStore(),
+            propsNotes: inMemoryItemNoteStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),

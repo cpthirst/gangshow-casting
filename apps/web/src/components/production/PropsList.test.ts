@@ -6,6 +6,7 @@ import { createAppRouter } from "@/router/index.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
 import { PROPS_PATH } from "@/utils/props.ts";
+import { PROPS_NOTES_PATH } from "@/utils/props-notes.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
 import { RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
 import PropsList from "./PropsList.vue";
@@ -18,13 +19,21 @@ afterEach(() => {
   useLocalSignIn();
 });
 
-/** A stand-in API answering the running order and props paths as given. */
-function apiAnswers(answers: { order: () => Response; props: () => Response }) {
+/** A stand-in API answering the running order, props and props notes paths as given (no
+ *  props notes unless a test says). */
+function apiAnswers(answers: {
+  order: () => Response;
+  props: () => Response;
+  notes?: () => Response;
+}) {
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string) => {
       if (url === RUNNING_ORDER_PATH) return answers.order();
       if (url === PROPS_PATH) return answers.props();
+      if (url === PROPS_NOTES_PATH) {
+        return answers.notes?.() ?? json({ productionId: "2027", notes: [] })();
+      }
       return new Response(null, { status: 204 });
     }),
   );
@@ -212,5 +221,56 @@ describe("Props list", () => {
     const counts = wrapper.findAll("[data-test=count]").map((cell) => cell.text());
     expect(counts.length).toBeGreaterThan(0);
     for (const count of counts) expect(count).not.toMatch(/\d/);
+  });
+});
+
+describe("Props notes on the Props list", () => {
+  const withNotes = (notes: { itemId: string; text: string; revision: number }[]) =>
+    apiAnswers({
+      order: json(show()),
+      props: json({ productionId: "2027", props: [] }),
+      notes: json({ productionId: "2027", notes }),
+    });
+
+  /** The notes shown for an item: in the row straight after the item's own row. */
+  const notesFor = (wrapper: VueWrapper, title: string) => {
+    const row = rowFor(wrapper, title)?.element.nextElementSibling;
+    return row?.matches("[data-test=props-notes]") ? row : undefined;
+  };
+
+  it("shows an item's props notes in full, under its row and across the table", async () => {
+    withNotes([
+      { itemId: "pirate-sketch", text: "Chest set stage left before the blackout", revision: 1 },
+    ]);
+
+    const { wrapper } = await openPropsList();
+
+    const notes = notesFor(wrapper, "Pirate Sketch");
+    expect(notes?.textContent?.trim()).toBe("Chest set stage left before the blackout");
+    expect(notes?.querySelector("td")?.getAttribute("colspan")).toBe("4");
+    expect(notes?.querySelector("td")?.getAttribute("data-label")).toBe("Props notes");
+  });
+
+  it("shows nothing extra for an item with no props notes, or cleared ones", async () => {
+    withNotes([{ itemId: "opening-number", text: "", revision: 2 }]);
+
+    const { wrapper } = await openPropsList();
+
+    expect(notesFor(wrapper, "Finale")).toBeUndefined();
+    expect(notesFor(wrapper, "Opening Number")).toBeUndefined();
+    expect(wrapper.findAll("[data-test=props-notes]")).toEqual([]);
+  });
+
+  it("still lists the items, and says so, when the props notes can't be loaded", async () => {
+    apiAnswers({
+      order: json(show()),
+      props: json({ productionId: "2027", props: [] }),
+      notes: status(500),
+    });
+
+    const { wrapper } = await openPropsList();
+
+    expect(titlesIn(wrapper, "First half")).toEqual(["Opening Number", "Pirate Sketch"]);
+    expect(wrapper.get("[role=alert]").text()).toBe("Couldn't load the notes.");
   });
 });

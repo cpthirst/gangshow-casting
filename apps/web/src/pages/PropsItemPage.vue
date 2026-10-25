@@ -3,6 +3,7 @@ import { type AddPropRequest, Prop, PropList, RunningOrder } from "@app/shared";
 import { computed, nextTick, onMounted, ref, watch, watchEffect } from "vue";
 import { useRoute } from "vue-router";
 import HelpButton from "@/components/common/HelpButton.vue";
+import ItemNotes from "@/components/common/ItemNotes.vue";
 import ItemStepNav from "@/components/common/ItemStepNav.vue";
 import ReadOnlyNotice from "@/components/common/ReadOnlyNotice.vue";
 import PropCard from "@/components/production/PropCard.vue";
@@ -10,6 +11,7 @@ import PropForm from "@/components/production/PropForm.vue";
 import { showPageTitle } from "@/router/index.ts";
 import { apiFetch, canChangeStage } from "@/services/sign-in.ts";
 import { addPropPath, PROPS_PATH, sortProps } from "@/utils/props.ts";
+import { PROPS_NOTES_PATH, savePropsNotesPath } from "@/utils/props-notes.ts";
 import { neighboursOf, placeOf, positionOf, RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
 
 // One item's props (stage-props FR16, FR17), laid out as the item's casting page.
@@ -151,6 +153,16 @@ async function postProp(itemId: string, details: AddPropRequest) {
       <PropCard v-for="prop in itemProps" :key="prop.id" :prop="prop" />
     </ul>
     <p v-else>No props have been added yet.</p>
+    <!-- Apart from the casting notes. A fresh instance per item, so stepping to another never
+         mixes their notes. -->
+    <ItemNotes
+      :key="place.item.id"
+      :item-id="place.item.id"
+      heading="Props notes"
+      :list-path="PROPS_NOTES_PATH"
+      :save-path="savePropsNotesPath(place.item.id)"
+      :can-change="canChangeStage"
+    />
   </template>
   <template v-else-if="notFound">
     <h1>Item not found</h1>

@@ -25,7 +25,7 @@ import type { UsageStore } from "./usage-store.ts";
  * the account routes: those run in their own function (account-routes.ts, ADR 0017).
  */
 export function createRoutes(
-  { runningOrders, cast, roles, removeCastMember, itemNotes, props }: Stores,
+  { runningOrders, cast, roles, removeCastMember, itemNotes, props, propsNotes }: Stores,
   usage: UsageStore,
 ): Record<Exclude<RouteKey, AccountRouteKey>, Handler> {
   return {
@@ -49,6 +49,11 @@ export function createRoutes(
     "GET /api/productions/{productionId}/props": createGetProps(props),
     "POST /api/productions/{productionId}/items/{itemId}/props": createAddProp(
       props,
+      runningOrders,
+    ),
+    "GET /api/productions/{productionId}/props-notes": createGetItemNotes(propsNotes),
+    "PUT /api/productions/{productionId}/items/{itemId}/props-notes": createSaveItemNote(
+      propsNotes,
       runningOrders,
     ),
     "POST /api/productions/{productionId}/casting-grid/export": exportCastingGrid,

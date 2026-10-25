@@ -249,7 +249,7 @@ export const pageHelp: PageHelp[] = [
   {
     page: "props-item",
     title: "An item's props",
-    summary: "One item's props. Open an item from Production → Stage, in the Props view.",
+    summary: "One item's props and notes. Open an item from Production → Stage, in the Props view.",
     reachedFrom: { page: "stage", title: "Stage" },
     lines: [
       {
@@ -265,6 +265,12 @@ export const pageHelp: PageHelp[] = [
         access: "everyone",
       },
       { name: "Add prop", does: "Adds a prop the item needs, by name.", access: "stage" },
+      {
+        name: "Props notes",
+        does: "Anything the props team needs to know about the item's props.",
+        access: "everyone",
+        changeAccess: "stage",
+      },
     ],
   },
   {

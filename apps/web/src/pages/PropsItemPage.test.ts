@@ -1,4 +1,10 @@
-import { AddPropRequest, type Prop, type RunningOrder } from "@app/shared";
+import {
+  AddPropRequest,
+  type ItemNote,
+  type Prop,
+  type RunningOrder,
+  SaveItemNoteRequest,
+} from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory } from "vue-router";
@@ -6,7 +12,11 @@ import App from "@/App.vue";
 import { createAppRouter } from "@/router/index.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
+import { CAST_PATH } from "@/utils/cast.ts";
+import { ITEM_NOTES_PATH } from "@/utils/item-notes.ts";
 import { PROPS_PATH } from "@/utils/props.ts";
+import { PROPS_NOTES_PATH } from "@/utils/props-notes.ts";
+import { ROLES_PATH } from "@/utils/roles.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
 import { RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
 
@@ -40,6 +50,7 @@ function savedShowIs(order: RunningOrder | undefined, props: Prop[] = []) {
         return order ? json(order) : new Response(null, { status: 404 });
       }
       if (url === PROPS_PATH) return json({ productionId: "2027", props: stored });
+      if (url === PROPS_NOTES_PATH) return json({ productionId: "2027", notes: [] });
       const addTo = /\/items\/([^/]+)\/props$/.exec(url)?.[1];
       if (addTo && init?.method === "POST") {
         const details = AddPropRequest.parse(JSON.parse(String(init.body)));
@@ -363,5 +374,149 @@ describe("Adding a prop", () => {
 
     expect(wrapper.find("[data-test=add-prop]").exists()).toBe(true);
     expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
+  });
+});
+
+describe("Props notes", () => {
+  /** The stand-in API, now also holding each item's props notes and casting notes, and
+   *  enough of the casting for the item's casting page. Returns the live props notes. */
+  function notesAre({ props = [], casting = [] }: { props?: ItemNote[]; casting?: ItemNote[] }) {
+    savedShowIs(show);
+    const fetch = vi.mocked(globalThis.fetch);
+    const answer = fetch.getMockImplementation();
+    fetch.mockImplementation(async (url, init) => {
+      if (url === PROPS_NOTES_PATH) return json({ productionId: "2027", notes: props });
+      if (url === ITEM_NOTES_PATH) return json({ productionId: "2027", notes: casting });
+      if (url === ROLES_PATH) return json({ productionId: "2027", roles: [] });
+      if (url === CAST_PATH) return json({ productionId: "2027", members: [] });
+      const notesOf = /\/items\/([^/]+)\/props-notes$/.exec(String(url))?.[1];
+      if (notesOf && init?.method === "PUT") {
+        const { text, revision } = SaveItemNoteRequest.parse(JSON.parse(String(init.body)));
+        const index = props.findIndex((n) => n.itemId === notesOf);
+        if ((props[index]?.revision ?? 0) !== revision) return new Response(null, { status: 409 });
+        const saved = { itemId: notesOf, text, revision: revision + 1 };
+        if (index === -1) props.push(saved);
+        else props[index] = saved;
+        return json(saved);
+      }
+      return answer?.(url, init) ?? json({});
+    });
+    return props;
+  }
+
+  const notesSection = (wrapper: VueWrapper) =>
+    wrapper.get("section[aria-labelledby=notes-heading]");
+  const field = (wrapper: VueWrapper) => notesSection(wrapper).get<HTMLTextAreaElement>("textarea");
+  const error = (wrapper: VueWrapper) => notesSection(wrapper).find("[data-test=notes-error]");
+
+  async function saveNotes(wrapper: VueWrapper, text: string) {
+    await field(wrapper).setValue(text);
+    await notesSection(wrapper).get("form").trigger("submit");
+    await flushPromises();
+  }
+
+  const notePuts = () => vi.mocked(fetch).mock.calls.filter(([, init]) => init?.method === "PUT");
+
+  beforeEach(() => signInAs(["stage"], "pat"));
+
+  it("saves props notes for Stage, saying so, and keeps them for the next visit", async () => {
+    notesAre({});
+    const first = await openAppAt(PIRATE_PROPS);
+    expect(notesSection(first.wrapper).get("h2").text()).toBe("Props notes");
+
+    await saveNotes(first.wrapper, "Chest set stage left before the blackout");
+
+    expect(notesSection(first.wrapper).get("[data-test=notes-status]").text()).toBe("Notes saved.");
+    expect(notePuts().map(([url]) => url)).toEqual([
+      "/api/productions/2027/items/pirate-sketch/props-notes",
+    ]);
+    first.wrapper.unmount();
+
+    const { wrapper } = await openAppAt(PIRATE_PROPS);
+    expect(field(wrapper).element.value).toBe("Chest set stage left before the blackout");
+  });
+
+  it("keeps props notes apart from the item's casting notes", async () => {
+    notesAre({
+      casting: [
+        { itemId: "pirate-sketch", text: "Captain needs a sword fight rehearsal", revision: 1 },
+      ],
+    });
+    const props = await openAppAt(PIRATE_PROPS);
+    expect(field(props.wrapper).element.value).toBe("");
+
+    await saveNotes(props.wrapper, "Chest set stage left");
+    props.wrapper.unmount();
+
+    const casting = await openAppAt("/casting/items/pirate-sketch");
+    // pat, with Stage only, reads the casting notes.
+    expect(notesSection(casting.wrapper).get("[data-test=notes-text]").text()).toBe(
+      "Captain needs a sword fight rehearsal",
+    );
+    casting.wrapper.unmount();
+    const again = await openAppAt(PIRATE_PROPS);
+    expect(field(again.wrapper).element.value).toBe("Chest set stage left");
+  });
+
+  it("says the 500-character limit up front, and refuses longer notes, saving nothing", async () => {
+    notesAre({});
+    const { wrapper } = await openAppAt(PIRATE_PROPS);
+    expect(notesSection(wrapper).get("[data-test=notes-hint]").text()).toBe("Up to 500 characters");
+
+    await saveNotes(wrapper, "x".repeat(501));
+
+    expect(error(wrapper).text()).toBe("Notes can be up to 500 characters.");
+    expect(notePuts()).toEqual([]);
+  });
+
+  it("removes the props notes when they're cleared and saved", async () => {
+    const stored = notesAre({ props: [{ itemId: "pirate-sketch", text: "Chest", revision: 1 }] });
+    const { wrapper } = await openAppAt(PIRATE_PROPS);
+
+    await saveNotes(wrapper, "");
+
+    expect(stored).toEqual([{ itemId: "pirate-sketch", text: "", revision: 2 }]);
+  });
+
+  it("refuses a save after someone else's, showing their notes", async () => {
+    const stored = notesAre({});
+    const { wrapper } = await openAppAt(PIRATE_PROPS);
+    stored.push({ itemId: "pirate-sketch", text: "Theirs", revision: 1 });
+
+    await saveNotes(wrapper, "Mine");
+
+    expect(error(wrapper).text()).toBe(
+      "Someone else changed these notes. Here they are now; your text wasn't saved.",
+    );
+    expect(field(wrapper).element.value).toBe("Theirs");
+    expect(stored[0]?.text).toBe("Theirs");
+  });
+
+  it("keeps the text when the notes can't be saved", async () => {
+    notesAre({});
+    const fetch = vi.mocked(globalThis.fetch);
+    const answer = fetch.getMockImplementation();
+    fetch.mockImplementation(async (url, init) =>
+      init?.method === "PUT"
+        ? new Response(null, { status: 500 })
+        : (answer?.(url, init) ?? json({})),
+    );
+    const { wrapper } = await openAppAt(PIRATE_PROPS);
+
+    await saveNotes(wrapper, "Chest set stage left");
+
+    expect(error(wrapper).text()).toBe("Couldn't save the notes. Try again.");
+    expect(field(wrapper).element.value).toBe("Chest set stage left");
+  });
+
+  it("shows the props notes without Stage, with nothing to change them", async () => {
+    await signInAs(["casting"], "sam");
+    notesAre({ props: [{ itemId: "pirate-sketch", text: "Chest set stage left", revision: 1 }] });
+
+    const { wrapper } = await openAppAt(PIRATE_PROPS);
+
+    expect(notesSection(wrapper).get("[data-test=notes-text]").text()).toBe("Chest set stage left");
+    expect(notesSection(wrapper).find("textarea").exists()).toBe(false);
+    expect(notesSection(wrapper).find("button").exists()).toBe(false);
   });
 });

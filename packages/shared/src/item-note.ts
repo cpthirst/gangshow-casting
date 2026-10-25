@@ -5,7 +5,8 @@ import { ProductionId, RunningOrderItem } from "./running-order.ts";
 export const MAX_NOTE_LENGTH = 500;
 
 /** Casting notes on one item (casting-item-overview FR8): kept by the item's id, apart from
- *  the running order's Comments, so they survive new running-order versions. */
+ *  the running order's Comments, so they survive new running-order versions. Props notes
+ *  (stage-props FR20) take the same shapes, at their own routes, kept apart from these. */
 export const ItemNote = z.strictObject({
   itemId: RunningOrderItem.shape.id,
   /** Free text; "" once cleared. */
@@ -14,15 +15,15 @@ export const ItemNote = z.strictObject({
   revision: z.number().int().min(1),
 });
 
-/** GET /api/productions/{productionId}/item-notes: every item's notes. */
+/** GET /api/productions/{productionId}/item-notes (or /props-notes): every item's notes. */
 export const ItemNoteList = z.strictObject({
   productionId: ProductionId,
   notes: z.array(ItemNote).max(1000),
 });
 
 /**
- * PUT /api/productions/{productionId}/items/{itemId}/notes: the new text (trimmed; "" clears
- * the notes) and the revision it was based on, 0 for an item with no notes yet.
+ * PUT /api/productions/{productionId}/items/{itemId}/notes (or /props-notes): the new text
+ * (trimmed; "" clears the notes) and the revision it was based on, 0 for an item with no notes yet.
  * 200 returns the saved ItemNote; 409 means someone else saved first.
  */
 export const SaveItemNoteRequest = z.strictObject({
