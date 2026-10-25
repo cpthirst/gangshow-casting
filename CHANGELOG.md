@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.15.0](https://github.com/cpthirst/gangshow-casting/compare/v1.14.0...v1.15.0) (2026-10-25)
+
+
+### Features
+
+* **web:** admins give and change department permissions (stage-props E2) ([#104](https://github.com/cpthirst/gangshow-casting/issues/104)) ([b457d72](https://github.com/cpthirst/gangshow-casting/commit/b457d72ac8538881c8e1989d167c751790b14249))
+
 ## [1.14.0](https://github.com/cpthirst/gangshow-casting/compare/v1.13.0...v1.14.0) (2026-10-25)
 
 
