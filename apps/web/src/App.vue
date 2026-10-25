@@ -3,7 +3,7 @@ import { ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import logoSmall from "@/assets/logo-small.jpg";
 import HealthStatus from "@/components/app/HealthStatus.vue";
-import LocalRoleSwitch from "@/components/app/LocalRoleSwitch.vue";
+import LocalAccessSwitch from "@/components/app/LocalAccessSwitch.vue";
 import MainMenu from "@/components/app/MainMenu.vue";
 import { useMediaQuery } from "@/composables/useMediaQuery.ts";
 import { showPageTitle } from "@/router/index.ts";
@@ -127,7 +127,7 @@ function onEscape() {
       <MainMenu v-show="!isPhone || isMenuOpen" id="main-menu" @click="onMenuChoice" />
       <footer class="sidebar-footer">
         <HealthStatus />
-        <LocalRoleSwitch v-if="isLocal" />
+        <LocalAccessSwitch v-if="isLocal" />
         <button
           v-if="isSignedIn"
           class="sign-out-button"

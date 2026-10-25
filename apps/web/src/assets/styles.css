@@ -238,17 +238,11 @@ body {
   margin-top: 0.5rem;
 }
 
-/* pnpm dev and pnpm demo's role switch, in the sidebar footer where the hosted app has
-   Sign out: the forms' dropdown (shared rules below), labelled above it. */
-.local-role {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  margin-top: 0.5rem;
-}
-
-.local-role select {
-  max-width: 100%;
+/* pnpm dev and pnpm demo's access switch, in the sidebar footer where the hosted app has
+   Sign out: the Accounts page's tick boxes (.access-choice below), in the sidebar's colours. */
+.sidebar .local-access {
+  margin: 0.5rem 0 0;
+  border-color: currentColor;
 }
 
 main {
@@ -955,8 +949,7 @@ main a {
 }
 
 .cast-member-form input,
-.cast-member-form select,
-.local-role select {
+.cast-member-form select {
   padding: 0.5rem;
   border: 1px solid var(--text);
   border-radius: 0.25rem;
@@ -2048,11 +2041,11 @@ main a {
   }
 
   /* As easy to tap as Sign out, which it stands in for locally. */
-  .local-role {
+  .sidebar .local-access {
     margin-top: 0;
   }
 
-  .local-role select {
+  .sidebar .local-access .checkbox {
     min-height: 2.75rem;
     font-size: 1rem;
   }

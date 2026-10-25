@@ -5,9 +5,12 @@ import { PERMISSION_NAMES } from "@/utils/accounts.ts";
 
 /**
  * An account's access as a labelled group of tick boxes: Admin, or any mix of the department
- * permissions (stage-props FR6). Common, as the local role switch will offer it too (E2.S3).
+ * permissions (stage-props FR6). Common, as the local access switch offers it too (FR9).
  */
-defineProps<{ legend: string }>();
+const { readOnlyHint = "With nothing ticked, the account will be read-only." } = defineProps<{
+  legend: string;
+  readOnlyHint?: string;
+}>();
 const admin = defineModel<boolean>("admin", { required: true });
 const ticked = defineModel<Permission[]>("permissions", { required: true });
 
@@ -42,7 +45,7 @@ const describedBy = computed(() => (readOnly.value ? hintId : undefined));
       <span>{{ PERMISSION_NAMES[permission] }}</span>
     </label>
     <p v-if="readOnly" :id="hintId" class="hint" data-test="read-only-hint">
-      With nothing ticked, the account will be read-only.
+      {{ readOnlyHint }}
     </p>
   </fieldset>
 </template>

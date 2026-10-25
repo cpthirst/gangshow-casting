@@ -3,7 +3,7 @@ import {
   AccountList,
   adminOnlyRouteKeys,
   HealthResponse,
-  LOCAL_ROLE_HEADER,
+  LOCAL_ACCESS_HEADER,
   UsageSummary,
 } from "@app/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -315,7 +315,7 @@ describe("dev server usage (usage-tracking AC14)", () => {
   });
 });
 
-describe("dev server local role (team-roles FR16)", () => {
+describe("dev server local access (stage-props FR9)", () => {
   const reached: string[] = [];
   const table = {
     "GET /api/productions/{productionId}/cast": async () => {
@@ -328,6 +328,10 @@ describe("dev server local role (team-roles FR16)", () => {
     },
     "DELETE /api/productions/{productionId}/cast/{castId}": async () => {
       reached.push("delete");
+      return { statusCode: 204 };
+    },
+    "POST /api/usage": async () => {
+      reached.push("usage");
       return { statusCode: 204 };
     },
   };
@@ -344,21 +348,21 @@ describe("dev server local role (team-roles FR16)", () => {
 
   afterAll(() => new Promise<void>((resolve) => server.close(() => resolve())));
 
-  const send = (method: string, path: string, role?: string) =>
+  const send = (method: string, path: string, access?: string) =>
     fetch(`${baseUrl}${path}`, {
       method,
       headers: {
         "content-type": "application/json",
-        ...(role === undefined ? {} : { [LOCAL_ROLE_HEADER]: role }),
+        ...(access === undefined ? {} : { [LOCAL_ACCESS_HEADER]: access }),
       },
       body: method === "POST" ? "{}" : null,
     });
 
-  it("refuses the read-only role's changes as the hosted API does, and lets it read", async () => {
+  it("refuses Stage and Tech's casting changes as the hosted API does, and lets them read", async () => {
     reached.length = 0;
 
-    const add = await send("POST", "/api/productions/2027/cast", "read-only");
-    const read = await send("GET", "/api/productions/2027/cast", "read-only");
+    const add = await send("POST", "/api/productions/2027/cast", "stage,tech");
+    const read = await send("GET", "/api/productions/2027/cast", "stage,tech");
 
     expect(add.status).toBe(403);
     expect(await add.json()).toEqual({ message: "You can view the casting, but not change it." });
@@ -366,7 +370,7 @@ describe("dev server local role (team-roles FR16)", () => {
     expect(reached).toEqual(["read"]);
   });
 
-  it("lets the casting role change casting but keeps admin-only routes from it", async () => {
+  it("lets Casting change casting but keeps admin-only routes from it", async () => {
     reached.length = 0;
 
     const add = await send("POST", "/api/productions/2027/cast", "casting");
@@ -374,10 +378,23 @@ describe("dev server local role (team-roles FR16)", () => {
 
     expect(add.status).toBe(201);
     expect(remove.status).toBe(403);
+    expect(await remove.json()).toEqual({ message: "Only admins can do this." });
     expect(reached).toEqual(["add"]);
   });
 
-  it("acts for an admin when no role is chosen", async () => {
+  it("refuses every change with no permissions, letting them only read and record their use", async () => {
+    reached.length = 0;
+
+    const add = await send("POST", "/api/productions/2027/cast", "");
+    const remove = await send("DELETE", "/api/productions/2027/cast/1", "");
+    const read = await send("GET", "/api/productions/2027/cast", "");
+    const usage = await send("POST", "/api/usage", "");
+
+    expect([add.status, remove.status, read.status, usage.status]).toEqual([403, 403, 200, 204]);
+    expect(reached).toEqual(["read", "usage"]);
+  });
+
+  it("acts for an admin when no access is chosen", async () => {
     reached.length = 0;
 
     const remove = await send("DELETE", "/api/productions/2027/cast/1");
@@ -386,7 +403,7 @@ describe("dev server local role (team-roles FR16)", () => {
     expect(reached).toEqual(["delete"]);
   });
 
-  it("treats a role it doesn't know as read-only", async () => {
+  it("treats access it doesn't know as read-only", async () => {
     reached.length = 0;
 
     const add = await send("POST", "/api/productions/2027/cast", "owner");

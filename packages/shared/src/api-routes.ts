@@ -1,5 +1,3 @@
-import type { TeamRole } from "./account.ts";
-
 /**
  * Every API route, as "<METHOD> <path>" with {name} path parameters. The API has a handler
  * for each (apps/api/src/routes.ts), and infra hosts exactly these, so a route can't be
@@ -81,20 +79,28 @@ const readOnlyRefusals = new Set<unknown>(permissions.map(refusalFor));
 export const isRefusalAsReadOnly = (message: unknown) => readOnlyRefusals.has(message);
 
 /**
- * Which role pnpm dev and pnpm demo act for, chosen with the local role switch (team-roles
- * FR16). Only the local API reads it; the hosted API takes the role from the sign-in alone.
+ * The access pnpm dev and pnpm demo act for, chosen with the local switch (stage-props FR9):
+ * "admin", or the permissions separated by commas, empty for none. Only the local API reads
+ * it; the hosted API takes access from the sign-in alone.
  */
-export const LOCAL_ROLE_HEADER = "x-local-role";
+export const LOCAL_ACCESS_HEADER = "x-local-access";
+
+/** The local access header's value for the access chosen. */
+export const localAccessHeader = (access: Access) =>
+  access === "admin" ? access : access.join(",");
 
 /**
- * The access each of the local role switch's choices means, until stage-props.E2.S3, so the
- * local API and the pages can't disagree.
+ * The access the local access header asks for: an admin when none is sent, as the local app
+ * starts, and read-only for anything it doesn't know, as the hosted API would treat it.
  */
-export const roleAccess: Readonly<Record<TeamRole, Access>> = {
-  admin: "admin",
-  casting: [CASTING_GROUP],
-  "read-only": [],
-};
+export function localAccessFrom(sent: string | string[] | undefined): Access {
+  if (sent === undefined) return "admin";
+  if (typeof sent !== "string") return [];
+  if (sent === "admin") return "admin";
+  const asked = sent === "" ? [] : sent.split(",");
+  const known = permissions.filter((permission) => asked.includes(permission));
+  return known.length === asked.length ? known : [];
+}
 
 /** Whether access allows changing a department's data: an admin may change everything. */
 export const mayChange = (access: Access, permission: Permission) =>

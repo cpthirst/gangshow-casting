@@ -11,11 +11,6 @@ export const Username = z
 
 export type Username = z.infer<typeof Username>;
 
-/** The local role switch's choices (team-roles FR16), until stage-props.E2.S3 reworks it. */
-export const TeamRole = z.enum(["admin", "casting", "read-only"]);
-
-export type TeamRole = z.infer<typeof TeamRole>;
-
 /**
  * What an account may do (ADR 0026): everything as an Admin, or any mix of the department
  * permissions, each at most once. No permissions means read-only.

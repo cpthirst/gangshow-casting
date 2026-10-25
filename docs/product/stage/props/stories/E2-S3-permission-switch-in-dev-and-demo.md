@@ -2,7 +2,7 @@
 id: stage-props.E2.S3
 title: Switch permissions in local development and the demo
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story

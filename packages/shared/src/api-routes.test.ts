@@ -6,13 +6,14 @@ import {
   isAccountRoute,
   isReadRoute,
   isRefusalAsReadOnly,
+  localAccessFrom,
+  localAccessHeader,
   mayChange,
   needOf,
   permissions,
   type RouteNeeds,
   readOnlyMayUse,
   refusalFor,
-  roleAccess,
   routeKeys,
   routeNeeds,
 } from "./api-routes.ts";
@@ -159,10 +160,30 @@ describe("mayChange", () => {
   });
 });
 
-describe("roleAccess", () => {
-  it("gives each of the local role switch's choices the access it means", () => {
-    expect(roleAccess).toEqual({ admin: "admin", casting: ["casting"], "read-only": [] });
+describe("the local access header", () => {
+  it.each([
+    ["admin", "admin"],
+    [["stage", "tech"], "stage,tech"],
+    [[], ""],
+  ] as const)("sends %j as %j, and reads it back the same", (access, sent) => {
+    const chosen = access === "admin" ? access : [...access];
+
+    expect([localAccessHeader(chosen), localAccessFrom(localAccessHeader(chosen))]).toEqual([
+      sent,
+      chosen,
+    ]);
   });
+
+  it("acts for an admin when no access is sent, as the local app starts", () => {
+    expect(localAccessFrom(undefined)).toBe("admin");
+  });
+
+  it.each([["owner"], ["casting,owner"], ["casting,casting"], [["admin", "casting"]]])(
+    "treats access it doesn't know, %j, as read-only",
+    (sent) => {
+      expect(localAccessFrom(sent)).toEqual([]);
+    },
+  );
 });
 
 describe("refusalFor", () => {

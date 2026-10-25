@@ -1,6 +1,6 @@
 // Local stand-in for API Gateway: serves the same handlers Lambda will run (ADR 0006).
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { LOCAL_ROLE_HEADER, roleAccess, TeamRole } from "@app/shared";
+import { LOCAL_ACCESS_HEADER, localAccessFrom } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import { accessRefusal } from "./admin-only.ts";
 import type { Handler } from "./handler.ts";
@@ -25,9 +25,13 @@ export function createDevServer(table: Record<string, Handler>) {
       return;
     }
     // Like the hosted entry point, before the handler runs (ADR 0026).
-    const refusedRole = accessRefusal(route.key, roleAccess[localRole(req)]);
-    if (refusedRole) {
-      send(res, refusedRole);
+    // The access chosen with the local switch (stage-props FR9).
+    const refusedAccess = accessRefusal(
+      route.key,
+      localAccessFrom(req.headers[LOCAL_ACCESS_HEADER]),
+    );
+    if (refusedAccess) {
+      send(res, refusedAccess);
       return;
     }
     if (Number(req.headers["content-length"] ?? 0) > MAX_BODY_BYTES) {
@@ -89,17 +93,6 @@ function refusal(req: IncomingMessage): 403 | 415 | undefined {
   const sendsBody = req.method === "POST" || req.method === "PUT" || req.method === "PATCH";
   const isJson = (req.headers["content-type"] ?? "").startsWith("application/json");
   return sendsBody && !isJson ? 415 : undefined;
-}
-
-/**
- * The role the local role switch chose (team-roles FR16): an admin when none is chosen, as
- * the app starts, and read-only for anything it doesn't know, as the hosted API would.
- */
-function localRole(req: IncomingMessage): TeamRole {
-  const chosen = req.headers[LOCAL_ROLE_HEADER];
-  if (chosen === undefined) return "admin";
-  const role = TeamRole.safeParse(chosen);
-  return role.success ? role.data : "read-only";
 }
 
 // API Gateway caps payloads too; a running order is a few KB.

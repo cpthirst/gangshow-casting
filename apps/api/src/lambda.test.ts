@@ -3,7 +3,7 @@ import {
   CastList,
   HealthResponse,
   ItemNoteList,
-  LOCAL_ROLE_HEADER,
+  LOCAL_ACCESS_HEADER,
   Role,
   readOnlyMayUse,
   routeKeys,
@@ -465,9 +465,9 @@ describe("Lambda entry point", () => {
       expect((await cast.list("2027"))?.members.map((m) => m.firstName)).toEqual(["Jo"]);
     });
 
-    it("ignores a request choosing a role the way the local switch does, using only the token's", async () => {
+    it("ignores a request choosing access the way the local switch does, using only the token's", async () => {
       const { api, cast } = setUp();
-      const choosingAdmin = { headers: { [LOCAL_ROLE_HEADER]: "admin" } };
+      const choosingAdmin = { headers: { [LOCAL_ACCESS_HEADER]: "admin" } };
 
       const added = await api(
         request(

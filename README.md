@@ -103,7 +103,7 @@ pnpm dev       # web on :5173 + API on :3000 (Vite proxies /api), on the real re
 pnpm check     # lint + typecheck + tests + cdk synth: the definition of "done"
 ```
 
-`pnpm dev` and `pnpm demo` start you as an admin, and the sidebar's "Local role" switch lets you try the other roles.
+`pnpm dev` and `pnpm demo` start you as an admin, and the sidebar's "Local role" tick boxes let you try any mix of permissions (Casting, Stage, Tech, Costume), or none.
 
 **Guides:**
 - **The real data:** [the remote database guide](docs/guides/remote-data.md) covers setting up `pnpm dev` against it.

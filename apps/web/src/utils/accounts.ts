@@ -4,7 +4,6 @@ import {
   CASTING_GROUP,
   type Permission,
   permissions,
-  type TeamRole,
 } from "@app/shared";
 
 export const ACCOUNTS_PATH = "/api/accounts";
@@ -25,13 +24,6 @@ export const resetWarning = (username: string) =>
 /** Asked before disabling, which ends the person's access everywhere (hosting FR12). */
 export const disableWarning = (username: string) =>
   `Disable ${username}? They'll be signed out on every device within 5 minutes, and can't sign in until an admin enables them again.`;
-
-/** The local role switch's choices by their access's name, until stage-props.E2.S3 reworks it. */
-export const ROLE_NAMES: Record<TeamRole, string> = {
-  admin: "Admin",
-  casting: "Casting",
-  "read-only": "Read-only",
-};
 
 /** Each department's permission by the name the team knows it by (stage-props FR7). */
 export const PERMISSION_NAMES: Record<Permission, string> = {
