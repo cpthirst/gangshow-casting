@@ -160,7 +160,7 @@ describe("mayChange", () => {
 });
 
 describe("roleAccess", () => {
-  it("gives each of today's roles the access it means", () => {
+  it("gives each of the local role switch's choices the access it means", () => {
     expect(roleAccess).toEqual({ admin: "admin", casting: ["casting"], "read-only": [] });
   });
 });

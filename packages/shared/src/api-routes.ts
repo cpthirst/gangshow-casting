@@ -87,9 +87,8 @@ export const isRefusalAsReadOnly = (message: unknown) => readOnlyRefusals.has(me
 export const LOCAL_ROLE_HEADER = "x-local-role";
 
 /**
- * The access each of today's roles means. The local role switch names them until
- * stage-props.E2.S3, so the local API and the pages can't disagree, and a new account gets
- * one until stage-props.E2.S2.
+ * The access each of the local role switch's choices means, until stage-props.E2.S3, so the
+ * local API and the pages can't disagree.
  */
 export const roleAccess: Readonly<Record<TeamRole, Access>> = {
   admin: "admin",

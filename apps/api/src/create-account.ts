@@ -1,4 +1,4 @@
-import { type CreatedAccount, NewAccount, roleAccess } from "@app/shared";
+import { type CreatedAccount, NewAccount } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import type { ApiEvent } from "./handler.ts";
 import { jsonResponse, messageResponse, parseJson } from "./json.ts";
@@ -17,8 +17,7 @@ export function createCreateAccount(directory: UserDirectory, newPassword: () =>
       return usernameIssue ? messageResponse(400, usernameIssue.message) : { statusCode: 400 };
     }
 
-    const { username, role } = request.data;
-    const access = roleAccess[role];
+    const { username, access } = request.data;
     const temporaryPassword = newPassword();
     try {
       await directory.create(username, temporaryPassword, access);

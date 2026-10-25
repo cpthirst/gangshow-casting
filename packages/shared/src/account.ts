@@ -11,7 +11,7 @@ export const Username = z
 
 export type Username = z.infer<typeof Username>;
 
-/** What a signed-in team member may do (team-roles FR1, ADR 0020). */
+/** The local role switch's choices (team-roles FR16), until stage-props.E2.S3 reworks it. */
 export const TeamRole = z.enum(["admin", "casting", "read-only"]);
 
 export type TeamRole = z.infer<typeof TeamRole>;
@@ -40,10 +40,10 @@ export const AccountSummary = z.strictObject({
 export const AccountList = z.strictObject({ accounts: z.array(AccountSummary) });
 
 /**
- * POST /api/accounts takes this, still one of today's roles until stage-props.E2.S2; the API
- * chooses the temporary password.
+ * POST /api/accounts takes this: who, and what they may do (stage-props FR6). The API chooses
+ * the temporary password.
  */
-export const NewAccount = z.strictObject({ username: Username, role: TeamRole });
+export const NewAccount = z.strictObject({ username: Username, access: AccountAccess });
 
 /**
  * POST /api/accounts' 201, and POST /api/accounts/{username}/password's 200 (a reset): the

@@ -16,25 +16,48 @@ function setUp() {
 
 describe("create account handler", () => {
   it.each([
-    ["admin", "admin"],
-    ["casting", ["casting"]],
-    ["read-only", []],
-  ] as const)(
-    "creates an enabled account in the %s role, with only its access",
-    async (role, access) => {
-      const { handler, directory } = setUp();
+    ["Admin", "admin"],
+    ["Stage and Tech", ["stage", "tech"]],
+    ["every permission", ["casting", "stage", "tech", "costume"]],
+    ["no permissions, read-only", []],
+  ] as const)("creates an enabled account with %s, and only that", async (_case, chosen) => {
+    const { handler, directory } = setUp();
+    const access = chosen === "admin" ? chosen : [...chosen];
 
-      const res = await handler(request({ username: "jo", role }));
+    const res = await handler(request({ username: "pat", access }));
 
-      expect(res.statusCode).toBe(201);
-      expect(await directory.list()).toEqual([{ username: "jo", access, enabled: true }]);
-    },
-  );
+    expect(res.statusCode).toBe(201);
+    expect(CreatedAccount.parse(JSON.parse(res.body ?? "")).account).toEqual({
+      username: "pat",
+      access,
+      enabled: true,
+    });
+    expect(await directory.list()).toEqual([{ username: "pat", access, enabled: true }]);
+  });
+
+  it("creates pat with Stage, in the stage group alone, to choose a password at first sign-in", async () => {
+    const { handler, accounts } = setUp();
+
+    await handler(request({ username: "pat", access: ["stage"] }));
+
+    // The groups pat's sign-in will carry, which the API checks every change against.
+    expect(accounts()).toEqual([
+      expect.objectContaining({
+        username: "pat",
+        admin: false,
+        casting: false,
+        stage: true,
+        tech: false,
+        costume: false,
+        passwordKind: "temporary",
+      }),
+    ]);
+  });
 
   it("creates a read-only account and returns its temporary password once", async () => {
     const { handler, accounts } = setUp();
 
-    const res = await handler(request({ username: "jo", role: "read-only" }));
+    const res = await handler(request({ username: "jo", access: [] }));
 
     expect(res.statusCode).toBe(201);
     expect(CreatedAccount.parse(JSON.parse(res.body ?? ""))).toEqual({
@@ -55,7 +78,7 @@ describe("create account handler", () => {
     const { handler, directory, accounts } = setUp();
     await directory.create("sam", "Made-up-1", ["casting"]);
 
-    const res = await handler(request({ username: "Sam", role: "casting" }));
+    const res = await handler(request({ username: "Sam", access: ["casting"] }));
 
     expect(res.statusCode).toBe(409);
     expect(JSON.parse(res.body ?? "")).toEqual({ message: "That username is already taken." });
@@ -63,9 +86,9 @@ describe("create account handler", () => {
   });
 
   it.each([
-    ["an empty username", { username: "", role: "casting" }],
-    ["a username with spaces", { username: "jo smith", role: "casting" }],
-    ["a username over 32 characters", { username: "j".repeat(33), role: "casting" }],
+    ["an empty username", { username: "", access: ["casting"] }],
+    ["a username with spaces", { username: "jo smith", access: ["casting"] }],
+    ["a username over 32 characters", { username: "j".repeat(33), access: ["casting"] }],
   ])("refuses %s with 400, saying what a username may be", async (_case, body) => {
     const { handler, accounts } = setUp();
 
@@ -80,9 +103,12 @@ describe("create account handler", () => {
 
   it.each([
     ["malformed JSON", "{not json"],
-    ["a chosen password", { username: "jo", role: "casting", password: "Chosen-1" }],
-    ["no role", { username: "jo" }],
-    ["a role that isn't one of the three", { username: "jo", role: "superadmin" }],
+    ["a chosen password", { username: "jo", access: [], password: "Chosen-1" }],
+    ["no access", { username: "jo" }],
+    ["a permission that doesn't exist", { username: "jo", access: ["stage", "props"] }],
+    ["access that isn't Admin or a list", { username: "jo", access: "superadmin" }],
+    ["a permission listed twice", { username: "jo", access: ["stage", "stage"] }],
+    ["the old role", { username: "jo", role: "casting" }],
   ])("refuses %s with 400, creating nothing", async (_case, body) => {
     const { handler, accounts } = setUp();
 

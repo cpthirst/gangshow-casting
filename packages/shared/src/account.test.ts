@@ -28,21 +28,32 @@ describe("Username", () => {
 });
 
 describe("NewAccount", () => {
-  it("takes a valid username and one of the three roles", () => {
-    expect(NewAccount.parse({ username: "jo", role: "read-only" })).toEqual({
-      username: "jo",
-      role: "read-only",
-    });
-    expect(NewAccount.safeParse({ username: "jo smith", role: "casting" }).success).toBe(false);
+  it("takes a valid username and its access: Admin, or any mix of permissions, none meaning read-only", () => {
+    for (const access of [
+      "admin",
+      [],
+      ["stage", "tech"],
+      ["casting", "stage", "tech", "costume"],
+    ]) {
+      expect(NewAccount.parse({ username: "jo", access })).toEqual({ username: "jo", access });
+    }
+    expect(NewAccount.safeParse({ username: "jo smith", access: [] }).success).toBe(false);
   });
 
-  it("refuses a missing or unknown role", () => {
-    expect(NewAccount.safeParse({ username: "jo" }).success).toBe(false);
-    expect(NewAccount.safeParse({ username: "jo", role: "member" }).success).toBe(false);
+  it("refuses missing access, an unknown permission, one listed twice, or the old role", () => {
+    for (const body of [
+      { username: "jo" },
+      { username: "jo", access: ["props"] },
+      { username: "jo", access: ["stage", "stage"] },
+      { username: "jo", access: "read-only" },
+      { username: "jo", role: "casting" },
+    ]) {
+      expect(NewAccount.safeParse(body).success, JSON.stringify(body)).toBe(false);
+    }
   });
 
   it("refuses anything else, such as an email address or a password", () => {
-    const jo = { username: "jo", role: "casting" };
+    const jo = { username: "jo", access: ["casting"] };
     expect(NewAccount.safeParse({ ...jo, email: "jo@example.com" }).success).toBe(false);
     expect(NewAccount.safeParse({ ...jo, password: "chosen" }).success).toBe(false);
   });

@@ -26,7 +26,7 @@ export const resetWarning = (username: string) =>
 export const disableWarning = (username: string) =>
   `Disable ${username}? They'll be signed out on every device within 5 minutes, and can't sign in until an admin enables them again.`;
 
-/** Each of today's roles by its access's name (stage-props FR7), in the order offered. */
+/** The local role switch's choices by their access's name, until stage-props.E2.S3 reworks it. */
 export const ROLE_NAMES: Record<TeamRole, string> = {
   admin: "Admin",
   casting: "Casting",

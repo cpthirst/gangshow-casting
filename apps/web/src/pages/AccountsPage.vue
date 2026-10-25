@@ -5,12 +5,11 @@ import {
   AccountSummary,
   CreatedAccount,
   type Permission,
-  permissions,
-  type TeamRole,
   Username,
 } from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, nextTick, onMounted, ref, useId } from "vue";
+import AccessChoice from "@/components/common/AccessChoice.vue";
 import { apiFetch, signedInUsername } from "@/services/sign-in.ts";
 import {
   ACCOUNTS_PATH,
@@ -20,8 +19,6 @@ import {
   accountPath,
   disableWarning,
   inOrder,
-  PERMISSION_NAMES,
-  ROLE_NAMES,
   resetWarning,
   sameAccess,
   sortAccounts,
@@ -41,15 +38,21 @@ const accounts = computed(() =>
 const uid = useId();
 const adding = ref(false);
 const username = ref("");
+/** What the tick boxes say: Admin, or the permissions ticked. */
+type Ticked = { admin: boolean; permissions: Permission[] };
 // Read-only unless the admin chooses more, so a slip never gives editing (team-roles FR8).
-const newRole = ref<TeamRole>("read-only");
+const nothingTicked = (): Ticked => ({ admin: false, permissions: [] });
+const newAccess = ref<Ticked>(nothingTicked());
 const usernameError = ref("");
 const formError = ref("");
 const saving = ref(false);
 /** The account whose tick boxes are open, and what they're ticked as. */
-const editing = ref<{ username: string; admin: boolean; permissions: Permission[] } | null>(null);
+const editing = ref<({ username: string } & Ticked) | null>(null);
 // While a form is open or a change is saving, other changes wait.
 const busy = computed(() => adding.value || editing.value !== null || saving.value);
+/** The access the tick boxes give, permissions in the page's order. */
+const accessOf = (ticked: Ticked): AccountAccess =>
+  ticked.admin ? "admin" : inOrder(ticked.permissions);
 /** A temporary password just issued, for a new account or a reset: shown once, until passed on. */
 const issued = ref<{ result: CreatedAccount; isNew: boolean } | null>(null);
 /** Visible message about a change that didn't go through. */
@@ -85,7 +88,7 @@ async function startAdding() {
   issued.value = null;
   notice.value = "";
   username.value = "";
-  newRole.value = "read-only";
+  newAccess.value = nothingTicked();
   usernameError.value = "";
   formError.value = "";
   adding.value = true;
@@ -107,7 +110,7 @@ async function create() {
   if (!checked.success) return;
 
   saving.value = true;
-  const result = await postAccount(checked.data, newRole.value);
+  const result = await postAccount(checked.data, accessOf(newAccess.value));
   saving.value = false;
   if ("usernameError" in result) usernameError.value = result.usernameError;
   else if ("formError" in result) formError.value = result.formError;
@@ -131,13 +134,13 @@ const FAILED = { formError: "Couldn't add the account. Try again." };
 // reply can't be read is a failure: without the password the account is no use.
 async function postAccount(
   name: string,
-  role: TeamRole,
+  access: AccountAccess,
 ): Promise<CreatedAccount | { usernameError: string } | { formError: string }> {
   try {
     const res = await apiFetch(ACCOUNTS_PATH, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ username: name, role }),
+      body: JSON.stringify({ username: name, access }),
     });
     if (res.status === 409) return { usernameError: "That username is already taken." };
     if (res.status === 403) return { formError: "Only admins can add accounts." };
@@ -310,7 +313,7 @@ async function saveAccess(account: AccountSummary) {
   const ticked = editing.value;
   if (!ticked || saving.value) return;
   const { username: name } = account;
-  const access: AccountAccess = ticked.admin ? "admin" : inOrder(ticked.permissions);
+  const access = accessOf(ticked);
   // Nothing to change, so no one need be asked, or signed out.
   if (sameAccess(access, account.access)) {
     await stopEditing();
@@ -356,7 +359,7 @@ onMounted(load);
         Add account
       </button>
     </div>
-    <!-- The Cast page's form look: the username and role, Save and Cancel. -->
+    <!-- The Cast page's form look: the username and access, Save and Cancel. -->
     <form
       v-if="adding"
       data-test="create-account"
@@ -386,14 +389,11 @@ onMounted(load);
           {{ usernameError }}
         </p>
       </div>
-      <div class="field">
-        <label :for="`${uid}-role`">Access</label>
-        <select :id="`${uid}-role`" v-model="newRole" name="role">
-          <option v-for="(label, role) in ROLE_NAMES" :key="role" :value="role">
-            {{ label }}
-          </option>
-        </select>
-      </div>
+      <AccessChoice
+        v-model:admin="newAccess.admin"
+        v-model:permissions="newAccess.permissions"
+        legend="Access"
+      />
       <p v-if="formError" class="field-error form-error" role="alert">{{ formError }}</p>
       <div class="editor-actions">
         <button type="submit" class="primary" :disabled="saving">Save</button>
@@ -528,30 +528,16 @@ onMounted(load);
             >
               <td colspan="4">
                 <form
-                  class="access-form"
                   data-test="access-form"
                   novalidate
                   @submit.prevent="saveAccess(account)"
                   @keydown.esc="stopEditing"
                 >
-                  <fieldset>
-                    <legend>Access for {{ account.username }}</legend>
-                    <label class="checkbox">
-                      <input v-model="editing.admin" type="checkbox" name="admin" />
-                      <span>Admin</span>
-                    </label>
-                    <!-- Admin is everything, so the permissions wait until it's unticked. -->
-                    <label v-for="permission in permissions" :key="permission" class="checkbox">
-                      <input
-                        v-model="editing.permissions"
-                        type="checkbox"
-                        name="permissions"
-                        :value="permission"
-                        :disabled="editing.admin"
-                      />
-                      <span>{{ PERMISSION_NAMES[permission] }}</span>
-                    </label>
-                  </fieldset>
+                  <AccessChoice
+                    v-model:admin="editing.admin"
+                    v-model:permissions="editing.permissions"
+                    :legend="`Access for ${account.username}`"
+                  />
                   <div class="editor-actions">
                     <button type="submit" class="primary" :disabled="saving">Save</button>
                     <button

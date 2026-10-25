@@ -36,7 +36,7 @@ describe("accounts locally", () => {
     const res = await fetch(url, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ username: "jo", role: "casting" }),
+      body: JSON.stringify({ username: "jo", access: ["casting"] }),
     });
     const { accounts } = AccountList.parse(await (await fetch(url)).json());
 
@@ -48,7 +48,7 @@ describe("accounts locally", () => {
   it("starts afresh each time, so nothing created lasts past a restart", async () => {
     const created = localAccountRoutes();
     await created["POST /api/accounts"]({
-      body: JSON.stringify({ username: "jo", role: "casting" }),
+      body: JSON.stringify({ username: "jo", access: ["casting"] }),
     });
 
     const res = await localAccountRoutes()["GET /api/accounts"]({});

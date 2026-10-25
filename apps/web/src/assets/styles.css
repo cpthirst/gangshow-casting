@@ -1149,8 +1149,8 @@ main a {
   white-space: nowrap;
 }
 
-/* An account's access, changed with tick boxes in a row of its own, saved in one step. */
-.access-form fieldset {
+/* An account's access as tick boxes, in its own row to change it, or in the Add account form. */
+.access-choice {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem 1rem;
@@ -1160,21 +1160,37 @@ main a {
   border-radius: 0.25rem;
 }
 
-.access-form legend {
+.cast-member-form .access-choice {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+/* The size of the form's other labels, such as Username. */
+.access-choice legend {
   padding: 0 0.25rem;
+  font-size: 0.8125rem;
   font-weight: 700;
 }
 
-.access-form .checkbox {
+.access-choice .checkbox {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  font-size: inherit;
+  font-weight: normal;
 }
 
-.access-form .checkbox input {
+.access-choice .checkbox input {
   width: 1.25rem;
   height: 1.25rem;
   margin: 0;
+  padding: 0;
+}
+
+.access-choice .hint {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 0.875rem;
 }
 
 /* Why the signed-in admin can't change their own account, shown as phones have no tooltips. */

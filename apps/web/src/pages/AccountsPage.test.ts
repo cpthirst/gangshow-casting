@@ -43,11 +43,25 @@ const rows = (wrapper: Page) =>
     }),
   );
 
-async function create(wrapper: Page, username: string, role?: string) {
+/** The tick box labelled with the name, such as "Stage", in the form. */
+const tickBox = (form: ReturnType<Page["get"]>, name: string) =>
+  form
+    .findAll("label")
+    .find((label) => label.text() === name)
+    ?.get<HTMLInputElement>("input[type=checkbox]");
+
+/** Each tick box in the form's access group, by its label, and whether it's ticked. */
+const ticksIn = (form: ReturnType<Page["get"]>) =>
+  form
+    .findAll("fieldset label")
+    .map((label) => [label.text(), label.get<HTMLInputElement>("input").element.checked]);
+
+async function create(wrapper: Page, username: string, ticked: string[] = []) {
   await wrapper.get("[data-test=add-account]").trigger("click");
   await wrapper.get("input[name=username]").setValue(username);
-  if (role) await wrapper.get("select[name=role]").setValue(role);
-  await wrapper.get("[data-test=create-account]").trigger("submit");
+  const form = wrapper.get("[data-test=create-account]");
+  for (const name of ticked) await tickBox(form, name)?.setValue(true);
+  await form.trigger("submit");
   await flushPromises();
 }
 
@@ -193,60 +207,120 @@ describe("Accounts page", () => {
       temporaryPassword: "Made-up-temp-1",
     };
 
-    it("starts the new account's role at Read-only, offering all three by their access names", async () => {
+    it("starts the new account with Admin and every permission unticked, saying it will be read-only", async () => {
       serve([]);
       const wrapper = await openPage();
 
       await wrapper.get("[data-test=add-account]").trigger("click");
 
-      const role = wrapper.get<HTMLSelectElement>("select[name=role]");
-      expect(role.element.selectedOptions[0]?.text).toBe("Read-only");
-      expect(role.findAll("option").map((option) => option.text())).toEqual([
-        "Admin",
-        "Casting",
-        "Read-only",
+      const form = wrapper.get("[data-test=create-account]");
+      expect(form.get("fieldset legend").text()).toBe("Access");
+      expect(ticksIn(form)).toEqual([
+        ["Admin", false],
+        ["Casting", false],
+        ["Stage", false],
+        ["Tech", false],
+        ["Costume", false],
       ]);
-      expect(wrapper.get(`label[for="${role.attributes("id")}"]`).text()).toBe("Access");
+      expect(form.get("[data-test=read-only-hint]").text()).toBe(
+        "With nothing ticked, the account will be read-only.",
+      );
+      // Screen readers hear it on each tick box, as it says what leaving them all means.
+      const hintId = form.get("[data-test=read-only-hint]").attributes("id");
+      expect(hintId).toBeTruthy();
+      expect(
+        form.findAll("fieldset input").map((input) => input.attributes("aria-describedby")),
+      ).toEqual(Array(5).fill(hintId));
     });
 
-    it("adds it to the list, read-only unless another role is chosen", async () => {
-      serve([account("sam")], () => json(joCreated, 201));
+    it("stops saying it will be read-only once a permission is ticked", async () => {
+      serve([]);
+      const wrapper = await openPage();
+      await wrapper.get("[data-test=add-account]").trigger("click");
+      const form = wrapper.get("[data-test=create-account]");
+
+      await tickBox(form, "Tech")?.setValue(true);
+
+      expect(form.find("[data-test=read-only-hint]").exists()).toBe(false);
+      expect(form.find("fieldset input[aria-describedby]").exists()).toBe(false);
+    });
+
+    it("creates a read-only account when nothing is ticked", async () => {
+      const fetchMock = serve([account("sam")], () => json(joCreated, 201));
       const wrapper = await openPage();
 
       await create(wrapper, "jo");
 
+      expect(posts(fetchMock).map(([, init]) => init?.body)).toEqual([
+        JSON.stringify({ username: "jo", access: [] }),
+      ]);
       expect(rows(wrapper)).toEqual([
         ["jo", "Read-only", "Enabled"],
         ["sam", "Casting", "Enabled"],
       ]);
     });
 
-    it("sends the chosen role, then lists the account in it with its password shown once", async () => {
-      const fetchMock = serve([], () => json({ ...joCreated, account: account("jo") }, 201));
+    it("sends the ticked permissions, then lists the account with them and shows its password once", async () => {
+      const patCreated = {
+        account: account("pat", { access: ["stage", "tech"] }),
+        temporaryPassword: "Made-up-temp-2",
+      };
+      const fetchMock = serve([], () => json(patCreated, 201));
       const wrapper = await openPage();
 
-      await create(wrapper, "jo", "casting");
+      await create(wrapper, "pat", ["Tech", "Stage"]);
 
       expect(posts(fetchMock).map(([, init]) => init?.body)).toEqual([
-        JSON.stringify({ username: "jo", role: "casting" }),
+        JSON.stringify({ username: "pat", access: ["stage", "tech"] }),
       ]);
-      expect(rows(wrapper)).toEqual([["jo", "Casting", "Enabled"]]);
-      expect(wrapper.get("[data-test=temporary-password]").text()).toBe("Made-up-temp-1");
+      expect(rows(wrapper)).toEqual([["pat", "Stage, Tech", "Enabled"]]);
+      expect(wrapper.get("[data-test=temporary-password]").text()).toBe("Made-up-temp-2");
     });
 
-    it("starts at read-only again each time the form opens", async () => {
+    it("creates an Admin when Admin is ticked, whatever was ticked before it", async () => {
+      const chrisCreated = {
+        account: account("chris", { access: "admin" }),
+        temporaryPassword: "Made-up-temp-3",
+      };
+      const fetchMock = serve([], () => json(chrisCreated, 201));
+      const wrapper = await openPage();
+      await wrapper.get("[data-test=add-account]").trigger("click");
+      const form = wrapper.get("[data-test=create-account]");
+      await tickBox(form, "Stage")?.setValue(true);
+
+      await tickBox(form, "Admin")?.setValue(true);
+      // Admin is everything, so the permissions can't be ticked alongside it.
+      expect(tickBox(form, "Stage")?.attributes("disabled")).toBeDefined();
+      await form.get("input[name=username]").setValue("chris");
+      await form.trigger("submit");
+      await flushPromises();
+
+      expect(posts(fetchMock).map(([, init]) => init?.body)).toEqual([
+        JSON.stringify({ username: "chris", access: "admin" }),
+      ]);
+      expect(rows(wrapper)).toEqual([["chris", "Admin", "Enabled"]]);
+    });
+
+    it("starts with nothing ticked again each time the form opens", async () => {
       serve([]);
       const wrapper = await openPage();
       await wrapper.get("[data-test=add-account]").trigger("click");
-      await wrapper.get("select[name=role]").setValue("admin");
+      await tickBox(wrapper.get("[data-test=create-account]"), "Admin")?.setValue(true);
+      await tickBox(wrapper.get("[data-test=create-account]"), "Casting")?.setValue(true);
       await wrapper.get("[data-test=cancel]").trigger("click");
 
       await wrapper.get("[data-test=add-account]").trigger("click");
 
-      expect(wrapper.get<HTMLSelectElement>("select[name=role]").element.value).toBe("read-only");
+      expect(ticksIn(wrapper.get("[data-test=create-account]"))).toEqual([
+        ["Admin", false],
+        ["Casting", false],
+        ["Stage", false],
+        ["Tech", false],
+        ["Costume", false],
+      ]);
     });
 
-    it("sends the username and the role, nothing else", async () => {
+    it("sends the username and the access, nothing else", async () => {
       const fetchMock = serve([], () => json(joCreated, 201));
       const wrapper = await openPage();
 
@@ -258,7 +332,7 @@ describe("Accounts page", () => {
           {
             method: "POST",
             headers: { "content-type": "application/json" },
-            body: JSON.stringify({ username: "jo", role: "read-only" }),
+            body: JSON.stringify({ username: "jo", access: [] }),
           },
         ],
       ]);

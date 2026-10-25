@@ -43,7 +43,7 @@ describe("the account routes", () => {
     const { api, accounts } = setUp();
 
     const res = await api(
-      signedIn("POST", "[]", JSON.stringify({ username: "jo", role: "casting" })),
+      signedIn("POST", "[]", JSON.stringify({ username: "jo", access: ["casting"] })),
     );
 
     expect(res.statusCode).toBe(403);
@@ -54,7 +54,7 @@ describe("the account routes", () => {
     const { api } = setUp();
 
     const created = await api(
-      signedIn("POST", "[admin]", JSON.stringify({ username: "jo", role: "casting" })),
+      signedIn("POST", "[admin]", JSON.stringify({ username: "jo", access: ["casting"] })),
     );
     const listed = await api(signedIn("GET", "[admin]"));
 
