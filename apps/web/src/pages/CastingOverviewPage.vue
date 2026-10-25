@@ -8,6 +8,7 @@ import ShowTimeline from "@/components/casting/ShowTimeline.vue";
 import ClashIcon from "@/components/common/ClashIcon.vue";
 import HelpButton from "@/components/common/HelpButton.vue";
 import ReadOnlyNotice from "@/components/common/ReadOnlyNotice.vue";
+import ViewSwitch from "@/components/common/ViewSwitch.vue";
 import { downloadGridExport } from "@/services/casting-grid-export.ts";
 import { type LatestShow, latestShow } from "@/services/latest-show.ts";
 import { apiFetch } from "@/services/sign-in.ts";
@@ -267,16 +268,7 @@ async function loadCast() {
     <p v-if="sections.length === 0">No cast members yet.</p>
     <template v-else>
     <div class="view-bar">
-      <div class="view-switch" role="group" aria-label="Choose how to see the cast">
-        <button
-          v-for="choice in VIEWS"
-          :key="choice[0]"
-          type="button"
-          :aria-pressed="view === choice[0]"
-          @click="view = choice[0]">
-          {{ choice[1] }}
-        </button>
-      </div>
+      <ViewSwitch v-model="view" :views="VIEWS" label="Choose how to see the cast" />
       <!-- Shaped like the switch's buttons but outside its group: it's an action, not a view. -->
       <button
         v-if="canExport"

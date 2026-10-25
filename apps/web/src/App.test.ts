@@ -70,10 +70,9 @@ describe("App shell", () => {
       "Cast",
       "Overview",
       "Items",
-      "Mic plot",
-      "Props",
-      "Scenery",
-      "SFX",
+      "Stage",
+      "Tech",
+      "Costume",
       "Accounts",
       "Usage",
       "Help",
@@ -325,10 +324,9 @@ describe("App shell", () => {
         "Cast",
         "Overview",
         "Items",
-        "Mic plot",
-        "Props",
-        "Scenery",
-        "SFX",
+        "Stage",
+        "Tech",
+        "Costume",
         "Help",
       ]);
     });
@@ -393,6 +391,23 @@ describe("App shell", () => {
     await label.trigger("click");
     expect(label.attributes("aria-expanded")).toBe("false");
     expect(pages().isVisible()).toBe(false);
+  });
+
+  it("lists Stage, Tech and Costume under Production as pages, with no further menu level", async () => {
+    const { wrapper } = await openAppAt("/");
+
+    const production = wrapper.get("#menu-production-pages");
+    expect(production.findAll(":scope > li").map((item) => item.text())).toEqual([
+      "Stage",
+      "Tech",
+      "Costume",
+    ]);
+    expect(production.findAll("a").map((link) => link.attributes("href"))).toEqual([
+      "/production/stage",
+      "/production/tech",
+      "/production/costume",
+    ]);
+    expect(production.findAll("button, ul")).toEqual([]);
   });
 
   it("keeps one group open at a time, closing the open one when another opens", async () => {

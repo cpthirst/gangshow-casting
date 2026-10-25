@@ -230,6 +230,38 @@ export const pageHelp: PageHelp[] = [
       },
     ],
   },
+  // Production's pages. Each department's permission is what lets someone change its page.
+  {
+    page: "stage",
+    title: "Stage",
+    summary:
+      "The scenery and props each item needs, as two views. Accounts with Stage, and admins, can change it.",
+    lines: [
+      { name: "Scenery", does: "The scenery each item needs. Coming soon.", access: "everyone" },
+      { name: "Props", does: "The props each item needs. Coming soon.", access: "everyone" },
+    ],
+  },
+  {
+    page: "tech",
+    title: "Tech",
+    summary:
+      "The mic plot and sound effects for each item, as two views. Accounts with Tech, and admins, can change it.",
+    lines: [
+      {
+        name: "Mic plot",
+        does: "Which microphone is on whom, item by item. Coming soon.",
+        access: "everyone",
+      },
+      { name: "SFX", does: "The sound effects for each item. Coming soon.", access: "everyone" },
+    ],
+  },
+  {
+    page: "costume",
+    title: "Costume",
+    summary:
+      "The costumes each item needs. Coming soon. Accounts with Costume, and admins, can change it.",
+    lines: [],
+  },
 ];
 
 /** The named page's help. A page without any is a mistake in the code, so it fails loudly. */

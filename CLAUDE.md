@@ -29,6 +29,7 @@ ALERT_EMAIL=… AWS_PROFILE=… pnpm infra:deploy   # deploy the stack (ask firs
 ALERT_EMAIL=… AWS_PROFILE=… pnpm release [version]   # the maintainer's release: merges the release-please PR, waits for its tag, then diffs and deploys it (never a diff that replaces the table or user pool), and offers the post-deploy check. With a version, only deploys that tag (redeploy, or go back). Asks before merging and deploying; user-only, see below
 USER_POOL_ID=… CHECK_CLIENT_ID=… pnpm check:hosted <app url> <check admin> <check member> <check read-only>   # after a deploy: refuses anyone not signed in, lets the check admin in, refuses the member admin-only routes and the read-only account every change (ids from the stack outputs)
 USER_POOL_ID=… pnpm account admin <username>   # create or restore an admin; `account check <admin> <member> <read-only>` sets up the check's accounts; `account roles` moves every account out of the retiring `read-only` group, never adding one (ADR 0026)
+DATA_TABLE=… AWS_PROFILE=… pnpm usage purge   # once after the deploy bringing Stage, Tech and Costume: deletes only the old Mic plot, Props, Scenery and SFX pages' usage; safe to repeat. Ask before running it against the real table
 pnpm --filter <pkg> test         # one package: web | api | infra | @app/shared
 pnpm --filter <pkg> exec vitest run <file> -t "<name>"   # one test
 ```

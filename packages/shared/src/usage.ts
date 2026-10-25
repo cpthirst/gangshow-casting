@@ -6,19 +6,43 @@ export const MenuPageName = z.enum([
   "welcome",
   "running-order",
   "cast",
-  "mic-plot",
-  "props",
-  "scenery",
-  "sfx",
   "casting-overview",
   "casting-items",
+  "stage",
+  "tech",
+  "costume",
   "help",
   "accounts",
   "usage",
 ]);
 
-/** The Casting Overview's views, whose switching is recorded (FR2). */
-export const OverviewView = z.enum(["by-person", "by-item", "grid"]);
+/**
+ * Menu pages that have gone, whose uses the maintainer purges (stage-props AC11): Production's
+ * four pages became the Stage and Tech pages' views.
+ */
+export const RETIRED_MENU_PAGES = ["mic-plot", "props", "scenery", "sfx"] as const;
+
+/** The views a page switches between, whose switching is recorded (FR2), with their uses. */
+const VIEW_FEATURES = {
+  "by-person": "overview-by-person",
+  "by-item": "overview-by-item",
+  grid: "overview-grid",
+  scenery: "stage-scenery",
+  props: "stage-props",
+  "mic-plot": "tech-mic-plot",
+  sfx: "tech-sfx",
+} as const;
+
+/** The Casting Overview's, Stage's and Tech's views. Each name says which page it's on. */
+export const PageView = z.enum([
+  "by-person",
+  "by-item",
+  "grid",
+  "scenery",
+  "props",
+  "mic-plot",
+  "sfx",
+]);
 
 /** The exports, whose use is recorded once the file is made (FR2). */
 export const UsageExport = z.enum(["excel-grid", "word-casting-sheets", "word-item-overview"]);
@@ -31,7 +55,7 @@ export const UsageExport = z.enum(["excel-grid", "word-casting-sheets", "word-it
 export const RecordUsageRequest = z.discriminatedUnion("event", [
   z.object({ event: z.literal("session") }),
   z.object({ event: z.literal("page"), page: MenuPageName }),
-  z.object({ event: z.literal("view"), view: OverviewView }),
+  z.object({ event: z.literal("view"), view: PageView }),
   // Which item, never its title or cast: the Usage page looks the title up (FR2).
   z.object({
     event: z.literal("item"),
@@ -48,6 +72,10 @@ export const UsageFeature = z.enum([
   "overview-by-person",
   "overview-by-item",
   "overview-grid",
+  "stage-scenery",
+  "stage-props",
+  "tech-mic-plot",
+  "tech-sfx",
   // Every item's page together: the summary doesn't count items one by one.
   "item-page",
   "export-excel-grid",
@@ -61,7 +89,7 @@ export function featureOf(request: RecordUsageRequest): UsageFeature | undefined
     case "page":
       return request.page;
     case "view":
-      return `overview-${request.view}`;
+      return VIEW_FEATURES[request.view];
     case "item":
       return "item-page";
     case "export":
@@ -118,7 +146,7 @@ export const UsageSummary = z.strictObject({
 });
 
 export type MenuPageName = z.infer<typeof MenuPageName>;
-export type OverviewView = z.infer<typeof OverviewView>;
+export type PageView = z.infer<typeof PageView>;
 export type UsageExport = z.infer<typeof UsageExport>;
 export type RecordUsageRequest = z.infer<typeof RecordUsageRequest>;
 export type UsageFeature = z.infer<typeof UsageFeature>;

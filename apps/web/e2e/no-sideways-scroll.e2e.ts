@@ -264,15 +264,15 @@ test("the menu opens on a phone and its groups open and fold away, and Welcome l
   await page.getByRole("button", { name: "Menu" }).click();
   const production = menu.getByRole("button", { name: "Production" });
   await expect(production).toHaveAttribute("aria-expanded", "false");
-  await expect(menu.getByRole("link", { name: "Mic plot" })).toBeHidden();
+  await expect(menu.getByRole("link", { name: "Stage" })).toBeHidden();
 
   await production.click();
   await expect(production).toHaveAttribute("aria-expanded", "true");
-  await expect(menu.getByRole("link", { name: "Mic plot" })).toBeVisible();
+  await expect(menu.getByRole("link", { name: "Stage" })).toBeVisible();
   await expectNoSidewaysScroll(page);
 
   await production.click();
-  await expect(menu.getByRole("link", { name: "Mic plot" })).toBeHidden();
+  await expect(menu.getByRole("link", { name: "Stage" })).toBeHidden();
 
   // The guide on Welcome goes to a group's first page, and the menu has that group open.
   await page.getByRole("button", { name: "Menu" }).click();

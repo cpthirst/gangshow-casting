@@ -1,7 +1,7 @@
 import {
   type AccountSummary,
   type MenuPageName,
-  type OverviewView,
+  type PageView,
   type PersonUsage,
   type RecordUsageRequest,
   type UsageExport,
@@ -32,10 +32,15 @@ const ukClock = new Intl.DateTimeFormat("en-GB", {
 /** An ISO time as its UK date and time, such as "24 October 2026 19:01". */
 export const whenOf = (iso: string) => `${dayOf(iso)} ${ukClock.format(new Date(iso))}`;
 
-const viewNames: Record<OverviewView, string> = {
-  "by-person": "By person",
-  "by-item": "By item",
-  grid: "Grid",
+/** Each view, as "switched … to …" says it: its page, then the view. */
+const viewNames: Record<PageView, [page: string, view: string]> = {
+  "by-person": ["the Overview", "By person"],
+  "by-item": ["the Overview", "By item"],
+  grid: ["the Overview", "Grid"],
+  scenery: ["Stage", "Scenery"],
+  props: ["Stage", "Props"],
+  "mic-plot": ["Tech", "Mic plot"],
+  sfx: ["Tech", "SFX"],
 };
 
 const exportNames: Record<UsageExport, string> = {
@@ -60,8 +65,10 @@ export function whatHappened(entry: RecordUsageRequest, titles: Titles) {
       return "signed in";
     case "page":
       return `opened ${titles.page(entry.page)}`;
-    case "view":
-      return `switched the Overview to ${viewNames[entry.view]}`;
+    case "view": {
+      const [page, view] = viewNames[entry.view];
+      return `switched ${page} to ${view}`;
+    }
     case "item": {
       const title = titles.item(entry.productionId, entry.itemId);
       if (title === null) return "opened an item";
@@ -79,6 +86,10 @@ const otherNames: Record<OtherFeature, string> = {
   "overview-by-person": "Overview: By person",
   "overview-by-item": "Overview: By item",
   "overview-grid": "Overview: Grid",
+  "stage-scenery": "Stage: Scenery",
+  "stage-props": "Stage: Props",
+  "tech-mic-plot": "Tech: Mic plot",
+  "tech-sfx": "Tech: SFX",
   "item-page": "Item pages",
   "export-excel-grid": "Export: Excel grid",
   "export-word-casting-sheets": "Export: Word casting sheets",
