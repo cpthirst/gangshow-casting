@@ -238,17 +238,11 @@ body {
   margin-top: 0.5rem;
 }
 
-/* pnpm dev and pnpm demo's role switch, in the sidebar footer where the hosted app has
-   Sign out: the forms' dropdown (shared rules below), labelled above it. */
-.local-role {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  margin-top: 0.5rem;
-}
-
-.local-role select {
-  max-width: 100%;
+/* pnpm dev and pnpm demo's access switch, in the sidebar footer where the hosted app has
+   Sign out: the Accounts page's tick boxes (.access-choice below), in the sidebar's colours. */
+.sidebar .local-access {
+  margin: 0.5rem 0 0;
+  border-color: currentColor;
 }
 
 main {
@@ -629,7 +623,7 @@ main a {
   font-style: italic;
 }
 
-/* Nothing can be dropped in for a Read-Only Team Member, so it isn't drawn as a target. */
+/* Nothing can be dropped in for a read-only account, so it isn't drawn as a target. */
 .running-order .empty-half.read-only td {
   padding: 0.75rem;
   border: none;
@@ -766,7 +760,7 @@ main a {
   font: inherit;
 }
 
-/* A Read-Only Team Member's view of the notes: their own line breaks, and long words wrap. */
+/* A read-only view of the notes: their own line breaks, and long words wrap. */
 .item-notes .notes-text {
   white-space: pre-line;
   overflow-wrap: anywhere;
@@ -955,9 +949,7 @@ main a {
 }
 
 .cast-member-form input,
-.cast-member-form select,
-.role-choice select,
-.local-role select {
+.cast-member-form select {
   padding: 0.5rem;
   border: 1px solid var(--text);
   border-radius: 0.25rem;
@@ -1150,15 +1142,48 @@ main a {
   white-space: nowrap;
 }
 
-/* An account's role, chosen in its row with the forms' dropdown (shared rules above). */
-.role-choice select {
-  max-width: 100%;
-  margin-right: 0.5rem;
+/* An account's access as tick boxes, in its own row to change it, or in the Add account form. */
+.access-choice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin: 0 0 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--text);
+  border-radius: 0.25rem;
 }
 
-.role-choice select:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.cast-member-form .access-choice {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+/* The size of the form's other labels, such as Username. */
+.access-choice legend {
+  padding: 0 0.25rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.access-choice .checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: inherit;
+  font-weight: normal;
+}
+
+.access-choice .checkbox input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
+  padding: 0;
+}
+
+.access-choice .hint {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 0.875rem;
 }
 
 /* Why the signed-in admin can't change their own account, shown as phones have no tooltips. */
@@ -2016,11 +2041,11 @@ main a {
   }
 
   /* As easy to tap as Sign out, which it stands in for locally. */
-  .local-role {
+  .sidebar .local-access {
     margin-top: 0;
   }
 
-  .local-role select {
+  .sidebar .local-access .checkbox {
     min-height: 2.75rem;
     font-size: 1rem;
   }

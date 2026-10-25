@@ -39,15 +39,16 @@ iCUE is hosted on AWS and is open only to the production team. Everyone signs in
 | **Production → Mic plot, Props, Scenery, SFX** | Placeholders that say "Coming soon", open to every role, until each is built as its own feature | none yet |
 | **An item's page** | The item's parts (lead, supporting, cameo, ensemble), who plays each, warnings about quick changes and short gaps between appearances, and the item's notes. Step to the previous or next item | [casting/item-overview](docs/product/casting/item-overview), [roles](docs/product/casting/roles), [rules](docs/product/casting/rules) |
 | **Help** | What each page is for and what its buttons do, with who can use each | [in-app-help](docs/product/in-app-help) |
-| **Accounts** (admins) | Create the team's sign-in accounts, choose each one's role, reset passwords, and disable or enable accounts | [hosting](docs/product/hosting), [team-roles](docs/product/team-roles) |
+| **Accounts** (admins) | Create the team's sign-in accounts, see and change each one's access (Admin, or any mix of Casting, Stage, Tech and Costume), reset passwords, and disable or enable accounts | [hosting](docs/product/hosting), [team-roles](docs/product/team-roles) |
 | **Usage** (admins) | Who on the team uses iCUE and how often, so admins can see who might need help getting started | [usage-tracking](docs/product/usage-tracking) |
 
-**Team roles** ([team-roles](docs/product/team-roles)):
+**Access** ([team-roles](docs/product/team-roles), [stage-props](docs/product/stage/props)): an account is an Admin, or has any mix of department permissions.
 - **Admin:** everything, plus Accounts and Usage.
-- **Casting Team Member:** changes the running order, cast and casting.
-- **Read-Only Team Member:** sees every page but changes nothing, which suits reviewers such as the director.
+- **Casting:** changes the running order drafts, cast and casting.
+- **Stage, Tech, Costume:** change their own department's pages, as those arrive.
+- **Read-only** (no permissions): sees every page but changes nothing, which suits reviewers such as the director.
 
-Behind the roles, an account is an Admin or has any mix of department permissions (Casting, Stage, Tech, Costume), and each change route names the permission it needs ([ADR 0026](docs/adr/0026-department-permissions-as-user-pool-groups.md)). The API checks them on every request, not just the menu.
+Each change route names the permission it needs ([ADR 0026](docs/adr/0026-department-permissions-as-user-pool-groups.md)). The API checks them on every request, not just the menu.
 
 ## The domain
 
@@ -102,7 +103,7 @@ pnpm dev       # web on :5173 + API on :3000 (Vite proxies /api), on the real re
 pnpm check     # lint + typecheck + tests + cdk synth: the definition of "done"
 ```
 
-`pnpm dev` and `pnpm demo` start you as an admin, and the sidebar's "Local role" switch lets you try the other roles.
+`pnpm dev` and `pnpm demo` start you as an admin, and the sidebar's "Local role" tick boxes let you try any mix of permissions (Casting, Stage, Tech, Costume), or none.
 
 **Guides:**
 - **The real data:** [the remote database guide](docs/guides/remote-data.md) covers setting up `pnpm dev` against it.

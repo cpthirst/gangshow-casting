@@ -35,26 +35,28 @@ describe("cognitoClientFor", () => {
 });
 
 describe("the Cognito user directory", () => {
-  it("finds an account, with whether it's enabled and its role", async () => {
+  it("finds an account, with whether it's enabled and its access", async () => {
     cognito.on(AdminGetUserCommand).resolves({ Username: "pat", Enabled: false });
     cognito.on(AdminListGroupsForUserCommand).resolves({ Groups: [{ GroupName: "admin" }] });
 
     expect(await directory().find("pat")).toEqual({
       username: "pat",
       enabled: false,
-      role: "admin",
+      access: "admin",
     });
     expect(inputsOf(AdminGetUserCommand)).toEqual([{ UserPoolId: POOL, Username: "pat" }]);
   });
 
   it("finds an account by any case of its username, answering with the pool's own", async () => {
     cognito.on(AdminGetUserCommand).resolves({ Username: "sam", Enabled: true });
-    cognito.on(AdminListGroupsForUserCommand).resolves({ Groups: [{ GroupName: "casting" }] });
+    cognito.on(AdminListGroupsForUserCommand).resolves({
+      Groups: [{ GroupName: "tech" }, { GroupName: "casting" }],
+    });
 
     expect(await directory().find("SAM")).toEqual({
       username: "sam",
       enabled: true,
-      role: "casting",
+      access: ["casting", "tech"],
     });
   });
 
@@ -67,7 +69,7 @@ describe("the Cognito user directory", () => {
   });
 
   it("creates an account without sending an invitation, as accounts have no email or phone", async () => {
-    await directory().create("pat", "Made-up-1", "casting");
+    await directory().create("pat", "Made-up-1", ["casting"]);
 
     expect(inputsOf(AdminCreateUserCommand)).toEqual([
       {
@@ -80,18 +82,22 @@ describe("the Cognito user directory", () => {
   });
 
   it.each([
-    ["admin", "admin"],
-    ["casting", "casting"],
-  ] as const)("puts a new account in the %s role's group", async (role, group) => {
-    await directory().create("pat", "Made-up-1", role);
+    ["admin", ["admin"]],
+    [["casting"], ["casting"]],
+    [
+      ["stage", "tech"],
+      ["stage", "tech"],
+    ],
+  ] as const)("puts a new account with the access %j in its groups", async (access, groups) => {
+    await directory().create("pat", "Made-up-1", access === "admin" ? access : [...access]);
 
-    expect(inputsOf(AdminAddUserToGroupCommand)).toEqual([
-      { UserPoolId: POOL, Username: "pat", GroupName: group },
-    ]);
+    expect(inputsOf(AdminAddUserToGroupCommand)).toEqual(
+      groups.map((GroupName) => ({ UserPoolId: POOL, Username: "pat", GroupName })),
+    );
   });
 
-  it("leaves a new Read-Only Team Member in no group, as the read-only group is retiring (ADR 0026)", async () => {
-    await directory().create("jo", "Made-up-1", "read-only");
+  it("leaves a new read-only account in no group, as the read-only group is retiring (ADR 0026)", async () => {
+    await directory().create("jo", "Made-up-1", []);
 
     expect(inputsOf(AdminAddUserToGroupCommand)).toEqual([]);
   });
@@ -101,10 +107,12 @@ describe("the Cognito user directory", () => {
       .on(AdminCreateUserCommand)
       .rejects(new UsernameExistsException({ message: "User already exists", $metadata: {} }));
 
-    await expect(directory().create("Sam", "Made-up-1", "casting")).rejects.toThrow(UsernameTaken);
+    await expect(directory().create("Sam", "Made-up-1", ["casting"])).rejects.toThrow(
+      UsernameTaken,
+    );
   });
 
-  it("lists every account, page by page, with whether each is enabled and its role", async () => {
+  it("lists every account, page by page, with whether each is enabled and its access", async () => {
     cognito
       .on(ListUsersCommand, { UserPoolId: POOL })
       .resolves({ Users: [{ Username: "sam", Enabled: true }], PaginationToken: "next" })
@@ -114,6 +122,7 @@ describe("the Cognito user directory", () => {
           { Username: "lee", Enabled: false },
           { Username: "pat", Enabled: true },
           { Username: "jo", Enabled: true },
+          { Username: "kim", Enabled: true },
         ],
       });
     cognito
@@ -121,15 +130,22 @@ describe("the Cognito user directory", () => {
       .resolves({ Users: [{ Username: "pat" }, { Username: "jo" }] })
       .on(ListUsersInGroupCommand, { UserPoolId: POOL, GroupName: "casting" })
       .resolves({ Users: [{ Username: "sam" }] })
+      .on(ListUsersInGroupCommand, { UserPoolId: POOL, GroupName: "stage" })
+      .resolves({ Users: [{ Username: "kim" }] })
+      .on(ListUsersInGroupCommand, { UserPoolId: POOL, GroupName: "tech" })
+      .resolves({ Users: [{ Username: "kim" }] })
+      .on(ListUsersInGroupCommand, { UserPoolId: POOL, GroupName: "costume" })
+      .resolves({ Users: [] })
       .on(ListUsersInGroupCommand, { UserPoolId: POOL, GroupName: "read-only" })
       .resolves({ Users: [{ Username: "jo" }] });
 
-    // lee is in no role, and jo in read-only as well as admin: both may only read (ADR 0020).
+    // lee is in no group, and jo in read-only as well as admin: both may only read (ADR 0026).
     expect(await directory().list()).toEqual([
-      { username: "sam", enabled: true, role: "casting" },
-      { username: "lee", enabled: false, role: "read-only" },
-      { username: "pat", enabled: true, role: "admin" },
-      { username: "jo", enabled: true, role: "read-only" },
+      { username: "sam", enabled: true, access: ["casting"] },
+      { username: "lee", enabled: false, access: [] },
+      { username: "pat", enabled: true, access: "admin" },
+      { username: "jo", enabled: true, access: [] },
+      { username: "kim", enabled: true, access: ["stage", "tech"] },
     ]);
   });
 
@@ -151,7 +167,7 @@ describe("the Cognito user directory", () => {
     expect(inputsOf(AdminDisableUserCommand)).toEqual([{ UserPoolId: POOL, Username: "pat" }]);
   });
 
-  it("makes an account read-only by taking it out of every role group, the retiring read-only one included", async () => {
+  it("makes an account read-only by taking it out of every known group, the retiring read-only one included", async () => {
     cognito.on(AdminListGroupsForUserCommand).resolves({
       Groups: [
         { GroupName: "admin" },
@@ -161,7 +177,7 @@ describe("the Cognito user directory", () => {
       ],
     });
 
-    await directory().setRole("pat", "read-only");
+    await directory().setAccess("pat", []);
 
     const pat = { UserPoolId: POOL, Username: "pat" };
     expect(inputsOf(AdminRemoveUserFromGroupCommand)).toEqual([
@@ -172,30 +188,38 @@ describe("the Cognito user directory", () => {
     expect(inputsOf(AdminAddUserToGroupCommand)).toEqual([]);
   });
 
-  it("gives an account a role by taking it out of its other role groups, then adding it", async () => {
+  it("gives an account permissions by taking it out of its other groups, then adding the missing ones", async () => {
     cognito.on(AdminListGroupsForUserCommand).resolves({
-      Groups: [{ GroupName: "admin" }, { GroupName: "read-only" }, { GroupName: "crew" }],
+      Groups: [
+        { GroupName: "admin" },
+        { GroupName: "stage" },
+        { GroupName: "read-only" },
+        { GroupName: "crew" },
+      ],
     });
 
-    await directory().setRole("pat", "casting");
+    await directory().setAccess("pat", ["casting", "stage", "tech"]);
 
-    // Out of every role first: in between, no role means read-only, never more (ADR 0020).
+    // Out of the others first: in between, the account may do less, never more (ADR 0026).
     const pat = { UserPoolId: POOL, Username: "pat" };
     expect(inputsOf(AdminRemoveUserFromGroupCommand)).toEqual([
       { ...pat, GroupName: "admin" },
       { ...pat, GroupName: "read-only" },
     ]);
-    expect(inputsOf(AdminAddUserToGroupCommand)).toEqual([{ ...pat, GroupName: "casting" }]);
+    expect(inputsOf(AdminAddUserToGroupCommand)).toEqual([
+      { ...pat, GroupName: "casting" },
+      { ...pat, GroupName: "tech" },
+    ]);
     const calls = cognito.calls().map((call) => call.args[0].constructor.name);
     expect(calls.lastIndexOf("AdminRemoveUserFromGroupCommand")).toBeLessThan(
       calls.indexOf("AdminAddUserToGroupCommand"),
     );
   });
 
-  it("leaves an account already in the role in it", async () => {
+  it("leaves an account that already has the access as it is", async () => {
     cognito.on(AdminListGroupsForUserCommand).resolves({ Groups: [{ GroupName: "admin" }] });
 
-    await directory().setRole("pat", "admin");
+    await directory().setAccess("pat", "admin");
 
     expect(inputsOf(AdminRemoveUserFromGroupCommand)).toEqual([]);
     expect(inputsOf(AdminAddUserToGroupCommand)).toEqual([]);
@@ -229,17 +253,17 @@ describe("the Cognito user directory", () => {
   });
 
   it.each([
-    ["read-only", ["casting", "stage", "tech", "costume"], undefined],
-    ["casting", ["stage", "read-only"], "casting"],
+    [[], ["casting", "stage", "tech", "costume"], undefined],
+    [["casting"], ["stage", "read-only"], "casting"],
     ["admin", ["tech", "costume"], "admin"],
   ] as const)(
-    "leaves an account given the %s role in exactly that role's groups, out of every department",
-    async (role, removed, added) => {
+    "leaves an account given the access %j in exactly its groups, out of every other",
+    async (access, removed, added) => {
       cognito.on(AdminListGroupsForUserCommand).resolves({
         Groups: [...removed, "crew"].map((GroupName) => ({ GroupName })),
       });
 
-      await directory().setRole("pat", role);
+      await directory().setAccess("pat", access === "admin" ? access : [...access]);
 
       const pat = { UserPoolId: POOL, Username: "pat" };
       expect(inputsOf(AdminRemoveUserFromGroupCommand)).toEqual(

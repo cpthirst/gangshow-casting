@@ -1,5 +1,3 @@
-import type { TeamRole } from "./account.ts";
-
 /**
  * Every API route, as "<METHOD> <path>" with {name} path parameters. The API has a handler
  * for each (apps/api/src/routes.ts), and infra hosts exactly these, so a route can't be
@@ -11,7 +9,7 @@ export const routeKeys = [
   "POST /api/accounts",
   "POST /api/accounts/{username}/password",
   "PUT /api/accounts/{username}/enabled",
-  "PUT /api/accounts/{username}/role",
+  "PUT /api/accounts/{username}/access",
   "GET /api/productions/{productionId}/running-order",
   "POST /api/productions/{productionId}/running-order/versions",
   "GET /api/productions/{productionId}/cast",
@@ -39,7 +37,7 @@ export const STAGE_GROUP = "stage";
 export const TECH_GROUP = "tech";
 export const COSTUME_GROUP = "costume";
 /**
- * The retiring group for Read-Only Team Members (ADR 0020). Until a later release deletes it,
+ * The retiring group for read-only accounts (ADR 0020). Until a later release deletes it,
  * being in it grants nothing and cancels every other group, so no account is widened before
  * `pnpm account roles` moves it out (ADR 0026).
  */
@@ -63,17 +61,6 @@ export function accessFrom(groups: readonly string[]): Access {
   return permissions.filter((permission) => groups.includes(permission));
 }
 
-/**
- * A token's groups as one of today's team roles, which the Accounts page and the pages'
- * controls still show until stage-props.E2.S1: Casting makes a Casting Team Member, and any
- * other non-admin may change no casting, so is a Read-Only Team Member.
- */
-export function roleFrom(groups: readonly string[]): TeamRole {
-  const access = accessFrom(groups);
-  if (access === "admin") return "admin";
-  return access.includes(CASTING_GROUP) ? "casting" : "read-only";
-}
-
 /** The API's answer to a change from someone without a department's permission, if it has none of its own. */
 const GENERAL_REFUSAL = "You can view this, but not change it.";
 
@@ -92,20 +79,28 @@ const readOnlyRefusals = new Set<unknown>(permissions.map(refusalFor));
 export const isRefusalAsReadOnly = (message: unknown) => readOnlyRefusals.has(message);
 
 /**
- * Which role pnpm dev and pnpm demo act for, chosen with the local role switch (team-roles
- * FR16). Only the local API reads it; the hosted API takes the role from the sign-in alone.
+ * The access pnpm dev and pnpm demo act for, chosen with the local switch (stage-props FR9):
+ * "admin", or the permissions separated by commas, empty for none. Only the local API reads
+ * it; the hosted API takes access from the sign-in alone.
  */
-export const LOCAL_ROLE_HEADER = "x-local-role";
+export const LOCAL_ACCESS_HEADER = "x-local-access";
+
+/** The local access header's value for the access chosen. */
+export const localAccessHeader = (access: Access) =>
+  access === "admin" ? access : access.join(",");
 
 /**
- * The local role switch names today's roles until stage-props.E2.S3: each as the access it
- * means, which the local API enforces and the pages show, so the two can't disagree.
+ * The access the local access header asks for: an admin when none is sent, as the local app
+ * starts, and read-only for anything it doesn't know, as the hosted API would treat it.
  */
-export const localAccess: Readonly<Record<TeamRole, Access>> = {
-  admin: "admin",
-  casting: [CASTING_GROUP],
-  "read-only": [],
-};
+export function localAccessFrom(sent: string | string[] | undefined): Access {
+  if (sent === undefined) return "admin";
+  if (typeof sent !== "string") return [];
+  if (sent === "admin") return "admin";
+  const asked = sent === "" ? [] : sent.split(",");
+  const known = permissions.filter((permission) => asked.includes(permission));
+  return known.length === asked.length ? known : [];
+}
 
 /** Whether access allows changing a department's data: an admin may change everything. */
 export const mayChange = (access: Access, permission: Permission) =>
@@ -157,7 +152,7 @@ export const routeNeeds: RouteNeeds = {
   "POST /api/accounts": "admin",
   "POST /api/accounts/{username}/password": "admin",
   "PUT /api/accounts/{username}/enabled": "admin",
-  "PUT /api/accounts/{username}/role": "admin",
+  "PUT /api/accounts/{username}/access": "admin",
   "POST /api/productions/{productionId}/running-order/versions": "admin",
   "POST /api/productions/{productionId}/cast": "casting",
   "PUT /api/productions/{productionId}/cast/{castId}": "casting",
@@ -195,7 +190,7 @@ export const accountRouteKeys = [
   "POST /api/accounts",
   "POST /api/accounts/{username}/password",
   "PUT /api/accounts/{username}/enabled",
-  "PUT /api/accounts/{username}/role",
+  "PUT /api/accounts/{username}/access",
 ] as const satisfies readonly RouteKey[];
 
 export type AccountRouteKey = (typeof accountRouteKeys)[number];

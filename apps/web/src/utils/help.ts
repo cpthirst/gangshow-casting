@@ -4,7 +4,7 @@ import { icons } from "./icons.ts";
 // Who can use an action, said the same way on every page (in-app-help FR5).
 const accessLabels = {
   everyone: "Everyone",
-  casting: "Casting team and admins",
+  casting: "Accounts with Casting, and admins",
   admins: "Admins only",
 } as const;
 

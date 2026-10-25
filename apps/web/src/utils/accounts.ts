@@ -1,4 +1,10 @@
-import type { AccountSummary, TeamRole } from "@app/shared";
+import {
+  type AccountAccess,
+  type AccountSummary,
+  CASTING_GROUP,
+  type Permission,
+  permissions,
+} from "@app/shared";
 
 export const ACCOUNTS_PATH = "/api/accounts";
 
@@ -19,23 +25,70 @@ export const resetWarning = (username: string) =>
 export const disableWarning = (username: string) =>
   `Disable ${username}? They'll be signed out on every device within 5 minutes, and can't sign in until an admin enables them again.`;
 
-/** Each role by the name the team knows it by (team-roles FR4), in the order offered. */
-export const ROLE_NAMES: Record<TeamRole, string> = {
-  admin: "Admin",
-  casting: "Casting Team Member",
-  "read-only": "Read-Only Team Member",
+/** Each department's permission by the name the team knows it by (stage-props FR7). */
+export const PERMISSION_NAMES: Record<Permission, string> = {
+  casting: "Casting",
+  stage: "Stage",
+  tech: "Tech",
+  costume: "Costume",
 };
 
-/** A role's name after "a" or "an", as in "Make sam a Casting Team Member". */
-export const withArticle = (role: TeamRole) =>
-  `${role === "admin" ? "an" : "a"} ${ROLE_NAMES[role]}`;
+/** What an account may do, at a glance: "Admin", its permissions, or "Read-only". */
+export function accessLabel(access: AccountAccess) {
+  if (access === "admin") return "Admin";
+  if (access.length === 0) return "Read-only";
+  return inOrder(access)
+    .map((permission) => PERMISSION_NAMES[permission])
+    .join(", ");
+}
 
-const CAN_DO: Record<TeamRole, string> = {
-  admin: "can manage accounts, delete cast members and save running orders",
-  casting: "can change the cast, casting and running order drafts",
-  "read-only": "can view the show but not change the casting",
-};
+/** Permissions in the order the page offers them, whatever order they were given in. */
+export const inOrder = (access: readonly Permission[]) =>
+  permissions.filter((permission) => access.includes(permission));
 
-/** Asked before a role change, which signs the person out so it takes effect (FR10). */
-export const roleWarning = (username: string, role: TeamRole) =>
-  `Make ${username} ${withArticle(role)}? They'll be signed out on every device, and ${CAN_DO[role]} when they sign back in.`;
+/** "A", "A and B", "A, B and C". */
+const listed = (names: string[]) =>
+  names.length < 2 ? names.join("") : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+
+/** What the permissions let someone change: casting, and each other department's page. */
+function whatTheyCanChange(access: readonly Permission[]) {
+  const pages = inOrder(access)
+    .filter((permission) => permission !== CASTING_GROUP)
+    .map((permission) => PERMISSION_NAMES[permission]);
+  const pageWords =
+    pages.length > 0 ? [`the ${listed(pages)} ${pages.length > 1 ? "pages" : "page"}`] : [];
+  return [...(access.includes(CASTING_GROUP) ? ["casting"] : []), ...pageWords].join(", and ");
+}
+
+/** What the person will be able to do once they sign back in with the access. */
+function whatTheyCanDo(access: AccountAccess) {
+  if (access === "admin") {
+    return "they'll be able to change everything, manage accounts, delete cast members and save running orders";
+  }
+  if (access.length === 0) return "they'll only be able to view the show";
+  return `they'll be able to change ${whatTheyCanChange(access)}`;
+}
+
+/** Asked before an access change, which signs the person out so it takes effect (FR6). */
+export function accessWarning(username: string, access: AccountAccess) {
+  const question =
+    access === "admin"
+      ? `Make ${username} an Admin?`
+      : access.length === 0
+        ? `Make ${username} read-only?`
+        : `Change ${username}'s access to ${accessLabel(access)}?`;
+  return `${question} When they next sign in, ${whatTheyCanDo(access)}. ${username} will be signed out on every device.`;
+}
+
+/** Whether two accesses are the same, whatever order their permissions are in. */
+export function sameAccess(a: AccountAccess, b: AccountAccess) {
+  if (a === "admin" || b === "admin") return a === b;
+  return inOrder(a).join() === inOrder(b).join();
+}
+
+/** Said once an access change has saved. */
+export function accessChanged(username: string, access: AccountAccess) {
+  if (access === "admin") return `${username} is now an Admin.`;
+  if (access.length === 0) return `${username} is now read-only.`;
+  return `${username} now has ${accessLabel(access)}.`;
+}

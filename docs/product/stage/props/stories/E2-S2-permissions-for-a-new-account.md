@@ -2,7 +2,7 @@
 id: stage-props.E2.S2
 title: Choose permissions for a new account
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story

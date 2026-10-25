@@ -19,7 +19,7 @@ const account = (
 });
 
 describe("list accounts handler", () => {
-  it("returns every account, with its role and whether it is disabled", async () => {
+  it("returns every account, with its access and whether it is disabled", async () => {
     const { directory } = memoryUserDirectory([
       account("pat", { admin: true }),
       account("sam"),
@@ -31,10 +31,10 @@ describe("list accounts handler", () => {
 
     expect(res.statusCode).toBe(200);
     expect(AccountList.parse(JSON.parse(res.body ?? "")).accounts).toEqual([
-      { username: "pat", role: "admin", enabled: true },
-      { username: "sam", role: "casting", enabled: true },
-      { username: "jo", role: "read-only", enabled: true },
-      { username: "lee", role: "casting", enabled: false },
+      { username: "pat", access: "admin", enabled: true },
+      { username: "sam", access: ["casting"], enabled: true },
+      { username: "jo", access: [], enabled: true },
+      { username: "lee", access: ["casting"], enabled: false },
     ]);
   });
 });

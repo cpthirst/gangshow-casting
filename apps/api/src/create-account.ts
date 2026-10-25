@@ -17,17 +17,17 @@ export function createCreateAccount(directory: UserDirectory, newPassword: () =>
       return usernameIssue ? messageResponse(400, usernameIssue.message) : { statusCode: 400 };
     }
 
-    const { username, role } = request.data;
+    const { username, access } = request.data;
     const temporaryPassword = newPassword();
     try {
-      await directory.create(username, temporaryPassword, role);
+      await directory.create(username, temporaryPassword, access);
     } catch (error) {
       if (error instanceof UsernameTaken)
         return messageResponse(409, "That username is already taken.");
       throw error;
     }
     const created: CreatedAccount = {
-      account: { username, role, enabled: true },
+      account: { username, access, enabled: true },
       temporaryPassword,
     };
     return jsonResponse(201, created);

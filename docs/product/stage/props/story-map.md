@@ -27,9 +27,9 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [stage-props.E2.S1](stories/E2-S1-change-an-accounts-permissions.md) | The Accounts page shows each account's permissions. An admin changes them with tick boxes, or makes the account an Admin, after confirming what the person will be able to change. Never their own access, and never the last admin | FR6, FR7, FR8 | E1.S1 | ready |
-| [stage-props.E2.S2](stories/E2-S2-permissions-for-a-new-account.md) | An admin ticks the permissions when creating an account. A new account starts with none | FR6 | E2.S1 | ready |
-| [stage-props.E2.S3](stories/E2-S3-permission-switch-in-dev-and-demo.md) | The "Local role" switch in dev and the demo offers Admin, or any combination of the four permissions | FR9 | E1.S1 | ready |
+| [stage-props.E2.S1](stories/E2-S1-change-an-accounts-permissions.md) | The Accounts page shows each account's permissions. An admin changes them with tick boxes, or makes the account an Admin, after confirming what the person will be able to change. Never their own access, and never the last admin | FR6, FR7, FR8 | E1.S1 | done |
+| [stage-props.E2.S2](stories/E2-S2-permissions-for-a-new-account.md) | An admin ticks the permissions when creating an account. A new account starts with none | FR6 | E2.S1 | done |
+| [stage-props.E2.S3](stories/E2-S3-permission-switch-in-dev-and-demo.md) | The "Local role" switch in dev and the demo offers Admin, or any combination of the four permissions | FR9 | E1.S1 | done |
 
 ## E3: Department pages
 

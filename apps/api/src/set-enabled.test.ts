@@ -19,7 +19,7 @@ describe("set enabled handler", () => {
     expect(res.statusCode).toBe(200);
     expect(AccountSummary.parse(JSON.parse(res.body ?? ""))).toEqual({
       username: "sam",
-      role: "casting",
+      access: ["casting"],
       enabled: false,
     });
     expect(find(accounts, "sam")?.enabled).toBe(false);

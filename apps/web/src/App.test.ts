@@ -249,29 +249,75 @@ describe("App shell", () => {
     });
   });
 
-  describe("the local role switch (team-roles FR16)", () => {
-    const roleSwitch = (wrapper: Awaited<ReturnType<typeof openAppAt>>["wrapper"]) =>
-      wrapper.get<HTMLSelectElement>("select[data-test=local-role]");
+  describe("the local access switch (stage-props FR9)", () => {
+    type App = Awaited<ReturnType<typeof openAppAt>>["wrapper"];
+    const accessSwitch = (wrapper: App) => wrapper.get("fieldset[data-test=local-access]");
+    const box = (wrapper: App, name: string) =>
+      accessSwitch(wrapper)
+        .findAll<HTMLInputElement>("input[type=checkbox]")
+        .find((input) => input.element.parentElement?.textContent?.trim() === name);
+    const tick = async (wrapper: App, name: string, ticked: boolean) => {
+      await box(wrapper, name)?.setValue(ticked);
+      await flushPromises();
+    };
+    const tickedNames = (wrapper: App) =>
+      accessSwitch(wrapper)
+        .findAll<HTMLInputElement>("input:checked")
+        .map((input) => input.element.parentElement?.textContent?.trim());
 
-    it("starts as an Admin, labelled as the local role", async () => {
+    // Running order shows its notice once its order has loaded; the other pages don't wait.
+    const emptyOrder = {
+      productionId: "2027",
+      title: "Gang Show 2027",
+      version: 1,
+      savedAt: "2026-10-04T00:00:00.000Z",
+      startTime: "19:15",
+      intervalMinutes: 20,
+      halves: [
+        { id: "first-half", name: "First half", items: [] },
+        { id: "second-half", name: "Second half", items: [] },
+      ],
+    };
+    const anyPage = (url: unknown) =>
+      new Response(
+        JSON.stringify(
+          String(url).endsWith("/running-order") ? emptyOrder : { status: "ok", version: "1.2.3" },
+        ),
+      );
+
+    it("starts as an Admin, in a group labelled as local", async () => {
       const { wrapper } = await openAppAt("/");
 
-      const choice = roleSwitch(wrapper);
-      const label = document.querySelector(`label[for="${choice.attributes("id")}"]`);
-      expect(label?.textContent?.trim()).toBe("Local role");
-      expect(choice.element.selectedOptions[0]?.text).toBe("Admin");
-      expect(choice.findAll("option").map((option) => option.text())).toEqual([
-        "Admin",
-        "Casting Team Member",
-        "Read-Only Team Member",
-      ]);
+      expect(accessSwitch(wrapper).get("legend").text()).toBe("Local role");
+      expect(
+        accessSwitch(wrapper)
+          .findAll("label")
+          .map((label) => label.text()),
+      ).toEqual(["Admin", "Casting", "Stage", "Tech", "Costume"]);
+      expect(tickedNames(wrapper)).toEqual(["Admin"]);
     });
 
-    it("leaves Accounts out of the menu once switched to Casting Team Member", async () => {
-      const { wrapper } = await openAppAt("/");
+    it("shows the casting read-only once switched to Stage and Tech", async () => {
+      const { wrapper } = await openAppAt("/cast");
+      expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
 
-      await roleSwitch(wrapper).setValue("casting");
+      await tick(wrapper, "Admin", false);
+      await tick(wrapper, "Stage", true);
+      await tick(wrapper, "Tech", true);
 
+      expect(tickedNames(wrapper)).toEqual(["Stage", "Tech"]);
+      expect(wrapper.get("[data-test=read-only]").text()).toBe(
+        "You can view the casting, but not change it.",
+      );
+    });
+
+    it("lets Casting alone change casting, and leaves Accounts out of the menu", async () => {
+      const { wrapper } = await openAppAt("/cast");
+
+      await tick(wrapper, "Admin", false);
+      await tick(wrapper, "Casting", true);
+
+      expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
       const links = wrapper.get("nav[aria-label=Main]").findAll("a");
       expect(links.map((link) => link.text())).toEqual([
         "Welcome",
@@ -287,31 +333,37 @@ describe("App shell", () => {
       ]);
     });
 
-    it("shows the read-only view once switched to Read-Only Team Member", async () => {
-      const { wrapper } = await openAppAt("/cast");
-      expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
+    it.each([["/running-order"], ["/cast"], ["/casting/overview"], ["/casting/items"]])(
+      "shows %s read-only with every permission unticked",
+      async (path) => {
+        vi.stubGlobal(
+          "fetch",
+          vi.fn(async (url: unknown) => anyPage(url)),
+        );
+        const { wrapper } = await openAppAt(path);
 
-      await roleSwitch(wrapper).setValue("read-only");
+        await tick(wrapper, "Admin", false);
 
-      expect(wrapper.get("[data-test=read-only]").text()).toBe(
-        "You can view the casting, but not change it.",
-      );
-    });
+        expect(tickedNames(wrapper)).toEqual([]);
+        expect(wrapper.get("[data-test=read-only]").text()).toBe(
+          "You can view the casting, but not change it.",
+        );
+      },
+    );
 
-    it("moves to the Running order when the chosen role can't open the page shown", async () => {
+    it("moves to the Running order when the chosen access can't open the page shown", async () => {
       const { wrapper, router } = await openAppAt("/accounts");
 
-      await roleSwitch(wrapper).setValue("read-only");
-      await flushPromises();
+      await tick(wrapper, "Admin", false);
 
       expect(router.currentRoute.value.path).toBe("/running-order");
     });
 
-    it("stays on a page the chosen role can open", async () => {
+    it("stays on a page the chosen access can open", async () => {
       const { wrapper, router } = await openAppAt("/cast");
 
-      await roleSwitch(wrapper).setValue("casting");
-      await flushPromises();
+      await tick(wrapper, "Admin", false);
+      await tick(wrapper, "Casting", true);
 
       expect(router.currentRoute.value.path).toBe("/cast");
     });
@@ -321,7 +373,7 @@ describe("App shell", () => {
 
       const { wrapper } = await openAppAt("/");
 
-      expect(wrapper.find("[data-test=local-role]").exists()).toBe(false);
+      expect(wrapper.find("[data-test=local-access]").exists()).toBe(false);
     });
   });
 

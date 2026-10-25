@@ -26,7 +26,7 @@ We will move every file (with `git mv`, so history follows) into these folders. 
 | `assets/` | Images and the stylesheet | `logo.jpg`, `logo-small.jpg`, `styles.css`, `grid-colours.test.ts` (it checks `styles.css`) |
 | `router/` | Routes and the menu's structure | `router.ts` → `router/index.ts` |
 | `pages/` | One component per route, and nothing else | the 11 `*Page.vue` files |
-| `components/app/` | The sidebar's parts | `MainMenu`, `HealthStatus`, `LocalRoleSwitch` |
+| `components/app/` | The sidebar's parts | `MainMenu`, `HealthStatus`, `LocalAccessSwitch` |
 | `components/common/` | Used across the app's areas | `HelpButton`, `PageHelp`, `ReadOnlyNotice`, `ClashIcon` |
 | `components/show/` | Parts of the SHOW pages | `CastMemberForm`, `ItemEditor` |
 | `components/casting/` | Parts of the CASTING pages | `CastingGrid`, `ShowByItem`, `ShowTimeline`, `ItemNotes`, `RoleForm`, `CastMemberPicker` |

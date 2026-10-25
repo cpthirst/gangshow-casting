@@ -3,8 +3,8 @@ import {
   AccountList,
   CreatedAccount,
   NewAccount,
+  SetAccess,
   SetEnabled,
-  SetRole,
   Username,
 } from "./account.ts";
 
@@ -28,29 +28,46 @@ describe("Username", () => {
 });
 
 describe("NewAccount", () => {
-  it("takes a valid username and one of the three roles", () => {
-    expect(NewAccount.parse({ username: "jo", role: "read-only" })).toEqual({
-      username: "jo",
-      role: "read-only",
-    });
-    expect(NewAccount.safeParse({ username: "jo smith", role: "casting" }).success).toBe(false);
+  it("takes a valid username and its access: Admin, or any mix of permissions, none meaning read-only", () => {
+    for (const access of [
+      "admin",
+      [],
+      ["stage", "tech"],
+      ["casting", "stage", "tech", "costume"],
+    ]) {
+      expect(NewAccount.parse({ username: "jo", access })).toEqual({ username: "jo", access });
+    }
+    expect(NewAccount.safeParse({ username: "jo smith", access: [] }).success).toBe(false);
   });
 
-  it("refuses a missing or unknown role", () => {
-    expect(NewAccount.safeParse({ username: "jo" }).success).toBe(false);
-    expect(NewAccount.safeParse({ username: "jo", role: "member" }).success).toBe(false);
+  it("refuses missing access, an unknown permission, one listed twice, or the old role", () => {
+    for (const body of [
+      { username: "jo" },
+      { username: "jo", access: ["props"] },
+      { username: "jo", access: ["stage", "stage"] },
+      { username: "jo", access: "read-only" },
+      { username: "jo", role: "casting" },
+    ]) {
+      expect(NewAccount.safeParse(body).success, JSON.stringify(body)).toBe(false);
+    }
   });
 
   it("refuses anything else, such as an email address or a password", () => {
-    const jo = { username: "jo", role: "casting" };
+    const jo = { username: "jo", access: ["casting"] };
     expect(NewAccount.safeParse({ ...jo, email: "jo@example.com" }).success).toBe(false);
     expect(NewAccount.safeParse({ ...jo, password: "chosen" }).success).toBe(false);
   });
 });
 
 describe("AccountList", () => {
-  it("holds each account's username, role and whether it's enabled, nothing more", () => {
-    const list = { accounts: [{ username: "pat", role: "admin", enabled: true }] };
+  it("holds each account's username, access and whether it's enabled, nothing more", () => {
+    const list = {
+      accounts: [
+        { username: "pat", access: "admin", enabled: true },
+        { username: "kim", access: ["stage", "tech"], enabled: true },
+        { username: "jo", access: [], enabled: false },
+      ],
+    };
 
     expect(AccountList.parse(list)).toEqual(list);
     expect(
@@ -59,8 +76,17 @@ describe("AccountList", () => {
     ).toBe(false);
   });
 
-  it("refuses a role that isn't one of the three", () => {
-    const account = { username: "pat", role: "superadmin", enabled: true };
+  it.each([
+    ["an unknown access", "superadmin"],
+    ["an unknown permission", ["casting", "props"]],
+    ["a permission twice", ["stage", "stage"]],
+    ["the old role", undefined],
+  ])("refuses %s", (_case, access) => {
+    const account = {
+      username: "pat",
+      enabled: true,
+      ...(access ? { access } : { role: "admin" }),
+    };
 
     expect(AccountList.safeParse({ accounts: [account] }).success).toBe(false);
   });
@@ -69,7 +95,7 @@ describe("AccountList", () => {
 describe("CreatedAccount", () => {
   it("holds the new account and its temporary password", () => {
     const created = {
-      account: { username: "jo", role: "casting", enabled: true },
+      account: { username: "jo", access: ["casting"], enabled: true },
       temporaryPassword: "Made-up-temp-1",
     };
 
@@ -81,18 +107,24 @@ describe("SetEnabled", () => {
   it("takes whether the account is enabled, and nothing else", () => {
     expect(SetEnabled.parse({ enabled: false })).toEqual({ enabled: false });
     expect(SetEnabled.safeParse({ enabled: "no" }).success).toBe(false);
-    expect(SetEnabled.safeParse({ enabled: true, role: "admin" }).success).toBe(false);
+    expect(SetEnabled.safeParse({ enabled: true, access: "admin" }).success).toBe(false);
   });
 });
 
-describe("SetRole", () => {
-  it.each(["admin", "casting", "read-only"])("takes the %s role", (role) => {
-    expect(SetRole.parse({ role })).toEqual({ role });
-  });
+describe("SetAccess", () => {
+  it.each([["admin"], [[]], [["casting"]], [["casting", "stage", "tech", "costume"]]])(
+    "takes the access %j",
+    (access) => {
+      expect(SetAccess.parse({ access })).toEqual({ access });
+    },
+  );
 
-  it("refuses any other role, or anything else", () => {
-    expect(SetRole.safeParse({ role: "Admin" }).success).toBe(false);
-    expect(SetRole.safeParse({ role: "member" }).success).toBe(false);
-    expect(SetRole.safeParse({ role: "admin", enabled: false }).success).toBe(false);
+  it("refuses an unknown access or permission, a repeated one, or anything else", () => {
+    expect(SetAccess.safeParse({ access: "Admin" }).success).toBe(false);
+    expect(SetAccess.safeParse({ access: "casting" }).success).toBe(false);
+    expect(SetAccess.safeParse({ access: ["admin"] }).success).toBe(false);
+    expect(SetAccess.safeParse({ access: ["tech", "tech"] }).success).toBe(false);
+    expect(SetAccess.safeParse({ role: "admin" }).success).toBe(false);
+    expect(SetAccess.safeParse({ access: [], enabled: false }).success).toBe(false);
   });
 });

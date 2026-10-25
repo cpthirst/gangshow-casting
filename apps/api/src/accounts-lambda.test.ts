@@ -1,4 +1,5 @@
 import {
+  AdminAddUserToGroupCommand,
   AdminCreateUserCommand,
   CognitoIdentityProviderClient,
   ListUsersCommand,
@@ -56,7 +57,7 @@ describe("the accounts function's entry point", () => {
     const res = await handler({
       ...listAccounts("[admin]"),
       requestContext: { ...listAccounts("[admin]").requestContext, http: { method: "POST" } },
-      body: JSON.stringify({ username: "Sam", role: "casting" }),
+      body: JSON.stringify({ username: "Sam", access: ["casting"] }),
     });
 
     expect(res.statusCode).toBe(409);
@@ -64,6 +65,28 @@ describe("the accounts function's entry point", () => {
       UserPoolId: POOL,
       Username: "Sam",
     });
+  });
+
+  it("creates pat with Stage in the pool's stage group alone, which pat's sign-in then carries", async () => {
+    vi.stubEnv("USER_POOL_ID", POOL);
+    const { handler } = await import("./accounts-lambda.ts");
+
+    const res = await handler({
+      ...listAccounts("[admin]"),
+      requestContext: { ...listAccounts("[admin]").requestContext, http: { method: "POST" } },
+      body: JSON.stringify({ username: "pat", access: ["stage"] }),
+    });
+
+    expect(res.statusCode).toBe(201);
+    // Pat must choose a new password at first sign-in.
+    expect(cognito.commandCalls(AdminCreateUserCommand)[0]?.args[0].input).toMatchObject({
+      UserPoolId: POOL,
+      Username: "pat",
+      MessageAction: "SUPPRESS",
+    });
+    expect(
+      cognito.commandCalls(AdminAddUserToGroupCommand).map((call) => call.args[0].input),
+    ).toEqual([{ UserPoolId: POOL, Username: "pat", GroupName: "stage" }]);
   });
 
   it("won't start without USER_POOL_ID", async () => {

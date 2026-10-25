@@ -1,13 +1,13 @@
-import { LOCAL_ROLE_HEADER, type SignInConfig } from "@app/shared";
+import { LOCAL_ACCESS_HEADER, type SignInConfig } from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   apiFetch,
   canChangeCasting,
   changeRefusedAsReadOnly,
-  chooseLocalRole,
+  chooseLocalAccess,
   isAdmin,
   isSignedIn,
-  localRole,
+  localAccess,
   type SignedInUser,
   SignInEnded,
   type SignInManager,
@@ -379,53 +379,59 @@ describe("signing in", () => {
       expect(fetchMock).toHaveBeenCalledWith("/api/health");
     });
 
-    it("tells the local API which role was chosen, starting as an admin", async () => {
+    it("tells the local API which access was chosen, starting as an admin", async () => {
       useLocalSignIn();
-      const sentRole = () =>
-        new Headers(fetchMock.mock.calls.at(-1)?.[1]?.headers).get(LOCAL_ROLE_HEADER);
+      const sent = () =>
+        new Headers(fetchMock.mock.calls.at(-1)?.[1]?.headers).get(LOCAL_ACCESS_HEADER);
 
       await apiFetch("/api/health");
-      const first = sentRole();
-      chooseLocalRole("read-only");
+      const first = sent();
+      chooseLocalAccess(["stage", "tech"]);
+      await apiFetch("/api/health");
+      const stageAndTech = sent();
+      chooseLocalAccess([]);
       await apiFetch("/api/health");
 
-      expect([first, sentRole()]).toEqual([null, "read-only"]);
+      expect([first, stageAndTech, sent()]).toEqual([null, "stage,tech", ""]);
     });
 
-    it("shows the pages for the chosen role", () => {
+    it("shows the pages for the chosen access", () => {
       useLocalSignIn();
 
-      chooseLocalRole("casting");
+      chooseLocalAccess(["casting"]);
       const casting = [isAdmin.value, canChangeCasting.value];
-      chooseLocalRole("read-only");
+      chooseLocalAccess(["stage", "tech"]);
+      const stageAndTech = [isAdmin.value, canChangeCasting.value];
+      chooseLocalAccess([]);
 
-      expect([localRole.value, casting, canChangeCasting.value]).toEqual([
-        "read-only",
+      expect([casting, stageAndTech, localAccess.value, canChangeCasting.value]).toEqual([
         [false, true],
+        [false, false],
+        [],
         false,
       ]);
     });
 
     it("starts as an admin again each time the app starts", () => {
       useLocalSignIn();
-      chooseLocalRole("read-only");
+      chooseLocalAccess([]);
 
       useLocalSignIn();
 
-      expect([localRole.value, isAdmin.value]).toEqual(["admin", true]);
+      expect([localAccess.value, isAdmin.value]).toEqual(["admin", true]);
     });
   });
 
-  it("never lets the hosted app choose a role, or send one", async () => {
-    await useHostedSignIn(config, managerWith(sam({ groups: ["read-only"] })), browserAt("/"));
+  it("never lets the hosted app choose access, or send it", async () => {
+    await useHostedSignIn(config, managerWith(sam({ groups: [] })), browserAt("/"));
 
-    chooseLocalRole("admin");
+    chooseLocalAccess("admin");
     await apiFetch("/api/health");
 
     expect(isAdmin.value).toBe(false);
     expect(canChangeCasting.value).toBe(false);
-    expect(localRole.value).toBeUndefined();
-    expect(new Headers(fetchMock.mock.calls.at(-1)?.[1]?.headers).has(LOCAL_ROLE_HEADER)).toBe(
+    expect(localAccess.value).toBeUndefined();
+    expect(new Headers(fetchMock.mock.calls.at(-1)?.[1]?.headers).has(LOCAL_ACCESS_HEADER)).toBe(
       false,
     );
   });

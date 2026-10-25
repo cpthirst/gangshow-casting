@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { permissions } from "./api-routes.ts";
 
 /** The name an admin chooses for a team member's account: the only data held about them (ADR 0018). */
 export const Username = z
@@ -10,23 +11,34 @@ export const Username = z
 
 export type Username = z.infer<typeof Username>;
 
-/** What a signed-in team member may do (team-roles FR1, ADR 0020). */
-export const TeamRole = z.enum(["admin", "casting", "read-only"]);
+/**
+ * What an account may do (ADR 0026): everything as an Admin, or any mix of the department
+ * permissions, each at most once. No permissions means read-only.
+ */
+export const AccountAccess = z.union([
+  z.literal("admin"),
+  z
+    .array(z.enum(permissions))
+    .refine((list) => new Set(list).size === list.length, "A permission is listed twice"),
+]);
 
-export type TeamRole = z.infer<typeof TeamRole>;
+export type AccountAccess = z.infer<typeof AccountAccess>;
 
-/** An account as admins see it: who, and what they may do (hosting FR11). */
+/** An account as admins see it: who, and what they may do (hosting FR11, stage-props FR6). */
 export const AccountSummary = z.strictObject({
   username: Username,
-  role: TeamRole,
+  access: AccountAccess,
   enabled: z.boolean(),
 });
 
 /** GET /api/accounts: every account in the team's directory. */
 export const AccountList = z.strictObject({ accounts: z.array(AccountSummary) });
 
-/** POST /api/accounts takes this; the API chooses the temporary password. */
-export const NewAccount = z.strictObject({ username: Username, role: TeamRole });
+/**
+ * POST /api/accounts takes this: who, and what they may do (stage-props FR6). The API chooses
+ * the temporary password.
+ */
+export const NewAccount = z.strictObject({ username: Username, access: AccountAccess });
 
 /**
  * POST /api/accounts' 201, and POST /api/accounts/{username}/password's 200 (a reset): the
@@ -40,12 +52,12 @@ export const CreatedAccount = z.strictObject({
 /** PUT /api/accounts/{username}/enabled takes this; 200 returns the AccountSummary. */
 export const SetEnabled = z.strictObject({ enabled: z.boolean() });
 
-/** PUT /api/accounts/{username}/role takes this; 200 returns the AccountSummary. */
-export const SetRole = z.strictObject({ role: TeamRole });
+/** PUT /api/accounts/{username}/access takes this; 200 returns the AccountSummary. */
+export const SetAccess = z.strictObject({ access: AccountAccess });
 
 export type AccountSummary = z.infer<typeof AccountSummary>;
 export type AccountList = z.infer<typeof AccountList>;
 export type NewAccount = z.infer<typeof NewAccount>;
 export type CreatedAccount = z.infer<typeof CreatedAccount>;
 export type SetEnabled = z.infer<typeof SetEnabled>;
-export type SetRole = z.infer<typeof SetRole>;
+export type SetAccess = z.infer<typeof SetAccess>;
