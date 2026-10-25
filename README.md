@@ -147,7 +147,7 @@ CI runs both of these as separate jobs.
 │   ├── settings.json        Permissions (allow / ask / deny) + hook registration
 │   ├── hooks/               guard, post-edit and stop-gate hooks (TypeScript; logic unit-tested)
 │   ├── skills/              Delivery workflows: write-prd … open-pr, adr, batch-stories
-│   └── agents/              Reviewer subagents: code, test, security, infra, UX
+│   └── agents/              Reviewer subagents (code, test, security, infra, UX) + screenshot-checker
 ├── .github/
 │   ├── workflows/           ci.yml, pr-title.yml, release-please.yml
 │   ├── dependabot.yml
@@ -208,7 +208,7 @@ write-prd ──► story-map ──► write-story ──► implement-story �
 | `implement-story` | Code, test-first per acceptance criterion; gate, review loop, story marked `done` | Stops and asks if an AC is ambiguous |
 | `open-pr` | Conventional PR title, filled template, push | Push needs approval; never merges |
 | `adr` | `docs/adr/NNNN-*.md` | Proposed → Accepted by the user |
-| `batch-stories` | One feature's stories on one branch, with a single PR at the end | Only the user can switch it on; it restores the harness afterwards |
+| `batch-stories` | One feature's stories on one branch, each built by a fresh subagent so the session's context stays small, with a single PR at the end | Only the user can switch it on; it restores the harness afterwards |
 
 ### 3. Reviewer subagents (`.claude/agents/`)
 Subagents run in their own context and report back. Fresh context matters: the agent that wrote the code is a poor judge of it. The reviewers have **no Edit or Write tools**, so they can report problems but can't "fix" them by weakening a test, and a harness test enforces that. They run on smaller models to keep cost down.
@@ -220,6 +220,8 @@ Subagents run in their own context and report back. Fresh context matters: the a
 | `security-reviewer` | the API, the shared contract, web code touching sign-in, tokens, storage or URLs, or dependencies | Input validation, auth, secrets, data exposure, frontend injection, dependencies |
 | `infra-reviewer` | `infra/`, the release script, or how the API is packaged or deployed | IAM, public exposure, destructive replacement, removal policies, cost |
 | `ux-reviewer` | `apps/web` | UI and UX consistency across the whole app (ADR 0012). **Advisory**: the user decides what to fix |
+
+One helper agent isn't a reviewer. **`screenshot-checker`** looks at screenshots and other images and answers in text. An image costs 30–75k tokens, and the main session pays that again on every later turn, so it never reads images itself (CLAUDE.md).
 
 **The review loop** (defined once, in CLAUDE.md):
 - **Who runs:** the routed reviewers run in parallel.

@@ -105,6 +105,7 @@ Run after the gate is green, before a story is `done` or a PR is opened. **Skip 
   - `use…` functions go in `composables/`, and Vue directives in `directives/`.
   - A new top-level folder (`stores/`, `types/`, `layouts/`) needs an ADR.
 - When a change adds or renames something the README describes (a command, page, package, folder, ADR, skill, reviewer, hook or workflow), update `README.md` in the same PR. `tooling/src/readme.test.ts` checks the names, and `code-reviewer` checks the rest.
+- Never Read a screenshot or other image in the main session. Each one costs 30–75k tokens, again on every later turn. Take it to a file and ask `screenshot-checker` what you need to know, in text.
 - Biome owns formatting and lint — don't hand-format, run `pnpm format`.
 - Tests live next to code: `foo.ts` → `foo.test.ts`.
 - Keep handlers/adapters thin; logic goes in plain functions that are easy to test.
