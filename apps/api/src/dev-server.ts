@@ -1,8 +1,8 @@
 // Local stand-in for API Gateway: serves the same handlers Lambda will run (ADR 0006).
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { LOCAL_ROLE_HEADER, TeamRole } from "@app/shared";
+import { type Access, LOCAL_ROLE_HEADER, TeamRole } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
-import { roleRefusal } from "./admin-only.ts";
+import { accessRefusal } from "./admin-only.ts";
 import type { Handler } from "./handler.ts";
 import { LOCAL_ADMIN, localAccountRoutes } from "./local-accounts.ts";
 import { matchRoute } from "./match-route.ts";
@@ -24,8 +24,8 @@ export function createDevServer(table: Record<string, Handler>) {
       res.writeHead(404).end();
       return;
     }
-    // Like the hosted entry point, before the handler runs (ADR 0020).
-    const refusedRole = roleRefusal(route.key, localRole(req));
+    // Like the hosted entry point, before the handler runs (ADR 0026).
+    const refusedRole = accessRefusal(route.key, LOCAL_ACCESS[localRole(req)]);
     if (refusedRole) {
       send(res, refusedRole);
       return;
@@ -101,6 +101,13 @@ function localRole(req: IncomingMessage): TeamRole {
   const role = TeamRole.safeParse(chosen);
   return role.success ? role.data : "read-only";
 }
+
+/** The switch names today's roles until stage-props.E2.S3; each as the permissions it means. */
+const LOCAL_ACCESS: Record<TeamRole, Access> = {
+  admin: "admin",
+  casting: ["casting"],
+  "read-only": [],
+};
 
 // API Gateway caps payloads too; a running order is a few KB.
 const MAX_BODY_BYTES = 256 * 1024;

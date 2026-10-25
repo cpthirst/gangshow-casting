@@ -20,7 +20,7 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [stage-props.E1.S1](stories/E1-S1-permissions-enforced-by-the-api.md) | Walking skeleton: accounts are Admin or have any of Casting, Stage, Tech and Costume. Each change route names the permission it needs (every route today needs Casting). Existing accounts keep their access on deploy, and an unknown permission fails safe to read-only. Includes the ADR amending ADR 0020 | FR1, FR2, FR4, FR5 | (none) | ready |
+| [stage-props.E1.S1](stories/E1-S1-permissions-enforced-by-the-api.md) | Walking skeleton: accounts are Admin or have any of Casting, Stage, Tech and Costume. Each change route names the permission it needs (every route today needs Casting). Existing accounts keep their access on deploy, and an unknown permission fails safe to read-only. Includes the ADR amending ADR 0020 | FR1, FR2, FR4, FR5 | (none) | done |
 | [stage-props.E1.S2](stories/E1-S2-controls-follow-permissions.md) | Pages show change controls only to accounts with that department's permission, so an account with only Stage sees the casting pages and Running order read-only, with the "read-only access" line | FR3 | E1.S1 | ready |
 
 ## E2: Managing permissions

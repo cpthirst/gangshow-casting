@@ -9,7 +9,7 @@ const USAGE = [
   "  pnpm account admin <username>    create or restore an admin",
   "  pnpm account check <admin username> <member username> <read-only username>",
   "                                   set up the post-deploy check's accounts",
-  "  pnpm account roles               make every account in no role a Casting Team Member",
+  "  pnpm account roles               move every account out of the retiring read-only group",
 ];
 
 const run = async (args: string[], env = { USER_POOL_ID: POOL }, seed = memoryUserDirectory()) => {
@@ -141,7 +141,9 @@ describe("the account script", () => {
       }),
       expect.objectContaining({
         username: "check-read-only",
-        readOnly: true,
+        admin: false,
+        casting: false,
+        readOnly: false,
         passwordKind: "permanent",
       }),
     ]);
@@ -182,31 +184,72 @@ describe("the account script", () => {
     expect(lines.join("\n")).not.toContain("Made-up-password");
   });
 
-  it("makes every account in no role a Casting Team Member, saying how many it checked and moved", async () => {
+  it("moves every account out of the read-only group, keeping everyone's access, and says how many it checked and moved", async () => {
     const existing = memoryUserDirectory([
-      anAccount("pat", { admin: true }),
-      anAccount("sam"),
-      anAccount("kit"),
-      anAccount("lee", { casting: true }),
+      anAccount("sam", { casting: true }),
+      anAccount("jo", { readOnly: true }),
+      anAccount("alex", { admin: true }),
+      anAccount("kit", { readOnly: true, enabled: false }),
     ]);
+    const roles = async () => (await existing.directory.list()).map(({ role }) => role);
+    const before = await roles();
 
     const { code, lines, accounts } = await run(["roles"], { USER_POOL_ID: POOL }, existing);
 
     expect(code).toBe(0);
     expect(lines).toEqual([
       `Using user pool ${POOL}.`,
-      "Checked 4 accounts. Made 2 Casting Team Members: sam, kit.",
-      "They can change casting again once their sign-in renews, within 5 minutes.",
+      "Checked 4 accounts. Moved 2 out of the read-only group: jo, kit.",
+      "They have no permissions now, so they may still only read.",
     ]);
-    expect(accounts.filter((account) => !account.admin && !account.casting)).toEqual([]);
-    expect(accounts.find((account) => account.username === "pat")).toMatchObject({
-      admin: true,
-      casting: false,
-    });
+    expect(
+      accounts.map(({ username, admin, casting, readOnly }) => ({
+        username,
+        admin,
+        casting,
+        readOnly,
+      })),
+    ).toEqual([
+      { username: "sam", admin: false, casting: true, readOnly: false },
+      { username: "jo", admin: false, casting: false, readOnly: false },
+      { username: "alex", admin: true, casting: false, readOnly: false },
+      { username: "kit", admin: false, casting: false, readOnly: false },
+    ]);
+    expect(await roles()).toEqual(before);
   });
 
-  it("changes nothing when run again", async () => {
-    const existing = memoryUserDirectory([anAccount("pat", { admin: true }), anAccount("sam")]);
+  it("takes the other groups from an account also in read-only, so the move widens no one's access", async () => {
+    const existing = memoryUserDirectory([
+      anAccount("jo", { readOnly: true, casting: true }),
+      anAccount("lee", { readOnly: true, admin: true }),
+      anAccount("sky", { readOnly: true }),
+    ]);
+
+    const { code, lines } = await run(["roles"], { USER_POOL_ID: POOL }, existing);
+    const again = await run(["roles"], { USER_POOL_ID: POOL }, existing);
+
+    expect(code).toBe(0);
+    expect(lines).toEqual([
+      `Using user pool ${POOL}.`,
+      "Checked 3 accounts. Moved 3 out of the read-only group: jo, lee, sky.",
+      "Also took their other groups from jo, lee, as read-only cancelled them.",
+      "They have no permissions now, so they may still only read.",
+    ]);
+    expect((await existing.directory.list()).map(({ role }) => role)).toEqual([
+      "read-only",
+      "read-only",
+      "read-only",
+    ]);
+    expect(again.accounts).toEqual(existing.accounts());
+    expect(again.lines.at(-1)).toContain("Moved 0");
+  });
+
+  it("changes no one's access when run again, and says it moved none", async () => {
+    const existing = memoryUserDirectory([
+      anAccount("sam", { casting: true }),
+      anAccount("jo", { readOnly: true }),
+      anAccount("alex", { admin: true }),
+    ]);
     await run(["roles"], { USER_POOL_ID: POOL }, existing);
     const before = existing.accounts();
 
@@ -215,7 +258,7 @@ describe("the account script", () => {
     expect(code).toBe(0);
     expect(lines).toEqual([
       `Using user pool ${POOL}.`,
-      "Checked 2 accounts. Every one already has a role.",
+      "Checked 3 accounts. Moved 0 out of the read-only group: none is left in it.",
     ]);
     expect(accounts).toEqual(before);
   });

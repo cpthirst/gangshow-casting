@@ -97,16 +97,16 @@ On the **Accounts** page, any admin can also reset a forgotten password, disable
 
 ### Team roles
 
-Every account has a role: Admin, Casting Team Member or Read-Only Team Member. An account the app can't place in one of these may only read ([ADR 0020](../adr/0020-team-roles-as-user-pool-groups.md)). An admin chooses each new account's role when adding it. Changing someone's role signs them out on every device within 5 minutes, and the new role applies when they sign back in.
+Every account has a role: Admin, Casting Team Member or Read-Only Team Member. Behind the scenes an account is an Admin, or has any mix of the department permissions Casting, Stage, Tech and Costume, each a user pool group of the same name ([ADR 0026](../adr/0026-department-permissions-as-user-pool-groups.md)). Casting makes a Casting Team Member; an account with no permission, or only groups the app doesn't know, may only read. Stage, Tech and Costume allow no change yet. An admin chooses each new account's role when adding it. Changing someone's role signs them out on every device within 5 minutes, and the new role applies when they sign back in.
 
-**Once, straight after the first deploy that brings team roles**, give every existing account a role:
+**Once, straight after the first deploy that brings department permissions**, move every account out of the retiring `read-only` group:
 
 ```bash
 export AWS_PROFILE=gangshow-admin USER_POOL_ID=<user pool id>
 pnpm account roles
 ```
 
-It makes every account that has no role yet a Casting Team Member, and says how many it checked and moved. Until each person's sign-in renews, within 5 minutes, the app refuses their changes with "You have read-only access". Signing out and back in fixes it straight away. It's safe to run again: accounts that already have a role are never touched.
+It takes each account out of the `read-only` group, leaving it with no permissions, so it may still only read, and says how many accounts it checked and moved. No one is signed out and no one's access changes. It's safe to run again: it only ever removes `read-only` and never adds a group. A later release deletes the group once the command reports nothing left to move.
 
 ## 4. Release a new version
 

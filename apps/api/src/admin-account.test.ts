@@ -96,9 +96,10 @@ describe("setUpCheckAccounts", () => {
       expect.objectContaining({
         username: "check-read-only",
         enabled: true,
+        // In no group, so with no permissions (ADR 0026).
         admin: false,
         casting: false,
-        readOnly: true,
+        readOnly: false,
         password: passwords.readOnly,
         passwordKind: "permanent",
       }),
@@ -126,7 +127,8 @@ describe("setUpCheckAccounts", () => {
       expect.objectContaining({
         enabled: true,
         admin: false,
-        readOnly: true,
+        casting: false,
+        readOnly: false,
         password: passwords.readOnly,
       }),
     ]);

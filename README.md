@@ -47,7 +47,7 @@ iCUE is hosted on AWS and is open only to the production team. Everyone signs in
 - **Casting Team Member:** changes the running order, cast and casting.
 - **Read-Only Team Member:** sees every page but changes nothing, which suits reviewers such as the director.
 
-The API checks the role on every request, not just the menu.
+Behind the roles, an account is an Admin or has any mix of department permissions (Casting, Stage, Tech, Costume), and each change route names the permission it needs ([ADR 0026](docs/adr/0026-department-permissions-as-user-pool-groups.md)). The API checks them on every request, not just the menu.
 
 ## The domain
 
@@ -86,7 +86,7 @@ A TypeScript monorepo, hosted on AWS in eu-west-2 ([ADR 0017](docs/adr/0017-host
 - **Web:** a Vue 3 single-page app ([ADR 0008](docs/adr/0008-vue-router-and-bundled-fonts.md)), served from a private S3 bucket through CloudFront.
 - **API:** framework-free handlers in the AWS Lambda / API Gateway shape ([ADR 0006](docs/adr/0006-vanilla-lambda-shaped-api-handlers.md)), run on Lambda behind an API Gateway HTTP API. The same handlers run locally under a small `node:http` server.
 - **Data:** one DynamoDB table, with each production in its own partition ([ADR 0015](docs/adr/0015-dynamodb-for-production-data.md)).
-- **Sign-in:** a Cognito user pool. Every API route needs its token, and team roles are user pool groups ([ADR 0018](docs/adr/0018-access-control-with-cognito.md), [ADR 0020](docs/adr/0020-team-roles-as-user-pool-groups.md)).
+- **Sign-in:** a Cognito user pool. Every API route needs its token, and team roles and department permissions are user pool groups ([ADR 0018](docs/adr/0018-access-control-with-cognito.md), [ADR 0020](docs/adr/0020-team-roles-as-user-pool-groups.md), [ADR 0026](docs/adr/0026-department-permissions-as-user-pool-groups.md)).
 - **Infrastructure:** one AWS CDK stack. The maintainer deploys it from their own machine; CI never deploys.
 
 The API contract is defined once, as zod schemas in `packages/shared`, and both the API and the web app use it.

@@ -4,6 +4,7 @@ import {
   HealthResponse,
   ItemNoteList,
   LOCAL_ROLE_HEADER,
+  Role,
   readOnlyMayUse,
   routeKeys,
   UsageSummary,
@@ -45,11 +46,14 @@ describe("Lambda entry point", () => {
     const echo: Handler = async (event) => ({ statusCode: 200, body: JSON.stringify(event) });
     const entry = lambdaEntry({ "PUT /api/things/{thingId}": echo });
 
+    // As an admin: a route missing from the shared table is admins' only (ADR 0026).
     const res = await entry(
-      request("PUT", "/api/things/a%20b", {
-        queryStringParameters: { q: "1" },
-        body: '{"name":"x"}',
-      }),
+      request(
+        "PUT",
+        "/api/things/a%20b",
+        { queryStringParameters: { q: "1" }, body: '{"name":"x"}' },
+        "[admin]",
+      ),
     );
 
     expect(JSON.parse(res.body ?? "")).toMatchObject({
@@ -81,10 +85,12 @@ describe("Lambda entry point", () => {
     const entry = lambdaEntry({ "POST /api/things": echo });
 
     const res = await entry(
-      request("POST", "/api/things", {
-        body: Buffer.from('{"name":"x"}').toString("base64"),
-        isBase64Encoded: true,
-      }),
+      request(
+        "POST",
+        "/api/things",
+        { body: Buffer.from('{"name":"x"}').toString("base64"), isBase64Encoded: true },
+        "[admin]",
+      ),
     );
 
     expect(res.body).toBe('{"name":"x"}');
@@ -378,12 +384,17 @@ describe("Lambda entry point", () => {
         }),
       ];
 
-      for (const change of changes) {
-        const res = await api(change);
+      const responses = [];
+      for (const change of changes) responses.push(await api(change));
 
-        expect(res.statusCode).toBe(403);
-        expect(JSON.parse(res.body ?? "")).toEqual(READ_ONLY);
-      }
+      expect(responses.map((res) => res.statusCode)).toEqual([403, 403, 403, 403]);
+      // Saving a running-order version is admin-only, so it says so (ADR 0026).
+      expect(responses.map((res) => JSON.parse(res.body ?? ""))).toEqual([
+        READ_ONLY,
+        READ_ONLY,
+        READ_ONLY,
+        { message: "Only admins can do this." },
+      ]);
       expect((await cast.list("2027"))?.members).toHaveLength(1);
       expect((await itemNotes.list("2027")).notes).toEqual([]);
       expect((await roles.list("2027")).roles).toEqual([]);
@@ -481,6 +492,240 @@ describe("Lambda entry point", () => {
       expect([added.statusCode, deleted.statusCode]).toEqual([403, 403]);
       expect((await cast.list("2027"))?.members).toHaveLength(1);
     });
+  });
+
+  describe("department permissions (ADR 0026)", () => {
+    const READ_ONLY = { message: "You have read-only access." };
+    const ONLY_ADMINS = { message: "Only admins can do this." };
+    const pirate = itemId("Pirate Sketch");
+    const setUp = () => {
+      const cast = inMemoryCastStore([aCastList([aCastMember(1)])]);
+      const roles = inMemoryRoleStore();
+      const itemNotes = inMemoryItemNoteStore();
+      const runningOrders = inMemoryRunningOrderStore([
+        aRunningOrder(4, { first: ["Pirate Sketch"] }),
+      ]);
+      const api = lambdaEntry(
+        createRoutes(
+          {
+            cast,
+            roles,
+            runningOrders,
+            itemNotes,
+            removeCastMember: uncastThenRemove(cast, roles),
+          },
+          inMemoryUsageStore(),
+        ),
+      );
+      // What the stores hold, to show a refused change changed nothing.
+      const stored = async () => ({
+        cast: await cast.list("2027"),
+        roles: await roles.list("2027"),
+        notes: await itemNotes.list("2027"),
+        version: (await runningOrders.latest("2027"))?.version,
+      });
+      return { api, stored };
+    };
+    const as = (groups: string) => (method: string, rawPath: string, body?: unknown) =>
+      request(method, rawPath, body === undefined ? {} : { body: JSON.stringify(body) }, groups);
+    // Casting changes: adding a cast member, adding a role, saving item notes.
+    const castingChanges = (send: ReturnType<typeof as>) => [
+      send("POST", "/api/productions/2027/cast", {
+        firstName: "Jo",
+        lastName: "Sample",
+        section: null,
+        group: "",
+      }),
+      send("POST", `/api/productions/2027/items/${pirate}/roles`, {
+        name: "Captain",
+        size: "lead",
+        castMemberIds: [],
+      }),
+      send("PUT", `/api/productions/2027/items/${pirate}/notes`, { revision: 0, text: "Hats" }),
+    ];
+    // Every route, each with a stand-in handler, to see which reach it.
+    const everyRoute = () => {
+      const reached = vi.fn(async () => ({ statusCode: 200 }));
+      const api = lambdaEntry(Object.fromEntries(routeKeys.map((key) => [key, reached])));
+      const send = async (key: string, groups: string) => {
+        reached.mockClear();
+        const [method = "", path = ""] = key.split(" ");
+        const res = await api(request(method, path.replaceAll(/\{\w+\}/g, "x"), {}, groups));
+        return { res, ran: reached.mock.calls.length > 0 };
+      };
+      return send;
+    };
+    const changeRoutes = routeKeys.filter((key) => !readOnlyMayUse(key));
+
+    it("saves sam's casting changes with Casting only, and still keeps admin-only ones for admins", async () => {
+      const { api } = setUp();
+      const sam = as("[casting]");
+
+      const saved = [];
+      for (const change of castingChanges(sam)) saved.push(await api(change));
+      const { firstName, lastName, section, group, revision } = aCastMember(1);
+      const edited = await api(
+        sam("PUT", "/api/productions/2027/cast/1", {
+          firstName: `${firstName}-edited`,
+          lastName,
+          section,
+          group,
+          revision,
+        }),
+      );
+      const added = Role.parse(JSON.parse(saved[1]?.body ?? ""));
+      const roleEdited = await api(
+        sam("PUT", `/api/productions/2027/roles/${added.id}`, {
+          name: "First Mate",
+          size: "lead",
+          castMemberIds: [],
+          revision: added.revision,
+        }),
+      );
+      const send = everyRoute();
+
+      expect(saved.map((res) => res.statusCode)).toEqual([201, 201, 200]);
+      expect(edited.statusCode).toBe(200);
+      expect(roleEdited.statusCode).toBe(200);
+      for (const key of adminOnlyRouteKeys) {
+        const { res, ran } = await send(key, "[casting]");
+        expect(JSON.parse(res.body ?? ""), key).toEqual(ONLY_ADMINS);
+        expect(ran, key).toBe(false);
+      }
+    });
+
+    it("refuses pat's casting changes with Stage only, saying read-only and changing nothing", async () => {
+      const { api, stored } = setUp();
+      const before = await stored();
+
+      for (const change of castingChanges(as("[stage]"))) {
+        const res = await api(change);
+
+        expect(res.statusCode).toBe(403);
+        expect(JSON.parse(res.body ?? "")).toEqual(READ_ONLY);
+      }
+      expect(await stored()).toEqual(before);
+    });
+
+    it("refuses a route missing from the table for everyone but admins, before its handler runs", async () => {
+      const reached = vi.fn(async () => ({ statusCode: 200 }));
+      const api = lambdaEntry({ "PUT /api/things/{thingId}": reached });
+
+      for (const groups of ["[casting stage tech costume]", "[]"]) {
+        const res = await api(request("PUT", "/api/things/1", {}, groups));
+        expect(res.statusCode, groups).toBe(403);
+      }
+      expect(reached).not.toHaveBeenCalled();
+      expect((await api(request("PUT", "/api/things/1", {}, "[admin]"))).statusCode).toBe(200);
+    });
+
+    it("lets jo, with no permissions, read what Casting reads, and refuses jo's changes", async () => {
+      const { api, stored } = setUp();
+      await api(
+        as("[casting]")("PUT", `/api/productions/2027/items/${pirate}/notes`, {
+          revision: 0,
+          text: "Hats",
+        }),
+      );
+      const before = await stored();
+
+      for (const path of ["running-order", "cast", "roles", "item-notes"]) {
+        const asJo = await api(as("[]")("GET", `/api/productions/2027/${path}`));
+        const asCasting = await api(as("[casting]")("GET", `/api/productions/2027/${path}`));
+
+        expect(asJo.statusCode, path).toBe(200);
+        expect(asJo.body, path).toEqual(asCasting.body);
+      }
+      for (const change of castingChanges(as("[]"))) {
+        const res = await api(change);
+        expect(res.statusCode).toBe(403);
+        expect(JSON.parse(res.body ?? "")).toEqual(READ_ONLY);
+      }
+      const send = everyRoute();
+      for (const key of changeRoutes) {
+        const { res, ran } = await send(key, "[]");
+        expect([res.statusCode, ran], key).toEqual([403, false]);
+      }
+      expect(await stored()).toEqual(before);
+    });
+
+    it("lets kim, with Casting and Stage, make casting changes as with Casting only", async () => {
+      const { api } = setUp();
+      const send = everyRoute();
+
+      const saved = [];
+      for (const change of castingChanges(as("[casting stage]"))) {
+        saved.push((await api(change)).statusCode);
+      }
+
+      expect(saved).toEqual([201, 201, 200]);
+      for (const key of changeRoutes) {
+        const kim = await send(key, "[casting stage]");
+        const casting = await send(key, "[casting]");
+        expect(kim, key).toEqual(casting);
+      }
+    });
+
+    it("refuses every change from lee, with Tech and Costume only, saying read-only, or admins' only for admin-only ones", async () => {
+      const send = everyRoute();
+
+      for (const key of changeRoutes) {
+        const { res, ran } = await send(key, "[tech costume]");
+
+        expect(res.statusCode, key).toBe(403);
+        expect(JSON.parse(res.body ?? ""), key).toEqual(
+          adminOnlyRouteKeys.includes(key) ? ONLY_ADMINS : READ_ONLY,
+        );
+        expect(ran, key).toBe(false);
+      }
+    });
+
+    it("lets alex, an admin, use every route, admin-only ones included", async () => {
+      const send = everyRoute();
+
+      for (const key of routeKeys) {
+        const { res, ran } = await send(key, "[admin]");
+        expect([res.statusCode, ran], key).toEqual([200, true]);
+      }
+    });
+
+    it("lets pat, with Stage only, export the casting grid and record a page visit", async () => {
+      const { api } = setUp();
+      const pat = as("[stage]");
+
+      const exported = await api(
+        pat("POST", "/api/productions/2027/casting-grid/export", {
+          items: [{ heading: "1.1 · Opening Number", printed: true }],
+          rows: [{ firstName: "Sam", lastName: "Example", section: "Scouts", cells: ["L"] }],
+        }),
+      );
+      const visited = await api({
+        rawPath: "/api/usage",
+        requestContext: {
+          http: { method: "POST" },
+          authorizer: { jwt: { claims: { username: "pat", "cognito:groups": "[stage]" } } },
+        },
+        body: JSON.stringify({ event: "session" }),
+      });
+
+      expect(exported.statusCode).toBe(200);
+      expect(visited.statusCode).toBe(204);
+    });
+
+    it.each(["[props]", "[crew Stage CASTING]", "[superadmin]"])(
+      "refuses a change from a sign-in whose groups are only unknown ones, %s, saying read-only",
+      async (groups) => {
+        const { api, stored } = setUp();
+        const before = await stored();
+
+        for (const change of castingChanges(as(groups))) {
+          const res = await api(change);
+          expect(res.statusCode).toBe(403);
+          expect(JSON.parse(res.body ?? "")).toEqual(READ_ONLY);
+        }
+        expect(await stored()).toEqual(before);
+      },
+    );
   });
 
   describe("usage (ADR 0023)", () => {

@@ -59,12 +59,16 @@ export async function setUpCheckAccounts(
 }
 
 /**
- * Makes every account in no role group a Casting Team Member, as non-admins were before team
- * roles (ADR 0020), and says how many accounts there are. Accounts with a role are never
- * touched, so it's safe to run again.
+ * Takes every account out of the retiring read-only group (ADR 0026), with any other group
+ * it cancelled, and says how many accounts there are and which had other groups. Each is
+ * left in no group, so still may only read, and nothing is ever added, so it's safe to
+ * run again.
  */
-export async function giveEveryoneARole(directory: UserDirectory) {
-  const moved = await directory.withoutRole();
-  for (const username of moved) await directory.joinCasting(username);
-  return { checked: (await directory.list()).length, moved };
+export async function moveOutOfReadOnly(directory: UserDirectory) {
+  const moved = await directory.inReadOnlyGroup();
+  const hadOthers = [];
+  for (const username of moved) {
+    if ((await directory.leaveReadOnlyGroup(username)).length > 0) hadOthers.push(username);
+  }
+  return { checked: (await directory.list()).length, moved, hadOthers };
 }

@@ -2,7 +2,7 @@
 id: stage-props.E1.S1
 title: Enforce department permissions in the API
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story

@@ -22,18 +22,24 @@ export interface UserDirectory {
   create(username: string, temporaryPassword: string, role: TeamRole): Promise<void>;
   setPassword(username: string, password: string, kind: PasswordKind): Promise<void>;
   setEnabled(username: string, enabled: boolean): Promise<void>;
-  /** Puts the account in the role, and out of any other (ADR 0020). */
+  /**
+   * Puts the account in the role, and out of any other (ADR 0020). A Read-Only Team Member is
+   * in no role group: the read-only group is retiring (ADR 0026).
+   */
   setRole(username: string, role: TeamRole): Promise<void>;
-  /** The usernames of accounts in no role group, which the API treats as read-only (ADR 0020). */
-  withoutRole(): Promise<string[]>;
-  /** Makes the account a Casting Team Member. */
-  joinCasting(username: string): Promise<void>;
+  /** The usernames of accounts in the retiring read-only group (ADR 0026). */
+  inReadOnlyGroup(): Promise<string[]>;
+  /**
+   * Takes the account out of the read-only group and every other known group, which
+   * read-only cancelled, so it stays read-only (ADR 0026). Returns the other groups it left.
+   */
+  leaveReadOnlyGroup(username: string): Promise<string[]>;
   /** Ends every sign-in the account has, on every device. */
   signOutEverywhere(username: string): Promise<void>;
 }
 
 type StoredAccount = Omit<Account, "role"> & {
-  /** In the admin, casting and read-only groups. */
+  /** In the admin, casting and retiring read-only groups. */
   admin: boolean;
   casting: boolean;
   readOnly: boolean;
@@ -49,7 +55,7 @@ type StoredAccount = Omit<Account, "role"> & {
 export function memoryUserDirectory(seed: StoredAccount[] = []) {
   const key = (username: string) => username.toLowerCase();
   const stored = new Map(seed.map((account) => [key(account.username), { ...account }]));
-  // Through roleFrom, as the API reads a token's groups: read-only wins, and no group is read-only.
+  // Through roleFrom, as the API reads a token's groups: read-only cancels, and no group is read-only.
   const summary = ({ username, enabled, ...groups }: StoredAccount): Account => ({
     username,
     enabled,
@@ -64,7 +70,7 @@ export function memoryUserDirectory(seed: StoredAccount[] = []) {
   const groupsFor = (role: TeamRole) => ({
     admin: role === "admin",
     casting: role === "casting",
-    readOnly: role === "read-only",
+    readOnly: false,
   });
   const existing = (username: string) => {
     const account = stored.get(key(username));
@@ -100,13 +106,18 @@ export function memoryUserDirectory(seed: StoredAccount[] = []) {
     async setRole(username, role) {
       Object.assign(existing(username), groupsFor(role));
     },
-    async withoutRole() {
+    async inReadOnlyGroup() {
       return [...stored.values()]
-        .filter((account) => !account.admin && !account.casting && !account.readOnly)
+        .filter((account) => account.readOnly)
         .map((account) => account.username);
     },
-    async joinCasting(username) {
-      existing(username).casting = true;
+    async leaveReadOnlyGroup(username) {
+      const account = existing(username);
+      const others = [account.admin && ADMIN_GROUP, account.casting && CASTING_GROUP].filter(
+        (group) => typeof group === "string",
+      );
+      Object.assign(account, { admin: false, casting: false, readOnly: false });
+      return others;
     },
     async signOutEverywhere(username) {
       existing(username).signedOutEverywhere++;
