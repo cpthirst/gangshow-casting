@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
-import { RecordUsageRequest } from "@app/shared";
+import { RETIRED_MENU_PAGES, RecordUsageRequest } from "@app/shared";
 import {
+  DeleteCommand,
   type DynamoDBDocumentClient,
   GetCommand,
   PutCommand,
@@ -62,7 +63,7 @@ export function dynamoUsageStore(db: DynamoDBDocumentClient, tableName: string):
             ExclusiveStartKey: startKey,
           }),
         );
-        records.push(...(page.Items ?? []).map(asRecord));
+        records.push(...(page.Items ?? []).filter((row) => !isRetiredPageUse(row)).map(asRecord));
         startKey = page.LastEvaluatedKey;
       } while (startKey);
       return records;
@@ -79,6 +80,35 @@ export function dynamoUsageStore(db: DynamoDBDocumentClient, tableName: string):
       return typeof Item?.at === "string" ? Item.at : undefined;
     },
   };
+}
+
+const isRetiredPageUse = (row: Record<string, unknown>) =>
+  row.event === "page" && RETIRED_MENU_PAGES.some((page) => page === row.page);
+
+/**
+ * Deletes every use of a retired menu page (stage-props AC11), and nothing else, returning
+ * how many it deleted. Safe to run again: a second run finds none.
+ */
+export async function purgeRetiredPageUses(db: DynamoDBDocumentClient, tableName: string) {
+  let purged = 0;
+  let startKey: Record<string, unknown> | undefined;
+  do {
+    const page = await db.send(
+      new QueryCommand({
+        TableName: tableName,
+        KeyConditionExpression: "pk = :pk",
+        ExpressionAttributeValues: { ":pk": USAGE },
+        ConsistentRead: true,
+        ExclusiveStartKey: startKey,
+      }),
+    );
+    for (const row of (page.Items ?? []).filter(isRetiredPageUse)) {
+      await db.send(new DeleteCommand({ TableName: tableName, Key: { pk: row.pk, sk: row.sk } }));
+      purged++;
+    }
+    startKey = page.LastEvaluatedKey;
+  } while (startKey);
+  return purged;
 }
 
 /** A stored row as a record, without its keys and expiry. */

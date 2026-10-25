@@ -2,7 +2,7 @@
 id: stage-props.E3.S1
 title: Give Production a Stage, Tech and Costume page
 epic: E3
-status: ready
+status: done
 ---
 
 ## Story

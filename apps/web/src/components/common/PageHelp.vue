@@ -8,7 +8,7 @@ defineProps<{ help: PageHelp }>();
 
 <template>
   <p>{{ help.summary }}</p>
-  <ul class="help-lines" role="list">
+  <ul v-if="help.lines.length > 0" class="help-lines" role="list">
     <li v-for="line in help.lines" :key="line.name" class="help-line" data-test="help-line">
       <!-- Decorative: the action's name is written beside them. Kept, empty, on lines without
            icons, so every line's words start in the same place. -->

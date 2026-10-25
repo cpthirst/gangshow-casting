@@ -39,14 +39,19 @@ describe("Welcome page", () => {
     expect(wrapper.get("section.welcome-areas").text()).toContain("Use the menu");
     const areas = wrapper.findAll("dt").map((term) => term.text());
     expect(areas).toEqual(["Show", "Casting", "Production"]);
-    const production = wrapper.findAll("dd")[2]?.text() ?? "";
-    for (const page of ["Mic plot", "Props", "Scenery", "SFX"]) expect(production).toContain(page);
+    const production = wrapper.findAll("dd")[2]?.text().replace(/\s+/g, " ") ?? "";
+    expect(production).toContain("Stage, with Scenery and Props");
+    expect(production).toContain("Tech, with the Mic plot and SFX");
+    expect(production).toContain("Costume");
+    expect(production).toContain(
+      "Each department's permission is what lets someone change its page",
+    );
   });
 
   it.each([
     ["show", "running-order"],
     ["casting", "casting-overview"],
-    ["production", "mic-plot"],
+    ["production", "stage"],
   ])("takes the %s area's name to the first page in that menu group", async (area, first) => {
     const { wrapper, router } = await openWelcome();
     const group = menuPages.find((entry) => isMenuGroup(entry) && entry.name === area);
@@ -76,6 +81,9 @@ describe("Welcome page", () => {
       "/cast",
       "/casting/overview",
       "/casting/items",
+      "/production/stage",
+      "/production/tech",
+      "/production/costume",
       "/help",
     ]) {
       expect(hrefs).toContain(href);

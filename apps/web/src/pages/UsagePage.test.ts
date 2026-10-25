@@ -191,6 +191,37 @@ describe("Usage page", () => {
     ]);
   });
 
+  it("shows a visit to Stage under Stage, and its switch to Scenery as that view's use", async () => {
+    serve({
+      recordedSince: "2026-10-01T18:00:00.000Z",
+      features: [
+        { feature: "stage", uses: 1, people: 1 },
+        { feature: "stage-scenery", uses: 2, people: 1 },
+      ],
+      people: [
+        {
+          username: "robin",
+          sessions: 1,
+          lastSession: "2026-10-20T18:00:00.000Z",
+          uses: { "stage-scenery": 2, stage: 1 },
+        },
+      ],
+    });
+
+    const wrapper = await openPage();
+
+    expect(rows(wrapper)).toContainEqual([
+      "robin",
+      "1",
+      "20 October 2026",
+      ["Stage 1", "Stage: Scenery 2"],
+    ]);
+    expect(totals(wrapper)).toEqual([
+      ["Stage", "1", "1"],
+      ["Stage: Scenery", "2", "1"],
+    ]);
+  });
+
   it("shows exports after everything else", async () => {
     serve({
       recordedSince: "2026-10-01T18:00:00.000Z",
@@ -359,6 +390,8 @@ describe("Usage page", () => {
         ...since,
         activity: [
           { username: "robin", at, event: "view", view: "grid" },
+          { username: "robin", at, event: "view", view: "scenery" },
+          { username: "robin", at, event: "view", view: "sfx" },
           { username: "robin", at, event: "export", export: "word-casting-sheets" },
         ],
       });
@@ -367,6 +400,8 @@ describe("Usage page", () => {
 
       expect(activity(wrapper).map(([, what]) => what)).toEqual([
         "switched the Overview to Grid",
+        "switched Stage to Scenery",
+        "switched Tech to SFX",
         "exported the Word casting sheets",
       ]);
     });

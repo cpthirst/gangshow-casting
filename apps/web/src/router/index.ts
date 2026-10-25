@@ -5,12 +5,13 @@ import CastingItemPage from "@/pages/CastingItemPage.vue";
 import CastingItemsPage from "@/pages/CastingItemsPage.vue";
 import CastingOverviewPage from "@/pages/CastingOverviewPage.vue";
 import CastPage from "@/pages/CastPage.vue";
+import DepartmentPage from "@/pages/DepartmentPage.vue";
 import HelpPage from "@/pages/HelpPage.vue";
 import NotFoundPage from "@/pages/NotFoundPage.vue";
-import PlaceholderPage from "@/pages/PlaceholderPage.vue";
 import RunningOrderPage from "@/pages/RunningOrderPage.vue";
 import UsagePage from "@/pages/UsagePage.vue";
 import WelcomePage from "@/pages/WelcomePage.vue";
+import { departments } from "@/utils/departments.ts";
 
 declare module "vue-router" {
   interface RouteMeta {
@@ -31,7 +32,9 @@ export function showPageTitle(title: string) {
 interface MenuPage {
   path: string;
   name: string;
-  component?: Component;
+  component: Component;
+  /** What the route gives its component, such as which department's page it is. */
+  props?: Record<string, unknown>;
   meta: { title: string; description: string };
   /** Left out of non-admins' menus. The API refuses them anyway: this only tidies the menu. */
   adminOnly?: boolean;
@@ -44,9 +47,8 @@ interface MenuGroup {
   pages: MenuPage[];
 }
 
-// The menu lists these in order. To add a page: add an entry here, or to a group's pages
-// (pages without a component yet show a placeholder). Each name is also what the Usage page
-// records it as (MenuPageName in @app/shared), so a new or renamed page goes there too.
+// The menu lists these in order. To add a page: add an entry here, or to a group's pages.
+// Each name is also what the Usage page records it as (MenuPageName in @app/shared), so a new or renamed page goes there too.
 export const menuPages: (MenuPage | MenuGroup)[] = [
   // Where signing in lands, and the app's own address (in-app-help FR1).
   {
@@ -107,26 +109,13 @@ export const menuPages: (MenuPage | MenuGroup)[] = [
     name: "production",
     title: "Production",
     pages: [
-      {
-        path: "/production/mic-plot",
-        name: "mic-plot",
-        meta: { title: "Mic plot", description: "Which microphone is on whom, item by item." },
-      },
-      {
-        path: "/production/props",
-        name: "props",
-        meta: { title: "Props", description: "The props each item needs." },
-      },
-      {
-        path: "/production/scenery",
-        name: "scenery",
-        meta: { title: "Scenery", description: "The scenery each item needs." },
-      },
-      {
-        path: "/production/sfx",
-        name: "sfx",
-        meta: { title: "SFX", description: "The sound effects for each item." },
-      },
+      ...(["stage", "tech", "costume"] as const).map((name) => ({
+        path: `/production/${name}`,
+        name,
+        component: DepartmentPage,
+        props: { department: name },
+        meta: { title: departments[name].title, description: departments[name].description },
+      })),
     ],
   },
   {
@@ -165,12 +154,7 @@ export function createAppRouter(history: RouterHistory = createWebHistory()) {
   const router = createRouter({
     history,
     routes: [
-      ...menuPages
-        .flatMap((entry) => (isMenuGroup(entry) ? entry.pages : [entry]))
-        .map((page) => ({
-          ...page,
-          component: page.component ?? PlaceholderPage,
-        })),
+      ...menuPages.flatMap((entry) => (isMenuGroup(entry) ? entry.pages : [entry])),
       {
         path: "/casting/items/:itemId",
         name: "casting-item",
@@ -187,6 +171,11 @@ export function createAppRouter(history: RouterHistory = createWebHistory()) {
       { path: "/casting", redirect: "/casting/overview" },
       // Bookmarks from before the Casting menu (casting-menus FR4).
       { path: "/casting-grid", redirect: "/casting/overview" },
+      // Bookmarks from before Production's pages became Stage's and Tech's views (stage-props FR12).
+      { path: "/production/scenery", redirect: { name: "stage" } },
+      { path: "/production/props", redirect: { name: "stage", query: { view: "props" } } },
+      { path: "/production/mic-plot", redirect: { name: "tech" } },
+      { path: "/production/sfx", redirect: { name: "tech", query: { view: "sfx" } } },
       {
         path: "/:unknown(.*)*",
         name: "not-found",

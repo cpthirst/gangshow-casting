@@ -213,7 +213,7 @@ describe("Help page", () => {
     it("follow the Overview's, both linking to the Items page", async () => {
       const { wrapper, router } = await openHelp();
 
-      expect(sectionTitles(wrapper).slice(2)).toEqual(["Overview", "Items", "An item"]);
+      expect(sectionTitles(wrapper).slice(2, 5)).toEqual(["Overview", "Items", "An item"]);
       expect(await followLink(wrapper, router, "casting-items")).toBe("casting-items");
       await router.push("/help");
       expect(await followLink(wrapper, router, "casting-item")).toBe("casting-items");
@@ -264,6 +264,53 @@ describe("Help page", () => {
         "Reading: Everyone",
         "Changing: Accounts with Casting, and admins",
       ]);
+    });
+  });
+
+  describe("the Production sections", () => {
+    const names = (wrapper: Wrapper, page: string) =>
+      lines(wrapper, page).map((line) => line.get("[data-test=help-name]").text());
+    const summaryOf = (wrapper: Wrapper, page: string) => sectionFor(wrapper, page).get("p").text();
+
+    it("follow the casting's, as Stage, Tech and Costume, each linking to its page", async () => {
+      const { wrapper, router } = await openHelp();
+
+      expect(sectionTitles(wrapper).slice(5)).toEqual(["Stage", "Tech", "Costume"]);
+      for (const page of ["stage", "tech", "costume"]) {
+        await router.push("/help");
+        expect(await followLink(wrapper, router, page)).toBe(page);
+      }
+    });
+
+    it("name the views on Stage and Tech, open to everyone", async () => {
+      const { wrapper } = await openHelp();
+
+      expect(names(wrapper, "stage")).toEqual(["Scenery", "Props"]);
+      expect(names(wrapper, "tech")).toEqual(["Mic plot", "SFX"]);
+      for (const line of [...lines(wrapper, "stage"), ...lines(wrapper, "tech")]) {
+        expect(line.get("[data-test=help-access]").text()).toBe("Everyone");
+      }
+    });
+
+    it("say each department's permission is what lets someone change its page", async () => {
+      const { wrapper } = await openHelp();
+
+      expect(summaryOf(wrapper, "stage")).toContain(
+        "Accounts with Stage, and admins, can change it.",
+      );
+      expect(summaryOf(wrapper, "tech")).toContain(
+        "Accounts with Tech, and admins, can change it.",
+      );
+      expect(summaryOf(wrapper, "costume")).toContain(
+        "Accounts with Costume, and admins, can change it.",
+      );
+    });
+
+    it("say the Costume page is coming soon, with no views to explain", async () => {
+      const { wrapper } = await openHelp();
+
+      expect(summaryOf(wrapper, "costume")).toContain("Coming soon");
+      expect(lines(wrapper, "costume")).toEqual([]);
     });
   });
 });

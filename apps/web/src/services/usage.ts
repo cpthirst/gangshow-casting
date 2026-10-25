@@ -1,6 +1,6 @@
 import {
   MenuPageName,
-  type OverviewView,
+  type PageView,
   type RecordUsageRequest,
   type UsageExport,
 } from "@app/shared";
@@ -33,8 +33,8 @@ export function recordPageUse(pageName: unknown) {
   if (page.success) record({ event: "page", page: page.data });
 }
 
-/** Records switching the Casting Overview to another view. */
-export const recordView = (view: OverviewView) => record({ event: "view", view });
+/** Records switching a page, such as the Casting Overview or Stage, to another view. */
+export const recordView = (view: PageView) => record({ event: "view", view });
 
 /** Records an export, once its file is made. */
 export const recordExport = (kind: UsageExport) => record({ event: "export", export: kind });
