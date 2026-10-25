@@ -33,25 +33,63 @@ export type RouteKey = (typeof routeKeys)[number];
 
 /** The user pool's admin group (infra/lib/app-stack.ts), named in a token's cognito:groups. */
 export const ADMIN_GROUP = "admin";
-/** The user pool's group for Casting Team Members, who may change casting (ADR 0020). */
+/** The department groups (ADR 0026): each gives the permission of the same name. */
 export const CASTING_GROUP = "casting";
-/** The user pool's group for Read-Only Team Members, who may only read (ADR 0020). */
+export const STAGE_GROUP = "stage";
+export const TECH_GROUP = "tech";
+export const COSTUME_GROUP = "costume";
+/**
+ * The retiring group for Read-Only Team Members (ADR 0020). Until a later release deletes it,
+ * being in it grants nothing and cancels every other group, so no account is widened before
+ * `pnpm account roles` moves it out (ADR 0026).
+ */
 export const READ_ONLY_GROUP = "read-only";
 
+/** A department's permission, held as the user pool group of the same name (ADR 0026). */
+export const permissions = [CASTING_GROUP, STAGE_GROUP, TECH_GROUP, COSTUME_GROUP] as const;
+
+export type Permission = (typeof permissions)[number];
+
+/** What a signed-in account may do: everything as an admin, or what its permissions allow. */
+export type Access = "admin" | Permission[];
+
 /**
- * A token's groups as a role. An explicit read-only group always wins, so a mistaken extra
- * group can't widen access; then admin, then casting. Anything else, no group included, is
- * read-only, so a lost or unknown group never grants a change (ADR 0020).
+ * A token's groups as access (ADR 0026). Admin is exclusive; otherwise each department group
+ * adds its permission, and unknown groups add nothing, so no known group means read-only.
  */
-export function roleFrom(groups: readonly string[]): TeamRole {
-  if (groups.includes(READ_ONLY_GROUP)) return "read-only";
+export function accessFrom(groups: readonly string[]): Access {
+  if (groups.includes(READ_ONLY_GROUP)) return [];
   if (groups.includes(ADMIN_GROUP)) return "admin";
-  if (groups.includes(CASTING_GROUP)) return "casting";
-  return "read-only";
+  return permissions.filter((permission) => groups.includes(permission));
 }
 
-/** The API's answer to a change from a read-only member, which pages recognise (team-roles FR12). */
-export const READ_ONLY_REFUSAL = "You have read-only access.";
+/**
+ * A token's groups as one of today's team roles, which the Accounts page and the pages'
+ * controls still show until stage-props.E2.S1: Casting makes a Casting Team Member, and any
+ * other non-admin may change no casting, so is a Read-Only Team Member.
+ */
+export function roleFrom(groups: readonly string[]): TeamRole {
+  const access = accessFrom(groups);
+  if (access === "admin") return "admin";
+  return access.includes(CASTING_GROUP) ? "casting" : "read-only";
+}
+
+/** The API's answer to a change from someone without a department's permission, if it has none of its own. */
+const GENERAL_REFUSAL = "You can view this, but not change it.";
+
+/** What each department says when it refuses a change, naming what can only be viewed. */
+const departmentRefusals: Partial<Record<Permission, string>> = {
+  casting: "You can view the casting, but not change it.",
+};
+
+/** The API's answer to a change that needs a permission the caller hasn't got. */
+export const refusalFor = (permission: Permission) =>
+  departmentRefusals[permission] ?? GENERAL_REFUSAL;
+
+const readOnlyRefusals = new Set<unknown>(permissions.map(refusalFor));
+
+/** Whether a refusal says the change needed a permission, which pages recognise (team-roles FR12). */
+export const isRefusalAsReadOnly = (message: unknown) => readOnlyRefusals.has(message);
 
 /**
  * Which role pnpm dev and pnpm demo act for, chosen with the local role switch (team-roles
@@ -60,40 +98,93 @@ export const READ_ONLY_REFUSAL = "You have read-only access.";
 export const LOCAL_ROLE_HEADER = "x-local-role";
 
 /**
+ * The local role switch names today's roles until stage-props.E2.S3: each as the access it
+ * means, which the local API enforces and the pages show, so the two can't disagree.
+ */
+export const localAccess: Readonly<Record<TeamRole, Access>> = {
+  admin: "admin",
+  casting: [CASTING_GROUP],
+  "read-only": [],
+};
+
+/** Whether access allows changing a department's data: an admin may change everything. */
+export const mayChange = (access: Access, permission: Permission) =>
+  access === "admin" || access.includes(permission);
+
+/**
  * Routes that aren't a GET but change nothing stored. The export only turns the grid the page
  * sends into a file, so every role may use it (ADR 0021). Add one only for the same reason.
  */
-const readsSentAsPost: ReadonlySet<string> = new Set<RouteKey>([
-  "POST /api/productions/{productionId}/casting-grid/export",
-]);
+const readsSentAsPost = ["POST /api/productions/{productionId}/casting-grid/export"] as const;
 
 /** Reads change nothing stored, so every role may use them: every GET, plus the POSTs above. */
-export const isReadRoute = (key: string) => key.startsWith("GET ") || readsSentAsPost.has(key);
+export const isReadRoute = (key: string) =>
+  key.startsWith("GET ") || readsSentAsPost.some((read) => read === key);
 
 /**
- * The one change read-only members may make: recording their own usage, which only ever
- * adds a record about the caller (ADR 0023). Add another only for the same reason.
+ * The one change anyone may make: recording their own usage, which only ever adds a record
+ * about the caller (ADR 0023). Add another only for the same reason.
  */
-const recordsAboutTheCaller: ReadonlySet<string> = new Set<RouteKey>(["POST /api/usage"]);
+const recordsAboutTheCaller = ["POST /api/usage"] as const;
 
-/** What a read-only member may use: the reads, and recording their own usage. */
-export const readOnlyMayUse = (key: string) => isReadRoute(key) || recordsAboutTheCaller.has(key);
+/** What an account with no permissions may use: the reads, and recording their own usage. */
+export const readOnlyMayUse = (key: string) =>
+  isReadRoute(key) || recordsAboutTheCaller.some((record) => record === key);
+
+type OpenRouteKey =
+  | Extract<RouteKey, `GET ${string}`>
+  | (typeof readsSentAsPost)[number]
+  | (typeof recordsAboutTheCaller)[number];
+
+/** What a route needs: a department's permission, or an admin. */
+export type Need = Permission | "admin";
 
 /**
- * Routes only admins may use: permanent or show-wide changes (hosting FR9). The API refuses
- * them for anyone else before the handler runs (ADR 0018), so a new one can't forget it.
+ * Every route that isn't open to everyone names what it needs, so a new change route missing
+ * from the table fails the typecheck. An open route is listed only if it is admin-only.
  */
-export const adminOnlyRouteKeys: readonly RouteKey[] = [
-  "GET /api/accounts",
-  "POST /api/accounts",
-  "POST /api/accounts/{username}/password",
-  "PUT /api/accounts/{username}/enabled",
-  "PUT /api/accounts/{username}/role",
-  "DELETE /api/productions/{productionId}/cast/{castId}",
-  "POST /api/productions/{productionId}/running-order/versions",
+export type RouteNeeds = Readonly<
+  Record<Exclude<RouteKey, OpenRouteKey>, Need> & Partial<Record<OpenRouteKey, "admin">>
+>;
+
+/**
+ * What each route needs (ADR 0026). Admin-only routes are permanent or show-wide changes
+ * (hosting FR9), and managing the team. The API refuses a route its caller's access doesn't
+ * allow before the handler runs, so a new one can't forget it.
+ */
+export const routeNeeds: RouteNeeds = {
+  "GET /api/accounts": "admin",
+  "POST /api/accounts": "admin",
+  "POST /api/accounts/{username}/password": "admin",
+  "PUT /api/accounts/{username}/enabled": "admin",
+  "PUT /api/accounts/{username}/role": "admin",
+  "POST /api/productions/{productionId}/running-order/versions": "admin",
+  "POST /api/productions/{productionId}/cast": "casting",
+  "PUT /api/productions/{productionId}/cast/{castId}": "casting",
+  "DELETE /api/productions/{productionId}/cast/{castId}": "admin",
+  "PUT /api/productions/{productionId}/items/{itemId}/notes": "casting",
+  "POST /api/productions/{productionId}/items/{itemId}/roles": "casting",
+  "PUT /api/productions/{productionId}/roles/{roleId}": "casting",
+  "DELETE /api/productions/{productionId}/roles/{roleId}": "casting",
   // Usage is about the team, so only admins read it (usage-tracking FR4).
-  "GET /api/usage",
-];
+  "GET /api/usage": "admin",
+};
+
+const needs = new Map<string, Need>(
+  Object.entries(routeNeeds).flatMap(([key, need]) => (need ? [[key, need] as const] : [])),
+);
+
+/**
+ * What a route needs, or undefined if anyone may use it. A route missing from the table needs
+ * an admin unless it is open to everyone, so a gap fails safe.
+ */
+export const needOf = (key: string): Need | undefined =>
+  needs.get(key) ?? (readOnlyMayUse(key) ? undefined : "admin");
+
+/** Routes only admins may use. */
+export const adminOnlyRouteKeys: readonly RouteKey[] = routeKeys.filter(
+  (key) => needOf(key) === "admin",
+);
 
 /**
  * Routes that manage the team's accounts. They run in their own function, the only one

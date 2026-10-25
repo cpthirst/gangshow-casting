@@ -2,10 +2,10 @@ import { LOCAL_ROLE_HEADER, type SignInConfig } from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   apiFetch,
+  canChangeCasting,
   changeRefusedAsReadOnly,
   chooseLocalRole,
   isAdmin,
-  isReadOnly,
   isSignedIn,
   localRole,
   type SignedInUser,
@@ -240,17 +240,32 @@ describe("signing in", () => {
 
   it("treats someone as read-only once the API refuses a change as read-only, saying so", async () => {
     await useHostedSignIn(config, managerWith(sam({ groups: ["casting"] })), browserAt("/"));
-    expect(isReadOnly.value).toBe(false);
+    expect(canChangeCasting.value).toBe(true);
     fetchMock.mockResolvedValue(
-      new Response(JSON.stringify({ message: "You have read-only access." }), { status: 403 }),
+      new Response(JSON.stringify({ message: "You can view the casting, but not change it." }), {
+        status: 403,
+      }),
     );
 
     const res = await apiFetch("/api/productions/p/items/i/notes", { method: "PUT" });
 
-    expect(isReadOnly.value).toBe(true);
+    expect(canChangeCasting.value).toBe(false);
     expect(changeRefusedAsReadOnly.value).toBe(true);
     // The page can still read the refusal for itself.
-    expect(await res.json()).toEqual({ message: "You have read-only access." });
+    expect(await res.json()).toEqual({ message: "You can view the casting, but not change it." });
+  });
+
+  it("treats another department's refusal as read-only too", async () => {
+    await useHostedSignIn(config, managerWith(sam({ groups: ["casting"] })), browserAt("/"));
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ message: "You can view this, but not change it." }), {
+        status: 403,
+      }),
+    );
+
+    await apiFetch("/api/productions/p/props", { method: "POST" });
+
+    expect(changeRefusedAsReadOnly.value).toBe(true);
   });
 
   it("keeps someone's role when the API refuses a change for another reason", async () => {
@@ -261,14 +276,16 @@ describe("signing in", () => {
 
     await apiFetch("/api/productions/p/cast/c", { method: "DELETE" });
 
-    expect(isReadOnly.value).toBe(false);
+    expect(canChangeCasting.value).toBe(true);
     expect(changeRefusedAsReadOnly.value).toBe(false);
   });
 
   it("forgets a read-only refusal when someone else signs in", async () => {
     await useHostedSignIn(config, managerWith(sam({ groups: ["casting"] })), browserAt("/"));
     fetchMock.mockResolvedValue(
-      new Response(JSON.stringify({ message: "You have read-only access." }), { status: 403 }),
+      new Response(JSON.stringify({ message: "You can view the casting, but not change it." }), {
+        status: 403,
+      }),
     );
     await apiFetch("/api/productions/p/cast", { method: "POST" });
 
@@ -294,6 +311,19 @@ describe("signing in", () => {
       await apiFetch(url);
       expect(sentToken(fetchMock)).toBeNull();
     }
+  });
+
+  it.each([
+    [["casting"], true],
+    [["casting", "stage"], true],
+    [["admin"], true],
+    [["stage"], false],
+    [[], false],
+    [["read-only", "casting"], false],
+  ])("canChangeCasting for groups %j is %s", async (groups, allowed) => {
+    await useHostedSignIn(config, managerWith(sam({ groups })), browserAt("/"));
+
+    expect(canChangeCasting.value).toBe(allowed);
   });
 
   it("counts only members of the admin group as admins", async () => {
@@ -366,13 +396,13 @@ describe("signing in", () => {
       useLocalSignIn();
 
       chooseLocalRole("casting");
-      const casting = [isAdmin.value, isReadOnly.value];
+      const casting = [isAdmin.value, canChangeCasting.value];
       chooseLocalRole("read-only");
 
-      expect([localRole.value, casting, isReadOnly.value]).toEqual([
+      expect([localRole.value, casting, canChangeCasting.value]).toEqual([
         "read-only",
-        [false, false],
-        true,
+        [false, true],
+        false,
       ]);
     });
 
@@ -393,7 +423,8 @@ describe("signing in", () => {
     await apiFetch("/api/health");
 
     expect(isAdmin.value).toBe(false);
-    expect(isReadOnly.value).toBe(true);
+    expect(canChangeCasting.value).toBe(false);
+    expect(localRole.value).toBeUndefined();
     expect(new Headers(fetchMock.mock.calls.at(-1)?.[1]?.headers).has(LOCAL_ROLE_HEADER)).toBe(
       false,
     );

@@ -59,10 +59,11 @@ describe("the in-memory user directory", () => {
 
     await directory.create("jo", "Made-up-1", "read-only");
 
+    // In no group: the read-only group is retiring (ADR 0026).
     expect(accounts()[0]).toMatchObject({
       admin: false,
       casting: false,
-      readOnly: true,
+      readOnly: false,
       passwordKind: "temporary",
     });
   });
@@ -70,7 +71,7 @@ describe("the in-memory user directory", () => {
   it.each([
     ["admin", { admin: true, casting: false, readOnly: false }],
     ["casting", { admin: false, casting: true, readOnly: false }],
-    ["read-only", { admin: false, casting: false, readOnly: true }],
+    ["read-only", { admin: false, casting: false, readOnly: false }],
   ] as const)("gives an account the %s role and no other", async (role, groups) => {
     const { directory, accounts } = memoryUserDirectory([
       anAccount("jo", { admin: true, casting: true, readOnly: true }),
@@ -82,18 +83,29 @@ describe("the in-memory user directory", () => {
     expect((await directory.find("jo"))?.role).toBe(role);
   });
 
-  it("lists the accounts in no role, and moves one into Casting Team Member", async () => {
-    const { directory, accounts } = memoryUserDirectory([
+  it("lists the accounts in the read-only group, and takes one out, leaving it read-only", async () => {
+    const { directory } = memoryUserDirectory([
       anAccount("pat", { admin: true }),
       anAccount("sam"),
       anAccount("kit", { casting: true }),
       anAccount("jo", { readOnly: true }),
     ]);
 
-    expect(await directory.withoutRole()).toEqual(["sam"]);
-    await directory.joinCasting("sam");
+    expect(await directory.inReadOnlyGroup()).toEqual(["jo"]);
+    expect(await directory.leaveReadOnlyGroup("jo")).toEqual([]);
 
-    expect(await directory.withoutRole()).toEqual([]);
-    expect(accounts().find((account) => account.username === "sam")?.casting).toBe(true);
+    expect(await directory.inReadOnlyGroup()).toEqual([]);
+    expect((await directory.find("jo"))?.role).toBe("read-only");
+  });
+
+  it("takes an account leaving the read-only group out of its other groups too, so it stays read-only", async () => {
+    const { directory, accounts } = memoryUserDirectory([
+      anAccount("jo", { readOnly: true, admin: true, casting: true }),
+    ]);
+
+    expect(await directory.leaveReadOnlyGroup("jo")).toEqual(["admin", "casting"]);
+
+    expect(accounts()[0]).toMatchObject({ admin: false, casting: false, readOnly: false });
+    expect((await directory.find("jo"))?.role).toBe("read-only");
   });
 });

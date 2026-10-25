@@ -1,5 +1,5 @@
 import { Username } from "@app/shared";
-import { giveEveryoneARole, restoreAdmin, setUpCheckAccounts } from "./admin-account.ts";
+import { moveOutOfReadOnly, restoreAdmin, setUpCheckAccounts } from "./admin-account.ts";
 import { cognitoClientFor, cognitoUserDirectory } from "./cognito-user-directory.ts";
 import { generatePassword } from "./password.ts";
 import type { UserDirectory } from "./user-directory.ts";
@@ -16,7 +16,7 @@ const USAGE = [
   "  pnpm account admin <username>    create or restore an admin",
   "  pnpm account check <admin username> <member username> <read-only username>",
   "                                   set up the post-deploy check's accounts",
-  "  pnpm account roles               make every account in no role a Casting Team Member",
+  "  pnpm account roles               move every account out of the retiring read-only group",
 ];
 
 /** The usernames the command needs, or the lines saying why they can't be used. */
@@ -39,7 +39,7 @@ function parse(args: string[]) {
 
 /**
  * Creates or restores an admin account (hosting FR14), sets up the post-deploy check's
- * accounts, or gives every account a role after team roles' first deploy (ADR 0020), in the
+ * accounts, or moves every account out of the read-only group (ADR 0026), in the
  * user pool named by USER_POOL_ID, with the maintainer's AWS credentials.
  * Each password is printed once and never written anywhere else. Returns the exit code.
  */
@@ -81,14 +81,21 @@ export async function runAccount(args: string[], env: Env, deps: Deps): Promise<
       print(`  ${member}: ${passwords.member}`);
       print(`  ${readOnly}: ${passwords.readOnly}`);
     } else if (parsed.roles) {
-      const { checked, moved } = await giveEveryoneARole(directory);
+      const { checked, moved, hadOthers } = await moveOutOfReadOnly(directory);
       if (moved.length === 0) {
-        print(`Checked ${checked} accounts. Every one already has a role.`);
+        print(
+          `Checked ${checked} accounts. Moved 0 out of the read-only group: none is left in it.`,
+        );
       } else {
         print(
-          `Checked ${checked} accounts. Made ${moved.length} Casting Team Members: ${moved.join(", ")}.`,
+          `Checked ${checked} accounts. Moved ${moved.length} out of the read-only group: ${moved.join(", ")}.`,
         );
-        print("They can change casting again once their sign-in renews, within 5 minutes.");
+        if (hadOthers.length > 0) {
+          print(
+            `Also took their other groups from ${hadOthers.join(", ")}, as read-only cancelled them.`,
+          );
+        }
+        print("They have no permissions now, so they may still only read.");
       }
     }
     return 0;

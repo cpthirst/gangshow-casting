@@ -2129,9 +2129,12 @@ describe("Item notes", () => {
   });
 });
 
-describe("An item's page for a Read-Only Team Member", () => {
+describe.each([
+  ["with Stage only", ["stage"]],
+  ["with no permissions", []],
+])("An item's page for an account %s, which can't change Casting", (_who, groups) => {
   beforeEach(async () => {
-    await signInAs(["read-only"]);
+    await signInAs(groups);
   });
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -2187,7 +2190,9 @@ describe("An item's page for a Read-Only Team Member", () => {
 
     const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
 
-    expect(wrapper.get("[data-test=read-only]").text()).toBe("You have read-only access");
+    expect(wrapper.get("[data-test=read-only]").text()).toBe(
+      "You can view the casting, but not change it.",
+    );
   });
 });
 
@@ -2218,7 +2223,10 @@ describe("An item's page for other roles", () => {
       "fetch",
       vi.fn(async (url: string, init?: RequestInit) =>
         url.endsWith("/notes") && init?.method === "PUT"
-          ? new Response(JSON.stringify({ message: "You have read-only access." }), { status: 403 })
+          ? new Response(
+              JSON.stringify({ message: "You can view the casting, but not change it." }),
+              { status: 403 },
+            )
           : theApi(url, init),
       ),
     );
@@ -2230,7 +2238,7 @@ describe("An item's page for other roles", () => {
     await flushPromises();
 
     const notice = wrapper.get("[data-test=read-only]");
-    expect(notice.text()).toBe("You have read-only access, so this wasn't saved.");
+    expect(notice.text()).toBe("You can view the casting but not change it, so this wasn't saved.");
     expect(notice.attributes("role")).toBe("alert");
     expect(notesSection().find("textarea").exists()).toBe(false);
     expect(wrapper.find("[data-test=add-role]").exists()).toBe(false);

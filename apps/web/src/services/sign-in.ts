@@ -1,7 +1,10 @@
 import {
+  type Access,
+  accessFrom,
+  isRefusalAsReadOnly,
   LOCAL_ROLE_HEADER,
-  READ_ONLY_REFUSAL,
-  roleFrom,
+  localAccess,
+  mayChange,
   type SignInConfig,
   type TeamRole,
 } from "@app/shared";
@@ -86,19 +89,27 @@ export const isSignedIn = computed(() => isHosted.value && user.value !== null);
 export const isSignInUnavailable = computed(() => session.value.kind === "unavailable");
 /** Who's signed in; no one locally, where the app acts for an admin who is no account. */
 export const signedInUsername = computed(() => user.value?.username);
-// What to show, not what's allowed: the API checks the role for itself (ADR 0020). Locally
+// What to show, not what's allowed: the API checks access for itself (ADR 0026). Locally
 // the app acts for the chosen role; otherwise no sign-in, like no known group, may only read.
 // After the API refuses a change as read-only, pages show the read-only view at once, not
-// only once the sign-in renews with the new role (team-roles FR12).
-const role = computed<TeamRole>(() => {
-  if (refusedAsReadOnly.value) return "read-only";
-  return session.value.kind === "local" ? session.value.role : roleFrom(user.value?.groups ?? []);
+// only once the sign-in renews with the new groups (team-roles FR12).
+const access = computed<Access>(() => {
+  if (refusedAsReadOnly.value) return [];
+  return session.value.kind === "local"
+    ? localAccess[session.value.role]
+    : accessFrom(user.value?.groups ?? []);
 });
-/** The role the local role switch shows. */
-export const localRole = computed(() => role.value);
-export const isAdmin = computed(() => role.value === "admin");
-/** Read-Only Team Members see every page with no controls that change data (team-roles FR6). */
-export const isReadOnly = computed(() => role.value === "read-only");
+/** The role the local role switch shows; none outside pnpm dev and pnpm demo. */
+export const localRole = computed<TeamRole | undefined>(() => {
+  if (session.value.kind !== "local") return undefined;
+  return refusedAsReadOnly.value ? "read-only" : session.value.role;
+});
+export const isAdmin = computed(() => access.value === "admin");
+/**
+ * The casting pages and Running order show their change controls only to those who may
+ * change Casting; everyone else sees them read-only (team-roles FR6, stage-props FR3).
+ */
+export const canChangeCasting = computed(() => mayChange(access.value, "casting"));
 /** A change was refused because the person may only read: pages say it wasn't saved. */
 export const changeRefusedAsReadOnly = computed(() => refusedAsReadOnly.value);
 
@@ -213,7 +224,7 @@ export async function apiFetch(...args: Parameters<typeof fetch>) {
     ? await fetch(input, { ...init, headers: withHeader(init?.headers, ...extra) })
     : await fetch(...args);
   if (res.status === 401 || (isHosted.value && !user.value)) signInNeeded.value = true;
-  if (res.status === 403 && (await refusalOf(res)) === READ_ONLY_REFUSAL) {
+  if (res.status === 403 && isRefusalAsReadOnly(await refusalOf(res))) {
     refusedAsReadOnly.value = true;
   }
   return res;

@@ -1,4 +1,11 @@
-import { ADMIN_GROUP, CASTING_GROUP, READ_ONLY_GROUP, roleFrom, type TeamRole } from "@app/shared";
+import {
+  ADMIN_GROUP,
+  CASTING_GROUP,
+  permissions,
+  READ_ONLY_GROUP,
+  roleFrom,
+  type TeamRole,
+} from "@app/shared";
 import {
   AdminAddUserToGroupCommand,
   AdminCreateUserCommand,
@@ -23,12 +30,16 @@ export function cognitoClientFor(userPoolId: string) {
   return new CognitoIdentityProviderClient({ region });
 }
 
-const GROUP_OF: Record<TeamRole, string> = {
+// A Read-Only Team Member is in no role group: the read-only group is retiring (ADR 0026).
+const GROUP_OF: Record<TeamRole, string | undefined> = {
   admin: ADMIN_GROUP,
   casting: CASTING_GROUP,
-  "read-only": READ_ONLY_GROUP,
+  "read-only": undefined,
 };
-const ROLE_GROUPS = Object.values(GROUP_OF);
+// The groups that decide a role today, the retiring one included so a role change leaves it.
+const ROLE_GROUPS = [ADMIN_GROUP, CASTING_GROUP, READ_ONLY_GROUP];
+// Every group the API knows: a role change leaves the account in only its role's (ADR 0026).
+const KNOWN_GROUPS = [ADMIN_GROUP, ...permissions, READ_ONLY_GROUP];
 
 /** The team's accounts in the hosted Cognito user pool (ADR 0018). */
 export function cognitoUserDirectory(
@@ -36,10 +47,9 @@ export function cognitoUserDirectory(
   userPoolId: string,
 ): UserDirectory {
   const user = (username: string) => ({ UserPoolId: userPoolId, Username: username });
-  // For `pnpm account roles`, which moves accounts from before team roles (ADR 0020).
-  async function joinCasting(username: string) {
+  async function removeFrom(username: string, group: string) {
     await cognito.send(
-      new AdminAddUserToGroupCommand({ ...user(username), GroupName: CASTING_GROUP }),
+      new AdminRemoveUserFromGroupCommand({ ...user(username), GroupName: group }),
     );
   }
 
@@ -112,9 +122,10 @@ export function cognitoUserDirectory(
       }
       // If this fails, the account is in no role, so may only read (ADR 0020), and its
       // password was never shown: an admin resets its password and gives it its role.
-      await cognito.send(
-        new AdminAddUserToGroupCommand({ ...user(username), GroupName: GROUP_OF[role] }),
-      );
+      const group = GROUP_OF[role];
+      if (group) {
+        await cognito.send(new AdminAddUserToGroupCommand({ ...user(username), GroupName: group }));
+      }
     },
     async setPassword(username, password, kind) {
       await cognito.send(
@@ -132,28 +143,26 @@ export function cognitoUserDirectory(
     async setRole(username, role) {
       const target = GROUP_OF[role];
       const groups = await groupsOf(username);
-      // Out of the other roles first: in between, no role means read-only, never more (ADR 0020).
-      for (const group of ROLE_GROUPS.filter((g) => g !== target && groups.includes(g))) {
-        await cognito.send(
-          new AdminRemoveUserFromGroupCommand({ ...user(username), GroupName: group }),
-        );
+      // Out of the other groups first: in between, no role means read-only, never more (ADR 0020).
+      for (const group of KNOWN_GROUPS.filter((g) => g !== target && groups.includes(g))) {
+        await removeFrom(username, group);
       }
-      if (!groups.includes(target)) {
+      if (target && !groups.includes(target)) {
         await cognito.send(
           new AdminAddUserToGroupCommand({ ...user(username), GroupName: target }),
         );
       }
     },
-    async withoutRole() {
-      const withRole = new Set<string>();
-      for (const group of ROLE_GROUPS) {
-        for (const username of await membersOf(group)) withRole.add(username);
-      }
-      return (await everyone())
-        .map((account) => account.username)
-        .filter((username) => !withRole.has(username));
+    async inReadOnlyGroup() {
+      return [...(await membersOf(READ_ONLY_GROUP))];
     },
-    joinCasting,
+    async leaveReadOnlyGroup(username) {
+      const groups = await groupsOf(username);
+      const others = KNOWN_GROUPS.filter((g) => g !== READ_ONLY_GROUP && groups.includes(g));
+      // read-only last, as it cancels the others: the account stays read-only throughout.
+      for (const group of [...others, READ_ONLY_GROUP]) await removeFrom(username, group);
+      return others;
+    },
     async signOutEverywhere(username) {
       await cognito.send(new AdminUserGlobalSignOutCommand(user(username)));
     },

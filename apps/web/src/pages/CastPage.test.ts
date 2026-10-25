@@ -1067,9 +1067,12 @@ describe("Cast page", () => {
     });
   });
 
-  describe("for a Read-Only Team Member", () => {
+  describe.each([
+    ["with Stage only", ["stage"]],
+    ["with no permissions", []],
+  ])("for an account %s, which can't change Casting", (_who, groups) => {
     beforeEach(async () => {
-      await signInAs(["read-only"]);
+      await signInAs(groups);
     });
     afterEach(useLocalSignIn);
 
@@ -1118,7 +1121,9 @@ describe("Cast page", () => {
       const wrapper = await openPage();
 
       expect(wrapper.text()).toContain("No cast members yet.");
-      expect(wrapper.get("[data-test=read-only]").text()).toBe("You have read-only access");
+      expect(wrapper.get("[data-test=read-only]").text()).toBe(
+        "You can view the casting, but not change it.",
+      );
       expect(wrapper.find("[data-test=add-member]").exists()).toBe(false);
     });
 
@@ -1127,7 +1132,9 @@ describe("Cast page", () => {
 
       const wrapper = await openPage();
 
-      expect(wrapper.get("[data-test=read-only]").text()).toBe("You have read-only access");
+      expect(wrapper.get("[data-test=read-only]").text()).toBe(
+        "You can view the casting, but not change it.",
+      );
     });
   });
 
@@ -1152,6 +1159,16 @@ describe("Cast page", () => {
       expect(wrapper.get(".access-note[data-test=admin-only]").text()).toBe(
         "Only admins can delete cast members",
       );
+      expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
+    });
+
+    it("lets an account with Casting and Stage add and edit cast members", async () => {
+      await signInAs(["casting", "stage"]);
+      serve(aCast([aMember("Kim", "Example")]));
+      const wrapper = await openPage();
+
+      expect(wrapper.find("[data-test=add-member]").exists()).toBe(true);
+      expect(wrapper.find('button[aria-label="Edit Kim Example"]').exists()).toBe(true);
       expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
     });
 

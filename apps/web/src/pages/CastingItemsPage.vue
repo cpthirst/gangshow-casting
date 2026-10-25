@@ -12,7 +12,7 @@ import { computed, onMounted, ref } from "vue";
 import ClashIcon from "@/components/common/ClashIcon.vue";
 import HelpButton from "@/components/common/HelpButton.vue";
 import ReadOnlyNotice from "@/components/common/ReadOnlyNotice.vue";
-import { apiFetch, isReadOnly } from "@/services/sign-in.ts";
+import { apiFetch, canChangeCasting } from "@/services/sign-in.ts";
 import { CAST_PATH } from "@/utils/cast.ts";
 import { clashesInItem, findClashes, summariseClashes } from "@/utils/clashes.ts";
 import { icons } from "@/utils/icons.ts";
@@ -177,8 +177,8 @@ async function loadRunningOrder() {
                     class="icon-button"
                     data-test="cast"
                     :to="{ name: 'casting-item', params: { itemId: item.id } }"
-                    :aria-label="`${isReadOnly ? 'View' : 'Cast'} ${item.title}`"
-                    :data-tooltip="isReadOnly ? 'View this item' : 'Cast this item'"
+                    :aria-label="`${canChangeCasting ? 'Cast' : 'View'} ${item.title}`"
+                    :data-tooltip="canChangeCasting ? 'Cast this item' : 'View this item'"
                   >
                     <FontAwesomeIcon :icon="icons.cast" />
                   </RouterLink>

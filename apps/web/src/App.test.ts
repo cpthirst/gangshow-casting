@@ -293,7 +293,9 @@ describe("App shell", () => {
 
       await roleSwitch(wrapper).setValue("read-only");
 
-      expect(wrapper.get("[data-test=read-only]").text()).toBe("You have read-only access");
+      expect(wrapper.get("[data-test=read-only]").text()).toBe(
+        "You can view the casting, but not change it.",
+      );
     });
 
     it("moves to the Running order when the chosen role can't open the page shown", async () => {

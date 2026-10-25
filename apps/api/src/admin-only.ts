@@ -1,4 +1,4 @@
-import { adminOnlyRouteKeys, READ_ONLY_REFUSAL, readOnlyMayUse, type TeamRole } from "@app/shared";
+import { type Access, needOf, refusalFor } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 
 /**
@@ -21,16 +21,17 @@ const refusal = (message: string): APIGatewayProxyStructuredResultV2 => ({
 });
 
 /**
- * A 403 if the caller's role doesn't allow the route; undefined to go ahead. Read-only
- * members, which includes anyone in no known group, may only read (ADR 0020) and record
- * their own usage (ADR 0023), and admin-only routes need an admin (ADR 0018).
+ * A 403 if the caller's access doesn't allow the route; undefined to go ahead (ADR 0026).
+ * Each route needs what the shared table names, a route missing from it an admin, and the
+ * reads and recording usage nothing.
  */
-export function roleRefusal(
+export function accessRefusal(
   routeKey: string,
-  role: TeamRole,
+  access: Access,
 ): APIGatewayProxyStructuredResultV2 | undefined {
-  if (!readOnlyMayUse(routeKey) && role === "read-only") return refusal(READ_ONLY_REFUSAL);
-  const adminOnly = adminOnlyRouteKeys.some((key) => key === routeKey);
-  if (adminOnly && role !== "admin") return refusal("Only admins can do this.");
-  return undefined;
+  if (access === "admin") return undefined;
+  const need = needOf(routeKey);
+  if (need === undefined) return undefined;
+  if (need === "admin") return refusal("Only admins can do this.");
+  return access.includes(need) ? undefined : refusal(refusalFor(need));
 }
