@@ -16,7 +16,12 @@ async function openHelp() {
   return { wrapper, router };
 }
 
-const ACCESS_LABELS = ["Everyone", "Accounts with Casting, and admins", "Admins only"];
+const ACCESS_LABELS = [
+  "Everyone",
+  "Accounts with Casting, and admins",
+  "Accounts with Stage, and admins",
+  "Admins only",
+];
 
 type Wrapper = Awaited<ReturnType<typeof openHelp>>["wrapper"];
 
@@ -272,14 +277,31 @@ describe("Help page", () => {
       lines(wrapper, page).map((line) => line.get("[data-test=help-name]").text());
     const summaryOf = (wrapper: Wrapper, page: string) => sectionFor(wrapper, page).get("p").text();
 
-    it("follow the casting's, as Stage, Tech and Costume, each linking to its page", async () => {
+    it("follow the casting's, as Stage, an item's props, Tech and Costume, each linking to its page", async () => {
       const { wrapper, router } = await openHelp();
 
-      expect(sectionTitles(wrapper).slice(5)).toEqual(["Stage", "Tech", "Costume"]);
+      expect(sectionTitles(wrapper).slice(5)).toEqual([
+        "Stage",
+        "An item's props",
+        "Tech",
+        "Costume",
+      ]);
+      await router.push("/help");
+      expect(await followLink(wrapper, router, "props-item")).toBe("stage");
       for (const page of ["stage", "tech", "costume"]) {
         await router.push("/help");
         expect(await followLink(wrapper, router, page)).toBe(page);
       }
+    });
+
+    it("say how to reach an item's props, then explain its actions and who can use each", async () => {
+      const { wrapper } = await openHelp();
+
+      expect(summaryOf(wrapper, "props-item")).toContain("Production → Stage");
+      expect(names(wrapper, "props-item")).toEqual(["All items", "Previous and Next", "Add prop"]);
+      expect(accessOf(wrapper, "All items", "props-item")).toBe("Everyone");
+      expect(accessOf(wrapper, "Previous and Next", "props-item")).toBe("Everyone");
+      expect(accessOf(wrapper, "Add prop", "props-item")).toBe("Accounts with Stage, and admins");
     });
 
     it("name the views on Stage and Tech, open to everyone", async () => {

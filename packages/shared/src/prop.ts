@@ -17,6 +17,13 @@ export const Prop = z.strictObject({
   name: z.string().trim().min(1).max(MAX_PROP_NAME_LENGTH),
 });
 
+/**
+ * POST /api/productions/{productionId}/items/{itemId}/props: a new prop for the item.
+ * 201 returns the Prop; 400 for an invalid prop; 404 if the item isn't in the latest saved
+ * running order. Strict, so the app-managed id and item can't be sent.
+ */
+export const AddPropRequest = Prop.pick({ name: true });
+
 /** GET /api/productions/{productionId}/props: every item's props, in no particular order. */
 export const PropList = z.strictObject({
   productionId: ProductionId,
@@ -25,3 +32,4 @@ export const PropList = z.strictObject({
 
 export type Prop = z.infer<typeof Prop>;
 export type PropList = z.infer<typeof PropList>;
+export type AddPropRequest = z.infer<typeof AddPropRequest>;

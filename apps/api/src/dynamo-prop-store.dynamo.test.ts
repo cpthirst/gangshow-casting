@@ -1,7 +1,8 @@
-import { PutCommand } from "@aws-sdk/lib-dynamodb";
+import { PutCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { aTestTable, type TestTable } from "./dynamo.fixture.ts";
 import { dynamoPropStore, propRow } from "./dynamo-prop-store.ts";
+import { META, partitionFor } from "./dynamo-table.ts";
 import { behavesAsAPropStore } from "./prop-store.contract.ts";
 
 describe("DynamoDB prop store", () => {
@@ -15,6 +16,15 @@ describe("DynamoDB prop store", () => {
 
   behavesAsAPropStore(async (saved) => {
     for (const { productionId, props } of saved) {
+      // As anything writing prop rows directly must: the counter past the highest id.
+      await table.db.send(
+        new UpdateCommand({
+          TableName: table.tableName,
+          Key: { pk: partitionFor(productionId), sk: META },
+          UpdateExpression: "SET lastPropId = :last",
+          ExpressionAttributeValues: { ":last": Math.max(0, ...props.map((prop) => prop.id)) },
+        }),
+      );
       for (const prop of props) {
         await table.db.send(
           new PutCommand({ TableName: table.tableName, Item: propRow(productionId, prop) }),

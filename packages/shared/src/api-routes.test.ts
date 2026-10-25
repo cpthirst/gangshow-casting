@@ -91,8 +91,12 @@ describe("routeNeeds", () => {
     }
   });
 
-  it("has every change route today need Casting, or stay admin-only", () => {
-    const changes = routeKeys.filter((key) => !readOnlyMayUse(key));
+  it("has adding a prop need Stage", () => {
+    expect(needOf("POST /api/productions/{productionId}/items/{itemId}/props")).toBe("stage");
+  });
+
+  it("has every other change route today need Casting, or stay admin-only", () => {
+    const changes = routeKeys.filter((key) => !readOnlyMayUse(key) && needOf(key) !== "stage");
     expect(changes.filter((key) => needOf(key) === "casting").sort()).toEqual([
       "DELETE /api/productions/{productionId}/roles/{roleId}",
       "POST /api/productions/{productionId}/cast",
@@ -189,6 +193,10 @@ describe("the local access header", () => {
 describe("refusalFor", () => {
   it("says the casting can be viewed but not changed", () => {
     expect(refusalFor("casting")).toBe("You can view the casting, but not change it.");
+  });
+
+  it("says the props can be viewed but not changed, for Stage", () => {
+    expect(refusalFor("stage")).toBe("You can view the props, but not change them.");
   });
 
   it("falls back to a general line for a department without its own", () => {

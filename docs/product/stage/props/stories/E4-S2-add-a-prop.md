@@ -2,7 +2,7 @@
 id: stage-props.E4.S2
 title: Open an item's props and add a prop
 epic: E4
-status: ready
+status: done
 ---
 
 ## Story

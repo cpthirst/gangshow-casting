@@ -4,8 +4,10 @@ import {
   HealthResponse,
   ItemNoteList,
   LOCAL_ACCESS_HEADER,
+  needOf,
   Role,
   readOnlyMayUse,
+  refusalFor,
   routeKeys,
   UsageSummary,
 } from "@app/shared";
@@ -654,7 +656,7 @@ describe("Lambda entry point", () => {
       expect(await stored()).toEqual(before);
     });
 
-    it("lets kim, with Casting and Stage, make casting changes as with Casting only", async () => {
+    it("lets kim, with Casting and Stage, make casting changes as with Casting only, and Stage's as with Stage only", async () => {
       const { api } = setUp();
       const send = everyRoute();
 
@@ -666,20 +668,21 @@ describe("Lambda entry point", () => {
       expect(saved).toEqual([201, 201, 200]);
       for (const key of changeRoutes) {
         const kim = await send(key, "[casting stage]");
-        const casting = await send(key, "[casting]");
-        expect(kim, key).toEqual(casting);
+        const alone = await send(key, needOf(key) === "stage" ? "[stage]" : "[casting]");
+        expect(kim, key).toEqual(alone);
       }
     });
 
-    it("refuses every change from lee, with Tech and Costume only, saying read-only, or admins' only for admin-only ones", async () => {
+    it("refuses every change from lee, with Tech and Costume only, saying what is read-only, or admins' only for admin-only ones", async () => {
       const send = everyRoute();
 
       for (const key of changeRoutes) {
         const { res, ran } = await send(key, "[tech costume]");
 
         expect(res.statusCode, key).toBe(403);
+        const need = needOf(key);
         expect(JSON.parse(res.body ?? ""), key).toEqual(
-          adminOnlyRouteKeys.includes(key) ? ONLY_ADMINS : READ_ONLY,
+          need === undefined || need === "admin" ? ONLY_ADMINS : { message: refusalFor(need) },
         );
         expect(ran, key).toBe(false);
       }
@@ -715,6 +718,61 @@ describe("Lambda entry point", () => {
 
       expect(exported.statusCode).toBe(200);
       expect(visited.statusCode).toBe(204);
+    });
+
+    describe("adding a prop, which needs Stage", () => {
+      const PROPS_READ_ONLY = { message: "You can view the props, but not change them." };
+      const setUpProps = () => {
+        const cast = inMemoryCastStore();
+        const roles = inMemoryRoleStore();
+        const props = inMemoryPropStore();
+        const api = lambdaEntry(
+          createRoutes(
+            {
+              cast,
+              roles,
+              runningOrders: inMemoryRunningOrderStore([
+                aRunningOrder(4, { first: ["Pirate Sketch"] }),
+              ]),
+              itemNotes: inMemoryItemNoteStore(),
+              props,
+              removeCastMember: uncastThenRemove(cast, roles),
+            },
+            inMemoryUsageStore(),
+          ),
+        );
+        return { api, props };
+      };
+      const addProp = (groups: string, name: string) =>
+        as(groups)("POST", `/api/productions/2027/items/${pirate}/props`, { name });
+
+      it.each([
+        ["pat, with Stage", "[stage]", "Treasure chest"],
+        ["alex, an admin", "[admin]", "Parrot"],
+      ])("saves a prop from %s", async (_who, groups, name) => {
+        const { api, props } = setUpProps();
+
+        const res = await api(addProp(groups, name));
+
+        expect(res.statusCode).toBe(201);
+        expect((await props.list("2027")).props).toEqual([{ id: 1, itemId: pirate, name }]);
+      });
+
+      it.each([
+        ["sam, with Casting only", "[casting]"],
+        ["lee, with Tech and Costume", "[tech costume]"],
+      ])(
+        "refuses a prop from %s, saying the props are read-only, adding nothing",
+        async (_who, groups) => {
+          const { api, props } = setUpProps();
+
+          const res = await api(addProp(groups, "Treasure chest"));
+
+          expect(res.statusCode).toBe(403);
+          expect(JSON.parse(res.body ?? "")).toEqual(PROPS_READ_ONLY);
+          expect((await props.list("2027")).props).toEqual([]);
+        },
+      );
     });
 
     it.each(["[props]", "[crew Stage CASTING]", "[superadmin]"])(

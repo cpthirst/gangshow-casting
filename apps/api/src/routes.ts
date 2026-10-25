@@ -1,5 +1,6 @@
 import type { AccountRouteKey, RouteKey } from "@app/shared";
 import { createAddCastMember } from "./add-cast-member.ts";
+import { createAddProp } from "./add-prop.ts";
 import { createAddRole } from "./add-role.ts";
 import { dataStores, type Stores, usageStore } from "./data-stores.ts";
 import { createDeleteCastMember } from "./delete-cast-member.ts";
@@ -46,6 +47,10 @@ export function createRoutes(
       runningOrders,
     ),
     "GET /api/productions/{productionId}/props": createGetProps(props),
+    "POST /api/productions/{productionId}/items/{itemId}/props": createAddProp(
+      props,
+      runningOrders,
+    ),
     "POST /api/productions/{productionId}/casting-grid/export": exportCastingGrid,
     "POST /api/productions/{productionId}/items/{itemId}/roles": createAddRole(
       roles,

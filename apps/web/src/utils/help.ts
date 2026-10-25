@@ -5,6 +5,7 @@ import { icons } from "./icons.ts";
 const accessLabels = {
   everyone: "Everyone",
   casting: "Accounts with Casting, and admins",
+  stage: "Accounts with Stage, and admins",
   admins: "Admins only",
 } as const;
 
@@ -243,6 +244,27 @@ export const pageHelp: PageHelp[] = [
         does: "The show's items, with how many props each one needs. Open an item to see its props.",
         access: "everyone",
       },
+    ],
+  },
+  {
+    page: "props-item",
+    title: "An item's props",
+    summary: "One item's props. Open an item from Production → Stage, in the Props view.",
+    reachedFrom: { page: "stage", title: "Stage" },
+    lines: [
+      {
+        icons: [icons.allItems],
+        name: "All items",
+        does: "Goes back to the Props view's list of items.",
+        access: "everyone",
+      },
+      {
+        icons: [icons.back, icons.forward],
+        name: "Previous and Next",
+        does: "Steps to the item before or after this one in the show.",
+        access: "everyone",
+      },
+      { name: "Add prop", does: "Adds a prop the item needs, by name.", access: "stage" },
     ],
   },
   {

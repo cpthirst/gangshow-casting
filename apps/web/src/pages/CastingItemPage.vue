@@ -15,6 +15,7 @@ import ItemNotes from "@/components/casting/ItemNotes.vue";
 import RoleForm from "@/components/casting/RoleForm.vue";
 import ClashIcon from "@/components/common/ClashIcon.vue";
 import HelpButton from "@/components/common/HelpButton.vue";
+import ItemStepNav from "@/components/common/ItemStepNav.vue";
 import ReadOnlyNotice from "@/components/common/ReadOnlyNotice.vue";
 import { showPageTitle } from "@/router/index.ts";
 import { apiFetch, canChangeCasting } from "@/services/sign-in.ts";
@@ -31,7 +32,7 @@ import {
   sortRoles,
   updateRolePath,
 } from "@/utils/roles.ts";
-import { neighboursOf, placeOf, RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
+import { neighboursOf, placeOf, positionOf, RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
 
 const route = useRoute();
 const order = ref<RunningOrder>();
@@ -81,14 +82,7 @@ const neighbours = computed(() =>
 // Loaded, but the item isn't in the latest saved running order (PRD FR6).
 const notFound = computed(() => status.value === "loaded" && !place.value);
 
-// "Item 2 · First half", or just the half for an item without a programme number.
-const position = computed(() => {
-  if (!place.value) return "";
-  const { half, number } = place.value;
-  return number === null
-    ? `${half.name} · Not in printed programme`
-    : `Item ${number} · ${half.name}`;
-});
+const position = computed(() => (place.value ? positionOf(place.value) : ""));
 
 // Each item opened is a use, once it's found in the running order (usage-tracking FR2).
 watch(
@@ -291,34 +285,12 @@ async function postRole(itemId: string, details: AddRoleRequest) {
 </script>
 
 <template>
-  <nav class="step-nav" aria-label="Item navigation">
-    <RouterLink :to="{ name: 'casting-items' }" class="back-link">
-      <span class="step-label"><FontAwesomeIcon :icon="icons.allItems" /> All items</span>
-    </RouterLink>
-    <RouterLink
-      v-if="neighbours.previous"
-      :to="{ name: 'casting-item', params: { itemId: neighbours.previous.id } }"
-      rel="prev"
-      :data-tooltip="neighbours.previous.title"
-      class="step-link step-previous"
-    >
-      <span class="step-label"><FontAwesomeIcon :icon="icons.back" /> Previous</span>
-      <!-- A real space, so the link reads "Previous Pirate Sketch", not one word. -->
-      {{ " " }}
-      <span class="step-title">{{ neighbours.previous.title }}</span>
-    </RouterLink>
-    <RouterLink
-      v-if="neighbours.next"
-      :to="{ name: 'casting-item', params: { itemId: neighbours.next.id } }"
-      rel="next"
-      :data-tooltip="neighbours.next.title"
-      class="step-link step-next"
-    >
-      <span class="step-label">Next <FontAwesomeIcon :icon="icons.forward" /></span>
-      {{ " " }}
-      <span class="step-title">{{ neighbours.next.title }}</span>
-    </RouterLink>
-  </nav>
+  <ItemStepNav
+    :list="{ name: 'casting-items' }"
+    item-route="casting-item"
+    :previous="neighbours.previous"
+    :next="neighbours.next"
+  />
   <p v-if="status === 'error'" role="alert">Couldn't load the item.</p>
   <template v-else-if="place">
     <div class="page-title-row">

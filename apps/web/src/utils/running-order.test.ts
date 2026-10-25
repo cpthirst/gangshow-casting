@@ -9,6 +9,7 @@ import {
   itemFrom,
   neighboursOf,
   placeOf,
+  positionOf,
   replaceItem,
 } from "./running-order.ts";
 
@@ -185,6 +186,25 @@ describe("placeOf", () => {
 
   it("finds nothing for an item that isn't in the running order", () => {
     expect(placeOf(order, "no-such-item")).toBeUndefined();
+  });
+});
+
+describe("positionOf", () => {
+  const order = aRunningOrder(
+    [anItem("Opening Number"), anItem("Pirate Sketch")],
+    [anItem("Mystery Act", { printed: false })],
+  );
+  const positionOfItem = (itemId: string) => {
+    const place = placeOf(order, itemId);
+    return place && positionOf(place);
+  };
+
+  it("names the item's number and half", () => {
+    expect(positionOfItem("pirate-sketch")).toBe("Item 2 · First half");
+  });
+
+  it("names only the half for an item not in the printed programme", () => {
+    expect(positionOfItem("mystery-act")).toBe("Second half · Not in printed programme");
   });
 });
 

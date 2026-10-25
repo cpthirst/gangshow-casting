@@ -166,7 +166,7 @@ export function createAppRouter(history: RouterHistory = createWebHistory()) {
         path: "/production/stage/props/:itemId",
         name: "props-item",
         component: PropsItemPage,
-        meta: { title: "Item props", menuPage: "stage" },
+        meta: { title: "Item", menuPage: "stage" },
       },
       // Where Sign out goes first, so the page being left can ask about unsaved changes.
       {
