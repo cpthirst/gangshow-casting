@@ -76,7 +76,7 @@ And it says how many accounts it checked and how many it moved
 
 - FRs: FR1, FR2, FR4, FR5
 - Depends on: none
-- Needs a new ADR (via the `adr` skill) amending ADR 0020, written before the code: permissions per department replace "read-only may only read" for every route that isn't a read. It decides:
+- [ADR 0026](../../../../adr/0026-department-permissions-as-user-pool-groups.md) (accepted 2026-10-25) amends ADR 0020 and settles these: permissions per department replace "read-only may only read" for every route that isn't a read. It decides:
   - how permissions are held (for example user pool groups `casting`, `stage`, `tech`, `costume`);
   - what becomes of the `read-only` group, and whether it still overrides other groups, so a mistaken extra group can't widen access;
   - how each route names its permission in one place;

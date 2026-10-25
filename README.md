@@ -336,6 +336,7 @@ These cover humans and agents alike, and `pnpm install` installs them.
 | [0023](docs/adr/0023-usage-records-in-the-data-table.md) | Usage records in the data table, recorded through our own API |
 | [0024](docs/adr/0024-limit-usage-recording-and-count-sign-ins.md) | Usage recording limited at API Gateway, and a session counted per sign-in |
 | [0025](docs/adr/0025-web-source-folders.md) | The web app's source grouped into folders by kind, with a `@/` import alias |
+| [0026](docs/adr/0026-department-permissions-as-user-pool-groups.md) | Department permissions (Casting, Stage, Tech, Costume) as user pool groups, each change route naming its permission |
 
 ---
 
