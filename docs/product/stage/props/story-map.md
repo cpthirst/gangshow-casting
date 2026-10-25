@@ -35,7 +35,7 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [stage-props.E3.S1](stories/E3-S1-stage-tech-and-costume-pages.md) | The Production menu keeps its place, with three pages and no further menu level: Stage (a Scenery / Props view switch, like the Casting Overview's, opening on Props), Tech (Mic plot / SFX) and Costume (a placeholder). Old Production addresses open the right page and view, Welcome and Help describe the pages, and the old Props, Scenery and SFX usage is purged | FR10, FR11, FR12 | E1.S1 | ready |
+| [stage-props.E3.S1](stories/E3-S1-stage-tech-and-costume-pages.md) | The Production menu keeps its place, with three pages and no further menu level: Stage (a Scenery / Props view switch, like the Casting Overview's, opening on Scenery), Tech (Mic plot / SFX) and Costume (a placeholder). Old Production addresses open the right page and view, Welcome and Help describe the pages, and the old Mic plot, Props, Scenery and SFX usage is purged | FR10, FR11, FR12 | E1.S1 | ready |
 
 ## E4: Props
 

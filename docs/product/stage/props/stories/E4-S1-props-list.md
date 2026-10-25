@@ -13,7 +13,7 @@ As someone on the props team, I want the Stage page's Props view to list the sho
 
 ### AC1: Items are listed in running order, by half
 Given the latest saved running order has "Opening Number" (item 1) and "Pirate Sketch" (item 2) in the first half, and "Finale" (item 14) in the second
-When anyone opens Production → Stage, which opens on its Props view
+When anyone opens Production → Stage and chooses its Props view
 Then each half is listed under its name, with its items in order, as on Casting Items
 
 ### AC2: Each row shows its columns

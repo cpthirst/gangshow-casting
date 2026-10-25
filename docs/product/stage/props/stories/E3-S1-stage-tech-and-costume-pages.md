@@ -20,8 +20,8 @@ And there's no further level of menu, and no Mic plot, Props, Scenery or SFX ent
 ### AC2: Stage switches between Scenery and Props
 Given someone opens Stage
 When the page loads
-Then it shows a view switch with Scenery then Props, looking and working like the Casting Overview's switch, with Props chosen
-And choosing Scenery shows the Scenery view
+Then it shows a view switch with Scenery then Props, looking and working like the Casting Overview's switch, with Scenery chosen
+And choosing Props shows the Props view
 
 ### AC3: Tech switches between Mic plot and SFX
 Given someone opens Tech
@@ -64,17 +64,17 @@ When team members have visited Stage and switched to Scenery
 Then the visits show under Stage, and the switch as a use of its Scenery view, as Casting Overview's views are recorded
 
 ### AC11: The old placeholder pages' usage is purged
-Given the Usage page has visits recorded for the old Props, Scenery and SFX pages
+Given the Usage page has visits recorded for the old Mic plot, Props, Scenery and SFX pages
 When this change is deployed and the purge has run
 Then those visits are gone from the Usage page and from the stored usage records
-And every other page's usage, Mic plot's included, is unchanged
+And every other page's usage is unchanged
 
 ## Notes
 
 - FRs: FR10, FR11, FR12
 - Depends on: stage-props.E1.S1, so Help can name the permissions
 - The pages reuse the Casting Overview's view switch, and its page layout where they can.
-- Mic plot, Props, Scenery and SFX leave the menu, and the Usage page's page names change with them (MenuPageName). The maintainer chose to purge Props, Scenery and SFX's visits (2026-10-25). Mic plot wasn't named, so its visits are kept: they still show under their old name, as a page no longer in the menu.
-- The purge touches the real usage records, so it runs as a repository command the maintainer runs after the deploy (like `pnpm account roles`), and is safe to repeat. It deletes only records for those three page names. Ask before running it against the real table.
+- Mic plot, Props, Scenery and SFX leave the menu, and the Usage page's page names change with them (MenuPageName). The maintainer chose to purge all four pages' visits (2026-10-25).
+- The purge touches the real usage records, so it runs as a repository command the maintainer runs after the deploy (like `pnpm account roles`), and is safe to repeat. It deletes only records for those four page names. Ask before running it against the real table.
 - The browser layout tests already walk the menu. Ask before adding a walk of the new pages (CLAUDE.md).
 - Out of scope: building any of the views. Props arrives in E4.
