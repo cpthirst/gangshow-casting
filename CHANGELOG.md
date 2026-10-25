@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.14.0](https://github.com/cpthirst/gangshow-casting/compare/v1.13.0...v1.14.0) (2026-10-25)
+
+
+### Features
+
+* **api:** department permissions, with casting controls only for Casting (stage-props E1) ([#102](https://github.com/cpthirst/gangshow-casting/issues/102)) ([bf011d8](https://github.com/cpthirst/gangshow-casting/commit/bf011d8e47fb6beadea1cb7e2ee331c3f6b2f3ae))
+
 ## [1.13.0](https://github.com/cpthirst/gangshow-casting/compare/v1.12.0...v1.13.0) (2026-10-24)
 
 
