@@ -20,7 +20,7 @@ And sam's admin-only requests are still refused with "Only admins can do this."
 ### AC2: A change outside the account's permissions is refused
 Given "pat" has the Stage permission only
 When pat sends any casting change, for example adding a cast member, adding a role or saving item notes
-Then the response is 403 saying "You have read-only access."
+Then the response is 403 saying "You can view the casting, but not change it."
 And nothing is changed
 
 ### AC3: Every change route names its permission
@@ -33,7 +33,7 @@ And a route that names neither is refused for everyone but admins before its han
 Given "jo" has no permissions
 When jo asks for the running order, the cast, the roles or the item notes
 Then each answers 200 with the same data an account with Casting gets
-And any change jo sends is refused with 403 saying "You have read-only access."
+And any change jo sends is refused with 403 saying "You can view the casting, but not change it."
 
 ### AC5: Several permissions combine
 Given "kim" has the Casting and Stage permissions
@@ -43,7 +43,7 @@ Then it is allowed, as for an account with Casting only
 ### AC6: Tech and Costume allow no change yet
 Given "lee" has the Tech and Costume permissions only
 When lee sends any change
-Then it is refused with 403 saying "You have read-only access."
+Then it is refused with 403 saying "You can view the casting, but not change it."
 
 ### AC7: An admin keeps today's access
 Given "alex" is an Admin
@@ -58,7 +58,7 @@ Then both are allowed, as for every role today
 ### AC9: An unknown sign-in grants no more than reading
 Given an account whose sign-in carries only groups the API doesn't recognise
 When it sends a change
-Then it is refused with 403 saying "You have read-only access."
+Then it is refused with 403 saying "You can view the casting, but not change it."
 
 ### AC10: Existing accounts keep exactly their access
 Given before this change "sam" is a Casting Team Member, "jo" a Read-Only Team Member and "alex" an Admin

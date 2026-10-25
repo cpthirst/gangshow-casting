@@ -17,7 +17,7 @@ import ClashIcon from "@/components/common/ClashIcon.vue";
 import HelpButton from "@/components/common/HelpButton.vue";
 import ReadOnlyNotice from "@/components/common/ReadOnlyNotice.vue";
 import { showPageTitle } from "@/router/index.ts";
-import { apiFetch, isReadOnly } from "@/services/sign-in.ts";
+import { apiFetch, canChangeCasting } from "@/services/sign-in.ts";
 import { recordItemUse } from "@/services/usage.ts";
 import { CAST_PATH, sortCast } from "@/utils/cast.ts";
 import { clashesOf, describeEach, findClashes } from "@/utils/clashes.ts";
@@ -326,9 +326,9 @@ async function postRole(itemId: string, details: AddRoleRequest) {
       <HelpButton page="casting-item" label="Help for this item" title="Item help" />
     </div>
     <p class="item-position" data-test="position">{{ position }}</p>
-    <!-- Read-only members see the roles and notes with nothing to change them (team-roles FR6). -->
+    <!-- Those who can't change casting see the roles and notes with nothing to change them (team-roles FR6). -->
     <ReadOnlyNotice />
-    <div v-if="!isReadOnly" class="cast-actions">
+    <div v-if="canChangeCasting" class="cast-actions">
       <button
         ref="addButton"
         type="button"
@@ -376,7 +376,7 @@ async function postRole(itemId: string, details: AddRoleRequest) {
         />
         <template v-else>
           <!-- Icons first, as on the Running order and Items pages; above the role on phones. -->
-          <span v-if="!isReadOnly" class="role-actions row-icons">
+          <span v-if="canChangeCasting" class="role-actions row-icons">
             <button
               type="button"
               class="icon-button"

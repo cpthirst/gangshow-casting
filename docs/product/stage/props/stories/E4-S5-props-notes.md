@@ -56,7 +56,7 @@ And nothing extra shows for Finale
 Given "sam" has the Casting permission only
 When sam opens Pirate Sketch's props page
 Then sam sees the props notes but can't edit them
-And the API refuses a props notes save from sam with 403 saying "You have read-only access."
+And the API refuses a props notes save from sam with 403 saying "You can view the props, but not change them."
 
 ## Notes
 

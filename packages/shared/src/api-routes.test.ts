@@ -5,9 +5,14 @@ import {
   adminOnlyRouteKeys,
   isAccountRoute,
   isReadRoute,
+  isRefusalAsReadOnly,
+  localAccess,
+  mayChange,
   needOf,
+  permissions,
   type RouteNeeds,
   readOnlyMayUse,
+  refusalFor,
   roleFrom,
   routeKeys,
   routeNeeds,
@@ -165,5 +170,43 @@ describe("readOnlyMayUse", () => {
       [...routeKeys.filter(isReadRoute), "POST /api/usage"].sort(),
     );
     expect(isReadRoute("POST /api/usage")).toBe(false);
+  });
+});
+
+describe("mayChange", () => {
+  it.each([
+    ["admin", "stage", true],
+    [["casting"], "casting", true],
+    [["casting", "stage"], "stage", true],
+    [["casting"], "stage", false],
+    [[], "casting", false],
+  ] as const)("lets %j change %s: %s", (access, permission, allowed) => {
+    expect(mayChange(access === "admin" ? access : [...access], permission)).toBe(allowed);
+  });
+});
+
+describe("localAccess", () => {
+  it("gives each local role the access the local API enforces for it", () => {
+    expect(localAccess).toEqual({ admin: "admin", casting: ["casting"], "read-only": [] });
+  });
+});
+
+describe("refusalFor", () => {
+  it("says the casting can be viewed but not changed", () => {
+    expect(refusalFor("casting")).toBe("You can view the casting, but not change it.");
+  });
+
+  it("falls back to a general line for a department without its own", () => {
+    expect(refusalFor("tech")).toBe("You can view this, but not change it.");
+  });
+});
+
+describe("isRefusalAsReadOnly", () => {
+  it("recognises every department's refusal, and nothing else", () => {
+    expect(permissions.every((permission) => isRefusalAsReadOnly(refusalFor(permission)))).toBe(
+      true,
+    );
+    expect(isRefusalAsReadOnly("Only admins can do this.")).toBe(false);
+    expect(isRefusalAsReadOnly(undefined)).toBe(false);
   });
 });

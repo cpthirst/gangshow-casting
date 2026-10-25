@@ -7,7 +7,7 @@ import HelpButton from "@/components/common/HelpButton.vue";
 import ReadOnlyNotice from "@/components/common/ReadOnlyNotice.vue";
 import ItemEditor from "@/components/show/ItemEditor.vue";
 import { type RowDrop, vSortableRows } from "@/directives/sortable-rows.ts";
-import { apiFetch, isAdmin, isReadOnly } from "@/services/sign-in.ts";
+import { apiFetch, canChangeCasting, isAdmin } from "@/services/sign-in.ts";
 import { icons } from "@/utils/icons.ts";
 import { ITEM_NOTES_PATH } from "@/utils/item-notes.ts";
 import { ROLES_PATH } from "@/utils/roles.ts";
@@ -92,14 +92,14 @@ async function move(itemId: string, direction: Move) {
   refocus(itemId, direction);
 }
 
-// Read-only members see the order with nothing to change it (team-roles FR6): the Move
-// column, its drag handles and every control are left out. Casting Team Members keep them,
+// Those who can't change Casting see the order with nothing to change it (team-roles FR6):
+// the Move column, its drag handles and every control are left out. Casting keeps them,
 // with saving, adding and removing still waiting for an admin (isAdmin).
 /** Eight columns of the show's details, plus Move for anyone who may change it. */
-const columns = computed(() => (isReadOnly.value ? 8 : 9));
+const columns = computed(() => (canChangeCasting.value ? 9 : 8));
 
 function drop({ itemId, toHalf, toIndex }: RowDrop) {
-  if (state.value.status !== "loaded" || busy.value || isReadOnly.value) return;
+  if (state.value.status !== "loaded" || busy.value || !canChangeCasting.value) return;
   const { working } = state.value;
   const dropped = dropItem(working, itemId, toHalf, toIndex);
   if (!sameContent(dropped, working)) changeWorking(dropped, itemId);
@@ -322,7 +322,7 @@ function refocus(itemId: string, direction: Move) {
       <p class="version">Draft {{ loaded.saved.version }}</p>
       <p v-if="loaded.unsaved" class="unsaved" data-test="unsaved">Unsaved changes</p>
       <ReadOnlyNotice />
-      <template v-if="!isReadOnly">
+      <template v-if="canChangeCasting">
         <p v-if="!isAdmin" class="access-note" data-test="admin-only">{{ ONLY_ADMINS_CHANGE }}</p>
         <button
           type="button"
@@ -359,7 +359,7 @@ function refocus(itemId: string, direction: Move) {
           <table class="running-order" role="table">
             <thead role="rowgroup">
               <tr role="row">
-                <th v-if="!isReadOnly" scope="col" role="columnheader">Move</th>
+                <th v-if="canChangeCasting" scope="col" role="columnheader">Move</th>
                 <th scope="col" role="columnheader">#</th>
                 <th scope="col" role="columnheader">Starts</th>
                 <th scope="col" role="columnheader">Item</th>
@@ -370,7 +370,7 @@ function refocus(itemId: string, direction: Move) {
                 <th scope="col" role="columnheader" class="minutes">Mins</th>
               </tr>
             </thead>
-            <tbody role="rowgroup" :data-half="i" v-sortable-rows="{ onDrop: drop, disabled: busy || isReadOnly }">
+            <tbody role="rowgroup" :data-half="i" v-sortable-rows="{ onDrop: drop, disabled: busy || !canChangeCasting }">
               <tr
                 v-for="{ item, number, startsAt } in rows"
                 role="row"
@@ -383,7 +383,7 @@ function refocus(itemId: string, direction: Move) {
                   <ItemEditor :item="item" @apply="applyEdit" @cancel="endEdit(item.id)" />
                 </td>
                 <template v-else>
-                  <td v-if="!isReadOnly" class="moves" data-label="Move" role="cell">
+                  <td v-if="canChangeCasting" class="moves" data-label="Move" role="cell">
                     <span
                       class="drag-handle"
                       role="img"
@@ -471,11 +471,11 @@ function refocus(itemId: string, direction: Move) {
               <tr
                 v-else-if="rows.length === 0"
                 class="empty-half"
-                :class="{ 'read-only': isReadOnly }"
+                :class="{ 'read-only': !canChangeCasting }"
                 role="row"
               >
                 <td :colspan="columns" role="cell">
-                  <template v-if="isReadOnly">No items yet</template>
+                  <template v-if="!canChangeCasting">No items yet</template>
                   <template v-else>No items. Drag one here, use “Move to {{ half.name.toLowerCase() }}” on an item, or use Add item below.</template>
                 </td>
               </tr>
@@ -489,7 +489,7 @@ function refocus(itemId: string, direction: Move) {
           </table>
         </div>
         <button
-          v-if="!isReadOnly"
+          v-if="canChangeCasting"
           type="button"
           class="add-item"
           :data-add-to="i"

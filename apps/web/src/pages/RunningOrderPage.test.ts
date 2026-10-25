@@ -1356,10 +1356,13 @@ describe("Running order page", () => {
     });
   });
 
-  describe("for a Read-Only Team Member", () => {
+  describe.each([
+    ["with Stage only", ["stage"]],
+    ["with no permissions", []],
+  ])("for an account %s, which can't change Casting", (_who, groups) => {
     beforeEach(async () => {
       sortables.length = 0;
-      await signInAs(["read-only"]);
+      await signInAs(groups);
     });
     afterEach(useLocalSignIn);
 
@@ -1438,7 +1441,7 @@ describe("Running order page", () => {
 
       // In the same place and style as the "Only admins …" line other members see.
       const notice = wrapper.get(".draft-bar [data-test=read-only]");
-      expect(notice.text()).toBe("You have read-only access");
+      expect(notice.text()).toBe("You can view the casting, but not change it.");
       expect(notice.classes()).toContain("access-note");
       expect(wrapper.find("[data-test=admin-only]").exists()).toBe(false);
     });

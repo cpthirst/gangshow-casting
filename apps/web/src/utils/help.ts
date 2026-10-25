@@ -171,7 +171,7 @@ export const pageHelp: PageHelp[] = [
       {
         icons: [icons.cast],
         name: "Open an item",
-        does: "Opens the item to cast it, or to view it if your access is read-only.",
+        does: "Opens the item to cast it, or only to view it without the Casting permission.",
         access: "everyone",
       },
       {

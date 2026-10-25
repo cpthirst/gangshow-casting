@@ -5,7 +5,7 @@ import { computed, nextTick, onMounted, ref, useId } from "vue";
 import HelpButton from "@/components/common/HelpButton.vue";
 import ReadOnlyNotice from "@/components/common/ReadOnlyNotice.vue";
 import CastMemberForm from "@/components/show/CastMemberForm.vue";
-import { apiFetch, isAdmin, isReadOnly } from "@/services/sign-in.ts";
+import { apiFetch, canChangeCasting, isAdmin } from "@/services/sign-in.ts";
 import {
   CAST_PATH,
   type CastFilters,
@@ -279,7 +279,7 @@ onMounted(load);
   <p v-else-if="state.status === 'error'" role="alert">Couldn't load the cast list.</p>
   <template v-else>
     <p class="visually-hidden" role="status" data-test="announcement">{{ announcement }}</p>
-    <div v-if="!isReadOnly" class="cast-actions">
+    <div v-if="canChangeCasting" class="cast-actions">
       <button
         ref="addButton"
         type="button"
@@ -354,7 +354,7 @@ onMounted(load);
         <thead>
           <tr>
             <!-- Icons first, as on the Running order and Items pages. -->
-            <th v-if="!isReadOnly" scope="col" class="actions">Actions</th>
+            <th v-if="canChangeCasting" scope="col" class="actions">Actions</th>
             <th scope="col">First name</th>
             <th scope="col">Last name</th>
             <th scope="col">Section</th>
@@ -366,7 +366,7 @@ onMounted(load);
         <tbody>
           <tr v-for="member in shown" :key="member.id" :data-member-id="member.id">
             <!-- data-label names each cell when small screens show rows as cards. -->
-            <td v-if="!isReadOnly" class="actions row-icons" data-label="Actions">
+            <td v-if="canChangeCasting" class="actions row-icons" data-label="Actions">
               <button
                 type="button"
                 class="icon-button"

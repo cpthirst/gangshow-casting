@@ -33,7 +33,7 @@ export const withArticle = (role: TeamRole) =>
 const CAN_DO: Record<TeamRole, string> = {
   admin: "can manage accounts, delete cast members and save running orders",
   casting: "can change the cast, casting and running order drafts",
-  "read-only": "can only view the show",
+  "read-only": "can view the show but not change the casting",
 };
 
 /** Asked before a role change, which signs the person out so it takes effect (FR10). */

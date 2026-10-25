@@ -74,14 +74,42 @@ export function roleFrom(groups: readonly string[]): TeamRole {
   return access.includes(CASTING_GROUP) ? "casting" : "read-only";
 }
 
-/** The API's answer to a change from a read-only member, which pages recognise (team-roles FR12). */
-export const READ_ONLY_REFUSAL = "You have read-only access.";
+/** The API's answer to a change from someone without a department's permission, if it has none of its own. */
+const GENERAL_REFUSAL = "You can view this, but not change it.";
+
+/** What each department says when it refuses a change, naming what can only be viewed. */
+const departmentRefusals: Partial<Record<Permission, string>> = {
+  casting: "You can view the casting, but not change it.",
+};
+
+/** The API's answer to a change that needs a permission the caller hasn't got. */
+export const refusalFor = (permission: Permission) =>
+  departmentRefusals[permission] ?? GENERAL_REFUSAL;
+
+const readOnlyRefusals = new Set<unknown>(permissions.map(refusalFor));
+
+/** Whether a refusal says the change needed a permission, which pages recognise (team-roles FR12). */
+export const isRefusalAsReadOnly = (message: unknown) => readOnlyRefusals.has(message);
 
 /**
  * Which role pnpm dev and pnpm demo act for, chosen with the local role switch (team-roles
  * FR16). Only the local API reads it; the hosted API takes the role from the sign-in alone.
  */
 export const LOCAL_ROLE_HEADER = "x-local-role";
+
+/**
+ * The local role switch names today's roles until stage-props.E2.S3: each as the access it
+ * means, which the local API enforces and the pages show, so the two can't disagree.
+ */
+export const localAccess: Readonly<Record<TeamRole, Access>> = {
+  admin: "admin",
+  casting: [CASTING_GROUP],
+  "read-only": [],
+};
+
+/** Whether access allows changing a department's data: an admin may change everything. */
+export const mayChange = (access: Access, permission: Permission) =>
+  access === "admin" || access.includes(permission);
 
 /**
  * Routes that aren't a GET but change nothing stored. The export only turns the grid the page

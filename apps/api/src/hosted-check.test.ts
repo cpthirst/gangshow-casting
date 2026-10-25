@@ -22,7 +22,7 @@ const asDeployed: Answer = (method, path, headers) => {
   if (authorization === `Bearer ${READ_ONLY_TOKEN}`) {
     return method === "GET" || path.endsWith("/casting-grid/export")
       ? Response.json({ status: "ok", version: "0.0.0" })
-      : Response.json({ message: "You have read-only access." }, { status: 403 });
+      : Response.json({ message: "You can view the casting, but not change it." }, { status: 403 });
   }
   if (authorization === `Bearer ${MEMBER_TOKEN}` && ADMIN_ONLY.includes(`${method} ${path}`)) {
     return Response.json({ message: "Only admins can do this." }, { status: 403 });

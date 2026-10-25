@@ -67,12 +67,12 @@ Then they're listed "Treasure chest", "Umbrella 2", "umbrella 10"
 ### AC11: Without Stage there's no Add prop
 Given "sam" has the Casting permission only
 When sam opens Pirate Sketch's props page
-Then there's no Add prop, and the page shows the line "You have read-only access"
+Then there's no Add prop, and the page shows the line "You can view the props, but not change them."
 
 ### AC12: The API refuses a prop from anyone without Stage
 Given "sam" has the Casting permission only
 When sam sends a request to add a prop
-Then the response is 403 saying "You have read-only access.", and nothing is added
+Then the response is 403 saying "You can view the props, but not change them.", and nothing is added
 
 ### AC13: A failed save keeps what was typed
 Given pat is adding "Treasure chest"

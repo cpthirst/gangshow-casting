@@ -41,7 +41,7 @@ Then each row's first column has a pencil button named "Edit props for Pirate Sk
 Given "sam" has the Casting permission only
 When sam opens the Props page
 Then each row's first column has a view button named "View props for Pirate Sketch", which opens that item's props page
-And the page shows the line "You have read-only access"
+And the page shows the line "You can view the props, but not change them."
 
 ### AC7: No saved running order
 Given the production has no saved running order

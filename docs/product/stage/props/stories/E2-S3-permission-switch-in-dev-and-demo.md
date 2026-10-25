@@ -20,7 +20,7 @@ Then I'm an Admin, as today, and the switch shows "Admin"
 Given I'm in the demo as an Admin
 When I switch to Stage and Tech
 Then the casting pages show the read-only view
-And the local API refuses my casting changes with "You have read-only access."
+And the local API refuses my casting changes with "You can view the casting, but not change it."
 
 ### AC3: Switching to Casting
 Given I'm in the demo

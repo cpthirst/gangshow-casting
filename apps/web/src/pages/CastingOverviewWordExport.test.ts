@@ -140,7 +140,7 @@ describe("Export to Word", () => {
     expect(buttonNamed(wrapper, "Export to Excel")).toBeDefined();
   });
 
-  it.each([["admin"], ["casting"], ["read-only"]])("lets %s export", async (group) => {
+  it.each([["admin"], ["casting"], ["read-only"], ["stage"]])("lets %s export", async (group) => {
     await signInAs([group]);
     const wrapper = await openView("By item");
 
@@ -301,7 +301,7 @@ describe("Export to Word on the By person view: the Casting Sheets", () => {
     expect(saved.map((file) => file.name)).toEqual([name]);
   });
 
-  it.each([["admin"], ["casting"], ["read-only"]])("lets %s export", async (group) => {
+  it.each([["admin"], ["casting"], ["read-only"], ["stage"]])("lets %s export", async (group) => {
     await signInAs([group]);
     const wrapper = await openView("By person");
 

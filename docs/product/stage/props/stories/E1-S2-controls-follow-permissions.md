@@ -2,7 +2,7 @@
 id: stage-props.E1.S2
 title: Show change controls only to those permitted
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story
@@ -15,7 +15,7 @@ As a stage manager with only Stage permission, I want the casting pages to show 
 Given "pat" has the Stage permission only
 When pat opens the Running order, Cast, Casting Items, an item's casting page or the Casting Overview
 Then each shows the view a Read-Only Team Member sees today: no add, edit, remove, move, drag, notes editing, Save or Reset
-And each shows the line "You have read-only access"
+And each shows the line "You can view the casting, but not change it."
 
 ### AC2: Casting permission keeps today's controls
 Given "sam" has the Casting permission

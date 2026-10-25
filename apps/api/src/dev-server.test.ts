@@ -4,7 +4,6 @@ import {
   adminOnlyRouteKeys,
   HealthResponse,
   LOCAL_ROLE_HEADER,
-  READ_ONLY_REFUSAL,
   UsageSummary,
 } from "@app/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -362,7 +361,7 @@ describe("dev server local role (team-roles FR16)", () => {
     const read = await send("GET", "/api/productions/2027/cast", "read-only");
 
     expect(add.status).toBe(403);
-    expect(await add.json()).toEqual({ message: READ_ONLY_REFUSAL });
+    expect(await add.json()).toEqual({ message: "You can view the casting, but not change it." });
     expect(read.status).toBe(200);
     expect(reached).toEqual(["read"]);
   });

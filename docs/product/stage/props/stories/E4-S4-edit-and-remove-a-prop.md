@@ -50,7 +50,7 @@ Then the prop cards show no pencil and no trash can
 ### AC8: The API refuses edits and removals from anyone without Stage
 Given "sam" has the Casting permission only
 When sam sends a request to edit or remove a prop
-Then the response is 403 saying "You have read-only access.", and the prop is unchanged
+Then the response is 403 saying "You can view the props, but not change them.", and the prop is unchanged
 
 ### AC9: A prop that's already gone
 Given someone else removed "Telescope" after pat's page loaded

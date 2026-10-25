@@ -524,9 +524,12 @@ describe("Notes on the Items list", () => {
   });
 });
 
-describe("The Items list for a Read-Only Team Member", () => {
+describe.each([
+  ["with Stage only", ["stage"]],
+  ["with no permissions", []],
+])("The Items list for an account %s, which can't change Casting", (_who, groups) => {
   beforeEach(async () => {
-    await signInAs(["read-only"]);
+    await signInAs(groups);
   });
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -550,7 +553,9 @@ describe("The Items list for a Read-Only Team Member", () => {
 
     const wrapper = await openItemsPage();
 
-    expect(wrapper.get("[data-test=read-only]").text()).toBe("You have read-only access");
+    expect(wrapper.get("[data-test=read-only]").text()).toBe(
+      "You can view the casting, but not change it.",
+    );
   });
 });
 

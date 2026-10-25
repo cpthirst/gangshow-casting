@@ -640,7 +640,7 @@ describe("Accounts page", () => {
         await flushPromises();
       };
 
-      it("asks first, saying they'll be signed out and can only view, then shows them as read-only", async () => {
+      it("asks first, saying they'll be signed out and can't change casting, then shows them as read-only", async () => {
         const confirm = confirmWith(true);
         const fetchMock = serveChanges([account("sam")], {
           "PUT /api/accounts/sam/role": () => json(account("sam", { role: "read-only" })),
@@ -650,7 +650,7 @@ describe("Accounts page", () => {
         await choose(wrapper, "sam", "read-only");
 
         expect(confirm).toHaveBeenCalledWith(
-          "Make sam a Read-Only Team Member? They'll be signed out on every device, and can only view the show when they sign back in.",
+          "Make sam a Read-Only Team Member? They'll be signed out on every device, and can view the show but not change the casting when they sign back in.",
         );
         expect(changes(fetchMock)).toEqual([
           [

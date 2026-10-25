@@ -287,7 +287,7 @@ describe("Lambda entry point", () => {
   });
 
   describe("read-only members (ADR 0020)", () => {
-    const READ_ONLY = { message: "You have read-only access." };
+    const READ_ONLY = { message: "You can view the casting, but not change it." };
     const setUp = () => {
       const cast = inMemoryCastStore([aCastList([aCastMember(1)])]);
       const roles = inMemoryRoleStore();
@@ -495,7 +495,7 @@ describe("Lambda entry point", () => {
   });
 
   describe("department permissions (ADR 0026)", () => {
-    const READ_ONLY = { message: "You have read-only access." };
+    const READ_ONLY = { message: "You can view the casting, but not change it." };
     const ONLY_ADMINS = { message: "Only admins can do this." };
     const pirate = itemId("Pirate Sketch");
     const setUp = () => {

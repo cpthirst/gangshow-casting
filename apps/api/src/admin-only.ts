@@ -1,4 +1,4 @@
-import { type Access, needOf, READ_ONLY_REFUSAL } from "@app/shared";
+import { type Access, needOf, refusalFor } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 
 /**
@@ -31,6 +31,7 @@ export function accessRefusal(
 ): APIGatewayProxyStructuredResultV2 | undefined {
   if (access === "admin") return undefined;
   const need = needOf(routeKey);
-  if (need === undefined || access.some((permission) => permission === need)) return undefined;
-  return refusal(need === "admin" ? "Only admins can do this." : READ_ONLY_REFUSAL);
+  if (need === undefined) return undefined;
+  if (need === "admin") return refusal("Only admins can do this.");
+  return access.includes(need) ? undefined : refusal(refusalFor(need));
 }

@@ -68,3 +68,9 @@ This amends ADR 0020. Its groups-in-the-token approach, its fail-safe and its ro
   - a department needs some of its changes but not others;
   - permissions need to differ by production;
   - the pool's limit on groups per token becomes a constraint.
+
+## Later changes
+
+Recorded as the stage-props stories were built, so this record stays true without rewriting the decision above.
+
+- **stage-props.E1.S2**: a refusal names the department, rather than one "You have read-only access." for all. A Casting refusal says "You can view the casting, but not change it.", and a department without its own line says "You can view this, but not change it." Pages recognise any of them as read-only. Admin-only routes still answer "Only admins can do this." The maintainer chose this so that someone with only Stage isn't told they're read-only everywhere.

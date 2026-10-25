@@ -1388,6 +1388,7 @@ describe("Excel export from the grid", () => {
   it.each([
     ["a Casting Team Member", ["casting"]],
     ["a Read-Only Team Member", ["read-only"]],
+    ["an account with Stage only", ["stage"]],
   ])("shows %s the button too, and exports for them", async (_who, groups) => {
     await signInAs(groups);
     const wrapper = await openGrid();
@@ -1542,9 +1543,12 @@ describe("Excel export from the grid", () => {
   });
 });
 
-describe("The Overview for a Read-Only Team Member", () => {
+describe.each([
+  ["with Stage only", ["stage"]],
+  ["with no permissions", []],
+])("The Overview for an account %s, which can't change Casting", (_who, groups) => {
   beforeEach(async () => {
-    await signInAs(["read-only"]);
+    await signInAs(groups);
   });
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -1613,7 +1617,9 @@ describe("The Overview for a Read-Only Team Member", () => {
 
     const wrapper = await openOverview();
 
-    expect(wrapper.get("[data-test=read-only]").text()).toBe("You have read-only access");
+    expect(wrapper.get("[data-test=read-only]").text()).toBe(
+      "You can view the casting, but not change it.",
+    );
   });
 });
 
@@ -1624,15 +1630,18 @@ describe("The Overview for other roles", () => {
     useLocalSignIn();
   });
 
-  it.each([["casting"], ["admin"]])("shows %s no read-only line", async (group) => {
-    await signInAs([group]);
-    castIs([person("Ava", "Example", "explorers")]);
+  it.each([[["casting"]], [["casting", "stage"]], [["admin"]]])(
+    "shows %j no read-only line",
+    async (groups) => {
+      await signInAs(groups);
+      castIs([person("Ava", "Example", "explorers")]);
 
-    const wrapper = await openOverview();
+      const wrapper = await openOverview();
 
-    expect(wrapper.text()).toContain("Ava Example");
-    expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
-  });
+      expect(wrapper.text()).toContain("Ava Example");
+      expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
+    },
+  );
 });
 
 describe("The By item view on the Overview", () => {
@@ -1781,7 +1790,7 @@ describe("The By item view on the Overview", () => {
     ]);
   });
 
-  it.each([["admin"], ["casting"], ["read-only"]])(
+  it.each([["admin"], ["casting"], ["read-only"], ["stage"]])(
     "shows %s the same view, with nothing to edit",
     async (group) => {
       await signInAs([group]);
