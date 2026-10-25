@@ -128,6 +128,8 @@ CI runs both of these as separate jobs.
 │   │       ├── services/        Calls to the API or the browser: sign-in, usage, exports
 │   │       ├── utils/           Plain show logic: cast, roles, running order, clashes; word/
 │   │       ├── router/          Routes and the menu
+│   │       ├── composables/     Reusable use… functions
+│   │       ├── directives/      Vue directives: sortable rows
 │   │       └── assets/          Logos and styles.css
 │   └── api/                 Framework-free API: Lambda-shaped handlers (ADR 0006)
 │       └── src/
@@ -136,7 +138,7 @@ CI runs both of these as separate jobs.
 │           └── *-store.ts       In-memory and DynamoDB stores, one contract each
 ├── packages/shared/         zod schemas + inferred types: the API contract
 ├── infra/                   AWS CDK app: one AppStack (pages, API, functions, table, user pool, budget)
-├── tooling/                 Repo scripts: demo.ts, release.ts + harness tests
+├── tooling/                 Repo scripts: demo.ts, release.ts + harness and README tests
 ├── docs/
 │   ├── adr/                 Architecture decision records (see Decisions)
 │   ├── guides/              Running the hosted app; moving to the remote database
@@ -213,7 +215,7 @@ Subagents run in their own context and report back. Fresh context matters: the a
 
 | Reviewer | Runs when the diff touches | Focus |
 |---|---|---|
-| `code-reviewer` | always | Correctness, scope against the story, conventions, ADR conformance, changed or deleted tests, **brevity and clean code** for the next human reader |
+| `code-reviewer` | always | Correctness, scope against the story, conventions (including where web files go, ADR 0025), ADR conformance, changed or deleted tests, **brevity and clean code** for the next human reader, and whether the README still matches |
 | `test-auditor` | a story is being implemented | Maps each acceptance criterion to the test(s) covering it, by behaviour. Would the test fail if the behaviour broke? |
 | `security-reviewer` | the API, the shared contract, web code touching sign-in, tokens, storage or URLs, or dependencies | Input validation, auth, secrets, data exposure, frontend injection, dependencies |
 | `infra-reviewer` | `infra/`, the release script, or how the API is packaged or deployed | IAM, public exposure, destructive replacement, removal policies, cost |
@@ -296,6 +298,8 @@ These cover humans and agents alike, and `pnpm install` installs them.
 - **Tests are named after behaviour** (`it("returns 404 for unknown routes")`), never after stories or tickets. Changing or deleting a test is fine when the behaviour or design changes; say why in the commit.
 - **Strict TypeScript:** `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, and no `any`, `as` casts or `!`. ESM, with `.ts` import extensions.
 - **The API contract lives in `packages/shared`** as zod schemas, used by both the API and the web app.
+- **Web files go in the folder for their kind** (ADR 0025): route pages in `pages/`, components by area, API and browser calls in `services/`, plain logic in `utils/`.
+- **The README keeps up for free:** a test in the gate (`tooling/src/readme.test.ts`) fails when a new ADR, skill, reviewer, workflow or web folder is missing from it. `code-reviewer` judges the rest, and reads the README only when a diff changes something it describes.
 - **Code is written for the next human reader:** brief, intention-revealing names, small functions, no speculative generality, and comments that explain *why*.
 - **Trunk-based development:** short-lived branches, small PRs (aim for under 400 lines, not counting `.md` files) and squash merges. Conventional Commits with scopes `web api infra shared tooling harness deps docs release` (`main` is also allowed, for release-please only).
 

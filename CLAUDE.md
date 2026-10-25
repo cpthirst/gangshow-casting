@@ -98,6 +98,13 @@ Run after the gate is green, before a story is `done` or a PR is opened. **Skip 
 - Strict TypeScript (`noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`). No `any`, no `as` casts to silence errors, no non-null `!`.
 - ESM everywhere; relative imports include the `.ts` extension.
 - In `apps/web`, import across `src/` folders with the `@/` alias (`@/utils/cast.ts`), and within a folder relatively (`./cast.ts`).
+- In `apps/web/src`, put each new file in the folder for its kind (ADR 0025):
+  - `pages/` holds route components (`*Page.vue`) and their tests, nothing else.
+  - A component goes in `components/<area>/`: `app` for the sidebar, `common` if more than one area uses it, otherwise `show` or `casting` (and Props, SFX and the Mic plot will share `production`).
+  - Code that calls `fetch`, browser storage or a download goes in `services/`. Plain logic goes in `utils/`, which may import types from `services/` but never its code or `components/`.
+  - `use…` functions go in `composables/`, and Vue directives in `directives/`.
+  - A new top-level folder (`stores/`, `types/`, `layouts/`) needs an ADR.
+- When a change adds or renames something the README describes (a command, page, package, folder, ADR, skill, reviewer, hook or workflow), update `README.md` in the same PR. `tooling/src/readme.test.ts` checks the names, and `code-reviewer` checks the rest.
 - Biome owns formatting and lint — don't hand-format, run `pnpm format`.
 - Tests live next to code: `foo.ts` → `foo.test.ts`.
 - Keep handlers/adapters thin; logic goes in plain functions that are easy to test.
