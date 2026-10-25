@@ -9,6 +9,7 @@
 - **Each production is self-contained.** Items and casting never carry over between years, even when cast members return. Scope data to a production.
 - **Safeguarding and UK GDPR: most of the cast are under 18.** Store only first name, surname, section (Scouts, Explorers, Network), Scout group or Explorer unit, and age band (ADR 0010), plus short Singing and Acting casting notes (ADR 0014). Never add date of birth, exact age, address, contact details, photos or medical data without a story and an ADR that justify it. Casting data is for the production team only and must never be publicly reachable. The only data about the team is the username an admin chooses for each adult volunteer's account (ADR 0018). Don't put real cast data in tests, fixtures or seed data; use made-up names.
 - **Users are non-technical volunteers**, often updating during or after a rehearsal. Prefer UI that is clear at a glance and quick to edit.
+- **Every page about one item** (its casting, its props, and later its scenery, mic plot or SFX) has a link back to its list, and Previous and Next links to the neighbouring items in running order, as the casting item page does.
 
 ## Platform status
 
