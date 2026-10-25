@@ -16,7 +16,7 @@ async function openHelp() {
   return { wrapper, router };
 }
 
-const ACCESS_LABELS = ["Everyone", "Casting team and admins", "Admins only"];
+const ACCESS_LABELS = ["Everyone", "Accounts with Casting, and admins", "Admins only"];
 
 type Wrapper = Awaited<ReturnType<typeof openHelp>>["wrapper"];
 
@@ -107,7 +107,7 @@ describe("Help page", () => {
       expect(accessOf(wrapper, name)).toBe("Admins only");
     }
     for (const name of ["Drag", "Move", "Edit", "Reset"]) {
-      expect(accessOf(wrapper, name)).toBe("Casting team and admins");
+      expect(accessOf(wrapper, name)).toBe("Accounts with Casting, and admins");
     }
     // So a read-only reviewer sees what they can do here, not only what they can't.
     expect(accessOf(wrapper, "Read the order")).toBe("Everyone");
@@ -167,8 +167,8 @@ describe("Help page", () => {
       ).toEqual([
         "Everyone",
         "Everyone",
-        "Casting team and admins",
-        "Casting team and admins",
+        "Accounts with Casting, and admins",
+        "Accounts with Casting, and admins",
         "Admins only",
       ]);
     });
@@ -258,9 +258,12 @@ describe("Help page", () => {
       expect(access("All items")).toEqual(["Everyone"]);
       expect(access("Previous and Next")).toEqual(["Everyone"]);
       for (const name of ["Add role", "Edit", "Remove"]) {
-        expect(access(name)).toEqual(["Casting team and admins"]);
+        expect(access(name)).toEqual(["Accounts with Casting, and admins"]);
       }
-      expect(access("Notes")).toEqual(["Reading: Everyone", "Changing: Casting team and admins"]);
+      expect(access("Notes")).toEqual([
+        "Reading: Everyone",
+        "Changing: Accounts with Casting, and admins",
+      ]);
     });
   });
 });

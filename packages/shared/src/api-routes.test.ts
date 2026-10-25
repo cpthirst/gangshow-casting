@@ -6,14 +6,13 @@ import {
   isAccountRoute,
   isReadRoute,
   isRefusalAsReadOnly,
-  localAccess,
   mayChange,
   needOf,
   permissions,
   type RouteNeeds,
   readOnlyMayUse,
   refusalFor,
-  roleFrom,
+  roleAccess,
   routeKeys,
   routeNeeds,
 } from "./api-routes.ts";
@@ -27,8 +26,8 @@ describe("adminOnlyRouteKeys", () => {
       "POST /api/accounts",
       "POST /api/accounts/{username}/password",
       "POST /api/productions/{productionId}/running-order/versions",
+      "PUT /api/accounts/{username}/access",
       "PUT /api/accounts/{username}/enabled",
-      "PUT /api/accounts/{username}/role",
     ]);
   });
 });
@@ -39,8 +38,8 @@ describe("accountRouteKeys", () => {
       "GET /api/accounts",
       "POST /api/accounts",
       "POST /api/accounts/{username}/password",
+      "PUT /api/accounts/{username}/access",
       "PUT /api/accounts/{username}/enabled",
-      "PUT /api/accounts/{username}/role",
     ]);
     for (const key of accountRouteKeys) {
       expect(routeKeys).toContain(key);
@@ -128,31 +127,6 @@ describe("routeNeeds", () => {
   });
 });
 
-describe("roleFrom", () => {
-  it.each([
-    [["admin"], "admin"],
-    [["casting"], "casting"],
-    [["read-only"], "read-only"],
-    [["casting", "admin"], "admin"],
-    // Until stage-props.E2.S1 shows permissions, only Casting makes a Casting Team Member.
-    [["casting", "stage"], "casting"],
-    [["stage"], "read-only"],
-    [["tech", "costume"], "read-only"],
-    // An explicit read-only group wins, so a mistaken extra group can't widen access.
-    [["read-only", "casting"], "read-only"],
-    [["admin", "read-only"], "read-only"],
-  ])("gives %j the %s role", (groups, role) => {
-    expect(roleFrom(groups)).toBe(role);
-  });
-
-  it.each([[[]], [["crew"]], [["Admin"]], [["superadmin"]]])(
-    "treats %j, which names no role, as read-only",
-    (groups) => {
-      expect(roleFrom(groups)).toBe("read-only");
-    },
-  );
-});
-
 describe("isReadRoute", () => {
   it("counts GET routes and the casting grid export, which changes nothing, as reads", () => {
     expect(routeKeys.filter((key) => key.startsWith("GET ")).every(isReadRoute)).toBe(true);
@@ -185,9 +159,9 @@ describe("mayChange", () => {
   });
 });
 
-describe("localAccess", () => {
-  it("gives each local role the access the local API enforces for it", () => {
-    expect(localAccess).toEqual({ admin: "admin", casting: ["casting"], "read-only": [] });
+describe("roleAccess", () => {
+  it("gives each of today's roles the access it means", () => {
+    expect(roleAccess).toEqual({ admin: "admin", casting: ["casting"], "read-only": [] });
   });
 });
 

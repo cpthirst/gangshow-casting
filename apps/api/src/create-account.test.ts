@@ -15,26 +15,30 @@ function setUp() {
 }
 
 describe("create account handler", () => {
-  it.each(["admin", "casting", "read-only"] as const)(
-    "creates an enabled account in the %s role, in no other",
-    async (role) => {
+  it.each([
+    ["admin", "admin"],
+    ["casting", ["casting"]],
+    ["read-only", []],
+  ] as const)(
+    "creates an enabled account in the %s role, with only its access",
+    async (role, access) => {
       const { handler, directory } = setUp();
 
       const res = await handler(request({ username: "jo", role }));
 
       expect(res.statusCode).toBe(201);
-      expect(await directory.list()).toEqual([{ username: "jo", role, enabled: true }]);
+      expect(await directory.list()).toEqual([{ username: "jo", access, enabled: true }]);
     },
   );
 
-  it("creates a Read-Only Team Member and returns its temporary password once", async () => {
+  it("creates a read-only account and returns its temporary password once", async () => {
     const { handler, accounts } = setUp();
 
     const res = await handler(request({ username: "jo", role: "read-only" }));
 
     expect(res.statusCode).toBe(201);
     expect(CreatedAccount.parse(JSON.parse(res.body ?? ""))).toEqual({
-      account: { username: "jo", role: "read-only", enabled: true },
+      account: { username: "jo", access: [], enabled: true },
       temporaryPassword: "Made-up-temp-1",
     });
     // A temporary password: Jo must choose a new one at first sign-in.
@@ -49,7 +53,7 @@ describe("create account handler", () => {
 
   it("refuses a username that's taken in any case with 409, creating nothing", async () => {
     const { handler, directory, accounts } = setUp();
-    await directory.create("sam", "Made-up-1", "casting");
+    await directory.create("sam", "Made-up-1", ["casting"]);
 
     const res = await handler(request({ username: "Sam", role: "casting" }));
 

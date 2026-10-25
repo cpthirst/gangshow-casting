@@ -3,8 +3,8 @@ import {
   accessFrom,
   isRefusalAsReadOnly,
   LOCAL_ROLE_HEADER,
-  localAccess,
   mayChange,
+  roleAccess,
   type SignInConfig,
   type TeamRole,
 } from "@app/shared";
@@ -96,7 +96,7 @@ export const signedInUsername = computed(() => user.value?.username);
 const access = computed<Access>(() => {
   if (refusedAsReadOnly.value) return [];
   return session.value.kind === "local"
-    ? localAccess[session.value.role]
+    ? roleAccess[session.value.role]
     : accessFrom(user.value?.groups ?? []);
 });
 /** The role the local role switch shows; none outside pnpm dev and pnpm demo. */

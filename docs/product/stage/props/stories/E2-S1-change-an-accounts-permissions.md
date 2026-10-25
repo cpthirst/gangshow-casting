@@ -2,7 +2,7 @@
 id: stage-props.E2.S1
 title: Change an account's permissions
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story

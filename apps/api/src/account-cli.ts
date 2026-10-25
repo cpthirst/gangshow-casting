@@ -74,7 +74,7 @@ export async function runAccount(args: string[], env: Env, deps: Deps): Promise<
       const { admin, member, readOnly } = parsed.check;
       const passwords = await setUpCheckAccounts(directory, parsed.check, deps.newPassword);
       print(
-        `${admin} is an Admin, ${member} a Casting Team Member and ${readOnly} a Read-Only Team Member, all with permanent passwords.`,
+        `${admin} is an Admin, ${member} has Casting and ${readOnly} is Read-only, all with permanent passwords.`,
       );
       print("Passwords, shown only now, for pnpm check:hosted:");
       print(`  ${admin}: ${passwords.admin}`);

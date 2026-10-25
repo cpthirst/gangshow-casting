@@ -1,6 +1,6 @@
 // Local stand-in for API Gateway: serves the same handlers Lambda will run (ADR 0006).
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { LOCAL_ROLE_HEADER, localAccess, TeamRole } from "@app/shared";
+import { LOCAL_ROLE_HEADER, roleAccess, TeamRole } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import { accessRefusal } from "./admin-only.ts";
 import type { Handler } from "./handler.ts";
@@ -25,7 +25,7 @@ export function createDevServer(table: Record<string, Handler>) {
       return;
     }
     // Like the hosted entry point, before the handler runs (ADR 0026).
-    const refusedRole = accessRefusal(route.key, localAccess[localRole(req)]);
+    const refusedRole = accessRefusal(route.key, roleAccess[localRole(req)]);
     if (refusedRole) {
       send(res, refusedRole);
       return;

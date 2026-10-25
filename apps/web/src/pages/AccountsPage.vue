@@ -1,17 +1,30 @@
 <script setup lang="ts">
-import { AccountList, AccountSummary, CreatedAccount, TeamRole, Username } from "@app/shared";
+import {
+  type AccountAccess,
+  AccountList,
+  AccountSummary,
+  CreatedAccount,
+  type Permission,
+  permissions,
+  type TeamRole,
+  Username,
+} from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, nextTick, onMounted, ref, useId } from "vue";
 import { apiFetch, signedInUsername } from "@/services/sign-in.ts";
 import {
   ACCOUNTS_PATH,
+  accessChanged,
+  accessLabel,
+  accessWarning,
   accountPath,
   disableWarning,
+  inOrder,
+  PERMISSION_NAMES,
   ROLE_NAMES,
   resetWarning,
-  roleWarning,
+  sameAccess,
   sortAccounts,
-  withArticle,
 } from "@/utils/accounts.ts";
 import { icons } from "@/utils/icons.ts";
 
@@ -33,8 +46,10 @@ const newRole = ref<TeamRole>("read-only");
 const usernameError = ref("");
 const formError = ref("");
 const saving = ref(false);
-// While the form is open or a change is saving, other changes wait.
-const busy = computed(() => adding.value || saving.value);
+/** The account whose tick boxes are open, and what they're ticked as. */
+const editing = ref<{ username: string; admin: boolean; permissions: Permission[] } | null>(null);
+// While a form is open or a change is saving, other changes wait.
+const busy = computed(() => adding.value || editing.value !== null || saving.value);
 /** A temporary password just issued, for a new account or a reset: shown once, until passed on. */
 const issued = ref<{ result: CreatedAccount; isNew: boolean } | null>(null);
 /** Visible message about a change that didn't go through. */
@@ -215,12 +230,12 @@ async function resetPassword(account: AccountSummary) {
   await focusRowButton(name, "reset-password");
 }
 
-type RowAction = "reset-password" | "disable" | "enable" | "role";
+type RowAction = "reset-password" | "disable" | "enable" | "change-access";
 
 interface AccessChange {
   /** The account's address after its own, and the change to send it. */
-  field: "enabled" | "role";
-  body: { enabled: boolean } | { role: TeamRole };
+  field: "enabled" | "access";
+  body: { enabled: boolean } | { access: AccountAccess };
   failed: string;
   /** What to say if the API refuses it as locking someone out, and says nothing itself. */
   conflict: string;
@@ -270,30 +285,51 @@ async function setEnabled(account: AccountSummary, enabled: boolean) {
   });
 }
 
-// It changes what they can do and signs them out, so it's confirmed first (team-roles FR10).
-async function setRole(account: AccountSummary, event: Event) {
-  const choice = event.currentTarget;
-  if (!(choice instanceof HTMLSelectElement)) return;
-  const role = TeamRole.safeParse(choice.value);
-  const { username: name } = account;
-  // Cancelled or refused: the choice goes back to the role they still have.
-  if (!role.success || busy.value || !window.confirm(roleWarning(name, role.data))) {
-    choice.value = account.role;
-    return;
-  }
-  const saved = await putAccess(account, {
-    field: "role",
-    body: { role: role.data },
-    failed: `Couldn't change ${name}'s role. Try again.`,
-    conflict: "You can't change your own role.",
-    done: `${name} is now ${withArticle(role.data)}.`,
-    focusWhenDone: "role",
-    focusWhenFailed: "role",
-  });
-  if (!saved) choice.value = account.role;
+async function startEditing(account: AccountSummary) {
+  const { username: name, access } = account;
+  issued.value = null;
+  notice.value = "";
+  editing.value = {
+    username: name,
+    admin: access === "admin",
+    permissions: access === "admin" ? [] : [...access],
+  };
+  await nextTick();
+  document.querySelector<HTMLInputElement>(`[data-access-for="${name}"] [name=admin]`)?.focus();
 }
 
-/** The signed-in admin's own account, which they can't disable or change the role of (FR14). */
+async function stopEditing() {
+  const name = editing.value?.username;
+  editing.value = null;
+  if (name) await focusRowButton(name, "change-access");
+}
+
+// It changes what they can do and signs them out, so it's confirmed first (stage-props FR6).
+// Cancelling the confirmation leaves the tick boxes open, to change or cancel.
+async function saveAccess(account: AccountSummary) {
+  const ticked = editing.value;
+  if (!ticked || saving.value) return;
+  const { username: name } = account;
+  const access: AccountAccess = ticked.admin ? "admin" : inOrder(ticked.permissions);
+  // Nothing to change, so no one need be asked, or signed out.
+  if (sameAccess(access, account.access)) {
+    await stopEditing();
+    return;
+  }
+  if (!window.confirm(accessWarning(name, access))) return;
+  editing.value = null;
+  await putAccess(account, {
+    field: "access",
+    body: { access },
+    failed: `Couldn't change ${name}'s access. Try again.`,
+    conflict: "You can't change your own access.",
+    done: accessChanged(name, access),
+    focusWhenDone: "change-access",
+    focusWhenFailed: "change-access",
+  });
+}
+
+/** The signed-in admin's own account, which they can't disable or change the access of (FR8). */
 const isOwn = (account: AccountSummary) =>
   account.username.toLowerCase() === signedInUsername.value?.toLowerCase();
 
@@ -351,7 +387,7 @@ onMounted(load);
         </p>
       </div>
       <div class="field">
-        <label :for="`${uid}-role`">Role</label>
+        <label :for="`${uid}-role`">Access</label>
         <select :id="`${uid}-role`" v-model="newRole" name="role">
           <option v-for="(label, role) in ROLE_NAMES" :key="role" :value="role">
             {{ label }}
@@ -407,81 +443,130 @@ onMounted(load);
           <tr>
             <th scope="col" class="actions">Actions</th>
             <th scope="col">Username</th>
-            <th scope="col">Role</th>
+            <th scope="col">Access</th>
             <th scope="col">Status</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="account in accounts" :key="account.username" :data-username="account.username">
-            <td class="actions row-icons" data-label="Actions">
-              <button
-                type="button"
-                class="icon-button"
-                :aria-label="`Reset ${account.username}'s password`"
-                data-test="reset-password"
-                data-tooltip="Reset password"
-                :disabled="busy"
-                @click="resetPassword(account)"
-              >
-                <FontAwesomeIcon :icon="icons.resetPassword" />
-              </button>
-              <button
-                v-if="account.enabled"
-                type="button"
-                class="icon-button"
-                :aria-label="`Disable ${account.username}`"
-                data-test="disable"
-                :data-tooltip="isOwn(account) ? 'You can\'t disable your own account' : 'Disable account'"
-                :aria-describedby="isOwn(account) ? `${uid}-own-disable` : undefined"
-                :disabled="busy || isOwn(account)"
-                @click="setEnabled(account, false)"
-              >
-                <FontAwesomeIcon :icon="icons.disable" />
-              </button>
-              <button
-                v-else
-                type="button"
-                class="icon-button"
-                :aria-label="`Enable ${account.username}`"
-                data-test="enable"
-                data-tooltip="Enable account"
-                :disabled="busy"
-                @click="setEnabled(account, true)"
-              >
-                <FontAwesomeIcon :icon="icons.enable" />
-              </button>
-            </td>
-            <td class="username" data-label="Username">{{ account.username }}</td>
-            <td class="role-choice" data-label="Role">
-              <!-- The column header (or the card's label on phones) is the visible label. -->
-              <select
-                :aria-label="`Role for ${account.username}`"
-                :value="account.role"
-                data-test="role"
-                :disabled="busy || isOwn(account)"
-                :aria-describedby="isOwn(account) ? `${uid}-own-role` : undefined"
-                @change="setRole(account, $event)"
-              >
-                <option v-for="(label, role) in ROLE_NAMES" :key="role" :value="role">
-                  {{ label }}
-                </option>
-              </select>
-              <!-- Admins can do the most, so they stand out at a glance. -->
-              <span v-if="account.role === 'admin'" class="badge">Admin</span>
-              <p v-if="isOwn(account)" :id="`${uid}-own-role`" class="hint">
-                You can't change your own role
-              </p>
-            </td>
-            <!-- Badges only on the states a volunteer needs to notice. -->
-            <td class="status" data-label="Status">
-              <span v-if="!account.enabled" class="badge">Disabled</span>
-              <template v-else>Enabled</template>
-              <!-- Phones show no tooltips, so the reason is on the page too. -->
-              <p v-if="isOwn(account) && account.enabled" :id="`${uid}-own-disable`" class="hint">
-                You can't disable your own account
-              </p>
-            </td>
-          </tr>
+          <template v-for="account in accounts" :key="account.username">
+            <tr :data-username="account.username">
+              <td class="actions row-icons" data-label="Actions">
+                <button
+                  type="button"
+                  class="icon-button"
+                  :aria-label="`Change ${account.username}'s access`"
+                  data-test="change-access"
+                  :data-tooltip="isOwn(account) ? 'You can\'t change your own access' : 'Change access'"
+                  :aria-describedby="isOwn(account) ? `${uid}-own-access` : undefined"
+                  :disabled="busy || isOwn(account)"
+                  @click="startEditing(account)"
+                >
+                  <FontAwesomeIcon :icon="icons.edit" />
+                </button>
+                <button
+                  type="button"
+                  class="icon-button"
+                  :aria-label="`Reset ${account.username}'s password`"
+                  data-test="reset-password"
+                  data-tooltip="Reset password"
+                  :disabled="busy"
+                  @click="resetPassword(account)"
+                >
+                  <FontAwesomeIcon :icon="icons.resetPassword" />
+                </button>
+                <button
+                  v-if="account.enabled"
+                  type="button"
+                  class="icon-button"
+                  :aria-label="`Disable ${account.username}`"
+                  data-test="disable"
+                  :data-tooltip="isOwn(account) ? 'You can\'t disable your own account' : 'Disable account'"
+                  :aria-describedby="isOwn(account) ? `${uid}-own-disable` : undefined"
+                  :disabled="busy || isOwn(account)"
+                  @click="setEnabled(account, false)"
+                >
+                  <FontAwesomeIcon :icon="icons.disable" />
+                </button>
+                <button
+                  v-else
+                  type="button"
+                  class="icon-button"
+                  :aria-label="`Enable ${account.username}`"
+                  data-test="enable"
+                  data-tooltip="Enable account"
+                  :disabled="busy"
+                  @click="setEnabled(account, true)"
+                >
+                  <FontAwesomeIcon :icon="icons.enable" />
+                </button>
+              </td>
+              <td class="username" data-label="Username">{{ account.username }}</td>
+              <td class="access" data-label="Access">
+                <!-- Admins can do the most, so they stand out at a glance. -->
+                <span data-test="access" :class="{ badge: account.access === 'admin' }">{{
+                  accessLabel(account.access)
+                }}</span>
+                <p v-if="isOwn(account)" :id="`${uid}-own-access`" class="hint">
+                  You can't change your own access
+                </p>
+              </td>
+              <!-- Badges only on the states a volunteer needs to notice. -->
+              <td class="status" data-label="Status">
+                <span v-if="!account.enabled" class="badge">Disabled</span>
+                <template v-else>Enabled</template>
+                <!-- Phones show no tooltips, so the reason is on the page too. -->
+                <p v-if="isOwn(account) && account.enabled" :id="`${uid}-own-disable`" class="hint">
+                  You can't disable your own account
+                </p>
+              </td>
+            </tr>
+            <!-- Its own row across the table, as the Add account form spans the page. -->
+            <tr
+              v-if="editing?.username === account.username"
+              class="access-editing"
+              :data-access-for="account.username"
+            >
+              <td colspan="4">
+                <form
+                  class="access-form"
+                  data-test="access-form"
+                  novalidate
+                  @submit.prevent="saveAccess(account)"
+                  @keydown.esc="stopEditing"
+                >
+                  <fieldset>
+                    <legend>Access for {{ account.username }}</legend>
+                    <label class="checkbox">
+                      <input v-model="editing.admin" type="checkbox" name="admin" />
+                      <span>Admin</span>
+                    </label>
+                    <!-- Admin is everything, so the permissions wait until it's unticked. -->
+                    <label v-for="permission in permissions" :key="permission" class="checkbox">
+                      <input
+                        v-model="editing.permissions"
+                        type="checkbox"
+                        name="permissions"
+                        :value="permission"
+                        :disabled="editing.admin"
+                      />
+                      <span>{{ PERMISSION_NAMES[permission] }}</span>
+                    </label>
+                  </fieldset>
+                  <div class="editor-actions">
+                    <button type="submit" class="primary" :disabled="saving">Save</button>
+                    <button
+                      type="button"
+                      data-test="cancel-access"
+                      :disabled="saving"
+                      @click="stopEditing"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </td>
+            </tr>
+          </template>
         </tbody>
       </table>
     </div>

@@ -11,7 +11,7 @@ export const routeKeys = [
   "POST /api/accounts",
   "POST /api/accounts/{username}/password",
   "PUT /api/accounts/{username}/enabled",
-  "PUT /api/accounts/{username}/role",
+  "PUT /api/accounts/{username}/access",
   "GET /api/productions/{productionId}/running-order",
   "POST /api/productions/{productionId}/running-order/versions",
   "GET /api/productions/{productionId}/cast",
@@ -39,7 +39,7 @@ export const STAGE_GROUP = "stage";
 export const TECH_GROUP = "tech";
 export const COSTUME_GROUP = "costume";
 /**
- * The retiring group for Read-Only Team Members (ADR 0020). Until a later release deletes it,
+ * The retiring group for read-only accounts (ADR 0020). Until a later release deletes it,
  * being in it grants nothing and cancels every other group, so no account is widened before
  * `pnpm account roles` moves it out (ADR 0026).
  */
@@ -61,17 +61,6 @@ export function accessFrom(groups: readonly string[]): Access {
   if (groups.includes(READ_ONLY_GROUP)) return [];
   if (groups.includes(ADMIN_GROUP)) return "admin";
   return permissions.filter((permission) => groups.includes(permission));
-}
-
-/**
- * A token's groups as one of today's team roles, which the Accounts page and the pages'
- * controls still show until stage-props.E2.S1: Casting makes a Casting Team Member, and any
- * other non-admin may change no casting, so is a Read-Only Team Member.
- */
-export function roleFrom(groups: readonly string[]): TeamRole {
-  const access = accessFrom(groups);
-  if (access === "admin") return "admin";
-  return access.includes(CASTING_GROUP) ? "casting" : "read-only";
 }
 
 /** The API's answer to a change from someone without a department's permission, if it has none of its own. */
@@ -98,10 +87,11 @@ export const isRefusalAsReadOnly = (message: unknown) => readOnlyRefusals.has(me
 export const LOCAL_ROLE_HEADER = "x-local-role";
 
 /**
- * The local role switch names today's roles until stage-props.E2.S3: each as the access it
- * means, which the local API enforces and the pages show, so the two can't disagree.
+ * The access each of today's roles means. The local role switch names them until
+ * stage-props.E2.S3, so the local API and the pages can't disagree, and a new account gets
+ * one until stage-props.E2.S2.
  */
-export const localAccess: Readonly<Record<TeamRole, Access>> = {
+export const roleAccess: Readonly<Record<TeamRole, Access>> = {
   admin: "admin",
   casting: [CASTING_GROUP],
   "read-only": [],
@@ -157,7 +147,7 @@ export const routeNeeds: RouteNeeds = {
   "POST /api/accounts": "admin",
   "POST /api/accounts/{username}/password": "admin",
   "PUT /api/accounts/{username}/enabled": "admin",
-  "PUT /api/accounts/{username}/role": "admin",
+  "PUT /api/accounts/{username}/access": "admin",
   "POST /api/productions/{productionId}/running-order/versions": "admin",
   "POST /api/productions/{productionId}/cast": "casting",
   "PUT /api/productions/{productionId}/cast/{castId}": "casting",
@@ -195,7 +185,7 @@ export const accountRouteKeys = [
   "POST /api/accounts",
   "POST /api/accounts/{username}/password",
   "PUT /api/accounts/{username}/enabled",
-  "PUT /api/accounts/{username}/role",
+  "PUT /api/accounts/{username}/access",
 ] as const satisfies readonly RouteKey[];
 
 export type AccountRouteKey = (typeof accountRouteKeys)[number];

@@ -1,16 +1,16 @@
-import type { TeamRole } from "@app/shared";
+import type { Access } from "@app/shared";
 import type { PasswordKind, UserDirectory } from "./user-directory.ts";
 
 type NewPassword = () => string;
 
 /**
- * Gives the account a fresh password of the given kind, enabled and in the given role,
+ * Gives the account a fresh password of the given kind, enabled and with the given access,
  * creating it if it's missing. Returns the password, which nothing else holds.
  */
 async function putAccount(
   directory: UserDirectory,
   username: string,
-  { role, kind }: { role: TeamRole; kind: PasswordKind },
+  { access, kind }: { access: Access; kind: PasswordKind },
   newPassword: NewPassword,
 ) {
   const password = newPassword();
@@ -18,11 +18,11 @@ async function putAccount(
   if (existing) {
     await directory.setPassword(username, password, kind);
     await directory.setEnabled(username, true);
-    await directory.setRole(username, role);
+    await directory.setAccess(username, access);
     // A forgotten password may also be a stolen one.
     await directory.signOutEverywhere(username);
   } else {
-    await directory.create(username, password, role);
+    await directory.create(username, password, access);
     // A new account's password is always temporary, so a permanent one takes a second step.
     if (kind === "permanent") await directory.setPassword(username, password, kind);
   }
@@ -34,10 +34,13 @@ async function putAccount(
  * an admin, and a new temporary password they must change at their next sign-in.
  */
 export function restoreAdmin(directory: UserDirectory, username: string, newPassword: NewPassword) {
-  return putAccount(directory, username, { role: "admin", kind: "temporary" }, newPassword);
+  return putAccount(directory, username, { access: "admin", kind: "temporary" }, newPassword);
 }
 
-/** The post-deploy check's accounts: one in each role (hosting FR17, team-roles FR15). */
+/**
+ * The post-deploy check's accounts (hosting FR17, team-roles FR15): an Admin, a member with
+ * Casting, and a read-only account.
+ */
 export type CheckAccounts = { admin: string; member: string; readOnly: string };
 
 /**
@@ -49,12 +52,12 @@ export async function setUpCheckAccounts(
   usernames: CheckAccounts,
   newPassword: NewPassword,
 ): Promise<CheckAccounts> {
-  const put = async (username: string, role: TeamRole) =>
-    (await putAccount(directory, username, { role, kind: "permanent" }, newPassword)).password;
+  const put = async (username: string, access: Access) =>
+    (await putAccount(directory, username, { access, kind: "permanent" }, newPassword)).password;
   return {
     admin: await put(usernames.admin, "admin"),
-    member: await put(usernames.member, "casting"),
-    readOnly: await put(usernames.readOnly, "read-only"),
+    member: await put(usernames.member, ["casting"]),
+    readOnly: await put(usernames.readOnly, []),
   };
 }
 

@@ -1,4 +1,4 @@
-import { type CreatedAccount, NewAccount } from "@app/shared";
+import { type CreatedAccount, NewAccount, roleAccess } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import type { ApiEvent } from "./handler.ts";
 import { jsonResponse, messageResponse, parseJson } from "./json.ts";
@@ -18,16 +18,17 @@ export function createCreateAccount(directory: UserDirectory, newPassword: () =>
     }
 
     const { username, role } = request.data;
+    const access = roleAccess[role];
     const temporaryPassword = newPassword();
     try {
-      await directory.create(username, temporaryPassword, role);
+      await directory.create(username, temporaryPassword, access);
     } catch (error) {
       if (error instanceof UsernameTaken)
         return messageResponse(409, "That username is already taken.");
       throw error;
     }
     const created: CreatedAccount = {
-      account: { username, role, enabled: true },
+      account: { username, access, enabled: true },
       temporaryPassword,
     };
     return jsonResponse(201, created);

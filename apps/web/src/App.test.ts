@@ -262,12 +262,12 @@ describe("App shell", () => {
       expect(choice.element.selectedOptions[0]?.text).toBe("Admin");
       expect(choice.findAll("option").map((option) => option.text())).toEqual([
         "Admin",
-        "Casting Team Member",
-        "Read-Only Team Member",
+        "Casting",
+        "Read-only",
       ]);
     });
 
-    it("leaves Accounts out of the menu once switched to Casting Team Member", async () => {
+    it("leaves Accounts out of the menu once switched to Casting", async () => {
       const { wrapper } = await openAppAt("/");
 
       await roleSwitch(wrapper).setValue("casting");
@@ -287,7 +287,7 @@ describe("App shell", () => {
       ]);
     });
 
-    it("shows the read-only view once switched to Read-Only Team Member", async () => {
+    it("shows the read-only view once switched to Read-only", async () => {
       const { wrapper } = await openAppAt("/cast");
       expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
 

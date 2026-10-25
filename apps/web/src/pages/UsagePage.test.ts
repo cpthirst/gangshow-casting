@@ -13,7 +13,7 @@ enableAutoUnmount(afterEach);
 // Made-up usernames only (CLAUDE.md safeguarding).
 const accounts: AccountSummary[] = ["robin", "alex", "sky", "kit"].map((username) => ({
   username,
-  role: "casting",
+  access: ["casting"],
   enabled: true,
 }));
 

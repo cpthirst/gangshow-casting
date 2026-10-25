@@ -19,13 +19,13 @@ async function serve() {
 
 // pnpm dev and pnpm demo run the dev server, which never contacts AWS (ADR 0018).
 describe("accounts locally", () => {
-  it("lists made-up accounts, including one in each role and a disabled one", async () => {
+  it("lists made-up accounts: an Admin, some mixes of permissions, a read-only and a disabled one", async () => {
     const url = await serve();
 
     const { accounts } = AccountList.parse(await (await fetch(url)).json());
 
-    expect(new Set(accounts.map((account) => account.role))).toEqual(
-      new Set(["admin", "casting", "read-only"]),
+    expect(accounts.map((account) => account.access)).toEqual(
+      expect.arrayContaining(["admin", ["casting"], ["stage", "tech"], []]),
     );
     expect(accounts.some((account) => !account.enabled)).toBe(true);
   });
@@ -42,7 +42,7 @@ describe("accounts locally", () => {
 
     expect(res.status).toBe(201);
     expect(CreatedAccount.parse(await res.json()).temporaryPassword).not.toBe("");
-    expect(accounts).toContainEqual({ username: "jo", role: "casting", enabled: true });
+    expect(accounts).toContainEqual({ username: "jo", access: ["casting"], enabled: true });
   });
 
   it("starts afresh each time, so nothing created lasts past a restart", async () => {

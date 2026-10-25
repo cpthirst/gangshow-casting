@@ -6,6 +6,9 @@ export const anAccount = (
   flags: {
     admin?: boolean;
     casting?: boolean;
+    stage?: boolean;
+    tech?: boolean;
+    costume?: boolean;
     readOnly?: boolean;
     enabled?: boolean;
     password?: string;
@@ -13,8 +16,11 @@ export const anAccount = (
 ) => ({
   username,
   admin: flags.admin ?? false,
-  // In no role group unless asked, like every non-admin before team roles (ADR 0020).
+  // In no group unless asked, like every non-admin before team roles (ADR 0020).
   casting: flags.casting ?? false,
+  stage: flags.stage ?? false,
+  tech: flags.tech ?? false,
+  costume: flags.costume ?? false,
   readOnly: flags.readOnly ?? false,
   enabled: flags.enabled ?? true,
   password: flags.password ?? "Made-up-own-1",
@@ -22,7 +28,7 @@ export const anAccount = (
   signedOutEverywhere: 0,
 });
 
-/** A directory holding "pat" (an admin) and "sam" (a Casting Team Member), both signed in
+/** A directory holding "pat" (an admin) and "sam" (with Casting), both signed in
  *  with their own passwords. */
 export const aTeamDirectory = () =>
   memoryUserDirectory([anAccount("pat", { admin: true }), anAccount("sam", { casting: true })]);

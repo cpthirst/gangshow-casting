@@ -149,7 +149,7 @@ describe("the account script", () => {
     ]);
     expect(lines).toEqual([
       `Using user pool ${POOL}.`,
-      "check-admin is an Admin, check-member a Casting Team Member and check-read-only a Read-Only Team Member, all with permanent passwords.",
+      "check-admin is an Admin, check-member has Casting and check-read-only is Read-only, all with permanent passwords.",
       "Passwords, shown only now, for pnpm check:hosted:",
       "  check-admin: Made-up-password-1",
       "  check-member: Made-up-password-2",
@@ -191,8 +191,8 @@ describe("the account script", () => {
       anAccount("alex", { admin: true }),
       anAccount("kit", { readOnly: true, enabled: false }),
     ]);
-    const roles = async () => (await existing.directory.list()).map(({ role }) => role);
-    const before = await roles();
+    const access = async () => (await existing.directory.list()).map(({ access }) => access);
+    const before = await access();
 
     const { code, lines, accounts } = await run(["roles"], { USER_POOL_ID: POOL }, existing);
 
@@ -215,7 +215,7 @@ describe("the account script", () => {
       { username: "alex", admin: true, casting: false, readOnly: false },
       { username: "kit", admin: false, casting: false, readOnly: false },
     ]);
-    expect(await roles()).toEqual(before);
+    expect(await access()).toEqual(before);
   });
 
   it("takes the other groups from an account also in read-only, so the move widens no one's access", async () => {
@@ -235,11 +235,7 @@ describe("the account script", () => {
       "Also took their other groups from jo, lee, as read-only cancelled them.",
       "They have no permissions now, so they may still only read.",
     ]);
-    expect((await existing.directory.list()).map(({ role }) => role)).toEqual([
-      "read-only",
-      "read-only",
-      "read-only",
-    ]);
+    expect((await existing.directory.list()).map(({ access }) => access)).toEqual([[], [], []]);
     expect(again.accounts).toEqual(existing.accounts());
     expect(again.lines.at(-1)).toContain("Moved 0");
   });

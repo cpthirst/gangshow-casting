@@ -629,7 +629,7 @@ main a {
   font-style: italic;
 }
 
-/* Nothing can be dropped in for a Read-Only Team Member, so it isn't drawn as a target. */
+/* Nothing can be dropped in for a read-only account, so it isn't drawn as a target. */
 .running-order .empty-half.read-only td {
   padding: 0.75rem;
   border: none;
@@ -766,7 +766,7 @@ main a {
   font: inherit;
 }
 
-/* A Read-Only Team Member's view of the notes: their own line breaks, and long words wrap. */
+/* A read-only view of the notes: their own line breaks, and long words wrap. */
 .item-notes .notes-text {
   white-space: pre-line;
   overflow-wrap: anywhere;
@@ -956,7 +956,6 @@ main a {
 
 .cast-member-form input,
 .cast-member-form select,
-.role-choice select,
 .local-role select {
   padding: 0.5rem;
   border: 1px solid var(--text);
@@ -1150,15 +1149,32 @@ main a {
   white-space: nowrap;
 }
 
-/* An account's role, chosen in its row with the forms' dropdown (shared rules above). */
-.role-choice select {
-  max-width: 100%;
-  margin-right: 0.5rem;
+/* An account's access, changed with tick boxes in a row of its own, saved in one step. */
+.access-form fieldset {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin: 0 0 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--text);
+  border-radius: 0.25rem;
 }
 
-.role-choice select:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.access-form legend {
+  padding: 0 0.25rem;
+  font-weight: 700;
+}
+
+.access-form .checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.access-form .checkbox input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
 }
 
 /* Why the signed-in admin can't change their own account, shown as phones have no tooltips. */
