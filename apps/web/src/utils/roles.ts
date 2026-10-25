@@ -59,6 +59,24 @@ export const sortRoles = (roles: Role[]) =>
       a.name.localeCompare(b.name, "en", { sensitivity: "base", numeric: true }),
   );
 
+/** Who plays a role, by last name. Roles hold ids; names come from the cast list (ADR 0010),
+ *  so someone no longer on the cast shows nothing. */
+export const castOf = (role: Role, cast: CastMember[]) =>
+  sortCast(cast.filter((member) => role.castMemberIds.includes(member.id)));
+
+/** "Jo Brown": first name and surname only. */
+export const fullName = (member: CastMember) => `${member.firstName} ${member.lastName}`;
+
+/** "Jo Brown, Kim Lee": who plays a role; "" while uncast. */
+export const castNames = (role: Role, cast: CastMember[]) =>
+  castOf(role, cast).map(fullName).join(", ");
+
+/** The roles whose names contain the text typed, ignoring case, in reading order. */
+export const searchRoles = (roles: Role[], text: string) => {
+  const query = text.trim().toLocaleLowerCase("en-GB");
+  return sortRoles(roles.filter((role) => role.name.toLocaleLowerCase("en-GB").includes(query)));
+};
+
 /** The cast member field: what's typed, and who was chosen from the list (if anyone). */
 export interface CastMemberChoice {
   query: string;

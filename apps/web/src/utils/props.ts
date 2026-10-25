@@ -1,4 +1,5 @@
-import { AddPropRequest, MAX_PROP_NAME_LENGTH, type Prop } from "@app/shared";
+import { AddPropRequest, MAX_PROP_NAME_LENGTH, type Prop, type Role } from "@app/shared";
+import { type CastMemberChoice, sortRoles } from "./roles.ts";
 
 // Only one production for now (see docs/product/running-order/prd.md).
 const PRODUCTION_ID = "2027";
@@ -27,9 +28,16 @@ export const sortProps = (props: readonly Prop[]) =>
     a.name.localeCompare(b.name, "en", { sensitivity: "base", numeric: true }),
   );
 
-/** The prop form's fields, as typed. */
+/** A prop's roles that still exist, in the item's role order (stage-props FR18). A removed
+ *  role's id may linger on the prop; it simply isn't shown. */
+export const rolesOf = (prop: Prop, roles: Role[]) =>
+  sortRoles(roles.filter((role) => prop.roleIds.includes(role.id)));
+
+/** The prop form's fields, as typed: the roles picked, and the search for one more. */
 export interface PropFormFields {
   name: string;
+  role: CastMemberChoice;
+  roleIds: number[];
 }
 
 export type PropFormResult =
@@ -39,15 +47,20 @@ export type PropFormResult =
 /** The prop the form describes, or a message for each field that needs fixing. Limits come
  *  from the shared schema, so the page and the API agree. */
 export function propDetailsFrom(form: PropFormFields): PropFormResult {
-  const parsed = AddPropRequest.safeParse({ name: form.name });
-  if (parsed.success) return { ok: true, details: parsed.data };
-  const tooLong = parsed.error.issues.some((issue) => issue.code === "too_big");
-  return {
-    ok: false,
-    errors: {
-      name: tooLong
-        ? `Prop names can be up to ${MAX_PROP_NAME_LENGTH} characters`
-        : "A prop needs a name",
-    },
-  };
+  const parsed = AddPropRequest.safeParse({ name: form.name, roleIds: form.roleIds });
+  const errors: Partial<Record<keyof PropFormFields, string>> = {};
+  if (!parsed.success) {
+    const tooLong = parsed.error.issues.some((issue) => issue.code === "too_big");
+    errors.name = tooLong
+      ? `Prop names can be up to ${MAX_PROP_NAME_LENGTH} characters`
+      : "A prop needs a name";
+  }
+  // Typed but not chosen: the text alone doesn't say which role, so it isn't guessed.
+  if (form.role.query.trim() !== "") {
+    errors.role = "Choose a role from the list, or clear the field";
+  }
+  if (parsed.success && Object.keys(errors).length === 0) {
+    return { ok: true, details: parsed.data };
+  }
+  return { ok: false, errors };
 }

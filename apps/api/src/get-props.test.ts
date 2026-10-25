@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { createGetProps } from "./get-props.ts";
 import { inMemoryPropStore } from "./prop-store.ts";
 
-const treasureChest = { id: 1, itemId: "pirate-sketch", name: "Treasure chest" };
+const treasureChest = { id: 1, itemId: "pirate-sketch", name: "Treasure chest", roleIds: [] };
 
 describe("get props handler", () => {
   it("returns every item's props in the production", async () => {

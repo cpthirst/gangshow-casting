@@ -20,12 +20,15 @@ import ReadOnlyNotice from "@/components/common/ReadOnlyNotice.vue";
 import { showPageTitle } from "@/router/index.ts";
 import { apiFetch, canChangeCasting } from "@/services/sign-in.ts";
 import { recordItemUse } from "@/services/usage.ts";
-import { CAST_PATH, sortCast } from "@/utils/cast.ts";
+import { CAST_PATH } from "@/utils/cast.ts";
 import { clashesOf, describeEach, findClashes } from "@/utils/clashes.ts";
 import { icons } from "@/utils/icons.ts";
 import { ITEM_NOTES_PATH, saveNotesPath } from "@/utils/item-notes.ts";
 import {
   addRolePath,
+  castNames,
+  castOf,
+  fullName,
   nameTakenMessage,
   ROLES_PATH,
   removeRolePath,
@@ -39,13 +42,6 @@ const route = useRoute();
 const order = ref<RunningOrder>();
 const roles = ref<Role[]>([]);
 const cast = ref<CastMember[]>([]);
-
-// Roles hold ids; names come from the cast list (ADR 0010), by last name (an ensemble's
-// members, casting-roles FR5). Someone no longer on the cast shows nothing.
-const castOf = (role: Role) =>
-  sortCast(cast.value.filter((member) => role.castMemberIds.includes(member.id)));
-const fullName = (member: CastMember) => `${member.firstName} ${member.lastName}`;
-const castNames = (role: Role) => castOf(role).map(fullName).join(", ");
 const status = ref<"loading" | "loaded" | "error">("loading");
 
 const place = computed(() => {
@@ -338,7 +334,7 @@ async function postRole(itemId: string, details: AddRoleRequest) {
         <RoleForm
           v-if="editing?.id === role.id"
           :role="role"
-          :cast-name="castNames(role)"
+          :cast-name="castNames(role, cast)"
           :saving="saving"
           :error="formError"
           :taken="takenNames"
@@ -379,10 +375,10 @@ async function postRole(itemId: string, details: AddRoleRequest) {
           <span :class="['pill', `pill-${role.size}`]" data-test="size">{{
             roleSizeLabel(role.size)
           }}</span>
-          <template v-if="castOf(role).length > 0">
+          <template v-if="castOf(role, cast).length > 0">
             {{ " " }}
             <span class="role-cast" data-test="cast">
-              <template v-for="(member, i) in castOf(role)" :key="member.id"
+              <template v-for="(member, i) in castOf(role, cast)" :key="member.id"
                 ><template v-if="i > 0">, </template
                 ><span class="cast-name" data-test="cast-name"
                   >{{ fullName(member)

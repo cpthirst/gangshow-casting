@@ -42,7 +42,10 @@ describe("DynamoDB prop store", () => {
     await table.db.send(
       new PutCommand({
         TableName: table.tableName,
-        Item: { ...propRow("2027", { id: 1, itemId: "finale", name: "Confetti" }), name: "" },
+        Item: {
+          ...propRow("2027", { id: 1, itemId: "finale", name: "Confetti", roleIds: [] }),
+          name: "",
+        },
       }),
     );
 

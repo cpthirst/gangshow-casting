@@ -2,7 +2,7 @@
 id: stage-props.E4.S3
 title: Link roles to a prop, showing who's cast
 epic: E4
-status: ready
+status: done
 ---
 
 ## Story

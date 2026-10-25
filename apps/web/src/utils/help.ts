@@ -264,7 +264,11 @@ export const pageHelp: PageHelp[] = [
         does: "Steps to the item before or after this one in the show.",
         access: "everyone",
       },
-      { name: "Add prop", does: "Adds a prop the item needs, by name.", access: "stage" },
+      {
+        name: "Add prop",
+        does: "Adds a prop the item needs, by name, and the roles that use it.",
+        access: "stage",
+      },
       {
         name: "Props notes",
         does: "Anything the props team needs to know about the item's props.",

@@ -1,5 +1,14 @@
 <script setup lang="ts">
-import { type AddPropRequest, Prop, PropList, RunningOrder } from "@app/shared";
+import {
+  type AddPropRequest,
+  CastList,
+  type CastMember,
+  Prop,
+  PropList,
+  type Role,
+  RoleList,
+  RunningOrder,
+} from "@app/shared";
 import { computed, nextTick, onMounted, ref, watch, watchEffect } from "vue";
 import { useRoute } from "vue-router";
 import HelpButton from "@/components/common/HelpButton.vue";
@@ -10,8 +19,10 @@ import PropCard from "@/components/production/PropCard.vue";
 import PropForm from "@/components/production/PropForm.vue";
 import { showPageTitle } from "@/router/index.ts";
 import { apiFetch, canChangeStage } from "@/services/sign-in.ts";
+import { CAST_PATH } from "@/utils/cast.ts";
 import { addPropPath, PROPS_PATH, sortProps } from "@/utils/props.ts";
 import { PROPS_NOTES_PATH, savePropsNotesPath } from "@/utils/props-notes.ts";
+import { ROLES_PATH, sortRoles } from "@/utils/roles.ts";
 import { neighboursOf, placeOf, positionOf, RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
 
 // One item's props (stage-props FR16, FR17), laid out as the item's casting page.
@@ -19,6 +30,9 @@ import { neighboursOf, placeOf, positionOf, RUNNING_ORDER_PATH } from "@/utils/r
 const route = useRoute();
 const order = ref<RunningOrder>();
 const props = ref<Prop[]>([]);
+// The casting, for each prop's roles and who plays them (stage-props FR18).
+const roles = ref<Role[]>([]);
+const cast = ref<CastMember[]>([]);
 const status = ref<"loading" | "loaded" | "error">("loading");
 
 const place = computed(() => {
@@ -39,6 +53,10 @@ const itemProps = computed(() =>
   sortProps(props.value.filter((prop) => prop.itemId === place.value?.item.id)),
 );
 
+const itemRoles = computed(() =>
+  sortRoles(roles.value.filter((role) => role.itemId === place.value?.item.id)),
+);
+
 // Follows the item even if the page is reused for another one (Previous and Next).
 watchEffect(() => {
   if (place.value) showPageTitle(place.value.item.title);
@@ -47,9 +65,11 @@ watchEffect(() => {
 
 onMounted(async () => {
   try {
-    const [orderRes, propsRes] = await Promise.all([
+    const [orderRes, propsRes, rolesRes, castRes] = await Promise.all([
       apiFetch(RUNNING_ORDER_PATH),
       apiFetch(PROPS_PATH),
+      apiFetch(ROLES_PATH),
+      apiFetch(CAST_PATH),
     ]);
     // No saved running order at all: no item can be in it.
     if (orderRes.status !== 404) {
@@ -58,6 +78,13 @@ onMounted(async () => {
     }
     if (!propsRes.ok) throw new Error(`HTTP ${propsRes.status}`);
     props.value = PropList.parse(await propsRes.json()).props;
+    if (!rolesRes.ok) throw new Error(`HTTP ${rolesRes.status}`);
+    roles.value = RoleList.parse(await rolesRes.json()).roles;
+    // No cast list yet just means nobody is cast.
+    if (castRes.status !== 404) {
+      if (!castRes.ok) throw new Error(`HTTP ${castRes.status}`);
+      cast.value = CastList.parse(await castRes.json()).members;
+    }
     status.value = "loaded";
   } catch {
     // A failed load must never look like "not found".
@@ -147,10 +174,24 @@ async function postProp(itemId: string, details: AddPropRequest) {
         Add prop
       </button>
     </div>
-    <PropForm v-if="adding" :saving="saving" :error="formError" @save="add" @cancel="stopAdding" />
+    <PropForm
+      v-if="adding"
+      :saving="saving"
+      :error="formError"
+      :roles="itemRoles"
+      :cast="cast"
+      @save="add"
+      @cancel="stopAdding"
+    />
     <!-- An explicit list role: Safari drops list semantics once bullets are styled away. -->
     <ul v-if="itemProps.length > 0" class="role-cards" role="list" aria-label="Props">
-      <PropCard v-for="prop in itemProps" :key="prop.id" :prop="prop" />
+      <PropCard
+        v-for="prop in itemProps"
+        :key="prop.id"
+        :prop="prop"
+        :roles="itemRoles"
+        :cast="cast"
+      />
     </ul>
     <p v-else>No props have been added yet.</p>
     <!-- Apart from the casting notes. A fresh instance per item, so stepping to another never

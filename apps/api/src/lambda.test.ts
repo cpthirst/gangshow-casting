@@ -760,7 +760,9 @@ describe("Lambda entry point", () => {
         const res = await api(addProp(groups, name));
 
         expect(res.statusCode).toBe(201);
-        expect((await props.list("2027")).props).toEqual([{ id: 1, itemId: pirate, name }]);
+        expect((await props.list("2027")).props).toEqual([
+          { id: 1, itemId: pirate, name, roleIds: [] },
+        ]);
       });
 
       it.each([

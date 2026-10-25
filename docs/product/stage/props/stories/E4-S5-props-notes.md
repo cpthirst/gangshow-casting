@@ -2,7 +2,7 @@
 id: stage-props.E4.S5
 title: Keep props notes for each item
 epic: E4
-status: ready
+status: done
 ---
 
 ## Story

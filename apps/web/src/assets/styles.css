@@ -1845,6 +1845,20 @@ main a {
   background: var(--white);
 }
 
+/* A prop's roles sit under its name, one per line, each with who plays it; long names
+   wrap rather than widen the card on a phone. */
+.prop-roles {
+  flex-basis: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.prop-roles li {
+  overflow-wrap: anywhere;
+}
+
 /* A card being edited holds the form at full width. */
 .role-card.editing {
   display: block;

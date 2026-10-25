@@ -11,8 +11,8 @@ export function behavesAsAPropStore(make: (saved: PropList[]) => Promise<PropSto
 
   it("lists every item's props", async () => {
     const props = [
-      { id: 1, itemId: "pirate-sketch", name: "Treasure chest" },
-      { id: 2, itemId: "finale", name: "Confetti" },
+      { id: 1, itemId: "pirate-sketch", name: "Treasure chest", roleIds: [] },
+      { id: 2, itemId: "finale", name: "Confetti", roleIds: [] },
     ];
     const store = await make([{ productionId: "2027", props }]);
 
@@ -23,7 +23,7 @@ export function behavesAsAPropStore(make: (saved: PropList[]) => Promise<PropSto
 
   it("keeps each production's props apart", async () => {
     const store = await make([
-      { productionId: "2027", props: [{ id: 1, itemId: "finale", name: "Confetti" }] },
+      { productionId: "2027", props: [{ id: 1, itemId: "finale", name: "Confetti", roleIds: [] }] },
     ]);
 
     expect((await store.list("2028")).props).toEqual([]);
@@ -32,19 +32,28 @@ export function behavesAsAPropStore(make: (saved: PropList[]) => Promise<PropSto
   it("adds a prop to an item, giving it an id, and lists it after", async () => {
     const store = await make([]);
 
-    const added = await store.add("2027", "pirate-sketch", { name: "Treasure chest" });
+    const added = await store.add("2027", "pirate-sketch", { name: "Treasure chest", roleIds: [] });
 
-    expect(added).toEqual({ id: 1, itemId: "pirate-sketch", name: "Treasure chest" });
+    expect(added).toEqual({ id: 1, itemId: "pirate-sketch", name: "Treasure chest", roleIds: [] });
     expect((await store.list("2027")).props).toEqual([added]);
+  });
+
+  it("keeps the roles a prop is linked to", async () => {
+    const store = await make([]);
+
+    const added = await store.add("2027", "pirate-sketch", { name: "Telescope", roleIds: [3, 1] });
+
+    expect(added.roleIds).toEqual([3, 1]);
+    expect((await store.list("2027")).props[0]?.roleIds).toEqual([3, 1]);
   });
 
   it("gives each new prop an id no other prop in the production has", async () => {
     const store = await make([
-      { productionId: "2027", props: [{ id: 4, itemId: "finale", name: "Confetti" }] },
+      { productionId: "2027", props: [{ id: 4, itemId: "finale", name: "Confetti", roleIds: [] }] },
     ]);
 
-    const first = await store.add("2027", "pirate-sketch", { name: "Treasure chest" });
-    const second = await store.add("2027", "pirate-sketch", { name: "Parrot" });
+    const first = await store.add("2027", "pirate-sketch", { name: "Treasure chest", roleIds: [] });
+    const second = await store.add("2027", "pirate-sketch", { name: "Parrot", roleIds: [] });
 
     expect(new Set([4, first.id, second.id]).size).toBe(3);
     expect((await store.list("2027")).props).toHaveLength(3);
@@ -53,7 +62,7 @@ export function behavesAsAPropStore(make: (saved: PropList[]) => Promise<PropSto
   it("adds a prop to its own production only", async () => {
     const store = await make([]);
 
-    await store.add("2027", "finale", { name: "Confetti" });
+    await store.add("2027", "finale", { name: "Confetti", roleIds: [] });
 
     expect((await store.list("2028")).props).toEqual([]);
   });

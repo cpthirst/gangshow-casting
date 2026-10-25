@@ -1,7 +1,9 @@
 import {
   AddPropRequest,
+  type CastMember,
   type ItemNote,
   type Prop,
+  type Role,
   type RunningOrder,
   SaveItemNoteRequest,
 } from "@app/shared";
@@ -37,11 +39,26 @@ const show = aRunningOrder(
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 
-const aProp = (id: number, itemId: string, name: string): Prop => ({ id, itemId, name });
+const aProp = (id: number, itemId: string, name: string, roleIds: number[] = []): Prop => ({
+  id,
+  itemId,
+  name,
+  roleIds,
+});
 
-/** A stand-in API holding one saved running order and the props added so far. Returns the
- *  live props, so a test can check what was saved. */
-function savedShowIs(order: RunningOrder | undefined, props: Prop[] = []) {
+/** The casting the props page reads names from: every role, and the cast list. */
+interface Casting {
+  roles: Role[];
+  cast: CastMember[];
+}
+
+/** A stand-in API holding one saved running order, its casting and the props added so far.
+ *  Returns the live props, so a test can check what was saved. */
+function savedShowIs(
+  order: RunningOrder | undefined,
+  props: Prop[] = [],
+  casting: Casting = { roles: [], cast: [] },
+) {
   const stored = [...props];
   vi.stubGlobal(
     "fetch",
@@ -51,6 +68,8 @@ function savedShowIs(order: RunningOrder | undefined, props: Prop[] = []) {
       }
       if (url === PROPS_PATH) return json({ productionId: "2027", props: stored });
       if (url === PROPS_NOTES_PATH) return json({ productionId: "2027", notes: [] });
+      if (url === ROLES_PATH) return json({ productionId: "2027", roles: casting.roles });
+      if (url === CAST_PATH) return json({ productionId: "2027", members: casting.cast });
       const addTo = /\/items\/([^/]+)\/props$/.exec(url)?.[1];
       if (addTo && init?.method === "POST") {
         const details = AddPropRequest.parse(JSON.parse(String(init.body)));
@@ -378,8 +397,8 @@ describe("Adding a prop", () => {
 });
 
 describe("Props notes", () => {
-  /** The stand-in API, now also holding each item's props notes and casting notes, and
-   *  enough of the casting for the item's casting page. Returns the live props notes. */
+  /** The stand-in API, now also holding each item's props notes and casting notes.
+   *  Returns the live props notes. */
   function notesAre({ props = [], casting = [] }: { props?: ItemNote[]; casting?: ItemNote[] }) {
     savedShowIs(show);
     const fetch = vi.mocked(globalThis.fetch);
@@ -387,8 +406,6 @@ describe("Props notes", () => {
     fetch.mockImplementation(async (url, init) => {
       if (url === PROPS_NOTES_PATH) return json({ productionId: "2027", notes: props });
       if (url === ITEM_NOTES_PATH) return json({ productionId: "2027", notes: casting });
-      if (url === ROLES_PATH) return json({ productionId: "2027", roles: [] });
-      if (url === CAST_PATH) return json({ productionId: "2027", members: [] });
       const notesOf = /\/items\/([^/]+)\/props-notes$/.exec(String(url))?.[1];
       if (notesOf && init?.method === "PUT") {
         const { text, revision } = SaveItemNoteRequest.parse(JSON.parse(String(init.body)));
@@ -518,5 +535,247 @@ describe("Props notes", () => {
     expect(notesSection(wrapper).get("[data-test=notes-text]").text()).toBe("Chest set stage left");
     expect(notesSection(wrapper).find("textarea").exists()).toBe(false);
     expect(notesSection(wrapper).find("button").exists()).toBe(false);
+  });
+});
+
+// Made-up names only: tests never use the real cast (CLAUDE.md safeguarding).
+const member = (id: number, firstName: string, lastName: string): CastMember => ({
+  id,
+  firstName,
+  lastName,
+  section: null,
+  group: "",
+  singing: "",
+  acting: "",
+  revision: 1,
+});
+const sam = member(1, "Sam", "Taylor");
+const lee = member(2, "Lee", "Patel");
+const jo = member(3, "Jo", "Brown");
+const kim = member(4, "Kim", "Lee");
+const ash = member(5, "Ash", "Green");
+const ray = member(6, "Ray", "Hill");
+const cast = [sam, lee, jo, kim, ash, ray];
+
+const aRole = (
+  id: number,
+  itemId: string,
+  name: string,
+  size: Role["size"],
+  castMemberIds: number[] = [],
+): Role => ({ id, itemId, name, size, castMemberIds, revision: 1 });
+const captain = aRole(1, "pirate-sketch", "Captain", "lead", [sam.id]);
+const pirate1 = aRole(2, "pirate-sketch", "Pirate 1", "support", [lee.id]);
+const pirate2 = aRole(3, "pirate-sketch", "Pirate 2", "support", [ash.id]);
+const pirate3 = aRole(4, "pirate-sketch", "Pirate 3", "support", [ray.id]);
+const parrot = aRole(5, "pirate-sketch", "Parrot", "cameo");
+const crew = aRole(6, "pirate-sketch", "Crew", "ensemble", [kim.id, jo.id]);
+const pirateKing = aRole(7, "finale", "Pirate King", "lead");
+const roles = [captain, pirate1, pirate2, pirate3, parrot, crew, pirateKing];
+
+/** Each role on a prop's card, with who plays it or the uncast marker. */
+const rolesOn = (wrapper: VueWrapper, propName: string) =>
+  wrapper
+    .findAll("[data-test=prop]")
+    .find((card) => card.get("[data-test=prop-name]").text() === propName)
+    ?.findAll("[data-test=prop-role]")
+    .map((role) => ({
+      role: role.get("[data-test=prop-role-name]").text(),
+      cast: (role.find("[data-test=cast]").exists()
+        ? role.get("[data-test=cast]")
+        : role.get("[data-test=uncast]")
+      ).text(),
+    }));
+
+const roleSearch = (wrapper: VueWrapper) =>
+  wrapper.get<HTMLInputElement>("input[role=combobox][name=role]");
+const offeredRoles = (wrapper: VueWrapper) =>
+  wrapper.findAll("[role=listbox] [role=option] .choice-name").map((name) => name.text());
+const pickedRoles = (wrapper: VueWrapper) =>
+  wrapper.findAll("[data-test=picked-role] .member-name").map((name) => name.text());
+
+async function searchRoles(wrapper: VueWrapper, text: string) {
+  await roleSearch(wrapper).setValue(text);
+  await flushPromises();
+}
+
+/** Opens Add prop, names it and picks each role by searching for its exact name. */
+async function startProp(wrapper: VueWrapper, name: string, roleNames: string[] = []) {
+  await wrapper.get("[data-test=add-prop]").trigger("click");
+  await wrapper.get("input[name=name]").setValue(name);
+  for (const roleName of roleNames) {
+    await searchRoles(wrapper, roleName);
+    const option = wrapper
+      .findAll("[role=option]")
+      .find((choice) => choice.get(".choice-name").text() === roleName);
+    await option?.trigger("mousedown");
+  }
+}
+
+async function saveProp(wrapper: VueWrapper) {
+  await wrapper.get("form[aria-label='Add prop']").trigger("submit");
+  await flushPromises();
+}
+
+describe("A prop's roles", () => {
+  beforeEach(() => signInAs(["stage"], "pat"));
+
+  it("adds a prop with no roles when none are picked", async () => {
+    const stored = savedShowIs(show, [], { roles, cast });
+    const { wrapper } = await openAppAt(PIRATE_PROPS);
+
+    await startProp(wrapper, "Treasure chest");
+    await saveProp(wrapper);
+
+    expect(propsShown(wrapper)).toEqual(["Treasure chest"]);
+    expect(rolesOn(wrapper, "Treasure chest")).toEqual([]);
+    expect(stored[0]?.roleIds).toEqual([]);
+  });
+
+  it("adds a prop with one role, showing the role and who plays it", async () => {
+    const stored = savedShowIs(show, [], { roles, cast });
+    const { wrapper } = await openAppAt(PIRATE_PROPS);
+
+    await startProp(wrapper, "Telescope", ["Captain"]);
+    await saveProp(wrapper);
+
+    expect(rolesOn(wrapper, "Telescope")).toEqual([{ role: "Captain", cast: "Sam Taylor" }]);
+    expect(stored[0]?.roleIds).toEqual([captain.id]);
+  });
+
+  it("adds a prop with many roles, each with its cast member", async () => {
+    savedShowIs(show, [], { roles, cast });
+    const { wrapper } = await openAppAt(PIRATE_PROPS);
+
+    await startProp(wrapper, "3 umbrellas", ["Pirate 1", "Pirate 2", "Pirate 3"]);
+    expect(pickedRoles(wrapper)).toEqual(["Pirate 1", "Pirate 2", "Pirate 3"]);
+    await saveProp(wrapper);
+
+    expect(rolesOn(wrapper, "3 umbrellas")).toEqual([
+      { role: "Pirate 1", cast: "Lee Patel" },
+      { role: "Pirate 2", cast: "Ash Green" },
+      { role: "Pirate 3", cast: "Ray Hill" },
+    ]);
+  });
+
+  it("offers only the item's own roles, by name, under a visible label", async () => {
+    savedShowIs(show, [], { roles, cast });
+    const { wrapper } = await openAppAt(PIRATE_PROPS);
+    await startProp(wrapper, "Cutlass");
+
+    await searchRoles(wrapper, "pirate");
+
+    expect(offeredRoles(wrapper)).toEqual(["Pirate 1", "Pirate 2", "Pirate 3"]);
+    const label = wrapper.get(`label[for='${roleSearch(wrapper).attributes("id")}']`);
+    expect(label.text()).toBe("Add a role");
+  });
+
+  it("picks a role with the down arrow and Enter, then no longer offers it", async () => {
+    savedShowIs(show, [], { roles, cast });
+    const { wrapper } = await openAppAt(PIRATE_PROPS);
+    await startProp(wrapper, "Cutlass");
+    await searchRoles(wrapper, "pirate");
+
+    await roleSearch(wrapper).trigger("keydown", { key: "ArrowDown" });
+    await roleSearch(wrapper).trigger("keydown", { key: "Enter" });
+
+    expect(pickedRoles(wrapper)).toEqual(["Pirate 1"]);
+    expect(roleSearch(wrapper).element.value).toBe("");
+    expect(wrapper.find("[data-test=prop]").exists()).toBe(false);
+    await searchRoles(wrapper, "pirate");
+    expect(offeredRoles(wrapper)).toEqual(["Pirate 2", "Pirate 3"]);
+  });
+
+  it("drops a picked role when its remove button is pressed", async () => {
+    const stored = savedShowIs(show, [], { roles, cast });
+    const { wrapper } = await openAppAt(PIRATE_PROPS);
+    await startProp(wrapper, "Cutlass", ["Pirate 1", "Pirate 2"]);
+
+    await wrapper.get("[aria-label='Remove Pirate 1 from the prop']").trigger("click");
+    await saveProp(wrapper);
+
+    expect(stored[0]?.roleIds).toEqual([pirate2.id]);
+  });
+
+  it("refuses typed text that wasn't chosen, saying so next to the field", async () => {
+    const stored = savedShowIs(show, [], { roles, cast });
+    const { wrapper } = await openAppAt(PIRATE_PROPS);
+    await startProp(wrapper, "Cutlass");
+    await searchRoles(wrapper, "pir");
+
+    await saveProp(wrapper);
+
+    expect(errorFor(wrapper, "role")).toBe("Choose a role from the list, or clear the field");
+    expect(stored).toEqual([]);
+  });
+
+  it("marks a role nobody is cast in as uncast", async () => {
+    savedShowIs(show, [aProp(1, "pirate-sketch", "Cracker", [parrot.id])], { roles, cast });
+
+    const { wrapper } = await openAppAt(PIRATE_PROPS);
+
+    expect(rolesOn(wrapper, "Cracker")).toEqual([{ role: "Parrot", cast: "Uncast" }]);
+  });
+
+  it("names everyone in an ensemble role, by surname", async () => {
+    savedShowIs(show, [aProp(1, "pirate-sketch", "Rope", [crew.id])], { roles, cast });
+
+    const { wrapper } = await openAppAt(PIRATE_PROPS);
+
+    expect(rolesOn(wrapper, "Rope")).toEqual([{ role: "Crew", cast: "Jo Brown, Kim Lee" }]);
+  });
+
+  it("shows who plays each role now, after a recast, without editing the prop", async () => {
+    const telescope = aProp(1, "pirate-sketch", "Telescope", [captain.id]);
+    savedShowIs(show, [telescope], { roles, cast });
+    const first = await openAppAt(PIRATE_PROPS);
+    expect(rolesOn(first.wrapper, "Telescope")).toEqual([{ role: "Captain", cast: "Sam Taylor" }]);
+    first.wrapper.unmount();
+
+    const recast = { ...captain, castMemberIds: [lee.id], revision: 2 };
+    savedShowIs(show, [telescope], { roles: [recast], cast });
+    const { wrapper } = await openAppAt(PIRATE_PROPS);
+
+    expect(rolesOn(wrapper, "Telescope")).toEqual([{ role: "Captain", cast: "Lee Patel" }]);
+  });
+
+  it("shows a role's new name after it's renamed", async () => {
+    const renamed = { ...captain, name: "Captain Hook", revision: 2 };
+    savedShowIs(show, [aProp(1, "pirate-sketch", "Telescope", [captain.id])], {
+      roles: [renamed],
+      cast,
+    });
+
+    const { wrapper } = await openAppAt(PIRATE_PROPS);
+
+    expect(rolesOn(wrapper, "Telescope")).toEqual([{ role: "Captain Hook", cast: "Sam Taylor" }]);
+  });
+
+  it("keeps a prop whose roles were removed, showing only the roles left", async () => {
+    savedShowIs(
+      show,
+      [
+        aProp(1, "pirate-sketch", "Telescope", [captain.id, pirate1.id]),
+        aProp(2, "pirate-sketch", "Spyglass", [captain.id]),
+      ],
+      { roles: [pirate1], cast },
+    );
+
+    const { wrapper } = await openAppAt(PIRATE_PROPS);
+
+    expect(propsShown(wrapper)).toEqual(["Spyglass", "Telescope"]);
+    expect(rolesOn(wrapper, "Telescope")).toEqual([{ role: "Pirate 1", cast: "Lee Patel" }]);
+    expect(rolesOn(wrapper, "Spyglass")).toEqual([]);
+  });
+
+  it("lists a prop's roles in the item's role order, leads first", async () => {
+    savedShowIs(show, [aProp(1, "pirate-sketch", "Map", [pirate1.id, captain.id])], {
+      roles,
+      cast,
+    });
+
+    const { wrapper } = await openAppAt(PIRATE_PROPS);
+
+    expect(rolesOn(wrapper, "Map")?.map(({ role }) => role)).toEqual(["Captain", "Pirate 1"]);
   });
 });

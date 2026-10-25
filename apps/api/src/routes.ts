@@ -50,6 +50,7 @@ export function createRoutes(
     "POST /api/productions/{productionId}/items/{itemId}/props": createAddProp(
       props,
       runningOrders,
+      roles,
     ),
     "GET /api/productions/{productionId}/props-notes": createGetItemNotes(propsNotes),
     "PUT /api/productions/{productionId}/items/{itemId}/props-notes": createSaveItemNote(
