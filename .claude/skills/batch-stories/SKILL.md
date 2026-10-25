@@ -80,11 +80,21 @@ A harness test reads the *committed* settings, so an override that's accidentall
 
 ### While batch mode is on: the per-story loop
 
+Each story runs in a **fresh subagent**. A whole feature in one session means every turn re-reads the stories before it, so cost grows with the square of the batch's length. The main session only directs: it keeps the plan, the review notes, and the user's say. It never reads the stories' code or diffs itself.
+
 For each story, in story-map order (respecting `Depends on`):
-1. Follow the `implement-story` skill on `feat/<feature>`. Don't create a branch per story.
-2. Work test-first, get `pnpm check` green, then run the CLAUDE.md review loop: fix blockers, at most 2 rounds. A documentation story skips both test-first and the review loop (CLAUDE.md). Batch mode doesn't skip the user's say on `ux-reviewer` findings: ask about them after each story's review, as CLAUDE.md describes.
-3. Mark the story `done` in the story and the map, then commit. **Stage only the story's files**, never `.claude/settings.json` and never unrelated work: `git add -A -- . ':!.claude/settings.json'`, or explicit paths. Check with `git diff --cached --name-only`. Never use `git commit -a`. Format only the files you changed, not the whole repo.
+1. **Build it in a subagent.** Launch a `general-purpose` agent in the foreground with this brief:
+   - the story's path, the branch `feat/<feature>` (already checked out; don't create a branch per story), and that it's in batch mode;
+   - follow the `implement-story` skill up to a green `pnpm check`, and stop there: no review loop, no commit and no push;
+   - never touch `.claude/settings.json`;
+   - if an AC is ambiguous, or a new dependency or ADR seems necessary, stop and report back without guessing: subagents can't ask the user;
+   - reply in under ~15 lines: the files changed, which test covers each AC, and the gate's result.
+   A documentation story skips test-first (CLAUDE.md); the subagent writes the docs and runs the gate.
+2. **Review.** Write the diff to a scratch file (`git diff > <scratchpad>/<story>.diff`) and give each routed reviewer the file's path and the story path, not the diff's text. A documentation story skips the review loop. For each `blocker`, send the findings to the **same** subagent with `SendMessage` (its context is still there) to fix, and to re-run the gate. Then re-run only the reviewers that blocked, at most 2 rounds. Batch mode doesn't skip the user's say on `ux-reviewer` findings: ask about them after each story's review, as CLAUDE.md describes.
+3. **Commit.** Mark the story `done` in the story and the map, then commit. **Stage only the story's files**, never `.claude/settings.json` and never unrelated work: `git add -A -- . ':!.claude/settings.json'`, or explicit paths. Check with `git diff --cached --name-only`. Never use `git commit -a`. Format only the files you changed, not the whole repo.
 4. Push: `git push -u origin feat/<feature>` the first time, then `git push`. The pre-push hook re-runs the gate.
+
+The next story gets a **new** subagent, not the last one: its fresh context is the point.
 
 When every story is done, open **one** PR with the `open-pr` skill. List every story's ACs and their tests, and every review's non-blocking notes. Then run `off` straight away.
 
