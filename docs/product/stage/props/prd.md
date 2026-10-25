@@ -70,11 +70,11 @@ The Production menu lists every department's pages side by side (Mic plot, Props
 
 ### Menus
 - **FR10**: The Production menu group stays, and its pages become three, one per department, with no further level of menu:
-  - **Stage**, with a view switch between **Props** and **Scenery**;
+  - **Stage**, with a view switch between **Scenery** and **Props**;
   - **Tech**, with a view switch between **Mic plot** and **SFX**;
   - **Costume**, a "Coming soon" placeholder.
 
-  The view switch looks and works like the Casting Overview's switch (By person, By item, Grid). Stage opens on Props and Tech on Mic plot. Views not yet built (Scenery, Mic plot, SFX) say "Coming soon". Every page and view is open to every role, as the Production pages are today.
+  The view switch looks and works like the Casting Overview's switch (By person, By item, Grid). The switch lists Scenery first, but Stage opens on Props, the view that's built, and Tech opens on Mic plot. Views not yet built (Scenery, Mic plot, SFX) say "Coming soon". Every page and view is open to every role, as the Production pages are today.
 - **FR11**: Old Production page addresses (such as a bookmark to Production → Props) open the department page they now belong to, on that view.
 - **FR12**: The Welcome and Help pages describe the Stage, Tech and Costume pages, their views, and who can change what on each.
 
@@ -158,9 +158,9 @@ The Production menu lists every department's pages side by side (Mic plot, Props
 
 - Should the post-deploy check (`pnpm check:hosted`) confirm the department permissions? For example, a Stage-only account refused casting changes and allowed props changes. That needs another check account. Owner: maintainer.
 - When an item is removed from the running order (running-order FR10, deferred), are its props and props notes deleted with it? Expected: yes. Owner: production team.
-- The Usage page records visits by menu page name. Mic plot, Props, Scenery and SFX become views of the Stage and Tech pages. Should their visits so far be shown under the new pages, or left under the old names? Expected: views are recorded as uses, as the Casting Overview's are, and the old names' history stays as it is. Owner: maintainer.
 
 ### Resolved
 
 - A role linked to a prop is removed from the item: the prop stays, without that role (FR18). Decided 2026-10-25.
 - The export button is called **Generate Props List** (FR22). Decided 2026-10-25.
+- Usage: the visits recorded so far for the Props, Scenery and SFX placeholder pages are purged. From then on, visits are recorded under the Stage, Tech and Costume pages, and switching views as uses, as the Casting Overview's are. Decided 2026-10-25.
