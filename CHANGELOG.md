@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.16.0](https://github.com/cpthirst/gangshow-casting/compare/v1.15.0...v1.16.0) (2026-10-25)
+
+
+### Features
+
+* **web:** give Production a Stage, Tech and Costume page (stage-props.E3.S1) ([#106](https://github.com/cpthirst/gangshow-casting/issues/106)) ([3f7ad5b](https://github.com/cpthirst/gangshow-casting/commit/3f7ad5b2877b71520cb4d56931b3a5591293c04e))
+
 ## [1.15.0](https://github.com/cpthirst/gangshow-casting/compare/v1.14.0...v1.15.0) (2026-10-25)
 
 
