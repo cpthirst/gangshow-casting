@@ -13,7 +13,7 @@ The props team keeps each show's props list on paper or in Word. Every time cast
 
 Access doesn't fit the show's departments either. Every account has exactly one role: Admin, Casting Team Member or Read-Only Team Member. Giving the props team a casting account would let them change casting, and a read-only account wouldn't let them keep their list. One person often works across departments: a stage manager looks after the stage and the tech. A single role per person can't say that.
 
-The Production menu lists every department's pages side by side (Mic plot, Props, Scenery, SFX). The show runs as separate Stage, Tech and Costume departments, so the menu doesn't show which department each page belongs to.
+The Production menu lists every department's pages side by side (Mic plot, Props, Scenery, SFX). The show runs as separate Stage, Tech and Costume departments, so the menu doesn't show which department each page belongs to. Each new list adds another menu entry, so the menu grows longer.
 
 ## Users
 
@@ -57,8 +57,8 @@ The Production menu lists every department's pages side by side (Mic plot, Props
 - **FR1**: Instead of one role each (team-roles FR1), an account is either an **Admin** or has any combination of four department permissions: **Casting**, **Stage**, **Tech** and **Costume**. An account with no permissions is a **Read-Only Team Member**.
 - **FR2**: Each permission lets an account change one department's data, and nothing else:
   - **Casting**: what a Casting Team Member can change today. That's the cast, roles and casting, casting item notes, and the running order.
-  - **Stage**: the pages under Stage. In this PRD that means props and props notes.
-  - **Tech** and **Costume**: the pages under those sub-menus once each is built. Until then they let the account change nothing.
+  - **Stage**: the Stage page's views. In this PRD that means props and props notes.
+  - **Tech** and **Costume**: those pages and their views once each is built. Until then they let the account change nothing.
   - An Admin can change everything, as today, plus the admin-only actions.
 - **FR3**: Everyone can read everything, whatever their permissions, as Read-Only Team Members do today (team-roles FR5). Pages show no controls that change data the account isn't permitted to change. Where a page has none, it shows the "You have read-only access" line.
 - **FR4**: The API refuses every change outside the account's permissions, however the request is made. Examples: a props change from an account without Stage, or a casting change from an account without Casting.
@@ -69,17 +69,17 @@ The Production menu lists every department's pages side by side (Mic plot, Props
 - **FR9**: The "Local role" switch in local development and the demo lets you try Admin, or any combination of the four permissions, so each one's pages and refusals can be tried without an account (team-roles FR16).
 
 ### Menus
-- **FR10**: The Production menu group stays, and its pages are grouped under three sub-menus:
-  - **Stage**, with Props and Scenery;
-  - **Tech**, with Mic plot and SFX;
-  - **Costume**, with one "Coming soon" placeholder page.
+- **FR10**: The Production menu group stays, and its pages become three, one per department, with no further level of menu:
+  - **Stage**, with a view switch between **Props** and **Scenery**;
+  - **Tech**, with a view switch between **Mic plot** and **SFX**;
+  - **Costume**, a "Coming soon" placeholder.
 
-  Every sub-menu and page is open to every role, as the Production pages are today.
-- **FR11**: Old Production page addresses (such as a bookmark to Production → Props) open the same page in its new place under its sub-menu.
-- **FR12**: The Welcome and Help pages describe the Production sub-menus and who can change what in each.
+  The view switch looks and works like the Casting Overview's switch (By person, By item, Grid). Stage opens on Props and Tech on Mic plot. Views not yet built (Scenery, Mic plot, SFX) say "Coming soon". Every page and view is open to every role, as the Production pages are today.
+- **FR11**: Old Production page addresses (such as a bookmark to Production → Props) open the department page they now belong to, on that view.
+- **FR12**: The Welcome and Help pages describe the Stage, Tech and Costume pages, their views, and who can change what on each.
 
-### The Props page
-- **FR13**: The Props page (Production → Stage → Props) lists every item in the latest saved running order, in its halves and order, like the Casting Items page. Each row shows:
+### The Props view
+- **FR13**: The Stage page's **Props** view (called the Props page below) lists every item in the latest saved running order, in its halves and order, like the Casting Items page. Each row shows:
   - a first column headed **Props**, with a pencil button that opens the item's props page (a view button for those who can't change props, as on Casting Items);
   - the item's number, blank for items not in the printed programme;
   - its title, marked "Not in printed programme" where that applies, as on Casting Items;
@@ -90,7 +90,7 @@ The Production menu lists every department's pages side by side (Mic plot, Props
 - **FR15**: If there is no saved running order, the Props page says so and points to the Running order page, as Casting Items does.
 
 ### An item's props page
-- **FR16**: Each item has its own props page, with its own URL, showing the item's name and position in the running order. It offers a way back to the Props page. An item that isn't in the latest saved running order shows a "not found" message with a link back. An item with no props says that none have been added yet.
+- **FR16**: Each item has its own props page, with its own URL, showing the item's name and position in the running order. It offers a way back to the Props page, and **Previous** and **Next** links to the neighbouring items in running order, as the casting item page does. An item that isn't in the latest saved running order shows a "not found" message with a link back. An item with no props says that none have been added yet.
 - **FR17**: An **Add prop** control, like Add role, lets anyone with Stage permission, or an Admin, add a prop with:
   - a name (required);
   - **none, one or many roles** from that item's casting, picked with a multi-select like the one for casting an ensemble.
@@ -139,6 +139,7 @@ The Production menu lists every department's pages side by side (Mic plot, Props
 - Cost stays close to £0, with no new AWS service.
 - Deploys stay the maintainer's (CLAUDE.md). Any move of existing accounts happens as part of a deploy, not by an admin.
 - **Assumption**: Scenery belongs to Stage, and Mic plot and SFX to Tech, both for the menu and for permissions.
+- **App-wide pattern** (decided 2026-10-25): every page about one item has a link back to its list, and Previous and Next links to the neighbouring items in running order, as the casting item page does. The props page follows it (FR16), and so will any later item page (scenery, mic plot, SFX).
 
 ## Risks
 
@@ -147,7 +148,7 @@ The Production menu lists every department's pages side by side (Mic plot, Props
 | A change route gets the wrong permission, or none, so the wrong department can change it | M | H | Each change route names its permission in one place, and a route without one is refused. Test every change route with each permission and with none |
 | Existing accounts lose or gain access when roles become permissions | M | H | FR5. Decide in the ADR how existing accounts move, test it before deploying, and run it with the deploy |
 | A page still shows an editing control to someone without the permission | M | L | The API refuses the change anyway (FR4). Page tests check each page with and without the permission |
-| Team members can't find their pages after the menu changes | M | L | Old addresses redirect (FR11), and Welcome and Help describe the sub-menus (FR12) |
+| Team members can't find their pages after the menu changes | M | L | Old addresses redirect (FR11), and Welcome and Help describe the department pages and their views (FR12) |
 | A role linked to a prop is renamed or removed, so the prop shows a stale or broken role | M | M | Link props to roles by id, so renames follow. A removed role leaves the prop in place without it (FR18). Test both |
 | An item leaves the running order, leaving its props behind | M (when running-order FR10 is built) | L | Same as casting-items' open question. Resolve before item removal is built |
 | The props team prints the list, and then casting changes | M | L | The export always shows current casting. Its date is in the file name |
@@ -157,7 +158,7 @@ The Production menu lists every department's pages side by side (Mic plot, Props
 
 - Should the post-deploy check (`pnpm check:hosted`) confirm the department permissions? For example, a Stage-only account refused casting changes and allowed props changes. That needs another check account. Owner: maintainer.
 - When an item is removed from the running order (running-order FR10, deferred), are its props and props notes deleted with it? Expected: yes. Owner: production team.
-- Should the Usage page, which records pages by name, keep the Production pages' history after they move under their sub-menus? Expected: yes, since only their place in the menu changes. Owner: maintainer.
+- The Usage page records visits by menu page name. Mic plot, Props, Scenery and SFX become views of the Stage and Tech pages. Should their visits so far be shown under the new pages, or left under the old names? Expected: views are recorded as uses, as the Casting Overview's are, and the old names' history stays as it is. Owner: maintainer.
 
 ### Resolved
 

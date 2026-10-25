@@ -12,7 +12,7 @@ prd: ./prd.md
 |---|---|---|
 | E1 | Department permissions, enforced by the API and reflected on every page | FR1, FR2, FR3, FR4, FR5 |
 | E2 | Admins give and change permissions, and they can be tried locally | FR6, FR7, FR8, FR9 |
-| E3 | Stage, Tech and Costume sub-menus under Production | FR10, FR11, FR12 |
+| E3 | Stage, Tech and Costume pages under Production, each with a view switch | FR10, FR11, FR12 |
 | E4 | Each item's props list, kept by Stage | FR13, FR14, FR15, FR16, FR17, FR18, FR19, FR20, FR21 |
 | E5 | The props list in Word, for everyone | FR22, FR23 |
 
@@ -31,18 +31,18 @@ prd: ./prd.md
 | [stage-props.E2.S2](stories/E2-S2-permissions-for-a-new-account.md) | An admin ticks the permissions when creating an account. A new account starts with none | FR6 | E2.S1 | ready |
 | [stage-props.E2.S3](stories/E2-S3-permission-switch-in-dev-and-demo.md) | The "Local role" switch in dev and the demo offers Admin, or any combination of the four permissions | FR9 | E1.S1 | ready |
 
-## E3: Department menus
+## E3: Department pages
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [stage-props.E3.S1](stories/E3-S1-stage-tech-and-costume-menus.md) | The Production menu keeps its place, with its pages under three sub-menus: Stage (Props, Scenery), Tech (Mic plot, SFX) and Costume (a placeholder). Old Production addresses redirect, and Welcome and Help describe the sub-menus and who can change what in each | FR10, FR11, FR12 | E1.S1 | ready |
+| [stage-props.E3.S1](stories/E3-S1-stage-tech-and-costume-pages.md) | The Production menu keeps its place, with three pages and no further menu level: Stage (a Props / Scenery view switch, like the Casting Overview's), Tech (Mic plot / SFX) and Costume (a placeholder). Old Production addresses open the right page and view, and Welcome and Help describe the pages | FR10, FR11, FR12 | E1.S1 | ready |
 
 ## E4: Props
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [stage-props.E4.S1](stories/E4-S1-props-list.md) | Production → Stage → Props lists the running order by half. Columns: Props (a pencil button, or view without Stage), #, the title with "Not in printed programme", and the number of props. Without a saved running order, it points to the Running order page | FR13, FR15 | E1.S2, E3.S1 | ready |
-| [stage-props.E4.S2](stories/E4-S2-add-a-prop.md) | Each item's props page shows the item's name and position, says when there are no props, and handles an unknown item. Stage or Admin can add a prop by name. Props are listed alphabetically, numbers by value | FR16, FR17, FR21 | E4.S1 | ready |
+| [stage-props.E4.S1](stories/E4-S1-props-list.md) | The Stage page's Props view lists the running order by half. Columns: Props (a pencil button, or view without Stage), #, the title with "Not in printed programme", and the number of props. Without a saved running order, it points to the Running order page | FR13, FR15 | E1.S2, E3.S1 | ready |
+| [stage-props.E4.S2](stories/E4-S2-add-a-prop.md) | Each item's props page shows the item's name and position, with All items, Previous and Next, says when there are no props, and handles an unknown item. Stage or Admin can add a prop by name. Props are listed alphabetically, numbers by value | FR16, FR17, FR21 | E4.S1 | ready |
 | [stage-props.E4.S3](stories/E4-S3-roles-on-a-prop.md) | Adding a prop takes none, one or many of the item's roles, picked as for an ensemble. Each card shows its roles, each with its current cast or "uncast". A removed role leaves its props in place without it | FR17, FR18, FR21 | E4.S2 | ready |
 | [stage-props.E4.S4](stories/E4-S4-edit-and-remove-a-prop.md) | The pencil on a prop card edits its name and roles, and the trash can removes the prop after confirming. Neither shows without Stage | FR19 | E4.S3 | ready |
 | [stage-props.E4.S5](stories/E4-S5-props-notes.md) | Each item's props page has Props notes, kept apart from the casting notes. Saving is refused if someone else has saved since the page loaded. The notes also show in full under the item on the Props page | FR14, FR20 | E4.S2 | ready |
@@ -61,7 +61,7 @@ The order of the first stories matters for safety:
 - E1.S1 deploys the permissions with every existing route still needing Casting, so nobody's access changes.
 - E1.S2 makes the pages follow permissions before admins can hand out Stage alone (E2).
 
-E2.S3 can move earlier if a permission switch would help when trying out E1.S2 by hand. Props (E4) waits for the Stage sub-menu (E3.S1), so the page is built in its final place.
+E2.S3 can move earlier if a permission switch would help when trying out E1.S2 by hand. Props (E4) waits for the Stage page (E3.S1), so the page is built in its final place.
 
 ## FR coverage
 

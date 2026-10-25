@@ -15,55 +15,66 @@ As someone on the props team, I want to open an item and add the props it needs,
 Given "Pirate Sketch" is item 2 in the first half
 When anyone opens its props page from the Props page
 Then it shows "Pirate Sketch" and "Item 2 · First half", and the browser tab names the item
-And it has a way back to the Props page
+And it has an All items link back to the Props page
 
 ### AC2: An item with no props says so
 Given "Pirate Sketch" has no props
 When its props page is open
 Then it says no props have been added yet
 
-### AC3: The page has its own address
+### AC3: Previous and Next move through the running order
+Given the running order is "Opening Number", "Pirate Sketch", "Finale"
+When someone is on Pirate Sketch's props page
+Then there's a Previous link naming "Opening Number" and a Next link naming "Finale", each opening that item's props page
+And the links follow the running order across halves, stepping through the same items as the casting item page's Previous and Next
+
+### AC4: The first and last items
+Given the running order above
+When someone is on Opening Number's props page, and then on Finale's
+Then Opening Number has no Previous link, and Finale has no Next link
+
+### AC5: The page has its own address
 Given someone has Pirate Sketch's props page open
 When they refresh, or open its address directly
 Then the same item's props page opens
 
-### AC4: An unknown item
+### AC6: An unknown item
 Given an address for an item that isn't in the latest saved running order
 When it's opened
 Then the page says the item wasn't found, with a link back to the Props page
 
-### AC5: Stage adds a prop by name
+### AC7: Stage adds a prop by name
 Given "pat" has the Stage permission, on Pirate Sketch's props page
 When pat chooses Add prop, enters "Treasure chest" and saves
 Then a card for "Treasure chest" appears
 And it's still there when the page is reloaded, and the Props page counts 1 prop for Pirate Sketch
 
-### AC6: An admin adds a prop
+### AC8: An admin adds a prop
 Given "alex" is an Admin
 When alex adds the prop "Parrot" to Pirate Sketch
 Then it is saved, as for Stage
 
-### AC7: A prop needs a name
+### AC9: A prop needs a name
 Given pat is adding a prop
 When pat saves with the name empty, or only spaces
 Then it isn't saved, and the name field says a prop needs a name
 
-### AC8: Props are listed alphabetically, numbers by value
+### AC10: Props are listed alphabetically, numbers by value
 Given Pirate Sketch has the props "umbrella 10", "Treasure chest" and "Umbrella 2"
 When its props page is open
 Then they're listed "Treasure chest", "Umbrella 2", "umbrella 10"
 
-### AC9: Without Stage there's no Add prop
+### AC11: Without Stage there's no Add prop
 Given "sam" has the Casting permission only
 When sam opens Pirate Sketch's props page
 Then there's no Add prop, and the page shows the line "You have read-only access"
 
-### AC10: The API refuses a prop from anyone without Stage
+### AC12: The API refuses a prop from anyone without Stage
 Given "sam" has the Casting permission only
 When sam sends a request to add a prop
 Then the response is 403 saying "You have read-only access.", and nothing is added
 
-### AC11: A failed save keeps what was typed
+### AC13: A failed save keeps what was typed
 Given pat is adding "Treasure chest"
 When saving fails
 Then pat is told, and the name is still in the field
@@ -75,4 +86,4 @@ Then pat is told, and the name is still in the field
 - The first props change route, which names Stage as its permission (E1.S1). Tech and Casting alone don't allow it.
 - A prop name has a sensible maximum length, decided in the shared schema, as role names have.
 - The page follows the item's casting page: the same heading and position line, back link and empty state.
-- Out of scope: roles on a prop (E4.S3), editing and removing (E4.S4), props notes (E4.S5), and Previous/Next between items, which the PRD doesn't ask for.
+- Out of scope: roles on a prop (E4.S3), editing and removing (E4.S4), props notes (E4.S5).

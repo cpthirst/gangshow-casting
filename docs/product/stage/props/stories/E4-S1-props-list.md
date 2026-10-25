@@ -1,19 +1,19 @@
 ---
 id: stage-props.E4.S1
-title: List the show's items on the Props page
+title: List the show's items in the Props view
 epic: E4
 status: ready
 ---
 
 ## Story
 
-As someone on the props team, I want the Props page to list the show's items in running order with how many props each has, so that I can see the whole show's props at a glance and open any item.
+As someone on the props team, I want the Stage page's Props view to list the show's items in running order with how many props each has, so that I can see the whole show's props at a glance and open any item.
 
 ## Acceptance criteria
 
 ### AC1: Items are listed in running order, by half
 Given the latest saved running order has "Opening Number" (item 1) and "Pirate Sketch" (item 2) in the first half, and "Finale" (item 14) in the second
-When anyone opens Production → Stage → Props
+When anyone opens Production → Stage, which opens on its Props view
 Then each half is listed under its name, with its items in order, as on Casting Items
 
 ### AC2: Each row shows its columns
@@ -61,6 +61,7 @@ Then the items still show, with a message that the props counts couldn't be load
 ## Notes
 
 - FRs: FR13, FR15
+- "The Props page" in these ACs means the Stage page's Props view (PRD FR13). It replaces that view's "Coming soon" from E3.S1.
 - Depends on: stage-props.E1.S2, stage-props.E3.S1
 - This story adds reading a production's props from the API, scoped to the production, so the counts are real. They're all 0 until props can be added (E4.S2), and tests can seed props.
 - The props data is the production's own, apart from casting, and holds no cast data of its own: a prop links to roles (E4.S3).
