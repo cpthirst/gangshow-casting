@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.17.0](https://github.com/cpthirst/gangshow-casting/compare/v1.16.0...v1.17.0) (2026-10-26)
+
+
+### Features
+
+* **web:** keep each item's props list on the Stage page (stage-props E4) ([#108](https://github.com/cpthirst/gangshow-casting/issues/108)) ([b45a92a](https://github.com/cpthirst/gangshow-casting/commit/b45a92a5d567b7de85d2b6e9107b84f958495d86))
+
 ## [1.16.0](https://github.com/cpthirst/gangshow-casting/compare/v1.15.0...v1.16.0) (2026-10-25)
 
 
