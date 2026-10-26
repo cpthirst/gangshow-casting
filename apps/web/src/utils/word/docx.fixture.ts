@@ -130,3 +130,31 @@ export const columnShares = (file: Uint8Array) =>
     const total = widths.reduce((sum, width) => sum + width, 0);
     return widths.map((width) => Math.round((width / total) * 100));
   });
+
+/** The headers every page uses, as Word applies them to the document's sections: each
+ *  header's paragraph alignments and the bytes of each picture in it. */
+export function defaultHeaders(file: Uint8Array) {
+  const files = unzipSync(file);
+  const relsOf = (part: string) => {
+    const xml = strFromU8(files[part] ?? new Uint8Array());
+    return new Map(
+      [...xml.matchAll(/<Relationship [^>]*Id="([^"]+)"[^>]*Target="([^"]+)"/g)].map(
+        ([, id = "", target = ""]) => [id, target],
+      ),
+    );
+  };
+  const documentRels = relsOf("word/_rels/document.xml.rels");
+  return [...documentXml(file).matchAll(/<w:headerReference [^>]*\/>/g)]
+    .filter(([reference]) => reference.includes('w:type="default"'))
+    .map(([reference]) => {
+      const target = documentRels.get(/r:id="([^"]+)"/.exec(reference)?.[1] ?? "") ?? "";
+      const xml = strFromU8(files[`word/${target}`] ?? new Uint8Array());
+      const pictures = relsOf(`word/_rels/${target}.rels`);
+      return {
+        alignments: [...xml.matchAll(/<w:jc w:val="([^"]+)"\/>/g)].map(([, value]) => value),
+        pictures: [...xml.matchAll(/<a:blip r:embed="([^"]+)"/g)].map(
+          ([, id = ""]) => files[`word/${pictures.get(id) ?? ""}`],
+        ),
+      };
+    });
+}

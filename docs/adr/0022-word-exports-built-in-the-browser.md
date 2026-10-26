@@ -73,3 +73,9 @@ This leaves ADRs 0019 and 0021 as they are: the Excel export stays on the server
   - the lazy chunk grows past about 500 kB gzipped, or exports become noticeably slow on phones;
   - `docx` stops being maintained;
   - the team wants the Excel export built the same way, so there's one pattern.
+
+## Later changes
+
+Recorded as later stories were built, so this record stays true without rewriting the decision above.
+
+- **stage-props.E5.S1**: a third Word export, the **Props List**, from the Generate Props List button in the Stage page's Props view, for every role and built the same way. It may hold the production's title; each half's name; each item's title, programme number, whether it's printed, and its props notes; and each prop's name, its characters (role names) and who plays them (first name and surname). Never anything else about the cast. Each page's header carries the Chester Gang Show logo (`apps/web/src/assets/logo-small.jpg`, about 15 kB), inlined into the lazily loaded chunk so the document needs no network call to make.

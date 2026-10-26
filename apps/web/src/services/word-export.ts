@@ -1,4 +1,5 @@
 import type { ShowHalf } from "@/utils/overview.ts";
+import type { PropsListHalf } from "@/utils/props.ts";
 import { exportFileName, saveFile } from "./export-file.ts";
 import type { LatestShow } from "./latest-show.ts";
 
@@ -28,4 +29,11 @@ export const downloadCastingSheets = (show: LatestShow, day = new Date()) =>
   save(
     async () => (await import("@/utils/word/casting-sheets-document.ts")).castingSheetsFile(show),
     exportFileName(show.order.title, day, "casting sheets", "docx"),
+  );
+
+/** The whole show's props list. */
+export const downloadPropsList = (title: string, halves: PropsListHalf[], day = new Date()) =>
+  save(
+    async () => (await import("@/utils/word/props-list-document.ts")).propsListFile(title, halves),
+    exportFileName(title, day, "props list", "docx"),
   );

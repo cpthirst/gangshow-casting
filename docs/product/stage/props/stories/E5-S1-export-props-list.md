@@ -2,7 +2,7 @@
 id: stage-props.E5.S1
 title: Generate the props list in Word
 epic: E5
-status: ready
+status: done
 ---
 
 ## Story
@@ -75,6 +75,11 @@ Given someone chooses Generate Props List
 When the document is made
 Then it says the props list was generated, and the use is recorded on the Usage page as the other exports are
 And if it can't be made, it says "Couldn't generate the props list. Try again." and keeps the button ready
+
+### AC13: The show's logo heads every page
+Given any production
+When the document is opened
+Then each page's header shows the Chester Gang Show logo (`apps/web/src/assets/logo-small.jpg`), aligned left
 
 ## Notes
 

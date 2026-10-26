@@ -53,7 +53,7 @@ describe("RecordUsageRequest", () => {
     expect(RecordUsageRequest.parse({ ...use, title: "Night at the movies" })).toEqual(use);
   });
 
-  it.each(["excel-grid", "word-casting-sheets", "word-item-overview"])(
+  it.each(["excel-grid", "word-casting-sheets", "word-item-overview", "word-props-list"])(
     "accepts the export %s",
     (exported) => {
       const use = { event: "export", export: exported };

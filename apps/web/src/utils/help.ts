@@ -244,6 +244,12 @@ export const pageHelp: PageHelp[] = [
         does: "The show's items, with how many props each one needs. Open an item to see its props.",
         access: "everyone",
       },
+      {
+        icons: [icons.exportWord],
+        name: "Generate Props List",
+        does: "In the Props view, saves every item's props, characters and cast as a Word document.",
+        access: "everyone",
+      },
     ],
   },
   {

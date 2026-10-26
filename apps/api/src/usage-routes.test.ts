@@ -288,6 +288,7 @@ describe("reading usage", () => {
       "export-excel-grid",
       "export-word-casting-sheets",
       "export-word-item-overview",
+      "export-word-props-list",
     ]);
     expect(features).toContainEqual({ feature: "export-word-item-overview", uses: 0, people: 0 });
     expect(features).toContainEqual({ feature: "export-word-casting-sheets", uses: 0, people: 0 });

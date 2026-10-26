@@ -51,7 +51,7 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [stage-props.E5.S1](stories/E5-S1-export-props-list.md) | The Props page's Generate Props List button downloads a Word props list for every role. Every item appears in running order by half, including unprinted items and items with no props ("No props"), with its props notes and a prop, character and cast table | FR22, FR23 | E4.S3, E4.S5 | ready |
+| [stage-props.E5.S1](stories/E5-S1-export-props-list.md) | The Props page's Generate Props List button downloads a Word props list for every role. Every item appears in running order by half, including unprinted items and items with no props ("No props"), with its props notes and a prop, character and cast table | FR22, FR23 | E4.S3, E4.S5 | done |
 
 ## Order
 
