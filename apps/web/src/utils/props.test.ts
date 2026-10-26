@@ -1,13 +1,15 @@
-import type { Role } from "@app/shared";
+import type { CastMember, Role } from "@app/shared";
 import { describe, expect, it } from "vitest";
 import {
   type PropFormFields,
   propCountLabel,
   propCounts,
   propDetailsFrom,
+  propsListOf,
   rolesOf,
   sortProps,
 } from "./props.ts";
+import { anItem, aRunningOrder } from "./running-order.fixture.ts";
 
 const aProp = (id: number, itemId: string, roleIds: number[] = []) => ({
   id,
@@ -127,5 +129,87 @@ describe("rolesOf", () => {
     expect(rolesOf(aProp(1, "pirate-sketch", [captain.id, pirate1.id]), [pirate1])).toEqual([
       pirate1,
     ]);
+  });
+});
+
+describe("the props list, for the Word document", () => {
+  // Made-up names only: tests never use the real cast (CLAUDE.md safeguarding).
+  const member = (id: number, firstName: string, lastName: string): CastMember => ({
+    id,
+    firstName,
+    lastName,
+    section: "scouts",
+    group: "1st Made-up",
+    singing: "Strong alto voice",
+    acting: "",
+    revision: 1,
+  });
+  const sam = member(1, "Sam", "Taylor");
+  const jo = member(2, "Jo", "Brown");
+  const role = (id: number, name: string, size: Role["size"], castMemberIds: number[] = []) => ({
+    ...aRole(id, name, size),
+    castMemberIds,
+  });
+  const order = aRunningOrder(
+    [anItem("Pirate Sketch"), anItem("Interval Announcement", { printed: false })],
+    [anItem("Finale")],
+  );
+  const roles = [
+    role(1, "Pirate 2", "ensemble"),
+    role(2, "Captain", "lead", [sam.id]),
+    role(3, "Pirate 1", "ensemble", [jo.id]),
+  ];
+  const prop = (id: number, name: string, roleIds: number[] = []) => ({
+    ...aProp(id, "pirate-sketch", roleIds),
+    name,
+  });
+
+  const list = () =>
+    propsListOf({
+      order,
+      props: [prop(1, "Umbrella 10"), prop(2, "telescope", [2]), prop(3, "Umbrella 2", [1, 3])],
+      roles,
+      cast: [sam, jo],
+      notes: [
+        { itemId: "pirate-sketch", text: "Chest set stage left", revision: 1 },
+        { itemId: "finale", text: "", revision: 2 },
+      ],
+    });
+
+  it("follows the running order, half by half, numbering only printed items", () => {
+    expect(
+      list().map(({ name, items }) => [name, items.map(({ number, title }) => [number, title])]),
+    ).toEqual([
+      [
+        "First half",
+        [
+          [1, "Pirate Sketch"],
+          [null, "Interval Announcement"],
+        ],
+      ],
+      ["Second half", [[1, "Finale"]]],
+    ]);
+  });
+
+  it("puts the props in name order, numbers by value, each with its roles in role order and who plays them", () => {
+    const sketch = list()[0]?.items[0];
+
+    expect(sketch?.props).toEqual([
+      { name: "telescope", roles: [{ name: "Captain", cast: "Sam Taylor" }] },
+      {
+        name: "Umbrella 2",
+        roles: [
+          { name: "Pirate 1", cast: "Jo Brown" },
+          { name: "Pirate 2", cast: "" },
+        ],
+      },
+      { name: "Umbrella 10", roles: [] },
+    ]);
+  });
+
+  it("gives each item its props notes, and none once they're cleared", () => {
+    const items = list().flatMap((half) => half.items);
+
+    expect(items.map(({ notes }) => notes)).toEqual(["Chest set stage left", "", ""]);
   });
 });

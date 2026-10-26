@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { strFromU8, unzipSync } from "fflate";
 
 /** One run of text in a paragraph, with the formatting a test cares about. */
@@ -89,8 +91,8 @@ export const rowHeights = (file: Uint8Array) =>
     return height === undefined ? undefined : Number(height);
   });
 
-/** The page's size and the height left for content once the top and bottom margins are
- *  taken off, in twentieths of a point, as the document's last section sets them. */
+/** The page's size, the height left for content once the top and bottom margins are
+ *  taken off, and the header's distance from the top, in twentieths of a point, as the document's last section sets them. */
 export function pageOf(file: Uint8Array) {
   const xml = documentXml(file);
   const number = (pattern: RegExp) => Number(pattern.exec(xml)?.[1] ?? Number.NaN);
@@ -98,7 +100,9 @@ export function pageOf(file: Uint8Array) {
   const height = number(/<w:pgSz [^>]*w:h="(\d+)"/);
   const top = number(/<w:pgMar [^>]*w:top="(\d+)"/);
   const bottom = number(/<w:pgMar [^>]*w:bottom="(\d+)"/);
-  return { width, height, bodyHeight: height - top - bottom };
+  // How far the header sits from the top of the page.
+  const header = number(/<w:pgMar [^>]*w:header="(\d+)"/);
+  return { width, height, bodyHeight: height - top - bottom, header };
 }
 
 /** A paragraph style's font, size (in half-points) and spacing before and after (in
@@ -130,3 +134,38 @@ export const columnShares = (file: Uint8Array) =>
     const total = widths.reduce((sum, width) => sum + width, 0);
     return widths.map((width) => Math.round((width / total) * 100));
   });
+
+/** The headers every page uses, as Word applies them to the document's sections: each
+ *  header's paragraph alignments, and the bytes and width of each picture in it. */
+export function defaultHeaders(file: Uint8Array) {
+  const files = unzipSync(file);
+  const relsOf = (part: string) => {
+    const xml = strFromU8(files[part] ?? new Uint8Array());
+    return new Map(
+      [...xml.matchAll(/<Relationship [^>]*Id="([^"]+)"[^>]*Target="([^"]+)"/g)].map(
+        ([, id = "", target = ""]) => [id, target],
+      ),
+    );
+  };
+  const documentRels = relsOf("word/_rels/document.xml.rels");
+  return [...documentXml(file).matchAll(/<w:headerReference [^>]*\/>/g)]
+    .filter(([reference]) => reference.includes('w:type="default"'))
+    .map(([reference]) => {
+      const target = documentRels.get(/r:id="([^"]+)"/.exec(reference)?.[1] ?? "") ?? "";
+      const xml = strFromU8(files[`word/${target}`] ?? new Uint8Array());
+      const pictures = relsOf(`word/_rels/${target}.rels`);
+      return {
+        alignments: [...xml.matchAll(/<w:jc w:val="([^"]+)"\/>/g)].map(([, value]) => value),
+        pictures: [...xml.matchAll(/<a:blip r:embed="([^"]+)"/g)].map(
+          ([, id = ""]) => files[`word/${pictures.get(id) ?? ""}`],
+        ),
+        // In centimetres, to one place: Word stores them in EMUs, 360,000 to the centimetre.
+        pictureWidths: [...xml.matchAll(/<wp:extent cx="(\d+)"/g)].map(
+          ([, emus]) => Math.round(Number(emus) / 36_000) / 10,
+        ),
+      };
+    });
+}
+
+/** The Chester Gang Show logo every document's header carries, as the file in assets. */
+export const logoBytes = () => new Uint8Array(readFileSync(resolve("src/assets/logo-small.jpg")));

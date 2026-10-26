@@ -45,7 +45,12 @@ export const PageView = z.enum([
 ]);
 
 /** The exports, whose use is recorded once the file is made (FR2). */
-export const UsageExport = z.enum(["excel-grid", "word-casting-sheets", "word-item-overview"]);
+export const UsageExport = z.enum([
+  "excel-grid",
+  "word-casting-sheets",
+  "word-item-overview",
+  "word-props-list",
+]);
 
 /**
  * POST /api/usage: one thing a team member did (usage-tracking FR1, FR2). Only what happened:
@@ -81,6 +86,7 @@ export const UsageFeature = z.enum([
   "export-excel-grid",
   "export-word-casting-sheets",
   "export-word-item-overview",
+  "export-word-props-list",
 ]);
 
 /** What a use is a use of; a session isn't a use of anything. */

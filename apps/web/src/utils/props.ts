@@ -1,5 +1,14 @@
-import { AddPropRequest, MAX_PROP_NAME_LENGTH, type Prop, type Role } from "@app/shared";
-import { type CastMemberChoice, sortRoles } from "./roles.ts";
+import {
+  AddPropRequest,
+  type CastMember,
+  type ItemNote,
+  MAX_PROP_NAME_LENGTH,
+  type Prop,
+  type Role,
+  type RunningOrder,
+} from "@app/shared";
+import { type CastMemberChoice, castNames, sortRoles } from "./roles.ts";
+import { runningClock } from "./running-order.ts";
 
 // Only one production for now (see docs/product/running-order/prd.md).
 const PRODUCTION_ID = "2027";
@@ -35,6 +44,51 @@ export const sortProps = (props: readonly Prop[]) =>
  *  role's id may linger on the prop; it simply isn't shown. */
 export const rolesOf = (prop: Prop, roles: Role[]) =>
   sortRoles(roles.filter((role) => prop.roleIds.includes(role.id)));
+
+/** One item in the props list: its notes ("" for none) and props, each prop with its roles
+ *  and who plays them ("" while uncast). */
+export interface PropsListItem {
+  title: string;
+  /** Its programme number; null when it isn't in the printed programme. */
+  number: number | null;
+  notes: string;
+  props: { name: string; roles: { name: string; cast: string }[] }[];
+}
+
+/** One half of the props list: its name and items in running order. */
+export interface PropsListHalf {
+  name: string;
+  items: PropsListItem[];
+}
+
+/** The whole show's props, half by half in running order, in the order each item's props
+ *  page shows them (stage-props FR22). Only names: nothing else about the cast. */
+export function propsListOf(show: {
+  order: RunningOrder;
+  props: Prop[];
+  roles: Role[];
+  cast: CastMember[];
+  notes: ItemNote[];
+}): PropsListHalf[] {
+  const notesOf = (itemId: string) => show.notes.find((note) => note.itemId === itemId)?.text;
+  return runningClock(show.order).halves.map(({ half, rows }) => ({
+    name: half.name,
+    items: rows.map(
+      ({ item, number }): PropsListItem => ({
+        title: item.title,
+        number,
+        notes: notesOf(item.id) ?? "",
+        props: sortProps(show.props.filter((prop) => prop.itemId === item.id)).map((prop) => ({
+          name: prop.name,
+          roles: rolesOf(prop, show.roles).map((role) => ({
+            name: role.name,
+            cast: castNames(role, show.cast),
+          })),
+        })),
+      }),
+    ),
+  }));
+}
 
 /** The prop form's fields, as typed: the roles picked, and the search for one more. */
 export interface PropFormFields {

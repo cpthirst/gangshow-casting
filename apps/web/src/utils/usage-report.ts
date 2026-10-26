@@ -47,6 +47,7 @@ const exportNames: Record<UsageExport, string> = {
   "excel-grid": "the Excel grid",
   "word-casting-sheets": "the Word casting sheets",
   "word-item-overview": "the Word item overview",
+  "word-props-list": "the Word props list",
 };
 
 type Titles = {
@@ -94,6 +95,7 @@ const otherNames: Record<OtherFeature, string> = {
   "export-excel-grid": "Export: Excel grid",
   "export-word-casting-sheets": "Export: Word casting sheets",
   "export-word-item-overview": "Export: Word item overview",
+  "export-word-props-list": "Export: Word props list",
 };
 
 const isOtherFeature = (feature: UsageFeature): feature is OtherFeature =>

@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { ItemNoteList, PropList, RunningOrder } from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-import { computed, onMounted, ref } from "vue";
+import { computed, nextTick, onMounted, ref } from "vue";
+import { latestPropsList } from "@/services/latest-show.ts";
 import { apiFetch, canChangeStage } from "@/services/sign-in.ts";
+import { recordExport } from "@/services/usage.ts";
+import { downloadPropsList } from "@/services/word-export.ts";
 import { icons } from "@/utils/icons.ts";
 import { PROPS_PATH, propCountLabel, propCounts } from "@/utils/props.ts";
 import { PROPS_NOTES_PATH } from "@/utils/props-notes.ts";
@@ -34,6 +37,37 @@ const halves = computed(() =>
  *  that couldn't be loaded never reads as 0. */
 const countLabel = (itemId: string) =>
   typeof countOf.value === "function" ? propCountLabel(countOf.value(itemId)) : "";
+
+// The props list in Word, for every role, built in the browser with everything as saved at
+// that moment (stage-props FR22, FR23; ADR 0022).
+const generating = ref(false);
+const generateFailed = ref(false);
+/** Screen-reader announcement of a finished list. */
+const announcement = ref("");
+// A disabled button drops keyboard focus, so it is put back once the list is made.
+const generateButton = ref<HTMLButtonElement>();
+
+async function generatePropsList() {
+  if (generating.value) return;
+  generating.value = true;
+  announcement.value = "";
+  generateFailed.value = false;
+  let saved = false;
+  try {
+    const { title, halves } = await latestPropsList();
+    saved = await downloadPropsList(title, halves);
+  } catch {
+    // Something it needs couldn't be loaded: said below, as for a file that couldn't be made.
+  }
+  generateFailed.value = !saved;
+  if (saved) {
+    announcement.value = "Props list generated.";
+    recordExport("word-props-list");
+  }
+  generating.value = false;
+  await nextTick();
+  generateButton.value?.focus();
+}
 
 onMounted(() => {
   loadRunningOrder();
@@ -81,6 +115,7 @@ async function loadRunningOrder() {
 </script>
 
 <template>
+  <p class="visually-hidden" role="status" data-test="announcement">{{ announcement }}</p>
   <p v-if="state.status === 'empty'">
     There's no saved running order yet. Set one up on the
     <RouterLink :to="{ name: 'running-order' }">Running order page</RouterLink>.
@@ -88,6 +123,20 @@ async function loadRunningOrder() {
   <p v-else-if="state.status === 'error'" role="alert">Couldn't load the items.</p>
   <template v-else-if="state.status === 'loaded'">
     <p class="based-on" data-test="version">Based on Draft {{ state.order.version }}</p>
+    <div class="view-bar">
+      <button
+        ref="generateButton"
+        type="button"
+        class="word-export-button"
+        :disabled="generating"
+        @click="generatePropsList">
+        <FontAwesomeIcon :icon="icons.exportWord" />
+        Generate Props List
+      </button>
+    </div>
+    <p v-if="generateFailed" class="notice word-export-error" role="alert">
+      Couldn't generate the props list. Try again.
+    </p>
     <p v-if="countOf === 'error'" class="notice" role="alert">Couldn't load the props counts.</p>
     <p v-if="notes === 'error'" class="notice" role="alert">Couldn't load the notes.</p>
     <section v-for="{ half, rows } in halves" :key="half.id" class="half" :aria-labelledby="half.id">

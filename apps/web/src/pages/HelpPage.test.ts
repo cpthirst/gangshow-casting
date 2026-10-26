@@ -319,10 +319,10 @@ describe("Help page", () => {
       ).toEqual(["Reading: Everyone", "Changing: Accounts with Stage, and admins"]);
     });
 
-    it("name the views on Stage and Tech, open to everyone", async () => {
+    it("name the views on Stage and Tech, and the props list button, open to everyone", async () => {
       const { wrapper } = await openHelp();
 
-      expect(names(wrapper, "stage")).toEqual(["Scenery", "Props"]);
+      expect(names(wrapper, "stage")).toEqual(["Scenery", "Props", "Generate Props List"]);
       expect(names(wrapper, "tech")).toEqual(["Mic plot", "SFX"]);
       for (const line of [...lines(wrapper, "stage"), ...lines(wrapper, "tech")]) {
         expect(line.get("[data-test=help-access]").text()).toBe("Everyone");
