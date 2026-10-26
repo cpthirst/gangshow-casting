@@ -1,8 +1,17 @@
 import { unprintedHeadingColour } from "@app/shared";
-import { type IStylesOptions, Paragraph, TableCell, TextRun } from "docx";
+import {
+  AlignmentType,
+  Header,
+  ImageRun,
+  type IStylesOptions,
+  Paragraph,
+  TableCell,
+  TextRun,
+} from "docx";
+import logo from "@/assets/logo-small.jpg?inline";
 import { itemHeading } from "@/utils/overview.ts";
 
-// How both Word exports look: Word's default font, Aptos, with headings spaced more the
+// How the Word exports look: Word's default font, Aptos, with headings spaced more the
 // higher they are, so the document reads like one made in Word today. Sizes are in
 // half-points and spacing in twentieths of a point, as Word stores them.
 
@@ -63,3 +72,18 @@ export const itemHeadingRuns = (item: { number: number | null; title: string }) 
         new TextRun({ text: " · Not in printed programme" }),
       ]
     : [new TextRun({ text: itemHeading(item) })];
+
+// Half the logo's 360 × 146 pixels: about 5 cm across.
+const LOGO_SIZE = { width: 180, height: 73 };
+
+/** The Chester Gang Show logo, on the left of every page's header. The image is inlined, so
+ *  the document needs nothing from the network to be made. */
+export const logoHeader = () =>
+  new Header({
+    children: [
+      new Paragraph({
+        alignment: AlignmentType.LEFT,
+        children: [new ImageRun({ type: "jpg", data: logo, transformation: LOGO_SIZE })],
+      }),
+    ],
+  });

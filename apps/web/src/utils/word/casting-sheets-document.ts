@@ -17,7 +17,7 @@ import type { LatestShow } from "@/services/latest-show.ts";
 import { sectionLabel } from "@/utils/cast.ts";
 import { castBySection } from "@/utils/overview.ts";
 import { runningClock } from "@/utils/running-order.ts";
-import { A4, CELL_SPACING, LINE_HEIGHT, widthsOf, wordStyles } from "./word-styles.ts";
+import { A4, CELL_SPACING, LINE_HEIGHT, logoHeader, widthsOf, wordStyles } from "./word-styles.ts";
 
 // A casting sheet for every cast member, to print and hand out (casting-overview-by-item
 // FR9–FR13): one each, starting on a new page, headed with the show and who it's for, then
@@ -146,6 +146,7 @@ export function castingSheetsDocument(show: LatestShow) {
     sections: [
       {
         properties: { page: { size: A4, margin: MARGIN } },
+        headers: { default: logoHeader() },
         children: members.flatMap((member, i) => sheetOf(show, halves, member, i === 0)),
       },
     ],

@@ -15,6 +15,7 @@ import {
   A4,
   cell,
   itemHeadingRuns,
+  logoHeader,
   MARGIN,
   TEXT_WIDTH,
   widthsOf,
@@ -78,6 +79,7 @@ export const itemOverviewDocument = (title: string, halves: ShowHalf[]) =>
     sections: [
       {
         properties: { page: { size: A4, margin: MARGIN } },
+        headers: { default: logoHeader() },
         children: [
           new Paragraph({
             heading: HeadingLevel.HEADING_1,

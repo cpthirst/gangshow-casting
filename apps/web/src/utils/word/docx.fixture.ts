@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { strFromU8, unzipSync } from "fflate";
 
 /** One run of text in a paragraph, with the formatting a test cares about. */
@@ -158,3 +160,6 @@ export function defaultHeaders(file: Uint8Array) {
       };
     });
 }
+
+/** The Chester Gang Show logo every document's header carries, as the file in assets. */
+export const logoBytes = () => new Uint8Array(readFileSync(resolve("src/assets/logo-small.jpg")));

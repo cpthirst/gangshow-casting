@@ -6,7 +6,9 @@ import { castingSheetsDocument } from "./casting-sheets-document.ts";
 import {
   type Block,
   columnShares,
+  defaultHeaders,
   documentXml,
+  logoBytes,
   pageOf,
   readDocx,
   rowHeights,
@@ -221,5 +223,16 @@ describe("each casting sheet's table of items", () => {
     expect([page.width, page.height]).toEqual([11906, 16838]);
     const [table] = readDocx(file).flatMap((block) => (block.kind === "table" ? [block.rows] : []));
     expect(table?.[0]?.header).toBe(true);
+  });
+
+  it("heads every sheet with the Chester Gang Show logo, on the left", async () => {
+    const headers = defaultHeaders(
+      await sheetsOf([
+        member("Ava", "Example", "scouts", "1st Anytown"),
+        member("Ben", "Sample", null),
+      ]),
+    );
+
+    expect(headers).toEqual([{ alignments: ["left"], pictures: [logoBytes()] }]);
   });
 });

@@ -1,10 +1,15 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { unprintedHeadingColour } from "@app/shared";
 import { Packer } from "docx";
 import { describe, expect, it } from "vitest";
 import type { PropsListHalf, PropsListItem } from "@/utils/props.ts";
-import { type Block, defaultHeaders, documentXml, outline, readDocx } from "./docx.fixture.ts";
+import {
+  type Block,
+  defaultHeaders,
+  documentXml,
+  logoBytes,
+  outline,
+  readDocx,
+} from "./docx.fixture.ts";
 import { propsListDocument } from "./props-list-document.ts";
 
 // Made-up names only: tests never use the real cast (CLAUDE.md safeguarding).
@@ -107,8 +112,7 @@ describe("the props list document", () => {
   it("heads every page with the Chester Gang Show logo, on the left", async () => {
     const headers = defaultHeaders(await documentOf(show));
 
-    const logo = new Uint8Array(readFileSync(resolve("src/assets/logo-small.jpg")));
-    expect(headers).toEqual([{ alignments: ["left"], pictures: [logo] }]);
+    expect(headers).toEqual([{ alignments: ["left"], pictures: [logoBytes()] }]);
   });
 
   it("writes names and notes as plain text, never as markup", async () => {

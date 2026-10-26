@@ -1,9 +1,6 @@
 import {
-  AlignmentType,
   Document,
-  Header,
   HeadingLevel,
-  ImageRun,
   Packer,
   Paragraph,
   Table,
@@ -12,41 +9,27 @@ import {
   TextRun,
   WidthType,
 } from "docx";
-import logo from "@/assets/logo-small.jpg?inline";
 import type { PropsListHalf, PropsListItem } from "@/utils/props.ts";
 import {
   A4,
   cell,
   itemHeadingRuns,
+  logoHeader,
   MARGIN,
   TEXT_WIDTH,
   widthsOf,
   wordStyles,
 } from "./word-styles.ts";
 
-// The props list (stage-props FR22, FR23): the show's logo at the top of every page, then
-// the production's title, each half and each item as Word headings, as in the Item Overview,
-// with each item's props notes and a table of its props. Text goes in as plain runs, never
-// as markup (ADR 0022).
+// The props list (stage-props FR22, FR23): the production's title, each half and each item
+// as Word headings, as in the Item Overview, with each item's props notes and a table of its
+// props. Text goes in as plain runs, never as markup (ADR 0022).
 
 const PROP_COLUMNS = [
   { name: "Prop", share: 40 },
   { name: "Character", share: 30 },
   { name: "Cast", share: 30 },
 ];
-// Half the logo's 360 × 146 pixels: about 5 cm across.
-const LOGO_SIZE = { width: 180, height: 73 };
-
-const logoHeader = () =>
-  new Header({
-    children: [
-      new Paragraph({
-        alignment: AlignmentType.LEFT,
-        children: [new ImageRun({ type: "jpg", data: logo, transformation: LOGO_SIZE })],
-      }),
-    ],
-  });
-
 /** One row per character, the prop's cell running down beside them all; a prop with no
  *  characters has a row with empty Character and Cast cells. */
 const propRows = ({ name, roles }: PropsListItem["props"][number]) => {

@@ -5,7 +5,9 @@ import type { ShowHalf, ShowItem } from "@/utils/overview.ts";
 import {
   type Block,
   columnShares,
+  defaultHeaders,
   documentXml,
+  logoBytes,
   outline,
   pageOf,
   readDocx,
@@ -126,5 +128,11 @@ describe("the Item Overview document", () => {
       "Heading3: 1 <b>Bold</b> & Co",
     ]);
     expect(documentXml(file)).not.toContain("<b>");
+  });
+
+  it("heads every page with the Chester Gang Show logo, on the left", async () => {
+    const headers = defaultHeaders(await documentOf(show));
+
+    expect(headers).toEqual([{ alignments: ["left"], pictures: [logoBytes()] }]);
   });
 });
