@@ -12,10 +12,12 @@ import { createGetRoles } from "./get-roles.ts";
 import { createGetRunningOrder } from "./get-running-order.ts";
 import type { Handler } from "./handler.ts";
 import { handler as health } from "./health.ts";
+import { createRemoveProp } from "./remove-prop.ts";
 import { createRemoveRole } from "./remove-role.ts";
 import { createSaveItemNote } from "./save-item-note.ts";
 import { createSaveRunningOrder } from "./save-running-order.ts";
 import { createUpdateCastMember } from "./update-cast-member.ts";
+import { createUpdateProp } from "./update-prop.ts";
 import { createUpdateRole } from "./update-role.ts";
 import { createUsageRoutes } from "./usage-routes.ts";
 import type { UsageStore } from "./usage-store.ts";
@@ -52,6 +54,8 @@ export function createRoutes(
       runningOrders,
       roles,
     ),
+    "PUT /api/productions/{productionId}/props/{propId}": createUpdateProp(props, roles),
+    "DELETE /api/productions/{productionId}/props/{propId}": createRemoveProp(props),
     "GET /api/productions/{productionId}/props-notes": createGetItemNotes(propsNotes),
     "PUT /api/productions/{productionId}/items/{itemId}/props-notes": createSaveItemNote(
       propsNotes,

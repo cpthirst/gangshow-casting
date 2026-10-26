@@ -270,6 +270,18 @@ export const pageHelp: PageHelp[] = [
         access: "stage",
       },
       {
+        icons: [icons.edit],
+        name: "Edit",
+        does: "Changes a prop's name or the roles that use it.",
+        access: "stage",
+      },
+      {
+        icons: [icons.remove],
+        name: "Remove",
+        does: "Takes a prop off the item.",
+        access: "stage",
+      },
+      {
         name: "Props notes",
         does: "Anything the props team needs to know about the item's props.",
         access: "everyone",

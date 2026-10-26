@@ -780,6 +780,44 @@ describe("Lambda entry point", () => {
           expect((await props.list("2027")).props).toEqual([]);
         },
       );
+
+      const PROP_PATH = "/api/productions/2027/props/1";
+      const editProp = (groups: string) =>
+        as(groups)("PUT", PROP_PATH, { name: "Gold chest", roleIds: [] });
+      const removeProp = (groups: string) => as(groups)("DELETE", PROP_PATH);
+      const treasureChest = { id: 1, itemId: pirate, name: "Treasure chest", roleIds: [] };
+
+      it.each([
+        ["pat, with Stage", "[stage]"],
+        ["alex, an admin", "[admin]"],
+      ])("edits and removes a prop for %s", async (_who, groups) => {
+        const { api, props } = setUpProps();
+        await api(addProp("[stage]", "Treasure chest"));
+
+        expect((await api(editProp(groups))).statusCode).toBe(200);
+        expect((await props.list("2027")).props).toEqual([
+          { ...treasureChest, name: "Gold chest" },
+        ]);
+        expect((await api(removeProp(groups))).statusCode).toBe(204);
+        expect((await props.list("2027")).props).toEqual([]);
+      });
+
+      it.each([
+        ["sam, with Casting only", "[casting]"],
+        ["lee, with Tech and Costume", "[tech costume]"],
+      ])(
+        "refuses to edit or remove a prop for %s, saying the props are read-only, changing nothing",
+        async (_who, groups) => {
+          const { api, props } = setUpProps();
+          await api(addProp("[stage]", "Treasure chest"));
+
+          for (const res of [await api(editProp(groups)), await api(removeProp(groups))]) {
+            expect(res.statusCode).toBe(403);
+            expect(JSON.parse(res.body ?? "")).toEqual(PROPS_READ_ONLY);
+          }
+          expect((await props.list("2027")).props).toEqual([treasureChest]);
+        },
+      );
     });
 
     describe("props notes, which need Stage", () => {

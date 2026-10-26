@@ -20,6 +20,8 @@ export const routeKeys = [
   "GET /api/productions/{productionId}/item-notes",
   "GET /api/productions/{productionId}/props",
   "POST /api/productions/{productionId}/items/{itemId}/props",
+  "PUT /api/productions/{productionId}/props/{propId}",
+  "DELETE /api/productions/{productionId}/props/{propId}",
   "GET /api/productions/{productionId}/props-notes",
   "PUT /api/productions/{productionId}/items/{itemId}/props-notes",
   "POST /api/productions/{productionId}/casting-grid/export",
@@ -167,6 +169,8 @@ export const routeNeeds: RouteNeeds = {
   "PUT /api/productions/{productionId}/roles/{roleId}": "casting",
   "DELETE /api/productions/{productionId}/roles/{roleId}": "casting",
   "POST /api/productions/{productionId}/items/{itemId}/props": "stage",
+  "PUT /api/productions/{productionId}/props/{propId}": "stage",
+  "DELETE /api/productions/{productionId}/props/{propId}": "stage",
   "PUT /api/productions/{productionId}/items/{itemId}/props-notes": "stage",
   // Usage is about the team, so only admins read it (usage-tracking FR4).
   "GET /api/usage": "admin",

@@ -1,6 +1,18 @@
 import { Prop, PropList } from "@app/shared";
-import { type DynamoDBDocumentClient, PutCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
-import { META, partitionFor, queryAll, withoutKeys } from "./dynamo-table.ts";
+import {
+  DeleteCommand,
+  type DynamoDBDocumentClient,
+  PutCommand,
+  UpdateCommand,
+} from "@aws-sdk/lib-dynamodb";
+import {
+  conditionFailed,
+  META,
+  partitionFor,
+  queryAll,
+  withoutKeys,
+  written,
+} from "./dynamo-table.ts";
 import type { PropStore } from "./prop-store.ts";
 
 const PROP = "PROP#";
@@ -56,6 +68,41 @@ export function dynamoPropStore(db: DynamoDBDocumentClient, tableName: string): 
         }),
       );
       return prop;
+    },
+
+    async update(productionId, id, details) {
+      // Not `written`: that only says whether it wrote, and this needs the updated prop back.
+      try {
+        const result = await db.send(
+          new UpdateCommand({
+            TableName: tableName,
+            Key: { pk: partitionFor(productionId), sk: propKey(id) },
+            // "name" is a DynamoDB reserved word.
+            UpdateExpression: "SET #name = :name, roleIds = :roleIds",
+            ConditionExpression: "attribute_exists(sk)",
+            ExpressionAttributeNames: { "#name": "name" },
+            ExpressionAttributeValues: { ":name": details.name, ":roleIds": details.roleIds },
+            ReturnValues: "ALL_NEW",
+          }),
+        );
+        return Prop.parse(withoutKeys(result.Attributes ?? {}));
+      } catch (error) {
+        if (conditionFailed(error)) return "not-found";
+        throw error;
+      }
+    },
+
+    async remove(productionId, id) {
+      const removed = await written(() =>
+        db.send(
+          new DeleteCommand({
+            TableName: tableName,
+            Key: { pk: partitionFor(productionId), sk: propKey(id) },
+            ConditionExpression: "attribute_exists(sk)",
+          }),
+        ),
+      );
+      return removed ? "removed" : "not-found";
     },
   };
 }

@@ -6,6 +6,7 @@ import {
   type Role,
   type RunningOrder,
   SaveItemNoteRequest,
+  UpdatePropRequest,
 } from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -77,6 +78,15 @@ function savedShowIs(
         stored.push(prop);
         return json(prop, 201);
       }
+      const propId = Number(/\/props\/(\d+)$/.exec(url)?.[1]);
+      const at = stored.findIndex((prop) => prop.id === propId);
+      const prop = stored[at];
+      if (propId && !prop) return new Response(null, { status: 404 });
+      if (prop && init?.method === "PUT") {
+        stored[at] = { ...prop, ...UpdatePropRequest.parse(JSON.parse(String(init.body))) };
+        return json(stored[at]);
+      }
+      if (prop && init?.method === "DELETE") stored.splice(at, 1);
       return new Response(null, { status: 204 });
     }),
   );
@@ -777,5 +787,257 @@ describe("A prop's roles", () => {
     const { wrapper } = await openAppAt(PIRATE_PROPS);
 
     expect(rolesOn(wrapper, "Map")?.map(({ role }) => role)).toEqual(["Captain", "Pirate 1"]);
+  });
+});
+
+describe("Editing and removing a prop", () => {
+  beforeEach(() => signInAs(["stage"], "pat"));
+
+  const telescope = () => aProp(1, "pirate-sketch", "Telescope", [captain.id]);
+  const editForm = (wrapper: VueWrapper) => wrapper.get("form[aria-label^='Edit ']");
+
+  async function startEditing(wrapper: VueWrapper, name: string) {
+    await wrapper.get(`button[aria-label='Edit ${name}']`).trigger("click");
+  }
+
+  async function saveEdit(wrapper: VueWrapper) {
+    await editForm(wrapper).trigger("submit");
+    await flushPromises();
+  }
+
+  async function pickRole(wrapper: VueWrapper, roleName: string) {
+    await searchRoles(wrapper, roleName);
+    const option = wrapper
+      .findAll("[role=option]")
+      .find((choice) => choice.get(".choice-name").text() === roleName);
+    await option?.trigger("mousedown");
+  }
+
+  async function remove(wrapper: VueWrapper, name: string) {
+    await wrapper.get(`button[aria-label='Remove ${name}']`).trigger("click");
+    await flushPromises();
+  }
+
+  /** Makes every edit and removal fail, as when the API can't be reached. */
+  function changesFail() {
+    const fetch = vi.mocked(globalThis.fetch);
+    const answer = fetch.getMockImplementation();
+    fetch.mockImplementation(async (url, init) =>
+      init?.method === "PUT" || init?.method === "DELETE"
+        ? new Response(null, { status: 500 })
+        : (answer?.(url, init) ?? json({})),
+    );
+  }
+
+  it("renames a prop from its pencil, moving it to its alphabetical place, kept on reload", async () => {
+    const stored = savedShowIs(show, [
+      aProp(1, "pirate-sketch", "Treasure chest"),
+      aProp(2, "pirate-sketch", "Anchor"),
+      aProp(3, "pirate-sketch", "Hat"),
+    ]);
+    const first = await openAppAt(PIRATE_PROPS);
+
+    await startEditing(first.wrapper, "Treasure chest");
+    expect(editForm(first.wrapper).get<HTMLInputElement>("input[name=name]").element.value).toBe(
+      "Treasure chest",
+    );
+    await editForm(first.wrapper).get("input[name=name]").setValue("Gold chest");
+    await saveEdit(first.wrapper);
+
+    expect(propsShown(first.wrapper)).toEqual(["Anchor", "Gold chest", "Hat"]);
+    expect(first.wrapper.find("form[aria-label^='Edit ']").exists()).toBe(false);
+    expect(stored.find((prop) => prop.id === 1)?.name).toBe("Gold chest");
+    first.wrapper.unmount();
+
+    const { wrapper } = await openAppAt(PIRATE_PROPS);
+    expect(propsShown(wrapper)).toEqual(["Anchor", "Gold chest", "Hat"]);
+  });
+
+  it("changes a prop's roles, showing only the new ones with their cast", async () => {
+    const stored = savedShowIs(show, [telescope()], { roles, cast });
+    const { wrapper } = await openAppAt(PIRATE_PROPS);
+
+    await startEditing(wrapper, "Telescope");
+    expect(pickedRoles(wrapper)).toEqual(["Captain"]);
+    await pickRole(wrapper, "Pirate 1");
+    await wrapper.get("[aria-label='Remove Captain from the prop']").trigger("click");
+    await saveEdit(wrapper);
+
+    expect(rolesOn(wrapper, "Telescope")).toEqual([{ role: "Pirate 1", cast: "Lee Patel" }]);
+    expect(stored[0]?.roleIds).toEqual([pirate1.id]);
+  });
+
+  it("changes nothing when an edit is cancelled", async () => {
+    const stored = savedShowIs(show, [telescope()], { roles, cast });
+    const { wrapper } = await openAppAt(PIRATE_PROPS);
+
+    await startEditing(wrapper, "Telescope");
+    await editForm(wrapper).get("input[name=name]").setValue("Spyglass");
+    await wrapper.get("[aria-label='Remove Captain from the prop']").trigger("click");
+    await editForm(wrapper).get("[data-test=cancel]").trigger("click");
+    await flushPromises();
+
+    expect(propsShown(wrapper)).toEqual(["Telescope"]);
+    expect(rolesOn(wrapper, "Telescope")).toEqual([{ role: "Captain", cast: "Sam Taylor" }]);
+    expect(stored).toEqual([telescope()]);
+  });
+
+  it("says an edited prop needs a name when it's cleared, saving nothing", async () => {
+    const stored = savedShowIs(show, [telescope()], { roles, cast });
+    const { wrapper } = await openAppAt(PIRATE_PROPS);
+
+    await startEditing(wrapper, "Telescope");
+    await editForm(wrapper).get("input[name=name]").setValue("");
+    await saveEdit(wrapper);
+
+    expect(errorFor(wrapper, "name")).toBe("A prop needs a name");
+    expect(stored).toEqual([telescope()]);
+  });
+
+  it("removes a prop after asking, naming the prop and the item, counted on the Props page", async () => {
+    const stored = savedShowIs(show, [telescope(), aProp(2, "pirate-sketch", "Parrot")], {
+      roles,
+      cast,
+    });
+    const confirm = vi.fn().mockReturnValue(true);
+    vi.stubGlobal("confirm", confirm);
+    const { wrapper, router } = await openAppAt(PIRATE_PROPS);
+
+    await remove(wrapper, "Telescope");
+
+    expect(confirm).toHaveBeenCalledWith("Remove the prop Telescope from Pirate Sketch?");
+    expect(propsShown(wrapper)).toEqual(["Parrot"]);
+    expect(stored.map((prop) => prop.name)).toEqual(["Parrot"]);
+    await wrapper.get("main nav[aria-label='Item navigation'] a").trigger("click");
+    await flushPromises();
+    expect(router.currentRoute.value.name).toBe("stage");
+    const row = wrapper.get("[data-test=item][data-item-id=pirate-sketch]");
+    expect(row.get("[data-test=count]").text()).toBe("1 prop");
+  });
+
+  it("keeps a prop when its removal is cancelled", async () => {
+    const stored = savedShowIs(show, [telescope()], { roles, cast });
+    vi.stubGlobal("confirm", vi.fn().mockReturnValue(false));
+    const { wrapper } = await openAppAt(PIRATE_PROPS);
+
+    await remove(wrapper, "Telescope");
+
+    expect(propsShown(wrapper)).toEqual(["Telescope"]);
+    expect(stored).toEqual([telescope()]);
+  });
+
+  it("shows the props without a pencil or trash can to someone without Stage", async () => {
+    await signInAs(["casting"], "sam");
+    savedShowIs(show, [telescope()], { roles, cast });
+
+    const { wrapper } = await openAppAt(PIRATE_PROPS);
+
+    expect(propsShown(wrapper)).toEqual(["Telescope"]);
+    expect(wrapper.find("button[aria-label='Edit Telescope']").exists()).toBe(false);
+    expect(wrapper.find("button[aria-label='Remove Telescope']").exists()).toBe(false);
+  });
+
+  it("says when a prop being edited has gone, showing the props as they are now", async () => {
+    const stored = savedShowIs(show, [telescope(), aProp(2, "pirate-sketch", "Parrot")], {
+      roles,
+      cast,
+    });
+    const { wrapper } = await openAppAt(PIRATE_PROPS);
+    await startEditing(wrapper, "Telescope");
+    stored.splice(0, 1);
+    stored.push(aProp(3, "pirate-sketch", "Map"));
+
+    await editForm(wrapper).get("input[name=name]").setValue("Spyglass");
+    await saveEdit(wrapper);
+
+    expect(wrapper.get("main [role=alert]").text()).toBe(
+      "Telescope is no longer there: someone else removed it. Showing the latest props.",
+    );
+    expect(wrapper.find("form[aria-label^='Edit ']").exists()).toBe(false);
+    expect(propsShown(wrapper)).toEqual(["Map", "Parrot"]);
+  });
+
+  it("says when a prop being removed has already gone, showing the props as they are now", async () => {
+    const stored = savedShowIs(show, [telescope(), aProp(2, "pirate-sketch", "Parrot")], {
+      roles,
+      cast,
+    });
+    vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
+    const { wrapper } = await openAppAt(PIRATE_PROPS);
+    stored.splice(0, 1);
+
+    await remove(wrapper, "Telescope");
+
+    expect(wrapper.get("main [role=alert]").text()).toBe(
+      "Telescope is no longer there: someone else removed it. Showing the latest props.",
+    );
+    expect(propsShown(wrapper)).toEqual(["Parrot"]);
+  });
+
+  it("drops a removed role's lingering link when the prop is next saved", async () => {
+    const stored = savedShowIs(show, [aProp(1, "pirate-sketch", "Telescope", [captain.id, 99])], {
+      roles,
+      cast,
+    });
+    const { wrapper } = await openAppAt(PIRATE_PROPS);
+
+    await startEditing(wrapper, "Telescope");
+    await editForm(wrapper).get("input[name=name]").setValue("Spyglass");
+    await saveEdit(wrapper);
+
+    expect(stored[0]).toMatchObject({ name: "Spyglass", roleIds: [captain.id] });
+  });
+
+  it("asks for a reload when a prop has gone and the latest props can't be loaded", async () => {
+    const stored = savedShowIs(show, [telescope(), aProp(2, "pirate-sketch", "Parrot")], {
+      roles,
+      cast,
+    });
+    vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
+    const { wrapper } = await openAppAt(PIRATE_PROPS);
+    stored.splice(0, 1);
+    const fetch = vi.mocked(globalThis.fetch);
+    const answer = fetch.getMockImplementation();
+    fetch.mockImplementation(async (url, init) =>
+      String(url).endsWith("/props") && !init?.method
+        ? new Response(null, { status: 500 })
+        : (answer?.(url, init) ?? json({})),
+    );
+
+    await remove(wrapper, "Telescope");
+
+    expect(wrapper.get("main [role=alert]").text()).toBe(
+      "Telescope is no longer there: someone else removed it. Reload to see the latest.",
+    );
+  });
+
+  it("says when an edit couldn't be saved, keeping it in the form", async () => {
+    const stored = savedShowIs(show, [telescope()], { roles, cast });
+    const { wrapper } = await openAppAt(PIRATE_PROPS);
+    changesFail();
+
+    await startEditing(wrapper, "Telescope");
+    await editForm(wrapper).get("input[name=name]").setValue("Spyglass");
+    await pickRole(wrapper, "Pirate 1");
+    await saveEdit(wrapper);
+
+    expect(editForm(wrapper).get("[role=alert]").text()).toBe("Couldn't save the prop. Try again.");
+    expect(editForm(wrapper).get<HTMLInputElement>("input[name=name]").element.value).toBe(
+      "Spyglass",
+    );
+    expect(pickedRoles(wrapper)).toEqual(["Captain", "Pirate 1"]);
+    expect(stored).toEqual([telescope()]);
+  });
+
+  it("says when a prop couldn't be removed, keeping it", async () => {
+    savedShowIs(show, [telescope()], { roles, cast });
+    vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
+    const { wrapper } = await openAppAt(PIRATE_PROPS);
+    changesFail();
+
+    await remove(wrapper, "Telescope");
+
+    expect(wrapper.get("main [role=alert]").text()).toBe("Couldn't remove Telescope. Try again.");
+    expect(propsShown(wrapper)).toEqual(["Telescope"]);
   });
 });

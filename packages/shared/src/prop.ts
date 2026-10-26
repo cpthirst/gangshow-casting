@@ -38,6 +38,14 @@ export const AddPropRequest = Prop.pick({ name: true, roleIds: true }).refine(
   { path: ["roleIds"], message: "A role is listed twice" },
 );
 
+/**
+ * PUT /api/productions/{productionId}/props/{propId}: replaces a prop's name and roles, by
+ * the same rules as adding one (stage-props FR19). 200 returns the Prop; 400 for an invalid
+ * prop or a role not in its item; 404 if the prop is gone. DELETE on the same path removes
+ * it: 204, or 404 if it's already gone.
+ */
+export const UpdatePropRequest = AddPropRequest;
+
 /** GET /api/productions/{productionId}/props: every item's props, in no particular order. */
 export const PropList = z.strictObject({
   productionId: ProductionId,
@@ -47,3 +55,4 @@ export const PropList = z.strictObject({
 export type Prop = z.infer<typeof Prop>;
 export type PropList = z.infer<typeof PropList>;
 export type AddPropRequest = z.infer<typeof AddPropRequest>;
+export type UpdatePropRequest = z.infer<typeof UpdatePropRequest>;

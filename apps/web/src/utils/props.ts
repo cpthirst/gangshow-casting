@@ -11,6 +11,9 @@ export const PROPS_PATH = `/api/productions/${PRODUCTION_ID}/props`;
 export const addPropPath = (itemId: string) =>
   `/api/productions/${PRODUCTION_ID}/items/${encodeURIComponent(itemId)}/props`;
 
+/** Where one prop is edited (PUT) or removed (DELETE). */
+export const propPath = (propId: number) => `${PROPS_PATH}/${propId}`;
+
 /** How many props each item has, by item id: 0 for an item with none. */
 export function propCounts(props: readonly Prop[]) {
   const counts = new Map<string, number>();

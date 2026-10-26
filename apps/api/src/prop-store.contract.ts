@@ -66,4 +66,62 @@ export function behavesAsAPropStore(make: (saved: PropList[]) => Promise<PropSto
 
     expect((await store.list("2028")).props).toEqual([]);
   });
+
+  it("replaces a prop's name and roles, keeping its id and item", async () => {
+    const store = await make([
+      {
+        productionId: "2027",
+        props: [
+          { id: 1, itemId: "pirate-sketch", name: "Telescope", roleIds: [1] },
+          { id: 2, itemId: "pirate-sketch", name: "Parrot", roleIds: [] },
+        ],
+      },
+    ]);
+
+    const updated = await store.update("2027", 1, { name: "Spyglass", roleIds: [2] });
+
+    const expected = { id: 1, itemId: "pirate-sketch", name: "Spyglass", roleIds: [2] };
+    expect(updated).toEqual(expected);
+    const listed = (await store.list("2027")).props;
+    expect([...listed].sort((a, b) => a.id - b.id)).toEqual([
+      expected,
+      { id: 2, itemId: "pirate-sketch", name: "Parrot", roleIds: [] },
+    ]);
+  });
+
+  it("refuses to update a prop that isn't there, adding nothing", async () => {
+    const store = await make([]);
+
+    expect(await store.update("2027", 1, { name: "Spyglass", roleIds: [] })).toBe("not-found");
+    expect((await store.list("2027")).props).toEqual([]);
+  });
+
+  it("removes a prop, leaving the others", async () => {
+    const parrot = { id: 2, itemId: "pirate-sketch", name: "Parrot", roleIds: [] };
+    const store = await make([
+      {
+        productionId: "2027",
+        props: [{ id: 1, itemId: "pirate-sketch", name: "Telescope", roleIds: [] }, parrot],
+      },
+    ]);
+
+    expect(await store.remove("2027", 1)).toBe("removed");
+    expect((await store.list("2027")).props).toEqual([parrot]);
+  });
+
+  it("refuses to remove a prop that isn't there", async () => {
+    const store = await make([]);
+
+    expect(await store.remove("2027", 1)).toBe("not-found");
+  });
+
+  it("never reuses a removed prop's id", async () => {
+    const store = await make([]);
+    const first = await store.add("2027", "finale", { name: "Confetti", roleIds: [] });
+
+    await store.remove("2027", first.id);
+    const second = await store.add("2027", "finale", { name: "Streamers", roleIds: [] });
+
+    expect(second.id).not.toBe(first.id);
+  });
 }

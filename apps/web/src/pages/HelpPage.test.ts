@@ -303,11 +303,15 @@ describe("Help page", () => {
         "All items",
         "Previous and Next",
         "Add prop",
+        "Edit",
+        "Remove",
         "Props notes",
       ]);
       expect(accessOf(wrapper, "All items", "props-item")).toBe("Everyone");
       expect(accessOf(wrapper, "Previous and Next", "props-item")).toBe("Everyone");
-      expect(accessOf(wrapper, "Add prop", "props-item")).toBe("Accounts with Stage, and admins");
+      for (const action of ["Add prop", "Edit", "Remove"]) {
+        expect(accessOf(wrapper, action, "props-item")).toBe("Accounts with Stage, and admins");
+      }
       expect(
         lineNamed(wrapper, "Props notes", "props-item")
           .findAll("[data-test=help-access]")

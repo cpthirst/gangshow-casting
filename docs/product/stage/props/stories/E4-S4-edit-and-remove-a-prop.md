@@ -2,7 +2,7 @@
 id: stage-props.E4.S4
 title: Edit and remove a prop
 epic: E4
-status: ready
+status: done
 ---
 
 ## Story

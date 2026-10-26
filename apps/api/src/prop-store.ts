@@ -1,17 +1,27 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { type AddPropRequest, ProductionId, Prop, PropList } from "@app/shared";
+import {
+  type AddPropRequest,
+  ProductionId,
+  Prop,
+  PropList,
+  type UpdatePropRequest,
+} from "@app/shared";
 import { ifExists } from "./files.ts";
 import { parseJson } from "./json.ts";
 import { oneAtATime, writePrivateFile } from "./private-file.ts";
 
 /** Where each production's props live (stage-props FR13): the production's own, apart from
- *  its casting. Editing and removing come with the stories that need them. */
+ *  its casting. */
 export interface PropStore {
   /** Every item's props; none until the first is added. */
   list(productionId: string): Promise<PropList>;
   /** Adds a prop to an item, with the next unused id. */
   add(productionId: string, itemId: string, details: AddPropRequest): Promise<Prop>;
+  /** Replaces a prop's name and roles; it stays on its item. */
+  update(productionId: string, id: number, details: UpdatePropRequest): Promise<Prop | "not-found">;
+  /** Removes a prop for good (stage-props FR19). Its id is never reused. */
+  remove(productionId: string, id: number): Promise<"removed" | "not-found">;
 }
 
 // The stored file also remembers the next id, so a removed prop's id is never reused.
@@ -32,6 +42,24 @@ function withNewProp(file: PropFile, itemId: string, details: AddPropRequest) {
   return { prop, file: { ...file, props: [...file.props, prop], nextId: prop.id + 1 } };
 }
 
+/** The file with one prop's name and roles replaced, or why not. */
+function withUpdatedProp(file: PropFile, id: number, details: UpdatePropRequest) {
+  const prop = file.props.find((p) => p.id === id);
+  if (!prop) return "not-found";
+  const updated: Prop = { ...prop, ...details };
+  return {
+    prop: updated,
+    file: { ...file, props: file.props.map((p) => (p.id === id ? updated : p)) },
+  };
+}
+
+/** The file without the prop, or why not. Keeps nextId, so its id is never reused. */
+function withoutProp(file: PropFile, id: number) {
+  if (!file.props.some((p) => p.id === id)) return "not-found";
+  // nextId is worked out before filtering, so the removed id stays taken.
+  return { ...file, props: file.props.filter((p) => p.id !== id), nextId: nextIdOf(file) };
+}
+
 /** Props held in memory, starting with those given: for tests. */
 export function inMemoryPropStore(saved: PropList[] = []): PropStore {
   const files = new Map<string, PropFile>(saved.map((list) => [list.productionId, list]));
@@ -42,6 +70,18 @@ export function inMemoryPropStore(saved: PropList[] = []): PropStore {
       const added = withNewProp(fileOf(productionId), itemId, details);
       files.set(productionId, added.file);
       return added.prop;
+    },
+    async update(productionId, id, details) {
+      const updated = withUpdatedProp(fileOf(productionId), id, details);
+      if (updated === "not-found") return updated;
+      files.set(productionId, updated.file);
+      return updated.prop;
+    },
+    async remove(productionId, id) {
+      const removed = withoutProp(fileOf(productionId), id);
+      if (removed === "not-found") return removed;
+      files.set(productionId, removed);
+      return "removed";
     },
   };
 }
@@ -77,6 +117,21 @@ export function filePropStore(dataDir: string): PropStore {
         const added = withNewProp(await read(productionId), itemId, details);
         await write(added.file);
         return added.prop;
+      }),
+    update: (productionId, id, details) =>
+      inTurn(async () => {
+        const updated = withUpdatedProp(await read(productionId), id, details);
+        if (updated === "not-found") return updated;
+        await write(updated.file);
+        return updated.prop;
+      }),
+    remove: (productionId, id) =>
+      inTurn(async () => {
+        // The file is rewritten without it: no copy is kept.
+        const removed = withoutProp(await read(productionId), id);
+        if (removed === "not-found") return removed;
+        await write(removed);
+        return "removed";
       }),
   };
 }

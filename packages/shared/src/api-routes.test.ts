@@ -95,6 +95,11 @@ describe("routeNeeds", () => {
     expect(needOf("POST /api/productions/{productionId}/items/{itemId}/props")).toBe("stage");
   });
 
+  it("has editing and removing a prop need Stage", () => {
+    expect(needOf("PUT /api/productions/{productionId}/props/{propId}")).toBe("stage");
+    expect(needOf("DELETE /api/productions/{productionId}/props/{propId}")).toBe("stage");
+  });
+
   it("has saving props notes need Stage", () => {
     expect(needOf("PUT /api/productions/{productionId}/items/{itemId}/props-notes")).toBe("stage");
   });
@@ -127,7 +132,7 @@ describe("routeNeeds", () => {
   });
 
   it("needs an admin for a change route missing from the table, so a gap fails safe", () => {
-    expect(needOf("PUT /api/productions/{productionId}/props/{propId}")).toBe("admin");
+    expect(needOf("PUT /api/productions/{productionId}/anything-new/{id}")).toBe("admin");
     expect(needOf("POST /api/anything-new")).toBe("admin");
     expect(needOf("GET /api/anything-new")).toBeUndefined();
   });

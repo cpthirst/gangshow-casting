@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { AddPropRequest, CastMember, Role } from "@app/shared";
+import type { AddPropRequest, CastMember, Prop, Role } from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, nextTick, onMounted, ref, useId, watch } from "vue";
 import SearchPicker from "@/components/common/SearchPicker.vue";
@@ -7,17 +7,26 @@ import { icons } from "@/utils/icons.ts";
 import { type PropFormFields, propDetailsFrom } from "@/utils/props.ts";
 import { castNames, searchRoles, sortRoles } from "@/utils/roles.ts";
 
-// Adds a prop to an item, like the Add role form. error: why the last save failed, if it did.
-// roles: the item's roles, which the prop can be linked to; cast: who plays them.
+// Adds a prop to an item (no prop given) or edits one, like the role form. error: why the
+// last save failed, if it did. roles: the item's roles, which the prop can be linked to;
+// cast: who plays them.
 const props = defineProps<{
   saving: boolean;
   error: string;
   roles: Role[];
   cast: CastMember[];
+  prop?: Prop | undefined;
 }>();
 const emit = defineEmits<{ save: [details: AddPropRequest]; cancel: [] }>();
 
-const form = ref<PropFormFields>({ name: "", role: { query: "", id: null }, roleIds: [] });
+const form = ref<PropFormFields>({
+  name: props.prop?.name ?? "",
+  role: { query: "", id: null },
+  // Only roles the item still has: a removed role's lingering id isn't carried into the save.
+  roleIds: props.roles
+    .filter((role) => props.prop?.roleIds.includes(role.id))
+    .map((role) => role.id),
+});
 const errors = ref<Partial<Record<keyof PropFormFields, string>>>({});
 
 const uid = useId();
@@ -80,7 +89,7 @@ function submit() {
 <template>
   <form
     class="cast-member-form"
-    aria-label="Add prop"
+    :aria-label="prop ? `Edit ${prop.name}` : 'Add prop'"
     novalidate
     @submit.prevent="submit"
     @keydown.esc="emit('cancel')"
