@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.18.1](https://github.com/cpthirst/gangshow-casting/compare/v1.18.0...v1.18.1) (2026-10-26)
+
+
+### Bug Fixes
+
+* **api:** report the release number, not "dev", in every environment ([#112](https://github.com/cpthirst/gangshow-casting/issues/112)) ([7ac437e](https://github.com/cpthirst/gangshow-casting/commit/7ac437eb0c5aedb987d21a983d4a1b4df32524be))
+
 ## [1.18.0](https://github.com/cpthirst/gangshow-casting/compare/v1.17.0...v1.18.0) (2026-10-26)
 
 
