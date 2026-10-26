@@ -314,6 +314,19 @@ describe("AppStack", () => {
       expect(JSON.stringify(accountsGrants)).not.toContain("dynamodb:");
     });
 
+    it("tells the API which release it is, as release-please numbered it", () => {
+      const { template } = synth();
+      const manifest = JSON.parse(
+        readFileSync(new URL("../../.release-please-manifest.json", import.meta.url), "utf8"),
+      );
+
+      template.hasResourceProperties("AWS::Lambda::Function", {
+        Environment: {
+          Variables: { DATA_TABLE: Match.anyValue(), APP_VERSION: manifest["."] },
+        },
+      });
+    });
+
     it("keeps the API's data in the data table, which is all of the data store it may use", () => {
       const { template } = synth();
 

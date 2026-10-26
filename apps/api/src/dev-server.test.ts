@@ -1,3 +1,5 @@
+import { once } from "node:events";
+import { readFileSync } from "node:fs";
 import { request, type Server } from "node:http";
 import {
   AccountList,
@@ -6,8 +8,8 @@ import {
   LOCAL_ACCESS_HEADER,
   UsageSummary,
 } from "@app/shared";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createDevServer, devRoutes } from "./dev-server.ts";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { createDevServer, devRoutes, startDevServer } from "./dev-server.ts";
 import { routes } from "./routes.ts";
 
 describe("dev server", () => {
@@ -410,5 +412,25 @@ describe("dev server local access (stage-props FR9)", () => {
 
     expect(add.status).toBe(403);
     expect(reached).toEqual([]);
+  });
+});
+
+describe("dev server release", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("reports the version release-please recorded in its manifest", async () => {
+    vi.stubEnv("APP_VERSION", undefined);
+    const manifest = JSON.parse(
+      readFileSync(new URL("../../../.release-please-manifest.json", import.meta.url), "utf8"),
+    );
+
+    const server = startDevServer(0);
+    await once(server, "listening");
+    const address = server.address();
+    if (typeof address !== "object" || address === null) throw new Error("server not listening");
+    const res = await fetch(`http://localhost:${address.port}/api/health`);
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+
+    expect(HealthResponse.parse(await res.json()).version).toBe(manifest["."]);
   });
 });

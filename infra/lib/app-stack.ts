@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import {
   ADMIN_GROUP,
@@ -36,6 +37,17 @@ import { NodejsFunction, OutputFormat } from "aws-cdk-lib/aws-lambda-nodejs";
 import { LogGroup, RetentionDays } from "aws-cdk-lib/aws-logs";
 import type { Construct } from "constructs";
 import { Pages } from "./pages.ts";
+
+/** The version release-please keeps in the root package.json, which the API's health route
+ *  reports as APP_VERSION. The dev server sets it the same way (releaseVersion in
+ *  apps/api/src/dev-server.ts); the two packages share no code. */
+function releaseVersion(): string {
+  const { version } = JSON.parse(
+    readFileSync(new URL("../../package.json", import.meta.url), "utf8"),
+  );
+  if (typeof version !== "string") throw new Error("The root package.json has no version");
+  return version;
+}
 
 const entryPoint = (file: string) =>
   fileURLToPath(new URL(`../../apps/api/src/${file}`, import.meta.url));
@@ -184,7 +196,10 @@ export class AppStack extends Stack {
 
     // The API keeps everything in the table (apps/api/src/data-stores.ts); the region
     // defaults to London, where the table is.
-    const dataFunction = nodeFunction("ApiFunction", "lambda.ts", { DATA_TABLE: table.tableName });
+    const dataFunction = nodeFunction("ApiFunction", "lambda.ts", {
+      DATA_TABLE: table.tableName,
+      APP_VERSION: releaseVersion(),
+    });
     // Reads and writes the table's items, and nothing else in DynamoDB (hosting E2.S1).
     table.grantReadWriteData(dataFunction);
     const apiIntegration = new HttpLambdaIntegration("ApiIntegration", dataFunction);
