@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.18.0](https://github.com/cpthirst/gangshow-casting/compare/v1.17.0...v1.18.0) (2026-10-26)
+
+
+### Features
+
+* **web:** generate the props list in Word (stage-props.E5.S1) ([#110](https://github.com/cpthirst/gangshow-casting/issues/110)) ([e763b35](https://github.com/cpthirst/gangshow-casting/commit/e763b35d4c4b0db6a9ed391d026d34a7b0b6ceec))
+
 ## [1.17.0](https://github.com/cpthirst/gangshow-casting/compare/v1.16.0...v1.17.0) (2026-10-26)
 
 
