@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.19.0](https://github.com/cpthirst/gangshow-casting/compare/v1.18.1...v1.19.0) (2026-10-26)
+
+
+### Features
+
+* **web:** call the Costume department Wardrobe (production-overview.E1.S1) ([#115](https://github.com/cpthirst/gangshow-casting/issues/115)) ([55b3bfc](https://github.com/cpthirst/gangshow-casting/commit/55b3bfca60a7a981808d13eb584be1be7aedd0b4))
+
 ## [1.18.1](https://github.com/cpthirst/gangshow-casting/compare/v1.18.0...v1.18.1) (2026-10-26)
 
 
