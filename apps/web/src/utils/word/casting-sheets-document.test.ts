@@ -233,6 +233,15 @@ describe("each casting sheet's table of items", () => {
       ]),
     );
 
-    expect(headers).toEqual([{ alignments: ["left"], pictures: [logoBytes()] }]);
+    expect(headers).toEqual([
+      { alignments: ["left"], pictures: [logoBytes()], pictureWidths: [2.4] },
+    ]);
+  });
+
+  it("sets the logo a quarter inch from the top, so it takes little room from the items", async () => {
+    const file = await sheetsOf([member("Ava", "Example", "scouts")]);
+
+    // Half the other exports' logo (above), a quarter inch from the top of the page.
+    expect(pageOf(file).header).toBe(360);
   });
 });

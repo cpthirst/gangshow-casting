@@ -17,7 +17,15 @@ import type { LatestShow } from "@/services/latest-show.ts";
 import { sectionLabel } from "@/utils/cast.ts";
 import { castBySection } from "@/utils/overview.ts";
 import { runningClock } from "@/utils/running-order.ts";
-import { A4, CELL_SPACING, LINE_HEIGHT, logoHeader, widthsOf, wordStyles } from "./word-styles.ts";
+import {
+  A4,
+  CELL_SPACING,
+  LINE_HEIGHT,
+  logoHeader,
+  SMALL_LOGO,
+  widthsOf,
+  wordStyles,
+} from "./word-styles.ts";
 
 // A casting sheet for every cast member, to print and hand out (casting-overview-by-item
 // FR9–FR13): one each, starting on a new page, headed with the show and who it's for, then
@@ -26,8 +34,9 @@ import { A4, CELL_SPACING, LINE_HEIGHT, logoHeader, widthsOf, wordStyles } from 
 // details (ADR 0022).
 
 // In twentieths of a point. A4 with narrow margins, and item rows two lines of text tall,
-// room to write in by hand. A long show carries on over the page, header row repeated.
-const MARGIN = { top: 720, bottom: 720, left: 1080, right: 1080 };
+// room to write in by hand. A long show carries on over the page, header row repeated. The
+// logo is small and a quarter inch from the top, so it takes little room from the items.
+const MARGIN = { top: 720, bottom: 720, left: 1080, right: 1080, header: 360 };
 const ITEM_ROW_HEIGHT = 2 * LINE_HEIGHT;
 
 const COLUMNS = [
@@ -146,7 +155,7 @@ export function castingSheetsDocument(show: LatestShow) {
     sections: [
       {
         properties: { page: { size: A4, margin: MARGIN } },
-        headers: { default: logoHeader() },
+        headers: { default: logoHeader(SMALL_LOGO) },
         children: members.flatMap((member, i) => sheetOf(show, halves, member, i === 0)),
       },
     ],

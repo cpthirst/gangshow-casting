@@ -112,7 +112,10 @@ describe("the props list document", () => {
   it("heads every page with the Chester Gang Show logo, on the left", async () => {
     const headers = defaultHeaders(await documentOf(show));
 
-    expect(headers).toEqual([{ alignments: ["left"], pictures: [logoBytes()] }]);
+    // About 5 cm across.
+    expect(headers).toEqual([
+      { alignments: ["left"], pictures: [logoBytes()], pictureWidths: [4.8] },
+    ]);
   });
 
   it("writes names and notes as plain text, never as markup", async () => {

@@ -133,6 +133,9 @@ describe("the Item Overview document", () => {
   it("heads every page with the Chester Gang Show logo, on the left", async () => {
     const headers = defaultHeaders(await documentOf(show));
 
-    expect(headers).toEqual([{ alignments: ["left"], pictures: [logoBytes()] }]);
+    // About 5 cm across.
+    expect(headers).toEqual([
+      { alignments: ["left"], pictures: [logoBytes()], pictureWidths: [4.8] },
+    ]);
   });
 });

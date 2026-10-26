@@ -75,15 +75,17 @@ export const itemHeadingRuns = (item: { number: number | null; title: string }) 
 
 // Half the logo's 360 × 146 pixels: about 5 cm across.
 const LOGO_SIZE = { width: 180, height: 73 };
+/** A quarter of the logo's pixels, about 2.4 cm across, for pages with little room to spare. */
+export const SMALL_LOGO = { width: 90, height: 37 };
 
 /** The Chester Gang Show logo, on the left of every page's header. The image is inlined, so
  *  the document needs nothing from the network to be made. */
-export const logoHeader = () =>
+export const logoHeader = (size = LOGO_SIZE) =>
   new Header({
     children: [
       new Paragraph({
         alignment: AlignmentType.LEFT,
-        children: [new ImageRun({ type: "jpg", data: logo, transformation: LOGO_SIZE })],
+        children: [new ImageRun({ type: "jpg", data: logo, transformation: size })],
       }),
     ],
   });
