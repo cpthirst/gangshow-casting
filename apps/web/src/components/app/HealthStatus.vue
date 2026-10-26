@@ -7,10 +7,8 @@ const status = ref("checking…");
 // The API answers no one until they sign in, which isn't the same as it being down.
 const label = computed(() => (signInNeeded.value ? "sign in needed" : status.value));
 
-// The release the API was deployed as, which the pages ship with: "v1.12.0". A local API
-// says "dev", which isn't a release number, so it shows as it is.
+// The app's release as the API reports it (from the root package.json): "v1.12.0".
 const release = ref<string>();
-const releaseOf = (version: string) => (/^\d/.test(version) ? `v${version}` : version);
 
 onMounted(async () => {
   try {
@@ -18,7 +16,7 @@ onMounted(async () => {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const { status: health, version } = HealthResponse.parse(await res.json());
     status.value = health;
-    release.value = releaseOf(version);
+    release.value = `v${version}`;
   } catch {
     status.value = "unavailable";
   }
