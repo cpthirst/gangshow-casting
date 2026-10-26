@@ -41,11 +41,11 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [stage-props.E4.S1](stories/E4-S1-props-list.md) | The Stage page's Props view lists the running order by half. Columns: Props (a pencil button, or view without Stage), #, the title with "Not in printed programme", and the number of props. Without a saved running order, it points to the Running order page | FR13, FR15 | E1.S2, E3.S1 | ready |
-| [stage-props.E4.S2](stories/E4-S2-add-a-prop.md) | Each item's props page shows the item's name and position, with All items, Previous and Next, says when there are no props, and handles an unknown item. Stage or Admin can add a prop by name. Props are listed alphabetically, numbers by value | FR16, FR17, FR21 | E4.S1 | ready |
-| [stage-props.E4.S3](stories/E4-S3-roles-on-a-prop.md) | Adding a prop takes none, one or many of the item's roles, picked as for an ensemble. Each card shows its roles, each with its current cast or "uncast". A removed role leaves its props in place without it | FR17, FR18, FR21 | E4.S2 | ready |
-| [stage-props.E4.S4](stories/E4-S4-edit-and-remove-a-prop.md) | The pencil on a prop card edits its name and roles, and the trash can removes the prop after confirming. Neither shows without Stage | FR19 | E4.S3 | ready |
-| [stage-props.E4.S5](stories/E4-S5-props-notes.md) | Each item's props page has Props notes, kept apart from the casting notes. Saving is refused if someone else has saved since the page loaded. The notes also show in full under the item on the Props page | FR14, FR20 | E4.S2 | ready |
+| [stage-props.E4.S1](stories/E4-S1-props-list.md) | The Stage page's Props view lists the running order by half. Columns: Props (a pencil button, or view without Stage), #, the title with "Not in printed programme", and the number of props. Without a saved running order, it points to the Running order page | FR13, FR15 | E1.S2, E3.S1 | done |
+| [stage-props.E4.S2](stories/E4-S2-add-a-prop.md) | Each item's props page shows the item's name and position, with All items, Previous and Next, says when there are no props, and handles an unknown item. Stage or Admin can add a prop by name. Props are listed alphabetically, numbers by value | FR16, FR17, FR21 | E4.S1 | done |
+| [stage-props.E4.S3](stories/E4-S3-roles-on-a-prop.md) | Adding a prop takes none, one or many of the item's roles, picked as for an ensemble. Each card shows its roles, each with its current cast or "uncast". A removed role leaves its props in place without it | FR17, FR18, FR21 | E4.S2 | done |
+| [stage-props.E4.S4](stories/E4-S4-edit-and-remove-a-prop.md) | The pencil on a prop card edits its name and roles, and the trash can removes the prop after confirming. Neither shows without Stage | FR19 | E4.S3 | done |
+| [stage-props.E4.S5](stories/E4-S5-props-notes.md) | Each item's props page has Props notes, kept apart from the casting notes. Saving is refused if someone else has saved since the page loaded. The notes also show in full under the item on the Props page | FR14, FR20 | E4.S2 | done |
 
 ## E5: Export to Word
 

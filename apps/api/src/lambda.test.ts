@@ -4,8 +4,10 @@ import {
   HealthResponse,
   ItemNoteList,
   LOCAL_ACCESS_HEADER,
+  needOf,
   Role,
   readOnlyMayUse,
+  refusalFor,
   routeKeys,
   UsageSummary,
 } from "@app/shared";
@@ -16,6 +18,7 @@ import type { Handler } from "./handler.ts";
 import { inMemoryItemNoteStore } from "./item-note-store.ts";
 import { handler } from "./lambda.ts";
 import { lambdaEntry } from "./lambda-entry.ts";
+import { inMemoryPropStore } from "./prop-store.ts";
 import { uncastThenRemove } from "./remove-cast-member.ts";
 import { inMemoryRoleStore } from "./role-store.ts";
 import { createRoutes } from "./routes.ts";
@@ -111,6 +114,8 @@ describe("Lambda entry point", () => {
               aRunningOrder(3, { first: ["Pirate Sketch"] }),
             ]),
             itemNotes: inMemoryItemNoteStore(),
+            props: inMemoryPropStore(),
+            propsNotes: inMemoryItemNoteStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
@@ -154,6 +159,8 @@ describe("Lambda entry point", () => {
             roles,
             runningOrders,
             itemNotes: inMemoryItemNoteStore(),
+            props: inMemoryPropStore(),
+            propsNotes: inMemoryItemNoteStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
@@ -302,6 +309,8 @@ describe("Lambda entry point", () => {
             roles,
             runningOrders,
             itemNotes,
+            props: inMemoryPropStore(),
+            propsNotes: inMemoryItemNoteStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
@@ -512,6 +521,8 @@ describe("Lambda entry point", () => {
             roles,
             runningOrders,
             itemNotes,
+            props: inMemoryPropStore(),
+            propsNotes: inMemoryItemNoteStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
@@ -649,7 +660,7 @@ describe("Lambda entry point", () => {
       expect(await stored()).toEqual(before);
     });
 
-    it("lets kim, with Casting and Stage, make casting changes as with Casting only", async () => {
+    it("lets kim, with Casting and Stage, make casting changes as with Casting only, and Stage's as with Stage only", async () => {
       const { api } = setUp();
       const send = everyRoute();
 
@@ -661,20 +672,21 @@ describe("Lambda entry point", () => {
       expect(saved).toEqual([201, 201, 200]);
       for (const key of changeRoutes) {
         const kim = await send(key, "[casting stage]");
-        const casting = await send(key, "[casting]");
-        expect(kim, key).toEqual(casting);
+        const alone = await send(key, needOf(key) === "stage" ? "[stage]" : "[casting]");
+        expect(kim, key).toEqual(alone);
       }
     });
 
-    it("refuses every change from lee, with Tech and Costume only, saying read-only, or admins' only for admin-only ones", async () => {
+    it("refuses every change from lee, with Tech and Costume only, saying what is read-only, or admins' only for admin-only ones", async () => {
       const send = everyRoute();
 
       for (const key of changeRoutes) {
         const { res, ran } = await send(key, "[tech costume]");
 
         expect(res.statusCode, key).toBe(403);
+        const need = needOf(key);
         expect(JSON.parse(res.body ?? ""), key).toEqual(
-          adminOnlyRouteKeys.includes(key) ? ONLY_ADMINS : READ_ONLY,
+          need === undefined || need === "admin" ? ONLY_ADMINS : { message: refusalFor(need) },
         );
         expect(ran, key).toBe(false);
       }
@@ -712,6 +724,222 @@ describe("Lambda entry point", () => {
       expect(visited.statusCode).toBe(204);
     });
 
+    describe("adding a prop, which needs Stage", () => {
+      const PROPS_READ_ONLY = { message: "You can view the props, but not change them." };
+      const setUpProps = () => {
+        const cast = inMemoryCastStore();
+        const roles = inMemoryRoleStore();
+        const props = inMemoryPropStore();
+        const api = lambdaEntry(
+          createRoutes(
+            {
+              cast,
+              roles,
+              runningOrders: inMemoryRunningOrderStore([
+                aRunningOrder(4, { first: ["Pirate Sketch"] }),
+              ]),
+              itemNotes: inMemoryItemNoteStore(),
+              props,
+              propsNotes: inMemoryItemNoteStore(),
+              removeCastMember: uncastThenRemove(cast, roles),
+            },
+            inMemoryUsageStore(),
+          ),
+        );
+        return { api, props };
+      };
+      const addProp = (groups: string, name: string) =>
+        as(groups)("POST", `/api/productions/2027/items/${pirate}/props`, { name });
+
+      it.each([
+        ["pat, with Stage", "[stage]", "Treasure chest"],
+        ["alex, an admin", "[admin]", "Parrot"],
+      ])("saves a prop from %s", async (_who, groups, name) => {
+        const { api, props } = setUpProps();
+
+        const res = await api(addProp(groups, name));
+
+        expect(res.statusCode).toBe(201);
+        expect((await props.list("2027")).props).toEqual([
+          { id: 1, itemId: pirate, name, roleIds: [] },
+        ]);
+      });
+
+      it.each([
+        ["sam, with Casting only", "[casting]"],
+        ["lee, with Tech and Costume", "[tech costume]"],
+      ])(
+        "refuses a prop from %s, saying the props are read-only, adding nothing",
+        async (_who, groups) => {
+          const { api, props } = setUpProps();
+
+          const res = await api(addProp(groups, "Treasure chest"));
+
+          expect(res.statusCode).toBe(403);
+          expect(JSON.parse(res.body ?? "")).toEqual(PROPS_READ_ONLY);
+          expect((await props.list("2027")).props).toEqual([]);
+        },
+      );
+
+      const PROP_PATH = "/api/productions/2027/props/1";
+      const editProp = (groups: string) =>
+        as(groups)("PUT", PROP_PATH, { name: "Gold chest", roleIds: [] });
+      const removeProp = (groups: string) => as(groups)("DELETE", PROP_PATH);
+      const treasureChest = { id: 1, itemId: pirate, name: "Treasure chest", roleIds: [] };
+
+      it.each([
+        ["pat, with Stage", "[stage]"],
+        ["alex, an admin", "[admin]"],
+      ])("edits and removes a prop for %s", async (_who, groups) => {
+        const { api, props } = setUpProps();
+        await api(addProp("[stage]", "Treasure chest"));
+
+        expect((await api(editProp(groups))).statusCode).toBe(200);
+        expect((await props.list("2027")).props).toEqual([
+          { ...treasureChest, name: "Gold chest" },
+        ]);
+        expect((await api(removeProp(groups))).statusCode).toBe(204);
+        expect((await props.list("2027")).props).toEqual([]);
+      });
+
+      it.each([
+        ["sam, with Casting only", "[casting]"],
+        ["lee, with Tech and Costume", "[tech costume]"],
+      ])(
+        "refuses to edit or remove a prop for %s, saying the props are read-only, changing nothing",
+        async (_who, groups) => {
+          const { api, props } = setUpProps();
+          await api(addProp("[stage]", "Treasure chest"));
+
+          for (const res of [await api(editProp(groups)), await api(removeProp(groups))]) {
+            expect(res.statusCode).toBe(403);
+            expect(JSON.parse(res.body ?? "")).toEqual(PROPS_READ_ONLY);
+          }
+          expect((await props.list("2027")).props).toEqual([treasureChest]);
+        },
+      );
+    });
+
+    describe("props notes, which need Stage", () => {
+      const PROPS_READ_ONLY = { message: "You can view the props, but not change them." };
+      const setUpNotes = () => {
+        const cast = inMemoryCastStore();
+        const roles = inMemoryRoleStore();
+        const itemNotes = inMemoryItemNoteStore();
+        const api = lambdaEntry(
+          createRoutes(
+            {
+              cast,
+              roles,
+              runningOrders: inMemoryRunningOrderStore([
+                aRunningOrder(4, { first: ["Pirate Sketch"] }),
+              ]),
+              itemNotes,
+              props: inMemoryPropStore(),
+              propsNotes: inMemoryItemNoteStore(),
+              removeCastMember: uncastThenRemove(cast, roles),
+            },
+            inMemoryUsageStore(),
+          ),
+        );
+        return { api, itemNotes };
+      };
+      const NOTES_PATH = `/api/productions/2027/items/${pirate}/props-notes`;
+      const saveNotes = (groups: string, revision: number, text: string) =>
+        as(groups)("PUT", NOTES_PATH, { revision, text });
+      const propsNotes = async (api: ReturnType<typeof setUpNotes>["api"]) =>
+        ItemNoteList.parse(
+          JSON.parse(
+            (await api(as("[casting]")("GET", "/api/productions/2027/props-notes"))).body ?? "",
+          ),
+        ).notes;
+
+      it.each([
+        ["pat, with Stage", "[stage]"],
+        ["alex, an admin", "[admin]"],
+      ])("saves props notes from %s, kept for the next read", async (_who, groups) => {
+        const { api } = setUpNotes();
+
+        const res = await api(saveNotes(groups, 0, "Chest set stage left before the blackout"));
+
+        expect(res.statusCode).toBe(200);
+        expect(await propsNotes(api)).toEqual([
+          { itemId: pirate, text: "Chest set stage left before the blackout", revision: 1 },
+        ]);
+      });
+
+      it("keeps props notes apart from the casting notes", async () => {
+        const { api, itemNotes } = setUpNotes();
+        await itemNotes.save("2027", pirate, 0, "Captain needs a sword fight rehearsal");
+
+        await api(saveNotes("[stage]", 0, "Chest set stage left"));
+
+        expect((await itemNotes.list("2027")).notes.map((note) => note.text)).toEqual([
+          "Captain needs a sword fight rehearsal",
+        ]);
+        expect((await propsNotes(api)).map((note) => note.text)).toEqual(["Chest set stage left"]);
+      });
+
+      it("refuses props notes over 500 characters, saving nothing", async () => {
+        const { api } = setUpNotes();
+
+        const res = await api(saveNotes("[stage]", 0, "x".repeat(501)));
+
+        expect(res.statusCode).toBe(400);
+        expect(await propsNotes(api)).toEqual([]);
+      });
+
+      it("clears props notes saved as empty text", async () => {
+        const { api } = setUpNotes();
+        await api(saveNotes("[stage]", 0, "Chest set stage left"));
+
+        await api(saveNotes("[stage]", 1, "  "));
+
+        expect((await propsNotes(api)).map((note) => note.text)).toEqual([""]);
+      });
+
+      it("refuses a save made since someone else saved, keeping theirs", async () => {
+        const { api } = setUpNotes();
+        await api(saveNotes("[stage]", 0, "Theirs"));
+
+        const res = await api(saveNotes("[stage]", 0, "Mine"));
+
+        expect(res.statusCode).toBe(409);
+        expect((await propsNotes(api)).map((note) => note.text)).toEqual(["Theirs"]);
+      });
+
+      it("keeps props notes when a new running-order version keeps the item", async () => {
+        const { api } = setUpNotes();
+        await api(saveNotes("[stage]", 0, "Chest set stage left"));
+
+        const saved = await api(
+          as("[admin]")("POST", "/api/productions/2027/running-order/versions", {
+            baseVersion: 4,
+            change: {
+              type: "update",
+              // Pirate Sketch moved to the second half, its props notes kept with it.
+              halves: aRunningOrder(4, { second: ["Pirate Sketch"], first: [] }).halves.map(
+                ({ id, items }) => ({ id, items }),
+              ),
+            },
+          }),
+        );
+
+        expect(saved.statusCode).toBe(201);
+        expect((await propsNotes(api)).map((note) => note.text)).toEqual(["Chest set stage left"]);
+      });
+
+      it("refuses props notes from sam, with Casting only, saying the props are read-only", async () => {
+        const { api } = setUpNotes();
+
+        const res = await api(saveNotes("[casting]", 0, "Chest"));
+
+        expect(res.statusCode).toBe(403);
+        expect(JSON.parse(res.body ?? "")).toEqual(PROPS_READ_ONLY);
+        expect(await propsNotes(api)).toEqual([]);
+      });
+    });
+
     it.each(["[props]", "[crew Stage CASTING]", "[superadmin]"])(
       "refuses a change from a sign-in whose groups are only unknown ones, %s, saying read-only",
       async (groups) => {
@@ -739,6 +967,8 @@ describe("Lambda entry point", () => {
             roles,
             runningOrders: inMemoryRunningOrderStore([aRunningOrder(3)]),
             itemNotes: inMemoryItemNoteStore(),
+            props: inMemoryPropStore(),
+            propsNotes: inMemoryItemNoteStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),

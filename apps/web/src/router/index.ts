@@ -8,6 +8,7 @@ import CastPage from "@/pages/CastPage.vue";
 import DepartmentPage from "@/pages/DepartmentPage.vue";
 import HelpPage from "@/pages/HelpPage.vue";
 import NotFoundPage from "@/pages/NotFoundPage.vue";
+import PropsItemPage from "@/pages/PropsItemPage.vue";
 import RunningOrderPage from "@/pages/RunningOrderPage.vue";
 import UsagePage from "@/pages/UsagePage.vue";
 import WelcomePage from "@/pages/WelcomePage.vue";
@@ -160,6 +161,12 @@ export function createAppRouter(history: RouterHistory = createWebHistory()) {
         name: "casting-item",
         component: CastingItemPage,
         meta: { title: "Item", menuPage: "casting-items" },
+      },
+      {
+        path: "/production/stage/props/:itemId",
+        name: "props-item",
+        component: PropsItemPage,
+        meta: { title: "Item", menuPage: "stage" },
       },
       // Where Sign out goes first, so the page being left can ask about unsaved changes.
       {

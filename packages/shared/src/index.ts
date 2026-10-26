@@ -4,6 +4,7 @@ export * from "./cast.ts";
 export * from "./casting-grid-export.ts";
 export * from "./health.ts";
 export * from "./item-note.ts";
+export * from "./prop.ts";
 export * from "./role.ts";
 export * from "./running-order.ts";
 export * from "./sign-in-config.ts";

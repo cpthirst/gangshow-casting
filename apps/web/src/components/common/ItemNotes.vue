@@ -2,13 +2,22 @@
 import { ItemNote, ItemNoteList, MAX_NOTE_LENGTH } from "@app/shared";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { onBeforeRouteLeave, onBeforeRouteUpdate } from "vue-router";
-import { apiFetch, canChangeCasting } from "@/services/sign-in.ts";
-import { ITEM_NOTES_PATH, saveNotesPath } from "@/utils/item-notes.ts";
+import { apiFetch } from "@/services/sign-in.ts";
 
-// An item's casting notes: one free-text field, saved on its own, apart from the running
-// order (casting-item-overview FR8, FR10). The page gives each item a fresh instance (keyed
+// An item's notes: one free-text field, saved on its own, apart from the running order
+// (casting-item-overview FR8, FR10). The casting notes and the props notes (stage-props
+// FR20) each use it, at their own paths. The page gives each item a fresh instance (keyed
 // by item id), so a slow load or save can't land on another item's notes.
-const props = defineProps<{ itemId: string }>();
+const props = defineProps<{
+  itemId: string;
+  heading: string;
+  /** Where every item's notes are read from. */
+  listPath: string;
+  /** Where this item's notes are saved. */
+  savePath: string;
+  /** Whether the viewer may change them; otherwise they're read-only (team-roles FR6). */
+  canChange: boolean;
+}>();
 
 const text = ref("");
 /** What's saved, and the revision it was saved at (0 for an item with no notes yet). */
@@ -21,13 +30,13 @@ const error = ref("");
 const announcement = ref("");
 
 const unsaved = computed(() => status.value === "ready" && text.value !== saved.value.text);
-/** What someone who can't change Casting reads in place of the form. */
+/** What someone who can't change them reads in place of the form. */
 const readOnlyText = computed(() =>
   status.value === "loading" ? "Loading…" : saved.value.text || "No notes yet.",
 );
 
 async function currentNote(): Promise<ItemNote | undefined> {
-  const res = await apiFetch(ITEM_NOTES_PATH);
+  const res = await apiFetch(props.listPath);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return ItemNoteList.parse(await res.json()).notes.find((n) => n.itemId === props.itemId);
 }
@@ -52,7 +61,7 @@ async function save() {
   }
   saving.value = true;
   try {
-    const res = await apiFetch(saveNotesPath(props.itemId), {
+    const res = await apiFetch(props.savePath, {
       method: "PUT",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ text: text.value, revision: saved.value.revision }),
@@ -96,10 +105,10 @@ onUnmounted(() => window.removeEventListener("beforeunload", warnBeforeUnload));
 
 <template>
   <section class="item-notes" aria-labelledby="notes-heading">
-    <h2 id="notes-heading">Notes</h2>
+    <h2 id="notes-heading">{{ heading }}</h2>
     <p v-if="status === 'error'" role="alert">Couldn't load the notes.</p>
-    <!-- Those who can't change casting read the notes, with nothing to change them (team-roles FR6). -->
-    <p v-else-if="!canChangeCasting" class="notes-text" data-test="notes-text">
+    <!-- Those who can't change them read the notes, with nothing to change them (team-roles FR6). -->
+    <p v-else-if="!canChange" class="notes-text" data-test="notes-text">
       {{ readOnlyText }}
     </p>
     <form v-else novalidate @submit.prevent="save">

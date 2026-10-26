@@ -5,6 +5,7 @@ import { icons } from "./icons.ts";
 const accessLabels = {
   everyone: "Everyone",
   casting: "Accounts with Casting, and admins",
+  stage: "Accounts with Stage, and admins",
   admins: "Admins only",
 } as const;
 
@@ -238,7 +239,54 @@ export const pageHelp: PageHelp[] = [
       "The scenery and props each item needs, as two views. Accounts with Stage, and admins, can change it.",
     lines: [
       { name: "Scenery", does: "The scenery each item needs. Coming soon.", access: "everyone" },
-      { name: "Props", does: "The props each item needs. Coming soon.", access: "everyone" },
+      {
+        name: "Props",
+        does: "The show's items, with how many props each one needs. Open an item to see its props.",
+        access: "everyone",
+      },
+    ],
+  },
+  {
+    page: "props-item",
+    title: "An item's props",
+    summary: "One item's props and notes. Open an item from Production → Stage, in the Props view.",
+    reachedFrom: { page: "stage", title: "Stage" },
+    lines: [
+      {
+        icons: [icons.allItems],
+        name: "All items",
+        does: "Goes back to the Props view's list of items.",
+        access: "everyone",
+      },
+      {
+        icons: [icons.back, icons.forward],
+        name: "Previous and Next",
+        does: "Steps to the item before or after this one in the show.",
+        access: "everyone",
+      },
+      {
+        name: "Add prop",
+        does: "Adds a prop the item needs, by name, and the roles that use it.",
+        access: "stage",
+      },
+      {
+        icons: [icons.edit],
+        name: "Edit",
+        does: "Changes a prop's name or the roles that use it.",
+        access: "stage",
+      },
+      {
+        icons: [icons.remove],
+        name: "Remove",
+        does: "Takes a prop off the item.",
+        access: "stage",
+      },
+      {
+        name: "Props notes",
+        does: "Anything the props team needs to know about the item's props.",
+        access: "everyone",
+        changeAccess: "stage",
+      },
     ],
   },
   {

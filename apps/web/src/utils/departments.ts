@@ -15,14 +15,18 @@ export interface Department {
 }
 
 // Production's pages, one per department, by their route name. Each view says "Coming soon"
-// until its feature is built (stage-props FR11).
+// until its feature is built (stage-props FR11); Props is built (E4).
 export const departments = {
   stage: {
     title: "Stage",
     description: "The scenery and props each item needs.",
     views: [
       { name: "scenery", title: "Scenery", description: "The scenery each item needs." },
-      { name: "props", title: "Props", description: "The props each item needs." },
+      {
+        name: "props",
+        title: "Props",
+        description: "The show's items, with how many props each one needs.",
+      },
     ],
   },
   tech: {

@@ -64,13 +64,17 @@ export function inMemoryItemNoteStore(): ItemNoteStore {
   };
 }
 
-/** Local file: `<dataDir>/<productionId>/item-notes.json` (git-ignored), created with the
- *  first notes. Free text about a production of young people, so kept owner-only. */
-export function fileItemNoteStore(dataDir: string): ItemNoteStore {
+/** The file props notes are kept in, apart from the casting notes (stage-props FR20). */
+export const PROPS_NOTES_FILE = "props-notes.json";
+
+/** Local file: `<dataDir>/<productionId>/item-notes.json` (git-ignored), or the file named,
+ *  created with the first notes. Free text about a production of young people, so kept
+ *  owner-only. */
+export function fileItemNoteStore(dataDir: string, fileName = "item-notes.json"): ItemNoteStore {
   // The id becomes a folder name: never trust callers to have checked it.
   const fileFor = (productionId: string) => {
     if (!ProductionId.safeParse(productionId).success) throw new Error("Invalid production id");
-    return join(dataDir, productionId, "item-notes.json");
+    return join(dataDir, productionId, fileName);
   };
 
   async function read(productionId: string) {

@@ -341,6 +341,11 @@ export function placeOf(order: RunningOrder, itemId: string) {
   return undefined;
 }
 
+/** Where an item comes in the show, as its page says: "Item 2 · First half", or just the
+ *  half for an item without a programme number. */
+export const positionOf = ({ half, number }: NonNullable<ReturnType<typeof placeOf>>) =>
+  number === null ? `${half.name} · Not in printed programme` : `Item ${number} · ${half.name}`;
+
 /** The items either side of one, in performance order: across the interval too, so the
  *  item pages can be stepped through like the show. */
 export function neighboursOf(order: RunningOrder, itemId: string) {

@@ -91,8 +91,26 @@ describe("routeNeeds", () => {
     }
   });
 
-  it("has every change route today need Casting, or stay admin-only", () => {
-    const changes = routeKeys.filter((key) => !readOnlyMayUse(key));
+  it("has adding a prop need Stage", () => {
+    expect(needOf("POST /api/productions/{productionId}/items/{itemId}/props")).toBe("stage");
+  });
+
+  it("has editing and removing a prop need Stage", () => {
+    expect(needOf("PUT /api/productions/{productionId}/props/{propId}")).toBe("stage");
+    expect(needOf("DELETE /api/productions/{productionId}/props/{propId}")).toBe("stage");
+  });
+
+  it("has saving props notes need Stage", () => {
+    expect(needOf("PUT /api/productions/{productionId}/items/{itemId}/props-notes")).toBe("stage");
+  });
+
+  it("leaves reading props notes open to everyone", () => {
+    expect(routeKeys).toContain("GET /api/productions/{productionId}/props-notes");
+    expect(needOf("GET /api/productions/{productionId}/props-notes")).toBeUndefined();
+  });
+
+  it("has every other change route today need Casting, or stay admin-only", () => {
+    const changes = routeKeys.filter((key) => !readOnlyMayUse(key) && needOf(key) !== "stage");
     expect(changes.filter((key) => needOf(key) === "casting").sort()).toEqual([
       "DELETE /api/productions/{productionId}/roles/{roleId}",
       "POST /api/productions/{productionId}/cast",
@@ -114,7 +132,7 @@ describe("routeNeeds", () => {
   });
 
   it("needs an admin for a change route missing from the table, so a gap fails safe", () => {
-    expect(needOf("PUT /api/productions/{productionId}/props/{propId}")).toBe("admin");
+    expect(needOf("PUT /api/productions/{productionId}/anything-new/{id}")).toBe("admin");
     expect(needOf("POST /api/anything-new")).toBe("admin");
     expect(needOf("GET /api/anything-new")).toBeUndefined();
   });
@@ -189,6 +207,10 @@ describe("the local access header", () => {
 describe("refusalFor", () => {
   it("says the casting can be viewed but not changed", () => {
     expect(refusalFor("casting")).toBe("You can view the casting, but not change it.");
+  });
+
+  it("says the props can be viewed but not changed, for Stage", () => {
+    expect(refusalFor("stage")).toBe("You can view the props, but not change them.");
   });
 
   it("falls back to a general line for a department without its own", () => {

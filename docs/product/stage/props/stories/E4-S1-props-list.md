@@ -2,7 +2,7 @@
 id: stage-props.E4.S1
 title: List the show's items in the Props view
 epic: E4
-status: ready
+status: done
 ---
 
 ## Story

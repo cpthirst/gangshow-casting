@@ -1,7 +1,7 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { aTestTable, type TestTable } from "./dynamo.fixture.ts";
-import { dynamoItemNoteStore } from "./dynamo-item-note-store.ts";
+import { dynamoItemNoteStore, PROPS_NOTE } from "./dynamo-item-note-store.ts";
 import { documentClient } from "./dynamo-table.ts";
 import { behavesAsAnItemNoteStore } from "./item-note-store.contract.ts";
 
@@ -15,6 +15,21 @@ describe("DynamoDB item note store", () => {
   });
 
   behavesAsAnItemNoteStore(() => dynamoItemNoteStore(table.db, table.tableName));
+
+  describe("for props notes", () => {
+    behavesAsAnItemNoteStore(() => dynamoItemNoteStore(table.db, table.tableName, PROPS_NOTE));
+
+    it("keeps props notes apart from the casting notes", async () => {
+      const casting = dynamoItemNoteStore(table.db, table.tableName);
+      const props = dynamoItemNoteStore(table.db, table.tableName, PROPS_NOTE);
+      await casting.save("2027", "pirate-sketch", 0, "Sword fight");
+
+      await props.save("2027", "pirate-sketch", 0, "Chest");
+
+      expect((await casting.list("2027")).notes.map((note) => note.text)).toEqual(["Sword fight"]);
+      expect((await props.list("2027")).notes.map((note) => note.text)).toEqual(["Chest"]);
+    });
+  });
 
   it("reads notes saved through another connection", async () => {
     await dynamoItemNoteStore(table.db, table.tableName).save("2027", "finale", 0, "Bows");

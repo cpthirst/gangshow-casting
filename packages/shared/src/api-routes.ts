@@ -18,6 +18,12 @@ export const routeKeys = [
   "DELETE /api/productions/{productionId}/cast/{castId}",
   "GET /api/productions/{productionId}/roles",
   "GET /api/productions/{productionId}/item-notes",
+  "GET /api/productions/{productionId}/props",
+  "POST /api/productions/{productionId}/items/{itemId}/props",
+  "PUT /api/productions/{productionId}/props/{propId}",
+  "DELETE /api/productions/{productionId}/props/{propId}",
+  "GET /api/productions/{productionId}/props-notes",
+  "PUT /api/productions/{productionId}/items/{itemId}/props-notes",
   "POST /api/productions/{productionId}/casting-grid/export",
   "PUT /api/productions/{productionId}/items/{itemId}/notes",
   "POST /api/productions/{productionId}/items/{itemId}/roles",
@@ -67,6 +73,7 @@ const GENERAL_REFUSAL = "You can view this, but not change it.";
 /** What each department says when it refuses a change, naming what can only be viewed. */
 const departmentRefusals: Partial<Record<Permission, string>> = {
   casting: "You can view the casting, but not change it.",
+  stage: "You can view the props, but not change them.",
 };
 
 /** The API's answer to a change that needs a permission the caller hasn't got. */
@@ -161,6 +168,10 @@ export const routeNeeds: RouteNeeds = {
   "POST /api/productions/{productionId}/items/{itemId}/roles": "casting",
   "PUT /api/productions/{productionId}/roles/{roleId}": "casting",
   "DELETE /api/productions/{productionId}/roles/{roleId}": "casting",
+  "POST /api/productions/{productionId}/items/{itemId}/props": "stage",
+  "PUT /api/productions/{productionId}/props/{propId}": "stage",
+  "DELETE /api/productions/{productionId}/props/{propId}": "stage",
+  "PUT /api/productions/{productionId}/items/{itemId}/props-notes": "stage",
   // Usage is about the team, so only admins read it (usage-tracking FR4).
   "GET /api/usage": "admin",
 };

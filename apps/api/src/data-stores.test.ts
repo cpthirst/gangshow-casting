@@ -1,4 +1,4 @@
-import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -21,6 +21,17 @@ describe("data stores", () => {
     const file = JSON.parse(await readFile(join(dataDir, "2027", "item-notes.json"), "utf8"));
     expect(file.notes).toEqual([{ itemId: "finale", text: "Bows", revision: 1 }]);
     expect(stores.where).toBe(`everything in files at ${dataDir}`);
+  });
+
+  it("reads props from the local files when no remote table is configured", async () => {
+    const props = [{ id: 1, itemId: "finale", name: "Confetti", roleIds: [] }];
+    await mkdir(join(dataDir, "2027"));
+    await writeFile(
+      join(dataDir, "2027", "props.json"),
+      JSON.stringify({ productionId: "2027", props }),
+    );
+
+    expect((await dataStores({ DATA_DIR: dataDir }).props.list("2027")).props).toEqual(props);
   });
 
   it("keeps usage only in memory, never in the local files, when no remote table is configured", async () => {

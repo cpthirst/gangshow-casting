@@ -11,19 +11,24 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, nextTick, onMounted, ref, watch, watchEffect } from "vue";
 import { useRoute } from "vue-router";
-import ItemNotes from "@/components/casting/ItemNotes.vue";
 import RoleForm from "@/components/casting/RoleForm.vue";
 import ClashIcon from "@/components/common/ClashIcon.vue";
 import HelpButton from "@/components/common/HelpButton.vue";
+import ItemNotes from "@/components/common/ItemNotes.vue";
+import ItemStepNav from "@/components/common/ItemStepNav.vue";
 import ReadOnlyNotice from "@/components/common/ReadOnlyNotice.vue";
 import { showPageTitle } from "@/router/index.ts";
 import { apiFetch, canChangeCasting } from "@/services/sign-in.ts";
 import { recordItemUse } from "@/services/usage.ts";
-import { CAST_PATH, sortCast } from "@/utils/cast.ts";
+import { CAST_PATH } from "@/utils/cast.ts";
 import { clashesOf, describeEach, findClashes } from "@/utils/clashes.ts";
 import { icons } from "@/utils/icons.ts";
+import { ITEM_NOTES_PATH, saveNotesPath } from "@/utils/item-notes.ts";
 import {
   addRolePath,
+  castNames,
+  castOf,
+  fullName,
   nameTakenMessage,
   ROLES_PATH,
   removeRolePath,
@@ -31,19 +36,12 @@ import {
   sortRoles,
   updateRolePath,
 } from "@/utils/roles.ts";
-import { neighboursOf, placeOf, RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
+import { neighboursOf, placeOf, positionOf, RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
 
 const route = useRoute();
 const order = ref<RunningOrder>();
 const roles = ref<Role[]>([]);
 const cast = ref<CastMember[]>([]);
-
-// Roles hold ids; names come from the cast list (ADR 0010), by last name (an ensemble's
-// members, casting-roles FR5). Someone no longer on the cast shows nothing.
-const castOf = (role: Role) =>
-  sortCast(cast.value.filter((member) => role.castMemberIds.includes(member.id)));
-const fullName = (member: CastMember) => `${member.firstName} ${member.lastName}`;
-const castNames = (role: Role) => castOf(role).map(fullName).join(", ");
 const status = ref<"loading" | "loaded" | "error">("loading");
 
 const place = computed(() => {
@@ -81,14 +79,7 @@ const neighbours = computed(() =>
 // Loaded, but the item isn't in the latest saved running order (PRD FR6).
 const notFound = computed(() => status.value === "loaded" && !place.value);
 
-// "Item 2 · First half", or just the half for an item without a programme number.
-const position = computed(() => {
-  if (!place.value) return "";
-  const { half, number } = place.value;
-  return number === null
-    ? `${half.name} · Not in printed programme`
-    : `Item ${number} · ${half.name}`;
-});
+const position = computed(() => (place.value ? positionOf(place.value) : ""));
 
 // Each item opened is a use, once it's found in the running order (usage-tracking FR2).
 watch(
@@ -291,34 +282,12 @@ async function postRole(itemId: string, details: AddRoleRequest) {
 </script>
 
 <template>
-  <nav class="step-nav" aria-label="Item navigation">
-    <RouterLink :to="{ name: 'casting-items' }" class="back-link">
-      <span class="step-label"><FontAwesomeIcon :icon="icons.allItems" /> All items</span>
-    </RouterLink>
-    <RouterLink
-      v-if="neighbours.previous"
-      :to="{ name: 'casting-item', params: { itemId: neighbours.previous.id } }"
-      rel="prev"
-      :data-tooltip="neighbours.previous.title"
-      class="step-link step-previous"
-    >
-      <span class="step-label"><FontAwesomeIcon :icon="icons.back" /> Previous</span>
-      <!-- A real space, so the link reads "Previous Pirate Sketch", not one word. -->
-      {{ " " }}
-      <span class="step-title">{{ neighbours.previous.title }}</span>
-    </RouterLink>
-    <RouterLink
-      v-if="neighbours.next"
-      :to="{ name: 'casting-item', params: { itemId: neighbours.next.id } }"
-      rel="next"
-      :data-tooltip="neighbours.next.title"
-      class="step-link step-next"
-    >
-      <span class="step-label">Next <FontAwesomeIcon :icon="icons.forward" /></span>
-      {{ " " }}
-      <span class="step-title">{{ neighbours.next.title }}</span>
-    </RouterLink>
-  </nav>
+  <ItemStepNav
+    :list="{ name: 'casting-items' }"
+    item-route="casting-item"
+    :previous="neighbours.previous"
+    :next="neighbours.next"
+  />
   <p v-if="status === 'error'" role="alert">Couldn't load the item.</p>
   <template v-else-if="place">
     <div class="page-title-row">
@@ -365,7 +334,7 @@ async function postRole(itemId: string, details: AddRoleRequest) {
         <RoleForm
           v-if="editing?.id === role.id"
           :role="role"
-          :cast-name="castNames(role)"
+          :cast-name="castNames(role, cast)"
           :saving="saving"
           :error="formError"
           :taken="takenNames"
@@ -406,10 +375,10 @@ async function postRole(itemId: string, details: AddRoleRequest) {
           <span :class="['pill', `pill-${role.size}`]" data-test="size">{{
             roleSizeLabel(role.size)
           }}</span>
-          <template v-if="castOf(role).length > 0">
+          <template v-if="castOf(role, cast).length > 0">
             {{ " " }}
             <span class="role-cast" data-test="cast">
-              <template v-for="(member, i) in castOf(role)" :key="member.id"
+              <template v-for="(member, i) in castOf(role, cast)" :key="member.id"
                 ><template v-if="i > 0">, </template
                 ><span class="cast-name" data-test="cast-name"
                   >{{ fullName(member)
@@ -427,7 +396,14 @@ async function postRole(itemId: string, details: AddRoleRequest) {
     </ul>
     <p v-else>No roles have been added yet.</p>
     <!-- A fresh instance per item, so stepping to another never mixes their notes. -->
-    <ItemNotes :key="place.item.id" :item-id="place.item.id" />
+    <ItemNotes
+      :key="place.item.id"
+      :item-id="place.item.id"
+      heading="Notes"
+      :list-path="ITEM_NOTES_PATH"
+      :save-path="saveNotesPath(place.item.id)"
+      :can-change="canChangeCasting"
+    />
   </template>
   <template v-else-if="notFound">
     <h1>Item not found</h1>
