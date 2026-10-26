@@ -1,4 +1,5 @@
 // Local stand-in for API Gateway: serves the same handlers Lambda will run (ADR 0006).
+import { readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { LOCAL_ACCESS_HEADER, localAccessFrom } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
@@ -128,10 +129,24 @@ export const devRoutes = (dataRoutes = routes) => ({
   ...createUsageRoutes(inMemoryUsageStore(), { who: () => LOCAL_ADMIN }),
 });
 
-if (import.meta.main) {
-  const port = Number(process.env.PORT ?? 3000);
+/** The version release-please keeps in the root package.json, which the health route reports
+ *  as APP_VERSION. Infra sets it on the deployed API the same way (releaseVersion in
+ *  infra/lib/app-stack.ts); the two packages share no code. */
+function releaseVersion(): string {
+  const { version } = JSON.parse(
+    readFileSync(new URL("../../../package.json", import.meta.url), "utf8"),
+  );
+  if (typeof version !== "string") throw new Error("The root package.json has no version");
+  return version;
+}
+
+/** Starts the dev API on the port, reporting the release as the deployed API does. */
+export function startDevServer(port: number) {
+  process.env.APP_VERSION ??= releaseVersion();
   // Loopback only: the dev API is unauthenticated, so keep it off the local network.
-  createDevServer(devRoutes()).listen(port, "127.0.0.1", () => {
+  return createDevServer(devRoutes()).listen(port, "127.0.0.1", () => {
     process.stdout.write(`api listening on http://127.0.0.1:${port}; data: ${dataLocation}\n`);
   });
 }
+
+if (import.meta.main) startDevServer(Number(process.env.PORT ?? 3000));

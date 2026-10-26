@@ -19,6 +19,15 @@ describe("HealthStatus", () => {
     expect(wrapper.findAll("p").map((line) => line.text())).toEqual(["API: ok", "v1.2.3"]);
   });
 
+  it("names a local API's version as it is, without a v", async () => {
+    vi.stubGlobal("fetch", respondWith(200, { status: "ok", version: "dev" }));
+
+    const wrapper = mount(HealthStatus);
+    await flushPromises();
+
+    expect(wrapper.get("[data-test=release]").text()).toBe("dev");
+  });
+
   it("shows unavailable when the API is unreachable", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
 
