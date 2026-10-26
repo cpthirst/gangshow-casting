@@ -167,6 +167,26 @@ describe("Usage page", () => {
     ]);
   });
 
+  it("names visits to the Wardrobe page as Wardrobe", async () => {
+    serve({
+      recordedSince: "2026-10-01T18:00:00.000Z",
+      features: [{ feature: "wardrobe", uses: 3, people: 1 }],
+      people: [
+        {
+          username: "robin",
+          sessions: 1,
+          lastSession: "2026-10-20T18:00:00.000Z",
+          uses: { wardrobe: 3 },
+        },
+      ],
+    });
+
+    const wrapper = await openPage();
+
+    expect(rows(wrapper)).toContainEqual(["robin", "1", "20 October 2026", ["Wardrobe 3"]]);
+    expect(wrapper.text()).not.toContain("Costume");
+  });
+
   it("shows Overview views and item pages after the pages", async () => {
     serve({
       recordedSince: "2026-10-01T18:00:00.000Z",

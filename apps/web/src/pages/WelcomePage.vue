@@ -50,7 +50,7 @@ import logo from "@/assets/logo.jpg";
         What each department needs for each item, a page each:
         <RouterLink :to="{ name: 'stage' }">Stage</RouterLink>, with Scenery and Props;
         <RouterLink :to="{ name: 'tech' }">Tech</RouterLink>, with the Mic plot and SFX (sound
-        effects); and <RouterLink :to="{ name: 'costume' }">Costume</RouterLink>. Each
+        effects); and <RouterLink :to="{ name: 'wardrobe' }">Wardrobe</RouterLink>. Each
         department's permission is what lets someone change its page. These lists are coming
         soon.
       </dd>

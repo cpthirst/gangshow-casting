@@ -220,7 +220,7 @@ describe("Accounts page", () => {
         ["Casting", false],
         ["Stage", false],
         ["Tech", false],
-        ["Costume", false],
+        ["Wardrobe", false],
       ]);
       expect(form.get("[data-test=read-only-hint]").text()).toBe(
         "With nothing ticked, the account will be read-only.",
@@ -277,6 +277,22 @@ describe("Accounts page", () => {
       expect(wrapper.get("[data-test=temporary-password]").text()).toBe("Made-up-temp-2");
     });
 
+    it("creates an account with only Wardrobe ticked, listing it with Wardrobe", async () => {
+      const chrisCreated = {
+        account: account("chris", { access: ["wardrobe"] }),
+        temporaryPassword: "Made-up-temp-4",
+      };
+      const fetchMock = serve([], () => json(chrisCreated, 201));
+      const wrapper = await openPage();
+
+      await create(wrapper, "chris", ["Wardrobe"]);
+
+      expect(posts(fetchMock).map(([, init]) => init?.body)).toEqual([
+        JSON.stringify({ username: "chris", access: ["wardrobe"] }),
+      ]);
+      expect(rows(wrapper)).toEqual([["chris", "Wardrobe", "Enabled"]]);
+    });
+
     it("creates an Admin when Admin is ticked, whatever was ticked before it", async () => {
       const chrisCreated = {
         account: account("chris", { access: "admin" }),
@@ -316,7 +332,7 @@ describe("Accounts page", () => {
         ["Casting", false],
         ["Stage", false],
         ["Tech", false],
-        ["Costume", false],
+        ["Wardrobe", false],
       ]);
     });
 
@@ -735,7 +751,7 @@ describe("Accounts page", () => {
           ["Casting", false],
           ["Stage", true],
           ["Tech", true],
-          ["Costume", false],
+          ["Wardrobe", false],
         ]);
         expect(document.activeElement).toBe(box(wrapper, "Admin")?.element);
         // Across the whole row, as the Add account form is, not squeezed into one cell.
@@ -766,6 +782,25 @@ describe("Accounts page", () => {
           "kim now has Casting, Stage, Tech.",
         );
         expect(document.activeElement).toBe(button(wrapper, "Change kim's access").element);
+      });
+
+      it("gives an account Wardrobe alone, confirming they'll be able to change the Wardrobe page", async () => {
+        const confirm = confirmWith(true);
+        const fetchMock = serveChanges([account("sam")], {
+          "PUT /api/accounts/sam/access": () => json(account("sam", { access: ["wardrobe"] })),
+        });
+        const wrapper = await openPage();
+
+        await openEditor(wrapper, "sam");
+        await tick(wrapper, "Casting", false);
+        await tick(wrapper, "Wardrobe");
+        await save(wrapper);
+
+        expect(confirm).toHaveBeenCalledWith(
+          "Change sam's access to Wardrobe? When they next sign in, they'll be able to change the Wardrobe page. sam will be signed out on every device.",
+        );
+        expect(changes(fetchMock)).toEqual([["/api/accounts/sam/access", put(["wardrobe"])]]);
+        expect(rows(wrapper)).toEqual([["sam", "Wardrobe", "Enabled"]]);
       });
 
       it("makes an account read-only when every permission is unticked, saying they'll only view the show", async () => {

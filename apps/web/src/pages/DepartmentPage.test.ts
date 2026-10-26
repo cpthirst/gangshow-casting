@@ -175,11 +175,11 @@ describe("Stage's Props view, by permission", () => {
   });
 });
 
-describe("Costume page", () => {
+describe("Wardrobe page", () => {
   it("says Coming soon, with no view switch", async () => {
-    const { wrapper } = await openAppAt("/production/costume");
+    const { wrapper } = await openAppAt("/production/wardrobe");
 
-    expect(wrapper.get("main h1").text()).toBe("Costume");
+    expect(wrapper.get("main h1").text()).toBe("Wardrobe");
     expect(wrapper.get("main .coming-soon").text()).toBe("Coming soon");
     expect(wrapper.find("main .view-switch").exists()).toBe(false);
   });
@@ -189,7 +189,7 @@ describe("Department pages for someone with no permissions", () => {
   it.each([
     ["/production/stage", "Stage", ["Scenery", "Props"]],
     ["/production/tech", "Tech", ["Mic plot", "SFX"]],
-    ["/production/costume", "Costume", []],
+    ["/production/wardrobe", "Wardrobe", []],
   ])("opens %s and every view on it", async (path, title, views) => {
     await signInAs([], "jo");
     const { wrapper } = await openAppAt(path);
@@ -214,6 +214,15 @@ describe("Old Production addresses", () => {
     expect(router.currentRoute.value.name).toBe(page);
     expect(chosen(wrapper)).toEqual([view]);
     expect(shownView(wrapper).attributes("aria-label")).toBe(view);
+  });
+});
+
+describe("The old Costume address", () => {
+  it("opens the Wardrobe page", async () => {
+    const { wrapper, router } = await openAppAt("/production/costume");
+
+    expect(router.currentRoute.value.path).toBe("/production/wardrobe");
+    expect(wrapper.get("main h1").text()).toBe("Wardrobe");
   });
 });
 

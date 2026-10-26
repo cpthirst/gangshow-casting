@@ -622,7 +622,7 @@ describe("Lambda entry point", () => {
       const reached = vi.fn(async () => ({ statusCode: 200 }));
       const api = lambdaEntry({ "PUT /api/things/{thingId}": reached });
 
-      for (const groups of ["[casting stage tech costume]", "[]"]) {
+      for (const groups of ["[casting stage tech wardrobe]", "[]"]) {
         const res = await api(request("PUT", "/api/things/1", {}, groups));
         expect(res.statusCode, groups).toBe(403);
       }
@@ -677,18 +677,32 @@ describe("Lambda entry point", () => {
       }
     });
 
-    it("refuses every change from lee, with Tech and Costume only, saying what is read-only, or admins' only for admin-only ones", async () => {
+    it.each([
+      ["lee, with Tech and Wardrobe only", "[tech wardrobe]"],
+      ["chris, with Wardrobe only", "[wardrobe]"],
+    ])(
+      "refuses every change from %s, saying what is read-only, or admins' only for admin-only ones",
+      async (_who, groups) => {
+        const send = everyRoute();
+
+        for (const key of changeRoutes) {
+          const { res, ran } = await send(key, groups);
+
+          expect(res.statusCode, key).toBe(403);
+          const need = needOf(key);
+          expect(JSON.parse(res.body ?? ""), key).toEqual(
+            need === undefined || need === "admin" ? ONLY_ADMINS : { message: refusalFor(need) },
+          );
+          expect(ran, key).toBe(false);
+        }
+      },
+    );
+
+    it("refuses every change from a sign-in still carrying the old Costume group, as for no permissions", async () => {
       const send = everyRoute();
 
       for (const key of changeRoutes) {
-        const { res, ran } = await send(key, "[tech costume]");
-
-        expect(res.statusCode, key).toBe(403);
-        const need = needOf(key);
-        expect(JSON.parse(res.body ?? ""), key).toEqual(
-          need === undefined || need === "admin" ? ONLY_ADMINS : { message: refusalFor(need) },
-        );
-        expect(ran, key).toBe(false);
+        expect(await send(key, "[costume]"), key).toEqual(await send(key, "[]"));
       }
     });
 
@@ -767,7 +781,8 @@ describe("Lambda entry point", () => {
 
       it.each([
         ["sam, with Casting only", "[casting]"],
-        ["lee, with Tech and Costume", "[tech costume]"],
+        ["lee, with Tech and Wardrobe", "[tech wardrobe]"],
+        ["chris, with Wardrobe only", "[wardrobe]"],
       ])(
         "refuses a prop from %s, saying the props are read-only, adding nothing",
         async (_who, groups) => {
@@ -804,7 +819,8 @@ describe("Lambda entry point", () => {
 
       it.each([
         ["sam, with Casting only", "[casting]"],
-        ["lee, with Tech and Costume", "[tech costume]"],
+        ["lee, with Tech and Wardrobe", "[tech wardrobe]"],
+        ["chris, with Wardrobe only", "[wardrobe]"],
       ])(
         "refuses to edit or remove a prop for %s, saying the props are read-only, changing nothing",
         async (_who, groups) => {

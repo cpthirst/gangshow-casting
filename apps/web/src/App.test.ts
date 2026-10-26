@@ -72,7 +72,7 @@ describe("App shell", () => {
       "Items",
       "Stage",
       "Tech",
-      "Costume",
+      "Wardrobe",
       "Accounts",
       "Usage",
       "Help",
@@ -292,7 +292,7 @@ describe("App shell", () => {
         accessSwitch(wrapper)
           .findAll("label")
           .map((label) => label.text()),
-      ).toEqual(["Admin", "Casting", "Stage", "Tech", "Costume"]);
+      ).toEqual(["Admin", "Casting", "Stage", "Tech", "Wardrobe"]);
       expect(tickedNames(wrapper)).toEqual(["Admin"]);
     });
 
@@ -326,7 +326,7 @@ describe("App shell", () => {
         "Items",
         "Stage",
         "Tech",
-        "Costume",
+        "Wardrobe",
         "Help",
       ]);
     });
@@ -393,19 +393,19 @@ describe("App shell", () => {
     expect(pages().isVisible()).toBe(false);
   });
 
-  it("lists Stage, Tech and Costume under Production as pages, with no further menu level", async () => {
+  it("lists Stage, Tech and Wardrobe under Production as pages, with no further menu level", async () => {
     const { wrapper } = await openAppAt("/");
 
     const production = wrapper.get("#menu-production-pages");
     expect(production.findAll(":scope > li").map((item) => item.text())).toEqual([
       "Stage",
       "Tech",
-      "Costume",
+      "Wardrobe",
     ]);
     expect(production.findAll("a").map((link) => link.attributes("href"))).toEqual([
       "/production/stage",
       "/production/tech",
-      "/production/costume",
+      "/production/wardrobe",
     ]);
     expect(production.findAll("button, ul")).toEqual([]);
   });

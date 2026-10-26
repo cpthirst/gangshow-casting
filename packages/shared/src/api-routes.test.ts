@@ -69,12 +69,15 @@ describe("accessFrom", () => {
       ["casting", "stage"],
     ],
     [
-      ["tech", "costume"],
-      ["tech", "costume"],
+      ["tech", "wardrobe"],
+      ["tech", "wardrobe"],
     ],
     [[], []],
     // Unknown groups add nothing.
     [["crew", "Casting", "props", "stage"], ["stage"]],
+    // Costume became Wardrobe (production-overview FR1): the old group grants nothing.
+    [["costume"], []],
+    [["costume", "tech"], ["tech"]],
     // While the retiring read-only group exists, it grants nothing and cancels the rest.
     [["read-only"], []],
     [["read-only", "casting", "stage"], []],
@@ -87,7 +90,7 @@ describe("accessFrom", () => {
 describe("routeNeeds", () => {
   it("names the permission, or admin, for every route that isn't open to everyone", () => {
     for (const key of routeKeys.filter((key) => !readOnlyMayUse(key))) {
-      expect(["admin", "casting", "stage", "tech", "costume"], key).toContain(routeNeeds[key]);
+      expect(["admin", "casting", "stage", "tech", "wardrobe"], key).toContain(routeNeeds[key]);
     }
   });
 

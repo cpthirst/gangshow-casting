@@ -2,7 +2,7 @@
 id: production-overview.E1.S1
 title: Call the Costume department Wardrobe
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story
@@ -70,6 +70,6 @@ And nowhere says Costume
 - Depends on: none
 - **ADR**: renaming the department's sign-in group amends ADR 0026. Record it with the `adr` skill: `wardrobe` replaces `costume` in one release, with no move command, because the maintainer confirmed no account relies on Costume (PRD constraints, decided 2026-10-26). Anyone who did have it would need Wardrobe ticking. `infra-reviewer` runs, since the user pool's groups change.
 - After the deploy, a token can still carry `costume` for up to 5 minutes. AC5 makes that harmless.
-- AC9: the Usage page's name for the page can keep its stored form, if that's what keeps past visits counting. What matters is that it reads Wardrobe. The page itself goes in E2.S1.
+- AC9: the page is recorded as `wardrobe`, and visits stored as `costume` are read as `wardrobe` (the maintainer chose to rename the internal names too, 2026-10-26). The page itself goes in E2.S1.
 - `clashes.ts` uses "costume" in the sense of a costume change. That isn't the department, so it stays.
 - Out of scope: the Overview (E2.S1), and moving anyone's Costume tick across.

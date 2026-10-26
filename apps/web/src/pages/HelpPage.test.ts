@@ -134,6 +134,13 @@ describe("Help page", () => {
     }
   });
 
+  it("calls the department Wardrobe, never Costume", async () => {
+    const { wrapper } = await openHelp();
+
+    expect(wrapper.text()).toContain("Wardrobe");
+    expect(wrapper.text()).not.toContain("Costume");
+  });
+
   it("shows every role the same help", async () => {
     const { wrapper: asAdmin } = await openHelp();
     const shown = asAdmin.html();
@@ -277,18 +284,18 @@ describe("Help page", () => {
       lines(wrapper, page).map((line) => line.get("[data-test=help-name]").text());
     const summaryOf = (wrapper: Wrapper, page: string) => sectionFor(wrapper, page).get("p").text();
 
-    it("follow the casting's, as Stage, an item's props, Tech and Costume, each linking to its page", async () => {
+    it("follow the casting's, as Stage, an item's props, Tech and Wardrobe, each linking to its page", async () => {
       const { wrapper, router } = await openHelp();
 
       expect(sectionTitles(wrapper).slice(5)).toEqual([
         "Stage",
         "An item's props",
         "Tech",
-        "Costume",
+        "Wardrobe",
       ]);
       await router.push("/help");
       expect(await followLink(wrapper, router, "props-item")).toBe("stage");
-      for (const page of ["stage", "tech", "costume"]) {
+      for (const page of ["stage", "tech", "wardrobe"]) {
         await router.push("/help");
         expect(await followLink(wrapper, router, page)).toBe(page);
       }
@@ -338,16 +345,16 @@ describe("Help page", () => {
       expect(summaryOf(wrapper, "tech")).toContain(
         "Accounts with Tech, and admins, can change it.",
       );
-      expect(summaryOf(wrapper, "costume")).toContain(
-        "Accounts with Costume, and admins, can change it.",
+      expect(summaryOf(wrapper, "wardrobe")).toContain(
+        "Accounts with Wardrobe, and admins, can change it.",
       );
     });
 
-    it("say the Costume page is coming soon, with no views to explain", async () => {
+    it("say the Wardrobe page is coming soon, with no views to explain", async () => {
       const { wrapper } = await openHelp();
 
-      expect(summaryOf(wrapper, "costume")).toContain("Coming soon");
-      expect(lines(wrapper, "costume")).toEqual([]);
+      expect(summaryOf(wrapper, "wardrobe")).toContain("Coming soon");
+      expect(lines(wrapper, "wardrobe")).toEqual([]);
     });
   });
 });

@@ -10,11 +10,14 @@ export const MenuPageName = z.enum([
   "casting-items",
   "stage",
   "tech",
-  "costume",
+  "wardrobe",
   "help",
   "accounts",
   "usage",
 ]);
+
+/** Menu pages renamed since their visits were stored, by old name: still counted (ADR 0027). */
+export const RENAMED_MENU_PAGES: Readonly<Record<string, MenuPageName>> = { costume: "wardrobe" };
 
 /**
  * Menu pages that have gone, whose uses the maintainer purges (stage-props AC11): Production's

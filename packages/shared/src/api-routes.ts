@@ -41,7 +41,7 @@ export const ADMIN_GROUP = "admin";
 export const CASTING_GROUP = "casting";
 export const STAGE_GROUP = "stage";
 export const TECH_GROUP = "tech";
-export const COSTUME_GROUP = "costume";
+export const WARDROBE_GROUP = "wardrobe";
 /**
  * The retiring group for read-only accounts (ADR 0020). Until a later release deletes it,
  * being in it grants nothing and cancels every other group, so no account is widened before
@@ -50,7 +50,7 @@ export const COSTUME_GROUP = "costume";
 export const READ_ONLY_GROUP = "read-only";
 
 /** A department's permission, held as the user pool group of the same name (ADR 0026). */
-export const permissions = [CASTING_GROUP, STAGE_GROUP, TECH_GROUP, COSTUME_GROUP] as const;
+export const permissions = [CASTING_GROUP, STAGE_GROUP, TECH_GROUP, WARDROBE_GROUP] as const;
 
 export type Permission = (typeof permissions)[number];
 

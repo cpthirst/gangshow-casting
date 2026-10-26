@@ -110,7 +110,7 @@ export const menuPages: (MenuPage | MenuGroup)[] = [
     name: "production",
     title: "Production",
     pages: [
-      ...(["stage", "tech", "costume"] as const).map((name) => ({
+      ...(["stage", "tech", "wardrobe"] as const).map((name) => ({
         path: `/production/${name}`,
         name,
         component: DepartmentPage,
@@ -183,6 +183,8 @@ export function createAppRouter(history: RouterHistory = createWebHistory()) {
       { path: "/production/props", redirect: { name: "stage", query: { view: "props" } } },
       { path: "/production/mic-plot", redirect: { name: "tech" } },
       { path: "/production/sfx", redirect: { name: "tech", query: { view: "sfx" } } },
+      // Bookmarks from before Costume became Wardrobe (production-overview FR1).
+      { path: "/production/costume", redirect: { name: "wardrobe" } },
       {
         path: "/:unknown(.*)*",
         name: "not-found",

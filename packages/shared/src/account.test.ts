@@ -33,7 +33,7 @@ describe("NewAccount", () => {
       "admin",
       [],
       ["stage", "tech"],
-      ["casting", "stage", "tech", "costume"],
+      ["casting", "stage", "tech", "wardrobe"],
     ]) {
       expect(NewAccount.parse({ username: "jo", access })).toEqual({ username: "jo", access });
     }
@@ -112,7 +112,7 @@ describe("SetEnabled", () => {
 });
 
 describe("SetAccess", () => {
-  it.each([["admin"], [[]], [["casting"]], [["casting", "stage", "tech", "costume"]]])(
+  it.each([["admin"], [[]], [["casting"]], [["casting", "stage", "tech", "wardrobe"]]])(
     "takes the access %j",
     (access) => {
       expect(SetAccess.parse({ access })).toEqual({ access });

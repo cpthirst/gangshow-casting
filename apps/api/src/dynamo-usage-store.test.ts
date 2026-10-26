@@ -32,6 +32,18 @@ const deletedKeys = () => dynamo.commandCalls(DeleteCommand).map((call) => call.
 
 beforeEach(() => dynamo.reset());
 
+describe("the Costume page's usage, from before it was renamed Wardrobe", () => {
+  it("is read as the Wardrobe page's, so past visits still count", async () => {
+    dynamo.on(QueryCommand).resolves({ Items: [pageUse("costume", "1#a")] });
+
+    const records = await dynamoUsageStore(db(), TABLE).since("2026-10-01T00:00:00.000Z");
+
+    expect(records).toEqual([
+      { username: "robin", event: "page", page: "wardrobe", at: "2026-10-20T19:00:00.000Z" },
+    ]);
+  });
+});
+
 describe("the retired Production pages' usage", () => {
   it("is left out of what the Usage page reads, so it opens before the purge", async () => {
     dynamo.on(QueryCommand).resolves({ Items: [pageUse("props", "1#a"), pageUse("cast", "2#b")] });

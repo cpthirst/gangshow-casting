@@ -42,7 +42,7 @@ describe("Welcome page", () => {
     const production = wrapper.findAll("dd")[2]?.text().replace(/\s+/g, " ") ?? "";
     expect(production).toContain("Stage, with Scenery and Props");
     expect(production).toContain("Tech, with the Mic plot and SFX");
-    expect(production).toContain("Costume");
+    expect(production).toContain("Wardrobe");
     expect(production).toContain(
       "Each department's permission is what lets someone change its page",
     );
@@ -61,6 +61,13 @@ describe("Welcome page", () => {
     await flushPromises();
 
     expect(router.currentRoute.value.name).toBe(first);
+  });
+
+  it("calls the department Wardrobe, never Costume", async () => {
+    const { wrapper } = await openWelcome();
+
+    expect(wrapper.text()).toContain("Wardrobe");
+    expect(wrapper.text()).not.toContain("Costume");
   });
 
   it("tells someone new to check out Help first, before the guide to the menu", async () => {
@@ -83,7 +90,7 @@ describe("Welcome page", () => {
       "/casting/items",
       "/production/stage",
       "/production/tech",
-      "/production/costume",
+      "/production/wardrobe",
       "/help",
     ]) {
       expect(hrefs).toContain(href);

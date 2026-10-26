@@ -208,13 +208,19 @@ describe("AppStack", () => {
     it("has a group for each department, and keeps the retiring read-only group for now (ADR 0026)", () => {
       const { template } = synth();
 
-      for (const groupName of ["casting", "stage", "tech", "costume", "read-only"]) {
+      for (const groupName of ["casting", "stage", "tech", "wardrobe", "read-only"]) {
         template.hasResourceProperties("AWS::Cognito::UserPoolGroup", {
           GroupName: groupName,
           UserPoolId: { Ref: Match.stringLikeRegexp("UserPool") },
         });
       }
       template.resourceCountIs("AWS::Cognito::UserPoolGroup", 6);
+      // Costume became Wardrobe (ADR 0027).
+      expect(
+        template.findResources("AWS::Cognito::UserPoolGroup", {
+          Properties: { GroupName: "costume" },
+        }),
+      ).toEqual({});
     });
 
     it("gives the post-deploy check a client that only takes sign-ins made with AWS credentials", () => {
