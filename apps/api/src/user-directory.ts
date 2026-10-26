@@ -69,7 +69,7 @@ export function groupFlags(access: Access): GroupFlags {
     casting: has("casting"),
     stage: has("stage"),
     tech: has("tech"),
-    costume: has("costume"),
+    wardrobe: has("wardrobe"),
   };
 }
 

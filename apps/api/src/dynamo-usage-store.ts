@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { RETIRED_MENU_PAGES, RecordUsageRequest } from "@app/shared";
+import { RENAMED_MENU_PAGES, RETIRED_MENU_PAGES, RecordUsageRequest } from "@app/shared";
 import {
   DeleteCommand,
   type DynamoDBDocumentClient,
@@ -114,7 +114,11 @@ export async function purgeRetiredPageUses(db: DynamoDBDocumentClient, tableName
 /** A stored row as a record, without its keys and expiry. */
 function asRecord(row: Record<string, unknown>): UsageRecord {
   const { username, at } = row;
-  const request = RecordUsageRequest.safeParse(row);
+  const page =
+    typeof row.page === "string" && Object.hasOwn(RENAMED_MENU_PAGES, row.page)
+      ? RENAMED_MENU_PAGES[row.page]
+      : row.page;
+  const request = RecordUsageRequest.safeParse({ ...row, page });
   if (typeof username !== "string" || typeof at !== "string" || !request.success) {
     throw new Error(`Usage row ${String(row.sk)} is invalid`);
   }

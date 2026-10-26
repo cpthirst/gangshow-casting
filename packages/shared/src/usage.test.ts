@@ -20,7 +20,7 @@ describe("RecordUsageRequest", () => {
     "casting-items",
     "stage",
     "tech",
-    "costume",
+    "wardrobe",
     "help",
     "accounts",
     "usage",

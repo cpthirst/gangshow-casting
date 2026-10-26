@@ -74,3 +74,4 @@ This amends ADR 0020. Its groups-in-the-token approach, its fail-safe and its ro
 Recorded as the stage-props stories were built, so this record stays true without rewriting the decision above.
 
 - **stage-props.E1.S2**: a refusal names the department, rather than one "You have read-only access." for all. A Casting refusal says "You can view the casting, but not change it.", and a department without its own line says "You can view this, but not change it." Pages recognise any of them as read-only. Admin-only routes still answer "Only admins can do this." The maintainer chose this so that someone with only Stage isn't told they're read-only everywhere.
+- **production-overview.E1.S1**: the `costume` group is renamed `wardrobe` in one release, with no move ([ADR 0027](0027-costume-group-renamed-wardrobe.md)).

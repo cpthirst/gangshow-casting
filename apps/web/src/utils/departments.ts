@@ -41,8 +41,8 @@ export const departments = {
       { name: "sfx", title: "SFX", description: "The sound effects for each item." },
     ],
   },
-  costume: {
-    title: "Costume",
+  wardrobe: {
+    title: "Wardrobe",
     description: "The costumes each item needs.",
     views: [],
   },

@@ -97,7 +97,7 @@ On the **Accounts** page, any admin can also reset a forgotten password, disable
 
 ### Team roles
 
-Every account has a role: Admin, Casting Team Member or Read-Only Team Member. Behind the scenes an account is an Admin, or has any mix of the department permissions Casting, Stage, Tech and Costume, each a user pool group of the same name ([ADR 0026](../adr/0026-department-permissions-as-user-pool-groups.md)). Casting makes a Casting Team Member; an account with no permission, or only groups the app doesn't know, may only read. Stage, Tech and Costume allow no change yet. An admin chooses each new account's role when adding it. Changing someone's role signs them out on every device within 5 minutes, and the new role applies when they sign back in.
+Every account has a role: Admin, Casting Team Member or Read-Only Team Member. Behind the scenes an account is an Admin, or has any mix of the department permissions Casting, Stage, Tech and Wardrobe, each a user pool group of the same name ([ADR 0026](../adr/0026-department-permissions-as-user-pool-groups.md)). Casting makes a Casting Team Member; an account with no permission, or only groups the app doesn't know, may only read. Stage, Tech and Wardrobe allow no change yet. Wardrobe used to be called Costume: anyone who had Costume ticked needs Wardrobe ticking ([ADR 0027](../adr/0027-costume-group-renamed-wardrobe.md)). An admin chooses each new account's role when adding it. Changing someone's role signs them out on every device within 5 minutes, and the new role applies when they sign back in.
 
 **Once, straight after the first deploy that brings department permissions**, move every account out of the retiring `read-only` group:
 

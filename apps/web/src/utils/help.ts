@@ -310,10 +310,10 @@ export const pageHelp: PageHelp[] = [
     ],
   },
   {
-    page: "costume",
-    title: "Costume",
+    page: "wardrobe",
+    title: "Wardrobe",
     summary:
-      "The costumes each item needs. Coming soon. Accounts with Costume, and admins, can change it.",
+      "The costumes each item needs. Coming soon. Accounts with Wardrobe, and admins, can change it.",
     lines: [],
   },
 ];

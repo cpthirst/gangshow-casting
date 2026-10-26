@@ -30,7 +30,7 @@ export const PERMISSION_NAMES: Record<Permission, string> = {
   casting: "Casting",
   stage: "Stage",
   tech: "Tech",
-  costume: "Costume",
+  wardrobe: "Wardrobe",
 };
 
 /** What an account may do, at a glance: "Admin", its permissions, or "Read-only". */

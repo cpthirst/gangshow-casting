@@ -3,13 +3,13 @@ import { fileURLToPath } from "node:url";
 import {
   ADMIN_GROUP,
   CASTING_GROUP,
-  COSTUME_GROUP,
   isAccountRoute,
   READ_ONLY_GROUP,
   type RouteKey,
   routeKeys,
   STAGE_GROUP,
   TECH_GROUP,
+  WARDROBE_GROUP,
 } from "@app/shared";
 import { CfnOutput, Duration, RemovalPolicy, Stack, type StackProps } from "aws-cdk-lib";
 import { AccessLogFormat } from "aws-cdk-lib/aws-apigateway";
@@ -173,7 +173,7 @@ export class AppStack extends Stack {
     userPool.addGroup("CastingGroup", { groupName: CASTING_GROUP });
     userPool.addGroup("StageGroup", { groupName: STAGE_GROUP });
     userPool.addGroup("TechGroup", { groupName: TECH_GROUP });
-    userPool.addGroup("CostumeGroup", { groupName: COSTUME_GROUP });
+    userPool.addGroup("WardrobeGroup", { groupName: WARDROBE_GROUP });
     // Retiring: `pnpm account roles` moves everyone out, then a later release deletes it.
     userPool.addGroup("ReadOnlyGroup", { groupName: READ_ONLY_GROUP });
 

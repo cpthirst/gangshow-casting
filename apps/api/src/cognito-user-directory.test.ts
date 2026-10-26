@@ -47,6 +47,24 @@ describe("the Cognito user directory", () => {
     expect(inputsOf(AdminGetUserCommand)).toEqual([{ UserPoolId: POOL, Username: "pat" }]);
   });
 
+  it("reads the wardrobe group as the Wardrobe permission", async () => {
+    cognito.on(AdminGetUserCommand).resolves({ Username: "chris", Enabled: true });
+    cognito.on(AdminListGroupsForUserCommand).resolves({ Groups: [{ GroupName: "wardrobe" }] });
+
+    expect(await directory().find("chris")).toEqual({
+      username: "chris",
+      enabled: true,
+      access: ["wardrobe"],
+    });
+  });
+
+  it("shows no permission for an account still in the old costume group", async () => {
+    cognito.on(AdminGetUserCommand).resolves({ Username: "lee", Enabled: true });
+    cognito.on(AdminListGroupsForUserCommand).resolves({ Groups: [{ GroupName: "costume" }] });
+
+    expect(await directory().find("lee")).toEqual({ username: "lee", enabled: true, access: [] });
+  });
+
   it("finds an account by any case of its username, answering with the pool's own", async () => {
     cognito.on(AdminGetUserCommand).resolves({ Username: "sam", Enabled: true });
     cognito.on(AdminListGroupsForUserCommand).resolves({
@@ -134,7 +152,7 @@ describe("the Cognito user directory", () => {
       .resolves({ Users: [{ Username: "kim" }] })
       .on(ListUsersInGroupCommand, { UserPoolId: POOL, GroupName: "tech" })
       .resolves({ Users: [{ Username: "kim" }] })
-      .on(ListUsersInGroupCommand, { UserPoolId: POOL, GroupName: "costume" })
+      .on(ListUsersInGroupCommand, { UserPoolId: POOL, GroupName: "wardrobe" })
       .resolves({ Users: [] })
       .on(ListUsersInGroupCommand, { UserPoolId: POOL, GroupName: "read-only" })
       .resolves({ Users: [{ Username: "jo" }] });
@@ -253,9 +271,9 @@ describe("the Cognito user directory", () => {
   });
 
   it.each([
-    [[], ["casting", "stage", "tech", "costume"], undefined],
+    [[], ["casting", "stage", "tech", "wardrobe"], undefined],
     [["casting"], ["stage", "read-only"], "casting"],
-    ["admin", ["tech", "costume"], "admin"],
+    ["admin", ["tech", "wardrobe"], "admin"],
   ] as const)(
     "leaves an account given the access %j in exactly its groups, out of every other",
     async (access, removed, added) => {

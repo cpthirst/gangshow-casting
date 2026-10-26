@@ -18,7 +18,7 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [production-overview.E1.S1](stories/E1-S1-costume-becomes-wardrobe.md) | Costume becomes Wardrobe in the permission, its sign-in group, the Accounts page, the "Local role" switch, refusals, the Costume page (now Wardrobe) and Help. `costume` grants nothing. Includes the ADR amending ADR 0026 | FR1, FR2 | (none) | ready |
+| [production-overview.E1.S1](stories/E1-S1-costume-becomes-wardrobe.md) | Costume becomes Wardrobe in the permission, its sign-in group, the Accounts page, the "Local role" switch, refusals, the Costume page (now Wardrobe) and Help. `costume` grants nothing. Includes the ADR amending ADR 0026 | FR1, FR2 | (none) | done |
 
 ## E2: The Overview
 

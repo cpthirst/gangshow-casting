@@ -36,16 +36,16 @@ iCUE is hosted on AWS and is open only to the production team. Everyone signs in
 | **Show → Cast** | The Scouts, Explorers and Network members in this production: name, section, Scout group or Explorer unit, age band, and short Singing and Acting notes. Search and filter, add, edit and remove | [cast-management](docs/product/cast-management) |
 | **Casting → Overview** | The whole cast at once, three ways: **By person** (who carries how many parts, and of what size, section by section), **By item** (each item's parts in show order) and **Grid** (people against items). Clashes are flagged. Export the grid to Excel and the other two views to Word | [casting/overview](docs/product/casting/overview) |
 | **Casting → Items** | Every item in running order, with how far its casting has got | [casting/items](docs/product/casting/items) |
-| **Production → Stage, Tech, Costume** | A page per department, open to every role. Stage switches between Scenery and Props, and Tech between the Mic plot and SFX, like the Overview's views. Props lists the show's items in running order with how many props each has, and opens each item's props page, where Stage adds its props and the roles that use them, each shown with who plays it; the other views, and Costume, say "Coming soon" until they're built | [stage-props](docs/product/stage/props) |
+| **Production → Stage, Tech, Wardrobe** | A page per department, open to every role. Stage switches between Scenery and Props, and Tech between the Mic plot and SFX, like the Overview's views. Props lists the show's items in running order with how many props each has, and opens each item's props page, where Stage adds its props and the roles that use them, each shown with who plays it; the other views, and Wardrobe, say "Coming soon" until they're built | [stage-props](docs/product/stage/props) |
 | **An item's page** | The item's parts (lead, supporting, cameo, ensemble), who plays each, warnings about quick changes and short gaps between appearances, and the item's notes. Step to the previous or next item | [casting/item-overview](docs/product/casting/item-overview), [roles](docs/product/casting/roles), [rules](docs/product/casting/rules) |
 | **Help** | What each page is for and what its buttons do, with who can use each | [in-app-help](docs/product/in-app-help) |
-| **Accounts** (admins) | Create the team's sign-in accounts, see and change each one's access (Admin, or any mix of Casting, Stage, Tech and Costume), reset passwords, and disable or enable accounts | [hosting](docs/product/hosting), [team-roles](docs/product/team-roles) |
+| **Accounts** (admins) | Create the team's sign-in accounts, see and change each one's access (Admin, or any mix of Casting, Stage, Tech and Wardrobe), reset passwords, and disable or enable accounts | [hosting](docs/product/hosting), [team-roles](docs/product/team-roles) |
 | **Usage** (admins) | Who on the team uses iCUE and how often, so admins can see who might need help getting started | [usage-tracking](docs/product/usage-tracking) |
 
 **Access** ([team-roles](docs/product/team-roles), [stage-props](docs/product/stage/props)): an account is an Admin, or has any mix of department permissions.
 - **Admin:** everything, plus Accounts and Usage.
 - **Casting:** changes the running order drafts, cast and casting.
-- **Stage, Tech, Costume:** change their own department's pages, as those arrive.
+- **Stage, Tech, Wardrobe:** change their own department's pages, as those arrive.
 - **Read-only** (no permissions): sees every page but changes nothing, which suits reviewers such as the director.
 
 Each change route names the permission it needs ([ADR 0026](docs/adr/0026-department-permissions-as-user-pool-groups.md)). The API checks them on every request, not just the menu.
@@ -103,7 +103,7 @@ pnpm dev       # web on :5173 + API on :3000 (Vite proxies /api), on the real re
 pnpm check     # lint + typecheck + tests + cdk synth: the definition of "done"
 ```
 
-`pnpm dev` and `pnpm demo` start you as an admin, and the sidebar's "Local role" tick boxes let you try any mix of permissions (Casting, Stage, Tech, Costume), or none.
+`pnpm dev` and `pnpm demo` start you as an admin, and the sidebar's "Local role" tick boxes let you try any mix of permissions (Casting, Stage, Tech, Wardrobe), or none.
 
 **Guides:**
 - **The real data:** [the remote database guide](docs/guides/remote-data.md) covers setting up `pnpm dev` against it.
@@ -337,7 +337,8 @@ These cover humans and agents alike, and `pnpm install` installs them.
 | [0023](docs/adr/0023-usage-records-in-the-data-table.md) | Usage records in the data table, recorded through our own API |
 | [0024](docs/adr/0024-limit-usage-recording-and-count-sign-ins.md) | Usage recording limited at API Gateway, and a session counted per sign-in |
 | [0025](docs/adr/0025-web-source-folders.md) | The web app's source grouped into folders by kind, with a `@/` import alias |
-| [0026](docs/adr/0026-department-permissions-as-user-pool-groups.md) | Department permissions (Casting, Stage, Tech, Costume) as user pool groups, each change route naming its permission |
+| [0026](docs/adr/0026-department-permissions-as-user-pool-groups.md) | Department permissions (Casting, Stage, Tech, Wardrobe) as user pool groups, each change route naming its permission |
+| [0027](docs/adr/0027-costume-group-renamed-wardrobe.md) | The `costume` group renamed `wardrobe` in one release, with no move |
 
 ---
 

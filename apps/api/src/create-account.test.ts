@@ -18,7 +18,8 @@ describe("create account handler", () => {
   it.each([
     ["Admin", "admin"],
     ["Stage and Tech", ["stage", "tech"]],
-    ["every permission", ["casting", "stage", "tech", "costume"]],
+    ["Wardrobe only", ["wardrobe"]],
+    ["every permission", ["casting", "stage", "tech", "wardrobe"]],
     ["no permissions, read-only", []],
   ] as const)("creates an enabled account with %s, and only that", async (_case, chosen) => {
     const { handler, directory } = setUp();
@@ -48,7 +49,7 @@ describe("create account handler", () => {
         casting: false,
         stage: true,
         tech: false,
-        costume: false,
+        wardrobe: false,
         passwordKind: "temporary",
       }),
     ]);

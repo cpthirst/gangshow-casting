@@ -273,7 +273,7 @@ describe("reading usage", () => {
       "casting-items",
       "stage",
       "tech",
-      "costume",
+      "wardrobe",
       "help",
       "accounts",
       "usage",

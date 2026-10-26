@@ -9,7 +9,7 @@ import PropsList from "@/components/production/PropsList.vue";
 import { recordView } from "@/services/usage.ts";
 import { type DepartmentName, departments, viewNamed } from "@/utils/departments.ts";
 
-// One department's page under Production: Stage, Tech or Costume (stage-props FR10).
+// One department's page under Production: Stage, Tech or Wardrobe (stage-props FR10).
 const props = defineProps<{ department: DepartmentName }>();
 
 const route = useRoute();
