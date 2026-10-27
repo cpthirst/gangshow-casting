@@ -32,7 +32,7 @@ prd: ./prd.md
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
 | [production-overview.E3.S1](stories/E3-S1-welcome-and-help.md) | Welcome and Help describe the Overview, what each button opens and its icon, Generate Props List, and which permission changes each department's pages | FR12 | E2.S2 | done |
-| [production-overview.E3.S2](stories/E3-S2-purge-old-department-usage.md) | The repo's usage purge command and its code are removed; the old pages' visits are purged once by hand after the deploy | FR13 | E2.S1 | ready |
+| [production-overview.E3.S2](stories/E3-S2-purge-old-department-usage.md) | The repo's usage purge command and its code are removed; the old pages' visits are purged once by hand after the deploy | FR13 | E2.S1 | done |
 
 ## Order
 

@@ -20,7 +20,6 @@
     "test:dynamo": "pnpm --filter api test:dynamo",
     "check:hosted": "pnpm --filter api check:hosted",
     "account": "pnpm --filter api account",
-    "usage": "pnpm --filter api usage",
     "infra:diff": "pnpm --filter infra exec cdk diff",
     "infra:deploy": "pnpm --filter infra exec cdk deploy",
     "release": "node tooling/src/release.ts"

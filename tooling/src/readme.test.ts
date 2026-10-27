@@ -37,3 +37,19 @@ describe("README", () => {
     expect(readme).toMatch(new RegExp(`[├└]── ${folder}`));
   });
 });
+
+// The retired pages' usage was purged once by hand (production-overview E3.S2), so no command
+// for it should come back, nor docs telling the maintainer to run one.
+describe("the usage purge", () => {
+  const read = (path: string) => readFileSync(new URL(path, root), "utf8");
+  const scripts = (path: string): Record<string, string> => JSON.parse(read(path)).scripts;
+
+  it("has no command in the root or API package", () => {
+    expect(Object.keys(scripts("package.json"))).not.toContain("usage");
+    expect(Object.keys(scripts("apps/api/package.json"))).not.toContain("usage");
+  });
+
+  it.each(["README.md", "CLAUDE.md", "docs/guides/hosting.md"])("isn't described in %s", (doc) => {
+    expect(read(doc)).not.toContain("pnpm usage");
+  });
+});

@@ -2,7 +2,7 @@
 id: production-overview.E3.S2
 title: Remove the usage purge command
 epic: E3
-status: ready
+status: done
 ---
 
 ## Story
