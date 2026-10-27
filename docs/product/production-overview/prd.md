@@ -92,7 +92,7 @@ The show calls the department **Wardrobe**, not Costume. The app's name for it d
 - Builds on stage-props: its permissions, its props pages and its Word export. Items come from the latest saved running order, by their stable IDs, numbered as on the Running order page.
 - **Wardrobe rename, decided 2026-10-26**: the maintainer confirmed no real account relies on the Costume permission, so it is renamed in one release. Any account that did have Costume ticked would lose it and need Wardrobe ticking. No move command is needed.
 - **Departments**: Scenery and Props belong to Stage, SFX and Mic plot to Tech, and Wardrobe to Wardrobe, for permissions (stage-props assumption).
-- **Icons**: from the Font Awesome set the app already uses (ADR 0013). Proposed: Scenery a mountain scene, Props a box, SFX a speaker, Mic plot a microphone, Wardrobe a shirt. Confirm in the story.
+- **Icons**: from the Font Awesome set the app already uses (ADR 0013). Chosen 2026-10-27: Scenery a hammer, Props a person walking with luggage, SFX an audio file, Mic plot a microphone, Wardrobe a shirt.
 - One production (2027), and cost stays close to £0 with no new AWS service.
 - Deploys stay the maintainer's (CLAUDE.md).
 

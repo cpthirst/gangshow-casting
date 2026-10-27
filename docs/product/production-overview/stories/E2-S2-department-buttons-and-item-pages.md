@@ -15,7 +15,7 @@ As someone on the production team, I want a button on each item for Scenery, Pro
 Given a saved running order with "Opening Number"
 When someone opens the Overview
 Then the row has five square buttons, Scenery, Props, SFX, Mic plot and Wardrobe, in that order
-And each has its own icon: a mountain scene, a box, a speaker, a microphone and a shirt
+And each has its own icon: a hammer, a person walking with luggage, an audio file, a microphone and a shirt
 
 ### AC2: Each button is named for its department, item and access
 Given "pat" has Tech but not Stage or Wardrobe
@@ -68,7 +68,7 @@ Then the five buttons and the props count fit without the page scrolling sideway
 - FRs: FR4, FR5, FR10
 - Depends on: production-overview.E2.S1
 - Departments, for the edit or view name: Scenery and Props are Stage, SFX and Mic plot are Tech, and Wardrobe is Wardrobe (PRD constraints).
-- Icons come from the Font Awesome set the app already uses (ADR 0013), and are hidden from screen readers. Proposed: `mountain-sun`, `box-open`, `volume-high`, `microphone`, `shirt`.
+- Icons come from the Font Awesome set the app already uses (ADR 0013), and are hidden from screen readers. Chosen by the maintainer 2026-10-27: Scenery `hammer`, Props `person-walking-luggage`, SFX `file-audio`, Mic plot (radio mics) `microphone`, Wardrobe `shirt`.
 - **No icon legend**: the tooltips and the Help page (E3.S1) name each icon, as the PRD's open question left to this story. Revisit if `ux-reviewer` or the team find the icons unclear.
 - The four new item pages share one layout and the item-step links (back, Previous, Next) that the casting and props item pages use. Each department's feature later replaces "Coming soon" with its own content, and decides then whether to add a count column or an export.
 - AC9 is checked by the browser layout tests, which may need to walk the new item pages. Ask before adding a walk (CLAUDE.md).

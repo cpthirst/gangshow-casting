@@ -323,9 +323,11 @@ describe("Help page", () => {
 
       expect(summaryOf(wrapper, "production-overview")).toContain("in running order");
       expect(names(wrapper, "production-overview")).toEqual(["Props", "Generate Props List"]);
-      expect(lineNamed(wrapper, "Props", "production-overview").find("svg.fa-box").exists()).toBe(
-        true,
-      );
+      expect(
+        lineNamed(wrapper, "Props", "production-overview")
+          .find("svg.fa-person-walking-luggage")
+          .exists(),
+      ).toBe(true);
       for (const line of lines(wrapper, "production-overview")) {
         expect(line.get("[data-test=help-access]").text()).toBe("Everyone");
       }

@@ -192,14 +192,14 @@ describe("Production overview", () => {
   describe("with Stage", () => {
     beforeEach(() => signInAs(["stage"], "pat"));
 
-    it("has a square Props button in each row, with a box icon and a tooltip, named for its item, that opens the item's props", async () => {
+    it("has a square Props button in each row, with a luggage icon and a tooltip, named for its item, that opens the item's props", async () => {
       savedShowIs(show());
       const { wrapper, router } = await openOverview();
 
       const button = rowFor(wrapper, "Pirate Sketch")?.get("[data-test=open-props]");
       expect(button?.attributes("aria-label")).toBe("Edit props for Pirate Sketch");
       expect(button?.classes()).toContain("icon-button");
-      expect(button?.find("svg.fa-box").exists()).toBe(true);
+      expect(button?.find("svg.fa-person-walking-luggage").exists()).toBe(true);
       expect(button?.attributes("data-tooltip")).toBe("Edit this item's props");
       expect(
         rowFor(wrapper, "Finale")?.get("[data-test=open-props]").attributes("aria-label"),
@@ -232,7 +232,7 @@ describe("Production overview", () => {
 
       const button = rowFor(wrapper, "Pirate Sketch")?.get("[data-test=open-props]");
       expect(button?.attributes("aria-label")).toBe("View props for Pirate Sketch");
-      expect(button?.find("svg.fa-box").exists()).toBe(true);
+      expect(button?.find("svg.fa-person-walking-luggage").exists()).toBe(true);
       expect(button?.attributes("data-tooltip")).toBe("View this item's props");
 
       await button?.trigger("click");

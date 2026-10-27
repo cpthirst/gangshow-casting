@@ -93,7 +93,7 @@ And it doesn't name Stage, Tech or Wardrobe as pages
 - FRs: FR3, FR4 (Props part), FR5 (Props), FR6, FR7, FR8, FR9, FR11, FR13
 - Depends on: production-overview.E1.S1
 - Mostly a move. Today's Props view (counts, notes, the empty state, Generate Props List) becomes the Overview, so its tests move with it.
-- The square button is icon-only. It has a visible tooltip on hover and focus, and is at least 24 by 24 CSS pixels (PRD accessibility). The icon is a box (PRD constraints). The props item page's address may change, as long as AC11's bookmarks still work.
+- The square button is icon-only. It has a visible tooltip on hover and focus, and is at least 24 by 24 CSS pixels (PRD accessibility). The icon is a person walking with luggage (`person-walking-luggage`, chosen by the maintainer 2026-10-27 in place of the PRD's box). The props item page's address may change, as long as AC11's bookmarks still work.
 - Usage (AC12): Stage, Tech and Wardrobe join the retired pages that the Usage page no longer shows. Deleting their stored visits is E3.S2. The Stage and Tech views' switches stop being recorded, since the switches go.
 - AC13 keeps Help true to the menu. E3.S1 then describes every button properly.
 - The browser layout tests walk the menu and today's Props view. Ask before changing which pages they walk (CLAUDE.md).
