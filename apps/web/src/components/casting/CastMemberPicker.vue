@@ -16,6 +16,7 @@ const props = withDefaults(
     name?: string;
     /** Who's already chosen: marked in the list, so choosing them again takes them off. */
     chosenIds?: number[];
+    /** What to say when nobody matches, if not "No cast members match". */
     noMatch?: string | undefined;
   }>(),
   { name: "castMember", chosenIds: () => [] },

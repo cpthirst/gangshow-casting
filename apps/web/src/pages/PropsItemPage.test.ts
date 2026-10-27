@@ -1412,7 +1412,9 @@ describe("Who carries a prop", () => {
 
     await carrierSearch(wrapper).setValue("Alex");
 
-    expect(wrapper.get(".combobox-empty").text()).toBe("Take someone off to choose someone else");
+    expect(wrapper.get(".combobox-empty").text()).toBe(
+      "No one else matches: take someone off to choose another",
+    );
   });
 
   it("puts each role's carriers in brackets on the card, as the form does", async () => {

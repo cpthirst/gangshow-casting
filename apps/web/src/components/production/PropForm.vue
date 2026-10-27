@@ -258,7 +258,7 @@ function submit() {
         v-model="form.carrier"
         :cast="offered"
         :chosen-ids="form.carrierIds"
-        :no-match="full ? 'Take someone off to choose someone else' : undefined"
+        :no-match="full ? 'No one else matches: take someone off to choose another' : undefined"
         name="carrier"
         :hint-id="`${idFor('carrier')}-hint`"
         :input-id="idFor('carrier')"
