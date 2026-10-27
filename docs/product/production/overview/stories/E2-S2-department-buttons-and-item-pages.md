@@ -2,7 +2,7 @@
 id: production-overview.E2.S2
 title: Add a button for every department to each Overview row
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story

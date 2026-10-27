@@ -11,13 +11,17 @@ import {
   faCircleDot,
   faCircleInfo,
   faCircleQuestion,
+  faFileAudio,
   faFileExcel,
   faFileWord,
   faGripVertical,
+  faHammer,
   faKey,
   faList,
+  faMicrophone,
   faPen,
   faPersonWalkingLuggage,
+  faShirt,
   faSquareXmark,
   faTrashCan,
   faTriangleExclamation,
@@ -28,8 +32,12 @@ import {
 
 export const icons = {
   edit: faPen,
-  // Opens an item's props page from the Production overview.
+  // Open an item's page for each department from the Production overview.
+  scenery: faHammer,
   props: faPersonWalkingLuggage,
+  sfx: faFileAudio,
+  micPlot: faMicrophone,
+  wardrobe: faShirt,
   remove: faTrashCan,
   // An account's actions on the Accounts page.
   resetPassword: faKey,

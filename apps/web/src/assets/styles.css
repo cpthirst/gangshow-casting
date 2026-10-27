@@ -437,6 +437,11 @@ main a {
   width: 4.5rem;
 }
 
+/* Five 2rem buttons and their gaps (the Production overview). */
+.items-list .col-departments {
+  width: 11.75rem;
+}
+
 .items-list .col-number {
   width: 7.5rem;
 }

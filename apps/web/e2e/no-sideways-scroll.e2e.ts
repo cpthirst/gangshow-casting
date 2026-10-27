@@ -95,6 +95,23 @@ test("the items list and an item's casting page fit the screen", async ({ page }
   await expectNoSidewaysScroll(page);
 });
 
+test("the Production overview's five department buttons and props count fit the screen", async ({
+  page,
+}) => {
+  await page.goto("/production/overview");
+  const row = page.locator("[data-test=item]", { hasText: PIRATE_SKETCH });
+
+  await expect(row.locator(".icon-button")).toHaveCount(5);
+  await expect(row.locator("[data-test=count]")).toBeVisible();
+  await expectNoSidewaysScroll(page);
+});
+
+test("a department's page for a long-titled item fits the screen", async ({ page }) => {
+  await page.goto("/production/items/itm-2/sfx");
+  await expect(page.getByRole("heading", { name: `SFX: ${PIRATE_SKETCH}` })).toBeVisible();
+  await expectNoSidewaysScroll(page);
+});
+
 test("an item's add-role and edit-role forms fit the screen", async ({ page }) => {
   await page.goto("/casting/items/itm-2");
   await expect(page.getByRole("heading", { name: PIRATE_SKETCH })).toBeVisible();

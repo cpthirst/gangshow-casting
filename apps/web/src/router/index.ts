@@ -5,6 +5,7 @@ import CastingItemPage from "@/pages/CastingItemPage.vue";
 import CastingItemsPage from "@/pages/CastingItemsPage.vue";
 import CastingOverviewPage from "@/pages/CastingOverviewPage.vue";
 import CastPage from "@/pages/CastPage.vue";
+import DepartmentItemPage from "@/pages/DepartmentItemPage.vue";
 import HelpPage from "@/pages/HelpPage.vue";
 import NotFoundPage from "@/pages/NotFoundPage.vue";
 import ProductionOverviewPage from "@/pages/ProductionOverviewPage.vue";
@@ -12,6 +13,7 @@ import PropsItemPage from "@/pages/PropsItemPage.vue";
 import RunningOrderPage from "@/pages/RunningOrderPage.vue";
 import UsagePage from "@/pages/UsagePage.vue";
 import WelcomePage from "@/pages/WelcomePage.vue";
+import { comingSoonPages } from "@/utils/departments.ts";
 
 declare module "vue-router" {
   interface RouteMeta {
@@ -171,6 +173,13 @@ export function createAppRouter(history: RouterHistory = createWebHistory()) {
         component: PropsItemPage,
         meta: { title: "Item", menuPage: "production-overview" },
       },
+      ...comingSoonPages.map((department) => ({
+        path: `/production/items/:itemId/${department.path}`,
+        name: department.route,
+        component: DepartmentItemPage,
+        props: { department },
+        meta: { title: "Item", menuPage: "production-overview" },
+      })),
       // Where Sign out goes first, so the page being left can ask about unsaved changes.
       {
         path: "/signing-out",

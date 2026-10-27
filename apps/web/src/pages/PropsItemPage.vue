@@ -57,9 +57,12 @@ const itemRoles = computed(() =>
   sortRoles(roles.value.filter((role) => role.itemId === place.value?.item.id)),
 );
 
+// Named for the department too, as every Production overview button's page is.
+const title = computed(() => (place.value ? `Props: ${place.value.item.title}` : ""));
+
 // Follows the item even if the page is reused for another one (Previous and Next).
 watchEffect(() => {
-  if (place.value) showPageTitle(place.value.item.title);
+  if (place.value) showPageTitle(title.value);
   else if (notFound.value) showPageTitle("Item not found");
 });
 
@@ -261,7 +264,7 @@ async function postProp(itemId: string, details: AddPropRequest) {
   <p v-if="status === 'error'" role="alert">Couldn't load the item.</p>
   <template v-else-if="place">
     <div class="page-title-row">
-      <h1>{{ place.item.title }}</h1>
+      <h1>{{ title }}</h1>
       <HelpButton page="props-item" label="Help for this item" title="Item help" />
     </div>
     <p class="item-position" data-test="position">{{ position }}</p>
