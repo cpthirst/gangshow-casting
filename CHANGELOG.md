@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.23.0](https://github.com/cpthirst/gangshow-casting/compare/v1.22.0...v1.23.0) (2026-10-27)
+
+
+### Features
+
+* **web:** choose who carries a prop (production-props.E6.S2) ([#125](https://github.com/cpthirst/gangshow-casting/issues/125)) ([d13f312](https://github.com/cpthirst/gangshow-casting/commit/d13f312b92f0905fbf0225ad22c9768a747d9faa))
+
 ## [1.22.0](https://github.com/cpthirst/gangshow-casting/compare/v1.21.0...v1.22.0) (2026-10-27)
 
 
