@@ -14,7 +14,7 @@ import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
 import { RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
 import { documentXml, readDocx } from "@/utils/word/docx.fixture.ts";
 
-// The Production overview's Generate Props List button (stage-props FR22, FR23; ADR 0022). Made-up
+// The Production overview's Generate Props List button (production-props FR22, FR23; ADR 0022). Made-up
 // names only: tests never use the real cast (CLAUDE.md safeguarding).
 
 enableAutoUnmount(afterEach);

@@ -10,7 +10,7 @@ export const MAX_PROP_NAME_LENGTH = 80;
 const MAX_PROP_ROLES = 200;
 
 /**
- * Something one item needs on stage (stage-props FR13). The production's own, apart from
+ * Something one item needs on stage (production-props FR13). The production's own, apart from
  * the casting: strict, so it can never carry cast data.
  */
 export const Prop = z.strictObject({
@@ -20,7 +20,7 @@ export const Prop = z.strictObject({
   itemId: RunningOrderItem.shape.id,
   /** What it is, e.g. "Treasure chest". */
   name: z.string().trim().min(1).max(MAX_PROP_NAME_LENGTH),
-  /** The item's roles that use it, by id, never names (stage-props FR18): who plays them
+  /** The item's roles that use it, by id, never names (production-props FR18): who plays them
    *  comes from the casting. A removed role's id may linger; pages show only roles that
    *  still exist. None for props saved before props had roles. */
   roleIds: z.array(Role.shape.id).max(MAX_PROP_ROLES).default([]),
@@ -40,7 +40,7 @@ export const AddPropRequest = Prop.pick({ name: true, roleIds: true }).refine(
 
 /**
  * PUT /api/productions/{productionId}/props/{propId}: replaces a prop's name and roles, by
- * the same rules as adding one (stage-props FR19). 200 returns the Prop; 400 for an invalid
+ * the same rules as adding one (production-props FR19). 200 returns the Prop; 400 for an invalid
  * prop or a role not in its item; 404 if the prop is gone. DELETE on the same path removes
  * it: 204, or 404 if it's already gone.
  */

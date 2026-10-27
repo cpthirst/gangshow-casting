@@ -1,5 +1,5 @@
 ---
-id: stage-props.E1.S2
+id: production-props.E1.S2
 title: Show change controls only to those permitted
 epic: E1
 status: done
@@ -45,7 +45,7 @@ Then the page says so and shows the read-only view, as it does today for a read-
 ## Notes
 
 - FRs: FR3
-- Depends on: stage-props.E1.S1
+- Depends on: production-props.E1.S1
 - On a page, "read-only" now means "can't change this page's department". The casting pages and Running order ask whether the account can change Casting, not whether it is read-only. The Stage pages ask the same about Stage when they're built (E4).
 - Admin-only controls (such as Save version, deleting a cast member, Accounts) still need an Admin, as today.
 - Out of scope: the Accounts page (E2) and the menu (E3).

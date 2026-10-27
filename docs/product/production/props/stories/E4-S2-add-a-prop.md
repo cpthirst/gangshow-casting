@@ -1,5 +1,5 @@
 ---
-id: stage-props.E4.S2
+id: production-props.E4.S2
 title: Open an item's props and add a prop
 epic: E4
 status: done
@@ -82,7 +82,7 @@ Then pat is told, and the name is still in the field
 ## Notes
 
 - FRs: FR16, FR17, FR21
-- Depends on: stage-props.E4.S1
+- Depends on: production-props.E4.S1
 - The first props change route, which names Stage as its permission (E1.S1). Tech and Casting alone don't allow it.
 - A prop name has a sensible maximum length, decided in the shared schema, as role names have.
 - The page follows the item's casting page: the same heading and position line, back link and empty state.

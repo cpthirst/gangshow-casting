@@ -1,5 +1,5 @@
 ---
-id: stage-props.E3.S1
+id: production-props.E3.S1
 title: Give Production a Stage, Tech and Costume page
 epic: E3
 status: done
@@ -72,7 +72,7 @@ And every other page's usage is unchanged
 ## Notes
 
 - FRs: FR10, FR11, FR12
-- Depends on: stage-props.E1.S1, so Help can name the permissions
+- Depends on: production-props.E1.S1, so Help can name the permissions
 - The pages reuse the Casting Overview's view switch, and its page layout where they can.
 - Mic plot, Props, Scenery and SFX leave the menu, and the Usage page's page names change with them (MenuPageName). The maintainer chose to purge all four pages' visits (2026-10-25).
 - The purge touches the real usage records, so it runs as a repository command the maintainer runs after the deploy (like `pnpm account roles`), and is safe to repeat. It deletes only records for those four page names. Ask before running it against the real table.

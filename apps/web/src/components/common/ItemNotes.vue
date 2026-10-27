@@ -5,7 +5,7 @@ import { onBeforeRouteLeave, onBeforeRouteUpdate } from "vue-router";
 import { apiFetch } from "@/services/sign-in.ts";
 
 // An item's notes: one free-text field, saved on its own, apart from the running order
-// (casting-item-overview FR8, FR10). The casting notes and the props notes (stage-props
+// (casting-item-overview FR8, FR10). The casting notes and the props notes (production-props
 // FR20) each use it, at their own paths. The page gives each item a fresh instance (keyed
 // by item id), so a slow load or save can't land on another item's notes.
 const props = defineProps<{

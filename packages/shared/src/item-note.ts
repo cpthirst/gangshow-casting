@@ -6,7 +6,7 @@ export const MAX_NOTE_LENGTH = 500;
 
 /** Casting notes on one item (casting-item-overview FR8): kept by the item's id, apart from
  *  the running order's Comments, so they survive new running-order versions. Props notes
- *  (stage-props FR20) take the same shapes, at their own routes, kept apart from these. */
+ *  (production-props FR20) take the same shapes, at their own routes, kept apart from these. */
 export const ItemNote = z.strictObject({
   itemId: RunningOrderItem.shape.id,
   /** Free text; "" once cleared. */

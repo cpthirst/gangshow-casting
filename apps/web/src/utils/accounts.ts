@@ -25,7 +25,7 @@ export const resetWarning = (username: string) =>
 export const disableWarning = (username: string) =>
   `Disable ${username}? They'll be signed out on every device within 5 minutes, and can't sign in until an admin enables them again.`;
 
-/** Each department's permission by the name the team knows it by (stage-props FR7). */
+/** Each department's permission by the name the team knows it by (production-props FR7). */
 export const PERMISSION_NAMES: Record<Permission, string> = {
   casting: "Casting",
   stage: "Stage",

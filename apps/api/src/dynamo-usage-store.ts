@@ -97,7 +97,7 @@ const isGoneUse = (row: Record<string, unknown>) =>
   (row.event === "view" && DEPARTMENT_VIEWS.some((view) => view === row.view));
 
 /**
- * Deletes every use of a retired menu page (stage-props AC11), and nothing else, returning
+ * Deletes every use of a retired menu page (production-props AC11), and nothing else, returning
  * how many it deleted. Safe to run again: a second run finds none.
  */
 export async function purgeRetiredPageUses(db: DynamoDBDocumentClient, tableName: string) {

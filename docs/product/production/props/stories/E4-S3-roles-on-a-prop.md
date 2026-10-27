@@ -1,5 +1,5 @@
 ---
-id: stage-props.E4.S3
+id: production-props.E4.S3
 title: Link roles to a prop, showing who's cast
 epic: E4
 status: done
@@ -70,7 +70,7 @@ Then the response is 400, and nothing is added
 ## Notes
 
 - FRs: FR17, FR18, FR21
-- Depends on: stage-props.E4.S2
+- Depends on: production-props.E4.S2
 - A prop links to roles by id, never to cast members, so it holds no names of its own. Names come from the casting each time the page loads.
 - Cast members show as first name and surname only (ADR 0010).
 - The multi-select has a visible label (accessibility NFR). Long lists of roles and names wrap at 320px.

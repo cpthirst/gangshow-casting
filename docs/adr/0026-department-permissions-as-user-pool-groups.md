@@ -6,7 +6,7 @@
 
 ## Context
 
-The stage-props PRD lets the props team keep props without being able to change casting. It also lets one person work across departments, such as a stage manager with Stage and Tech. Every account becomes either an Admin, or has any mix of four permissions: Casting, Stage, Tech and Costume. An account with none is read-only (FR1, FR2). The API must refuse every change outside an account's permissions (FR4), and existing accounts must keep exactly their access (FR5).
+The production-props PRD lets the props team keep props without being able to change casting. It also lets one person work across departments, such as a stage manager with Stage and Tech. Every account becomes either an Admin, or has any mix of four permissions: Casting, Stage, Tech and Costume. An account with none is read-only (FR1, FR2). The API must refuse every change outside an account's permissions (FR4), and existing accounts must keep exactly their access (FR5).
 
 ADR 0020 gives each account one role from three user pool groups (`admin`, `casting`, `read-only`). It has one rule: read-only may only read, and anyone else may change anything that isn't admin-only. It says to revisit "if a role needs some changes but not others". This is that case.
 
@@ -50,7 +50,7 @@ We will use option 1.
 - **No one is signed out, and no one's access changes:**
   - Casting Team Members and admins are untouched.
   - A read-only member's token may still carry `read-only` for up to 5 minutes after the move. That doesn't matter, since both mean read-only.
-- **Local development and the demo** still start as an admin. The local switch keeps naming today's three roles until stage-props.E2.S3, which lets it choose any mix of permissions. The hosted API never reads the switch's header (ADR 0020).
+- **Local development and the demo** still start as an admin. The local switch keeps naming today's three roles until production-props.E2.S3, which lets it choose any mix of permissions. The hosted API never reads the switch's header (ADR 0020).
 
 This amends ADR 0020. Its groups-in-the-token approach, its fail-safe and its rollout pattern stand. Its single read-only rule and its one role per account are replaced.
 
@@ -62,7 +62,7 @@ This amends ADR 0020. Its groups-in-the-token approach, its fail-safe and its ro
   - Most accounts don't move at all.
 - **Harder**:
   - Two releases to remove `read-only` completely, with the command run between them.
-  - Tokens and the Accounts API now carry a set of permissions, not one role, so the account schemas change (stage-props.E2).
+  - Tokens and the Accounts API now carry a set of permissions, not one role, so the account schemas change (production-props.E2).
   - Once `read-only` is gone, a mistaken extra group widens access. The Accounts page is the only place that sets groups, so this would take an edit in the AWS console.
 - **Revisit if**:
   - a department needs some of its changes but not others;
@@ -71,7 +71,7 @@ This amends ADR 0020. Its groups-in-the-token approach, its fail-safe and its ro
 
 ## Later changes
 
-Recorded as the stage-props stories were built, so this record stays true without rewriting the decision above.
+Recorded as the production-props stories were built, so this record stays true without rewriting the decision above.
 
-- **stage-props.E1.S2**: a refusal names the department, rather than one "You have read-only access." for all. A Casting refusal says "You can view the casting, but not change it.", and a department without its own line says "You can view this, but not change it." Pages recognise any of them as read-only. Admin-only routes still answer "Only admins can do this." The maintainer chose this so that someone with only Stage isn't told they're read-only everywhere.
+- **production-props.E1.S2**: a refusal names the department, rather than one "You have read-only access." for all. A Casting refusal says "You can view the casting, but not change it.", and a department without its own line says "You can view this, but not change it." Pages recognise any of them as read-only. Admin-only routes still answer "Only admins can do this." The maintainer chose this so that someone with only Stage isn't told they're read-only everywhere.
 - **production-overview.E1.S1**: the `costume` group is renamed `wardrobe` in one release, with no move ([ADR 0027](0027-costume-group-renamed-wardrobe.md)).

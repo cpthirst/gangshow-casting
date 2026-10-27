@@ -26,7 +26,7 @@ export function createDevServer(table: Record<string, Handler>) {
       return;
     }
     // Like the hosted entry point, before the handler runs (ADR 0026).
-    // The access chosen with the local switch (stage-props FR9).
+    // The access chosen with the local switch (production-props FR9).
     const refusedAccess = accessRefusal(
       route.key,
       localAccessFrom(req.headers[LOCAL_ACCESS_HEADER]),

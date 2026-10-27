@@ -11,7 +11,7 @@ import { ifExists } from "./files.ts";
 import { parseJson } from "./json.ts";
 import { oneAtATime, writePrivateFile } from "./private-file.ts";
 
-/** Where each production's props live (stage-props FR13): the production's own, apart from
+/** Where each production's props live (production-props FR13): the production's own, apart from
  *  its casting. */
 export interface PropStore {
   /** Every item's props; none until the first is added. */
@@ -20,7 +20,7 @@ export interface PropStore {
   add(productionId: string, itemId: string, details: AddPropRequest): Promise<Prop>;
   /** Replaces a prop's name and roles; it stays on its item. */
   update(productionId: string, id: number, details: UpdatePropRequest): Promise<Prop | "not-found">;
-  /** Removes a prop for good (stage-props FR19). Its id is never reused. */
+  /** Removes a prop for good (production-props FR19). Its id is never reused. */
   remove(productionId: string, id: number): Promise<"removed" | "not-found">;
 }
 

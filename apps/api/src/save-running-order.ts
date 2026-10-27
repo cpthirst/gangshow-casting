@@ -69,7 +69,7 @@ async function removeCastingOfDroppedItems(
     await casting.roles.keepOnlyItems(productionId, itemIds);
     await casting.itemNotes.keepOnlyItems(productionId, itemIds);
     // A dropped item's props and props notes are kept, for now: whether they go too is an open
-    // question in docs/product/stage/props/prd.md, to settle before item removal is built.
+    // question in docs/product/production/props/prd.md, to settle before item removal is built.
   } catch (error) {
     // Only the error's name: a store's message can quote stored casting (ADR 0010).
     console.error(

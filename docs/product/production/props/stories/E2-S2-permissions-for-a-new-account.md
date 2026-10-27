@@ -1,5 +1,5 @@
 ---
-id: stage-props.E2.S2
+id: production-props.E2.S2
 title: Choose permissions for a new account
 epic: E2
 status: done
@@ -45,7 +45,7 @@ Then the response is 400, and no account is created
 ## Notes
 
 - FRs: FR6
-- Depends on: stage-props.E2.S1
+- Depends on: production-props.E2.S1
 - The same labelled tick-box group as E2.S1.
 - Creating an account replaces today's choice of one role, which defaults to Read-Only Team Member (team-roles.E3.S2).
 - Out of scope: changing permissions later (E2.S1).

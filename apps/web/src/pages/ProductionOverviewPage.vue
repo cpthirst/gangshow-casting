@@ -27,7 +27,7 @@ type State =
 const state = ref<State>({ status: "loading" });
 // Loaded separately: if the props fail, the items still show, just without counts.
 const countOf = ref<((itemId: string) => number) | "error">();
-// Each item's props notes, by item id (stage-props FR14); cleared notes are left out.
+// Each item's props notes, by item id (production-props FR14); cleared notes are left out.
 const notes = ref<Map<string, string> | "error">();
 const notesOf = (itemId: string) =>
   notes.value instanceof Map ? notes.value.get(itemId) : undefined;
@@ -43,7 +43,7 @@ const countFor = (itemId: string) =>
   typeof countOf.value === "function" ? countOf.value(itemId) : undefined;
 
 // The props list in Word, for every role, built in the browser with everything as saved at
-// that moment (stage-props FR22, FR23; ADR 0022).
+// that moment (production-props FR22, FR23; ADR 0022).
 const generating = ref(false);
 const generateFailed = ref(false);
 /** Screen-reader announcement of a finished list. */

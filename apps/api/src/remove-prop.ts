@@ -5,7 +5,7 @@ import { wholeNumber } from "./params.ts";
 import type { PropStore } from "./prop-store.ts";
 
 // DELETE /api/productions/{productionId}/props/{propId}: take a prop off its item for good
-// (stage-props FR19). Only Stage or an admin get here (routeNeeds in @app/shared).
+// (production-props FR19). Only Stage or an admin get here (routeNeeds in @app/shared).
 export function createRemoveProp(props: PropStore) {
   return async (event: ApiEvent): Promise<APIGatewayProxyStructuredResultV2> => {
     const productionId = ProductionId.safeParse(event.pathParameters?.productionId);

@@ -246,7 +246,7 @@ describe("App shell", () => {
     });
   });
 
-  describe("the local access switch (stage-props FR9)", () => {
+  describe("the local access switch (production-props FR9)", () => {
     type App = Awaited<ReturnType<typeof openAppAt>>["wrapper"];
     const accessSwitch = (wrapper: App) => wrapper.get("fieldset[data-test=local-access]");
     const box = (wrapper: App, name: string) =>

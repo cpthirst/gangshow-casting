@@ -8,7 +8,7 @@ import type { Account, UserDirectory } from "./user-directory.ts";
 
 /**
  * PUT /api/accounts/{username}/access: makes an account an Admin, or gives it any mix of
- * permissions (stage-props FR6). It also signs the account out everywhere, so the change
+ * permissions (production-props FR6). It also signs the account out everywhere, so the change
  * takes effect at their next sign-in (ADR 0018). An admin can't change their own access, and
  * the only enabled admin stays one, so the team is never left without an admin (FR8).
  */

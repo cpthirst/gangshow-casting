@@ -15,7 +15,7 @@ export const MenuPageName = z.enum([
 ]);
 
 /**
- * Menu pages that have gone, whose uses the maintainer purges (stage-props AC11): Production's
+ * Menu pages that have gone, whose uses the maintainer purges (production-props AC11): Production's
  * four pages became the Stage and Tech pages' views.
  */
 export const RETIRED_MENU_PAGES = ["mic-plot", "props", "scenery", "sfx"] as const;

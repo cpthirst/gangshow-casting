@@ -64,7 +64,7 @@ export function inMemoryItemNoteStore(): ItemNoteStore {
   };
 }
 
-/** The file props notes are kept in, apart from the casting notes (stage-props FR20). */
+/** The file props notes are kept in, apart from the casting notes (production-props FR20). */
 export const PROPS_NOTES_FILE = "props-notes.json";
 
 /** Local file: `<dataDir>/<productionId>/item-notes.json` (git-ignored), or the file named,

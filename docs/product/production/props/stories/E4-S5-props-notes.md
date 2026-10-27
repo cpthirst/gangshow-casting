@@ -1,5 +1,5 @@
 ---
-id: stage-props.E4.S5
+id: production-props.E4.S5
 title: Keep props notes for each item
 epic: E4
 status: done
@@ -61,7 +61,7 @@ And the API refuses a props notes save from sam with 403 saying "You can view th
 ## Notes
 
 - FRs: FR14, FR20
-- Depends on: stage-props.E4.S2
+- Depends on: production-props.E4.S2
 - Works like the casting item notes (casting-item-overview FR8 to FR10), and reuses their pieces where it can, but is stored apart, by item id, and needs Stage, not Casting.
 - Props notes are free text, for the production team only, like the casting notes. Tests use made-up text.
 - Out of scope: notes on individual props (PRD non-goal).

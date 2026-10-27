@@ -1,5 +1,5 @@
 ---
-id: stage-props.E1.S1
+id: production-props.E1.S1
 title: Enforce department permissions in the API
 epic: E1
 status: done
@@ -82,6 +82,6 @@ And it says how many accounts it checked and how many it moved
   - how each route names its permission in one place;
   - how existing accounts move, and whether anyone has to sign in again.
 - The reads every role may use (every `GET`, the Excel export, recording usage: ADR 0021, ADR 0023) stay open to everyone.
-- Until stage-props.E2.S1, the Accounts page shows an account with Casting as "Casting Team Member" and one with no permissions as "Read-Only Team Member". An account with only Stage can be made from the repository, for testing.
-- No props routes exist yet. The first one, which needs Stage, arrives with stage-props.E4.S2.
+- Until production-props.E2.S1, the Accounts page shows an account with Casting as "Casting Team Member" and one with no permissions as "Read-Only Team Member". An account with only Stage can be made from the repository, for testing.
+- No props routes exist yet. The first one, which needs Stage, arrives with production-props.E4.S2.
 - Out of scope: hiding controls on the pages (E1.S2), and choosing permissions in the app (E2).

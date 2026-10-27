@@ -32,6 +32,6 @@ Then it deletes nothing and reports 0
 - FRs: FR13
 - Depends on: production-overview.E2.S1
 - **Open question (PRD), blocks `ready`**: purge these visits, or keep them as history? E2.S1 already hides them from the Usage page, so keeping them costs nothing visible. Owner: maintainer.
-- Extends the existing `pnpm usage purge` command (stage-props AC11), which today deletes only the four old Production pages' visits. Ask before running it against the real table (CLAUDE.md).
+- Extends the existing `pnpm usage purge` command (production-props AC11), which today deletes only the four old Production pages' visits. Ask before running it against the real table (CLAUDE.md).
 - Once it has run against the real table, the purge's bridging code is removable, like release 1.16's.
 - Out of scope: any other usage change.

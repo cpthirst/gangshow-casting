@@ -86,7 +86,7 @@ const readOnlyRefusals = new Set<unknown>(permissions.map(refusalFor));
 export const isRefusalAsReadOnly = (message: unknown) => readOnlyRefusals.has(message);
 
 /**
- * The access pnpm dev and pnpm demo act for, chosen with the local switch (stage-props FR9):
+ * The access pnpm dev and pnpm demo act for, chosen with the local switch (production-props FR9):
  * "admin", or the permissions separated by commas, empty for none. Only the local API reads
  * it; the hosted API takes access from the sign-in alone.
  */

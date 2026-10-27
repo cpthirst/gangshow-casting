@@ -1,5 +1,5 @@
 ---
-id: stage-props.E2.S1
+id: production-props.E2.S1
 title: Change an account's permissions
 epic: E2
 status: done
@@ -70,7 +70,7 @@ And "Casting Team Member" and "Read-Only Team Member" no longer appear as role n
 ## Notes
 
 - FRs: FR6, FR7, FR8
-- Depends on: stage-props.E1.S1
+- Depends on: production-props.E1.S1
 - The tick boxes form a labelled group (accessibility NFR). The change is saved in one step, with one confirmation.
 - The access change replaces today's role change in the API contract.
 - Out of scope: choosing permissions for a new account (E2.S2).

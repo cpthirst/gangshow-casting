@@ -1,5 +1,5 @@
 ---
-id: stage-props.E2.S3
+id: production-props.E2.S3
 title: Switch permissions in local development and the demo
 epic: E2
 status: done
@@ -45,6 +45,6 @@ Then the API uses only the signed-in account's own access
 ## Notes
 
 - FRs: FR9
-- Depends on: stage-props.E1.S1. It's most useful once the pages follow permissions (E1.S2).
+- Depends on: production-props.E1.S1. It's most useful once the pages follow permissions (E1.S2).
 - The switch replaces today's three-role "Local role" switch. It stays where it is in the sidebar, labelled as local and clear at a glance, with a labelled group for the permissions.
 - Browser tests keep running as an admin unless a test switches.
