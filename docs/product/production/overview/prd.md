@@ -72,7 +72,7 @@ The show calls the department **Wardrobe**, not Costume. The app's name for it d
 ### Addresses, help and usage
 - **FR11**: Old addresses open the Overview: the Stage, Tech and Costume pages with any of their views, and the older Production addresses (production-props FR11). Bookmarks to an item's props page still open it.
 - **FR12**: The Welcome and Help pages describe the Overview, what each button opens, the Generate Props List button, and that each department's permission (Stage, Tech, Wardrobe) is what lets someone change its pages.
-- **FR13**: The Usage page records visits to the Overview as a menu page, and uses of Generate Props List as today. The Stage, Tech and Costume pages and their views are no longer recorded (see Open questions for their past visits).
+- **FR13**: The Usage page records visits to the Overview as a menu page, and uses of Generate Props List as today. The Stage, Tech and Costume pages and their views are no longer recorded (their past visits are purged once after the deploy; see Open questions → Resolved).
 
 ## Non-functional requirements
 
@@ -108,8 +108,9 @@ The show calls the department **Wardrobe**, not Costume. The app's name for it d
 
 ## Open questions
 
-- Usage: should the visits recorded for the Stage, Tech and Costume pages and their views be purged, as the old Production pages' were, or kept as history? Expected: purged, with a repeatable command the maintainer runs after the deploy. Owner: maintainer.
+None open.
 
 ### Resolved
 
+- Usage: the visits recorded for the Stage, Tech and Costume pages and their views are purged once, by hand, after the deploy, with no repeatable command; the existing `pnpm usage purge` is removed (production-overview.E3.S2). Decided 2026-10-27.
 - No icon legend on the Overview: each button has a tooltip and an accessible name, and Help names every icon (production-overview.E2.S2, E3.S1). Revisit if the team find the icons unclear. Decided 2026-10-26.
