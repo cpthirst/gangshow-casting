@@ -78,10 +78,14 @@ export function dynamoPropStore(db: DynamoDBDocumentClient, tableName: string): 
             TableName: tableName,
             Key: { pk: partitionFor(productionId), sk: propKey(id) },
             // "name" is a DynamoDB reserved word.
-            UpdateExpression: "SET #name = :name, roleIds = :roleIds",
+            UpdateExpression: "SET #name = :name, quantity = :quantity, roleIds = :roleIds",
             ConditionExpression: "attribute_exists(sk)",
             ExpressionAttributeNames: { "#name": "name" },
-            ExpressionAttributeValues: { ":name": details.name, ":roleIds": details.roleIds },
+            ExpressionAttributeValues: {
+              ":name": details.name,
+              ":quantity": details.quantity,
+              ":roleIds": details.roleIds,
+            },
             ReturnValues: "ALL_NEW",
           }),
         );

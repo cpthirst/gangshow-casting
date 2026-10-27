@@ -3,6 +3,7 @@ import {
   type CastMember,
   type ItemNote,
   MAX_PROP_NAME_LENGTH,
+  MAX_PROP_QUANTITY,
   type Prop,
   type Role,
   type RunningOrder,
@@ -23,10 +24,13 @@ export const addPropPath = (itemId: string) =>
 /** Where one prop is edited (PUT) or removed (DELETE). */
 export const propPath = (propId: number) => `${PROPS_PATH}/${propId}`;
 
-/** How many props each item has, by item id: 0 for an item with none. */
+/** How many props each item has, by item id, adding up quantities ("Umbrella ×10" is 10;
+ *  production-props FR25): 0 for an item with none. */
 export function propCounts(props: readonly Prop[]) {
   const counts = new Map<string, number>();
-  for (const { itemId } of props) counts.set(itemId, (counts.get(itemId) ?? 0) + 1);
+  for (const { itemId, quantity } of props) {
+    counts.set(itemId, (counts.get(itemId) ?? 0) + quantity);
+  }
   return (itemId: string) => counts.get(itemId) ?? 0;
 }
 
@@ -93,6 +97,7 @@ export function propsListOf(show: {
 /** The prop form's fields, as typed: the roles picked, and the search for one more. */
 export interface PropFormFields {
   name: string;
+  quantity: string;
   role: CastMemberChoice;
   roleIds: number[];
 }
@@ -104,13 +109,22 @@ export type PropFormResult =
 /** The prop the form describes, or a message for each field that needs fixing. Limits come
  *  from the shared schema, so the page and the API agree. */
 export function propDetailsFrom(form: PropFormFields): PropFormResult {
-  const parsed = AddPropRequest.safeParse({ name: form.name, roleIds: form.roleIds });
+  const parsed = AddPropRequest.safeParse({
+    name: form.name,
+    quantity: quantityOf(form.quantity),
+    roleIds: form.roleIds,
+  });
   const errors: Partial<Record<keyof PropFormFields, string>> = {};
-  if (!parsed.success) {
-    const tooLong = parsed.error.issues.some((issue) => issue.code === "too_big");
+  const issues = parsed.error?.issues ?? [];
+  const nameIssues = issues.filter(({ path }) => path[0] === "name");
+  if (nameIssues.length > 0) {
+    const tooLong = nameIssues.some((issue) => issue.code === "too_big");
     errors.name = tooLong
       ? `Prop names can be up to ${MAX_PROP_NAME_LENGTH} characters`
       : "A prop needs a name";
+  }
+  if (issues.some(({ path }) => path[0] === "quantity")) {
+    errors.quantity = `Quantity must be a whole number from 1 to ${MAX_PROP_QUANTITY}`;
   }
   // Typed but not chosen: the text alone doesn't say which role, so it isn't guessed.
   if (form.role.query.trim() !== "") {
@@ -120,4 +134,11 @@ export function propDetailsFrom(form: PropFormFields): PropFormResult {
     return { ok: true, details: parsed.data };
   }
   return { ok: false, errors };
+}
+
+/** The quantity typed, as a number; anything but digits, an empty field included, is no
+ *  quantity at all, so it's refused rather than saved as the API's default of 1. */
+function quantityOf(typed: string) {
+  const quantity = typed.trim();
+  return /^\d+$/.test(quantity) ? Number(quantity) : Number.NaN;
 }

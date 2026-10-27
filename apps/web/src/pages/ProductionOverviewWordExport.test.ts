@@ -41,7 +41,13 @@ const captain: Role = {
   castMemberIds: [sam.id],
   revision: 1,
 };
-const telescope: Prop = { id: 1, itemId: "pirate-sketch", name: "Telescope", roleIds: [1] };
+const telescope: Prop = {
+  id: 1,
+  itemId: "pirate-sketch",
+  name: "Telescope",
+  quantity: 1,
+  roleIds: [1],
+};
 
 /** The stand-in API: what it answers can change between the page loading and the export. */
 let api: {

@@ -24,7 +24,7 @@ describe("data stores", () => {
   });
 
   it("reads props from the local files when no remote table is configured", async () => {
-    const props = [{ id: 1, itemId: "finale", name: "Confetti", roleIds: [] }];
+    const props = [{ id: 1, itemId: "finale", name: "Confetti", quantity: 1, roleIds: [] }];
     await mkdir(join(dataDir, "2027"));
     await writeFile(
       join(dataDir, "2027", "props.json"),

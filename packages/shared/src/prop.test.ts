@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { AddPropRequest, MAX_PROP_NAME_LENGTH, Prop, PropList } from "./prop.ts";
+import { AddPropRequest, MAX_PROP_NAME_LENGTH, MAX_PROP_QUANTITY, Prop, PropList } from "./prop.ts";
 
 const aProp = (id: number, itemId: string, name = `Prop ${id}`) => ({
   id,
   itemId,
   name,
+  quantity: 1,
   roleIds: [],
 });
 
@@ -29,6 +30,10 @@ describe("Prop", () => {
     expect(Prop.parse({ id: 1, itemId: "pirate-sketch", name: "Telescope" }).roleIds).toEqual([]);
   });
 
+  it("has a quantity of 1 when it was saved before props had quantities", () => {
+    expect(Prop.parse({ id: 1, itemId: "pirate-sketch", name: "Treasure chest" }).quantity).toBe(1);
+  });
+
   it("needs a name", () => {
     expect(Prop.safeParse(aProp(1, "pirate-sketch", "  ")).success).toBe(false);
   });
@@ -44,11 +49,20 @@ describe("PropList", () => {
 });
 
 describe("AddPropRequest", () => {
-  it("is a prop's name, trimmed, with no roles unless given", () => {
+  it("is a prop's name, trimmed, with a quantity of 1 and no roles unless given", () => {
     expect(AddPropRequest.parse({ name: " Treasure chest " })).toEqual({
       name: "Treasure chest",
+      quantity: 1,
       roleIds: [],
     });
+  });
+
+  it.each([1, 10, MAX_PROP_QUANTITY])("takes a quantity of %s", (quantity) => {
+    expect(AddPropRequest.parse({ name: "Umbrella", quantity }).quantity).toBe(quantity);
+  });
+
+  it.each([0, MAX_PROP_QUANTITY + 1, 2.5, -1, "10"])("refuses a quantity of %s", (quantity) => {
+    expect(AddPropRequest.safeParse({ name: "Umbrella", quantity }).success).toBe(false);
   });
 
   it("takes the ids of the roles that use the prop", () => {

@@ -40,12 +40,16 @@ const show = aRunningOrder(
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 
-const aProp = (id: number, itemId: string, name: string, roleIds: number[] = []): Prop => ({
-  id,
-  itemId,
-  name,
-  roleIds,
-});
+const aProp = (
+  id: number,
+  itemId: string,
+  name: string,
+  roleIds: number[] = [],
+  quantity = 1,
+): Prop => ({ id, itemId, name, quantity, roleIds });
+
+/** A prop as the API may hold it: one saved before props had quantities has none. */
+type SavedProp = Omit<Prop, "quantity"> & { quantity?: number };
 
 /** The casting the props page reads names from: every role, and the cast list. */
 interface Casting {
@@ -57,7 +61,7 @@ interface Casting {
  *  Returns the live props, so a test can check what was saved. */
 function savedShowIs(
   order: RunningOrder | undefined,
-  props: Prop[] = [],
+  props: SavedProp[] = [],
   casting: Casting = { roles: [], cast: [] },
 ) {
   const stored = [...props];
@@ -123,8 +127,14 @@ const stepLinks = (wrapper: VueWrapper) =>
     href: link.attributes("href"),
   }));
 
+/** Each card's name, with its quantity when it shows one: "Umbrella ×10". */
 const propsShown = (wrapper: VueWrapper) =>
-  wrapper.findAll("[data-test=prop]").map((card) => card.get("[data-test=prop-name]").text());
+  wrapper.findAll("[data-test=prop]").map((card) =>
+    [card.find("[data-test=prop-name]"), card.find("[data-test=quantity]")]
+      .filter((part) => part.exists())
+      .map((part) => part.text())
+      .join(" "),
+  );
 
 async function addProp(wrapper: VueWrapper, name: string) {
   await wrapper.get("[data-test=add-prop]").trigger("click");
@@ -1039,5 +1049,147 @@ describe("Editing and removing a prop", () => {
 
     expect(wrapper.get("main [role=alert]").text()).toBe("Couldn't remove Telescope. Try again.");
     expect(propsShown(wrapper)).toEqual(["Telescope"]);
+  });
+});
+
+describe("A prop's quantity", () => {
+  beforeEach(() => signInAs(["stage"], "pat"));
+
+  // Made-up items: the village scene needs ten umbrellas.
+  const village = aRunningOrder([anItem("Village Square"), anItem("Pirate Sketch")], []);
+  const VILLAGE_PROPS = "/production/items/village-square/props";
+  const umbrellas = () => aProp(1, "village-square", "Umbrella", [], 10);
+
+  const quantityIn = (form: ReturnType<VueWrapper["get"]>) =>
+    form.get<HTMLInputElement>("input[name=quantity]");
+
+  async function addProp(wrapper: VueWrapper, name: string, quantity?: string) {
+    await wrapper.get("[data-test=add-prop]").trigger("click");
+    await wrapper.get("input[name=name]").setValue(name);
+    if (quantity !== undefined) await wrapper.get("input[name=quantity]").setValue(quantity);
+    await wrapper.get("form[aria-label='Add prop']").trigger("submit");
+    await flushPromises();
+  }
+
+  async function editQuantity(wrapper: VueWrapper, name: string, quantity: string) {
+    await wrapper.get(`button[aria-label='Edit ${name}']`).trigger("click");
+    await saveQuantity(wrapper, quantity);
+  }
+
+  async function saveQuantity(wrapper: VueWrapper, quantity: string) {
+    await quantityIn(wrapper.get("form[aria-label^='Edit ']")).setValue(quantity);
+    await wrapper.get("form[aria-label^='Edit ']").trigger("submit");
+    await flushPromises();
+  }
+
+  async function openOverviewFrom(wrapper: VueWrapper) {
+    await wrapper.get("main nav[aria-label='Item navigation'] a").trigger("click");
+    await flushPromises();
+    return wrapper.get("[data-test=item][data-item-id=village-square] [data-test=count]");
+  }
+
+  it("starts a new prop at a quantity of 1, under its label, and shows none on its card", async () => {
+    const stored = savedShowIs(show);
+    const { wrapper } = await openAppAt(PIRATE_PROPS);
+
+    await wrapper.get("[data-test=add-prop]").trigger("click");
+    const quantity = quantityIn(wrapper.get("form[aria-label='Add prop']"));
+    expect(quantity.element.value).toBe("1");
+    expect(quantity.attributes("inputmode")).toBe("numeric");
+    expect(wrapper.get(`label[for='${quantity.attributes("id")}']`).text()).toBe("Quantity");
+    await wrapper.get("input[name=name]").setValue("Telescope");
+    await wrapper.get("form[aria-label='Add prop']").trigger("submit");
+    await flushPromises();
+
+    expect(propsShown(wrapper)).toEqual(["Telescope"]);
+    expect(wrapper.find("[data-test=prop] [data-test=quantity]").exists()).toBe(false);
+    expect(stored).toEqual([aProp(1, "pirate-sketch", "Telescope")]);
+  });
+
+  it("adds a prop with a quantity above 1, showing it after the name, kept on reload", async () => {
+    const stored = savedShowIs(village);
+    const first = await openAppAt(VILLAGE_PROPS);
+
+    await addProp(first.wrapper, "Umbrella", "10");
+
+    expect(propsShown(first.wrapper)).toEqual(["Umbrella ×10"]);
+    // A real space, so a screen reader hears "Umbrella times 10", not one word.
+    expect(first.wrapper.get("[data-test=prop]").text()).toContain("Umbrella ×10");
+    expect(stored).toEqual([umbrellas()]);
+    first.wrapper.unmount();
+
+    const { wrapper } = await openAppAt(VILLAGE_PROPS);
+    expect(propsShown(wrapper)).toEqual(["Umbrella ×10"]);
+  });
+
+  it("changes a prop's quantity from its pencil", async () => {
+    const stored = savedShowIs(village, [umbrellas()]);
+    const { wrapper } = await openAppAt(VILLAGE_PROPS);
+
+    await wrapper.get("button[aria-label='Edit Umbrella']").trigger("click");
+    expect(quantityIn(wrapper.get("form[aria-label='Edit Umbrella']")).element.value).toBe("10");
+    await saveQuantity(wrapper, "6");
+
+    expect(propsShown(wrapper)).toEqual(["Umbrella ×6"]);
+    expect(stored[0]?.quantity).toBe(6);
+  });
+
+  it.each(["0", "100", "2.5", ""])(
+    "refuses a new prop's quantity of %j, saying so next to the field, saving nothing",
+    async (quantity) => {
+      const stored = savedShowIs(village);
+      const { wrapper } = await openAppAt(VILLAGE_PROPS);
+
+      await addProp(wrapper, "Umbrella", quantity);
+
+      expect(errorFor(wrapper, "quantity")).toBe("Quantity must be a whole number from 1 to 99");
+      expect(stored).toEqual([]);
+    },
+  );
+
+  it.each(["0", "100", "2.5", ""])(
+    "refuses an edited quantity of %j, saying so next to the field, saving nothing",
+    async (quantity) => {
+      const stored = savedShowIs(village, [umbrellas()]);
+      const { wrapper } = await openAppAt(VILLAGE_PROPS);
+
+      await editQuantity(wrapper, "Umbrella", quantity);
+
+      expect(errorFor(wrapper, "quantity")).toBe("Quantity must be a whole number from 1 to 99");
+      expect(stored).toEqual([umbrellas()]);
+    },
+  );
+
+  it("shows a prop saved before props had quantities with none, and edits it from 1", async () => {
+    savedShowIs(show, [{ id: 1, itemId: "pirate-sketch", name: "Treasure chest", roleIds: [] }]);
+    const { wrapper } = await openAppAt(PIRATE_PROPS);
+
+    expect(propsShown(wrapper)).toEqual(["Treasure chest"]);
+    await wrapper.get("button[aria-label='Edit Treasure chest']").trigger("click");
+    expect(quantityIn(wrapper.get("form[aria-label='Edit Treasure chest']")).element.value).toBe(
+      "1",
+    );
+  });
+
+  it("counts a prop's whole quantity on the Overview", async () => {
+    savedShowIs(village, [umbrellas(), aProp(2, "village-square", "Telescope")]);
+    const { wrapper } = await openAppAt(VILLAGE_PROPS);
+
+    const count = await openOverviewFrom(wrapper);
+
+    expect(count.get("[aria-hidden=true]").text()).toBe("11");
+    expect(count.get(".visually-hidden").text()).toBe("11 props");
+  });
+
+  it("takes a removed prop's whole quantity off the Overview's count", async () => {
+    savedShowIs(village, [umbrellas(), aProp(2, "village-square", "Telescope")]);
+    vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
+    const { wrapper } = await openAppAt(VILLAGE_PROPS);
+
+    await wrapper.get("button[aria-label='Remove Umbrella']").trigger("click");
+    await flushPromises();
+
+    expect(propsShown(wrapper)).toEqual(["Telescope"]);
+    expect((await openOverviewFrom(wrapper)).get("[aria-hidden=true]").text()).toBe("1");
   });
 });

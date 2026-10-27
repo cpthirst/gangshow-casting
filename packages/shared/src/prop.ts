@@ -5,6 +5,9 @@ import { ProductionId, RunningOrderItem } from "./running-order.ts";
 /** The longest a prop's name can be, in characters. */
 export const MAX_PROP_NAME_LENGTH = 80;
 
+/** The most of one prop an item can need (production-props FR24). */
+export const MAX_PROP_QUANTITY = 99;
+
 /** The most roles one prop can list: far more than any item has, but a cap on what one
  *  request can make the API store and check. */
 const MAX_PROP_ROLES = 200;
@@ -20,6 +23,9 @@ export const Prop = z.strictObject({
   itemId: RunningOrderItem.shape.id,
   /** What it is, e.g. "Treasure chest". */
   name: z.string().trim().min(1).max(MAX_PROP_NAME_LENGTH),
+  /** How many the item needs, e.g. 10 umbrellas (production-props FR24). 1 for props saved
+   *  before props had quantities. */
+  quantity: z.number().int().min(1).max(MAX_PROP_QUANTITY).default(1),
   /** The item's roles that use it, by id, never names (production-props FR18): who plays them
    *  comes from the casting. A removed role's id may linger; pages show only roles that
    *  still exist. None for props saved before props had roles. */
@@ -28,21 +34,22 @@ export const Prop = z.strictObject({
 
 /**
  * POST /api/productions/{productionId}/items/{itemId}/props: a new prop for the item, with
- * no roles unless role ids are given (each one of this item's roles).
+ * a quantity of 1 and no roles unless given (each role one of this item's).
  * 201 returns the Prop; 400 for an invalid prop or a role not in the item; 404 if the item
  * isn't in the latest saved running order. Strict, so the app-managed id and item can't be
  * sent.
  */
-export const AddPropRequest = Prop.pick({ name: true, roleIds: true }).refine(
+export const AddPropRequest = Prop.pick({ name: true, quantity: true, roleIds: true }).refine(
   ({ roleIds }) => new Set(roleIds).size === roleIds.length,
   { path: ["roleIds"], message: "A role is listed twice" },
 );
 
 /**
- * PUT /api/productions/{productionId}/props/{propId}: replaces a prop's name and roles, by
- * the same rules as adding one (production-props FR19). 200 returns the Prop; 400 for an invalid
- * prop or a role not in its item; 404 if the prop is gone. DELETE on the same path removes
- * it: 204, or 404 if it's already gone.
+ * PUT /api/productions/{productionId}/props/{propId}: replaces a prop's name, quantity and
+ * roles, by the same rules as adding one (production-props FR19, FR24). 200 returns the Prop;
+ * 400 for an invalid prop or a role not in its item; 404 if the prop is gone. A quantity or
+ * roles left out are replaced too, by 1 and none. DELETE on the same path removes it: 204,
+ * or 404 if it's already gone.
  */
 export const UpdatePropRequest = AddPropRequest;
 

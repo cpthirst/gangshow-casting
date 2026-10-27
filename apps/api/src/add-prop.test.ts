@@ -43,7 +43,13 @@ describe("add prop handler", () => {
 
     expect(res.statusCode).toBe(201);
     const added = Prop.parse(JSON.parse(res.body ?? ""));
-    expect(added).toEqual({ id: 1, itemId: pirateSketch, name: "Treasure chest", roleIds: [] });
+    expect(added).toEqual({
+      id: 1,
+      itemId: pirateSketch,
+      name: "Treasure chest",
+      quantity: 1,
+      roleIds: [],
+    });
     expect((await props.list("2027")).props).toEqual([added]);
   });
 
@@ -64,6 +70,22 @@ describe("add prop handler", () => {
     const { props, handler } = setUp();
 
     expect((await handler(request({ name: "Telescope", roleIds }))).statusCode).toBe(400);
+    expect((await props.list("2027")).props).toEqual([]);
+  });
+
+  it("stores the quantity given", async () => {
+    const { props, handler } = setUp();
+
+    const res = await handler(request({ name: "Umbrella", quantity: 10 }));
+
+    expect(Prop.parse(JSON.parse(res.body ?? "")).quantity).toBe(10);
+    expect((await props.list("2027")).props[0]?.quantity).toBe(10);
+  });
+
+  it.each([0, 100, 2.5])("refuses a quantity of %s with 400, storing nothing", async (quantity) => {
+    const { props, handler } = setUp();
+
+    expect((await handler(request({ name: "Umbrella", quantity }))).statusCode).toBe(400);
     expect((await props.list("2027")).props).toEqual([]);
   });
 
