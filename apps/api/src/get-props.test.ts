@@ -9,6 +9,7 @@ const treasureChest = {
   name: "Treasure chest",
   quantity: 1,
   roleIds: [],
+  carrierIds: [],
 };
 
 describe("get props handler", () => {

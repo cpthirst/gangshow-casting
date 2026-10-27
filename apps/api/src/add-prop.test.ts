@@ -20,6 +20,10 @@ const aRole = (id: number, item: string, name: string): Role => ({
 const captain = aRole(1, pirateSketch, "Captain");
 const pirate1 = aRole(2, pirateSketch, "Pirate 1");
 const soloist = aRole(3, finale, "Soloist");
+// Made-up cast member ids: Jo, Kim and Alex are villagers; Sam is the baker.
+const [sam, jo, kim, alex] = [1, 3, 4, 5];
+const villagers: Role = { ...aRole(4, pirateSketch, "Villagers"), castMemberIds: [jo, kim, alex] };
+const baker: Role = { ...aRole(5, pirateSketch, "Baker"), castMemberIds: [sam] };
 
 const request = (body: unknown, item = pirateSketch, productionId = "2027") => ({
   pathParameters: { productionId, itemId: item },
@@ -31,7 +35,9 @@ function setUp() {
   const runningOrders = inMemoryRunningOrderStore([
     aRunningOrder(7, { first: ["Opening Number", "Pirate Sketch"] }),
   ]);
-  const roles = inMemoryRoleStore([{ productionId: "2027", roles: [captain, pirate1, soloist] }]);
+  const roles = inMemoryRoleStore([
+    { productionId: "2027", roles: [captain, pirate1, soloist, villagers, baker] },
+  ]);
   return { props, handler: createAddProp(props, runningOrders, roles) };
 }
 
@@ -49,6 +55,7 @@ describe("add prop handler", () => {
       name: "Treasure chest",
       quantity: 1,
       roleIds: [],
+      carrierIds: [],
     });
     expect((await props.list("2027")).props).toEqual([added]);
   });
@@ -70,6 +77,36 @@ describe("add prop handler", () => {
     const { props, handler } = setUp();
 
     expect((await handler(request({ name: "Telescope", roleIds }))).statusCode).toBe(400);
+    expect((await props.list("2027")).props).toEqual([]);
+  });
+
+  it("stores the carriers chosen from the cast of the prop's roles", async () => {
+    const { props, handler } = setUp();
+    const basket = {
+      name: "Bread basket",
+      quantity: 1,
+      roleIds: [villagers.id],
+      carrierIds: [kim],
+    };
+
+    const res = await handler(request(basket));
+
+    expect(res.statusCode).toBe(201);
+    expect(Prop.parse(JSON.parse(res.body ?? "")).carrierIds).toEqual([kim]);
+    expect((await props.list("2027")).props[0]?.carrierIds).toEqual([kim]);
+  });
+
+  it.each([
+    ["someone who plays another of the item's roles", { quantity: 1, carrierIds: [sam] }],
+    ["more carriers than the quantity", { quantity: 1, carrierIds: [jo, kim] }],
+  ])("refuses a carrier list with %s with 400, storing nothing", async (_case, carrying) => {
+    const { props, handler } = setUp();
+
+    const res = await handler(
+      request({ name: "Bread basket", roleIds: [villagers.id], ...carrying }),
+    );
+
+    expect(res.statusCode).toBe(400);
     expect((await props.list("2027")).props).toEqual([]);
   });
 

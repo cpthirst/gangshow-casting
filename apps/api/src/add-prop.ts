@@ -2,6 +2,7 @@ import { AddPropRequest, ProductionId } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import type { ApiEvent } from "./handler.ts";
 import { parseJson } from "./json.ts";
+import { linksFitItem } from "./prop-links.ts";
 import type { PropStore } from "./prop-store.ts";
 import type { RoleStore } from "./role-store.ts";
 import type { RunningOrderStore } from "./running-order-store.ts";
@@ -26,13 +27,10 @@ export function createAddProp(
     const inShow = order?.halves.some((half) => half.items.some((item) => item.id === itemId));
     if (!inShow) return { statusCode: 404 };
 
-    // A prop links only to its own item's roles (production-props FR18).
-    const itemRoleIds = (await roles.list(productionId.data)).roles
-      .filter((role) => role.itemId === itemId)
-      .map((role) => role.id);
-    if (!details.data.roleIds.every((id) => itemRoleIds.includes(id))) {
-      return { statusCode: 400 };
-    }
+    const itemRoles = (await roles.list(productionId.data)).roles.filter(
+      (role) => role.itemId === itemId,
+    );
+    if (!linksFitItem(details.data, itemRoles)) return { statusCode: 400 };
 
     return {
       statusCode: 201,

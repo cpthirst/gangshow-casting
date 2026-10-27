@@ -775,7 +775,7 @@ describe("Lambda entry point", () => {
 
         expect(res.statusCode).toBe(201);
         expect((await props.list("2027")).props).toEqual([
-          { id: 1, itemId: pirate, name, quantity: 1, roleIds: [] },
+          { id: 1, itemId: pirate, name, quantity: 1, roleIds: [], carrierIds: [] },
         ]);
       });
 
@@ -806,6 +806,7 @@ describe("Lambda entry point", () => {
         name: "Treasure chest",
         quantity: 1,
         roleIds: [],
+        carrierIds: [],
       };
 
       it.each([

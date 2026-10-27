@@ -46,10 +46,15 @@ const aProp = (
   name: string,
   roleIds: number[] = [],
   quantity = 1,
-): Prop => ({ id, itemId, name, quantity, roleIds });
+  carrierIds: number[] = [],
+): Prop => ({ id, itemId, name, quantity, roleIds, carrierIds });
 
-/** A prop as the API may hold it: one saved before props had quantities has none. */
-type SavedProp = Omit<Prop, "quantity"> & { quantity?: number };
+/** A prop as the API may hold it: one saved before props had quantities or carriers has
+ *  none. */
+type SavedProp = Omit<Prop, "quantity" | "carrierIds"> & {
+  quantity?: number;
+  carrierIds?: number[];
+};
 
 /** The casting the props page reads names from: every role, and the cast list. */
 interface Casting {
@@ -619,17 +624,20 @@ async function searchRoles(wrapper: VueWrapper, text: string) {
   await flushPromises();
 }
 
-/** Opens Add prop, names it and picks each role by searching for its exact name. */
+/** Picks one more role in the open form, searching for its exact name. */
+async function pickRole(wrapper: VueWrapper, roleName: string) {
+  await searchRoles(wrapper, roleName);
+  const option = wrapper
+    .findAll("[role=option]")
+    .find((choice) => choice.get(".choice-name").text() === roleName);
+  await option?.trigger("mousedown");
+}
+
+/** Opens Add prop, names it and picks each role. */
 async function startProp(wrapper: VueWrapper, name: string, roleNames: string[] = []) {
   await wrapper.get("[data-test=add-prop]").trigger("click");
   await wrapper.get("input[name=name]").setValue(name);
-  for (const roleName of roleNames) {
-    await searchRoles(wrapper, roleName);
-    const option = wrapper
-      .findAll("[role=option]")
-      .find((choice) => choice.get(".choice-name").text() === roleName);
-    await option?.trigger("mousedown");
-  }
+  for (const roleName of roleNames) await pickRole(wrapper, roleName);
 }
 
 async function saveProp(wrapper: VueWrapper) {
@@ -667,11 +675,13 @@ describe("A prop's roles", () => {
     savedShowIs(show, [], { roles, cast });
     const { wrapper } = await openAppAt(PIRATE_PROPS);
 
-    await startProp(wrapper, "3 umbrellas", ["Pirate 1", "Pirate 2", "Pirate 3"]);
+    await startProp(wrapper, "Umbrella", ["Pirate 1", "Pirate 2", "Pirate 3"]);
     expect(pickedRoles(wrapper)).toEqual(["Pirate 1", "Pirate 2", "Pirate 3"]);
+    // Enough for every pirate, so they all carry one.
+    await wrapper.get("input[name=quantity]").setValue("3");
     await saveProp(wrapper);
 
-    expect(rolesOn(wrapper, "3 umbrellas")).toEqual([
+    expect(rolesOn(wrapper, "Umbrella")).toEqual([
       { role: "Pirate 1", cast: "Lee Patel" },
       { role: "Pirate 2", cast: "Ash Green" },
       { role: "Pirate 3", cast: "Ray Hill" },
@@ -738,7 +748,7 @@ describe("A prop's roles", () => {
   });
 
   it("names everyone in an ensemble role, by surname", async () => {
-    savedShowIs(show, [aProp(1, "pirate-sketch", "Rope", [crew.id])], { roles, cast });
+    savedShowIs(show, [aProp(1, "pirate-sketch", "Rope", [crew.id], 2)], { roles, cast });
 
     const { wrapper } = await openAppAt(PIRATE_PROPS);
 
@@ -813,14 +823,6 @@ describe("Editing and removing a prop", () => {
   async function saveEdit(wrapper: VueWrapper) {
     await editForm(wrapper).trigger("submit");
     await flushPromises();
-  }
-
-  async function pickRole(wrapper: VueWrapper, roleName: string) {
-    await searchRoles(wrapper, roleName);
-    const option = wrapper
-      .findAll("[role=option]")
-      .find((choice) => choice.get(".choice-name").text() === roleName);
-    await option?.trigger("mousedown");
   }
 
   async function remove(wrapper: VueWrapper, name: string) {
@@ -1191,5 +1193,306 @@ describe("A prop's quantity", () => {
 
     expect(propsShown(wrapper)).toEqual(["Telescope"]);
     expect((await openOverviewFrom(wrapper)).get("[aria-hidden=true]").text()).toBe("1");
+  });
+});
+
+describe("Who carries a prop", () => {
+  beforeEach(() => signInAs(["stage"], "pat"));
+
+  // Made-up item and casting: three villagers and a baker.
+  const village = aRunningOrder([anItem("Village Square"), anItem("Pirate Sketch")], []);
+  const VILLAGE_PROPS = "/production/items/village-square/props";
+  const alex = member(7, "Alex", "Green");
+  const villagers = aRole(10, "village-square", "Villagers", "ensemble", [jo.id, kim.id, alex.id]);
+  const baker = aRole(11, "village-square", "Baker", "lead", [sam.id]);
+  const villageCasting = { roles: [...roles, villagers, baker], cast: [...cast, alex] };
+
+  const carrierSearch = (wrapper: VueWrapper) =>
+    wrapper.find<HTMLInputElement>("input[role=combobox][name=carrier]");
+  /** The carrier picker's list: everyone it offers before any typing narrows it. */
+  const carrierOptions = (wrapper: VueWrapper) =>
+    wrapper.findAll(`[id='${carrierSearch(wrapper).attributes("aria-controls")}'] [role=option]`);
+  const offeredCarriers = (wrapper: VueWrapper) =>
+    carrierOptions(wrapper).map((option) => option.get(".choice-name").text());
+  const chosenCarriers = (wrapper: VueWrapper) =>
+    wrapper.findAll("[data-test=carrier] .member-name").map((name) => name.text());
+  const carriersHint = (wrapper: VueWrapper) => wrapper.get("[data-test=carriers-hint]");
+  const leftToChoose = (wrapper: VueWrapper, propName: string) =>
+    wrapper
+      .findAll("[data-test=prop]")
+      .find((card) => card.get("[data-test=prop-name]").text() === propName)
+      ?.find("[data-test=to-choose]");
+
+  async function setQuantity(wrapper: VueWrapper, quantity: string) {
+    await wrapper.get("input[name=quantity]").setValue(quantity);
+  }
+
+  /** Searches by first name, as the cast search matches one name at a time. */
+  async function chooseCarrier(wrapper: VueWrapper, name: string) {
+    await carrierSearch(wrapper).setValue(name.split(" ")[0]);
+    const option = carrierOptions(wrapper).find(
+      (choice) => choice.get(".choice-name").text() === name,
+    );
+    await option?.trigger("mousedown");
+  }
+
+  async function removeCarrier(wrapper: VueWrapper, name: string) {
+    await wrapper.get(`[aria-label='Remove ${name} from the carriers']`).trigger("click");
+  }
+
+  async function saveEdited(wrapper: VueWrapper) {
+    await wrapper.get("form[aria-label^='Edit ']").trigger("submit");
+    await flushPromises();
+  }
+
+  it("offers no carrier picker when the cast fits the quantity, showing who plays the role", async () => {
+    const stored = savedShowIs(show, [], { roles, cast });
+    const { wrapper } = await openAppAt(PIRATE_PROPS);
+
+    await startProp(wrapper, "Telescope", ["Captain"]);
+    expect(carrierSearch(wrapper).exists()).toBe(false);
+    await saveProp(wrapper);
+
+    expect(rolesOn(wrapper, "Telescope")).toEqual([{ role: "Captain", cast: "Sam Taylor" }]);
+    expect(stored[0]?.carrierIds).toEqual([]);
+  });
+
+  it("offers no carrier picker when the quantity covers the whole ensemble, showing them all", async () => {
+    savedShowIs(village, [], villageCasting);
+    const { wrapper } = await openAppAt(VILLAGE_PROPS);
+
+    await startProp(wrapper, "Umbrella", ["Villagers"]);
+    await setQuantity(wrapper, "10");
+    expect(carrierSearch(wrapper).exists()).toBe(false);
+    await saveProp(wrapper);
+
+    expect(rolesOn(wrapper, "Umbrella")).toEqual([
+      { role: "Villagers", cast: "Jo Brown, Alex Green, Kim Lee" },
+    ]);
+    expect(leftToChoose(wrapper, "Umbrella")?.exists()).toBe(false);
+  });
+
+  it("offers a labelled carrier picker of the role's cast when there are more than the quantity", async () => {
+    savedShowIs(village, [], villageCasting);
+    const { wrapper } = await openAppAt(VILLAGE_PROPS);
+
+    await startProp(wrapper, "Bread basket", ["Villagers"]);
+
+    const label = wrapper.get(`label[for='${carrierSearch(wrapper).attributes("id")}']`);
+    expect(label.text()).toBe("Who carries it");
+    expect(offeredCarriers(wrapper)).toEqual(["Jo Brown", "Alex Green", "Kim Lee"]);
+    expect(carriersHint(wrapper).text()).toBe("Choose up to 1");
+    expect(carriersHint(wrapper).attributes("role")).toBe("status");
+    expect(carrierSearch(wrapper).attributes("aria-describedby")).toBe(
+      carriersHint(wrapper).attributes("id"),
+    );
+    expect(carrierSearch(wrapper).attributes("aria-invalid")).toBeUndefined();
+    const chosen = wrapper.get("ul[data-test=carriers]").attributes("aria-labelledby");
+    expect(document.getElementById(chosen ?? "")?.textContent).toBe("Selected carriers");
+  });
+
+  it("shows only the chosen carrier on the card, kept on reload", async () => {
+    const stored = savedShowIs(village, [], villageCasting);
+    const first = await openAppAt(VILLAGE_PROPS);
+
+    await startProp(first.wrapper, "Bread basket", ["Villagers"]);
+    await chooseCarrier(first.wrapper, "Kim Lee");
+    expect(chosenCarriers(first.wrapper)).toEqual(["Kim Lee"]);
+    await saveProp(first.wrapper);
+
+    expect(rolesOn(first.wrapper, "Bread basket")).toEqual([
+      { role: "Villagers", cast: "Kim Lee" },
+    ]);
+    expect(stored[0]?.carrierIds).toEqual([kim.id]);
+    first.wrapper.unmount();
+    const { wrapper } = await openAppAt(VILLAGE_PROPS);
+    expect(rolesOn(wrapper, "Bread basket")).toEqual([{ role: "Villagers", cast: "Kim Lee" }]);
+  });
+
+  it("turns the search off once the quantity is chosen, until someone is removed", async () => {
+    savedShowIs(village, [], villageCasting);
+    const { wrapper } = await openAppAt(VILLAGE_PROPS);
+    await startProp(wrapper, "Bread basket", ["Villagers"]);
+    await setQuantity(wrapper, "2");
+
+    await chooseCarrier(wrapper, "Jo Brown");
+    expect(carriersHint(wrapper).text()).toBe("Choose up to 2 · 1 left to choose");
+    await chooseCarrier(wrapper, "Kim Lee");
+
+    expect(carriersHint(wrapper).text()).toBe("Choose up to 2 · none left to choose");
+    expect(carrierSearch(wrapper).element.disabled).toBe(true);
+    expect(document.activeElement?.getAttribute("aria-label")).toBe(
+      "Remove Kim Lee from the carriers",
+    );
+    await removeCarrier(wrapper, "Jo Brown");
+    expect(carrierSearch(wrapper).element.disabled).toBe(false);
+    expect(offeredCarriers(wrapper)).toEqual(["Jo Brown", "Alex Green"]);
+  });
+
+  it("offers only the cast of the prop's roles", async () => {
+    savedShowIs(village, [], villageCasting);
+    const { wrapper } = await openAppAt(VILLAGE_PROPS);
+
+    await startProp(wrapper, "Bread basket", ["Villagers"]);
+
+    expect(offeredCarriers(wrapper)).not.toContain("Sam Taylor");
+  });
+
+  it("offers someone in two of the prop's roles once", async () => {
+    const crowd = aRole(12, "village-square", "Crowd", "ensemble", [kim.id, sam.id]);
+    savedShowIs(village, [], { ...villageCasting, roles: [...villageCasting.roles, crowd] });
+    const { wrapper } = await openAppAt(VILLAGE_PROPS);
+
+    await startProp(wrapper, "Bread basket", ["Villagers", "Crowd"]);
+
+    expect(offeredCarriers(wrapper)).toEqual(["Jo Brown", "Alex Green", "Kim Lee", "Sam Taylor"]);
+  });
+
+  it("shows each carrier next to their own role", async () => {
+    savedShowIs(village, [], villageCasting);
+    const { wrapper } = await openAppAt(VILLAGE_PROPS);
+    await startProp(wrapper, "Lantern", ["Villagers", "Baker"]);
+    await setQuantity(wrapper, "2");
+
+    await chooseCarrier(wrapper, "Jo Brown");
+    await chooseCarrier(wrapper, "Sam Taylor");
+    await saveProp(wrapper);
+
+    expect(rolesOn(wrapper, "Lantern")).toEqual([
+      { role: "Baker", cast: "Sam Taylor" },
+      { role: "Villagers", cast: "Jo Brown" },
+    ]);
+  });
+
+  // Four villagers here, so a quantity of 3 still needs choosing.
+  const bigVillage = {
+    roles: [{ ...villagers, castMemberIds: [...villagers.castMemberIds, ash.id] }, baker],
+    cast: [...cast, alex],
+  };
+
+  it("says on the card how many are left to choose", async () => {
+    savedShowIs(
+      village,
+      [
+        aProp(1, "village-square", "Lantern", [villagers.id], 3, [jo.id]),
+        aProp(2, "village-square", "Torch", [villagers.id], 3),
+      ],
+      bigVillage,
+    );
+    const { wrapper } = await openAppAt(VILLAGE_PROPS);
+
+    expect(rolesOn(wrapper, "Lantern")).toEqual([{ role: "Villagers", cast: "Jo Brown" }]);
+    expect(leftToChoose(wrapper, "Lantern")?.text()).toBe("2 left to choose");
+    expect(leftToChoose(wrapper, "Torch")?.text()).toBe("3 left to choose");
+  });
+
+  it("says when nobody in one of the prop's roles carries it", async () => {
+    savedShowIs(
+      village,
+      [aProp(1, "village-square", "Lantern", [villagers.id, baker.id], 1, [sam.id])],
+      villageCasting,
+    );
+    const { wrapper } = await openAppAt(VILLAGE_PROPS);
+
+    expect(rolesOn(wrapper, "Lantern")).toEqual([
+      { role: "Baker", cast: "Sam Taylor" },
+      { role: "Villagers", cast: "Nobody carries it" },
+    ]);
+  });
+
+  it("changes the carriers from the prop's pencil", async () => {
+    const stored = savedShowIs(
+      village,
+      [aProp(1, "village-square", "Bread basket", [villagers.id], 1, [kim.id])],
+      villageCasting,
+    );
+    const { wrapper } = await openAppAt(VILLAGE_PROPS);
+
+    await wrapper.get("button[aria-label='Edit Bread basket']").trigger("click");
+    expect(chosenCarriers(wrapper)).toEqual(["Kim Lee"]);
+    await removeCarrier(wrapper, "Kim Lee");
+    await chooseCarrier(wrapper, "Alex Green");
+    await saveEdited(wrapper);
+
+    expect(rolesOn(wrapper, "Bread basket")).toEqual([{ role: "Villagers", cast: "Alex Green" }]);
+    expect(stored[0]?.carrierIds).toEqual([alex.id]);
+  });
+
+  it("keeps the named parts carrying it when an ensemble joins and brings the picker", async () => {
+    const mayor = aRole(13, "village-square", "Mayor", "lead", [ash.id]);
+    const stored = savedShowIs(village, [], {
+      ...villageCasting,
+      roles: [...villageCasting.roles, mayor],
+    });
+    const { wrapper } = await openAppAt(VILLAGE_PROPS);
+    await startProp(wrapper, "Lantern", ["Baker", "Mayor"]);
+    await setQuantity(wrapper, "3");
+    expect(carrierSearch(wrapper).exists()).toBe(false);
+
+    await pickRole(wrapper, "Villagers");
+
+    expect(chosenCarriers(wrapper)).toEqual(["Ash Green", "Sam Taylor"]);
+    expect(carriersHint(wrapper).text()).toBe("Choose up to 3 · 1 left to choose");
+    await saveProp(wrapper);
+    expect(rolesOn(wrapper, "Lantern")).toEqual([
+      { role: "Baker", cast: "Sam Taylor" },
+      { role: "Mayor", cast: "Ash Green" },
+      { role: "Villagers", cast: "Nobody carries it" },
+    ]);
+    expect(stored[0]?.carrierIds).toEqual([ash.id, sam.id]);
+  });
+
+  it("chooses nobody for you when a lower quantity brings the picker", async () => {
+    savedShowIs(village, [], villageCasting);
+    const { wrapper } = await openAppAt(VILLAGE_PROPS);
+    await startProp(wrapper, "Lantern", ["Villagers"]);
+    await setQuantity(wrapper, "3");
+
+    await setQuantity(wrapper, "2");
+
+    expect(chosenCarriers(wrapper)).toEqual([]);
+  });
+
+  it("takes off a carrier whose role is dropped", async () => {
+    const stored = savedShowIs(village, [], villageCasting);
+    const { wrapper } = await openAppAt(VILLAGE_PROPS);
+    await startProp(wrapper, "Lantern", ["Villagers", "Baker"]);
+    await setQuantity(wrapper, "2");
+    await chooseCarrier(wrapper, "Sam Taylor");
+    await chooseCarrier(wrapper, "Jo Brown");
+
+    await wrapper.get("[aria-label='Remove Baker from the prop']").trigger("click");
+    expect(chosenCarriers(wrapper)).toEqual(["Jo Brown"]);
+    await saveProp(wrapper);
+
+    expect(stored[0]?.carrierIds).toEqual([jo.id]);
+  });
+
+  it("drops the picker, saving no carriers, once the quantity covers everyone", async () => {
+    const stored = savedShowIs(village, [], villageCasting);
+    const { wrapper } = await openAppAt(VILLAGE_PROPS);
+    await startProp(wrapper, "Lantern", ["Villagers"]);
+    await chooseCarrier(wrapper, "Jo Brown");
+
+    await setQuantity(wrapper, "3");
+    expect(carrierSearch(wrapper).exists()).toBe(false);
+    await saveProp(wrapper);
+
+    expect(stored[0]?.carrierIds).toEqual([]);
+  });
+
+  it("shows carriers without a way to change them to someone with Casting only", async () => {
+    await signInAs(["casting"], "sam");
+    savedShowIs(
+      village,
+      [aProp(1, "village-square", "Lantern", [villagers.id], 3, [jo.id])],
+      bigVillage,
+    );
+    const { wrapper } = await openAppAt(VILLAGE_PROPS);
+
+    expect(rolesOn(wrapper, "Lantern")).toEqual([{ role: "Villagers", cast: "Jo Brown" }]);
+    expect(leftToChoose(wrapper, "Lantern")?.text()).toBe("2 left to choose");
+    expect(wrapper.find("button[aria-label='Edit Lantern']").exists()).toBe(false);
+    expect(wrapper.find("[data-test=add-prop]").exists()).toBe(false);
   });
 });

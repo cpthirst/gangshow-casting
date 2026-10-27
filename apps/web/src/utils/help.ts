@@ -305,13 +305,13 @@ export const pageHelp: PageHelp[] = [
       },
       {
         name: "Add prop",
-        does: "Adds a prop the item needs, by name and quantity, and the roles that use it.",
+        does: "Adds a prop by name, quantity and roles. When there are more people than the quantity, also choose who carries it.",
         access: "stage",
       },
       {
         icons: [icons.edit],
         name: "Edit",
-        does: "Changes a prop's name, quantity or the roles that use it.",
+        does: "Changes a prop's name, quantity, the roles that use it or who carries it.",
         access: "stage",
       },
       {

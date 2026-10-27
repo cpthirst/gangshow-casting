@@ -3,11 +3,11 @@ import type { CastMember, Prop, Role } from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed } from "vue";
 import { icons } from "@/utils/icons.ts";
-import { rolesOf } from "@/utils/props.ts";
-import { castNames } from "@/utils/roles.ts";
+import { carryingOf } from "@/utils/props.ts";
 
 // One prop on its item's props page, styled as a role card (production-props FR18): its roles,
-// each with who plays it now, from the casting. roles and cast: the production's.
+// each with who carries it from the casting now, and how many are left to choose (FR26).
+// roles and cast: the production's.
 // canChange: shows the pencil and trash can (production-props FR19); busy: disables them.
 const props = defineProps<{
   prop: Prop;
@@ -18,9 +18,7 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{ edit: []; remove: [] }>();
 
-const linked = computed(() =>
-  rolesOf(props.prop, props.roles).map((role) => ({ role, cast: castNames(role, props.cast) })),
-);
+const carrying = computed(() => carryingOf(props.prop, props.roles, props.cast));
 </script>
 
 <template>
@@ -57,14 +55,22 @@ const linked = computed(() =>
     <template v-if="prop.quantity > 1">
       {{ " " }}<span class="pill pill-quantity" data-test="quantity">×{{ prop.quantity }}</span>
     </template>
-    <ul v-if="linked.length > 0" class="prop-roles" role="list" :aria-label="`Roles for ${prop.name}`">
-      <li v-for="{ role, cast: names } in linked" :key="role.id" data-test="prop-role">
+    <ul
+      v-if="carrying.roles.length > 0"
+      class="prop-roles"
+      role="list"
+      :aria-label="`Roles for ${prop.name}`"
+    >
+      <li v-for="{ role, carriers, none } in carrying.roles" :key="role.id" data-test="prop-role">
         <span class="role-name" data-test="prop-role-name">{{ role.name }}</span>
         <!-- Real spaces, so a screen reader hears "Parrot Uncast", not one word. -->
         {{ " " }}
-        <span v-if="names" class="role-cast" data-test="cast">{{ names }}</span>
-        <span v-else class="uncast" data-test="uncast">Uncast</span>
+        <span v-if="carriers" class="role-cast" data-test="cast">{{ carriers }}</span>
+        <span v-else class="uncast" data-test="uncast">{{ none }}</span>
       </li>
     </ul>
+    <p v-if="carrying.toChoose > 0" class="prop-to-choose" data-test="to-choose">
+      {{ carrying.toChoose }} left to choose
+    </p>
   </li>
 </template>

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CastMember } from "./cast.ts";
 import { Role } from "./role.ts";
 import { ProductionId, RunningOrderItem } from "./running-order.ts";
 
@@ -30,25 +31,47 @@ export const Prop = z.strictObject({
    *  comes from the casting. A removed role's id may linger; pages show only roles that
    *  still exist. None for props saved before props had roles. */
   roleIds: z.array(Role.shape.id).max(MAX_PROP_ROLES).default([]),
+  /** Who carries it, by cast member id, never names (ADR 0010), when its roles have more
+   *  people than its quantity (production-props FR26). Each plays one of its roles. None when
+   *  everyone in its roles carries it (FR27), and for props saved before props had carriers. */
+  carrierIds: z.array(CastMember.shape.id).max(MAX_PROP_QUANTITY).default([]),
 });
+
+const noRepeats = (ids: number[]) => new Set(ids).size === ids.length;
 
 /**
  * POST /api/productions/{productionId}/items/{itemId}/props: a new prop for the item, with
- * a quantity of 1 and no roles unless given (each role one of this item's).
- * 201 returns the Prop; 400 for an invalid prop or a role not in the item; 404 if the item
- * isn't in the latest saved running order. Strict, so the app-managed id and item can't be
- * sent.
+ * a quantity of 1 and no roles or carriers unless given (each role one of this item's, each
+ * carrier in one of those roles' cast, and no more carriers than the quantity).
+ * 201 returns the Prop; 400 for an invalid prop, a role not in the item or a carrier not in
+ * its roles; 404 if the item isn't in the latest saved running order. Strict, so the
+ * app-managed id and item can't be sent.
  */
-export const AddPropRequest = Prop.pick({ name: true, quantity: true, roleIds: true }).refine(
-  ({ roleIds }) => new Set(roleIds).size === roleIds.length,
-  { path: ["roleIds"], message: "A role is listed twice" },
-);
+export const AddPropRequest = Prop.pick({
+  name: true,
+  quantity: true,
+  roleIds: true,
+  carrierIds: true,
+})
+  .refine(({ roleIds }) => noRepeats(roleIds), {
+    path: ["roleIds"],
+    message: "A role is listed twice",
+  })
+  .refine(({ carrierIds }) => noRepeats(carrierIds), {
+    path: ["carrierIds"],
+    message: "Someone is listed twice",
+  })
+  .refine(({ carrierIds, quantity }) => carrierIds.length <= quantity, {
+    path: ["carrierIds"],
+    message: "More carriers than the quantity",
+  });
 
 /**
- * PUT /api/productions/{productionId}/props/{propId}: replaces a prop's name, quantity and
- * roles, by the same rules as adding one (production-props FR19, FR24). 200 returns the Prop;
- * 400 for an invalid prop or a role not in its item; 404 if the prop is gone. A quantity or
- * roles left out are replaced too, by 1 and none. DELETE on the same path removes it: 204,
+ * PUT /api/productions/{productionId}/props/{propId}: replaces a prop's name, quantity, roles
+ * and carriers, by the same rules as adding one (production-props FR19, FR24, FR26). 200
+ * returns the Prop; 400 for an invalid prop, a role not in its item or a carrier not in its
+ * roles; 404 if the prop is gone. A quantity, roles or carriers left out are replaced too, by
+ * 1 and none. DELETE on the same path removes it: 204,
  * or 404 if it's already gone.
  */
 export const UpdatePropRequest = AddPropRequest;

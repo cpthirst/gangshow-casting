@@ -8,7 +8,8 @@ import {
   type Role,
   type RunningOrder,
 } from "@app/shared";
-import { type CastMemberChoice, castNames, sortRoles } from "./roles.ts";
+import { sortCast } from "./cast.ts";
+import { type CastMemberChoice, castNames, castOf, fullName, sortRoles } from "./roles.ts";
 import { runningClock } from "./running-order.ts";
 
 // Only one production for now (see docs/product/running-order/prd.md).
@@ -48,6 +49,42 @@ export const sortProps = (props: readonly Prop[]) =>
  *  role's id may linger on the prop; it simply isn't shown. */
 export const rolesOf = (prop: Prop, roles: Role[]) =>
   sortRoles(roles.filter((role) => prop.roleIds.includes(role.id)));
+
+/** Everyone who plays one of the roles, each once, by surname: who can carry a prop linked to
+ *  them (production-props FR26). */
+export const castOfRoles = (roles: Role[], cast: CastMember[]) =>
+  sortCast(cast.filter((member) => roles.some((role) => role.castMemberIds.includes(member.id))));
+
+/** Who carries a prop, role by role in the item's role order, and how many are left to
+ *  choose. When its roles have no more people than its quantity, they all carry it
+ *  (production-props FR27); otherwise only its chosen carriers do (FR26). Each role's
+ *  carriers are "" when it has none, with `none` to show instead. */
+export function carryingOf(prop: Prop, roles: Role[], cast: CastMember[]) {
+  const linked = rolesOf(prop, roles);
+  const people = castOfRoles(linked, cast);
+  const everyone = people.length <= prop.quantity;
+  // A carrier no longer in the prop's roles doesn't count.
+  const carries = (member: CastMember) => everyone || prop.carrierIds.includes(member.id);
+  return {
+    roles: linked.map((role) => {
+      const playing = castOf(role, cast);
+      return {
+        role,
+        carriers: playing.filter(carries).map(fullName).join(", "),
+        none: playing.length === 0 ? "Uncast" : "Nobody carries it",
+      };
+    }),
+    toChoose: everyone ? 0 : prop.quantity - people.filter(carries).length,
+  };
+}
+
+/** What the carrier picker says about how many can still be chosen. */
+export function carriersHint(quantity: number, chosen: number) {
+  const limit = `Choose up to ${quantity}`;
+  if (chosen === 0) return limit;
+  const left = quantity - chosen;
+  return `${limit} · ${left > 0 ? left : "none"} left to choose`;
+}
 
 /** One item in the props list: its notes ("" for none) and props, each prop with its roles
  *  and who plays them ("" while uncast). */
@@ -94,12 +131,15 @@ export function propsListOf(show: {
   }));
 }
 
-/** The prop form's fields, as typed: the roles picked, and the search for one more. */
+/** The prop form's fields, as typed: the roles and carriers picked, and the search for one
+ *  more of each. */
 export interface PropFormFields {
   name: string;
   quantity: string;
   role: CastMemberChoice;
   roleIds: number[];
+  carrier: CastMemberChoice;
+  carrierIds: number[];
 }
 
 export type PropFormResult =
@@ -107,12 +147,16 @@ export type PropFormResult =
   | { ok: false; errors: Partial<Record<keyof PropFormFields, string>> };
 
 /** The prop the form describes, or a message for each field that needs fixing. Limits come
- *  from the shared schema, so the page and the API agree. */
-export function propDetailsFrom(form: PropFormFields): PropFormResult {
+ *  from the shared schema, so the page and the API agree. offersCarriers: whether the form
+ *  offers a carrier picker; without one, everyone in the prop's roles carries it, so no
+ *  carriers are saved (production-props FR27). */
+export function propDetailsFrom(form: PropFormFields, offersCarriers: boolean): PropFormResult {
+  const quantity = quantityOf(form.quantity);
   const parsed = AddPropRequest.safeParse({
     name: form.name,
-    quantity: quantityOf(form.quantity),
+    quantity,
     roleIds: form.roleIds,
+    carrierIds: offersCarriers ? form.carrierIds : [],
   });
   const errors: Partial<Record<keyof PropFormFields, string>> = {};
   const issues = parsed.error?.issues ?? [];
@@ -130,6 +174,11 @@ export function propDetailsFrom(form: PropFormFields): PropFormResult {
   if (form.role.query.trim() !== "") {
     errors.role = "Choose a role from the list, or clear the field";
   }
+  if (offersCarriers && form.carrier.query.trim() !== "") {
+    errors.carrier = "Choose someone from the list, or clear the field";
+  } else if (issues.some(({ path }) => path[0] === "carrierIds")) {
+    errors.carrier = `Only ${quantity} can carry it: remove someone`;
+  }
   if (parsed.success && Object.keys(errors).length === 0) {
     return { ok: true, details: parsed.data };
   }
@@ -137,8 +186,8 @@ export function propDetailsFrom(form: PropFormFields): PropFormResult {
 }
 
 /** The quantity typed, as a number; anything but digits, an empty field included, is no
- *  quantity at all, so it's refused rather than saved as the API's default of 1. */
-function quantityOf(typed: string) {
+ *  quantity at all (NaN), so it's refused rather than saved as the API's default of 1. */
+export function quantityOf(typed: string) {
   const quantity = typed.trim();
   return /^\d+$/.test(quantity) ? Number(quantity) : Number.NaN;
 }

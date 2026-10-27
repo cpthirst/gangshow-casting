@@ -12,12 +12,16 @@ interface PickerOption {
 // The text alone never chooses anything; a choice must be made.
 // matches: the options the text typed so far matches, in the order to offer them.
 // noun: what's being chosen, e.g. "cast member", for the list's name and its status.
+// describedBy: the field's error, if it has one. hintId: a hint that describes it, not an
+// error. disabled: nothing can be chosen for now.
 const props = defineProps<{
   matches: PickerOption[];
   noun: string;
   name: string;
   inputId: string;
   describedBy?: string | undefined;
+  hintId?: string | undefined;
+  disabled?: boolean;
 }>();
 const choice = defineModel<{ query: string; id: number | null }>({ required: true });
 
@@ -91,9 +95,10 @@ function onEscape(event: KeyboardEvent) {
       :aria-expanded="listVisible"
       :aria-controls="listId"
       :aria-activedescendant="activeId"
-      :aria-describedby="describedBy"
+      :aria-describedby="[describedBy, hintId].filter(Boolean).join(' ') || undefined"
       :aria-invalid="describedBy ? true : undefined"
       :value="choice.query"
+      :disabled="disabled"
       @input="onInput"
       @keydown.down.prevent="move(1)"
       @keydown.up.prevent="move(-1)"

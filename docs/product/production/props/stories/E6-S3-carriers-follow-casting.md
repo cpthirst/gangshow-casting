@@ -14,17 +14,17 @@ As someone on the props team, I want a prop's carriers to keep up with recasting
 ### AC1: A recast carrier drops off
 Given "Bread basket", quantity 1, is linked to Villagers and carried by Kim Lee
 When the casting team takes Kim Lee out of Villagers and pat reloads the props page
-Then the card no longer shows Kim Lee, and says "1 still to choose"
+Then the card no longer shows Kim Lee, and says "1 left to choose"
 
 ### AC2: A carrier removed from the cast drops off
 Given "Bread basket" is carried by Kim Lee
 When Kim Lee is deleted from the cast
-Then the card no longer shows Kim Lee, and says "1 still to choose"
+Then the card no longer shows Kim Lee, and says "1 left to choose"
 
 ### AC3: Taking a role off a prop drops its carriers
 Given "Lantern", quantity 2, is linked to Villagers and Baker, carried by Jo Brown (Villagers) and Sam Taylor (Baker)
 When pat edits Lantern and takes Baker off
-Then the form no longer has Sam Taylor chosen, and once saved the card shows Jo Brown and "1 still to choose"
+Then the form no longer has Sam Taylor chosen, and once saved the card shows Jo Brown and "1 left to choose"
 
 ### AC4: A role removed from the item drops its carriers
 Given "Lantern" is carried by Sam Taylor, who plays Baker
@@ -34,7 +34,7 @@ Then Lantern's card no longer shows Sam Taylor, and says one more is to choose
 ### AC5: Once the cast fits, nobody needs choosing
 Given "Bread basket", quantity 1, is linked to Villagers (Jo Brown and Kim Lee), with nobody chosen
 When the casting team takes Jo Brown out of Villagers
-Then the card shows Kim Lee carrying it, with nothing still to choose
+Then the card shows Kim Lee carrying it, with nothing left to choose
 
 ### AC6: The quantity can't go below the carriers
 Given "Lantern", quantity 3, is carried by Jo Brown, Kim Lee and Alex Green

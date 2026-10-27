@@ -949,6 +949,17 @@ main a {
   font-weight: 700;
 }
 
+/* A picker with a "Selected …" list takes a whole row, so the red line above the list runs
+   the width of the form on wide screens too. */
+.cast-member-form .field:has(> .members-block) {
+  grid-column: 1 / -1;
+}
+
+/* A picker's label heads its group, so it's the size of the "Selected …" list below it. */
+.cast-member-form label.picker-label {
+  font-size: 1rem;
+}
+
 /* Dropdowns in every form are as wide as their options, so the arrow sits by the choice,
    not at the far side of a wide field. */
 .cast-member-form select,
@@ -1020,8 +1031,11 @@ main a {
   margin: 0 0 0.75rem;
 }
 
+/* What's been picked, set apart from the search above it by a thin red line. */
 .members-block {
   margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--red);
 }
 
 .add-all-cast .hint {
@@ -1867,6 +1881,19 @@ main a {
 
 .prop-roles li {
   overflow-wrap: anywhere;
+}
+
+/* How many of a prop's carriers are left to choose, under its roles (production-props FR26). */
+.prop-to-choose {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+/* The carrier picker's "Choose up to 2 · 1 left to choose", between its label and search. */
+.carriers-hint {
+  margin: 0 0 0.25rem;
+  font-size: 0.875rem;
 }
 
 /* A card being edited holds the form at full width. */

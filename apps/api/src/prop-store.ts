@@ -18,7 +18,7 @@ export interface PropStore {
   list(productionId: string): Promise<PropList>;
   /** Adds a prop to an item, with the next unused id. */
   add(productionId: string, itemId: string, details: AddPropRequest): Promise<Prop>;
-  /** Replaces a prop's name, quantity and roles; it stays on its item. */
+  /** Replaces a prop's name, quantity, roles and carriers; it stays on its item. */
   update(productionId: string, id: number, details: UpdatePropRequest): Promise<Prop | "not-found">;
   /** Removes a prop for good (production-props FR19). Its id is never reused. */
   remove(productionId: string, id: number): Promise<"removed" | "not-found">;
@@ -42,7 +42,7 @@ function withNewProp(file: PropFile, itemId: string, details: AddPropRequest) {
   return { prop, file: { ...file, props: [...file.props, prop], nextId: prop.id + 1 } };
 }
 
-/** The file with one prop's name, quantity and roles replaced, or why not. */
+/** The file with one prop's name, quantity, roles and carriers replaced, or why not. */
 function withUpdatedProp(file: PropFile, id: number, details: UpdatePropRequest) {
   const prop = file.props.find((p) => p.id === id);
   if (!prop) return "not-found";

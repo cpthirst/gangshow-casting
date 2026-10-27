@@ -54,6 +54,7 @@ const aProp = (id: number, itemTitle: string, quantity = 1): Prop => ({
   name: `Prop ${id}`,
   quantity,
   roleIds: [],
+  carrierIds: [],
 });
 
 // Made-up items: items 1 and 2 in the first half, and the Finale as item 14 in the second

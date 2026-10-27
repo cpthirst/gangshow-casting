@@ -26,10 +26,10 @@ Given "Umbrella", quantity 10, is linked to Villagers, with three villagers
 When the props list is generated
 Then its row shows Villagers with all three names
 
-### AC4: Carriers still to choose are said
+### AC4: Carriers left to choose are said
 Given "Lantern", quantity 3, has only Jo Brown chosen
 When the props list is generated
-Then its row shows Jo Brown and says "2 still to choose"
+Then its row shows Jo Brown and says "2 left to choose"
 
 ### AC5: A role with no carriers is marked
 Given "Lantern", quantity 1, is linked to Villagers and Baker, carried by Sam Taylor

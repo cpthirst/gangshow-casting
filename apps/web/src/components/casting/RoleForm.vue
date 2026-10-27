@@ -189,7 +189,7 @@ function submit() {
           Everyone is already in a role in this item
         </p>
       </div>
-      <label :for="idFor('castMember')">
+      <label :for="idFor('castMember')" :class="{ 'picker-label': showsMembers }">
         <template v-if="showsMembers">Add a member</template>
         <template v-else>Cast member <span class="optional">(optional)</span></template>
       </label>
@@ -203,7 +203,7 @@ function submit() {
         {{ errors.castMember }}
       </p>
       <div v-if="showsMembers" class="members-block" data-test="members">
-        <p :id="idFor('members')" class="field-label">Members</p>
+        <p :id="idFor('members')" class="field-label">Selected members</p>
         <ul class="members row-icons" :aria-labelledby="idFor('members')">
           <li v-for="member in memberList" :key="member.id" data-test="member">
             <button

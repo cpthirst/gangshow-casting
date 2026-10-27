@@ -28,11 +28,13 @@ describe("file prop store", () => {
     return filePropStore(dataDir);
   });
 
-  it("gives a prop saved before props had quantities a quantity of 1", async () => {
+  it("gives a prop saved before props had quantities a quantity of 1 and no carriers", async () => {
     const chest = { id: 1, itemId: "pirate-sketch", name: "Treasure chest", roleIds: [] };
     await writePropsFile("2027", { productionId: "2027", props: [chest] });
 
-    expect((await filePropStore(dataDir).list("2027")).props).toEqual([{ ...chest, quantity: 1 }]);
+    expect((await filePropStore(dataDir).list("2027")).props).toEqual([
+      { ...chest, quantity: 1, carrierIds: [] },
+    ]);
   });
 
   it("refuses a props file that isn't valid", async () => {

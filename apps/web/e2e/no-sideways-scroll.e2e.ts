@@ -112,6 +112,19 @@ test("a department's page for a long-titled item fits the screen", async ({ page
   await expectNoSidewaysScroll(page);
 });
 
+test("an item's props, and a prop's carrier picker, fit the screen", async ({ page }) => {
+  // e2e/data gives the long Pirate Sketch title a long-named prop that the Pirates' longest
+  // name carries, with one more to choose.
+  const chest = "Extraordinarily heavy treasure chest with a padlock";
+  await page.goto("/production/items/itm-2/props");
+  await expect(page.getByText("1 left to choose")).toBeVisible();
+  await expectNoSidewaysScroll(page);
+
+  await page.getByRole("button", { name: `Edit ${chest}` }).click();
+  await expect(page.getByLabel("Who carries it")).toBeVisible();
+  await expectNoSidewaysScroll(page);
+});
+
 test("an item's add-role and edit-role forms fit the screen", async ({ page }) => {
   await page.goto("/casting/items/itm-2");
   await expect(page.getByRole("heading", { name: PIRATE_SKETCH })).toBeVisible();

@@ -15,6 +15,13 @@ const aRole = (id: number, itemId: string, name: string): Role => ({
 const captain = aRole(1, "pirate-sketch", "Captain");
 const pirate1 = aRole(2, "pirate-sketch", "Pirate 1");
 const soloist = aRole(3, "finale", "Soloist");
+// Made-up cast member ids: Jo, Kim and Alex are villagers; Sam is the baker.
+const [sam, jo, kim, alex] = [1, 3, 4, 5];
+const villagers: Role = {
+  ...aRole(4, "pirate-sketch", "Villagers"),
+  castMemberIds: [jo, kim, alex],
+};
+const baker: Role = { ...aRole(5, "pirate-sketch", "Baker"), castMemberIds: [sam] };
 
 const request = (propId: string, body: unknown, productionId = "2027") => ({
   pathParameters: { productionId, propId },
@@ -25,11 +32,20 @@ function setUp() {
   const initial: PropList = {
     productionId: "2027",
     props: [
-      { id: 4, itemId: "pirate-sketch", name: "Telescope", quantity: 1, roleIds: [captain.id] },
+      {
+        id: 4,
+        itemId: "pirate-sketch",
+        name: "Telescope",
+        quantity: 1,
+        roleIds: [captain.id],
+        carrierIds: [],
+      },
     ],
   };
   const props = inMemoryPropStore([initial]);
-  const roles = inMemoryRoleStore([{ productionId: "2027", roles: [captain, pirate1, soloist] }]);
+  const roles = inMemoryRoleStore([
+    { productionId: "2027", roles: [captain, pirate1, soloist, villagers, baker] },
+  ]);
   return { props, initial, handler: createUpdateProp(props, roles) };
 }
 
@@ -46,6 +62,7 @@ describe("update prop handler", () => {
       name: "Spyglass",
       quantity: 1,
       roleIds: [pirate1.id],
+      carrierIds: [],
     };
     expect(Prop.parse(JSON.parse(res.body ?? ""))).toEqual(updated);
     expect((await props.list("2027")).props).toEqual([updated]);
@@ -60,7 +77,30 @@ describe("update prop handler", () => {
     expect((await props.list("2027")).props[0]?.quantity).toBe(6);
   });
 
+  it("changes who carries the prop", async () => {
+    const { props, handler } = setUp();
+    const basket = {
+      name: "Bread basket",
+      quantity: 1,
+      roleIds: [villagers.id],
+      carrierIds: [alex],
+    };
+
+    const res = await handler(request("4", basket));
+
+    expect(Prop.parse(JSON.parse(res.body ?? "")).carrierIds).toEqual([alex]);
+    expect((await props.list("2027")).props[0]?.carrierIds).toEqual([alex]);
+  });
+
   it.each([
+    [
+      "a carrier who plays another of the item's roles",
+      { name: "Bread basket", quantity: 1, roleIds: [villagers.id], carrierIds: [sam] },
+    ],
+    [
+      "more carriers than the quantity",
+      { name: "Bread basket", quantity: 1, roleIds: [villagers.id], carrierIds: [jo, kim] },
+    ],
     ["a quantity of 0", { name: "Spyglass", quantity: 0, roleIds: [] }],
     ["a quantity of 100", { name: "Spyglass", quantity: 100, roleIds: [] }],
     ["a quantity of 2.5", { name: "Spyglass", quantity: 2.5, roleIds: [] }],

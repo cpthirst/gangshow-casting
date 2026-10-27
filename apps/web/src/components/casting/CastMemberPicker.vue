@@ -6,11 +6,17 @@ import { searchCast, sectionLabel } from "@/utils/cast.ts";
 import type { CastMemberChoice } from "@/utils/roles.ts";
 
 // A cast member field, searched by first or last name. The text alone never casts anyone.
-const props = defineProps<{
-  cast: CastMember[];
-  inputId: string;
-  describedBy?: string | undefined;
-}>();
+const props = withDefaults(
+  defineProps<{
+    cast: CastMember[];
+    inputId: string;
+    describedBy?: string | undefined;
+    hintId?: string | undefined;
+    disabled?: boolean;
+    name?: string;
+  }>(),
+  { name: "castMember" },
+);
 const choice = defineModel<CastMemberChoice>({ required: true });
 
 /** "Scouts · 1st Somewhere": what tells two people with the same name apart. */
@@ -31,8 +37,10 @@ const matches = computed(() =>
     v-model="choice"
     :matches="matches"
     noun="cast member"
-    name="castMember"
+    :name="name"
     :input-id="inputId"
     :described-by="describedBy"
+    :hint-id="hintId"
+    :disabled="disabled"
   />
 </template>
