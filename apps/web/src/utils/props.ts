@@ -70,8 +70,8 @@ export function carryingOf(prop: Prop, roles: Role[], cast: CastMember[]) {
   const linked = rolesOf(prop, roles);
   const { named, choosable, room, offersCarriers } = carriersOf(linked, cast, prop.quantity);
   const chosen = choosable.filter((member) => prop.carrierIds.includes(member.id));
-  const carries = (member: CastMember) =>
-    !offersCarriers || named.includes(member) || chosen.includes(member);
+  const carrying = [...named, ...chosen].map(({ id }) => id);
+  const carries = (member: CastMember) => !offersCarriers || carrying.includes(member.id);
   return {
     roles: linked.map((role) => {
       const playing = castOf(role, cast);

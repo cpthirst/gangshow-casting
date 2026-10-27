@@ -18,13 +18,14 @@ export function linksFitItem({ roleIds, quantity, carrierIds }: AddPropRequest, 
   );
 }
 
-/** A prop's carriers who still play one of its roles: a carrier recast, deleted from the cast
- *  or whose role was removed drops off for good, so they never come back on their own
- *  (production-props FR28). roles: every role in the production, as it is now. */
-export const castCarriers = ({ roleIds, carrierIds }: Prop, roles: Role[]) =>
-  carrierIds.filter((id) =>
-    roles.some((role) => roleIds.includes(role.id) && role.castMemberIds.includes(id)),
-  );
+/** A prop's carriers who can still be chosen: in one of its ensembles, not its named parts.
+ *  A carrier recast (into a named part too), deleted from the cast or whose role was removed
+ *  drops off for good, so they never come back on their own (production-props FR28). roles:
+ *  every role in the production, as it is now. */
+export function castCarriers({ roleIds, carrierIds }: Prop, roles: Role[]) {
+  const { choosable } = carryingCast(roles.filter((role) => roleIds.includes(role.id)));
+  return carrierIds.filter((id) => choosable.includes(id));
+}
 
 /** After a casting change, takes every prop's carriers who no longer play its roles off it.
  *  It runs once the change is saved, so if it fails the caller answers 500 for a change that

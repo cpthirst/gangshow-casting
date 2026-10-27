@@ -250,6 +250,18 @@ export function behavesAsAPropStore(make: (saved: PropList[]) => Promise<PropSto
     expect(props.find(({ id }) => id === 2)).toEqual(telescope);
   });
 
+  it("takes off a carrier who moves into one of the prop's named parts", async () => {
+    // Kim (4) leaves Villagers to be the baker, who always carries it (production-props FR26).
+    const villagers = aRole(10, [3]);
+    const baker: Role = { ...aRole(11, [4]), size: "lead" };
+    const lantern = aProp(1, "Lantern", [10, 11], [4]);
+    const store = await make([{ productionId: "2027", props: [lantern] }]);
+
+    await store.dropStrayCarriers("2027", [villagers, baker]);
+
+    expect((await store.list("2027")).props[0]?.carrierIds).toEqual([]);
+  });
+
   it("drops stray carriers in that production only", async () => {
     const basket = aProp(1, "Bread basket", [10], [4]);
     const store = await make([

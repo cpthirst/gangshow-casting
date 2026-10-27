@@ -64,10 +64,14 @@ describe("remove role handler", () => {
 });
 
 describe("remove role handler with props", () => {
-  // Made-up cast: Jo (3) is a villager (role 6), Sam (1) the baker (role 7).
+  // Made-up cast: Jo (3) is a villager (role 6), Sam (1) one of the crowd (role 7).
   function setUpLantern() {
+    const ensemble = (id: number, castMemberIds: number[]): Role => ({
+      ...role(id, 1, castMemberIds),
+      size: "ensemble",
+    });
     const roles = inMemoryRoleStore([
-      { productionId: "2027", roles: [role(6, 1, [3]), role(7, 1, [1])] },
+      { productionId: "2027", roles: [ensemble(6, [3]), ensemble(7, [1])] },
     ]);
     const lantern = {
       id: 1,

@@ -43,15 +43,10 @@ const noRepeats = (ids: number[]) => new Set(ids).size === ids.length;
  *  in a named part (any size but ensemble, so one person) always does, and carriers are
  *  chosen only from the rest of its ensembles' cast. Each id once. */
 export function carryingCast(roles: Pick<Role, "size" | "castMemberIds">[]) {
-  const castOf = (named: boolean) => [
-    ...new Set(
-      roles
-        .filter((role) => (role.size !== "ensemble") === named)
-        .flatMap((role) => role.castMemberIds),
-    ),
-  ];
-  const named = castOf(true);
-  return { named, choosable: castOf(false).filter((id) => !named.includes(id)) };
+  const castIn = (some: typeof roles) => [...new Set(some.flatMap((role) => role.castMemberIds))];
+  const named = castIn(roles.filter((role) => role.size !== "ensemble"));
+  const ensembles = castIn(roles.filter((role) => role.size === "ensemble"));
+  return { named, choosable: ensembles.filter((id) => !named.includes(id)) };
 }
 
 /**
