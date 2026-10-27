@@ -7,8 +7,22 @@ const request = (propId: string, productionId = "2027") => ({
   pathParameters: { productionId, propId },
 });
 
-const telescope = { id: 4, itemId: "pirate-sketch", name: "Telescope", quantity: 1, roleIds: [] };
-const parrot = { id: 5, itemId: "pirate-sketch", name: "Parrot", quantity: 1, roleIds: [] };
+const telescope = {
+  id: 4,
+  itemId: "pirate-sketch",
+  name: "Telescope",
+  quantity: 1,
+  roleIds: [],
+  carrierIds: [],
+};
+const parrot = {
+  id: 5,
+  itemId: "pirate-sketch",
+  name: "Parrot",
+  quantity: 1,
+  roleIds: [],
+  carrierIds: [],
+};
 
 function setUp() {
   const initial: PropList = { productionId: "2027", props: [telescope, parrot] };

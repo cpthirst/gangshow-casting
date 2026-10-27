@@ -1746,13 +1746,13 @@ describe("Add All Cast", () => {
     ]);
   });
 
-  it("puts Add all cast and the member search above the Members heading", async () => {
+  it("puts Add all cast and the member search above the Selected members heading", async () => {
     const wrapper = await open();
     await editRole(wrapper, "Pirates");
     const form = formFor(wrapper, "Edit Pirates").element;
 
     const heading = [...form.querySelectorAll(".field-label")].find(
-      (label) => label.textContent === "Members",
+      (label) => label.textContent === "Selected members",
     );
     const button = form.querySelector("[data-test=add-all-cast]");
     const search = form.querySelector("input[name=castMember]");

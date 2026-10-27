@@ -2,14 +2,21 @@
 import type { AddPropRequest, CastMember, Prop, Role } from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, nextTick, onMounted, ref, useId, watch } from "vue";
+import CastMemberPicker from "@/components/casting/CastMemberPicker.vue";
 import SearchPicker from "@/components/common/SearchPicker.vue";
 import { icons } from "@/utils/icons.ts";
-import { type PropFormFields, propDetailsFrom } from "@/utils/props.ts";
-import { castNames, searchRoles, sortRoles } from "@/utils/roles.ts";
+import {
+  carriersHint,
+  castOfRoles,
+  type PropFormFields,
+  propDetailsFrom,
+  quantityOf,
+} from "@/utils/props.ts";
+import { castNames, fullName, searchRoles, sortRoles } from "@/utils/roles.ts";
 
 // Adds a prop to an item (no prop given) or edits one, like the role form. error: why the
 // last save failed, if it did. roles: the item's roles, which the prop can be linked to;
-// cast: who plays them.
+// cast: who plays them, and so who can carry it.
 const props = defineProps<{
   saving: boolean;
   error: string;
@@ -27,6 +34,8 @@ const form = ref<PropFormFields>({
   roleIds: props.roles
     .filter((role) => props.prop?.roleIds.includes(role.id))
     .map((role) => role.id),
+  carrier: { query: "", id: null },
+  carrierIds: [...(props.prop?.carrierIds ?? [])],
 });
 const errors = ref<Partial<Record<keyof PropFormFields, string>>>({});
 
@@ -77,11 +86,67 @@ async function dropRole(id: number) {
   document.getElementById(idFor("role"))?.focus();
 }
 
+// Who carries it is chosen only when the roles have more people than the quantity
+// (production-props FR26); otherwise they all carry it (FR27). Both follow the form as it's
+// typed, so the picker comes and goes straight away.
+const people = computed(() => castOfRoles(picked.value, props.cast));
+const quantity = computed(() => quantityOf(form.value.quantity));
+// A quantity not yet typed (NaN) offers no picker.
+const offersCarriers = computed(() => people.value.length > quantity.value);
+const carriers = computed(() =>
+  people.value.filter((member) => form.value.carrierIds.includes(member.id)),
+);
+/** Once the quantity is reached nobody more can be chosen, so the search is turned off. */
+const full = computed(() => carriers.value.length >= quantity.value);
+const choosable = computed(() =>
+  people.value.filter((member) => !form.value.carrierIds.includes(member.id)),
+);
+const carrierButtonId = (id: number) => `${idFor("carrierIds")}-${id}`;
+
+// Someone no longer in the prop's roles can't carry it, so they're taken off.
+watch(
+  people,
+  (now) => {
+    form.value.carrierIds = form.value.carrierIds.filter((id) => now.some((m) => m.id === id));
+  },
+  { immediate: true },
+);
+
+/** Screen-reader announcement of the last carrier chosen or taken off. */
+const carrierAnnouncement = ref("");
+const personNamed = (id: number) => {
+  const member = props.cast.find((m) => m.id === id);
+  return member ? fullName(member) : "";
+};
+
+// Choosing someone in the search makes them a carrier, ready for the next. The last one the
+// quantity allows turns the search off, so focus moves to their Remove button instead.
+watch(
+  () => form.value.carrier.id,
+  async (id) => {
+    if (id === null) return;
+    form.value.carrierIds = [...form.value.carrierIds, id];
+    form.value.carrier = { query: "", id: null };
+    carrierAnnouncement.value = `Added ${personNamed(id)}.`;
+    if (!full.value) return;
+    await nextTick();
+    document.getElementById(carrierButtonId(id))?.focus();
+  },
+);
+
+// The button disappears with the carrier, so focus moves to the search.
+async function removeCarrier(id: number) {
+  form.value.carrierIds = form.value.carrierIds.filter((carrierId) => carrierId !== id);
+  carrierAnnouncement.value = `Removed ${personNamed(id)}.`;
+  await nextTick();
+  document.getElementById(idFor("carrier"))?.focus();
+}
+
 const nameInput = ref<HTMLInputElement>();
 onMounted(() => nameInput.value?.focus());
 
 function submit() {
-  const result = propDetailsFrom(form.value);
+  const result = propDetailsFrom(form.value, offersCarriers.value);
   errors.value = result.ok ? {} : result.errors;
   if (result.ok) emit("save", result.details);
 }
@@ -122,7 +187,7 @@ function submit() {
       </p>
     </div>
     <div class="field">
-      <label :for="idFor('role')">Add a role</label>
+      <label :for="idFor('role')" class="picker-label">Add a role</label>
       <SearchPicker
         v-model="form.role"
         :matches="roleMatches"
@@ -133,7 +198,7 @@ function submit() {
       />
       <p v-if="errors.role" :id="errorFor('role')" class="field-error">{{ errors.role }}</p>
       <div class="members-block">
-        <p :id="idFor('roleIds')" class="field-label">Roles</p>
+        <p :id="idFor('roleIds')" class="field-label">Selected roles</p>
         <ul class="members row-icons" :aria-labelledby="idFor('roleIds')">
           <li v-for="role in picked" :key="role.id" data-test="picked-role">
             <button
@@ -150,6 +215,45 @@ function submit() {
           <li v-if="picked.length === 0" class="uncast">None yet</li>
         </ul>
         <p class="visually-hidden" role="status">{{ announcement }}</p>
+      </div>
+    </div>
+    <div v-if="offersCarriers" class="field">
+      <label :for="idFor('carrier')" class="picker-label">Who carries it</label>
+      <!-- A status, so the count left is heard as people are chosen and taken off. -->
+      <p :id="`${idFor('carrier')}-hint`" class="carriers-hint" role="status" data-test="carriers-hint">
+        {{ carriersHint(quantity, carriers.length) }}
+      </p>
+      <CastMemberPicker
+        v-model="form.carrier"
+        :cast="choosable"
+        name="carrier"
+        :disabled="full"
+        :hint-id="`${idFor('carrier')}-hint`"
+        :input-id="idFor('carrier')"
+        :described-by="errors.carrier ? errorFor('carrier') : undefined"
+      />
+      <p v-if="errors.carrier" :id="errorFor('carrier')" class="field-error">
+        {{ errors.carrier }}
+      </p>
+      <div class="members-block">
+        <p :id="idFor('carrierIds')" class="field-label">Selected carriers</p>
+        <ul class="members row-icons" :aria-labelledby="idFor('carrierIds')" data-test="carriers">
+          <li v-for="member in carriers" :key="member.id" data-test="carrier">
+            <button
+              :id="carrierButtonId(member.id)"
+              type="button"
+              class="icon-button"
+              :aria-label="`Remove ${fullName(member)} from the carriers`"
+              data-tooltip="Remove from the carriers"
+              @click="removeCarrier(member.id)"
+            >
+              <FontAwesomeIcon :icon="icons.remove" />
+            </button>
+            <span class="member-name">{{ fullName(member) }}</span>
+          </li>
+          <li v-if="carriers.length === 0" class="uncast">Nobody yet</li>
+        </ul>
+        <p class="visually-hidden" role="status">{{ carrierAnnouncement }}</p>
       </div>
     </div>
     <p v-if="error" class="field-error form-error" role="alert">{{ error }}</p>

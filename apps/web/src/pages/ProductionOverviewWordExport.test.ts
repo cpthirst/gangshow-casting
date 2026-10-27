@@ -47,6 +47,7 @@ const telescope: Prop = {
   name: "Telescope",
   quantity: 1,
   roleIds: [1],
+  carrierIds: [],
 };
 
 /** The stand-in API: what it answers can change between the page loading and the export. */

@@ -7,6 +7,7 @@ const aProp = (id: number, itemId: string, name = `Prop ${id}`) => ({
   name,
   quantity: 1,
   roleIds: [],
+  carrierIds: [],
 });
 
 describe("Prop", () => {
@@ -28,6 +29,12 @@ describe("Prop", () => {
 
   it("has no roles when it was saved before props had roles", () => {
     expect(Prop.parse({ id: 1, itemId: "pirate-sketch", name: "Telescope" }).roleIds).toEqual([]);
+  });
+
+  it("names its carriers by cast member id, and has none when saved before props had them", () => {
+    const lanterns = { ...aProp(1, "village-square", "Lantern"), quantity: 2, carrierIds: [3, 4] };
+    expect(Prop.parse(lanterns)).toEqual(lanterns);
+    expect(Prop.parse({ id: 1, itemId: "village-square", name: "Lantern" }).carrierIds).toEqual([]);
   });
 
   it("has a quantity of 1 when it was saved before props had quantities", () => {
@@ -54,6 +61,7 @@ describe("AddPropRequest", () => {
       name: "Treasure chest",
       quantity: 1,
       roleIds: [],
+      carrierIds: [],
     });
   });
 
@@ -69,6 +77,21 @@ describe("AddPropRequest", () => {
     expect(AddPropRequest.parse({ name: "3 umbrellas", roleIds: [1, 2, 3] }).roleIds).toEqual([
       1, 2, 3,
     ]);
+  });
+
+  it("takes up to as many carriers as the quantity", () => {
+    const basket = { name: "Bread basket", quantity: 2, roleIds: [1], carrierIds: [3, 4] };
+    expect(AddPropRequest.parse(basket).carrierIds).toEqual([3, 4]);
+  });
+
+  it("refuses more carriers than the quantity", () => {
+    const basket = { name: "Bread basket", quantity: 1, roleIds: [1], carrierIds: [3, 4] };
+    expect(AddPropRequest.safeParse(basket).success).toBe(false);
+  });
+
+  it("refuses a carrier listed twice", () => {
+    const basket = { name: "Bread basket", quantity: 2, roleIds: [1], carrierIds: [3, 3] };
+    expect(AddPropRequest.safeParse(basket).success).toBe(false);
   });
 
   it("refuses a role listed twice", () => {

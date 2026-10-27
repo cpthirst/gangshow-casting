@@ -1,0 +1,14 @@
+{
+  "productionId": "2027",
+  "nextId": 2,
+  "props": [
+    {
+      "id": 1,
+      "itemId": "itm-2",
+      "name": "Extraordinarily heavy treasure chest with a padlock",
+      "quantity": 2,
+      "roleIds": [4],
+      "carrierIds": [2]
+    }
+  ]
+}
