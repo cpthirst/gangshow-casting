@@ -103,11 +103,19 @@ const choosable = computed(() =>
 );
 const carrierButtonId = (id: number) => `${idFor("carrierIds")}-${id}`;
 
-// Someone no longer in the prop's roles can't carry it, so they're taken off.
+// Someone no longer in the prop's roles can't carry it, so they're taken off. When more roles
+// bring the picker, whoever carried it before (everyone, as they fitted) still does, so
+// adding an ensemble doesn't drop the named parts. A lower quantity chooses nobody for you.
 watch(
-  people,
-  (now) => {
-    form.value.carrierIds = form.value.carrierIds.filter((id) => now.some((m) => m.id === id));
+  [people, offersCarriers],
+  ([now, offers], [before, offered]) => {
+    const isIn = (id: number) => now.some((m) => m.id === id);
+    const fittedBefore = before !== undefined && before.length <= quantity.value;
+    if (offers && offered === false && fittedBefore) {
+      form.value.carrierIds = before.map((m) => m.id).filter(isIn);
+      return;
+    }
+    form.value.carrierIds = form.value.carrierIds.filter(isIn);
   },
   { immediate: true },
 );

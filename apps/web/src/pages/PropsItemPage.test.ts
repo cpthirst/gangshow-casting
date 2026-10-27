@@ -624,17 +624,20 @@ async function searchRoles(wrapper: VueWrapper, text: string) {
   await flushPromises();
 }
 
-/** Opens Add prop, names it and picks each role by searching for its exact name. */
+/** Picks one more role in the open form, searching for its exact name. */
+async function pickRole(wrapper: VueWrapper, roleName: string) {
+  await searchRoles(wrapper, roleName);
+  const option = wrapper
+    .findAll("[role=option]")
+    .find((choice) => choice.get(".choice-name").text() === roleName);
+  await option?.trigger("mousedown");
+}
+
+/** Opens Add prop, names it and picks each role. */
 async function startProp(wrapper: VueWrapper, name: string, roleNames: string[] = []) {
   await wrapper.get("[data-test=add-prop]").trigger("click");
   await wrapper.get("input[name=name]").setValue(name);
-  for (const roleName of roleNames) {
-    await searchRoles(wrapper, roleName);
-    const option = wrapper
-      .findAll("[role=option]")
-      .find((choice) => choice.get(".choice-name").text() === roleName);
-    await option?.trigger("mousedown");
-  }
+  for (const roleName of roleNames) await pickRole(wrapper, roleName);
 }
 
 async function saveProp(wrapper: VueWrapper) {
@@ -820,14 +823,6 @@ describe("Editing and removing a prop", () => {
   async function saveEdit(wrapper: VueWrapper) {
     await editForm(wrapper).trigger("submit");
     await flushPromises();
-  }
-
-  async function pickRole(wrapper: VueWrapper, roleName: string) {
-    await searchRoles(wrapper, roleName);
-    const option = wrapper
-      .findAll("[role=option]")
-      .find((choice) => choice.get(".choice-name").text() === roleName);
-    await option?.trigger("mousedown");
   }
 
   async function remove(wrapper: VueWrapper, name: string) {
@@ -1421,6 +1416,41 @@ describe("Who carries a prop", () => {
 
     expect(rolesOn(wrapper, "Bread basket")).toEqual([{ role: "Villagers", cast: "Alex Green" }]);
     expect(stored[0]?.carrierIds).toEqual([alex.id]);
+  });
+
+  it("keeps the named parts carrying it when an ensemble joins and brings the picker", async () => {
+    const mayor = aRole(13, "village-square", "Mayor", "lead", [ash.id]);
+    const stored = savedShowIs(village, [], {
+      ...villageCasting,
+      roles: [...villageCasting.roles, mayor],
+    });
+    const { wrapper } = await openAppAt(VILLAGE_PROPS);
+    await startProp(wrapper, "Lantern", ["Baker", "Mayor"]);
+    await setQuantity(wrapper, "3");
+    expect(carrierSearch(wrapper).exists()).toBe(false);
+
+    await pickRole(wrapper, "Villagers");
+
+    expect(chosenCarriers(wrapper)).toEqual(["Ash Green", "Sam Taylor"]);
+    expect(carriersHint(wrapper).text()).toBe("Choose up to 3 · 1 left to choose");
+    await saveProp(wrapper);
+    expect(rolesOn(wrapper, "Lantern")).toEqual([
+      { role: "Baker", cast: "Sam Taylor" },
+      { role: "Mayor", cast: "Ash Green" },
+      { role: "Villagers", cast: "Nobody carries it" },
+    ]);
+    expect(stored[0]?.carrierIds).toEqual([ash.id, sam.id]);
+  });
+
+  it("chooses nobody for you when a lower quantity brings the picker", async () => {
+    savedShowIs(village, [], villageCasting);
+    const { wrapper } = await openAppAt(VILLAGE_PROPS);
+    await startProp(wrapper, "Lantern", ["Villagers"]);
+    await setQuantity(wrapper, "3");
+
+    await setQuantity(wrapper, "2");
+
+    expect(chosenCarriers(wrapper)).toEqual([]);
   });
 
   it("takes off a carrier whose role is dropped", async () => {
