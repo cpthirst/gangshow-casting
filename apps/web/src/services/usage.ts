@@ -33,7 +33,7 @@ export function recordPageUse(pageName: unknown) {
   if (page.success) record({ event: "page", page: page.data });
 }
 
-/** Records switching a page, such as the Casting Overview or Stage, to another view. */
+/** Records switching the Casting Overview to another view. */
 export const recordView = (view: PageView) => record({ event: "view", view });
 
 /** Records an export, once its file is made. */

@@ -2,6 +2,8 @@
 import { ItemNoteList, PropList, RunningOrder } from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, nextTick, onMounted, ref } from "vue";
+import { useRoute } from "vue-router";
+import HelpButton from "@/components/common/HelpButton.vue";
 import { latestPropsList } from "@/services/latest-show.ts";
 import { apiFetch, canChangeStage } from "@/services/sign-in.ts";
 import { recordExport } from "@/services/usage.ts";
@@ -11,8 +13,10 @@ import { PROPS_PATH, propCountLabel, propCounts } from "@/utils/props.ts";
 import { PROPS_NOTES_PATH } from "@/utils/props-notes.ts";
 import { RUNNING_ORDER_PATH, runningClock } from "@/utils/running-order.ts";
 
-// The Stage page's Props view: the show's items with how many props each has (stage-props
-// FR13, FR15), laid out as the casting Items list.
+// Production's one page: the show's items, each with a button for its props page and how
+// many props it has (production-overview FR4–FR8), laid out as the casting Items list.
+
+const route = useRoute();
 
 type State =
   | { status: "loading" }
@@ -33,10 +37,10 @@ const halves = computed(() =>
   state.value.status === "loaded" ? runningClock(state.value.order).halves : [],
 );
 
-/** The item's count, labelled; empty while the props are loading or unavailable, so a count
- *  that couldn't be loaded never reads as 0. */
-const countLabel = (itemId: string) =>
-  typeof countOf.value === "function" ? propCountLabel(countOf.value(itemId)) : "";
+/** The item's count; none while the props are loading or unavailable, so a count that
+ *  couldn't be loaded never reads as 0. */
+const countFor = (itemId: string) =>
+  typeof countOf.value === "function" ? countOf.value(itemId) : undefined;
 
 // The props list in Word, for every role, built in the browser with everything as saved at
 // that moment (stage-props FR22, FR23; ADR 0022).
@@ -115,6 +119,11 @@ async function loadRunningOrder() {
 </script>
 
 <template>
+  <div class="page-title-row">
+    <h1>Overview</h1>
+    <HelpButton page="production-overview" />
+  </div>
+  <p>{{ route.meta.description }}</p>
   <p class="visually-hidden" role="status" data-test="announcement">{{ announcement }}</p>
   <p v-if="state.status === 'empty'">
     There's no saved running order yet. Set one up on the
@@ -148,14 +157,14 @@ async function loadRunningOrder() {
             <col class="col-cast" />
             <col class="col-number" />
             <col />
-            <col class="col-counts" />
+            <col class="col-prop-count" />
           </colgroup>
           <thead role="rowgroup">
             <tr role="row">
-              <th scope="col" role="columnheader">Props</th>
+              <th scope="col" role="columnheader">Open</th>
               <th scope="col" role="columnheader">#</th>
               <th scope="col" role="columnheader">Item</th>
-              <th scope="col" role="columnheader">Props count</th>
+              <th scope="col" role="columnheader">Props</th>
             </tr>
           </thead>
           <tbody role="rowgroup">
@@ -166,7 +175,7 @@ async function loadRunningOrder() {
                 :data-item-id="item.id"
                 :class="{ 'not-printed': number === null }"
               >
-                <td class="moves" data-label="Props" role="cell">
+                <td class="moves" data-label="Open" role="cell">
                   <RouterLink
                     class="icon-button"
                     data-test="open-props"
@@ -174,7 +183,7 @@ async function loadRunningOrder() {
                     :aria-label="`${canChangeStage ? 'Edit' : 'View'} props for ${item.title}`"
                     :data-tooltip="canChangeStage ? 'Edit this item\'s props' : 'View this item\'s props'"
                   >
-                    <FontAwesomeIcon :icon="icons.edit" />
+                    <FontAwesomeIcon :icon="icons.props" />
                   </RouterLink>
                 </td>
                 <td data-test="number" class="number" data-label="#" role="cell">
@@ -184,7 +193,15 @@ async function loadRunningOrder() {
                 <td class="title" data-label="Item" role="cell">
                   <span data-test="title">{{ item.title }}</span>
                 </td>
-                <td data-test="count" class="counts" data-label="Props count" role="cell">{{ countLabel(item.id) }}</td>
+                <td data-test="count" class="prop-count" data-label="Props" role="cell">
+                  <!-- The bare number under its heading; screen readers hear it labelled. -->
+                  <template v-for="count in [countFor(item.id)]" :key="item.id">
+                    <template v-if="count !== undefined">
+                      <span aria-hidden="true">{{ count }}</span>
+                      <span class="visually-hidden">{{ propCountLabel(count) }}</span>
+                    </template>
+                  </template>
+                </td>
               </tr>
               <!-- The item's props notes, in full, across the table under its row (FR14). -->
               <tr

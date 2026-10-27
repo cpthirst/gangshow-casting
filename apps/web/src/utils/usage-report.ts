@@ -37,10 +37,6 @@ const viewNames: Record<PageView, [page: string, view: string]> = {
   "by-person": ["the Overview", "By person"],
   "by-item": ["the Overview", "By item"],
   grid: ["the Overview", "Grid"],
-  scenery: ["Stage", "Scenery"],
-  props: ["Stage", "Props"],
-  "mic-plot": ["Tech", "Mic plot"],
-  sfx: ["Tech", "SFX"],
 };
 
 const exportNames: Record<UsageExport, string> = {
@@ -87,10 +83,6 @@ const otherNames: Record<OtherFeature, string> = {
   "overview-by-person": "Overview: By person",
   "overview-by-item": "Overview: By item",
   "overview-grid": "Overview: Grid",
-  "stage-scenery": "Stage: Scenery",
-  "stage-props": "Stage: Props",
-  "tech-mic-plot": "Tech: Mic plot",
-  "tech-sfx": "Tech: SFX",
   "item-page": "Item pages",
   "export-excel-grid": "Export: Excel grid",
   "export-word-casting-sheets": "Export: Word casting sheets",

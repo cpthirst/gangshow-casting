@@ -63,6 +63,8 @@ Then the five buttons and the props count fit without the page scrolling sideway
 
 ## Notes
 
+- Add a browser layout walk of the Production overview (`/production/overview`) at 320px and 360px, with all five buttons in each row (agreed with the maintainer 2026-10-27, when E2.S1 shipped without one).
+
 - FRs: FR4, FR5, FR10
 - Depends on: production-overview.E2.S1
 - Departments, for the edit or view name: Scenery and Props are Stage, SFX and Mic plot are Tech, and Wardrobe is Wardrobe (PRD constraints).

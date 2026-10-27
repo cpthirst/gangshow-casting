@@ -253,7 +253,7 @@ async function postProp(itemId: string, details: AddPropRequest) {
 
 <template>
   <ItemStepNav
-    :list="{ name: 'stage', query: { view: 'props' } }"
+    :list="{ name: 'production-overview' }"
     item-route="props-item"
     :previous="neighbours.previous"
     :next="neighbours.next"

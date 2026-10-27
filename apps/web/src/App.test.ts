@@ -70,9 +70,7 @@ describe("App shell", () => {
       "Cast",
       "Overview",
       "Items",
-      "Stage",
-      "Tech",
-      "Wardrobe",
+      "Overview",
       "Accounts",
       "Usage",
       "Help",
@@ -324,9 +322,7 @@ describe("App shell", () => {
         "Cast",
         "Overview",
         "Items",
-        "Stage",
-        "Tech",
-        "Wardrobe",
+        "Overview",
         "Help",
       ]);
     });
@@ -393,20 +389,15 @@ describe("App shell", () => {
     expect(pages().isVisible()).toBe(false);
   });
 
-  it("lists Stage, Tech and Wardrobe under Production as pages, with no further menu level", async () => {
+  it("lists one page, Overview, under Production, with no further menu level", async () => {
     const { wrapper } = await openAppAt("/");
 
     const production = wrapper.get("#menu-production-pages");
-    expect(production.findAll(":scope > li").map((item) => item.text())).toEqual([
-      "Stage",
-      "Tech",
-      "Wardrobe",
-    ]);
+    expect(production.findAll(":scope > li").map((item) => item.text())).toEqual(["Overview"]);
     expect(production.findAll("a").map((link) => link.attributes("href"))).toEqual([
-      "/production/stage",
-      "/production/tech",
-      "/production/wardrobe",
+      "/production/overview",
     ]);
+    expect(wrapper.get("nav[aria-label=Main]").text()).not.toMatch(/Stage|Tech|Wardrobe/);
     expect(production.findAll("button, ul")).toEqual([]);
   });
 

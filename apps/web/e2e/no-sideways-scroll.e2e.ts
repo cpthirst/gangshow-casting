@@ -263,16 +263,20 @@ test("the menu opens on a phone and its groups open and fold away, and Welcome l
   await expect(menu).toBeHidden();
   await page.getByRole("button", { name: "Menu" }).click();
   const production = menu.getByRole("button", { name: "Production" });
+  // Casting has an Overview too: this is the one in Production's group.
+  const productionPage = menu.locator("#menu-production-pages").getByRole("link", {
+    name: "Overview",
+  });
   await expect(production).toHaveAttribute("aria-expanded", "false");
-  await expect(menu.getByRole("link", { name: "Stage" })).toBeHidden();
+  await expect(productionPage).toBeHidden();
 
   await production.click();
   await expect(production).toHaveAttribute("aria-expanded", "true");
-  await expect(menu.getByRole("link", { name: "Stage" })).toBeVisible();
+  await expect(productionPage).toBeVisible();
   await expectNoSidewaysScroll(page);
 
   await production.click();
-  await expect(menu.getByRole("link", { name: "Stage" })).toBeHidden();
+  await expect(productionPage).toBeHidden();
 
   // The guide on Welcome goes to a group's first page, and the menu has that group open.
   await page.getByRole("button", { name: "Menu" }).click();

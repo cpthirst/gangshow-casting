@@ -445,6 +445,10 @@ main a {
   width: 11rem;
 }
 
+.items-list .col-prop-count {
+  width: 5rem;
+}
+
 .items-list .col-minutes {
   width: 5rem;
 }

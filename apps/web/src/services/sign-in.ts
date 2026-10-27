@@ -108,7 +108,7 @@ export const isAdmin = computed(() => access.value === "admin");
  * change Casting; everyone else sees them read-only (team-roles FR6, stage-props FR3).
  */
 export const canChangeCasting = computed(() => mayChange(access.value, "casting"));
-/** The Stage pages show their change controls only to those who may change Stage. */
+/** The props pages show their change controls only to those who may change Stage. */
 export const canChangeStage = computed(() => mayChange(access.value, "stage"));
 /** A change was refused because the person may only read: pages say it wasn't saved. */
 export const changeRefusedAsReadOnly = computed(() => refusedAsReadOnly.value);

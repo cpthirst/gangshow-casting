@@ -5,6 +5,7 @@ import {
   faArrowDown,
   faArrowRightArrowLeft,
   faArrowUp,
+  faBox,
   faChevronLeft,
   faChevronRight,
   faCircle,
@@ -27,6 +28,8 @@ import {
 
 export const icons = {
   edit: faPen,
+  // Opens an item's props page from the Production overview.
+  props: faBox,
   remove: faTrashCan,
   // An account's actions on the Accounts page.
   resetPassword: faKey,

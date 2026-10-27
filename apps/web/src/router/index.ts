@@ -5,14 +5,13 @@ import CastingItemPage from "@/pages/CastingItemPage.vue";
 import CastingItemsPage from "@/pages/CastingItemsPage.vue";
 import CastingOverviewPage from "@/pages/CastingOverviewPage.vue";
 import CastPage from "@/pages/CastPage.vue";
-import DepartmentPage from "@/pages/DepartmentPage.vue";
 import HelpPage from "@/pages/HelpPage.vue";
 import NotFoundPage from "@/pages/NotFoundPage.vue";
+import ProductionOverviewPage from "@/pages/ProductionOverviewPage.vue";
 import PropsItemPage from "@/pages/PropsItemPage.vue";
 import RunningOrderPage from "@/pages/RunningOrderPage.vue";
 import UsagePage from "@/pages/UsagePage.vue";
 import WelcomePage from "@/pages/WelcomePage.vue";
-import { departments } from "@/utils/departments.ts";
 
 declare module "vue-router" {
   interface RouteMeta {
@@ -20,6 +19,8 @@ declare module "vue-router" {
     description?: string;
     /** The menu page to mark as current, for a page that isn't in the menu itself. */
     menuPage?: string;
+    /** What the Usage page calls a menu page whose title alone is ambiguous there. */
+    usageTitle?: string;
   }
 }
 
@@ -34,9 +35,7 @@ interface MenuPage {
   path: string;
   name: string;
   component: Component;
-  /** What the route gives its component, such as which department's page it is. */
-  props?: Record<string, unknown>;
-  meta: { title: string; description: string };
+  meta: { title: string; description: string; usageTitle?: string };
   /** Left out of non-admins' menus. The API refuses them anyway: this only tidies the menu. */
   adminOnly?: boolean;
 }
@@ -110,13 +109,17 @@ export const menuPages: (MenuPage | MenuGroup)[] = [
     name: "production",
     title: "Production",
     pages: [
-      ...(["stage", "tech", "wardrobe"] as const).map((name) => ({
-        path: `/production/${name}`,
-        name,
-        component: DepartmentPage,
-        props: { department: name },
-        meta: { title: departments[name].title, description: departments[name].description },
-      })),
+      {
+        path: "/production/overview",
+        name: "production-overview",
+        component: ProductionOverviewPage,
+        meta: {
+          title: "Overview",
+          description: "The show's items, with what each department needs for them.",
+          // Casting has an Overview too.
+          usageTitle: "Production overview",
+        },
+      },
     ],
   },
   {
@@ -163,10 +166,10 @@ export function createAppRouter(history: RouterHistory = createWebHistory()) {
         meta: { title: "Item", menuPage: "casting-items" },
       },
       {
-        path: "/production/stage/props/:itemId",
+        path: "/production/items/:itemId/props",
         name: "props-item",
         component: PropsItemPage,
-        meta: { title: "Item", menuPage: "stage" },
+        meta: { title: "Item", menuPage: "production-overview" },
       },
       // Where Sign out goes first, so the page being left can ask about unsaved changes.
       {
@@ -178,13 +181,15 @@ export function createAppRouter(history: RouterHistory = createWebHistory()) {
       { path: "/casting", redirect: "/casting/overview" },
       // Bookmarks from before the Casting menu (casting-menus FR4).
       { path: "/casting-grid", redirect: "/casting/overview" },
-      // Bookmarks from before Production's pages became Stage's and Tech's views (stage-props FR12).
-      { path: "/production/scenery", redirect: { name: "stage" } },
-      { path: "/production/props", redirect: { name: "stage", query: { view: "props" } } },
-      { path: "/production/mic-plot", redirect: { name: "tech" } },
-      { path: "/production/sfx", redirect: { name: "tech", query: { view: "sfx" } } },
-      // Bookmarks from before Costume became Wardrobe (production-overview FR1).
-      { path: "/production/costume", redirect: { name: "wardrobe" } },
+      // Bookmarks from before the Overview, or before Production's pages became views
+      // (production-overview FR11). Any ?view is dropped.
+      ...["stage", "tech", "wardrobe", "costume", "scenery", "props", "mic-plot", "sfx"].map(
+        (old) => ({
+          path: `/production/${old}`,
+          redirect: { name: "production-overview", query: {} },
+        }),
+      ),
+      { path: "/production/stage/props/:itemId", redirect: { name: "props-item" } },
       {
         path: "/:unknown(.*)*",
         name: "not-found",

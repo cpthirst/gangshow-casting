@@ -1,5 +1,10 @@
 import { randomUUID } from "node:crypto";
-import { RENAMED_MENU_PAGES, RETIRED_MENU_PAGES, RecordUsageRequest } from "@app/shared";
+import {
+  DEPARTMENT_PAGES,
+  DEPARTMENT_VIEWS,
+  RETIRED_MENU_PAGES,
+  RecordUsageRequest,
+} from "@app/shared";
 import {
   DeleteCommand,
   type DynamoDBDocumentClient,
@@ -63,7 +68,7 @@ export function dynamoUsageStore(db: DynamoDBDocumentClient, tableName: string):
             ExclusiveStartKey: startKey,
           }),
         );
-        records.push(...(page.Items ?? []).filter((row) => !isRetiredPageUse(row)).map(asRecord));
+        records.push(...(page.Items ?? []).filter((row) => !isGoneUse(row)).map(asRecord));
         startKey = page.LastEvaluatedKey;
       } while (startKey);
       return records;
@@ -84,6 +89,12 @@ export function dynamoUsageStore(db: DynamoDBDocumentClient, tableName: string):
 
 const isRetiredPageUse = (row: Record<string, unknown>) =>
   row.event === "page" && RETIRED_MENU_PAGES.some((page) => page === row.page);
+
+/** A use of a page or view that has gone, which the Usage page leaves out. */
+const isGoneUse = (row: Record<string, unknown>) =>
+  isRetiredPageUse(row) ||
+  (row.event === "page" && DEPARTMENT_PAGES.some((page) => page === row.page)) ||
+  (row.event === "view" && DEPARTMENT_VIEWS.some((view) => view === row.view));
 
 /**
  * Deletes every use of a retired menu page (stage-props AC11), and nothing else, returning
@@ -114,11 +125,7 @@ export async function purgeRetiredPageUses(db: DynamoDBDocumentClient, tableName
 /** A stored row as a record, without its keys and expiry. */
 function asRecord(row: Record<string, unknown>): UsageRecord {
   const { username, at } = row;
-  const page =
-    typeof row.page === "string" && Object.hasOwn(RENAMED_MENU_PAGES, row.page)
-      ? RENAMED_MENU_PAGES[row.page]
-      : row.page;
-  const request = RecordUsageRequest.safeParse({ ...row, page });
+  const request = RecordUsageRequest.safeParse(row);
   if (typeof username !== "string" || typeof at !== "string" || !request.success) {
     throw new Error(`Usage row ${String(row.sk)} is invalid`);
   }

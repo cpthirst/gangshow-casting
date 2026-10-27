@@ -231,23 +231,23 @@ export const pageHelp: PageHelp[] = [
       },
     ],
   },
-  // Production's pages. Each department's permission is what lets someone change its page.
+  // Production's page. Each department's permission is what lets someone change its pages.
   {
-    page: "stage",
-    title: "Stage",
+    page: "production-overview",
+    title: "Production overview",
     summary:
-      "The scenery and props each item needs, as two views. Accounts with Stage, and admins, can change it.",
+      "The show's items in running order, with how many props each one needs. Accounts with Stage, and admins, can change the props.",
     lines: [
-      { name: "Scenery", does: "The scenery each item needs. Coming soon.", access: "everyone" },
       {
+        icons: [icons.props],
         name: "Props",
-        does: "The show's items, with how many props each one needs. Open an item to see its props.",
+        does: "Opens the item's props page: to change them with Stage, or to view them.",
         access: "everyone",
       },
       {
         icons: [icons.exportWord],
         name: "Generate Props List",
-        does: "In the Props view, saves every item's props, characters and cast as a Word document.",
+        does: "Saves every item's props, characters and cast as a Word document.",
         access: "everyone",
       },
     ],
@@ -255,13 +255,13 @@ export const pageHelp: PageHelp[] = [
   {
     page: "props-item",
     title: "An item's props",
-    summary: "One item's props and notes. Open an item from Production → Stage, in the Props view.",
-    reachedFrom: { page: "stage", title: "Stage" },
+    summary: "One item's props and notes. Open an item's props from Production → Overview.",
+    reachedFrom: { page: "production-overview", title: "Production overview" },
     lines: [
       {
         icons: [icons.allItems],
         name: "All items",
-        does: "Goes back to the Props view's list of items.",
+        does: "Goes back to the Production overview.",
         access: "everyone",
       },
       {
@@ -294,27 +294,6 @@ export const pageHelp: PageHelp[] = [
         changeAccess: "stage",
       },
     ],
-  },
-  {
-    page: "tech",
-    title: "Tech",
-    summary:
-      "The mic plot and sound effects for each item, as two views. Accounts with Tech, and admins, can change it.",
-    lines: [
-      {
-        name: "Mic plot",
-        does: "Which microphone is on whom, item by item. Coming soon.",
-        access: "everyone",
-      },
-      { name: "SFX", does: "The sound effects for each item. Coming soon.", access: "everyone" },
-    ],
-  },
-  {
-    page: "wardrobe",
-    title: "Wardrobe",
-    summary:
-      "The costumes each item needs. Coming soon. Accounts with Wardrobe, and admins, can change it.",
-    lines: [],
   },
 ];
 

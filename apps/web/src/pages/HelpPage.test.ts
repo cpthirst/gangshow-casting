@@ -134,10 +134,9 @@ describe("Help page", () => {
     }
   });
 
-  it("calls the department Wardrobe, never Costume", async () => {
+  it("never calls the department Costume", async () => {
     const { wrapper } = await openHelp();
 
-    expect(wrapper.text()).toContain("Wardrobe");
     expect(wrapper.text()).not.toContain("Costume");
   });
 
@@ -284,28 +283,21 @@ describe("Help page", () => {
       lines(wrapper, page).map((line) => line.get("[data-test=help-name]").text());
     const summaryOf = (wrapper: Wrapper, page: string) => sectionFor(wrapper, page).get("p").text();
 
-    it("follow the casting's, as Stage, an item's props, Tech and Wardrobe, each linking to its page", async () => {
+    it("follow the casting's, as the Production overview and an item's props, each linking to its page", async () => {
       const { wrapper, router } = await openHelp();
 
-      expect(sectionTitles(wrapper).slice(5)).toEqual([
-        "Stage",
-        "An item's props",
-        "Tech",
-        "Wardrobe",
-      ]);
+      expect(sectionTitles(wrapper).slice(5)).toEqual(["Production overview", "An item's props"]);
       await router.push("/help");
-      expect(await followLink(wrapper, router, "props-item")).toBe("stage");
-      for (const page of ["stage", "tech", "wardrobe"]) {
-        await router.push("/help");
-        expect(await followLink(wrapper, router, page)).toBe(page);
-      }
+      expect(await followLink(wrapper, router, "props-item")).toBe("production-overview");
+      await router.push("/help");
+      expect(await followLink(wrapper, router, "production-overview")).toBe("production-overview");
     });
 
     it("say how to reach an item's props, then explain its actions and who can use each", async () => {
       const { wrapper } = await openHelp();
 
       expect(summaryOf(wrapper, "props-item")).toContain("One item's props and notes.");
-      expect(summaryOf(wrapper, "props-item")).toContain("Production → Stage");
+      expect(summaryOf(wrapper, "props-item")).toContain("Production → Overview");
       expect(names(wrapper, "props-item")).toEqual([
         "All items",
         "Previous and Next",
@@ -326,35 +318,36 @@ describe("Help page", () => {
       ).toEqual(["Reading: Everyone", "Changing: Accounts with Stage, and admins"]);
     });
 
-    it("name the views on Stage and Tech, and the props list button, open to everyone", async () => {
+    it("describe the Overview, its Props button and Generate Props List, open to everyone", async () => {
       const { wrapper } = await openHelp();
 
-      expect(names(wrapper, "stage")).toEqual(["Scenery", "Props", "Generate Props List"]);
-      expect(names(wrapper, "tech")).toEqual(["Mic plot", "SFX"]);
-      for (const line of [...lines(wrapper, "stage"), ...lines(wrapper, "tech")]) {
+      expect(summaryOf(wrapper, "production-overview")).toContain("in running order");
+      expect(names(wrapper, "production-overview")).toEqual(["Props", "Generate Props List"]);
+      expect(lineNamed(wrapper, "Props", "production-overview").find("svg.fa-box").exists()).toBe(
+        true,
+      );
+      for (const line of lines(wrapper, "production-overview")) {
         expect(line.get("[data-test=help-access]").text()).toBe("Everyone");
       }
     });
 
-    it("say each department's permission is what lets someone change its page", async () => {
+    it("say Stage is what lets someone change the props", async () => {
       const { wrapper } = await openHelp();
 
-      expect(summaryOf(wrapper, "stage")).toContain(
-        "Accounts with Stage, and admins, can change it.",
-      );
-      expect(summaryOf(wrapper, "tech")).toContain(
-        "Accounts with Tech, and admins, can change it.",
-      );
-      expect(summaryOf(wrapper, "wardrobe")).toContain(
-        "Accounts with Wardrobe, and admins, can change it.",
+      expect(summaryOf(wrapper, "production-overview")).toContain(
+        "Accounts with Stage, and admins, can change the props.",
       );
     });
 
-    it("say the Wardrobe page is coming soon, with no views to explain", async () => {
+    it("don't name Stage, Tech or Wardrobe as pages", async () => {
       const { wrapper } = await openHelp();
 
-      expect(summaryOf(wrapper, "wardrobe")).toContain("Coming soon");
-      expect(lines(wrapper, "wardrobe")).toEqual([]);
+      expect(sectionTitles(wrapper)).not.toEqual(
+        expect.arrayContaining([expect.stringMatching(/^(Stage|Tech|Wardrobe)$/)]),
+      );
+      expect(wrapper.text()).not.toMatch(
+        /Production → (Stage|Tech|Wardrobe)|(Stage|Tech|Wardrobe) (page|view)|the (Scenery|Props|Mic plot|SFX) view/,
+      );
     });
   });
 });

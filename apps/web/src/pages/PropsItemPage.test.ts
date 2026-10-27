@@ -114,7 +114,7 @@ async function openAppAt(path: string) {
   return { wrapper, router };
 }
 
-const PIRATE_PROPS = "/production/stage/props/pirate-sketch";
+const PIRATE_PROPS = "/production/items/pirate-sketch/props";
 
 const stepLinks = (wrapper: VueWrapper) =>
   wrapper.findAll("main nav[aria-label='Item navigation'] a[rel]").map((link) => ({
@@ -140,9 +140,9 @@ const errorFor = (wrapper: VueWrapper, field: string) => {
 };
 
 describe("An item's props page", () => {
-  it("opens from the Props page, showing the item's name, position and a tab named for it", async () => {
+  it("opens from the Overview, showing the item's name, position and a tab named for it", async () => {
     savedShowIs(show);
-    const { wrapper, router } = await openAppAt("/production/stage?view=props");
+    const { wrapper, router } = await openAppAt("/production/overview");
 
     await wrapper.get(`main a[href='${PIRATE_PROPS}']`).trigger("click");
     await flushPromises();
@@ -153,7 +153,7 @@ describe("An item's props page", () => {
     expect(document.title).toBe("Pirate Sketch · iCUE");
   });
 
-  it("goes back to the Props page from All items", async () => {
+  it("goes back to the Overview from All items", async () => {
     savedShowIs(show);
     const { wrapper, router } = await openAppAt(PIRATE_PROPS);
 
@@ -162,7 +162,7 @@ describe("An item's props page", () => {
     await allItems.trigger("click");
     await flushPromises();
 
-    expect(router.currentRoute.value.fullPath).toBe("/production/stage?view=props");
+    expect(router.currentRoute.value.fullPath).toBe("/production/overview");
   });
 
   it("says when no props have been added", async () => {
@@ -181,9 +181,9 @@ describe("An item's props page", () => {
       {
         rel: "prev",
         text: "Previous Opening Number",
-        href: "/production/stage/props/opening-number",
+        href: "/production/items/opening-number/props",
       },
-      { rel: "next", text: "Next Campfire Song", href: "/production/stage/props/campfire-song" },
+      { rel: "next", text: "Next Campfire Song", href: "/production/items/campfire-song/props" },
     ]);
   });
 
@@ -194,7 +194,7 @@ describe("An item's props page", () => {
     await wrapper.get("main a[rel=next]").trigger("click");
     await flushPromises();
 
-    expect(router.currentRoute.value.fullPath).toBe("/production/stage/props/campfire-song");
+    expect(router.currentRoute.value.fullPath).toBe("/production/items/campfire-song/props");
     expect(wrapper.get("main h1").text()).toBe("Campfire Song");
     expect(propsShown(wrapper)).toEqual(["Marshmallows"]);
     expect(stepLinks(wrapper).map((link) => link.text)).toEqual([
@@ -206,11 +206,11 @@ describe("An item's props page", () => {
 
   it("has no Previous on the first item, and no Next on the last", async () => {
     savedShowIs(show);
-    const first = await openAppAt("/production/stage/props/opening-number");
+    const first = await openAppAt("/production/items/opening-number/props");
     expect(stepLinks(first.wrapper).map((link) => link.rel)).toEqual(["next"]);
     first.wrapper.unmount();
 
-    const { wrapper } = await openAppAt("/production/stage/props/finale");
+    const { wrapper } = await openAppAt("/production/items/finale/props");
     expect(stepLinks(wrapper).map((link) => link.rel)).toEqual(["prev"]);
   });
 
@@ -232,23 +232,23 @@ describe("An item's props page", () => {
     expect(row.find("button[aria-label='Help for this item']").exists()).toBe(true);
   });
 
-  it("marks Stage as the current page in the menu", async () => {
+  it("marks the Production overview as the current page in the menu", async () => {
     savedShowIs(show);
     const { wrapper } = await openAppAt(PIRATE_PROPS);
 
     const current = wrapper.findAll("nav a[aria-current=page]");
-    expect(current.map((link) => link.text())).toEqual(["Stage"]);
+    expect(current.map((link) => link.attributes("href"))).toEqual(["/production/overview"]);
   });
 
-  it("says an item that isn't in the running order wasn't found, with a link back to the Props page", async () => {
+  it("says an item that isn't in the running order wasn't found, with a link back to the Overview", async () => {
     savedShowIs(show);
-    const { wrapper, router } = await openAppAt("/production/stage/props/no-such-item");
+    const { wrapper, router } = await openAppAt("/production/items/no-such-item/props");
 
     expect(wrapper.get("main h1").text()).toBe("Item not found");
     expect(document.title).toBe("Item not found · iCUE");
     await wrapper.get("main a.back-link").trigger("click");
     await flushPromises();
-    expect(router.currentRoute.value.fullPath).toBe("/production/stage?view=props");
+    expect(router.currentRoute.value.fullPath).toBe("/production/overview");
   });
 
   it("says the item wasn't found when there's no saved running order", async () => {
@@ -283,7 +283,7 @@ describe("An item's props page", () => {
 });
 
 describe("Adding a prop", () => {
-  it("adds a prop by name as a card, kept on reload and counted on the Props page, for Stage", async () => {
+  it("adds a prop by name as a card, kept on reload and counted on the Overview, for Stage", async () => {
     await signInAs(["stage"], "pat");
     const stored = savedShowIs(show);
     const first = await openAppAt(PIRATE_PROPS);
@@ -300,9 +300,9 @@ describe("Adding a prop", () => {
 
     await wrapper.get("main nav[aria-label='Item navigation'] a").trigger("click");
     await flushPromises();
-    expect(router.currentRoute.value.name).toBe("stage");
+    expect(router.currentRoute.value.name).toBe("production-overview");
     const row = wrapper.get("[data-test=item][data-item-id=pirate-sketch]");
-    expect(row.get("[data-test=count]").text()).toBe("1 prop");
+    expect(row.get("[data-test=count] .visually-hidden").text()).toBe("1 prop");
   });
 
   it("lets an admin add a prop, as for Stage", async () => {
@@ -894,7 +894,7 @@ describe("Editing and removing a prop", () => {
     expect(stored).toEqual([telescope()]);
   });
 
-  it("removes a prop after asking, naming the prop and the item, counted on the Props page", async () => {
+  it("removes a prop after asking, naming the prop and the item, counted on the Overview", async () => {
     const stored = savedShowIs(show, [telescope(), aProp(2, "pirate-sketch", "Parrot")], {
       roles,
       cast,
@@ -910,9 +910,9 @@ describe("Editing and removing a prop", () => {
     expect(stored.map((prop) => prop.name)).toEqual(["Parrot"]);
     await wrapper.get("main nav[aria-label='Item navigation'] a").trigger("click");
     await flushPromises();
-    expect(router.currentRoute.value.name).toBe("stage");
+    expect(router.currentRoute.value.name).toBe("production-overview");
     const row = wrapper.get("[data-test=item][data-item-id=pirate-sketch]");
-    expect(row.get("[data-test=count]").text()).toBe("1 prop");
+    expect(row.get("[data-test=count] .visually-hidden").text()).toBe("1 prop");
   });
 
   it("keeps a prop when its removal is cancelled", async () => {

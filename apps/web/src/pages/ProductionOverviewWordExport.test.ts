@@ -14,7 +14,7 @@ import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
 import { RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
 import { documentXml, readDocx } from "@/utils/word/docx.fixture.ts";
 
-// The Stage page's Generate Props List button (stage-props FR22, FR23; ADR 0022). Made-up
+// The Production overview's Generate Props List button (stage-props FR22, FR23; ADR 0022). Made-up
 // names only: tests never use the real cast (CLAUDE.md safeguarding).
 
 enableAutoUnmount(afterEach);
@@ -95,9 +95,9 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
-async function openPropsView() {
+async function openOverview() {
   const router = createAppRouter(createMemoryHistory());
-  await router.push("/production/stage?view=props");
+  await router.push("/production/overview");
   await router.isReady();
   const wrapper = mount(App, { global: { plugins: [router] }, attachTo: document.body });
   await flushPromises();
@@ -130,7 +130,7 @@ const exportUses = () =>
 describe("Generate Props List", () => {
   it("lets someone with no permissions download the props list as a Word document", async () => {
     await signInAs([], "jo");
-    const wrapper = await openPropsView();
+    const wrapper = await openOverview();
 
     expect(generateButton(wrapper)?.classes()).toContain("word-export-button");
     await generate(wrapper);
@@ -140,7 +140,7 @@ describe("Generate Props List", () => {
   });
 
   it("names the file for the production and the day, as the Item Overview is", async () => {
-    const wrapper = await openPropsView();
+    const wrapper = await openOverview();
 
     await generate(wrapper);
 
@@ -148,7 +148,7 @@ describe("Generate Props List", () => {
   });
 
   it("shows the cast as saved when it's generated, not when the page loaded", async () => {
-    const wrapper = await openPropsView();
+    const wrapper = await openOverview();
     api.roles = [{ ...captain, castMemberIds: [kim.id] }];
 
     await generate(wrapper);
@@ -162,7 +162,7 @@ describe("Generate Props List", () => {
   });
 
   it("holds nothing about the cast beyond their names", async () => {
-    const wrapper = await openPropsView();
+    const wrapper = await openOverview();
 
     await generate(wrapper);
 
@@ -175,7 +175,7 @@ describe("Generate Props List", () => {
   });
 
   it("says the props list was generated, and records the use", async () => {
-    const wrapper = await openPropsView();
+    const wrapper = await openOverview();
 
     await generate(wrapper);
 
@@ -184,7 +184,7 @@ describe("Generate Props List", () => {
   });
 
   it("shows it's busy and starts no second list while one is being made", async () => {
-    const wrapper = await openPropsView();
+    const wrapper = await openOverview();
     let release = () => {};
     api.holdProps = new Promise((resolve) => {
       release = resolve;
@@ -203,7 +203,7 @@ describe("Generate Props List", () => {
   });
 
   it("says when it can't be made, saving and recording nothing, and keeps the button ready", async () => {
-    const wrapper = await openPropsView();
+    const wrapper = await openOverview();
     api.propsStatus = 500;
 
     await generate(wrapper);

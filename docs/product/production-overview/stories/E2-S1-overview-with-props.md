@@ -2,7 +2,7 @@
 id: production-overview.E2.S1
 title: Give Production one Overview, starting with Props
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story
@@ -79,7 +79,7 @@ And a bookmark to an item's props page still opens that props page
 ### AC12: Usage records the Overview
 Given team members have opened the Overview
 When an admin opens the Usage page
-Then the visits show under Overview
+Then the visits show under Production overview, apart from Casting's Overview
 And past visits to the Stage, Tech and Wardrobe pages don't appear
 
 ### AC13: Help names the Overview
@@ -97,4 +97,6 @@ And it doesn't name Stage, Tech or Wardrobe as pages
 - Usage (AC12): Stage, Tech and Wardrobe join the retired pages that the Usage page no longer shows. Deleting their stored visits is E3.S2. The Stage and Tech views' switches stop being recorded, since the switches go.
 - AC13 keeps Help true to the menu. E3.S1 then describes every button properly.
 - The browser layout tests walk the menu and today's Props view. Ask before changing which pages they walk (CLAUDE.md).
+- AC12 decided 2026-10-26: the Usage page and Help call the page "Production overview", since Casting's page is already "Overview" there. The menu and the page's own title say Overview.
+- The props item page's address is now `/production/items/<item>/props`, ready for E2.S2's department pages beside it. The old `/production/stage/props/<item>` redirects.
 - Out of scope: the Scenery, SFX, Mic plot and Wardrobe buttons (E2.S2), and the Welcome page's full description (E3.S1).
