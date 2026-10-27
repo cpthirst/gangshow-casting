@@ -949,6 +949,12 @@ main a {
   font-weight: 700;
 }
 
+/* A picker with a "Selected …" list takes a whole row, so the red line above the list runs
+   the width of the form on wide screens too. */
+.cast-member-form .field:has(> .members-block) {
+  grid-column: 1 / -1;
+}
+
 /* A picker's label heads its group, so it's the size of the "Selected …" list below it. */
 .cast-member-form label.picker-label {
   font-size: 1rem;
