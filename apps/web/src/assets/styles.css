@@ -1883,11 +1883,15 @@ main a {
   overflow-wrap: anywhere;
 }
 
-/* How many of a prop's carriers are left to choose, under its roles (production-props FR26). */
+/* How many of a prop's carriers are left to choose, under its roles (production-props FR26).
+   Marked as "Nobody carries it" is, so a prop still needing carriers stands out. */
 .prop-to-choose {
   flex-basis: 100%;
   margin: 0;
+  color: var(--red-darker);
   font-size: 0.875rem;
+  font-style: italic;
+  font-weight: 700;
 }
 
 /* The carrier picker's "Choose up to 2 · 1 left to choose", between its label and search. */

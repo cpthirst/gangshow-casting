@@ -82,3 +82,4 @@ Then the response is 400, and nothing is saved
 - Follow-up: a dropped item's props keep their carrier ids, as whether those props are kept at all is still an open question in the PRD.
 - A carrier saved before AC9 who plays a named part stays in the stored ids, harmlessly: they carry it anyway, and the next edit saves only the ensemble carriers.
 - A casting change can leave more named parts than the quantity (an uncast role is cast). The card then shows them all with nothing to choose; the next edit asks for a higher quantity.
+- "N left to choose" on a card is bold red italic, as "Nobody carries it" is, so a prop still needing carriers stands out (asked for while demoing).
