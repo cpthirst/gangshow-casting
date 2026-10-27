@@ -1900,9 +1900,10 @@ main a {
   font-weight: 700;
 }
 
-/* Who carries a prop, in brackets after each of its roles in the prop form (production-props
-   FR26). */
-.role-carriers {
+/* Who carries a prop, in brackets after each of its roles on its card and in its form
+   (production-props FR26). */
+.role-carriers,
+.prop-carriers {
   font-style: italic;
   overflow-wrap: anywhere;
 }

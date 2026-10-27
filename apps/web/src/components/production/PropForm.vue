@@ -258,6 +258,7 @@ function submit() {
         v-model="form.carrier"
         :cast="offered"
         :chosen-ids="form.carrierIds"
+        :no-match="full ? 'Take someone off to choose someone else' : undefined"
         name="carrier"
         :hint-id="`${idFor('carrier')}-hint`"
         :input-id="idFor('carrier')"
@@ -265,6 +266,9 @@ function submit() {
       />
       <p v-if="errors.carrier" :id="errorFor('carrier')" class="field-error">
         {{ errors.carrier }}
+      </p>
+      <p v-if="carriers.length > 0" class="carriers-hint" data-test="take-off-hint">
+        Choose a ticked name again to take them off.
       </p>
       <p class="visually-hidden" role="status">{{ carrierAnnouncement }}</p>
     </div>

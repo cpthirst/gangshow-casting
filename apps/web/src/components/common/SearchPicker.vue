@@ -15,7 +15,8 @@ interface PickerOption {
 // matches: the options the text typed so far matches, in the order to offer them.
 // noun: what's being chosen, e.g. "cast member", for the list's name and its status.
 // describedBy: the field's error, if it has one. hintId: a hint that describes it, not an
-// error. disabled: nothing can be chosen for now.
+// error. disabled: nothing can be chosen for now. noMatch: what to say when nothing matches,
+// if not "No {noun}s match".
 const props = defineProps<{
   matches: PickerOption[];
   noun: string;
@@ -24,6 +25,7 @@ const props = defineProps<{
   describedBy?: string | undefined;
   hintId?: string | undefined;
   disabled?: boolean;
+  noMatch?: string | undefined;
 }>();
 const choice = defineModel<{ query: string; id: number | null }>({ required: true });
 
@@ -130,7 +132,7 @@ function onEscape(event: KeyboardEvent) {
     <!-- One live region: "No {noun}s match" is seen and heard once; a count is heard. -->
     <p class="combobox-status" role="status">
       <span v-if="open && matches.length === 0" class="combobox-empty"
-        >No {{ plural(0) }} match</span
+        >{{ noMatch ?? `No ${plural(0)} match` }}</span
       >
       <span v-else-if="open" class="visually-hidden">
         {{ matches.length }} {{ plural(matches.length) }} match

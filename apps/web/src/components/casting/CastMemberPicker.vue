@@ -16,6 +16,7 @@ const props = withDefaults(
     name?: string;
     /** Who's already chosen: marked in the list, so choosing them again takes them off. */
     chosenIds?: number[];
+    noMatch?: string | undefined;
   }>(),
   { name: "castMember", chosenIds: () => [] },
 );
@@ -45,5 +46,6 @@ const matches = computed(() =>
     :described-by="describedBy"
     :hint-id="hintId"
     :disabled="disabled"
+    :no-match="noMatch"
   />
 </template>

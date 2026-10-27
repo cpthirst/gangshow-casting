@@ -1391,6 +1391,44 @@ describe("Who carries a prop", () => {
     expect(tickedCarriers(wrapper)).toEqual(["Kim Lee"]);
   });
 
+  it("says how to take a carrier off once one is chosen", async () => {
+    savedShowIs(village, [], villageCasting);
+    const { wrapper } = await openAppAt(VILLAGE_PROPS);
+    await startProp(wrapper, "Bread basket", ["Villagers"]);
+    expect(wrapper.find("[data-test=take-off-hint]").exists()).toBe(false);
+
+    await chooseCarrier(wrapper, "Kim Lee");
+
+    expect(wrapper.get("[data-test=take-off-hint]").text()).toBe(
+      "Choose a ticked name again to take them off.",
+    );
+  });
+
+  it("says to take someone off when a name is searched once the quantity is reached", async () => {
+    savedShowIs(village, [], villageCasting);
+    const { wrapper } = await openAppAt(VILLAGE_PROPS);
+    await startProp(wrapper, "Bread basket", ["Villagers"]);
+    await chooseCarrier(wrapper, "Kim Lee");
+
+    await carrierSearch(wrapper).setValue("Alex");
+
+    expect(wrapper.get(".combobox-empty").text()).toBe("Take someone off to choose someone else");
+  });
+
+  it("puts each role's carriers in brackets on the card, as the form does", async () => {
+    savedShowIs(
+      village,
+      [aProp(1, "village-square", "Lantern", [villagers.id, baker.id], 2, [jo.id])],
+      villageCasting,
+    );
+    const { wrapper } = await openAppAt(VILLAGE_PROPS);
+
+    const rows = wrapper
+      .findAll("[data-test=prop-role]")
+      .map((row) => row.text().replace(/\s+/g, " "));
+    expect(rows).toEqual(["Baker (Sam Taylor)", "Villagers (Jo Brown)"]);
+  });
+
   it("offers only the cast of the prop's roles", async () => {
     savedShowIs(village, [], villageCasting);
     const { wrapper } = await openAppAt(VILLAGE_PROPS);

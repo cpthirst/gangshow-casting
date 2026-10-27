@@ -66,7 +66,10 @@ const carrying = computed(() => carryingOf(props.prop, props.roles, props.cast))
         <span class="role-name" data-test="prop-role-name">{{ role.name }}</span>
         <!-- Real spaces, so a screen reader hears "Parrot Uncast", not one word. -->
         {{ " " }}
-        <span v-if="carriers" class="role-cast" data-test="cast">{{ carriers }}</span>
+        <!-- In brackets, as the prop form shows them. -->
+        <span v-if="carriers" class="role-cast prop-carriers"
+          >(<span data-test="cast">{{ carriers }}</span>)</span
+        >
         <span v-else class="uncast" data-test="uncast">{{ none }}</span>
       </li>
     </ul>
