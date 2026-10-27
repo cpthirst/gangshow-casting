@@ -200,7 +200,7 @@ describe("Production overview", () => {
       expect(button?.attributes("aria-label")).toBe("Edit props for Pirate Sketch");
       expect(button?.classes()).toContain("icon-button");
       expect(button?.find("svg.fa-person-walking-luggage").exists()).toBe(true);
-      expect(button?.attributes("data-tooltip")).toBe("Edit this item's props");
+      expect(button?.attributes("data-tooltip")).toBe("Props");
       expect(
         rowFor(wrapper, "Finale")?.get("[data-test=open-props]").attributes("aria-label"),
       ).toBe("Edit props for Finale");
@@ -233,7 +233,7 @@ describe("Production overview", () => {
       const button = rowFor(wrapper, "Pirate Sketch")?.get("[data-test=open-props]");
       expect(button?.attributes("aria-label")).toBe("View props for Pirate Sketch");
       expect(button?.find("svg.fa-person-walking-luggage").exists()).toBe(true);
-      expect(button?.attributes("data-tooltip")).toBe("View this item's props");
+      expect(button?.attributes("data-tooltip")).toBe("Props");
 
       await button?.trigger("click");
       await flushPromises();
@@ -271,6 +271,80 @@ describe("Production overview", () => {
     const counts = wrapper.findAll("[data-test=count]").map((cell) => cell.text());
     expect(counts.length).toBeGreaterThan(0);
     for (const count of counts) expect(count).not.toMatch(/\d/);
+  });
+});
+
+describe("Department buttons on the Production overview", () => {
+  const buttonsIn = (wrapper: VueWrapper, title: string) =>
+    rowFor(wrapper, title)?.findAll("td.moves .icon-button") ?? [];
+  const namesIn = (wrapper: VueWrapper, title: string) =>
+    buttonsIn(wrapper, title).map((button) => button.attributes("aria-label"));
+
+  it("has five square buttons in each row, Scenery, Props, SFX, Mic plot and Wardrobe, each with its own icon", async () => {
+    savedShowIs(show());
+    const { wrapper } = await openOverview();
+
+    const buttons = buttonsIn(wrapper, "Opening Number");
+    expect(buttons.map((button) => button.attributes("data-tooltip"))).toEqual([
+      "Scenery",
+      "Props",
+      "SFX",
+      "Mic plot",
+      "Wardrobe",
+    ]);
+    const icons = ["hammer", "person-walking-luggage", "file-audio", "microphone", "shirt"];
+    expect(buttons.map((button, i) => button.find(`svg.fa-${icons[i]}`).exists())).toEqual(
+      icons.map(() => true),
+    );
+    expect(buttons.every((button) => button.get("svg").attributes("aria-hidden") === "true")).toBe(
+      true,
+    );
+  });
+
+  it("names each button for its department, item and whether it can be changed", async () => {
+    await signInAs(["tech"], "pat");
+    savedShowIs(show());
+    const { wrapper } = await openOverview();
+
+    expect(namesIn(wrapper, "Opening Number")).toEqual([
+      "View scenery for Opening Number",
+      "View props for Opening Number",
+      "Edit SFX for Opening Number",
+      "Edit mic plot for Opening Number",
+      "View wardrobe for Opening Number",
+    ]);
+  });
+
+  it("names every button Edit for an admin", async () => {
+    await signInAs(["admin"], "alex");
+    savedShowIs(show());
+    const { wrapper } = await openOverview();
+
+    const names = wrapper
+      .findAll("[data-test=item]")
+      .flatMap((row) => row.findAll("td.moves .icon-button"))
+      .map((button) => button.attributes("aria-label"));
+    expect(names).toHaveLength(16 * 5);
+    expect(names.every((name) => name?.startsWith("Edit "))).toBe(true);
+  });
+
+  it.each([
+    ["Scenery", "scenery-item", "/production/items/opening-number/scenery"],
+    ["SFX", "sfx-item", "/production/items/opening-number/sfx"],
+    ["Mic plot", "mic-plot-item", "/production/items/opening-number/mic-plot"],
+    ["Wardrobe", "wardrobe-item", "/production/items/opening-number/wardrobe"],
+  ])("opens the %s page for the item", async (department, name, path) => {
+    savedShowIs(show());
+    const { wrapper, router } = await openOverview();
+
+    const button = buttonsIn(wrapper, "Opening Number").find(
+      (b) => b.attributes("data-tooltip") === department,
+    );
+    await button?.trigger("click");
+    await flushPromises();
+
+    expect(router.currentRoute.value.name).toBe(name);
+    expect(router.currentRoute.value.fullPath).toBe(path);
   });
 });
 

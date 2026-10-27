@@ -148,9 +148,9 @@ describe("An item's props page", () => {
     await flushPromises();
 
     expect(router.currentRoute.value.fullPath).toBe(PIRATE_PROPS);
-    expect(wrapper.get("main h1").text()).toBe("Pirate Sketch");
+    expect(wrapper.get("main h1").text()).toBe("Props: Pirate Sketch");
     expect(wrapper.get("[data-test=position]").text()).toBe("Item 2 · First half");
-    expect(document.title).toBe("Pirate Sketch · iCUE");
+    expect(document.title).toBe("Props: Pirate Sketch · iCUE");
   });
 
   it("goes back to the Overview from All items", async () => {
@@ -195,13 +195,13 @@ describe("An item's props page", () => {
     await flushPromises();
 
     expect(router.currentRoute.value.fullPath).toBe("/production/items/campfire-song/props");
-    expect(wrapper.get("main h1").text()).toBe("Campfire Song");
+    expect(wrapper.get("main h1").text()).toBe("Props: Campfire Song");
     expect(propsShown(wrapper)).toEqual(["Marshmallows"]);
     expect(stepLinks(wrapper).map((link) => link.text)).toEqual([
       "Previous Pirate Sketch",
       "Next Finale",
     ]);
-    expect(document.title).toBe("Campfire Song · iCUE");
+    expect(document.title).toBe("Props: Campfire Song · iCUE");
   });
 
   it("has no Previous on the first item, and no Next on the last", async () => {
@@ -219,7 +219,7 @@ describe("An item's props page", () => {
 
     const { wrapper } = await openAppAt(PIRATE_PROPS);
 
-    expect(wrapper.get("main h1").text()).toBe("Pirate Sketch");
+    expect(wrapper.get("main h1").text()).toBe("Props: Pirate Sketch");
     expect(propsShown(wrapper)).toEqual(["Treasure chest"]);
   });
 
@@ -228,7 +228,7 @@ describe("An item's props page", () => {
     const { wrapper } = await openAppAt(PIRATE_PROPS);
 
     const row = wrapper.get("main .page-title-row");
-    expect(row.get("h1").text()).toBe("Pirate Sketch");
+    expect(row.get("h1").text()).toBe("Props: Pirate Sketch");
     expect(row.find("button[aria-label='Help for this item']").exists()).toBe(true);
   });
 
@@ -374,7 +374,7 @@ describe("Adding a prop", () => {
     await wrapper.get("main a[rel=next]").trigger("click");
     await flushPromises();
 
-    expect(wrapper.get("main h1").text()).toBe("Campfire Song");
+    expect(wrapper.get("main h1").text()).toBe("Props: Campfire Song");
     expect(wrapper.find("form[aria-label='Add prop']").exists()).toBe(false);
     await wrapper.get("[data-test=add-prop]").trigger("click");
     expect(wrapper.get<HTMLInputElement>("input[name=name]").element.value).toBe("");

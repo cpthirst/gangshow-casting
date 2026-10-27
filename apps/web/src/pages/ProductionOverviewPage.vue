@@ -5,16 +5,18 @@ import { computed, nextTick, onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
 import HelpButton from "@/components/common/HelpButton.vue";
 import { latestPropsList } from "@/services/latest-show.ts";
-import { apiFetch, canChangeStage } from "@/services/sign-in.ts";
+import { apiFetch, canChange } from "@/services/sign-in.ts";
 import { recordExport } from "@/services/usage.ts";
 import { downloadPropsList } from "@/services/word-export.ts";
+import { departmentPages } from "@/utils/departments.ts";
 import { icons } from "@/utils/icons.ts";
 import { PROPS_PATH, propCountLabel, propCounts } from "@/utils/props.ts";
 import { PROPS_NOTES_PATH } from "@/utils/props-notes.ts";
 import { RUNNING_ORDER_PATH, runningClock } from "@/utils/running-order.ts";
 
-// Production's one page: the show's items, each with a button for its props page and how
-// many props it has (production-overview FR4–FR8), laid out as the casting Items list.
+// Production's one page: the show's items, each with a button for every department's page
+// for it and how many props it has (production-overview FR4–FR8, FR10), laid out as the
+// casting Items list.
 
 const route = useRoute();
 
@@ -154,7 +156,7 @@ async function loadRunningOrder() {
         <table class="running-order items-list" role="table">
           <!-- The same column widths in both halves, so they line up. -->
           <colgroup>
-            <col class="col-cast" />
+            <col class="col-departments" />
             <col class="col-number" />
             <col />
             <col class="col-prop-count" />
@@ -176,14 +178,17 @@ async function loadRunningOrder() {
                 :class="{ 'not-printed': number === null }"
               >
                 <td class="moves" data-label="Open" role="cell">
+                  <!-- Each says whether it edits or views, by the department's permission. -->
                   <RouterLink
+                    v-for="department in departmentPages"
+                    :key="department.route"
                     class="icon-button"
-                    data-test="open-props"
-                    :to="{ name: 'props-item', params: { itemId: item.id } }"
-                    :aria-label="`${canChangeStage ? 'Edit' : 'View'} props for ${item.title}`"
-                    :data-tooltip="canChangeStage ? 'Edit this item\'s props' : 'View this item\'s props'"
+                    :data-test="`open-${department.path}`"
+                    :to="{ name: department.route, params: { itemId: item.id } }"
+                    :aria-label="`${canChange(department.permission) ? 'Edit' : 'View'} ${department.noun} for ${item.title}`"
+                    :data-tooltip="department.name"
                   >
-                    <FontAwesomeIcon :icon="icons.props" />
+                    <FontAwesomeIcon :icon="department.icon" />
                   </RouterLink>
                 </td>
                 <td data-test="number" class="number" data-label="#" role="cell">

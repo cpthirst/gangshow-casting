@@ -5,6 +5,7 @@ import {
   LOCAL_ACCESS_HEADER,
   localAccessHeader,
   mayChange,
+  type Permission,
   type SignInConfig,
 } from "@app/shared";
 import { computed, ref, shallowRef } from "vue";
@@ -110,6 +111,8 @@ export const isAdmin = computed(() => access.value === "admin");
 export const canChangeCasting = computed(() => mayChange(access.value, "casting"));
 /** The props pages show their change controls only to those who may change Stage. */
 export const canChangeStage = computed(() => mayChange(access.value, "stage"));
+/** Whether the pages for a department's data show their change controls. */
+export const canChange = (permission: Permission) => mayChange(access.value, permission);
 /** A change was refused because the person may only read: pages say it wasn't saved. */
 export const changeRefusedAsReadOnly = computed(() => refusedAsReadOnly.value);
 
