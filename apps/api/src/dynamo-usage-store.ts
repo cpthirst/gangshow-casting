@@ -6,7 +6,6 @@ import {
   RecordUsageRequest,
 } from "@app/shared";
 import {
-  DeleteCommand,
   type DynamoDBDocumentClient,
   GetCommand,
   PutCommand,
@@ -87,40 +86,11 @@ export function dynamoUsageStore(db: DynamoDBDocumentClient, tableName: string):
   };
 }
 
-const isRetiredPageUse = (row: Record<string, unknown>) =>
-  row.event === "page" && RETIRED_MENU_PAGES.some((page) => page === row.page);
-
 /** A use of a page or view that has gone, which the Usage page leaves out. */
 const isGoneUse = (row: Record<string, unknown>) =>
-  isRetiredPageUse(row) ||
-  (row.event === "page" && DEPARTMENT_PAGES.some((page) => page === row.page)) ||
+  (row.event === "page" &&
+    [...RETIRED_MENU_PAGES, ...DEPARTMENT_PAGES].some((page) => page === row.page)) ||
   (row.event === "view" && DEPARTMENT_VIEWS.some((view) => view === row.view));
-
-/**
- * Deletes every use of a retired menu page (production-props AC11), and nothing else, returning
- * how many it deleted. Safe to run again: a second run finds none.
- */
-export async function purgeRetiredPageUses(db: DynamoDBDocumentClient, tableName: string) {
-  let purged = 0;
-  let startKey: Record<string, unknown> | undefined;
-  do {
-    const page = await db.send(
-      new QueryCommand({
-        TableName: tableName,
-        KeyConditionExpression: "pk = :pk",
-        ExpressionAttributeValues: { ":pk": USAGE },
-        ConsistentRead: true,
-        ExclusiveStartKey: startKey,
-      }),
-    );
-    for (const row of (page.Items ?? []).filter(isRetiredPageUse)) {
-      await db.send(new DeleteCommand({ TableName: tableName, Key: { pk: row.pk, sk: row.sk } }));
-      purged++;
-    }
-    startKey = page.LastEvaluatedKey;
-  } while (startKey);
-  return purged;
-}
 
 /** A stored row as a record, without its keys and expiry. */
 function asRecord(row: Record<string, unknown>): UsageRecord {

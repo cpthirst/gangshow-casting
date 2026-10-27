@@ -50,9 +50,9 @@ import logo from "@/assets/logo.jpg";
       </dt>
       <dd>
         What each department needs for each item, on one page: the
-        <RouterLink :to="{ name: 'production-overview' }">Overview</RouterLink>, with every item
-        in running order and a button to open its props. Each department's permission (Stage,
-        Tech or Wardrobe) is what lets someone change its pages.
+        <RouterLink :to="{ name: 'production-overview' }">Overview</RouterLink>, with the show's
+        items in running order and a button to open each department's page for them. Each department's permission (Stage, Tech or Wardrobe) is what lets someone
+        change its pages.
       </dd>
     </dl>
   </section>

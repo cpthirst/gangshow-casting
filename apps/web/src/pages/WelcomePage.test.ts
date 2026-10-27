@@ -40,7 +40,9 @@ describe("Welcome page", () => {
     const areas = wrapper.findAll("dt").map((term) => term.text());
     expect(areas).toEqual(["Show", "Casting", "Production"]);
     const production = wrapper.findAll("dd")[2]?.text().replace(/\s+/g, " ") ?? "";
-    expect(production).toContain("the Overview");
+    expect(production).toContain(
+      "the Overview, with the show's items in running order and a button to open each department's page for them",
+    );
     expect(production).not.toContain("a page each");
     expect(production).toContain(
       "Each department's permission (Stage, Tech or Wardrobe) is what lets someone change its pages",

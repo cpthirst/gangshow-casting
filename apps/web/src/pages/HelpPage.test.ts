@@ -318,27 +318,65 @@ describe("Help page", () => {
       ).toEqual(["Reading: Everyone", "Changing: Accounts with Stage, and admins"]);
     });
 
-    it("describe the Overview, its Props button and Generate Props List, open to everyone", async () => {
+    it("name the Overview's five buttons in row order, each with its icon, its page and whether it's coming soon", async () => {
       const { wrapper } = await openHelp();
 
       expect(summaryOf(wrapper, "production-overview")).toContain("in running order");
-      expect(names(wrapper, "production-overview")).toEqual(["Props", "Generate Props List"]);
-      expect(
-        lineNamed(wrapper, "Props", "production-overview")
-          .find("svg.fa-person-walking-luggage")
-          .exists(),
-      ).toBe(true);
-      for (const line of lines(wrapper, "production-overview")) {
-        expect(line.get("[data-test=help-access]").text()).toBe("Everyone");
+      const buttons = ["Scenery", "Props", "SFX", "Mic plot", "Wardrobe"];
+      expect(names(wrapper, "production-overview").slice(0, 5)).toEqual(buttons);
+      const iconOf = (name: string) =>
+        lineNamed(wrapper, name, "production-overview").get("svg").attributes("data-icon");
+      expect(buttons.map(iconOf)).toEqual(
+        [icons.scenery, icons.props, icons.sfx, icons.micPlot, icons.wardrobe].map(
+          (icon) => icon.iconName,
+        ),
+      );
+      const doesOf = (name: string) =>
+        lineNamed(wrapper, name, "production-overview").get("[data-test=help-does]").text();
+      expect(buttons.map(doesOf)).toEqual([
+        expect.stringContaining("the item's scenery page"),
+        expect.stringContaining("the item's props page"),
+        expect.stringContaining("the item's SFX page"),
+        expect.stringContaining("the item's mic plot page"),
+        expect.stringContaining("the item's wardrobe page"),
+      ]);
+      expect(buttons.filter((name) => doesOf(name).includes("Coming soon"))).toEqual([
+        "Scenery",
+        "SFX",
+        "Mic plot",
+        "Wardrobe",
+      ]);
+    });
+
+    it("label each button with the department that changes its page, as do admins, and that everyone can view it", async () => {
+      const { wrapper } = await openHelp();
+
+      const access = (name: string) =>
+        lineNamed(wrapper, name, "production-overview")
+          .findAll("[data-test=help-access]")
+          .map((label) => label.text());
+      for (const [name, department] of [
+        ["Scenery", "Stage"],
+        ["Props", "Stage"],
+        ["SFX", "Tech"],
+        ["Mic plot", "Tech"],
+        ["Wardrobe", "Wardrobe"],
+      ] as const) {
+        expect(access(name)).toEqual([
+          "Reading: Everyone",
+          `Changing: Accounts with ${department}, and admins`,
+        ]);
       }
     });
 
-    it("say Stage is what lets someone change the props", async () => {
+    it("describe Generate Props List after the buttons, open to everyone", async () => {
       const { wrapper } = await openHelp();
 
-      expect(summaryOf(wrapper, "production-overview")).toContain(
-        "Accounts with Stage, and admins, can change the props.",
-      );
+      expect(names(wrapper, "production-overview").at(-1)).toBe("Generate Props List");
+      const line = lineNamed(wrapper, "Generate Props List", "production-overview");
+      expect(line.get("[data-test=help-does]").text()).toContain("Word");
+      expect(line.get("svg").attributes("data-icon")).toBe(icons.exportWord.iconName);
+      expect(line.get("[data-test=help-access]").text()).toBe("Everyone");
     });
 
     it("don't name Stage, Tech or Wardrobe as pages", async () => {

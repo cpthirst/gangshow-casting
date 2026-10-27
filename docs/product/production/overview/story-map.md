@@ -31,8 +31,8 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [production-overview.E3.S1](stories/E3-S1-welcome-and-help.md) | Welcome and Help describe the Overview, what each button opens and its icon, Generate Props List, and which permission changes each department's pages | FR12 | E2.S2 | ready |
-| [production-overview.E3.S2](stories/E3-S2-purge-old-department-usage.md) | The Usage page's recorded visits to the Stage, Tech and Costume pages and their views are purged by a repeatable command the maintainer runs after the deploy. Open question: purge or keep (PRD) | FR13 | E2.S1 | draft |
+| [production-overview.E3.S1](stories/E3-S1-welcome-and-help.md) | Welcome and Help describe the Overview, what each button opens and its icon, Generate Props List, and which permission changes each department's pages | FR12 | E2.S2 | done |
+| [production-overview.E3.S2](stories/E3-S2-purge-old-department-usage.md) | The repo's usage purge command and its code are removed; the old pages' visits are purged once by hand after the deploy | FR13 | E2.S1 | done |
 
 ## Order
 
@@ -41,7 +41,7 @@ E1.S1 → E2.S1 → E2.S2 → E3.S1 → E3.S2
 - E1.S1 goes first, as asked, and is small. It renames the Costume page to Wardrobe, so the app never says "Costume" again. The page goes in E2.S1.
 - E2.S1 is mostly a move: today's Props view becomes the Overview, so there's never a release without the props list.
 - E2.S1 keeps Help in step with the menu, so Help never names a page that's gone. E3.S1 then rewrites it properly once every button exists.
-- E3.S2 waits on the PRD's open question about usage, so it stays `draft` until the maintainer answers.
+- E3.S2: the maintainer chose a one-off purge after the deploy (2026-10-27), so the story removes the repo's purge command instead of extending it.
 
 ## FR coverage
 

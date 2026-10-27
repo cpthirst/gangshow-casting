@@ -108,17 +108,6 @@ pnpm account roles
 
 It takes each account out of the `read-only` group, leaving it with no permissions, so it may still only read, and says how many accounts it checked and moved. No one is signed out and no one's access changes. It's safe to run again: it only ever removes `read-only` and never adds a group. A later release deletes the group once the command reports nothing left to move.
 
-### Retired pages' usage
-
-**Once, straight after the first deploy that brings the Stage, Tech and Costume pages**, purge the usage recorded for the old Mic plot, Props, Scenery and SFX pages, which became Stage's and Tech's views:
-
-```bash
-export AWS_PROFILE=gangshow-admin DATA_TABLE=<data table name>
-pnpm usage purge
-```
-
-It deletes only the visits to those four pages and says how many it removed; every other page's usage is kept. It's safe to run again: a second run removes nothing. Until it runs, the Usage page already leaves those visits out.
-
 ## 4. Release a new version
 
 Releases come from `main` ([ADR 0004](../adr/0004-versioning-with-release-please.md)). As changes are merged, release-please keeps a pull request open called `chore(main): release <next version>`, listing what's new. When you want to release, either use the shortcut below or follow the steps by hand.

@@ -9,7 +9,6 @@
     "test:dynamo": "vitest run --config vitest.dynamo.config.ts",
     "move": "node src/move-cli.ts",
     "account": "node src/account-cli.ts",
-    "usage": "node src/usage-cli.ts",
     "check:hosted": "node src/hosted-check.ts"
   },
   "dependencies": {
