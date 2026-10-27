@@ -1224,6 +1224,12 @@ describe("Who carries a prop", () => {
       .find((card) => card.get("[data-test=prop-name]").text() === propName)
       ?.find("[data-test=to-choose]");
 
+  const notGiven = (wrapper: VueWrapper, propName: string) =>
+    wrapper
+      .findAll("[data-test=prop]")
+      .find((card) => card.get("[data-test=prop-name]").text() === propName)
+      ?.find("[data-test=not-given]");
+
   async function setQuantity(wrapper: VueWrapper, quantity: string) {
     await wrapper.get("input[name=quantity]").setValue(quantity);
   }
@@ -1271,6 +1277,7 @@ describe("Who carries a prop", () => {
       { role: "Villagers", cast: "Jo Brown, Alex Green, Kim Lee" },
     ]);
     expect(leftToChoose(wrapper, "Umbrella")?.exists()).toBe(false);
+    expect(notGiven(wrapper, "Umbrella")?.text()).toBe("7 not given to anyone");
   });
 
   it("offers a labelled carrier picker of the role's cast when there are more than the quantity", async () => {
@@ -1476,6 +1483,25 @@ describe("Who carries a prop", () => {
       { role: "Captain Nought", cast: "Sam Taylor" },
       { role: "Referee", cast: "Jo Brown" },
     ]);
+  });
+
+  it("says on the card how many aren't given to anyone", async () => {
+    savedShowIs(
+      village,
+      [
+        aProp(1, "village-square", "Whistle", [cross.id, nought.id], 3),
+        aProp(2, "village-square", "Bell", [], 2),
+      ],
+      knots,
+    );
+    const { wrapper } = await openAppAt(VILLAGE_PROPS);
+
+    expect(rolesOn(wrapper, "Whistle")).toEqual([
+      { role: "Captain Cross", cast: "Kim Lee" },
+      { role: "Captain Nought", cast: "Sam Taylor" },
+    ]);
+    expect(notGiven(wrapper, "Whistle")?.text()).toBe("1 not given to anyone");
+    expect(notGiven(wrapper, "Bell")?.exists()).toBe(false);
   });
 
   it("won't save a quantity below the named parts, saying how many it needs", async () => {

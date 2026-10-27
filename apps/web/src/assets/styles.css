@@ -1883,8 +1883,8 @@ main a {
   overflow-wrap: anywhere;
 }
 
-/* How many of a prop's carriers are left to choose, under its roles (production-props FR26).
-   Marked as "Nobody carries it" is, so a prop still needing carriers stands out. */
+/* How many of a prop's carriers are left to choose, or aren't given to anyone, under its
+   roles (production-props FR26, FR27). Marked as "Nobody carries it" is, so it stands out. */
 .prop-to-choose {
   flex-basis: 100%;
   margin: 0;

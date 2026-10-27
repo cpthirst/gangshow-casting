@@ -76,8 +76,8 @@ export function carriersOf(roles: Role[], cast: CastMember[], quantity: number) 
   };
 }
 
-/** Who carries a prop, role by role in the item's role order, and how many are left to
- *  choose (production-props FR26, FR27). A carrier no longer in its ensembles doesn't count.
+/** Who carries a prop, role by role in the item's role order, how many are left to choose,
+ *  and how many aren't given to anyone (production-props FR26, FR27). A carrier no longer in its ensembles doesn't count.
  *  Each role's carriers are "" when it has none, with `none` to show instead. */
 export function carryingOf(prop: Prop, roles: Role[], cast: CastMember[]) {
   const linked = rolesOf(prop, roles);
@@ -102,6 +102,10 @@ export function carryingOf(prop: Prop, roles: Role[], cast: CastMember[]) {
       };
     }),
     toChoose: offersCarriers ? Math.max(0, room - chosen.length) : 0,
+    // Nobody left to choose, yet fewer carry it than the quantity: the rest go to nobody. A
+    // prop linked to no roles isn't carried, so it has none to give.
+    notGiven:
+      linked.length > 0 && !offersCarriers ? Math.max(0, prop.quantity - carrying.length) : 0,
   };
 }
 

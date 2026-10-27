@@ -72,6 +72,12 @@ Given "Lantern" is linked to Baker (Sam Taylor) and Villagers
 When a request saves it with a quantity of 2 and Sam Taylor chosen as a carrier, or with a quantity of 2 linked to three named parts
 Then the response is 400, and nothing is saved
 
+### AC13: A card says how many aren't given to anyone
+Given "Whistle", quantity 3, is linked only to Captain Cross and Captain Nought, one person each
+When anyone opens the props page
+Then the card shows both captains carrying it and says "1 not given to anyone", marked as "Nobody carries it" is
+And "Umbrella", quantity 10, linked to Villagers (three people) says "7 not given to anyone", while a prop linked to no roles says nothing
+
 ## Notes
 
 - FRs: FR28, and FR26 and FR27 changed by AC9 to AC12 (found while demoing: choosing among the people in named parts made no sense, as each always carries the prop)

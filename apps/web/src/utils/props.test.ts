@@ -354,6 +354,17 @@ describe("who carries a prop", () => {
       ]);
     });
 
+    it("says how many aren't given to anyone when the carriers don't use the quantity", () => {
+      expect(carried(10, [villagers.id]).notGiven).toBe(7);
+      expect(carried(3, [baker.id]).notGiven).toBe(2);
+      expect(carried(3, [villagers.id]).notGiven).toBe(0);
+    });
+
+    it("gives none as not given while carriers are still to choose, or with no roles", () => {
+      expect(carried(2, [villagers.id]).notGiven).toBe(0);
+      expect(carried(3, []).notGiven).toBe(0);
+    });
+
     it("names the whole ensemble when it fits what the named parts leave", () => {
       const lanterns = carried(4, [villagers.id, baker.id]);
       expect(shown(lanterns)).toEqual([
