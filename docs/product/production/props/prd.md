@@ -44,11 +44,12 @@ The Production menu lists every department's pages side by side (Mic plot, Props
 - **Permissions finer than a department**, such as "props but not scenery", or permissions that differ by production.
 - **Changing what an Admin can do**, or what today's Casting Team Members can do.
 - **Account management, Usage or other admin-only actions for anyone but admins.**
-- **Prop details beyond a name and its roles**: quantities, sizes, sources, costs, photos, who is making it, checklists, or a note on each prop. A quantity can go in the name ("3 umbrellas").
+- **Prop details beyond a name, its quantity, its roles and who carries it**: sizes, sources, costs, photos, who is making it, checklists, or a note on each prop.
 - **Setting the order of props.** They're sorted alphabetically.
 - **Changing the running order or casting from the props pages.**
 - **Props that carry over between productions.** Each production's props are its own (CLAUDE.md).
-- **Assigning a prop straight to a cast member.** A prop is linked to roles, and the cast member comes from the casting.
+- **Giving a prop to someone outside its roles.** Who carries a prop is chosen only from the cast of its roles (FR26).
+- **One cast member carrying a set number of a prop.** A carrier carries the prop; how many each holds goes in the props notes.
 - **An Excel export of props.**
 
 ## Functional requirements
@@ -99,6 +100,17 @@ The Production menu lists every department's pages side by side (Mic plot, Props
 - **FR20**: Each item's props page has a **Props notes** section, which works like the casting item notes (casting-item-overview FR8 and FR10). It's free text, up to 500 characters, saved with the item so it survives new running-order versions. Clearing it removes it. A save is refused, showing the current notes, if someone else saved since the page loaded. Props notes are separate from the casting item notes and from the running order's Comments.
 - **FR21**: Props are listed alphabetically by name, ignoring case, with numbers sorted by value ("Umbrella 2" before "Umbrella 10"), as roles are (casting-item-overview FR4). Roles on a card are in the item's role order.
 
+### Quantities and carriers (added 2026-10-27)
+
+Linking a prop to an ensemble role reads as if everyone in it gets one: "Bread basket" linked to Villagers lists every villager. These FRs say how many of a prop there are, and who carries them.
+
+- **FR24**: Each prop has a **quantity**, a whole number from 1 to 99. Adding a prop offers it, starting at 1, and editing a prop (FR19) can change it. Props saved before quantities have a quantity of 1. A card shows a quantity above 1 next to the prop's name, such as "Umbrella ×10".
+- **FR25**: Every props count adds up quantities, so an item with "Umbrella ×10" and "Telescope" has 11 props. That includes the count on the Production Overview (FR13, production-overview FR6).
+- **FR26**: When a prop's roles have more cast members between them than its quantity, Stage or an Admin chooses **who carries it**, from the cast of the prop's roles, when adding or editing the prop. They can choose up to its quantity, and the picker says how many are left to choose. The API refuses a carrier who isn't in one of the prop's roles, or more carriers than the quantity.
+- **FR27**: When the cast of a prop's roles is no more than its quantity, they all carry it, with nobody to choose, as today. When it's more, the card shows only the chosen carriers next to their roles, and says how many are still to choose, such as "2 still to choose". A role with no carriers shows that nobody in it carries the prop.
+- **FR28**: Carriers follow the casting. A carrier who leaves the prop's roles (recast, removed from the cast, or their role removed from the prop or the item) no longer carries it, and the card says one more is to choose. A prop's quantity can't be lowered below its number of carriers: the edit asks for carriers to be removed first.
+- **FR29**: The Word props list (FR23) shows each prop's quantity, and in the cast column its carriers, or everyone in the role when nobody needs choosing (FR27). A prop with carriers still to choose says how many.
+
 ### Export to Word
 - **FR22**: The Props page has a **Generate Props List** button that downloads a Word props list for the whole show, for every role, Read-Only Team Members included. It follows the existing Word exports' conventions: a document built from what the page shows, a file named for the production and the date, and loading only when used.
 - **FR23**: The document is laid out like the casting "By item" Word export: the production's title, then each half, then every item in running order as a headed section. That includes items not in the printed programme, marked as such, and items with no props, which say "No props". Under each item's heading are:
@@ -111,7 +123,7 @@ The Production menu lists every department's pages side by side (Mic plot, Props
   - Permissions are enforced by the API on every change, not just by hiding controls (FR4). A change route can't skip the check: each says which permission it needs.
   - An account whose permissions can't be worked out gets no more than read-only access. A mistaken or unknown permission never grants more.
   - Permissions per department replace ADR 0020's single read-only rule for every route that isn't a `GET` (its "Revisit if"). They also change how a role is worked out from the sign-in groups. This needs a new ADR that supersedes or amends ADR 0020.
-  - No new personal data about the cast or the team: permissions are all that's added to an account (ADR 0018).
+  - No new personal data about the cast or the team: permissions are all that's added to an account (ADR 0018). A prop's carriers are cast member ids, as a role's cast is, never names, so deleting someone from the cast removes them from every prop (FR28).
   - The props pages and the export show cast members' first names and surnames only, never age band, section, group, or Singing or Acting notes (ADR 0010, ADR 0014, ADR 0022).
   - Props notes are free text, and could hold personal details. They're for the production team only, like the casting item notes.
   - The export is a copy of children's names outside the app's access control, as the casting exports are (ADR 0022).
@@ -132,7 +144,7 @@ The Production menu lists every department's pages side by side (Mic plot, Props
 ## Constraints and assumptions
 
 - **Items** come from the latest saved running order, by their stable IDs, numbered as on the Running order page. Unsaved running-order changes aren't shown.
-- **Roles and cast names** come from the item's casting (casting-roles, cast-management). A prop links to roles, not to people.
+- **Roles and cast names** come from the item's casting (casting-roles, cast-management). A prop links to roles. Its carriers (FR26) are chosen only from the cast of those roles.
 - **One production** (2027). Props never carry over between productions, and permissions apply to the whole production.
 - Builds on team-roles (ADR 0020): the same sign-in, the 5-minute delay before an access change takes effect, and the same Accounts page.
 - 5 to 20 accounts. Most have one or two permissions.
@@ -158,6 +170,8 @@ The Production menu lists every department's pages side by side (Mic plot, Props
 
 - Should the post-deploy check (`pnpm check:hosted`) confirm the department permissions? For example, a Stage-only account refused casting changes and allowed props changes. That needs another check account. Owner: maintainer.
 - When an item is removed from the running order (running-order FR10, deferred), are its props and props notes deleted with it? Expected: yes. Owner: production team.
+
+- Should a carrier be able to carry more than one of a prop, such as 3 balloons all held by one clown? Expected: not in this PRD; each carrier counts as one, and the props notes say more (Non-goals). Owner: props team.
 
 ### Resolved
 
