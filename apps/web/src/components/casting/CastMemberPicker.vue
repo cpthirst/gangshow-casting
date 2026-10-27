@@ -14,8 +14,10 @@ const props = withDefaults(
     hintId?: string | undefined;
     disabled?: boolean;
     name?: string;
+    /** Who's already chosen: marked in the list, so choosing them again takes them off. */
+    chosenIds?: number[];
   }>(),
-  { name: "castMember" },
+  { name: "castMember", chosenIds: () => [] },
 );
 const choice = defineModel<CastMemberChoice>({ required: true });
 
@@ -28,6 +30,7 @@ const matches = computed(() =>
     id: member.id,
     name: `${member.firstName} ${member.lastName}`,
     details: detailsOf(member),
+    chosen: props.chosenIds.includes(member.id),
   })),
 );
 </script>

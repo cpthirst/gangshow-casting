@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed, ref, useId, watch } from "vue";
 
-/** One thing that can be chosen: its name, and what tells it apart from others like it. */
+/** One thing that can be chosen: its name, and what tells it apart from others like it.
+ *  chosen: already chosen, so choosing it again takes it off, as in a list of carriers. */
 interface PickerOption {
   id: number;
   name: string;
   details: string;
+  chosen?: boolean;
 }
 
 // A text-filterable field: the WAI-ARIA combobox pattern (an input that controls a listbox).
@@ -117,6 +119,9 @@ function onEscape(event: KeyboardEvent) {
         :class="{ active: index === active }"
         @mousedown.prevent="choose(option)"
       >
+        <span v-if="option.chosen" class="choice-chosen"
+          ><span aria-hidden="true">✓</span><span class="visually-hidden">Chosen:</span></span
+        >
         <span class="choice-name">{{ option.name }}</span>
         {{ " " }}
         <span v-if="option.details" class="choice-details">{{ option.details }}</span>

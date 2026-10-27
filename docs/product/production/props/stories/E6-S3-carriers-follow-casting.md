@@ -82,7 +82,8 @@ And "Umbrella", quantity 10, linked to Villagers (three people) says "7 not give
 Given pat is adding "Lantern", quantity 3, linked to Baker (Sam Taylor), Dog (uncast) and Villagers
 When pat chooses Jo Brown and Kim Lee
 Then the picker is labelled "Assign Villagers to carry the prop", with no separate list of carriers
-And the selected roles read Baker "(Sam Taylor)", Dog with nothing, and Villagers "(Jo Brown, Kim Lee)" in italics, each chosen villager with a button to remove them
+And the selected roles, one per line, read Baker "(Sam Taylor)", Dog with nothing, and Villagers "(Jo Brown, Kim Lee)" in italics
+And the picker marks Jo Brown and Kim Lee as chosen, and choosing Kim Lee again takes them off
 
 ## Notes
 

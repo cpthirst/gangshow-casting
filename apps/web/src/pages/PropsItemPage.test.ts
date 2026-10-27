@@ -1216,7 +1216,7 @@ describe("Who carries a prop", () => {
   const offeredCarriers = (wrapper: VueWrapper) =>
     carrierOptions(wrapper).map((option) => option.get(".choice-name").text());
   const chosenCarriers = (wrapper: VueWrapper) =>
-    wrapper.findAll("[data-test=carrier] .carrier-name").map((name) => name.text());
+    wrapper.findAll("[data-test=carrier]").map((name) => name.text());
   const carriersHint = (wrapper: VueWrapper) => wrapper.get("[data-test=carriers-hint]");
   const leftToChoose = (wrapper: VueWrapper, propName: string) =>
     wrapper
@@ -1254,9 +1254,13 @@ describe("Who carries a prop", () => {
     await option?.trigger("mousedown");
   }
 
-  async function removeCarrier(wrapper: VueWrapper, name: string) {
-    await wrapper.get(`[aria-label='Remove ${name} from the carriers']`).trigger("click");
-  }
+  /** Choosing someone already chosen takes them off. */
+  const removeCarrier = chooseCarrier;
+  /** Who the picker's list marks as chosen. */
+  const tickedCarriers = (wrapper: VueWrapper) =>
+    carrierOptions(wrapper)
+      .filter((option) => option.find(".choice-chosen").exists())
+      .map((option) => option.get(".choice-name").text());
 
   async function saveEdited(wrapper: VueWrapper) {
     await wrapper.get("form[aria-label^='Edit ']").trigger("submit");
@@ -1309,7 +1313,7 @@ describe("Who carries a prop", () => {
     expect(wrapper.find("ul[data-test=carriers]").exists()).toBe(false);
   });
 
-  it("shows who carries it in brackets after each selected role, with a way to remove a chosen one", async () => {
+  it("shows who carries it in brackets after each selected role, choosing a chosen one again to take them off", async () => {
     const dog = aRole(14, "village-square", "Dog", "cameo", []);
     const stored = savedShowIs(village, [], {
       ...villageCasting,
@@ -1345,9 +1349,7 @@ describe("Who carries a prop", () => {
     await setQuantity(wrapper, "10");
 
     expect(rolesWithCarriers(wrapper)).toEqual([["Villagers", "(Jo Brown, Alex Green, Kim Lee)"]]);
-    expect(wrapper.find("button[aria-label='Remove Jo Brown from the carriers']").exists()).toBe(
-      false,
-    );
+    expect(carrierSearch(wrapper).exists()).toBe(false);
   });
 
   it("shows only the chosen carrier on the card, kept on reload", async () => {
@@ -1368,7 +1370,7 @@ describe("Who carries a prop", () => {
     expect(rolesOn(wrapper, "Bread basket")).toEqual([{ role: "Villagers", cast: "Kim Lee" }]);
   });
 
-  it("turns the search off once the quantity is chosen, until someone is removed", async () => {
+  it("marks who's chosen, and offers only them once the quantity is reached", async () => {
     savedShowIs(village, [], villageCasting);
     const { wrapper } = await openAppAt(VILLAGE_PROPS);
     await startProp(wrapper, "Bread basket", ["Villagers"]);
@@ -1376,16 +1378,16 @@ describe("Who carries a prop", () => {
 
     await chooseCarrier(wrapper, "Jo Brown");
     expect(carriersHint(wrapper).text()).toBe("Choose up to 2 · 1 left to choose");
+    expect(tickedCarriers(wrapper)).toEqual(["Jo Brown"]);
     await chooseCarrier(wrapper, "Kim Lee");
 
     expect(carriersHint(wrapper).text()).toBe("Choose up to 2 · none left to choose");
-    expect(carrierSearch(wrapper).element.disabled).toBe(true);
-    expect(document.activeElement?.getAttribute("aria-label")).toBe(
-      "Remove Kim Lee from the carriers",
-    );
-    await removeCarrier(wrapper, "Jo Brown");
     expect(carrierSearch(wrapper).element.disabled).toBe(false);
-    expect(offeredCarriers(wrapper)).toEqual(["Jo Brown", "Alex Green"]);
+    expect(offeredCarriers(wrapper)).toEqual(["Jo Brown", "Kim Lee"]);
+    await removeCarrier(wrapper, "Jo Brown");
+    expect(chosenCarriers(wrapper)).toEqual(["Kim Lee"]);
+    expect(offeredCarriers(wrapper)).toEqual(["Jo Brown", "Alex Green", "Kim Lee"]);
+    expect(tickedCarriers(wrapper)).toEqual(["Kim Lee"]);
   });
 
   it("offers only the cast of the prop's roles", async () => {

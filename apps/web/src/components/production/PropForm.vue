@@ -98,11 +98,10 @@ const room = computed(() => carrying.value.room);
 const carriers = computed(() =>
   people.value.filter((member) => form.value.carrierIds.includes(member.id)),
 );
-/** Once the room is filled nobody more can be chosen, so the search is turned off. */
+/** Once the room is filled nobody more can be chosen, so the search offers only the chosen,
+ *  for taking one off. */
 const full = computed(() => carriers.value.length >= room.value);
-const choosable = computed(() =>
-  people.value.filter((member) => !form.value.carrierIds.includes(member.id)),
-);
+const offered = computed(() => (full.value ? carriers.value : people.value));
 /** The ensembles carriers are chosen from, for the picker's label. */
 const ensembleNames = computed(() =>
   new Intl.ListFormat("en-GB").format(
@@ -126,10 +125,8 @@ const carriersIn = computed(() => {
     }),
   );
 });
-/** A chosen ensemble carrier can be taken off; a named part, or a whole ensemble that fits,
- *  carries it whatever. */
-const removable = (role: Role) => role.size === "ensemble" && offersCarriers.value;
-const carrierButtonId = (id: number) => `${idFor("carrierIds")}-${id}`;
+/** Whether a role's carriers in brackets were chosen, rather than carrying it whatever. */
+const chosenIn = (role: Role) => role.size === "ensemble" && offersCarriers.value;
 
 // Someone no longer in the prop's ensembles can't be chosen, so they're taken off. When another
 // ensemble brings the picker, whoever carried it before (everyone, as they fitted) still
@@ -155,28 +152,20 @@ const personNamed = (id: number) => {
   return member ? fullName(member) : "";
 };
 
-// Choosing someone in the search makes them a carrier, ready for the next. The last one the
-// quantity allows turns the search off, so focus moves to their Remove button instead.
+// Choosing someone in the search makes them a carrier, ready for the next; choosing someone
+// already chosen takes them off.
 watch(
   () => form.value.carrier.id,
-  async (id) => {
+  (id) => {
     if (id === null) return;
-    form.value.carrierIds = [...form.value.carrierIds, id];
+    const chosen = form.value.carrierIds.includes(id);
+    form.value.carrierIds = chosen
+      ? form.value.carrierIds.filter((carrierId) => carrierId !== id)
+      : [...form.value.carrierIds, id];
     form.value.carrier = { query: "", id: null };
-    carrierAnnouncement.value = `Added ${personNamed(id)}.`;
-    if (!full.value) return;
-    await nextTick();
-    document.getElementById(carrierButtonId(id))?.focus();
+    carrierAnnouncement.value = `${chosen ? "Removed" : "Added"} ${personNamed(id)}.`;
   },
 );
-
-// The button disappears with the carrier, so focus moves to the search.
-async function removeCarrier(id: number) {
-  form.value.carrierIds = form.value.carrierIds.filter((carrierId) => carrierId !== id);
-  carrierAnnouncement.value = `Removed ${personNamed(id)}.`;
-  await nextTick();
-  document.getElementById(idFor("carrier"))?.focus();
-}
 
 const nameInput = ref<HTMLInputElement>();
 onMounted(() => nameInput.value?.focus());
@@ -239,7 +228,7 @@ function submit() {
       <p v-if="errors.role" :id="errorFor('role')" class="field-error">{{ errors.role }}</p>
       <div class="members-block">
         <p :id="idFor('roleIds')" class="field-label">Selected roles</p>
-        <ul class="members row-icons" :aria-labelledby="idFor('roleIds')">
+        <ul class="members row-icons one-per-line" :aria-labelledby="idFor('roleIds')">
           <li v-for="role in picked" :key="role.id" data-test="picked-role">
             <button
               type="button"
@@ -252,7 +241,7 @@ function submit() {
             </button>
             <span class="member-name">{{ role.name }}</span>
             <!-- On one line, so the brackets hug the names: "(Jo Brown, Kim Lee)". -->
-            <span v-if="carriersIn.get(role.id)?.length" class="role-carriers" data-test="role-carriers">(<template v-for="(member, index) in carriersIn.get(role.id)" :key="member.id"><template v-if="index > 0">, </template><span v-if="removable(role)" class="carrier" data-test="carrier"><span class="carrier-name">{{ fullName(member) }}</span><button :id="carrierButtonId(member.id)" type="button" class="icon-button" :aria-label="`Remove ${fullName(member)} from the carriers`" data-tooltip="Remove from the carriers" @click="removeCarrier(member.id)"><FontAwesomeIcon :icon="icons.remove" /></button></span><template v-else>{{ fullName(member) }}</template></template>)</span>
+            <span v-if="carriersIn.get(role.id)?.length" class="role-carriers" data-test="role-carriers">(<template v-for="(member, index) in carriersIn.get(role.id)" :key="member.id"><template v-if="index > 0">, </template><span v-if="chosenIn(role)" class="carrier-name" data-test="carrier">{{ fullName(member) }}</span><template v-else>{{ fullName(member) }}</template></template>)</span>
           </li>
           <li v-if="picked.length === 0" class="uncast">None yet</li>
         </ul>
@@ -267,9 +256,9 @@ function submit() {
       </p>
       <CastMemberPicker
         v-model="form.carrier"
-        :cast="choosable"
+        :cast="offered"
+        :chosen-ids="form.carrierIds"
         name="carrier"
-        :disabled="full"
         :hint-id="`${idFor('carrier')}-hint`"
         :input-id="idFor('carrier')"
         :described-by="errors.carrier ? errorFor('carrier') : undefined"

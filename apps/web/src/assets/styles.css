@@ -1869,6 +1869,12 @@ main a {
   background: var(--white);
 }
 
+/* A prop's roles, one per line on every screen, so who carries each reads down the list. */
+.members.one-per-line {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
 /* A prop's roles sit under its name, one per line, each with who plays it; long names
    wrap rather than widen the card on a phone. */
 .prop-roles {
@@ -2358,14 +2364,14 @@ main a {
 }
 
 /* Who carries a prop, in brackets after each of its roles in the prop form (production-props
-   FR26), with a Remove button by each chosen ensemble carrier. */
+   FR26). */
 .role-carriers {
   font-style: italic;
   overflow-wrap: anywhere;
 }
 
-.role-carriers .carrier {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.125rem;
+/* The tick on someone already chosen in a picker's list: choosing them again takes them off. */
+.choice-chosen {
+  margin-right: 0.25rem;
+  font-weight: 700;
 }
