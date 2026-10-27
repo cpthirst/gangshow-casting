@@ -121,7 +121,7 @@ test("an item's props, and a prop's carrier picker, fit the screen", async ({ pa
   await expectNoSidewaysScroll(page);
 
   await page.getByRole("button", { name: `Edit ${chest}` }).click();
-  await expect(page.getByLabel("Who carries it")).toBeVisible();
+  await expect(page.getByLabel("Assign Pirates to carry the prop")).toBeVisible();
   await expectNoSidewaysScroll(page);
 });
 

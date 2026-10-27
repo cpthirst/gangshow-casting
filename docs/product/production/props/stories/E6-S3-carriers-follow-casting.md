@@ -39,7 +39,7 @@ Then the card shows Kim Lee carrying it, with nothing left to choose
 ### AC6: The quantity can't go below the carriers
 Given "Lantern", quantity 3, is carried by Jo Brown, Kim Lee and Alex Green
 When pat edits it and lowers the quantity to 2
-Then it isn't saved, and the form says to remove a carrier from Selected carriers first
+Then it isn't saved, and the form says to remove a carrier first
 
 ### AC7: The API refuses a quantity below the carriers
 Given "Lantern" is carried by three people
@@ -77,6 +77,12 @@ Given "Whistle", quantity 3, is linked only to Captain Cross and Captain Nought,
 When anyone opens the props page
 Then the card shows both captains carrying it and says "1 not given to anyone", marked as "Nobody carries it" is
 And "Umbrella", quantity 10, linked to Villagers (three people) says "7 not given to anyone", while a prop linked to no roles says nothing
+
+### AC14: The form shows who carries it beside each role
+Given pat is adding "Lantern", quantity 3, linked to Baker (Sam Taylor), Dog (uncast) and Villagers
+When pat chooses Jo Brown and Kim Lee
+Then the picker is labelled "Assign Villagers to carry the prop", with no separate list of carriers
+And the selected roles read Baker "(Sam Taylor)", Dog with nothing, and Villagers "(Jo Brown, Kim Lee)" in italics, each chosen villager with a button to remove them
 
 ## Notes
 

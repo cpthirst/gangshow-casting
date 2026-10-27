@@ -214,7 +214,7 @@ export function propDetailsFrom(
   } else if (carrierIds.length > room) {
     // The picker stops at the room left, so only lowering the quantity gets here (FR28).
     const chosen = carrierIds.length;
-    errors.quantity = `${chosen} carriers chosen for ${room}: remove ${chosen - room} from Selected carriers first`;
+    errors.quantity = `${chosen} carriers chosen for ${room}: remove ${chosen - room} first`;
   }
   // Typed but not chosen: the text alone doesn't say which role, so it isn't guessed.
   if (form.role.query.trim() !== "") {

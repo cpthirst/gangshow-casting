@@ -12,7 +12,7 @@ import {
   propDetailsFrom,
   quantityOf,
 } from "@/utils/props.ts";
-import { castNames, fullName, searchRoles, sortRoles } from "@/utils/roles.ts";
+import { castNames, castOf, fullName, searchRoles, sortRoles } from "@/utils/roles.ts";
 
 // Adds a prop to an item (no prop given) or edits one, like the role form. error: why the
 // last save failed, if it did. roles: the item's roles, which the prop can be linked to;
@@ -103,6 +103,32 @@ const full = computed(() => carriers.value.length >= room.value);
 const choosable = computed(() =>
   people.value.filter((member) => !form.value.carrierIds.includes(member.id)),
 );
+/** The ensembles carriers are chosen from, for the picker's label. */
+const ensembleNames = computed(() =>
+  new Intl.ListFormat("en-GB").format(
+    picked.value.filter((role) => role.size === "ensemble").map((role) => role.name),
+  ),
+);
+/** Who carries it in each selected role, shown in brackets after the role: a named part's
+ *  player, and in an ensemble the chosen carriers, or everyone when they all fit. Each
+ *  person once, under the first of the prop's roles they play. */
+const carriersIn = computed(() => {
+  const shown = new Set<number>();
+  return new Map(
+    picked.value.map((role) => {
+      const carries = (member: CastMember) =>
+        role.size !== "ensemble" ||
+        carrying.value.everyoneFits ||
+        (offersCarriers.value && form.value.carrierIds.includes(member.id));
+      const list = castOf(role, props.cast).filter((m) => !shown.has(m.id) && carries(m));
+      for (const member of list) shown.add(member.id);
+      return [role.id, list];
+    }),
+  );
+});
+/** A chosen ensemble carrier can be taken off; a named part, or a whole ensemble that fits,
+ *  carries it whatever. */
+const removable = (role: Role) => role.size === "ensemble" && offersCarriers.value;
 const carrierButtonId = (id: number) => `${idFor("carrierIds")}-${id}`;
 
 // Someone no longer in the prop's ensembles can't be chosen, so they're taken off. When another
@@ -225,6 +251,8 @@ function submit() {
               <FontAwesomeIcon :icon="icons.remove" />
             </button>
             <span class="member-name">{{ role.name }}</span>
+            <!-- On one line, so the brackets hug the names: "(Jo Brown, Kim Lee)". -->
+            <span v-if="carriersIn.get(role.id)?.length" class="role-carriers" data-test="role-carriers">(<template v-for="(member, index) in carriersIn.get(role.id)" :key="member.id"><template v-if="index > 0">, </template><span v-if="removable(role)" class="carrier" data-test="carrier"><span class="carrier-name">{{ fullName(member) }}</span><button :id="carrierButtonId(member.id)" type="button" class="icon-button" :aria-label="`Remove ${fullName(member)} from the carriers`" data-tooltip="Remove from the carriers" @click="removeCarrier(member.id)"><FontAwesomeIcon :icon="icons.remove" /></button></span><template v-else>{{ fullName(member) }}</template></template>)</span>
           </li>
           <li v-if="picked.length === 0" class="uncast">None yet</li>
         </ul>
@@ -232,7 +260,7 @@ function submit() {
       </div>
     </div>
     <div v-if="offersCarriers" class="field">
-      <label :for="idFor('carrier')" class="picker-label">Who carries it</label>
+      <label :for="idFor('carrier')" class="picker-label">Assign {{ ensembleNames }} to carry the prop</label>
       <!-- A status, so the count left is heard as people are chosen and taken off. -->
       <p :id="`${idFor('carrier')}-hint`" class="carriers-hint" role="status" data-test="carriers-hint">
         {{ carriersHint(room, carriers.length) }}
@@ -249,26 +277,7 @@ function submit() {
       <p v-if="errors.carrier" :id="errorFor('carrier')" class="field-error">
         {{ errors.carrier }}
       </p>
-      <div class="members-block">
-        <p :id="idFor('carrierIds')" class="field-label">Selected carriers</p>
-        <ul class="members row-icons" :aria-labelledby="idFor('carrierIds')" data-test="carriers">
-          <li v-for="member in carriers" :key="member.id" data-test="carrier">
-            <button
-              :id="carrierButtonId(member.id)"
-              type="button"
-              class="icon-button"
-              :aria-label="`Remove ${fullName(member)} from the carriers`"
-              data-tooltip="Remove from the carriers"
-              @click="removeCarrier(member.id)"
-            >
-              <FontAwesomeIcon :icon="icons.remove" />
-            </button>
-            <span class="member-name">{{ fullName(member) }}</span>
-          </li>
-          <li v-if="carriers.length === 0" class="uncast">Nobody yet</li>
-        </ul>
-        <p class="visually-hidden" role="status">{{ carrierAnnouncement }}</p>
-      </div>
+      <p class="visually-hidden" role="status">{{ carrierAnnouncement }}</p>
     </div>
     <p v-if="error" class="field-error form-error" role="alert">{{ error }}</p>
     <div class="editor-actions">

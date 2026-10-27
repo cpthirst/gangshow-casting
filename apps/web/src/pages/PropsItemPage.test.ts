@@ -1216,13 +1216,24 @@ describe("Who carries a prop", () => {
   const offeredCarriers = (wrapper: VueWrapper) =>
     carrierOptions(wrapper).map((option) => option.get(".choice-name").text());
   const chosenCarriers = (wrapper: VueWrapper) =>
-    wrapper.findAll("[data-test=carrier] .member-name").map((name) => name.text());
+    wrapper.findAll("[data-test=carrier] .carrier-name").map((name) => name.text());
   const carriersHint = (wrapper: VueWrapper) => wrapper.get("[data-test=carriers-hint]");
   const leftToChoose = (wrapper: VueWrapper, propName: string) =>
     wrapper
       .findAll("[data-test=prop]")
       .find((card) => card.get("[data-test=prop-name]").text() === propName)
       ?.find("[data-test=to-choose]");
+
+  /** Each selected role in the form, with who carries it in brackets ("" for nobody). */
+  const rolesWithCarriers = (wrapper: VueWrapper) =>
+    wrapper
+      .findAll("[data-test=picked-role]")
+      .map((row) => [
+        row.get(".member-name").text(),
+        row.find("[data-test=role-carriers]").exists()
+          ? row.get("[data-test=role-carriers]").text().replace(/\s+/g, " ")
+          : "",
+      ]);
 
   const notGiven = (wrapper: VueWrapper, propName: string) =>
     wrapper
@@ -1287,7 +1298,7 @@ describe("Who carries a prop", () => {
     await startProp(wrapper, "Bread basket", ["Villagers"]);
 
     const label = wrapper.get(`label[for='${carrierSearch(wrapper).attributes("id")}']`);
-    expect(label.text()).toBe("Who carries it");
+    expect(label.text()).toBe("Assign Villagers to carry the prop");
     expect(offeredCarriers(wrapper)).toEqual(["Jo Brown", "Alex Green", "Kim Lee"]);
     expect(carriersHint(wrapper).text()).toBe("Choose up to 1");
     expect(carriersHint(wrapper).attributes("role")).toBe("status");
@@ -1295,8 +1306,48 @@ describe("Who carries a prop", () => {
       carriersHint(wrapper).attributes("id"),
     );
     expect(carrierSearch(wrapper).attributes("aria-invalid")).toBeUndefined();
-    const chosen = wrapper.get("ul[data-test=carriers]").attributes("aria-labelledby");
-    expect(document.getElementById(chosen ?? "")?.textContent).toBe("Selected carriers");
+    expect(wrapper.find("ul[data-test=carriers]").exists()).toBe(false);
+  });
+
+  it("shows who carries it in brackets after each selected role, with a way to remove a chosen one", async () => {
+    const dog = aRole(14, "village-square", "Dog", "cameo", []);
+    const stored = savedShowIs(village, [], {
+      ...villageCasting,
+      roles: [...villageCasting.roles, dog],
+    });
+    const { wrapper } = await openAppAt(VILLAGE_PROPS);
+    await startProp(wrapper, "Lantern", ["Villagers", "Baker", "Dog"]);
+    await setQuantity(wrapper, "3");
+    expect(rolesWithCarriers(wrapper)).toEqual([
+      ["Baker", "(Sam Taylor)"],
+      ["Dog", ""],
+      ["Villagers", ""],
+    ]);
+
+    await chooseCarrier(wrapper, "Kim Lee");
+    await chooseCarrier(wrapper, "Jo Brown");
+    expect(rolesWithCarriers(wrapper)).toEqual([
+      ["Baker", "(Sam Taylor)"],
+      ["Dog", ""],
+      ["Villagers", "(Jo Brown, Kim Lee)"],
+    ]);
+    await removeCarrier(wrapper, "Kim Lee");
+    await saveProp(wrapper);
+
+    expect(stored[0]?.carrierIds).toEqual([jo.id]);
+  });
+
+  it("shows the whole ensemble in brackets when it fits the quantity", async () => {
+    savedShowIs(village, [], villageCasting);
+    const { wrapper } = await openAppAt(VILLAGE_PROPS);
+
+    await startProp(wrapper, "Umbrella", ["Villagers"]);
+    await setQuantity(wrapper, "10");
+
+    expect(rolesWithCarriers(wrapper)).toEqual([["Villagers", "(Jo Brown, Alex Green, Kim Lee)"]]);
+    expect(wrapper.find("button[aria-label='Remove Jo Brown from the carriers']").exists()).toBe(
+      false,
+    );
   });
 
   it("shows only the chosen carrier on the card, kept on reload", async () => {
@@ -1664,6 +1715,6 @@ describe("Who carries a prop", () => {
     expect(quantity.attributes("aria-invalid")).toBe("true");
     expect(
       document.getElementById(quantity.attributes("aria-describedby") ?? "")?.textContent?.trim(),
-    ).toBe("3 carriers chosen for 2: remove 1 from Selected carriers first");
+    ).toBe("3 carriers chosen for 2: remove 1 first");
   });
 });

@@ -182,7 +182,7 @@ describe("propDetailsFrom", () => {
     const lantern = fields("Lantern", { quantity: "2", carrierIds: [3, 4, 7] });
     expect(propDetailsFrom(lantern, choosing)).toEqual({
       ok: false,
-      errors: { quantity: "3 carriers chosen for 2: remove 1 from Selected carriers first" },
+      errors: { quantity: "3 carriers chosen for 2: remove 1 first" },
     });
   });
 
@@ -206,7 +206,7 @@ describe("propDetailsFrom", () => {
       propDetailsFrom(lantern, { offersCarriers: true, named: 1, namedRoles: ["Baker"] }),
     ).toEqual({
       ok: false,
-      errors: { quantity: "2 carriers chosen for 1: remove 1 from Selected carriers first" },
+      errors: { quantity: "2 carriers chosen for 1: remove 1 first" },
     });
   });
 

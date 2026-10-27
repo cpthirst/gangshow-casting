@@ -2356,3 +2356,16 @@ main a {
     max-height: 6rem;
   }
 }
+
+/* Who carries a prop, in brackets after each of its roles in the prop form (production-props
+   FR26), with a Remove button by each chosen ensemble carrier. */
+.role-carriers {
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
+
+.role-carriers .carrier {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+}
