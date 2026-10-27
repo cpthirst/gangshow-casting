@@ -1335,6 +1335,7 @@ describe("Who carries a prop", () => {
       ["Dog", ""],
       ["Villagers", "(Jo Brown, Kim Lee)"],
     ]);
+    expect(tickedCarriers(wrapper)).toEqual(["Jo Brown", "Kim Lee"]);
     await removeCarrier(wrapper, "Kim Lee");
     await saveProp(wrapper);
 

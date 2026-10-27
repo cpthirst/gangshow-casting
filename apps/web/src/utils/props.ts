@@ -77,8 +77,9 @@ export function carriersOf(roles: Role[], cast: CastMember[], quantity: number) 
 }
 
 /** Who carries a prop, role by role in the item's role order, how many are left to choose,
- *  and how many aren't given to anyone (production-props FR26, FR27). A carrier no longer in its ensembles doesn't count.
- *  Each role's carriers are "" when it has none, with `none` to show instead. */
+ *  and how many aren't given to anyone (production-props FR26, FR27). A carrier no longer
+ *  in its ensembles doesn't count. Each role's carriers are "" when it has none, with
+ *  `none` to show instead. */
 export function carryingOf(prop: Prop, roles: Role[], cast: CastMember[]) {
   const linked = rolesOf(prop, roles);
   const { named, choosable, room, everyoneFits, offersCarriers } = carriersOf(

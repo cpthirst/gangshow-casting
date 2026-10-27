@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { computed, ref, useId, watch } from "vue";
 
-/** One thing that can be chosen: its name, and what tells it apart from others like it.
- *  chosen: already chosen, so choosing it again takes it off, as in a list of carriers. */
+/** One thing that can be chosen: its name, and what tells it apart from others like it. */
 interface PickerOption {
   id: number;
   name: string;
   details: string;
+  /** Already chosen, so choosing it again takes it off, as in a prop's carriers. */
   chosen?: boolean;
 }
 
