@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.22.0](https://github.com/cpthirst/gangshow-casting/compare/v1.21.0...v1.22.0) (2026-10-27)
+
+
+### Features
+
+* **web:** give a prop a quantity (production-props.E6.S1) ([#123](https://github.com/cpthirst/gangshow-casting/issues/123)) ([9998107](https://github.com/cpthirst/gangshow-casting/commit/9998107a606d34c9b626ce0d16f75029882053d2))
+
 ## [1.21.0](https://github.com/cpthirst/gangshow-casting/compare/v1.20.0...v1.21.0) (2026-10-27)
 
 
