@@ -2,6 +2,7 @@ import { AddRoleRefusal, Role, type RoleList } from "@app/shared";
 import { describe, expect, it } from "vitest";
 import { aCastList, aCastMember } from "./cast.fixture.ts";
 import { inMemoryCastStore } from "./cast-store.ts";
+import { inMemoryPropStore } from "./prop-store.ts";
 import { inMemoryRoleStore } from "./role-store.ts";
 import { createUpdateRole } from "./update-role.ts";
 
@@ -26,7 +27,7 @@ function setUp() {
   };
   const roles = inMemoryRoleStore([initial]);
   const cast = inMemoryCastStore([aCastList([aCastMember(12), aCastMember(13)])]);
-  return { roles, initial, handler: createUpdateRole(roles, cast) };
+  return { roles, initial, handler: createUpdateRole(roles, cast, inMemoryPropStore()) };
 }
 
 const mrSmee = { name: "Mr Smee", size: "lead", castMemberIds: [12], revision: 2 };
@@ -98,7 +99,7 @@ describe("update role handler for ensembles", () => {
   const handlerFor = (initial: RoleList) => {
     const roles = inMemoryRoleStore([initial]);
     const cast = inMemoryCastStore([aCastList([aCastMember(12), aCastMember(13)])]);
-    return { roles, handler: createUpdateRole(roles, cast) };
+    return { roles, handler: createUpdateRole(roles, cast, inMemoryPropStore()) };
   };
 
   it("refuses the same member twice, changing nothing", async () => {
@@ -115,5 +116,61 @@ describe("update role handler for ensembles", () => {
 
     expect((await handler(request("9", body))).statusCode).toBe(400);
     expect(await roles.list("2027")).toEqual(pirates([12, 13]));
+  });
+});
+
+describe("update role handler with props", () => {
+  // Made-up cast: Jo (12) and Kim (13) are villagers; Kim carries the bread basket.
+  const villagers: Role = { ...role(9, "Villagers"), size: "ensemble", castMemberIds: [12, 13] };
+  const basket = {
+    id: 1,
+    itemId: "pirate-sketch",
+    name: "Bread basket",
+    quantity: 1,
+    roleIds: [villagers.id],
+    carrierIds: [13],
+  };
+  function setUpVillage() {
+    const roles = inMemoryRoleStore([{ productionId: "2027", roles: [villagers] }]);
+    const cast = inMemoryCastStore([aCastList([aCastMember(12), aCastMember(13)])]);
+    const props = inMemoryPropStore([{ productionId: "2027", props: [basket] }]);
+    return { props, handler: createUpdateRole(roles, cast, props) };
+  }
+  const recast = (castMemberIds: number[], revision: number) =>
+    request("9", { name: "Villagers", size: "ensemble", castMemberIds, revision });
+  const carriers = async (props: ReturnType<typeof setUpVillage>["props"]) =>
+    (await props.list("2027")).props[0]?.carrierIds;
+
+  it("takes a carrier off a prop when they're taken out of its role", async () => {
+    const { props, handler } = setUpVillage();
+
+    expect((await handler(recast([12], 1))).statusCode).toBe(200);
+
+    expect(await carriers(props)).toEqual([]);
+  });
+
+  it("leaves the carriers alone when they still play the role", async () => {
+    const { props, handler } = setUpVillage();
+
+    await handler(recast([13], 1));
+
+    expect(await carriers(props)).toEqual([13]);
+  });
+
+  it("doesn't make someone a carrier again when they're put back in the role", async () => {
+    const { props, handler } = setUpVillage();
+
+    await handler(recast([12], 1));
+    await handler(recast([12, 13], 2));
+
+    expect(await carriers(props)).toEqual([]);
+  });
+
+  it("changes no props when the recast is refused", async () => {
+    const { props, handler } = setUpVillage();
+
+    expect((await handler(recast([12], 5))).statusCode).toBe(409);
+
+    expect(await carriers(props)).toEqual([13]);
   });
 });

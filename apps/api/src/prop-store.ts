@@ -5,11 +5,13 @@ import {
   ProductionId,
   Prop,
   PropList,
+  type Role,
   type UpdatePropRequest,
 } from "@app/shared";
 import { ifExists } from "./files.ts";
 import { parseJson } from "./json.ts";
 import { oneAtATime, writePrivateFile } from "./private-file.ts";
+import { castCarriers } from "./prop-links.ts";
 
 /** Where each production's props live (production-props FR13): the production's own, apart from
  *  its casting. */
@@ -22,6 +24,9 @@ export interface PropStore {
   update(productionId: string, id: number, details: UpdatePropRequest): Promise<Prop | "not-found">;
   /** Removes a prop for good (production-props FR19). Its id is never reused. */
   remove(productionId: string, id: number): Promise<"removed" | "not-found">;
+  /** Takes off every prop's carriers who no longer play one of its roles (production-props
+   *  FR28). roles: every role in the production, as it is now. */
+  dropStrayCarriers(productionId: string, roles: Role[]): Promise<void>;
 }
 
 // The stored file also remembers the next id, so a removed prop's id is never reused.
@@ -60,6 +65,12 @@ function withoutProp(file: PropFile, id: number) {
   return { ...file, props: file.props.filter((p) => p.id !== id), nextId: nextIdOf(file) };
 }
 
+/** The file with only carriers who still play one of their prop's roles. */
+const withCastCarriers = (file: PropFile, roles: Role[]): PropFile => ({
+  ...file,
+  props: file.props.map((prop) => ({ ...prop, carrierIds: castCarriers(prop, roles) })),
+});
+
 /** Props held in memory, starting with those given: for tests. */
 export function inMemoryPropStore(saved: PropList[] = []): PropStore {
   const files = new Map<string, PropFile>(saved.map((list) => [list.productionId, list]));
@@ -82,6 +93,9 @@ export function inMemoryPropStore(saved: PropList[] = []): PropStore {
       if (removed === "not-found") return removed;
       files.set(productionId, removed);
       return "removed";
+    },
+    async dropStrayCarriers(productionId, roles) {
+      files.set(productionId, withCastCarriers(fileOf(productionId), roles));
     },
   };
 }
@@ -132,6 +146,13 @@ export function filePropStore(dataDir: string): PropStore {
         if (removed === "not-found") return removed;
         await write(removed);
         return "removed";
+      }),
+    dropStrayCarriers: (productionId, roles) =>
+      inTurn(async () => {
+        const file = await read(productionId);
+        // No props, no carriers: nothing to save, and no file made.
+        if (file.props.length === 0) return;
+        await write(withCastCarriers(file, roles));
       }),
   };
 }

@@ -2,11 +2,14 @@ import { ProductionId } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import type { ApiEvent } from "./handler.ts";
 import { wholeNumber } from "./params.ts";
+import { carriersFollowCasting } from "./prop-links.ts";
+import type { PropStore } from "./prop-store.ts";
 import type { RoleStore } from "./role-store.ts";
 
 // DELETE /api/productions/{productionId}/roles/{roleId}?revision=N: remove a role for good,
-// with whoever was cast in it, unless someone else changed it since revision N.
-export function createRemoveRole(roles: RoleStore) {
+// with whoever was cast in it, unless someone else changed it since revision N. Its cast
+// stop carrying the props linked to it (production-props FR28).
+export function createRemoveRole(roles: RoleStore, props: PropStore) {
   return async (event: ApiEvent): Promise<APIGatewayProxyStructuredResultV2> => {
     const productionId = ProductionId.safeParse(event.pathParameters?.productionId);
     const roleId = wholeNumber(event.pathParameters?.roleId);
@@ -17,6 +20,7 @@ export function createRemoveRole(roles: RoleStore) {
     const result = await roles.remove(productionId.data, roleId, revision);
     if (result === "stale") return { statusCode: 409 };
     if (result === "not-found") return { statusCode: 404 };
+    await carriersFollowCasting(props, roles, productionId.data);
     return { statusCode: 204 };
   };
 }

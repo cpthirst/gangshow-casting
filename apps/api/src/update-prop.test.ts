@@ -119,6 +119,21 @@ describe("update prop handler", () => {
     expect(await props.list("2027")).toEqual(initial);
   });
 
+  it("refuses a quantity below the carriers the prop already has, changing nothing", async () => {
+    const lantern = { name: "Lantern", quantity: 3, roleIds: [villagers.id] };
+    const { props, handler } = setUp();
+    const carried = await handler(request("4", { ...lantern, carrierIds: [jo, kim, alex] }));
+    expect(carried.statusCode).toBe(200);
+    const saved = await props.list("2027");
+
+    const res = await handler(
+      request("4", { ...lantern, quantity: 2, carrierIds: [jo, kim, alex] }),
+    );
+
+    expect(res.statusCode).toBe(400);
+    expect(await props.list("2027")).toEqual(saved);
+  });
+
   it("returns 404 for a prop that's gone", async () => {
     const { props, initial, handler } = setUp();
 

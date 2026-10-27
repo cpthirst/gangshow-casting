@@ -2,7 +2,7 @@
 id: production-props.E6.S3
 title: Carriers follow the casting
 epic: E6
-status: ready
+status: done
 ---
 
 ## Story
@@ -39,7 +39,7 @@ Then the card shows Kim Lee carrying it, with nothing left to choose
 ### AC6: The quantity can't go below the carriers
 Given "Lantern", quantity 3, is carried by Jo Brown, Kim Lee and Alex Green
 When pat edits it and lowers the quantity to 2
-Then it isn't saved, and the form says to take a carrier off first
+Then it isn't saved, and the form says to remove a carrier from Selected carriers first
 
 ### AC7: The API refuses a quantity below the carriers
 Given "Lantern" is carried by three people
@@ -58,3 +58,4 @@ Then the card doesn't show Kim Lee as a carrier until someone chooses them again
 - A carrier who leaves the prop's roles is dropped from the prop when it's next saved, or by the casting change itself, whichever is simpler. Either way, AC8 holds: a carrier never comes back on their own, so a stored id can't linger.
 - Deleting someone from the cast removes them from every prop, as it removes them from every role (ADR 0010).
 - Out of scope: the Word export (E6.S4).
+- Follow-up: a dropped item's props keep their carrier ids, as whether those props are kept at all is still an open question in the PRD.

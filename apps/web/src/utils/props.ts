@@ -169,6 +169,10 @@ export function propDetailsFrom(form: PropFormFields, offersCarriers: boolean): 
   }
   if (issues.some(({ path }) => path[0] === "quantity")) {
     errors.quantity = `Quantity must be a whole number from 1 to ${MAX_PROP_QUANTITY}`;
+  } else if (issues.some(({ path }) => path[0] === "carrierIds")) {
+    // The picker stops at the quantity, so only lowering the quantity gets here (FR28).
+    const chosen = form.carrierIds.length;
+    errors.quantity = `${chosen} carriers chosen for ${quantity}: remove ${chosen - quantity} from Selected carriers first`;
   }
   // Typed but not chosen: the text alone doesn't say which role, so it isn't guessed.
   if (form.role.query.trim() !== "") {
@@ -176,8 +180,6 @@ export function propDetailsFrom(form: PropFormFields, offersCarriers: boolean): 
   }
   if (offersCarriers && form.carrier.query.trim() !== "") {
     errors.carrier = "Choose someone from the list, or clear the field";
-  } else if (issues.some(({ path }) => path[0] === "carrierIds")) {
-    errors.carrier = `Only ${quantity} can carry it: remove someone`;
   }
   if (parsed.success && Object.keys(errors).length === 0) {
     return { ok: true, details: parsed.data };

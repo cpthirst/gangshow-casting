@@ -13,9 +13,12 @@ import {
   withoutKeys,
   written,
 } from "./dynamo-table.ts";
+import { castCarriers } from "./prop-links.ts";
 import type { PropStore } from "./prop-store.ts";
 
 const PROP = "PROP#";
+/** How many times to sweep again when a prop changes while its carriers are dropped. */
+const ATTEMPTS = 5;
 /** A prop's sort key. Zero-padded, so props come back in id order. */
 export const propKey = (id: number) => `${PROP}${String(id).padStart(8, "0")}`;
 
@@ -49,13 +52,15 @@ export function dynamoPropStore(db: DynamoDBDocumentClient, tableName: string): 
     return id;
   }
 
+  async function list(productionId: string) {
+    const rows = await queryAll(db, tableName, productionId, PROP);
+    const parsed = PropList.safeParse({ productionId, props: rows.map(withoutKeys) });
+    if (!parsed.success) throw new Error(`Props for production ${productionId} are invalid`);
+    return parsed.data;
+  }
+
   return {
-    async list(productionId) {
-      const rows = await queryAll(db, tableName, productionId, PROP);
-      const parsed = PropList.safeParse({ productionId, props: rows.map(withoutKeys) });
-      if (!parsed.success) throw new Error(`Props for production ${productionId} are invalid`);
-      return parsed.data;
-    },
+    list,
 
     async add(productionId, itemId, details) {
       const prop = Prop.parse({ ...details, id: await takeNextId(productionId), itemId });
@@ -109,6 +114,36 @@ export function dynamoPropStore(db: DynamoDBDocumentClient, tableName: string): 
         ),
       );
       return removed ? "removed" : "not-found";
+    },
+
+    async dropStrayCarriers(productionId, roles) {
+      for (let attempt = 0; attempt < ATTEMPTS; attempt++) {
+        const { props } = await list(productionId);
+        const changes = props.flatMap((prop) => {
+          const kept = castCarriers(prop, roles);
+          // castCarriers only takes carriers off, so the same length means unchanged.
+          return kept.length === prop.carrierIds.length ? [] : [{ prop, kept }];
+        });
+        // Each only over the carriers read, so an edit or removal meanwhile isn't undone.
+        const saved = await Promise.all(
+          changes.map(({ prop, kept }) =>
+            written(() =>
+              db.send(
+                new UpdateCommand({
+                  TableName: tableName,
+                  Key: { pk: partitionFor(productionId), sk: propKey(prop.id) },
+                  UpdateExpression: "SET carrierIds = :kept",
+                  ConditionExpression: "carrierIds = :was",
+                  ExpressionAttributeValues: { ":kept": kept, ":was": prop.carrierIds },
+                }),
+              ),
+            ),
+          ),
+        );
+        if (saved.every(Boolean)) return;
+        // A prop changed since it was read: read them all again.
+      }
+      throw new Error("Couldn't drop stray carriers: props kept changing");
     },
   };
 }

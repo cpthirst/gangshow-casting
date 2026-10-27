@@ -174,11 +174,11 @@ describe("propDetailsFrom", () => {
     expect(propDetailsFrom(basket, false).ok).toBe(true);
   });
 
-  it("says when more carriers are chosen than the quantity", () => {
-    const basket = fields("Bread basket", { quantity: "1", carrierIds: [3, 4] });
-    expect(propDetailsFrom(basket, true)).toEqual({
+  it("says to remove carriers before lowering the quantity below the carriers", () => {
+    const lantern = fields("Lantern", { quantity: "2", carrierIds: [3, 4, 7] });
+    expect(propDetailsFrom(lantern, true)).toEqual({
       ok: false,
-      errors: { carrier: "Only 1 can carry it: remove someone" },
+      errors: { quantity: "3 carriers chosen for 2: remove 1 from Selected carriers first" },
     });
   });
 

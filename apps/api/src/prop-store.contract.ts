@@ -1,6 +1,24 @@
-import type { PropList } from "@app/shared";
+import type { Prop, PropList, Role } from "@app/shared";
 import { expect, it } from "vitest";
 import type { PropStore } from "./prop-store.ts";
+
+const aRole = (id: number, castMemberIds: number[]): Role => ({
+  id,
+  itemId: "village-square",
+  name: `Role ${id}`,
+  size: "ensemble",
+  castMemberIds,
+  revision: 1,
+});
+
+const aProp = (id: number, name: string, roleIds: number[], carrierIds: number[]): Prop => ({
+  id,
+  itemId: "village-square",
+  name,
+  quantity: carrierIds.length,
+  roleIds,
+  carrierIds,
+});
 
 /** The rules every prop store keeps, run against each implementation. `make` gives a store
  *  already holding the props given. */
@@ -216,6 +234,33 @@ export function behavesAsAPropStore(make: (saved: PropList[]) => Promise<PropSto
 
     expect(updated).toMatchObject({ carrierIds: [5] });
     expect((await store.list("2027")).props[0]?.carrierIds).toEqual([5]);
+  });
+
+  it("takes off every carrier who no longer plays one of the prop's roles", async () => {
+    // Made-up ids: Jo (3) and Kim (4) are villagers; Sam (1) was the baker, now removed.
+    const villagers: Role = { ...aRole(10, [3, 4]), name: "Villagers" };
+    const lantern = aProp(1, "Lantern", [10, 11], [3, 1, 5]);
+    const telescope = aProp(2, "Telescope", [10], [4]);
+    const store = await make([{ productionId: "2027", props: [lantern, telescope] }]);
+
+    await store.dropStrayCarriers("2027", [villagers]);
+
+    const props = (await store.list("2027")).props;
+    expect(props.find(({ id }) => id === 1)).toEqual({ ...lantern, carrierIds: [3] });
+    expect(props.find(({ id }) => id === 2)).toEqual(telescope);
+  });
+
+  it("drops stray carriers in that production only", async () => {
+    const basket = aProp(1, "Bread basket", [10], [4]);
+    const store = await make([
+      { productionId: "2027", props: [basket] },
+      { productionId: "2028", props: [basket] },
+    ]);
+
+    await store.dropStrayCarriers("2027", []);
+
+    expect((await store.list("2027")).props[0]?.carrierIds).toEqual([]);
+    expect((await store.list("2028")).props[0]?.carrierIds).toEqual([4]);
   });
 
   it("refuses to update a prop that isn't there, adding nothing", async () => {

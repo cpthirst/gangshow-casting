@@ -86,12 +86,16 @@ describe("data stores with a remote table", () => {
       productionId: "2027",
       roles: [aRole(1, { castMemberIds: [12, 1] })],
     });
-    const { cast, roles, removeCastMember } = dataStores({
+    const { cast, roles, removeCastMember, props } = dataStores({
       ...process.env,
       DATA_TABLE: table.tableName,
     });
 
-    const res = await createDeleteCastMember(removeCastMember)({
+    const res = await createDeleteCastMember(
+      removeCastMember,
+      roles,
+      props,
+    )({
       pathParameters: { productionId: "2027", castId: "12" },
       queryStringParameters: { revision: "1" },
     });

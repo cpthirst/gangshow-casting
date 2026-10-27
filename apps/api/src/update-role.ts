@@ -5,6 +5,8 @@ import type { CastStore } from "./cast-store.ts";
 import type { ApiEvent } from "./handler.ts";
 import { parseJson } from "./json.ts";
 import { wholeNumber } from "./params.ts";
+import { carriersFollowCasting } from "./prop-links.ts";
+import type { PropStore } from "./prop-store.ts";
 import type { RoleStore } from "./role-store.ts";
 
 const json = (statusCode: number, body: unknown): APIGatewayProxyStructuredResultV2 => ({
@@ -15,7 +17,8 @@ const json = (statusCode: number, body: unknown): APIGatewayProxyStructuredResul
 
 // PUT /api/productions/{productionId}/roles/{roleId}: replace a role's name, size and cast,
 // unless someone else changed it since the revision in the body (casting-roles FR4, FR8).
-export function createUpdateRole(roles: RoleStore, cast: CastStore) {
+// Anyone taken out of it stops carrying its props (production-props FR28).
+export function createUpdateRole(roles: RoleStore, cast: CastStore, props: PropStore) {
   return async (event: ApiEvent): Promise<APIGatewayProxyStructuredResultV2> => {
     const productionId = ProductionId.safeParse(event.pathParameters?.productionId);
     const roleId = wholeNumber(event.pathParameters?.roleId);
@@ -32,6 +35,7 @@ export function createUpdateRole(roles: RoleStore, cast: CastStore) {
     if (result === "name-taken") return json(400, { error: "name-taken" } satisfies AddRoleRefusal);
     if (result === "stale") return { statusCode: 409 };
     if (result === "not-found") return { statusCode: 404 };
+    await carriersFollowCasting(props, roles, productionId.data);
     return json(200, result);
   };
 }
