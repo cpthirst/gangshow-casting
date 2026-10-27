@@ -49,7 +49,11 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter web exec playwright install --with-deps chromium
+      # Only the headless shell, and no --with-deps: the runner image already has Chromium's
+      # libraries, and the apt step (fonts and xvfb these headless tests don't need) could
+      # hang for minutes on a slow mirror. The timeout fails a stuck download quickly.
+      - run: pnpm --filter web exec playwright install --only-shell chromium
+        timeout-minutes: 5
       - run: pnpm test:e2e
 
   # Database tests (ADR 0016): the remote stores' tests against DynamoDB Local, with no AWS
