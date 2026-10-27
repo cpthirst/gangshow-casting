@@ -19,9 +19,11 @@ const soloist = aRole(3, "finale", "Soloist");
 const [sam, jo, kim, alex] = [1, 3, 4, 5];
 const villagers: Role = {
   ...aRole(4, "pirate-sketch", "Villagers"),
+  size: "ensemble",
   castMemberIds: [jo, kim, alex],
 };
 const baker: Role = { ...aRole(5, "pirate-sketch", "Baker"), castMemberIds: [sam] };
+const crier: Role = { ...aRole(6, "pirate-sketch", "Crier"), castMemberIds: [jo] };
 
 const request = (propId: string, body: unknown, productionId = "2027") => ({
   pathParameters: { productionId, propId },
@@ -44,7 +46,7 @@ function setUp() {
   };
   const props = inMemoryPropStore([initial]);
   const roles = inMemoryRoleStore([
-    { productionId: "2027", roles: [captain, pirate1, soloist, villagers, baker] },
+    { productionId: "2027", roles: [captain, pirate1, soloist, villagers, baker, crier] },
   ]);
   return { props, initial, handler: createUpdateProp(props, roles) };
 }
@@ -100,6 +102,18 @@ describe("update prop handler", () => {
     [
       "more carriers than the quantity",
       { name: "Bread basket", quantity: 1, roleIds: [villagers.id], carrierIds: [jo, kim] },
+    ],
+    [
+      "a carrier who plays one of the prop's named parts",
+      { name: "Lantern", quantity: 2, roleIds: [villagers.id, baker.id], carrierIds: [sam] },
+    ],
+    [
+      "more carriers than the named parts leave room for",
+      { name: "Lantern", quantity: 2, roleIds: [villagers.id, baker.id], carrierIds: [jo, kim] },
+    ],
+    [
+      "a quantity below the prop's named parts",
+      { name: "Lantern", quantity: 1, roleIds: [baker.id, crier.id] },
     ],
     ["a quantity of 0", { name: "Spyglass", quantity: 0, roleIds: [] }],
     ["a quantity of 100", { name: "Spyglass", quantity: 100, roleIds: [] }],

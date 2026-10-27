@@ -7,7 +7,7 @@ import SearchPicker from "@/components/common/SearchPicker.vue";
 import { icons } from "@/utils/icons.ts";
 import {
   carriersHint,
-  castOfRoles,
+  carriersOf,
   type PropFormFields,
   propDetailsFrom,
   quantityOf,
@@ -86,31 +86,33 @@ async function dropRole(id: number) {
   document.getElementById(idFor("role"))?.focus();
 }
 
-// Who carries it is chosen only when the roles have more people than the quantity
-// (production-props FR26); otherwise they all carry it (FR27). Both follow the form as it's
-// typed, so the picker comes and goes straight away.
-const people = computed(() => castOfRoles(picked.value, props.cast));
+// Everyone in the prop's named parts always carries it. Who else does is chosen from its
+// ensembles only when they have more people than the quantity leaves (production-props
+// FR26); otherwise they all carry it (FR27). Both follow the form as it's typed, so the
+// picker comes and goes straight away.
 const quantity = computed(() => quantityOf(form.value.quantity));
-// A quantity not yet typed (NaN) offers no picker.
-const offersCarriers = computed(() => people.value.length > quantity.value);
+const carrying = computed(() => carriersOf(picked.value, props.cast, quantity.value));
+const people = computed(() => carrying.value.choosable);
+const offersCarriers = computed(() => carrying.value.offersCarriers);
+const room = computed(() => carrying.value.room);
 const carriers = computed(() =>
   people.value.filter((member) => form.value.carrierIds.includes(member.id)),
 );
-/** Once the quantity is reached nobody more can be chosen, so the search is turned off. */
-const full = computed(() => carriers.value.length >= quantity.value);
+/** Once the room is filled nobody more can be chosen, so the search is turned off. */
+const full = computed(() => carriers.value.length >= room.value);
 const choosable = computed(() =>
   people.value.filter((member) => !form.value.carrierIds.includes(member.id)),
 );
 const carrierButtonId = (id: number) => `${idFor("carrierIds")}-${id}`;
 
-// Someone no longer in the prop's roles can't carry it, so they're taken off. When more roles
-// bring the picker, whoever carried it before (everyone, as they fitted) still does, so
-// adding an ensemble doesn't drop the named parts. A lower quantity chooses nobody for you.
+// Someone no longer in the prop's ensembles can't be chosen, so they're taken off. When another
+// ensemble brings the picker, whoever carried it before (everyone, as they fitted) still
+// does. A lower quantity chooses nobody for you.
 watch(
   [people, offersCarriers],
   ([now, offers], [before, offered]) => {
     const isIn = (id: number) => now.some((m) => m.id === id);
-    const fittedBefore = before !== undefined && before.length <= quantity.value;
+    const fittedBefore = before !== undefined && before.length <= room.value;
     if (offers && offered === false && fittedBefore) {
       form.value.carrierIds = before.map((m) => m.id).filter(isIn);
       return;
@@ -154,7 +156,10 @@ const nameInput = ref<HTMLInputElement>();
 onMounted(() => nameInput.value?.focus());
 
 function submit() {
-  const result = propDetailsFrom(form.value, offersCarriers.value);
+  const result = propDetailsFrom(form.value, {
+    offersCarriers: offersCarriers.value,
+    named: carrying.value.named.length,
+  });
   errors.value = result.ok ? {} : result.errors;
   if (result.ok) emit("save", result.details);
 }
@@ -229,7 +234,7 @@ function submit() {
       <label :for="idFor('carrier')" class="picker-label">Who carries it</label>
       <!-- A status, so the count left is heard as people are chosen and taken off. -->
       <p :id="`${idFor('carrier')}-hint`" class="carriers-hint" role="status" data-test="carriers-hint">
-        {{ carriersHint(quantity, carriers.length) }}
+        {{ carriersHint(room, carriers.length) }}
       </p>
       <CastMemberPicker
         v-model="form.carrier"

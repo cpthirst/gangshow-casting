@@ -2,8 +2,8 @@ import type { CastMember, Role } from "@app/shared";
 import { describe, expect, it } from "vitest";
 import {
   carriersHint,
+  carriersOf,
   carryingOf,
-  castOfRoles,
   type PropFormFields,
   propCountLabel,
   propCounts,
@@ -111,15 +111,19 @@ describe("sortProps", () => {
 });
 
 describe("propDetailsFrom", () => {
+  // What the prop's roles leave: everyone carries it, or carriers are chosen; no named parts.
+  const fits = { offersCarriers: false, named: 0 };
+  const choosing = { offersCarriers: true, named: 0 };
+
   it("gives the prop's name, trimmed", () => {
-    expect(propDetailsFrom(fields(" Parrot "), false)).toEqual({
+    expect(propDetailsFrom(fields(" Parrot "), fits)).toEqual({
       ok: true,
       details: { name: "Parrot", quantity: 1, roleIds: [], carrierIds: [] },
     });
   });
 
   it("gives the quantity typed", () => {
-    expect(propDetailsFrom(fields("Umbrella", { quantity: " 10 " }), false)).toEqual({
+    expect(propDetailsFrom(fields("Umbrella", { quantity: " 10 " }), fits)).toEqual({
       ok: true,
       details: { name: "Umbrella", quantity: 10, roleIds: [], carrierIds: [] },
     });
@@ -128,7 +132,7 @@ describe("propDetailsFrom", () => {
   it.each(["0", "100", "2.5", "-1", "", " ", "1e1", "ten"])(
     "says the quantity must be a whole number from 1 to 99 when it's %j",
     (quantity) => {
-      expect(propDetailsFrom(fields("Umbrella", { quantity }), false)).toEqual({
+      expect(propDetailsFrom(fields("Umbrella", { quantity }), fits)).toEqual({
         ok: false,
         errors: { quantity: "Quantity must be a whole number from 1 to 99" },
       });
@@ -136,7 +140,7 @@ describe("propDetailsFrom", () => {
   );
 
   it("says what's wrong with the name and the quantity together", () => {
-    expect(propDetailsFrom(fields("", { quantity: "0" }), false)).toEqual({
+    expect(propDetailsFrom(fields("", { quantity: "0" }), fits)).toEqual({
       ok: false,
       errors: {
         name: "A prop needs a name",
@@ -146,7 +150,7 @@ describe("propDetailsFrom", () => {
   });
 
   it("gives the roles picked", () => {
-    expect(propDetailsFrom(fields("Telescope", { roleIds: [3, 1] }), false)).toEqual({
+    expect(propDetailsFrom(fields("Telescope", { roleIds: [3, 1] }), fits)).toEqual({
       ok: true,
       details: { name: "Telescope", quantity: 1, roleIds: [3, 1], carrierIds: [] },
     });
@@ -154,7 +158,7 @@ describe("propDetailsFrom", () => {
 
   it("gives the carriers chosen while carriers are offered", () => {
     const basket = fields("Bread basket", { roleIds: [6], carrierIds: [4] });
-    expect(propDetailsFrom(basket, true)).toEqual({
+    expect(propDetailsFrom(basket, choosing)).toEqual({
       ok: true,
       details: { name: "Bread basket", quantity: 1, roleIds: [6], carrierIds: [4] },
     });
@@ -162,29 +166,45 @@ describe("propDetailsFrom", () => {
 
   it("gives no carriers when everyone in the prop's roles carries it", () => {
     const telescope = fields("Telescope", { roleIds: [1], carrierIds: [4] });
-    expect(propDetailsFrom(telescope, false)).toMatchObject({ details: { carrierIds: [] } });
+    expect(propDetailsFrom(telescope, fits)).toMatchObject({ details: { carrierIds: [] } });
   });
 
   it("says a carrier typed but not chosen from the list must be chosen or cleared", () => {
     const basket = fields("Bread basket", { carrier: { query: "kim", id: null } });
-    expect(propDetailsFrom(basket, true)).toEqual({
+    expect(propDetailsFrom(basket, choosing)).toEqual({
       ok: false,
       errors: { carrier: "Choose someone from the list, or clear the field" },
     });
-    expect(propDetailsFrom(basket, false).ok).toBe(true);
+    expect(propDetailsFrom(basket, fits).ok).toBe(true);
   });
 
   it("says to remove carriers before lowering the quantity below the carriers", () => {
     const lantern = fields("Lantern", { quantity: "2", carrierIds: [3, 4, 7] });
-    expect(propDetailsFrom(lantern, true)).toEqual({
+    expect(propDetailsFrom(lantern, choosing)).toEqual({
       ok: false,
       errors: { quantity: "3 carriers chosen for 2: remove 1 from Selected carriers first" },
     });
   });
 
+  it("says the quantity must cover the prop's named parts", () => {
+    const whistle = fields("Whistle", { quantity: "2", roleIds: [1, 2, 3] });
+    expect(propDetailsFrom(whistle, { offersCarriers: false, named: 3 })).toEqual({
+      ok: false,
+      errors: { quantity: "3 named parts always carry it: make the quantity at least 3" },
+    });
+  });
+
+  it("counts only the room the named parts leave when saying how many carriers to remove", () => {
+    const lantern = fields("Lantern", { quantity: "2", carrierIds: [3, 4] });
+    expect(propDetailsFrom(lantern, { offersCarriers: true, named: 1 })).toEqual({
+      ok: false,
+      errors: { quantity: "2 carriers chosen for 1: remove 1 from Selected carriers first" },
+    });
+  });
+
   it("says a role typed but not chosen from the list must be chosen or cleared", () => {
     expect(
-      propDetailsFrom(fields("Telescope", { role: { query: "capt", id: null } }), false),
+      propDetailsFrom(fields("Telescope", { role: { query: "capt", id: null } }), fits),
     ).toEqual({
       ok: false,
       errors: { role: "Choose a role from the list, or clear the field" },
@@ -195,14 +215,14 @@ describe("propDetailsFrom", () => {
     ["empty", ""],
     ["only spaces", "   "],
   ])("says a prop needs a name when it's %s", (_case, name) => {
-    expect(propDetailsFrom(fields(name), false)).toEqual({
+    expect(propDetailsFrom(fields(name), fits)).toEqual({
       ok: false,
       errors: { name: "A prop needs a name" },
     });
   });
 
   it("says how long a prop's name can be", () => {
-    expect(propDetailsFrom(fields("x".repeat(81)), false)).toEqual({
+    expect(propDetailsFrom(fields("x".repeat(81)), fits)).toEqual({
       ok: false,
       errors: { name: "Prop names can be up to 80 characters" },
     });
@@ -250,10 +270,25 @@ describe("who carries a prop", () => {
   const villagers = playedBy(aRole(6, "Villagers", "ensemble"), jo, kim, alex);
   const baker = playedBy(aRole(7, "Baker", "lead"), sam);
 
-  describe("castOfRoles", () => {
-    it("gives everyone in the roles once, by surname", () => {
+  describe("carriersOf", () => {
+    it("gives the named parts, and the ensembles' cast to choose from once each, by surname", () => {
       const crowd = playedBy(aRole(8, "Crowd", "ensemble"), kim, sam);
-      expect(castOfRoles([villagers, baker, crowd], villageCast)).toEqual([jo, alex, kim, sam]);
+      const lanterns = carriersOf([villagers, baker, crowd], villageCast, 3);
+      expect(lanterns.named).toEqual([sam]);
+      expect(lanterns.choosable).toEqual([jo, alex, kim]);
+      expect(lanterns.room).toBe(2);
+      expect(lanterns.offersCarriers).toBe(true);
+    });
+
+    it("offers no choosing when the ensembles fit the room the named parts leave", () => {
+      expect(carriersOf([villagers, baker], villageCast, 4).offersCarriers).toBe(false);
+    });
+
+    it("leaves no room, and offers no choosing, when the named parts outnumber the quantity", () => {
+      const mayor = playedBy(aRole(9, "Mayor", "cameo"), jo);
+      const whistle = carriersOf([baker, mayor], villageCast, 1);
+      expect(whistle.room).toBe(0);
+      expect(whistle.offersCarriers).toBe(false);
     });
   });
 
@@ -282,9 +317,41 @@ describe("who carries a prop", () => {
       expect(lanterns.toChoose).toBe(0);
     });
 
-    it("says how many are left to choose", () => {
-      expect(carried(3, [villagers.id, baker.id], [jo.id]).toChoose).toBe(2);
-      expect(carried(3, [villagers.id, baker.id]).toChoose).toBe(3);
+    it("says how many are left to choose once the named parts have theirs", () => {
+      expect(carried(3, [villagers.id, baker.id], [jo.id]).toChoose).toBe(1);
+      expect(carried(3, [villagers.id, baker.id]).toChoose).toBe(2);
+    });
+
+    it("always names the named parts, choosing only from the ensembles", () => {
+      const lantern = carried(2, [villagers.id, baker.id]);
+      expect(shown(lantern)).toEqual([
+        ["Baker", "Sam Taylor"],
+        ["Villagers", "Nobody carries it"],
+      ]);
+      expect(lantern.toChoose).toBe(1);
+    });
+
+    it("names the whole ensemble when it fits what the named parts leave", () => {
+      const lanterns = carried(4, [villagers.id, baker.id]);
+      expect(shown(lanterns)).toEqual([
+        ["Baker", "Sam Taylor"],
+        ["Villagers", "Jo Brown, Alex Green, Kim Lee"],
+      ]);
+      expect(lanterns.toChoose).toBe(0);
+    });
+
+    it("names every named part, with none to choose, even when they outnumber the quantity", () => {
+      const mayor = { ...aRole(9, "Mayor", "cameo"), castMemberIds: [jo.id] };
+      const whistle = carryingOf(
+        aProp(1, "village-square", [baker.id, mayor.id], 1),
+        [baker, mayor],
+        villageCast,
+      );
+      expect(shown(whistle)).toEqual([
+        ["Baker", "Sam Taylor"],
+        ["Mayor", "Jo Brown"],
+      ]);
+      expect(whistle.toChoose).toBe(0);
     });
 
     it("says when nobody in a role carries the prop, and marks an uncast role as uncast", () => {

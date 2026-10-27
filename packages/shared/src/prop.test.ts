@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { AddPropRequest, MAX_PROP_NAME_LENGTH, MAX_PROP_QUANTITY, Prop, PropList } from "./prop.ts";
+import {
+  AddPropRequest,
+  carryingCast,
+  MAX_PROP_NAME_LENGTH,
+  MAX_PROP_QUANTITY,
+  Prop,
+  PropList,
+} from "./prop.ts";
 
 const aProp = (id: number, itemId: string, name = `Prop ${id}`) => ({
   id,
@@ -115,5 +122,29 @@ describe("AddPropRequest", () => {
     for (const extra of [{ id: 1 }, { itemId: "finale" }, { castMemberIds: [1] }]) {
       expect(AddPropRequest.safeParse({ name: "Parrot", ...extra }).success).toBe(false);
     }
+  });
+});
+
+describe("carryingCast", () => {
+  // Made-up ids: Sam (1) is the baker, Jo (3) and Kim (4) villagers, Ash (5) the mayor.
+  const baker = { size: "lead" as const, castMemberIds: [1] };
+  const mayor = { size: "cameo" as const, castMemberIds: [5] };
+  const villagers = { size: "ensemble" as const, castMemberIds: [3, 4] };
+
+  it("gives everyone in a named part as carrying it, and the ensembles' cast to choose from", () => {
+    expect(carryingCast([baker, villagers, mayor])).toEqual({ named: [1, 5], choosable: [3, 4] });
+  });
+
+  it("counts someone in two named parts once, and never offers them from an ensemble", () => {
+    const crowd = { size: "ensemble" as const, castMemberIds: [1, 4] };
+    expect(carryingCast([baker, { ...mayor, castMemberIds: [1] }, crowd])).toEqual({
+      named: [1],
+      choosable: [4],
+    });
+  });
+
+  it("offers each ensemble member once", () => {
+    const crowd = { size: "ensemble" as const, castMemberIds: [4, 6] };
+    expect(carryingCast([villagers, crowd]).choosable).toEqual([3, 4, 6]);
   });
 });

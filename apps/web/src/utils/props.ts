@@ -1,6 +1,7 @@
 import {
   AddPropRequest,
   type CastMember,
+  carryingCast,
   type ItemNote,
   MAX_PROP_NAME_LENGTH,
   MAX_PROP_QUANTITY,
@@ -50,21 +51,27 @@ export const sortProps = (props: readonly Prop[]) =>
 export const rolesOf = (prop: Prop, roles: Role[]) =>
   sortRoles(roles.filter((role) => prop.roleIds.includes(role.id)));
 
-/** Everyone who plays one of the roles, each once, by surname: who can carry a prop linked to
- *  them (production-props FR26). */
-export const castOfRoles = (roles: Role[], cast: CastMember[]) =>
-  sortCast(cast.filter((member) => roles.some((role) => role.castMemberIds.includes(member.id))));
+/** Who carries a prop with these roles and quantity (production-props FR26, FR27): everyone
+ *  in its named parts always does, and up to `room` more are chosen from the rest of its
+ *  ensembles' cast, by surname, when there are more of them than that. */
+export function carriersOf(roles: Role[], cast: CastMember[], quantity: number) {
+  const ids = carryingCast(roles);
+  const named = sortCast(cast.filter((member) => ids.named.includes(member.id)));
+  const choosable = sortCast(cast.filter((member) => ids.choosable.includes(member.id)));
+  // A quantity not yet typed (NaN) leaves no room, so offers no choosing.
+  const room = Math.max(0, quantity - named.length);
+  return { named, choosable, room, offersCarriers: choosable.length > room };
+}
 
 /** Who carries a prop, role by role in the item's role order, and how many are left to
- *  choose. When its roles have no more people than its quantity, they all carry it
- *  (production-props FR27); otherwise only its chosen carriers do (FR26). Each role's
- *  carriers are "" when it has none, with `none` to show instead. */
+ *  choose (production-props FR26, FR27). A carrier no longer in its ensembles doesn't count.
+ *  Each role's carriers are "" when it has none, with `none` to show instead. */
 export function carryingOf(prop: Prop, roles: Role[], cast: CastMember[]) {
   const linked = rolesOf(prop, roles);
-  const people = castOfRoles(linked, cast);
-  const everyone = people.length <= prop.quantity;
-  // A carrier no longer in the prop's roles doesn't count.
-  const carries = (member: CastMember) => everyone || prop.carrierIds.includes(member.id);
+  const { named, choosable, room, offersCarriers } = carriersOf(linked, cast, prop.quantity);
+  const chosen = choosable.filter((member) => prop.carrierIds.includes(member.id));
+  const carries = (member: CastMember) =>
+    !offersCarriers || named.includes(member) || chosen.includes(member);
   return {
     roles: linked.map((role) => {
       const playing = castOf(role, cast);
@@ -74,7 +81,7 @@ export function carryingOf(prop: Prop, roles: Role[], cast: CastMember[]) {
         none: playing.length === 0 ? "Uncast" : "Nobody carries it",
       };
     }),
-    toChoose: everyone ? 0 : prop.quantity - people.filter(carries).length,
+    toChoose: offersCarriers ? Math.max(0, room - chosen.length) : 0,
   };
 }
 
@@ -149,16 +156,20 @@ export type PropFormResult =
   | { ok: false; errors: Partial<Record<keyof PropFormFields, string>> };
 
 /** The prop the form describes, or a message for each field that needs fixing. Limits come
- *  from the shared schema, so the page and the API agree. offersCarriers: whether the form
- *  offers a carrier picker; without one, everyone in the prop's roles carries it, so no
- *  carriers are saved (production-props FR27). */
-export function propDetailsFrom(form: PropFormFields, offersCarriers: boolean): PropFormResult {
+ *  from the shared schema, so the page and the API agree. carrying: whether the form offers
+ *  a carrier picker (without one, everyone in the prop's roles carries it, so no carriers
+ *  are saved), and how many named parts always carry it (production-props FR26, FR27). */
+export function propDetailsFrom(
+  form: PropFormFields,
+  carrying: { offersCarriers: boolean; named: number },
+): PropFormResult {
   const quantity = quantityOf(form.quantity);
+  const carrierIds = carrying.offersCarriers ? form.carrierIds : [];
   const parsed = AddPropRequest.safeParse({
     name: form.name,
     quantity,
     roleIds: form.roleIds,
-    carrierIds: offersCarriers ? form.carrierIds : [],
+    carrierIds,
   });
   const errors: Partial<Record<keyof PropFormFields, string>> = {};
   const issues = parsed.error?.issues ?? [];
@@ -169,18 +180,21 @@ export function propDetailsFrom(form: PropFormFields, offersCarriers: boolean): 
       ? `Prop names can be up to ${MAX_PROP_NAME_LENGTH} characters`
       : "A prop needs a name";
   }
+  const room = quantity - carrying.named;
   if (issues.some(({ path }) => path[0] === "quantity")) {
     errors.quantity = `Quantity must be a whole number from 1 to ${MAX_PROP_QUANTITY}`;
-  } else if (issues.some(({ path }) => path[0] === "carrierIds")) {
-    // The picker stops at the quantity, so only lowering the quantity gets here (FR28).
-    const chosen = form.carrierIds.length;
-    errors.quantity = `${chosen} carriers chosen for ${quantity}: remove ${chosen - quantity} from Selected carriers first`;
+  } else if (room < 0) {
+    errors.quantity = `${carrying.named} named parts always carry it: make the quantity at least ${carrying.named}`;
+  } else if (carrierIds.length > room) {
+    // The picker stops at the room left, so only lowering the quantity gets here (FR28).
+    const chosen = carrierIds.length;
+    errors.quantity = `${chosen} carriers chosen for ${room}: remove ${chosen - room} from Selected carriers first`;
   }
   // Typed but not chosen: the text alone doesn't say which role, so it isn't guessed.
   if (form.role.query.trim() !== "") {
     errors.role = "Choose a role from the list, or clear the field";
   }
-  if (offersCarriers && form.carrier.query.trim() !== "") {
+  if (carrying.offersCarriers && form.carrier.query.trim() !== "") {
     errors.carrier = "Choose someone from the list, or clear the field";
   }
   if (parsed.success && Object.keys(errors).length === 0) {

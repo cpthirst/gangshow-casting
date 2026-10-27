@@ -1,14 +1,21 @@
-import type { AddPropRequest, Prop, Role } from "@app/shared";
+import { type AddPropRequest, carryingCast, type Prop, type Role } from "@app/shared";
 import type { PropStore } from "./prop-store.ts";
 import type { RoleStore } from "./role-store.ts";
 
-/** Whether a prop links only to its own item's roles (production-props FR18), and each of its
- *  carriers plays one of those roles (FR26). itemRoles: every role in the prop's item. */
-export function linksFitItem({ roleIds, carrierIds }: AddPropRequest, itemRoles: Role[]) {
+/** Whether a prop links only to its own item's roles (production-props FR18), its quantity
+ *  covers its named parts, and each of its carriers is in one of its ensembles but none of
+ *  its named parts, no more than the quantity leaves (FR26). itemRoles: every role in the
+ *  prop's item. */
+export function linksFitItem({ roleIds, quantity, carrierIds }: AddPropRequest, itemRoles: Role[]) {
   const linked = itemRoles.filter((role) => roleIds.includes(role.id));
   // roleIds has no repeats (AddPropRequest), so a shorter list means a role outside the item.
   if (linked.length !== roleIds.length) return false;
-  return carrierIds.every((id) => linked.some((role) => role.castMemberIds.includes(id)));
+  const { named, choosable } = carryingCast(linked);
+  return (
+    named.length <= quantity &&
+    carrierIds.length <= quantity - named.length &&
+    carrierIds.every((id) => choosable.includes(id))
+  );
 }
 
 /** A prop's carriers who still play one of its roles: a carrier recast, deleted from the cast

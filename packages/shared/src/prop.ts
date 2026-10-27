@@ -39,6 +39,21 @@ export const Prop = z.strictObject({
 
 const noRepeats = (ids: number[]) => new Set(ids).size === ids.length;
 
+/** Who carries a prop, from its roles as they're cast now (production-props FR26): everyone
+ *  in a named part (any size but ensemble, so one person) always does, and carriers are
+ *  chosen only from the rest of its ensembles' cast. Each id once. */
+export function carryingCast(roles: Pick<Role, "size" | "castMemberIds">[]) {
+  const castOf = (named: boolean) => [
+    ...new Set(
+      roles
+        .filter((role) => (role.size !== "ensemble") === named)
+        .flatMap((role) => role.castMemberIds),
+    ),
+  ];
+  const named = castOf(true);
+  return { named, choosable: castOf(false).filter((id) => !named.includes(id)) };
+}
+
 /**
  * POST /api/productions/{productionId}/items/{itemId}/props: a new prop for the item, with
  * a quantity of 1 and no roles or carriers unless given (each role one of this item's, each

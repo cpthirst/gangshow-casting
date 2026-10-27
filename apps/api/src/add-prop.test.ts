@@ -22,8 +22,13 @@ const pirate1 = aRole(2, pirateSketch, "Pirate 1");
 const soloist = aRole(3, finale, "Soloist");
 // Made-up cast member ids: Jo, Kim and Alex are villagers; Sam is the baker.
 const [sam, jo, kim, alex] = [1, 3, 4, 5];
-const villagers: Role = { ...aRole(4, pirateSketch, "Villagers"), castMemberIds: [jo, kim, alex] };
+const villagers: Role = {
+  ...aRole(4, pirateSketch, "Villagers"),
+  size: "ensemble",
+  castMemberIds: [jo, kim, alex],
+};
 const baker: Role = { ...aRole(5, pirateSketch, "Baker"), castMemberIds: [sam] };
+const crier: Role = { ...aRole(6, pirateSketch, "Crier"), castMemberIds: [jo] };
 
 const request = (body: unknown, item = pirateSketch, productionId = "2027") => ({
   pathParameters: { productionId, itemId: item },
@@ -36,7 +41,7 @@ function setUp() {
     aRunningOrder(7, { first: ["Opening Number", "Pirate Sketch"] }),
   ]);
   const roles = inMemoryRoleStore([
-    { productionId: "2027", roles: [captain, pirate1, soloist, villagers, baker] },
+    { productionId: "2027", roles: [captain, pirate1, soloist, villagers, baker, crier] },
   ]);
   return { props, handler: createAddProp(props, runningOrders, roles) };
 }
@@ -108,6 +113,32 @@ describe("add prop handler", () => {
 
     expect(res.statusCode).toBe(400);
     expect((await props.list("2027")).props).toEqual([]);
+  });
+
+  it.each([
+    ["a carrier who plays one of its named parts", 2, [villagers.id, baker.id], [sam]],
+    ["more carriers than its named parts leave room for", 2, [villagers.id, baker.id], [jo, kim]],
+    ["a quantity below its named parts", 1, [baker.id, crier.id], []],
+  ])("refuses %s with 400, storing nothing", async (_case, quantity, roleIds, carrierIds) => {
+    const { props, handler } = setUp();
+
+    const res = await handler(request({ name: "Lantern", quantity, roleIds, carrierIds }));
+
+    expect(res.statusCode).toBe(400);
+    expect((await props.list("2027")).props).toEqual([]);
+  });
+
+  it("lets everyone in its named parts carry it, choosing from its ensembles", async () => {
+    const { props, handler } = setUp();
+    const lantern = {
+      name: "Lantern",
+      quantity: 2,
+      roleIds: [villagers.id, baker.id],
+      carrierIds: [kim],
+    };
+
+    expect((await handler(request(lantern))).statusCode).toBe(201);
+    expect((await props.list("2027")).props[0]?.carrierIds).toEqual([kim]);
   });
 
   it("stores the quantity given", async () => {
