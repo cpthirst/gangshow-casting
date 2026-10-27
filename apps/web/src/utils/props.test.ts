@@ -306,6 +306,9 @@ describe("who carries a prop", () => {
       [1, 0, "Choose up to 1"],
       [3, 1, "Choose up to 3 · 2 left to choose"],
       [2, 2, "Choose up to 2 · none left to choose"],
+      // After the quantity is lowered below the carriers already chosen.
+      [1, 2, "Choose up to 1 · 1 too many: remove 1"],
+      [2, 5, "Choose up to 2 · 3 too many: remove 3"],
     ])("with a quantity of %s and %s chosen, says %j", (quantity, chosen, hint) => {
       expect(carriersHint(quantity, chosen)).toBe(hint);
     });

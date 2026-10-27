@@ -1571,6 +1571,7 @@ describe("Who carries a prop", () => {
 
     await wrapper.get("button[aria-label='Edit Lantern']").trigger("click");
     await setQuantity(wrapper, "2");
+    expect(carriersHint(wrapper).text()).toBe("Choose up to 2 · 1 too many: remove 1");
     await saveEdited(wrapper);
 
     expect(stored[0]?.quantity).toBe(3);

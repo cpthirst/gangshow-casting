@@ -83,6 +83,8 @@ export function carriersHint(quantity: number, chosen: number) {
   const limit = `Choose up to ${quantity}`;
   if (chosen === 0) return limit;
   const left = quantity - chosen;
+  // Lowering the quantity can leave more chosen than it allows (production-props FR28).
+  if (left < 0) return `${limit} · ${-left} too many: remove ${-left}`;
   return `${limit} · ${left > 0 ? left : "none"} left to choose`;
 }
 
