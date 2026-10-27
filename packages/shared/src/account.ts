@@ -24,7 +24,7 @@ export const AccountAccess = z.union([
 
 export type AccountAccess = z.infer<typeof AccountAccess>;
 
-/** An account as admins see it: who, and what they may do (hosting FR11, stage-props FR6). */
+/** An account as admins see it: who, and what they may do (hosting FR11, production-props FR6). */
 export const AccountSummary = z.strictObject({
   username: Username,
   access: AccountAccess,
@@ -35,7 +35,7 @@ export const AccountSummary = z.strictObject({
 export const AccountList = z.strictObject({ accounts: z.array(AccountSummary) });
 
 /**
- * POST /api/accounts takes this: who, and what they may do (stage-props FR6). The API chooses
+ * POST /api/accounts takes this: who, and what they may do (production-props FR6). The API chooses
  * the temporary password.
  */
 export const NewAccount = z.strictObject({ username: Username, access: AccountAccess });

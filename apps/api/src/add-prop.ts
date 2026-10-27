@@ -7,7 +7,7 @@ import type { RoleStore } from "./role-store.ts";
 import type { RunningOrderStore } from "./running-order-store.ts";
 
 // POST /api/productions/{productionId}/items/{itemId}/props: add a prop to an item
-// (stage-props FR17). Only Stage or an admin get here (routeNeeds in @app/shared).
+// (production-props FR17). Only Stage or an admin get here (routeNeeds in @app/shared).
 export function createAddProp(
   props: PropStore,
   runningOrders: RunningOrderStore,
@@ -26,7 +26,7 @@ export function createAddProp(
     const inShow = order?.halves.some((half) => half.items.some((item) => item.id === itemId));
     if (!inShow) return { statusCode: 404 };
 
-    // A prop links only to its own item's roles (stage-props FR18).
+    // A prop links only to its own item's roles (production-props FR18).
     const itemRoleIds = (await roles.list(productionId.data)).roles
       .filter((role) => role.itemId === itemId)
       .map((role) => role.id);

@@ -24,7 +24,7 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [production-overview.E2.S1](stories/E2-S1-overview-with-props.md) | Walking skeleton: Production's menu has one page, Overview, replacing Stage, Tech and Wardrobe. It lists the running order by half: #, title with "Not in printed programme", a square Props button (edit or view, by permission) and the props count, with props notes under the row. Also the no-running-order message and Generate Props List. The props item page links back to the Overview. Old Stage, Tech, Costume and Production addresses open the Overview. Usage records Overview visits | FR3, FR4, FR5, FR6, FR7, FR8, FR9, FR11, FR13 | E1.S1 | ready |
+| [production-overview.E2.S1](stories/E2-S1-overview-with-props.md) | Walking skeleton: Production's menu has one page, Overview, replacing Stage, Tech and Wardrobe. It lists the running order by half: #, title with "Not in printed programme", a square Props button (edit or view, by permission) and the props count, with props notes under the row. Also the no-running-order message and Generate Props List. The props item page links back to the Overview. Old Stage, Tech, Costume and Production addresses open the Overview. Usage records Overview visits | FR3, FR4, FR5, FR6, FR7, FR8, FR9, FR11, FR13 | E1.S1 | done |
 | [production-overview.E2.S2](stories/E2-S2-department-buttons-and-item-pages.md) | Each row gains Scenery, SFX, Mic plot and Wardrobe buttons, in order around Props, each with its icon and an accessible name. Each opens that department's page for the item, which says "Coming soon" and has a link back to the Overview, Previous and Next, and a not-found message for an unknown item | FR4, FR5, FR10 | E2.S1 | ready |
 
 ## E3: Finding your way

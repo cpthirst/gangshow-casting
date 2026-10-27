@@ -7,7 +7,7 @@ import type { PropStore } from "./prop-store.ts";
 import type { RoleStore } from "./role-store.ts";
 
 // PUT /api/productions/{productionId}/props/{propId}: replace a prop's name and roles
-// (stage-props FR19). Only Stage or an admin get here (routeNeeds in @app/shared).
+// (production-props FR19). Only Stage or an admin get here (routeNeeds in @app/shared).
 export function createUpdateProp(props: PropStore, roles: RoleStore) {
   return async (event: ApiEvent): Promise<APIGatewayProxyStructuredResultV2> => {
     const productionId = ProductionId.safeParse(event.pathParameters?.productionId);
@@ -19,7 +19,7 @@ export function createUpdateProp(props: PropStore, roles: RoleStore) {
 
     const prop = (await props.list(productionId.data)).props.find(({ id }) => id === propId);
     if (!prop) return { statusCode: 404 };
-    // A prop links only to its own item's roles (stage-props FR18).
+    // A prop links only to its own item's roles (production-props FR18).
     const itemRoleIds = (await roles.list(productionId.data)).roles
       .filter((role) => role.itemId === prop.itemId)
       .map((role) => role.id);

@@ -14,7 +14,7 @@ const USAGE =
 
 /**
  * Removes the usage of the Mic plot, Props, Scenery and SFX pages, which became Stage's and
- * Tech's views (stage-props AC11), from the table named by DATA_TABLE, with the maintainer's
+ * Tech's views (production-props AC11), from the table named by DATA_TABLE, with the maintainer's
  * AWS credentials. Run once after the deploy; safe to run again. Returns the exit code.
  */
 export async function runUsage(args: string[], env: Env, deps: Deps): Promise<number> {

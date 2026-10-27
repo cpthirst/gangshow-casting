@@ -1,11 +1,11 @@
 ---
-feature: stage-props
+feature: production-props
 status: approved
 owner: Nick Hirst
 date: 2026-10-25
 ---
 
-# Stage props: PRD
+# Production props: PRD
 
 ## Problem
 

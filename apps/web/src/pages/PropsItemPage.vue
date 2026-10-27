@@ -25,12 +25,12 @@ import { PROPS_NOTES_PATH, savePropsNotesPath } from "@/utils/props-notes.ts";
 import { ROLES_PATH, sortRoles } from "@/utils/roles.ts";
 import { neighboursOf, placeOf, positionOf, RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
 
-// One item's props (stage-props FR16, FR17, FR19), laid out as the item's casting page.
+// One item's props (production-props FR16, FR17, FR19), laid out as the item's casting page.
 
 const route = useRoute();
 const order = ref<RunningOrder>();
 const props = ref<Prop[]>([]);
-// The casting, for each prop's roles and who plays them (stage-props FR18).
+// The casting, for each prop's roles and who plays them (production-props FR18).
 const roles = ref<Role[]>([]);
 const cast = ref<CastMember[]>([]);
 const status = ref<"loading" | "loaded" | "error">("loading");
@@ -164,7 +164,7 @@ async function putProp(id: number, details: AddPropRequest) {
   }
 }
 
-// Permanent (stage-props FR19), so confirm first.
+// Permanent (production-props FR19), so confirm first.
 async function removeProp(prop: Prop) {
   if (busy.value || !place.value) return;
   if (!window.confirm(`Remove the prop ${prop.name} from ${place.value.item.title}?`)) return;
@@ -253,7 +253,7 @@ async function postProp(itemId: string, details: AddPropRequest) {
 
 <template>
   <ItemStepNav
-    :list="{ name: 'stage', query: { view: 'props' } }"
+    :list="{ name: 'production-overview' }"
     item-route="props-item"
     :previous="neighbours.previous"
     :next="neighbours.next"

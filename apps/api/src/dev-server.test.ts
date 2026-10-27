@@ -317,7 +317,7 @@ describe("dev server usage (usage-tracking AC14)", () => {
   });
 });
 
-describe("dev server local access (stage-props FR9)", () => {
+describe("dev server local access (production-props FR9)", () => {
   const reached: string[] = [];
   const table = {
     "GET /api/productions/{productionId}/cast": async () => {

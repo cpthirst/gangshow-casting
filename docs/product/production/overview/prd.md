@@ -9,7 +9,7 @@ date: 2026-10-26
 
 ## Problem
 
-Production has three pages, one per department: Stage (with a Scenery / Props switch), Tech (Mic plot / SFX) and Costume (stage-props FR10). Each list view repeats the show's running order: today the Props view does, and Scenery, Mic plot and SFX would each add another copy as they're built. Five lists of the same items, each behind a page and a switch, means more clicks for the team and more pages for the maintainer to build and keep in step. Someone who works across departments, such as a stage manager with Stage and Tech, has to hop between pages to see one item's needs.
+Production has three pages, one per department: Stage (with a Scenery / Props switch), Tech (Mic plot / SFX) and Costume (production-props FR10). Each list view repeats the show's running order: today the Props view does, and Scenery, Mic plot and SFX would each add another copy as they're built. Five lists of the same items, each behind a page and a switch, means more clicks for the team and more pages for the maintainer to build and keep in step. Someone who works across departments, such as a stage manager with Stage and Tech, has to hop between pages to see one item's needs.
 
 The show calls the department **Wardrobe**, not Costume. The app's name for it doesn't match the word the team uses.
 
@@ -49,7 +49,7 @@ The show calls the department **Wardrobe**, not Costume. The app's name for it d
 
 ### Wardrobe
 - **FR1**: The **Costume** department and permission become **Wardrobe** everywhere: the Accounts page's tick boxes and confirmations, the "Local role" switch in local development and the demo, refusals and read-only lines, the Welcome and Help pages, and the names the API and sign-in use for the permission.
-- **FR2**: The Wardrobe permission works as Costume did (stage-props FR2): it lets an account change Wardrobe's pages once they're built, and nothing else until then.
+- **FR2**: The Wardrobe permission works as Costume did (production-props FR2): it lets an account change Wardrobe's pages once they're built, and nothing else until then.
 
 ### The Overview
 - **FR3**: Production's menu group has one page, **Overview**, replacing Stage, Tech and Costume. There's no further level of menu. Every role can open it.
@@ -60,24 +60,24 @@ The show calls the department **Wardrobe**, not Costume. The app's name for it d
   - the **number of props** the item has, in a column headed Props.
 
   There's no minutes column. There are no view switches (pills) on the page.
-- **FR5**: Each square button opens that department's page for the item. Every role can open every one. Someone with that department's permission (or an Admin) can make changes there, and anyone else sees it read-only, with the line saying what can be viewed but not changed (stage-props FR3). Each button's accessible name says what it opens, for which item, and whether it is to edit or to view (for example "Edit props for Opening Number").
-- **FR6**: An item's props notes appear in full under its row, labelled as props notes, as on today's Props view (stage-props FR14). Items without props notes show nothing extra.
+- **FR5**: Each square button opens that department's page for the item. Every role can open every one. Someone with that department's permission (or an Admin) can make changes there, and anyone else sees it read-only, with the line saying what can be viewed but not changed (production-props FR3). Each button's accessible name says what it opens, for which item, and whether it is to edit or to view (for example "Edit props for Opening Number").
+- **FR6**: An item's props notes appear in full under its row, labelled as props notes, as on today's Props view (production-props FR14). Items without props notes show nothing extra.
 - **FR7**: If there's no saved running order, the Overview says so and points to the Running order page, as Casting Items does.
-- **FR8**: The Overview has a **Generate Props List** button that works as it does today (stage-props FR22, FR23). Later exports (Mic Plot in Excel, SFX List in Word) sit beside it when their features are built.
+- **FR8**: The Overview has a **Generate Props List** button that works as it does today (production-props FR22, FR23). Later exports (Mic Plot in Excel, SFX List in Word) sit beside it when their features are built.
 
 ### Each item's department pages
 - **FR9**: The props item page's link back goes to the Overview. Its Previous and Next links are unchanged.
 - **FR10**: Scenery, SFX, Mic plot and Wardrobe each have a page per item, with its own address. Each shows the item's name and position in the running order, a link back to the Overview, and Previous and Next links to the neighbouring items, as every item page does (CLAUDE.md). Until its feature is built, each says "Coming soon". An item that isn't in the latest saved running order shows a "not found" message with a link back.
 
 ### Addresses, help and usage
-- **FR11**: Old addresses open the Overview: the Stage, Tech and Costume pages with any of their views, and the older Production addresses (stage-props FR11). Bookmarks to an item's props page still open it.
+- **FR11**: Old addresses open the Overview: the Stage, Tech and Costume pages with any of their views, and the older Production addresses (production-props FR11). Bookmarks to an item's props page still open it.
 - **FR12**: The Welcome and Help pages describe the Overview, what each button opens, the Generate Props List button, and that each department's permission (Stage, Tech, Wardrobe) is what lets someone change its pages.
 - **FR13**: The Usage page records visits to the Overview as a menu page, and uses of Generate Props List as today. The Stage, Tech and Costume pages and their views are no longer recorded (see Open questions for their past visits).
 
 ## Non-functional requirements
 
 - **Security and safeguarding**:
-  - The API keeps refusing every change outside the account's permissions (stage-props FR4). Renaming the permission must never widen anyone's access. An unknown or old permission name, including `costume`, grants nothing.
+  - The API keeps refusing every change outside the account's permissions (production-props FR4). Renaming the permission must never widen anyone's access. An unknown or old permission name, including `costume`, grants nothing.
   - Renaming the department's sign-in group is a change to the AWS sign-in setup. It needs a decision record amending ADR 0026, and the infra review.
   - No new personal data. The Overview shows no cast names, and the item pages show only what their features already show.
 - **Accessibility**: WCAG 2.2 AA.
@@ -89,10 +89,10 @@ The show calls the department **Wardrobe**, not Costume. The app's name for it d
 
 ## Constraints and assumptions
 
-- Builds on stage-props: its permissions, its props pages and its Word export. Items come from the latest saved running order, by their stable IDs, numbered as on the Running order page.
+- Builds on production-props: its permissions, its props pages and its Word export. Items come from the latest saved running order, by their stable IDs, numbered as on the Running order page.
 - **Wardrobe rename, decided 2026-10-26**: the maintainer confirmed no real account relies on the Costume permission, so it is renamed in one release. Any account that did have Costume ticked would lose it and need Wardrobe ticking. No move command is needed.
-- **Departments**: Scenery and Props belong to Stage, SFX and Mic plot to Tech, and Wardrobe to Wardrobe, for permissions (stage-props assumption).
-- **Icons**: from the Font Awesome set the app already uses (ADR 0013). Proposed: Scenery a mountain scene, Props a box, SFX a speaker, Mic plot a microphone, Wardrobe a shirt. Confirm in the story.
+- **Departments**: Scenery and Props belong to Stage, SFX and Mic plot to Tech, and Wardrobe to Wardrobe, for permissions (production-props assumption).
+- **Icons**: from the Font Awesome set the app already uses (ADR 0013). Chosen 2026-10-27: Scenery a hammer, Props a person walking with luggage, SFX an audio file, Mic plot a microphone, Wardrobe a shirt.
 - One production (2027), and cost stays close to £0 with no new AWS service.
 - Deploys stay the maintainer's (CLAUDE.md).
 
@@ -101,7 +101,7 @@ The show calls the department **Wardrobe**, not Costume. The app's name for it d
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
 | Renaming the group drops someone's Costume tick unnoticed | L | L | Maintainer confirmed no-one relies on it, and Costume grants nothing today. The release notes say so |
-| The rename leaves `costume` granting access somewhere, or Wardrobe granting none | L | M | Tests for every change route with each permission and with none (stage-props pattern), and `costume` tested as unknown |
+| The rename leaves `costume` granting access somewhere, or Wardrobe granting none | L | M | Tests for every change route with each permission and with none (production-props pattern), and `costume` tested as unknown |
 | Five buttons and a count don't fit a row at 320px | M | M | Square icon buttons, the title allowed to wrap, and the browser layout tests at 320px and 360px |
 | Icon-only buttons are unclear to non-technical volunteers | M | M | Tooltips, accessible names, a legend or Help text naming each icon. Check in the UX review |
 | Team members can't find their pages after the menu changes | M | L | Old addresses redirect (FR11), and Welcome and Help describe the Overview (FR12) |

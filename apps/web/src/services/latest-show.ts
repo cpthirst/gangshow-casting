@@ -29,7 +29,7 @@ export async function latestShow() {
 }
 
 /** The production's title and its props list as saved right now, with the casting as it is
- *  at that moment (stage-props FR22). Throws if anything it needs can't be loaded. */
+ *  at that moment (production-props FR22). Throws if anything it needs can't be loaded. */
 export async function latestPropsList() {
   const [show, props, notes] = await Promise.all([
     latestShow(),

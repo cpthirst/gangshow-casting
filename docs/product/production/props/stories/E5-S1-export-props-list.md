@@ -1,5 +1,5 @@
 ---
-id: stage-props.E5.S1
+id: production-props.E5.S1
 title: Generate the props list in Word
 epic: E5
 status: done
@@ -84,7 +84,7 @@ Then each page's header shows the Chester Gang Show logo (`apps/web/src/assets/l
 ## Notes
 
 - FRs: FR22, FR23
-- Depends on: stage-props.E4.S3, stage-props.E4.S5
+- Depends on: production-props.E4.S3, production-props.E4.S5
 - Built in the browser with `docx`, loaded only when the button is pressed, as ADR 0022 sets for the Word exports. The new document's contents need adding to that ADR's "What the files may hold" (a "Later changes" note, or an amendment via the `adr` skill).
 - Text goes in as plain text runs, never fields or HTML (ADR 0022).
 - A new kind of export for usage recording (the Usage page's export names) comes with this story.

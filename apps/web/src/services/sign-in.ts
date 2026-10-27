@@ -60,7 +60,7 @@ type Session =
   // Until the app has started its sign-in (main.ts), and in component tests.
   | { kind: "starting" }
   // pnpm dev and pnpm demo: the local API needs no sign-in, and acts for the access chosen
-  // with the local switch (stage-props FR9).
+  // with the local switch (production-props FR9).
   | { kind: "local"; access: Access }
   // The built app couldn't load its sign-in config, or read the stored sign-in.
   | { kind: "unavailable" }
@@ -105,10 +105,10 @@ export const localAccess = computed<Access | undefined>(() =>
 export const isAdmin = computed(() => access.value === "admin");
 /**
  * The casting pages and Running order show their change controls only to those who may
- * change Casting; everyone else sees them read-only (team-roles FR6, stage-props FR3).
+ * change Casting; everyone else sees them read-only (team-roles FR6, production-props FR3).
  */
 export const canChangeCasting = computed(() => mayChange(access.value, "casting"));
-/** The Stage pages show their change controls only to those who may change Stage. */
+/** The props pages show their change controls only to those who may change Stage. */
 export const canChangeStage = computed(() => mayChange(access.value, "stage"));
 /** A change was refused because the person may only read: pages say it wasn't saved. */
 export const changeRefusedAsReadOnly = computed(() => refusedAsReadOnly.value);

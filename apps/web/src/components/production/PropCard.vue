@@ -6,9 +6,9 @@ import { icons } from "@/utils/icons.ts";
 import { rolesOf } from "@/utils/props.ts";
 import { castNames } from "@/utils/roles.ts";
 
-// One prop on its item's props page, styled as a role card (stage-props FR18): its roles,
+// One prop on its item's props page, styled as a role card (production-props FR18): its roles,
 // each with who plays it now, from the casting. roles and cast: the production's.
-// canChange: shows the pencil and trash can (stage-props FR19); busy: disables them.
+// canChange: shows the pencil and trash can (production-props FR19); busy: disables them.
 const props = defineProps<{
   prop: Prop;
   roles: Role[];

@@ -4,7 +4,7 @@ import { conditionFailed, partitionFor, queryAll } from "./dynamo-table.ts";
 import type { ItemNoteStore } from "./item-note-store.ts";
 
 const NOTE = "NOTE#";
-/** Props notes' sort key prefix, apart from the casting notes' (stage-props FR20). */
+/** Props notes' sort key prefix, apart from the casting notes' (production-props FR20). */
 export const PROPS_NOTE = "PROPSNOTE#";
 /** An item's notes' sort key. */
 export const noteKey = (itemId: string) => `${NOTE}${itemId}`;

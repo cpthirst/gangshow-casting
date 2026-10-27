@@ -8,7 +8,7 @@
 
 The show calls the department **Wardrobe**, not Costume (production-overview FR1). ADR 0026 made each department permission a user pool group of the same name, so the permission's name is the group's name, `costume`. Renaming it everywhere means renaming the group.
 
-A user pool group can't be renamed. Changing its name replaces it: the new group starts empty, and the old one is deleted with its memberships. Today the Costume permission lets an account change nothing, because no Costume page has been built (stage-props FR2). The maintainer confirmed that no account relies on it.
+A user pool group can't be renamed. Changing its name replaces it: the new group starts empty, and the old one is deleted with its memberships. Today the Costume permission lets an account change nothing, because no Costume page has been built (production-props FR2). The maintainer confirmed that no account relies on it.
 
 ## Options considered
 

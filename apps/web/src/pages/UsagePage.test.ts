@@ -167,24 +167,36 @@ describe("Usage page", () => {
     ]);
   });
 
-  it("names visits to the Wardrobe page as Wardrobe", async () => {
+  it("names visits to Production's Overview as Production overview, apart from Casting's", async () => {
     serve({
       recordedSince: "2026-10-01T18:00:00.000Z",
-      features: [{ feature: "wardrobe", uses: 3, people: 1 }],
+      features: [
+        { feature: "casting-overview", uses: 2, people: 1 },
+        { feature: "production-overview", uses: 3, people: 1 },
+      ],
       people: [
         {
           username: "robin",
           sessions: 1,
           lastSession: "2026-10-20T18:00:00.000Z",
-          uses: { wardrobe: 3 },
+          uses: { "production-overview": 3, "casting-overview": 2 },
         },
       ],
     });
 
     const wrapper = await openPage();
 
-    expect(rows(wrapper)).toContainEqual(["robin", "1", "20 October 2026", ["Wardrobe 3"]]);
-    expect(wrapper.text()).not.toContain("Costume");
+    expect(rows(wrapper)).toContainEqual([
+      "robin",
+      "1",
+      "20 October 2026",
+      ["Overview 2", "Production overview 3"],
+    ]);
+    expect(totals(wrapper)).toEqual([
+      ["Overview", "2", "1"],
+      ["Production overview", "3", "1"],
+    ]);
+    expect(wrapper.text()).not.toMatch(/Stage|Tech|Wardrobe|Costume/);
   });
 
   it("shows Overview views and item pages after the pages", async () => {
@@ -208,37 +220,6 @@ describe("Usage page", () => {
       "1",
       "20 October 2026",
       ["Cast 1", "Overview: Grid 2", "Item pages 4"],
-    ]);
-  });
-
-  it("shows a visit to Stage under Stage, and its switch to Scenery as that view's use", async () => {
-    serve({
-      recordedSince: "2026-10-01T18:00:00.000Z",
-      features: [
-        { feature: "stage", uses: 1, people: 1 },
-        { feature: "stage-scenery", uses: 2, people: 1 },
-      ],
-      people: [
-        {
-          username: "robin",
-          sessions: 1,
-          lastSession: "2026-10-20T18:00:00.000Z",
-          uses: { "stage-scenery": 2, stage: 1 },
-        },
-      ],
-    });
-
-    const wrapper = await openPage();
-
-    expect(rows(wrapper)).toContainEqual([
-      "robin",
-      "1",
-      "20 October 2026",
-      ["Stage 1", "Stage: Scenery 2"],
-    ]);
-    expect(totals(wrapper)).toEqual([
-      ["Stage", "1", "1"],
-      ["Stage: Scenery", "2", "1"],
     ]);
   });
 
@@ -410,8 +391,7 @@ describe("Usage page", () => {
         ...since,
         activity: [
           { username: "robin", at, event: "view", view: "grid" },
-          { username: "robin", at, event: "view", view: "scenery" },
-          { username: "robin", at, event: "view", view: "sfx" },
+          { username: "robin", at, event: "page", page: "production-overview" },
           { username: "robin", at, event: "export", export: "word-casting-sheets" },
         ],
       });
@@ -420,8 +400,7 @@ describe("Usage page", () => {
 
       expect(activity(wrapper).map(([, what]) => what)).toEqual([
         "switched the Overview to Grid",
-        "switched Stage to Scenery",
-        "switched Tech to SFX",
+        "opened Production overview",
         "exported the Word casting sheets",
       ]);
     });

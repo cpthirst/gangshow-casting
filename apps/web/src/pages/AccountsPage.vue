@@ -307,7 +307,7 @@ async function stopEditing() {
   if (name) await focusRowButton(name, "change-access");
 }
 
-// It changes what they can do and signs them out, so it's confirmed first (stage-props FR6).
+// It changes what they can do and signs them out, so it's confirmed first (production-props FR6).
 // Cancelling the confirmation leaves the tick boxes open, to change or cancel.
 async function saveAccess(account: AccountSummary) {
   const ticked = editing.value;

@@ -18,9 +18,7 @@ describe("RecordUsageRequest", () => {
     "cast",
     "casting-overview",
     "casting-items",
-    "stage",
-    "tech",
-    "wardrobe",
+    "production-overview",
     "help",
     "accounts",
     "usage",
@@ -32,16 +30,19 @@ describe("RecordUsageRequest", () => {
     expect(RecordUsageRequest.parse({ event: "view", view })).toEqual({ event: "view", view });
   });
 
-  it.each(["mic-plot", "props", "scenery", "sfx"])(
+  it.each(["mic-plot", "props", "scenery", "sfx", "stage", "tech", "wardrobe", "costume"])(
     "refuses opening %s, which is no longer a menu page",
     (page) => {
       expect(RecordUsageRequest.safeParse({ event: "page", page }).success).toBe(false);
     },
   );
 
-  it.each(["scenery", "props", "mic-plot", "sfx"])("accepts switching to the %s view", (view) => {
-    expect(RecordUsageRequest.parse({ event: "view", view })).toEqual({ event: "view", view });
-  });
+  it.each(["scenery", "props", "mic-plot", "sfx"])(
+    "refuses switching to the %s view, which went with the Stage and Tech pages",
+    (view) => {
+      expect(RecordUsageRequest.safeParse({ event: "view", view }).success).toBe(false);
+    },
+  );
 
   it("accepts opening an item's page, naming the item and its production", () => {
     const use = { event: "item", productionId: "2027", itemId: "made-up-item" };
@@ -87,15 +88,6 @@ describe("featureOf", () => {
 
   it("names the Overview view switched to", () => {
     expect(featureOf({ event: "view", view: "grid" })).toBe("overview-grid");
-  });
-
-  it.each([
-    ["scenery", "stage-scenery"],
-    ["props", "stage-props"],
-    ["mic-plot", "tech-mic-plot"],
-    ["sfx", "tech-sfx"],
-  ] as const)("names the %s view as a use of its page's view", (view, feature) => {
-    expect(featureOf({ event: "view", view })).toBe(feature);
   });
 
   it("counts every item's page as one feature", () => {

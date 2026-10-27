@@ -199,18 +199,13 @@ describe("reading usage", () => {
     ]);
   });
 
-  it("counts opening Stage and switching it to Scenery apart, as the Overview's views are", async () => {
-    const { summary } = setUp([
-      opened("robin", "stage", daysAgo(2)),
-      { username: "robin", event: "view", view: "scenery", at: daysAgo(2) },
-      { username: "robin", event: "view", view: "props", at: daysAgo(1) },
-      { username: "robin", event: "view", view: "scenery", at: daysAgo(1) },
-    ]);
+  it("counts opening the Production overview as a use of that page", async () => {
+    const { summary } = setUp([opened("robin", "production-overview", daysAgo(2))]);
 
     const { people, features } = await summary();
 
-    expect(people[0]?.uses).toEqual({ stage: 1, "stage-scenery": 2, "stage-props": 1 });
-    expect(features).toContainEqual({ feature: "stage-scenery", uses: 2, people: 1 });
+    expect(people[0]?.uses).toEqual({ "production-overview": 1 });
+    expect(features).toContainEqual({ feature: "production-overview", uses: 1, people: 1 });
   });
 
   it("counts each person's exports", async () => {
@@ -271,19 +266,13 @@ describe("reading usage", () => {
       "cast",
       "casting-overview",
       "casting-items",
-      "stage",
-      "tech",
-      "wardrobe",
+      "production-overview",
       "help",
       "accounts",
       "usage",
       "overview-by-person",
       "overview-by-item",
       "overview-grid",
-      "stage-scenery",
-      "stage-props",
-      "tech-mic-plot",
-      "tech-sfx",
       "item-page",
       "export-excel-grid",
       "export-word-casting-sheets",

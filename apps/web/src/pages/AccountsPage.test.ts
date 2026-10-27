@@ -96,7 +96,7 @@ describe("Accounts page", () => {
       ["lee", "Casting", "Disabled"],
       ["sam", "Casting", "Enabled"],
     ]);
-    // The old role names are gone (stage-props FR7).
+    // The old role names are gone (production-props FR7).
     expect(wrapper.text()).not.toContain("Team Member");
   });
 

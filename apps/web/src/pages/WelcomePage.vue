@@ -44,15 +44,15 @@ import logo from "@/assets/logo.jpg";
       </dd>
       <dt>
         <!-- The first page in the group: the menu opens the group when it arrives. -->
-        <RouterLink :to="{ name: 'stage' }" data-test="area-production">Production</RouterLink>
+        <RouterLink :to="{ name: 'production-overview' }" data-test="area-production"
+          >Production</RouterLink
+        >
       </dt>
       <dd>
-        What each department needs for each item, a page each:
-        <RouterLink :to="{ name: 'stage' }">Stage</RouterLink>, with Scenery and Props;
-        <RouterLink :to="{ name: 'tech' }">Tech</RouterLink>, with the Mic plot and SFX (sound
-        effects); and <RouterLink :to="{ name: 'wardrobe' }">Wardrobe</RouterLink>. Each
-        department's permission is what lets someone change its page. These lists are coming
-        soon.
+        What each department needs for each item, on one page: the
+        <RouterLink :to="{ name: 'production-overview' }">Overview</RouterLink>, with every item
+        in running order and a button to open its props. Each department's permission (Stage,
+        Tech or Wardrobe) is what lets someone change its pages.
       </dd>
     </dl>
   </section>

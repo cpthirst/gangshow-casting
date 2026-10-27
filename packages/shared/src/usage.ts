@@ -8,44 +8,36 @@ export const MenuPageName = z.enum([
   "cast",
   "casting-overview",
   "casting-items",
-  "stage",
-  "tech",
-  "wardrobe",
+  "production-overview",
   "help",
   "accounts",
   "usage",
 ]);
 
-/** Menu pages renamed since their visits were stored, by old name: still counted (ADR 0027). */
-export const RENAMED_MENU_PAGES: Readonly<Record<string, MenuPageName>> = { costume: "wardrobe" };
-
 /**
- * Menu pages that have gone, whose uses the maintainer purges (stage-props AC11): Production's
+ * Menu pages that have gone, whose uses the maintainer purges (production-props AC11): Production's
  * four pages became the Stage and Tech pages' views.
  */
 export const RETIRED_MENU_PAGES = ["mic-plot", "props", "scenery", "sfx"] as const;
+
+/**
+ * Pages and views that went when the Overview replaced the Stage, Tech and Wardrobe pages
+ * (production-overview FR13). Their stored uses are left out of the Usage page, which would
+ * otherwise refuse them; Costume is Wardrobe's name before ADR 0027. The views share their
+ * names with RETIRED_MENU_PAGES, but are view uses, not page uses, so they're listed apart.
+ */
+export const DEPARTMENT_PAGES = ["stage", "tech", "wardrobe", "costume"] as const;
+export const DEPARTMENT_VIEWS = ["scenery", "props", "mic-plot", "sfx"] as const;
 
 /** The views a page switches between, whose switching is recorded (FR2), with their uses. */
 const VIEW_FEATURES = {
   "by-person": "overview-by-person",
   "by-item": "overview-by-item",
   grid: "overview-grid",
-  scenery: "stage-scenery",
-  props: "stage-props",
-  "mic-plot": "tech-mic-plot",
-  sfx: "tech-sfx",
 } as const;
 
-/** The Casting Overview's, Stage's and Tech's views. Each name says which page it's on. */
-export const PageView = z.enum([
-  "by-person",
-  "by-item",
-  "grid",
-  "scenery",
-  "props",
-  "mic-plot",
-  "sfx",
-]);
+/** The Casting Overview's views. */
+export const PageView = z.enum(["by-person", "by-item", "grid"]);
 
 /** The exports, whose use is recorded once the file is made (FR2). */
 export const UsageExport = z.enum([
@@ -80,10 +72,6 @@ export const UsageFeature = z.enum([
   "overview-by-person",
   "overview-by-item",
   "overview-grid",
-  "stage-scenery",
-  "stage-props",
-  "tech-mic-plot",
-  "tech-sfx",
   // Every item's page together: the summary doesn't count items one by one.
   "item-page",
   "export-excel-grid",

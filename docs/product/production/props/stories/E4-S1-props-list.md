@@ -1,5 +1,5 @@
 ---
-id: stage-props.E4.S1
+id: production-props.E4.S1
 title: List the show's items in the Props view
 epic: E4
 status: done
@@ -62,7 +62,7 @@ Then the items still show, with a message that the props counts couldn't be load
 
 - FRs: FR13, FR15
 - "The Props page" in these ACs means the Stage page's Props view (PRD FR13). It replaces that view's "Coming soon" from E3.S1.
-- Depends on: stage-props.E1.S2, stage-props.E3.S1
+- Depends on: production-props.E1.S2, production-props.E3.S1
 - This story adds reading a production's props from the API, scoped to the production, so the counts are real. They're all 0 until props can be added (E4.S2), and tests can seed props.
 - The props data is the production's own, apart from casting, and holds no cast data of its own: a prop links to roles (E4.S3).
 - The item's props page is reached from here. Until E4.S2 builds it, the button may open a placeholder.

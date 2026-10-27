@@ -34,7 +34,10 @@ const state = ref<State>({ status: "loading" });
 const router = useRouter();
 // Item uses hold only the item's id (ADR 0023): its title comes from the running order.
 const titles = {
-  page: (page: MenuPageName) => router.resolve({ name: page }).meta.title,
+  page: (page: MenuPageName) => {
+    const { meta } = router.resolve({ name: page });
+    return meta.usageTitle ?? meta.title;
+  },
   item: (productionId: string, itemId: string) => {
     if (state.value.status !== "loaded" || state.value.itemTitles === null) return null;
     return state.value.itemTitles.get(`${productionId}/${itemId}`);

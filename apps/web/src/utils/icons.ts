@@ -17,6 +17,7 @@ import {
   faKey,
   faList,
   faPen,
+  faPersonWalkingLuggage,
   faSquareXmark,
   faTrashCan,
   faTriangleExclamation,
@@ -27,6 +28,8 @@ import {
 
 export const icons = {
   edit: faPen,
+  // Opens an item's props page from the Production overview.
+  props: faPersonWalkingLuggage,
   remove: faTrashCan,
   // An account's actions on the Accounts page.
   resetPassword: faKey,

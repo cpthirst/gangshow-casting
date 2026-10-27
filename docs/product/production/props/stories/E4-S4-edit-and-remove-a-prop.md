@@ -1,5 +1,5 @@
 ---
-id: stage-props.E4.S4
+id: production-props.E4.S4
 title: Edit and remove a prop
 epic: E4
 status: done
@@ -65,7 +65,7 @@ Then pat is told, and the edit is still in the form
 ## Notes
 
 - FRs: FR19
-- Depends on: stage-props.E4.S3
+- Depends on: production-props.E4.S3
 - The pencil and trash can have accessible names that include the prop, such as "Edit Telescope" and "Remove Telescope", as role cards do.
 - Editing uses the same form as Add prop.
 - Out of scope: props notes (E4.S5).

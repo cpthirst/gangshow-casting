@@ -21,7 +21,7 @@ import {
   wordStyles,
 } from "./word-styles.ts";
 
-// The props list (stage-props FR22, FR23): the production's title, each half and each item
+// The props list (production-props FR22, FR23): the production's title, each half and each item
 // as Word headings, as in the Item Overview, with each item's props notes and a table of its
 // props. Text goes in as plain runs, never as markup (ADR 0022).
 

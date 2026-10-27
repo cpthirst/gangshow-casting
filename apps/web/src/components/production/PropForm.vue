@@ -37,7 +37,7 @@ const invalid = (field: keyof PropFormFields) =>
   errors.value[field] ? { "aria-invalid": true, "aria-describedby": errorFor(field) } : {};
 
 // The roles are picked as an ensemble's members are: search, choose, and each picked role
-// is listed with a button to drop it (stage-props FR18).
+// is listed with a button to drop it (production-props FR18).
 const picked = computed(() =>
   sortRoles(props.roles.filter((role) => form.value.roleIds.includes(role.id))),
 );

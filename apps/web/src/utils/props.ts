@@ -13,7 +13,7 @@ import { runningClock } from "./running-order.ts";
 // Only one production for now (see docs/product/running-order/prd.md).
 const PRODUCTION_ID = "2027";
 
-/** Every prop in the production (stage-props FR13). */
+/** Every prop in the production (production-props FR13). */
 export const PROPS_PATH = `/api/productions/${PRODUCTION_ID}/props`;
 
 /** Where a new prop for this item is posted. */
@@ -34,13 +34,13 @@ export function propCounts(props: readonly Prop[]) {
 export const propCountLabel = (count: number) => `${count} prop${count === 1 ? "" : "s"}`;
 
 /** Props by name, ignoring case and comparing numbers by value ("Umbrella 2" before
- *  "Umbrella 10"), as roles are (stage-props FR21). Returns a new array. */
+ *  "Umbrella 10"), as roles are (production-props FR21). Returns a new array. */
 export const sortProps = (props: readonly Prop[]) =>
   [...props].sort((a, b) =>
     a.name.localeCompare(b.name, "en", { sensitivity: "base", numeric: true }),
   );
 
-/** A prop's roles that still exist, in the item's role order (stage-props FR18). A removed
+/** A prop's roles that still exist, in the item's role order (production-props FR18). A removed
  *  role's id may linger on the prop; it simply isn't shown. */
 export const rolesOf = (prop: Prop, roles: Role[]) =>
   sortRoles(roles.filter((role) => prop.roleIds.includes(role.id)));
@@ -62,7 +62,7 @@ export interface PropsListHalf {
 }
 
 /** The whole show's props, half by half in running order, in the order each item's props
- *  page shows them (stage-props FR22). Only names: nothing else about the cast. */
+ *  page shows them (production-props FR22). Only names: nothing else about the cast. */
 export function propsListOf(show: {
   order: RunningOrder;
   props: Prop[];
