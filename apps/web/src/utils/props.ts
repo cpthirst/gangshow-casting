@@ -58,9 +58,22 @@ export function carriersOf(roles: Role[], cast: CastMember[], quantity: number) 
   const ids = carryingCast(roles);
   const named = sortCast(cast.filter((member) => ids.named.includes(member.id)));
   const choosable = sortCast(cast.filter((member) => ids.choosable.includes(member.id)));
-  // A quantity not yet typed (NaN) leaves no room, so offers no choosing.
   const room = Math.max(0, quantity - named.length);
-  return { named, choosable, room, offersCarriers: choosable.length > room };
+  // When the ensembles fit the room left, they all carry it. When the named parts fill it,
+  // nobody in them does, so there's nobody to choose. A quantity not yet typed (NaN) is
+  // neither, and offers no choosing.
+  const everyoneFits = choosable.length <= room;
+  return {
+    named,
+    /** The named parts that always carry it, in role order, for saying which. */
+    namedRoles: sortRoles(roles)
+      .filter((role) => role.size !== "ensemble" && role.castMemberIds.length > 0)
+      .map((role) => role.name),
+    choosable,
+    room,
+    everyoneFits,
+    offersCarriers: room > 0 && !everyoneFits,
+  };
 }
 
 /** Who carries a prop, role by role in the item's role order, and how many are left to
@@ -68,10 +81,17 @@ export function carriersOf(roles: Role[], cast: CastMember[], quantity: number) 
  *  Each role's carriers are "" when it has none, with `none` to show instead. */
 export function carryingOf(prop: Prop, roles: Role[], cast: CastMember[]) {
   const linked = rolesOf(prop, roles);
-  const { named, choosable, room, offersCarriers } = carriersOf(linked, cast, prop.quantity);
-  const chosen = choosable.filter((member) => prop.carrierIds.includes(member.id));
-  const carrying = [...named, ...chosen].map(({ id }) => id);
-  const carries = (member: CastMember) => !offersCarriers || carrying.includes(member.id);
+  const { named, choosable, room, everyoneFits, offersCarriers } = carriersOf(
+    linked,
+    cast,
+    prop.quantity,
+  );
+  // Only while there's room to choose: the named parts may have filled it since.
+  const chosen = offersCarriers
+    ? choosable.filter((member) => prop.carrierIds.includes(member.id))
+    : [];
+  const carrying = [...named, ...(everyoneFits ? choosable : chosen)].map(({ id }) => id);
+  const carries = (member: CastMember) => carrying.includes(member.id);
   return {
     roles: linked.map((role) => {
       const playing = castOf(role, cast);
@@ -158,10 +178,11 @@ export type PropFormResult =
 /** The prop the form describes, or a message for each field that needs fixing. Limits come
  *  from the shared schema, so the page and the API agree. carrying: whether the form offers
  *  a carrier picker (without one, everyone in the prop's roles carries it, so no carriers
- *  are saved), and how many named parts always carry it (production-props FR26, FR27). */
+ *  are saved), and how many people in which named parts always carry it (production-props
+ *  FR26, FR27). */
 export function propDetailsFrom(
   form: PropFormFields,
-  carrying: { offersCarriers: boolean; named: number },
+  carrying: { offersCarriers: boolean; named: number; namedRoles: string[] },
 ): PropFormResult {
   const quantity = quantityOf(form.quantity);
   const carrierIds = carrying.offersCarriers ? form.carrierIds : [];
@@ -184,7 +205,8 @@ export function propDetailsFrom(
   if (issues.some(({ path }) => path[0] === "quantity")) {
     errors.quantity = `Quantity must be a whole number from 1 to ${MAX_PROP_QUANTITY}`;
   } else if (room < 0) {
-    errors.quantity = `${carrying.named} named parts always carry it: make the quantity at least ${carrying.named}`;
+    const roles = new Intl.ListFormat("en-GB").format(carrying.namedRoles);
+    errors.quantity = `${roles} always carry it: make the quantity at least ${carrying.named}`;
   } else if (carrierIds.length > room) {
     // The picker stops at the room left, so only lowering the quantity gets here (FR28).
     const chosen = carrierIds.length;

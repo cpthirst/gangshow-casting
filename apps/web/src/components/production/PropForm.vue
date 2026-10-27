@@ -159,6 +159,7 @@ function submit() {
   const result = propDetailsFrom(form.value, {
     offersCarriers: offersCarriers.value,
     named: carrying.value.named.length,
+    namedRoles: carrying.value.namedRoles,
   });
   errors.value = result.ok ? {} : result.errors;
   if (result.ok) emit("save", result.details);

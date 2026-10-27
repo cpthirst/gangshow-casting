@@ -112,8 +112,8 @@ describe("sortProps", () => {
 
 describe("propDetailsFrom", () => {
   // What the prop's roles leave: everyone carries it, or carriers are chosen; no named parts.
-  const fits = { offersCarriers: false, named: 0 };
-  const choosing = { offersCarriers: true, named: 0 };
+  const fits = { offersCarriers: false, named: 0, namedRoles: [] };
+  const choosing = { offersCarriers: true, named: 0, namedRoles: [] };
 
   it("gives the prop's name, trimmed", () => {
     expect(propDetailsFrom(fields(" Parrot "), fits)).toEqual({
@@ -188,15 +188,23 @@ describe("propDetailsFrom", () => {
 
   it("says the quantity must cover the prop's named parts", () => {
     const whistle = fields("Whistle", { quantity: "2", roleIds: [1, 2, 3] });
-    expect(propDetailsFrom(whistle, { offersCarriers: false, named: 3 })).toEqual({
+    const named = ["Captain Cross", "Captain Nought", "Referee"];
+    expect(
+      propDetailsFrom(whistle, { offersCarriers: false, named: 3, namedRoles: named }),
+    ).toEqual({
       ok: false,
-      errors: { quantity: "3 named parts always carry it: make the quantity at least 3" },
+      errors: {
+        quantity:
+          "Captain Cross, Captain Nought and Referee always carry it: make the quantity at least 3",
+      },
     });
   });
 
   it("counts only the room the named parts leave when saying how many carriers to remove", () => {
     const lantern = fields("Lantern", { quantity: "2", carrierIds: [3, 4] });
-    expect(propDetailsFrom(lantern, { offersCarriers: true, named: 1 })).toEqual({
+    expect(
+      propDetailsFrom(lantern, { offersCarriers: true, named: 1, namedRoles: ["Baker"] }),
+    ).toEqual({
       ok: false,
       errors: { quantity: "2 carriers chosen for 1: remove 1 from Selected carriers first" },
     });
@@ -280,6 +288,13 @@ describe("who carries a prop", () => {
       expect(lanterns.offersCarriers).toBe(true);
     });
 
+    it("offers no choosing, and the ensemble doesn't carry it, when the named parts fill it", () => {
+      const lantern = carriersOf([villagers, baker], villageCast, 1);
+      expect(lantern.room).toBe(0);
+      expect(lantern.offersCarriers).toBe(false);
+      expect(lantern.everyoneFits).toBe(false);
+    });
+
     it("offers no choosing when the ensembles fit the room the named parts leave", () => {
       expect(carriersOf([villagers, baker], villageCast, 4).offersCarriers).toBe(false);
     });
@@ -329,6 +344,14 @@ describe("who carries a prop", () => {
         ["Villagers", "Nobody carries it"],
       ]);
       expect(lantern.toChoose).toBe(1);
+    });
+
+    it("names no ensemble carrier saved before the named parts filled the quantity", () => {
+      const lantern = carried(1, [villagers.id, baker.id], [jo.id]);
+      expect(shown(lantern)).toEqual([
+        ["Baker", "Sam Taylor"],
+        ["Villagers", "Nobody carries it"],
+      ]);
     });
 
     it("names the whole ensemble when it fits what the named parts leave", () => {

@@ -1440,6 +1440,22 @@ describe("Who carries a prop", () => {
     expect(stored[0]?.carrierIds).toEqual([jo.id, alex.id, kim.id]);
   });
 
+  it("offers no picker when the named parts take every place", async () => {
+    const stored = savedShowIs(village, [], villageCasting);
+    const { wrapper } = await openAppAt(VILLAGE_PROPS);
+
+    await startProp(wrapper, "Lantern", ["Villagers", "Baker"]);
+    expect(carrierSearch(wrapper).exists()).toBe(false);
+    await saveProp(wrapper);
+
+    expect(rolesOn(wrapper, "Lantern")).toEqual([
+      { role: "Baker", cast: "Sam Taylor" },
+      { role: "Villagers", cast: "Nobody carries it" },
+    ]);
+    expect(leftToChoose(wrapper, "Lantern")?.exists()).toBe(false);
+    expect(stored[0]?.carrierIds).toEqual([]);
+  });
+
   // Made-up item roles, one person each: nobody needs choosing among them.
   const referee = aRole(20, "village-square", "Referee", "support", [jo.id]);
   const cross = aRole(21, "village-square", "Captain Cross", "lead", [kim.id]);
@@ -1476,7 +1492,9 @@ describe("Who carries a prop", () => {
     expect(quantity.attributes("aria-invalid")).toBe("true");
     expect(
       document.getElementById(quantity.attributes("aria-describedby") ?? "")?.textContent?.trim(),
-    ).toBe("3 named parts always carry it: make the quantity at least 3");
+    ).toBe(
+      "Captain Cross, Captain Nought and Referee always carry it: make the quantity at least 3",
+    );
   });
 
   it("chooses nobody for you when a lower quantity brings the picker", async () => {
