@@ -1425,6 +1425,7 @@ main a {
 }
 
 .pill-ensemble,
+.pill-quantity,
 .grid-dot-ensemble {
   background: var(--surface);
 }

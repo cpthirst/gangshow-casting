@@ -11,10 +11,11 @@ import {
 } from "./props.ts";
 import { anItem, aRunningOrder } from "./running-order.fixture.ts";
 
-const aProp = (id: number, itemId: string, roleIds: number[] = []) => ({
+const aProp = (id: number, itemId: string, roleIds: number[] = [], quantity = 1) => ({
   id,
   itemId,
   name: `Prop ${id}`,
+  quantity,
   roleIds,
 });
 
@@ -27,9 +28,10 @@ const aRole = (id: number, name: string, size: Role["size"]): Role => ({
   revision: 1,
 });
 
-/** The prop form as typed: a name, and no roles unless given. */
+/** The prop form as typed: a name, a quantity of 1, and no roles unless given. */
 const fields = (name: string, more: Partial<PropFormFields> = {}): PropFormFields => ({
   name,
+  quantity: "1",
   role: { query: "", id: null },
   roleIds: [],
   ...more,
@@ -47,6 +49,12 @@ describe("propCounts", () => {
     expect(counts("finale")).toBe(1);
     expect(counts("opening-number")).toBe(0);
   });
+
+  it("adds up each item's quantities", () => {
+    const counts = propCounts([aProp(1, "village-square", [], 10), aProp(2, "village-square")]);
+
+    expect(counts("village-square")).toBe(11);
+  });
 });
 
 describe("propCountLabel", () => {
@@ -62,9 +70,9 @@ describe("propCountLabel", () => {
 describe("sortProps", () => {
   it("orders props by name, ignoring case and comparing numbers by value", () => {
     const props = [
-      { id: 1, itemId: "pirate-sketch", name: "umbrella 10", roleIds: [] },
-      { id: 2, itemId: "pirate-sketch", name: "Treasure chest", roleIds: [] },
-      { id: 3, itemId: "pirate-sketch", name: "Umbrella 2", roleIds: [] },
+      { id: 1, itemId: "pirate-sketch", name: "umbrella 10", quantity: 1, roleIds: [] },
+      { id: 2, itemId: "pirate-sketch", name: "Treasure chest", quantity: 1, roleIds: [] },
+      { id: 3, itemId: "pirate-sketch", name: "Umbrella 2", quantity: 1, roleIds: [] },
     ];
 
     expect(sortProps(props).map((prop) => prop.name)).toEqual([
@@ -79,14 +87,41 @@ describe("propDetailsFrom", () => {
   it("gives the prop's name, trimmed", () => {
     expect(propDetailsFrom(fields(" Parrot "))).toEqual({
       ok: true,
-      details: { name: "Parrot", roleIds: [] },
+      details: { name: "Parrot", quantity: 1, roleIds: [] },
+    });
+  });
+
+  it("gives the quantity typed", () => {
+    expect(propDetailsFrom(fields("Umbrella", { quantity: " 10 " }))).toEqual({
+      ok: true,
+      details: { name: "Umbrella", quantity: 10, roleIds: [] },
+    });
+  });
+
+  it.each(["0", "100", "2.5", "-1", "", " ", "1e1", "ten"])(
+    "says the quantity must be a whole number from 1 to 99 when it's %j",
+    (quantity) => {
+      expect(propDetailsFrom(fields("Umbrella", { quantity }))).toEqual({
+        ok: false,
+        errors: { quantity: "Quantity must be a whole number from 1 to 99" },
+      });
+    },
+  );
+
+  it("says what's wrong with the name and the quantity together", () => {
+    expect(propDetailsFrom(fields("", { quantity: "0" }))).toEqual({
+      ok: false,
+      errors: {
+        name: "A prop needs a name",
+        quantity: "Quantity must be a whole number from 1 to 99",
+      },
     });
   });
 
   it("gives the roles picked", () => {
     expect(propDetailsFrom(fields("Telescope", { roleIds: [3, 1] }))).toEqual({
       ok: true,
-      details: { name: "Telescope", roleIds: [3, 1] },
+      details: { name: "Telescope", quantity: 1, roleIds: [3, 1] },
     });
   });
 

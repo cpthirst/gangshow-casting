@@ -38,12 +38,28 @@ describe("DynamoDB prop store", () => {
     await expect(dynamoPropStore(table.db, table.tableName).list("../etc")).rejects.toThrow();
   });
 
+  it("gives a prop saved before props had quantities a quantity of 1", async () => {
+    const chest = { id: 1, itemId: "pirate-sketch", name: "Treasure chest", roleIds: [] };
+    const { quantity: _, ...oldRow } = propRow("2027", { ...chest, quantity: 1 });
+    await table.db.send(new PutCommand({ TableName: table.tableName, Item: oldRow }));
+
+    expect((await dynamoPropStore(table.db, table.tableName).list("2027")).props).toEqual([
+      { ...chest, quantity: 1 },
+    ]);
+  });
+
   it("refuses a stored prop that isn't valid", async () => {
     await table.db.send(
       new PutCommand({
         TableName: table.tableName,
         Item: {
-          ...propRow("2027", { id: 1, itemId: "finale", name: "Confetti", roleIds: [] }),
+          ...propRow("2027", {
+            id: 1,
+            itemId: "finale",
+            name: "Confetti",
+            quantity: 1,
+            roleIds: [],
+          }),
           name: "",
         },
       }),

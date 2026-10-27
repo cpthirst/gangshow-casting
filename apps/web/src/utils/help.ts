@@ -305,13 +305,13 @@ export const pageHelp: PageHelp[] = [
       },
       {
         name: "Add prop",
-        does: "Adds a prop the item needs, by name, and the roles that use it.",
+        does: "Adds a prop the item needs, by name and quantity, and the roles that use it.",
         access: "stage",
       },
       {
         icons: [icons.edit],
         name: "Edit",
-        does: "Changes a prop's name or the roles that use it.",
+        does: "Changes a prop's name, quantity or the roles that use it.",
         access: "stage",
       },
       {

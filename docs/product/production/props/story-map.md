@@ -58,7 +58,7 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [production-props.E6.S1](stories/E6-S1-prop-quantity.md) | Adding and editing a prop takes a quantity from 1 to 99, starting at 1. Existing props have 1. A card shows "×10" after the name when it's above 1, and every props count, the Overview's included, adds up quantities | FR24, FR25 | E4.S4 | ready |
+| [production-props.E6.S1](stories/E6-S1-prop-quantity.md) | Adding and editing a prop takes a quantity from 1 to 99, starting at 1. Existing props have 1. A card shows "×10" after the name when it's above 1, and every props count, the Overview's included, adds up quantities | FR24, FR25 | E4.S4 | done |
 | [production-props.E6.S2](stories/E6-S2-choose-who-carries-a-prop.md) | When a prop's roles have more cast than its quantity, adding or editing it offers a carrier picker of that cast, up to the quantity, saying how many are left. The card shows only the carriers, and "N still to choose". When the cast fits the quantity, everyone carries it, as today. The API refuses a carrier outside the prop's roles, or too many | FR26, FR27 | E6.S1 | ready |
 | [production-props.E6.S3](stories/E6-S3-carriers-follow-casting.md) | A carrier who leaves the prop's roles (recast, removed from the cast, or the role removed) drops off the card, which then says one more is to choose. The quantity can't be lowered below the number of carriers | FR28 | E6.S2 | ready |
 | [production-props.E6.S4](stories/E6-S4-export-quantities-and-carriers.md) | The Word props list shows each prop's quantity and its carriers in the cast column, saying how many are still to choose | FR29 | E6.S2 | ready |

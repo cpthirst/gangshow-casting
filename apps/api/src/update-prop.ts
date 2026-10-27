@@ -6,8 +6,9 @@ import { wholeNumber } from "./params.ts";
 import type { PropStore } from "./prop-store.ts";
 import type { RoleStore } from "./role-store.ts";
 
-// PUT /api/productions/{productionId}/props/{propId}: replace a prop's name and roles
-// (production-props FR19). Only Stage or an admin get here (routeNeeds in @app/shared).
+// PUT /api/productions/{productionId}/props/{propId}: replace a prop's name, quantity and
+// roles (production-props FR19, FR24). Only Stage or an admin get here (routeNeeds in
+// @app/shared).
 export function createUpdateProp(props: PropStore, roles: RoleStore) {
   return async (event: ApiEvent): Promise<APIGatewayProxyStructuredResultV2> => {
     const productionId = ProductionId.safeParse(event.pathParameters?.productionId);

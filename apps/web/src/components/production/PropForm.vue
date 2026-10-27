@@ -21,6 +21,7 @@ const emit = defineEmits<{ save: [details: AddPropRequest]; cancel: [] }>();
 
 const form = ref<PropFormFields>({
   name: props.prop?.name ?? "",
+  quantity: String(props.prop?.quantity ?? 1),
   role: { query: "", id: null },
   // Only roles the item still has: a removed role's lingering id isn't carried into the save.
   roleIds: props.roles
@@ -105,6 +106,20 @@ function submit() {
         v-bind="invalid('name')"
       />
       <p v-if="errors.name" :id="errorFor('name')" class="field-error">{{ errors.name }}</p>
+    </div>
+    <div class="field">
+      <label :for="idFor('quantity')">Quantity</label>
+      <input
+        :id="idFor('quantity')"
+        v-model="form.quantity"
+        name="quantity"
+        inputmode="numeric"
+        autocomplete="off"
+        v-bind="invalid('quantity')"
+      />
+      <p v-if="errors.quantity" :id="errorFor('quantity')" class="field-error">
+        {{ errors.quantity }}
+      </p>
     </div>
     <div class="field">
       <label :for="idFor('role')">Add a role</label>

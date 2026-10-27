@@ -48,10 +48,11 @@ function savedShowIs(order: RunningOrder, props: Prop[] = []) {
   apiAnswers({ order: json(order), props: json({ productionId: "2027", props }) });
 }
 
-const aProp = (id: number, itemTitle: string): Prop => ({
+const aProp = (id: number, itemTitle: string, quantity = 1): Prop => ({
   id,
   itemId: anItem(itemTitle).id,
   name: `Prop ${id}`,
+  quantity,
   roleIds: [],
 });
 
@@ -207,6 +208,16 @@ describe("Production overview", () => {
     expect(countOf("Opening Number")?.get(".visually-hidden").text()).toBe("1 prop");
     expect(countOf("Finale")?.get("[aria-hidden=true]").text()).toBe("0");
     expect(countOf("Finale")?.attributes("data-label")).toBe("Props");
+  });
+
+  it("adds up an item's prop quantities in its count", async () => {
+    savedShowIs(show(), [aProp(1, "Pirate Sketch", 10), aProp(2, "Pirate Sketch")]);
+
+    const { wrapper } = await openOverview();
+
+    const count = rowFor(wrapper, "Pirate Sketch")?.get("[data-test=count]");
+    expect(count?.get("[aria-hidden=true]").text()).toBe("11");
+    expect(count?.get(".visually-hidden").text()).toBe("11 props");
   });
 
   describe("with Stage", () => {

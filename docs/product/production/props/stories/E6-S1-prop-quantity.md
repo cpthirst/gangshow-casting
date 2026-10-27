@@ -2,7 +2,7 @@
 id: production-props.E6.S1
 title: Give a prop a quantity
 epic: E6
-status: ready
+status: done
 ---
 
 ## Story

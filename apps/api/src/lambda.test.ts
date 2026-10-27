@@ -775,7 +775,7 @@ describe("Lambda entry point", () => {
 
         expect(res.statusCode).toBe(201);
         expect((await props.list("2027")).props).toEqual([
-          { id: 1, itemId: pirate, name, roleIds: [] },
+          { id: 1, itemId: pirate, name, quantity: 1, roleIds: [] },
         ]);
       });
 
@@ -800,7 +800,13 @@ describe("Lambda entry point", () => {
       const editProp = (groups: string) =>
         as(groups)("PUT", PROP_PATH, { name: "Gold chest", roleIds: [] });
       const removeProp = (groups: string) => as(groups)("DELETE", PROP_PATH);
-      const treasureChest = { id: 1, itemId: pirate, name: "Treasure chest", roleIds: [] };
+      const treasureChest = {
+        id: 1,
+        itemId: pirate,
+        name: "Treasure chest",
+        quantity: 1,
+        roleIds: [],
+      };
 
       it.each([
         ["pat, with Stage", "[stage]"],

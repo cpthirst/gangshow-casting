@@ -51,6 +51,12 @@ const linked = computed(() =>
       </button>
     </span>
     <span class="role-name" data-test="prop-name">{{ prop.name }}</span>
+    <!-- A pill, like a role's size. The "×" is read out, not hidden, and the real space
+         keeps it a word apart, so a screen reader hears "Umbrella times 10". A quantity of 1
+         isn't shown (production-props FR24). -->
+    <template v-if="prop.quantity > 1">
+      {{ " " }}<span class="pill pill-quantity" data-test="quantity">×{{ prop.quantity }}</span>
+    </template>
     <ul v-if="linked.length > 0" class="prop-roles" role="list" :aria-label="`Roles for ${prop.name}`">
       <li v-for="{ role, cast: names } in linked" :key="role.id" data-test="prop-role">
         <span class="role-name" data-test="prop-role-name">{{ role.name }}</span>

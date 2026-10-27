@@ -24,7 +24,9 @@ const request = (propId: string, body: unknown, productionId = "2027") => ({
 function setUp() {
   const initial: PropList = {
     productionId: "2027",
-    props: [{ id: 4, itemId: "pirate-sketch", name: "Telescope", roleIds: [captain.id] }],
+    props: [
+      { id: 4, itemId: "pirate-sketch", name: "Telescope", quantity: 1, roleIds: [captain.id] },
+    ],
   };
   const props = inMemoryPropStore([initial]);
   const roles = inMemoryRoleStore([{ productionId: "2027", roles: [captain, pirate1, soloist] }]);
@@ -38,12 +40,30 @@ describe("update prop handler", () => {
     const res = await handler(request("4", { name: "Spyglass", roleIds: [pirate1.id] }));
 
     expect(res.statusCode).toBe(200);
-    const updated = { id: 4, itemId: "pirate-sketch", name: "Spyglass", roleIds: [pirate1.id] };
+    const updated = {
+      id: 4,
+      itemId: "pirate-sketch",
+      name: "Spyglass",
+      quantity: 1,
+      roleIds: [pirate1.id],
+    };
     expect(Prop.parse(JSON.parse(res.body ?? ""))).toEqual(updated);
     expect((await props.list("2027")).props).toEqual([updated]);
   });
 
+  it("changes the prop's quantity", async () => {
+    const { props, handler } = setUp();
+
+    const res = await handler(request("4", { name: "Telescope", quantity: 6, roleIds: [] }));
+
+    expect(Prop.parse(JSON.parse(res.body ?? "")).quantity).toBe(6);
+    expect((await props.list("2027")).props[0]?.quantity).toBe(6);
+  });
+
   it.each([
+    ["a quantity of 0", { name: "Spyglass", quantity: 0, roleIds: [] }],
+    ["a quantity of 100", { name: "Spyglass", quantity: 100, roleIds: [] }],
+    ["a quantity of 2.5", { name: "Spyglass", quantity: 2.5, roleIds: [] }],
     ["an empty name", { name: "", roleIds: [] }],
     ["a name of only spaces", { name: "  ", roleIds: [] }],
     ["a name over 80 characters", { name: "x".repeat(81), roleIds: [] }],

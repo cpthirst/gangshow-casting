@@ -14,7 +14,7 @@ description: Push the current branch and open a GitHub pull request using the re
 2. **Check the size.** Run `git diff --stat main...HEAD -- . ':!pnpm-lock.yaml' ':!*.md'`. Markdown never counts. Over ~400 changed lines: tell the user and propose how to split it before going further.
 3. **Review.** If the review loop in CLAUDE.md hasn't already run on this branch's current commit in this session (e.g. a quick fix that skipped `implement-story`), run it now. Skip it for a documentation story or a diff of only `*.md` files (CLAUDE.md). Never push with an unresolved `blocker`.
 4. **Write the PR.**
-   - **Title**: a Conventional Commit, e.g. `feat(api): save story drafts (story-capture.E1.S2)`.
+   - **Title**: a Conventional Commit, e.g. `feat(api): save story drafts (story-capture.E1.S2)`. At most **100 characters**, counting the type, scope and story id (commitlint's `header-max-length`, which CI's PR title check applies). Shorten the summary, never drop the story id. Check it before pushing with `printf '%s\n' "<title>" | pnpm exec commitlint`, the same check CI runs, and fix anything it reports.
    - **Body**: fill in [.github/pull_request_template.md](../../../.github/pull_request_template.md). Link the story file(s) and any ADRs, and summarise *why*, not just what (the diff shows what). Base it on `git log main..HEAD` and the diff. Put the reviewers' `should-fix` and `nit` findings, and any `ux-reviewer` findings the user chose to note or leave, under "Review notes".
 5. **Push**: `git push -u origin <branch>`. This asks the user for permission; that's intended.
 6. **Create the PR.**
