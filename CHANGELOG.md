@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.20.0](https://github.com/cpthirst/gangshow-casting/compare/v1.19.0...v1.20.0) (2026-10-27)
+
+
+### Features
+
+* **web:** add a button for every department to each Overview row (production-overview.E2.S2) ([#119](https://github.com/cpthirst/gangshow-casting/issues/119)) ([22d25a6](https://github.com/cpthirst/gangshow-casting/commit/22d25a6788be7bd0c04ec4c8dea3e5968557c002))
+* **web:** give Production one Overview, starting with Props (production-overview.E2.S1) ([#117](https://github.com/cpthirst/gangshow-casting/issues/117)) ([bd50e7d](https://github.com/cpthirst/gangshow-casting/commit/bd50e7d0db6bbfc27ae147dbd294f1f53ca2ffc1))
+
 ## [1.19.0](https://github.com/cpthirst/gangshow-casting/compare/v1.18.1...v1.19.0) (2026-10-26)
 
 
