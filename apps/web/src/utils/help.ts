@@ -6,6 +6,8 @@ const accessLabels = {
   everyone: "Everyone",
   casting: "Accounts with Casting, and admins",
   stage: "Accounts with Stage, and admins",
+  tech: "Accounts with Tech, and admins",
+  wardrobe: "Accounts with Wardrobe, and admins",
   admins: "Admins only",
 } as const;
 
@@ -236,13 +238,44 @@ export const pageHelp: PageHelp[] = [
     page: "production-overview",
     title: "Production overview",
     summary:
-      "The show's items in running order, with how many props each one needs. Accounts with Stage, and admins, can change the props.",
+      "The show's items in running order, each with a button for every department's page for it, and how many props it needs.",
+    // One line per button, in the row's order (production-overview FR4), standing in for an
+    // icon legend on the page. Each line's labels say who can change its page.
     lines: [
+      {
+        icons: [icons.scenery],
+        name: "Scenery",
+        does: "Opens the item's scenery page, for the sets it needs. Coming soon.",
+        access: "everyone",
+        changeAccess: "stage",
+      },
       {
         icons: [icons.props],
         name: "Props",
-        does: "Opens the item's props page: to change them with Stage, or to view them.",
+        does: "Opens the item's props page, for its props, the roles that use them and its notes.",
         access: "everyone",
+        changeAccess: "stage",
+      },
+      {
+        icons: [icons.sfx],
+        name: "SFX",
+        does: "Opens the item's SFX page, for its sound effects. Coming soon.",
+        access: "everyone",
+        changeAccess: "tech",
+      },
+      {
+        icons: [icons.micPlot],
+        name: "Mic plot",
+        does: "Opens the item's mic plot page, for who wears which microphone. Coming soon.",
+        access: "everyone",
+        changeAccess: "tech",
+      },
+      {
+        icons: [icons.wardrobe],
+        name: "Wardrobe",
+        does: "Opens the item's wardrobe page, for what the cast wear. Coming soon.",
+        access: "everyone",
+        changeAccess: "wardrobe",
       },
       {
         icons: [icons.exportWord],

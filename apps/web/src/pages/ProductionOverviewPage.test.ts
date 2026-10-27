@@ -96,6 +96,26 @@ describe("Production overview", () => {
     expect(wrapper.find("main [aria-pressed]").exists()).toBe(false);
   });
 
+  it("opens the Overview's help from its help button", async () => {
+    savedShowIs(show());
+    const { wrapper } = await openOverview();
+
+    await wrapper
+      .get(".page-title-row button[aria-label='Help for Production overview']")
+      .trigger("click");
+
+    const dialog = wrapper.get("dialog.help-dialog");
+    expect(dialog.get("h2").text()).toBe("Production overview help");
+    expect(dialog.findAll("[data-test=help-name]").map((name) => name.text())).toEqual([
+      "Scenery",
+      "Props",
+      "SFX",
+      "Mic plot",
+      "Wardrobe",
+      "Generate Props List",
+    ]);
+  });
+
   it("records each visit as a use of the Production overview", async () => {
     savedShowIs(show());
 

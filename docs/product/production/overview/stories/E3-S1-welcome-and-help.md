@@ -2,7 +2,7 @@
 id: production-overview.E3.S1
 title: Describe the Overview on the Welcome and Help pages
 epic: E3
-status: ready
+status: done
 ---
 
 ## Story
@@ -14,7 +14,7 @@ As a volunteer new to the app, I want the Welcome and Help pages to explain the 
 ### AC1: Welcome describes the Overview
 Given someone opens the Welcome page
 When they read about Production
-Then it says the Overview lists the show's items in running order, with a button on each for Scenery, Props, SFX, Mic plot and Wardrobe
+Then it says the Overview lists the show's items in running order, with a button on each to open each department's page
 
 ### AC2: Help names each button and its icon
 Given someone opens the Help page
