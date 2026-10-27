@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.21.0](https://github.com/cpthirst/gangshow-casting/compare/v1.20.0...v1.21.0) (2026-10-27)
+
+
+### Features
+
+* **web:** describe the Overview's buttons on Welcome and Help, and remove the usage purge ([#120](https://github.com/cpthirst/gangshow-casting/issues/120)) ([5bf02da](https://github.com/cpthirst/gangshow-casting/commit/5bf02da8e915d0f56b01b40a743b60c8bd3c6919))
+
 ## [1.20.0](https://github.com/cpthirst/gangshow-casting/compare/v1.19.0...v1.20.0) (2026-10-27)
 
 
