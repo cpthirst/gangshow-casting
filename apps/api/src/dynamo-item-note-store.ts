@@ -6,8 +6,6 @@ import type { ItemNoteStore } from "./item-note-store.ts";
 const NOTE = "NOTE#";
 /** Props notes' sort key prefix, apart from the casting notes' (production-props FR20). */
 export const PROPS_NOTE = "PROPSNOTE#";
-/** An item's notes' sort key. */
-export const noteKey = (itemId: string) => `${NOTE}${itemId}`;
 
 /** Item notes in the production data table: one row per show item's notes (ADR 0015), keyed
  *  under `prefix`, so props notes are kept the same way, apart. */

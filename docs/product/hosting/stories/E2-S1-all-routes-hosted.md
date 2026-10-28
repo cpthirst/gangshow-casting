@@ -48,6 +48,6 @@ And it prints no cast data
 
 - FRs: FR2, FR15, FR17
 - Depends on: hosting.E1.S2
-- Before this is deployed against the real table, the maintainer must have run the remote-data move (copy, verify, remove) for the 2027 production. Until then, deploy against a table holding only made-up data.
+- Before this is deployed against the real table, the maintainer must have run the remote-data move (copy, verify, remove) for the 2027 production. Done on 2026-10-17; the move command has since been removed.
 - AC3 and AC4 are verified after deploy with a check account. In tests, the entry point is called directly with a fake signed-in event.
 - Out of scope: admin-only actions (E2.S2), the pages (E3).

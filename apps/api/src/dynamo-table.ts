@@ -39,16 +39,8 @@ export async function queryAll(
     const page = await db.send(
       new QueryCommand({
         TableName: tableName,
-        // No prefix: the whole partition, everything the production holds.
-        ...(prefix === ""
-          ? {
-              KeyConditionExpression: "pk = :pk",
-              ExpressionAttributeValues: { ":pk": partitionFor(productionId) },
-            }
-          : {
-              KeyConditionExpression: "pk = :pk AND begins_with(sk, :prefix)",
-              ExpressionAttributeValues: { ":pk": partitionFor(productionId), ":prefix": prefix },
-            }),
+        KeyConditionExpression: "pk = :pk AND begins_with(sk, :prefix)",
+        ExpressionAttributeValues: { ":pk": partitionFor(productionId), ":prefix": prefix },
         ConsistentRead: true,
         ExclusiveStartKey: startKey,
       }),

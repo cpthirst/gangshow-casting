@@ -1,13 +1,10 @@
-# Moving the show's data to the remote database
+# Running the remote database
 
-This guide is for the maintainer, the one person who runs the app and holds the AWS account. It moves a production's data from the files on your machine (`apps/api/data/<production>/`) into the DynamoDB table in AWS ([ADR 0015](../adr/0015-dynamodb-for-production-data.md)). Do the steps in order. Don't skip the checks: until the last step, the files on your machine are the only complete copy of the show.
-
-You'll need about an hour the first time. Tell the team before you start, so nobody edits the cast during the move.
+This guide is for the maintainer, the one person who runs the app and holds the AWS account. It sets up the DynamoDB table in AWS that holds the show's data ([ADR 0015](../adr/0015-dynamodb-for-production-data.md)), runs the app against it, and restores it if something goes wrong. Do the steps in order the first time.
 
 Throughout, replace:
 - `<account-id>` with your 12-digit AWS account id;
 - `<table>` with the table's name, which the deploy prints as `DataTableName`;
-- `<production>` with the production, for example `2027`;
 - `you@example.com` with your email address.
 
 None of these ever go in the repository.
@@ -46,7 +43,7 @@ The deploy prints `GangshowCasting.DataTableName = <table>`. Keep that name. It 
 
 To see what a later change would do before deploying it, run `pnpm infra:diff` with the same two variables set.
 
-Then create the profile the app and the move will use: an IAM user, `gangshow-data`, with no console access, that can only read and write this one table. Attach this inline policy, filled in with your account id and table name:
+Then create the profile the app will use: an IAM user, `gangshow-data`, with no console access, that can only read and write this one table. Attach this inline policy, filled in with your account id and table name:
 
 ```json
 {
@@ -72,76 +69,25 @@ Give it an access key, and run `aws configure --profile gangshow-data`. It can't
 
 Finally, delete the `gangshow-admin` access key in IAM. Make a new one when you next need to deploy, and delete that afterwards too.
 
-## 4. Back up the data folder
+## 4. Use the table
 
-From the repository's root, copy the whole data folder into a new folder only you can read, outside the repository:
-
-```bash
-mkdir -m 700 ~/gangshow-data-backup
-cp -R apps/api/data/. ~/gangshow-data-backup/
-```
-
-It holds young people's names, so keep it somewhere your computer encrypts (FileVault on a Mac) and out of synced folders such as iCloud Drive or Dropbox. This is your safety net until the move is finished. Step 9 removes it.
-
-## 5. Copy the production to the table
-
-Stop the app first if it's running (`Ctrl+C` where you started `pnpm dev`), so nothing changes the files from here until step 8. Then, from the repository's root:
-
-```bash
-DATA_TABLE=<table> AWS_PROFILE=gangshow-data pnpm --filter api move copy <production>
-```
-
-The first line names the table, region and folder it's using: check they're right. It reports how many cast members, roles, notes and running order versions it copied, never anyone's name.
-
-- **Safe to re-run.** Anything already copied is counted as "already there".
-- **"Nothing copied: the remote database already holds different data".** The table has a record that differs from your files, named by collection and id. Nothing was written. Work out which is right before going on.
-- **"No local data found".** Check the production id and that you're in the right folder.
-
-## 6. Verify the copy
-
-```bash
-DATA_TABLE=<table> AWS_PROFILE=gangshow-data pnpm --filter api move verify <production>
-```
-
-This reads everything through the app's own API, once from the files and once from the table, and compares them.
-
-- **A pass** lists the counts that match, and records the time beside your local data.
-- **"Only in the remote database (kept)"** lists records the table holds that your files don't, such as notes saved there earlier. They're fine.
-- **A failure** names what's missing or different and clears any earlier pass. Copy again, then verify again.
-
-## 7. Use the table
-
-Run the app against the table, and check the cast, roles, running order and notes look right:
+Run the app against the table:
 
 ```bash
 DATA_TABLE=<table> AWS_PROFILE=gangshow-data pnpm dev
 ```
 
-On start, the API says `data: everything in table <table> (eu-west-2)`.
+On start, the API says `data: everything in table <table> (eu-west-2)`. Plain `pnpm dev`, in a shell where `DATA_TABLE` isn't set, uses the files in `apps/api/data` instead: the two never mix, and nothing copies one into the other. Starting a new production in the table needs a story first: the one-off copy that moved 2027 there was removed, and is in git history at PR #45.
 
-### Going back
+### Old copies from the 2027 move
 
-Until step 8, going back is just a setting: stop the app and run plain `pnpm dev`, in a shell where `DATA_TABLE` isn't set. It reads the files again. Anything saved while using the table is only in the table. Once step 8 removes the files, there's no going back to them, only to the backup from step 4.
-
-## 8. Remove the local files
-
-When you're happy the app works from the table:
-
-```bash
-pnpm --filter api move remove <production>
-```
-
-It refuses unless a verification passed after the last copy and no file has changed since. If the app ran on the files after you verified, stop it, then copy and verify again. It lists the files it will remove, and removes them only if you type the production id. Anything else keeps them all. It never touches the table or other productions.
-
-## 9. Remove the backup
-
-The cast are young people, and deleted data shouldn't linger ([ADR 0010](../adr/0010-cast-member-personal-data.md)). Once you've used the app from the table for a rehearsal or two and nothing is missing, delete the backup:
+The move had you back up the data folder to `~/gangshow-data-backup`. It holds young people's names, and deleted data shouldn't linger ([ADR 0010](../adr/0010-cast-member-personal-data.md)). If it's still there, delete it, along with any production folders left in `apps/api/data` from before the move:
 
 ```bash
 rm -rf ~/gangshow-data-backup
 ```
 
-If your computer backs itself up (Time Machine, say), the backup folder may be in those backups too: remove it there as well. From now on, the table's 7-day point-in-time recovery is the only backup.
+If your computer backs itself up (Time Machine, say), remove it from those backups too.
 
 ## Restoring from point-in-time recovery
 
