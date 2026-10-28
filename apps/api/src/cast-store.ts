@@ -109,13 +109,6 @@ async function readFileOf(dataDir: string, productionId: string) {
   return text === undefined ? undefined : parseCastFile(text, productionId);
 }
 
-/** A production's cast list as stored, with the next id it would hand out, for copying it
- *  elsewhere (remote-data FR8); undefined if it has no cast file. */
-export async function readCastFile(dataDir: string, productionId: string) {
-  const file = await readFileOf(dataDir, productionId);
-  return file && { list: listOf(file), nextId: nextIdOf(file) };
-}
-
 /** Local file: `<dataDir>/<productionId>/cast.json` (git-ignored). */
 export function fileCastStore(dataDir: string): CastStore {
   const fileFor = (productionId: string) => castFileFor(dataDir, productionId);

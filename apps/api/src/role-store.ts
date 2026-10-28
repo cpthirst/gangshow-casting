@@ -147,13 +147,6 @@ async function readFileOf(dataDir: string, productionId: string) {
   return text === undefined ? emptyFile(productionId) : parseRoleFile(text, productionId);
 }
 
-/** A production's roles as stored, with the next id it would hand out, for copying them
- *  elsewhere (remote-data FR8). */
-export async function readRoleFile(dataDir: string, productionId: string) {
-  const file = await readFileOf(dataDir, productionId);
-  return { list: listOf(file), nextId: nextIdOf(file) };
-}
-
 /** Local file: `<dataDir>/<productionId>/roles.json` (git-ignored), created with the first role. */
 export function fileRoleStore(dataDir: string): RoleStore {
   const fileFor = (productionId: string) => roleFileFor(dataDir, productionId);
