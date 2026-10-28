@@ -4,6 +4,7 @@ import {
   Packer,
   Paragraph,
   Table,
+  TableCell,
   TableLayoutType,
   TableRow,
   TextRun,
@@ -12,6 +13,7 @@ import {
 import type { PropsListHalf, PropsListItem } from "@/utils/props.ts";
 import {
   A4,
+  CELL_SPACING,
   cell,
   itemHeadingRuns,
   logoHeader,
@@ -23,24 +25,41 @@ import {
 
 // The props list (production-props FR22, FR23): the production's title, each half and each item
 // as Word headings, as in the Item Overview, with each item's props notes and a table of its
-// props. Text goes in as plain runs, never as markup (ADR 0022).
+// props, their quantities and carriers (FR29). Text goes in as plain runs, never as markup
+// (ADR 0022).
 
+// Qty is narrow, so the table still fits a portrait page.
 const PROP_COLUMNS = [
-  { name: "Prop", share: 40 },
-  { name: "Character", share: 30 },
-  { name: "Cast", share: 30 },
+  { name: "Prop", share: 34 },
+  { name: "Qty", share: 8 },
+  { name: "Character", share: 29 },
+  { name: "Cast", share: 29 },
 ];
-/** One row per character, the prop's cell running down beside them all; a prop with no
- *  characters has a row with empty Character and Cast cells. */
-const propRows = ({ name, roles }: PropsListItem["props"][number]) => {
-  const castCell = (cast: string) => cell(cast === "" ? "Uncast" : cast);
+
+const line = (text: string, emphasis = false) =>
+  new Paragraph({
+    spacing: CELL_SPACING,
+    children: [new TextRun({ text, bold: emphasis, italics: emphasis })],
+  });
+
+/** The prop's name, with what's left to sort out about its carriers on lines below it, in
+ *  bold italics so they stand out, as they do in red on the card. */
+const propCell = (name: string, notes: string[], rowSpan: number) =>
+  new TableCell({
+    rowSpan,
+    children: [line(name), ...notes.map((note) => line(note, true))],
+  });
+
+/** One row per character, the prop's and quantity's cells running down beside them all; a
+ *  prop with no characters has a row with empty Character and Cast cells. */
+const propRows = ({ name, quantity, roles, notes }: PropsListItem["props"][number]) => {
+  const rowSpan = Math.max(1, roles.length);
+  const propCells = [propCell(name, notes, rowSpan), cell(String(quantity), { rowSpan })];
   const [first, ...rest] = roles;
-  if (!first) return [new TableRow({ children: [cell(name), cell(""), cell("")] })];
+  if (!first) return [new TableRow({ children: [...propCells, cell(""), cell("")] })];
   return [
-    new TableRow({
-      children: [cell(name, { rowSpan: roles.length }), cell(first.name), castCell(first.cast)],
-    }),
-    ...rest.map((role) => new TableRow({ children: [cell(role.name), castCell(role.cast)] })),
+    new TableRow({ children: [...propCells, cell(first.name), cell(first.cast)] }),
+    ...rest.map((role) => new TableRow({ children: [cell(role.name), cell(role.cast)] })),
   ];
 };
 

@@ -3,7 +3,7 @@ import type { CastMember, Prop, Role } from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed } from "vue";
 import { icons } from "@/utils/icons.ts";
-import { carryingOf } from "@/utils/props.ts";
+import { carryingOf, notGivenLabel, toChooseLabel } from "@/utils/props.ts";
 
 // One prop on its item's props page, styled as a role card (production-props FR18): its roles,
 // each with who carries it from the casting now, how many are left to choose (FR26), and how
@@ -74,10 +74,10 @@ const carrying = computed(() => carryingOf(props.prop, props.roles, props.cast))
       </li>
     </ul>
     <p v-if="carrying.toChoose > 0" class="prop-to-choose" data-test="to-choose">
-      {{ carrying.toChoose }} left to choose
+      {{ toChooseLabel(carrying.toChoose) }}
     </p>
     <p v-if="carrying.notGiven > 0" class="prop-to-choose" data-test="not-given">
-      {{ carrying.notGiven }} not given to anyone
+      {{ notGivenLabel(carrying.notGiven) }}
     </p>
   </li>
 </template>

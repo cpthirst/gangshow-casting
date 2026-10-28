@@ -479,16 +479,103 @@ describe("the props list, for the Word document", () => {
     const sketch = list()[0]?.items[0];
 
     expect(sketch?.props).toEqual([
-      { name: "telescope", roles: [{ name: "Captain", cast: "Sam Taylor" }] },
+      {
+        name: "telescope",
+        quantity: 1,
+        roles: [{ name: "Captain", cast: "Sam Taylor" }],
+        notes: [],
+      },
       {
         name: "Umbrella 2",
+        quantity: 1,
         roles: [
           { name: "Pirate 1", cast: "Jo Brown" },
-          { name: "Pirate 2", cast: "" },
+          { name: "Pirate 2", cast: "Uncast" },
         ],
+        notes: [],
       },
-      { name: "Umbrella 10", roles: [] },
+      { name: "Umbrella 10", quantity: 1, roles: [], notes: [] },
     ]);
+  });
+
+  describe("carriers", () => {
+    const kim = member(3, "Kim", "Lee");
+    const alex = member(4, "Alex", "Green");
+    const villagers = role(5, "Villagers", "ensemble", [jo.id, kim.id, alex.id]);
+    const baker = role(6, "Baker", "lead", [sam.id]);
+    const ash = member(5, "Ash", "Patel");
+    const lamplighters = role(7, "Lamplighters", "ensemble", [jo.id, kim.id, alex.id, ash.id]);
+    const propsOf = (
+      ...props: { name: string; quantity: number; roleIds: number[]; carrierIds?: number[] }[]
+    ) =>
+      propsListOf({
+        order,
+        props: props.map(({ carrierIds = [], ...rest }, i) => ({
+          ...aProp(i + 1, "pirate-sketch"),
+          ...rest,
+          carrierIds,
+        })),
+        roles: [villagers, baker, lamplighters],
+        cast: [sam, jo, kim, alex, ash],
+        notes: [],
+      })[0]?.items[0]?.props;
+
+    it("gives each prop its quantity", () => {
+      const props = propsOf(
+        { name: "Umbrella", quantity: 10, roleIds: [] },
+        { name: "Telescope", quantity: 1, roleIds: [] },
+      );
+
+      expect(props?.map(({ name, quantity }) => [name, quantity])).toEqual([
+        ["Telescope", 1],
+        ["Umbrella", 10],
+      ]);
+    });
+
+    it("shows only the chosen carriers in a role's cast", () => {
+      const props = propsOf({
+        name: "Bread basket",
+        quantity: 1,
+        roleIds: [villagers.id],
+        carrierIds: [kim.id],
+      });
+
+      expect(props?.[0]?.roles).toEqual([{ name: "Villagers", cast: "Kim Lee" }]);
+    });
+
+    it("shows everyone in a role when its cast fits the quantity", () => {
+      const props = propsOf({ name: "Umbrella", quantity: 10, roleIds: [villagers.id] });
+
+      expect(props?.[0]?.roles).toEqual([
+        { name: "Villagers", cast: "Jo Brown, Alex Green, Kim Lee" },
+      ]);
+      // As the card says it.
+      expect(props?.[0]?.notes).toEqual(["7 not given to anyone"]);
+    });
+
+    it("says how many carriers are left to choose, in the props page's words", () => {
+      const props = propsOf({
+        name: "Lantern",
+        quantity: 3,
+        roleIds: [lamplighters.id],
+        carrierIds: [jo.id],
+      });
+
+      expect(props?.[0]).toMatchObject({
+        roles: [{ name: "Lamplighters", cast: "Jo Brown" }],
+        notes: ["2 left to choose"],
+      });
+    });
+
+    it("says nobody in a role carries the prop when none of its cast do", () => {
+      const props = propsOf({ name: "Lantern", quantity: 1, roleIds: [villagers.id, baker.id] });
+
+      // Named parts first, as the item orders its roles.
+      expect(props?.[0]?.roles).toEqual([
+        { name: "Baker", cast: "Sam Taylor" },
+        { name: "Villagers", cast: "Nobody carries it" },
+      ]);
+    });
   });
 
   it("gives each item its props notes, and none once they're cleared", () => {

@@ -2,7 +2,7 @@
 id: production-props.E6.S4
 title: Quantities and carriers in the Word props list
 epic: E6
-status: ready
+status: done
 ---
 
 ## Story

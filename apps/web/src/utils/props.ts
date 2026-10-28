@@ -10,7 +10,7 @@ import {
   type RunningOrder,
 } from "@app/shared";
 import { sortCast } from "./cast.ts";
-import { type CastMemberChoice, castNames, castOf, fullName, sortRoles } from "./roles.ts";
+import { type CastMemberChoice, castOf, fullName, sortRoles } from "./roles.ts";
 import { runningClock } from "./running-order.ts";
 
 // Only one production for now (see docs/product/running-order/prd.md).
@@ -110,6 +110,12 @@ export function carryingOf(prop: Prop, roles: Role[], cast: CastMember[]) {
   };
 }
 
+/** What a prop's card and the props list say is left to sort out about its carriers: how
+ *  many are left to choose, and how many aren't given to anyone (production-props FR26,
+ *  FR27, FR29). One place, so the two say it the same way. */
+export const toChooseLabel = (count: number) => `${count} left to choose`;
+export const notGivenLabel = (count: number) => `${count} not given to anyone`;
+
 /** What the carrier picker says about how many can still be chosen. */
 export function carriersHint(quantity: number, chosen: number) {
   const limit = `Choose up to ${quantity}`;
@@ -120,14 +126,20 @@ export function carriersHint(quantity: number, chosen: number) {
   return `${limit} · ${left > 0 ? left : "none"} left to choose`;
 }
 
-/** One item in the props list: its notes ("" for none) and props, each prop with its roles
- *  and who plays them ("" while uncast). */
+/** One item in the props list: its notes ("" for none) and props, each prop with its
+ *  quantity, its roles and who in them carries it (or why nobody does), and what's left to
+ *  sort out about its carriers. */
 export interface PropsListItem {
   title: string;
   /** Its programme number; null when it isn't in the printed programme. */
   number: number | null;
   notes: string;
-  props: { name: string; roles: { name: string; cast: string }[] }[];
+  props: {
+    name: string;
+    quantity: number;
+    roles: { name: string; cast: string }[];
+    notes: string[];
+  }[];
 }
 
 /** One half of the props list: its name and items in running order. */
@@ -137,7 +149,8 @@ export interface PropsListHalf {
 }
 
 /** The whole show's props, half by half in running order, in the order each item's props
- *  page shows them (production-props FR22). Only names: nothing else about the cast. */
+ *  page shows them, and with its carriers as the cards show them (production-props FR22, FR29).
+ *  Only names: nothing else about the cast. */
 export function propsListOf(show: {
   order: RunningOrder;
   props: Prop[];
@@ -153,13 +166,21 @@ export function propsListOf(show: {
         title: item.title,
         number,
         notes: notesOf(item.id) ?? "",
-        props: sortProps(show.props.filter((prop) => prop.itemId === item.id)).map((prop) => ({
-          name: prop.name,
-          roles: rolesOf(prop, show.roles).map((role) => ({
-            name: role.name,
-            cast: castNames(role, show.cast),
-          })),
-        })),
+        props: sortProps(show.props.filter((prop) => prop.itemId === item.id)).map((prop) => {
+          const { roles, toChoose, notGiven } = carryingOf(prop, show.roles, show.cast);
+          return {
+            name: prop.name,
+            quantity: prop.quantity,
+            roles: roles.map(({ role, carriers, none }) => ({
+              name: role.name,
+              cast: carriers || none,
+            })),
+            notes: [
+              ...(toChoose > 0 ? [toChooseLabel(toChoose)] : []),
+              ...(notGiven > 0 ? [notGivenLabel(notGiven)] : []),
+            ],
+          };
+        }),
       }),
     ),
   }));
