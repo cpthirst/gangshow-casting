@@ -24,6 +24,9 @@ export interface CastStore {
 /** Why a change to one member was refused: it's gone, or someone else changed it first. */
 export type Refusal = "stale" | "not-found";
 
+/** HTTP status for a refused change to one cast member. */
+export const refusalStatus: Record<Refusal, number> = { stale: 409, "not-found": 404 };
+
 // The stored file also remembers the next id, so a deleted member's id is never reused.
 const CastFile = CastList.extend({ nextId: CastMember.shape.id.optional() });
 type CastFile = ReturnType<typeof CastFile.parse>;

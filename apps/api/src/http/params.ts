@@ -1,7 +1,12 @@
-import type { Refusal } from "#/show/cast/cast-store.ts";
+import { ProductionId } from "@app/shared";
+import type { ApiEvent } from "./handler.ts";
 
-/** HTTP status for a refused change to one cast member. */
-export const refusalStatus: Record<Refusal, number> = { stale: 409, "not-found": 404 };
+/** The production the path's {productionId} names, or undefined if none could have that id:
+ *  the id becomes part of a folder or key, so it's checked before any store sees it. */
+export function productionIdOf(event: ApiEvent) {
+  const productionId = ProductionId.safeParse(event.pathParameters?.productionId);
+  return productionId.success ? productionId.data : undefined;
+}
 
 /** A positive whole number from a path or query parameter (up to 9 digits, safely within a
  *  JS number), or undefined for anything else. */
