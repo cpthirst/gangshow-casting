@@ -163,6 +163,7 @@ describe("Generate Props List", () => {
     const table = readDocx(await bytesOf(saved[0]?.file)).find((block) => block.kind === "table");
     expect(table?.kind === "table" ? table.rows[1]?.cells : undefined).toEqual([
       "Telescope",
+      "1",
       "Captain",
       "Kim Lee",
     ]);
