@@ -2,13 +2,13 @@ import {
   CastingGridExportRequest,
   gridLetterColours,
   gridTextColour,
-  ProductionId,
   unprintedHeadingColour,
 } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import writeExcelFile from "write-excel-file/node";
 import type { ApiEvent } from "#/http/handler.ts";
 import { parseJson } from "#/http/json.ts";
+import { productionIdOf } from "#/http/params.ts";
 
 const XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
@@ -94,8 +94,8 @@ function sheetOf({ items, rows }: CastingGridExportRequest) {
 export async function exportCastingGrid(
   event: ApiEvent,
 ): Promise<APIGatewayProxyStructuredResultV2> {
-  const productionId = ProductionId.safeParse(event.pathParameters?.productionId);
-  if (!productionId.success) return { statusCode: 404 };
+  const productionId = productionIdOf(event);
+  if (productionId === undefined) return { statusCode: 404 };
   const grid = CastingGridExportRequest.safeParse(parseJson(event.body));
   if (!grid.success) return { statusCode: 400 };
 

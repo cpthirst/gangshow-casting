@@ -3,7 +3,7 @@
 // does, and refuses what the caller's permissions don't allow (ADR 0026).
 import { accessFrom } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
-import { accessRefusal, groupsFrom } from "./admin-only.ts";
+import { accessRefusal, groupsFrom } from "./access.ts";
 import type { ApiEvent, Handler } from "./handler.ts";
 import { matchRoute } from "./match-route.ts";
 

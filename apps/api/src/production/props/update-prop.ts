@@ -1,9 +1,9 @@
-import { ProductionId, UpdatePropRequest } from "@app/shared";
+import { UpdatePropRequest } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import type { RoleStore } from "#/casting/roles/role-store.ts";
 import type { ApiEvent } from "#/http/handler.ts";
-import { parseJson } from "#/http/json.ts";
-import { wholeNumber } from "#/http/params.ts";
+import { jsonResponse, parseJson } from "#/http/json.ts";
+import { productionIdOf, wholeNumber } from "#/http/params.ts";
 import { linksFitItem } from "./prop-links.ts";
 import type { PropStore } from "./prop-store.ts";
 
@@ -12,27 +12,23 @@ import type { PropStore } from "./prop-store.ts";
 // (routeNeeds in @app/shared).
 export function createUpdateProp(props: PropStore, roles: RoleStore) {
   return async (event: ApiEvent): Promise<APIGatewayProxyStructuredResultV2> => {
-    const productionId = ProductionId.safeParse(event.pathParameters?.productionId);
+    const productionId = productionIdOf(event);
     const propId = wholeNumber(event.pathParameters?.propId);
-    if (!productionId.success || propId === undefined) return { statusCode: 404 };
+    if (productionId === undefined || propId === undefined) return { statusCode: 404 };
     // Strict: an id, item or any unknown field in the body is refused.
     const details = UpdatePropRequest.safeParse(parseJson(event.body));
     if (!details.success) return { statusCode: 400 };
 
-    const prop = (await props.list(productionId.data)).props.find(({ id }) => id === propId);
+    const prop = (await props.list(productionId)).props.find(({ id }) => id === propId);
     if (!prop) return { statusCode: 404 };
-    const itemRoles = (await roles.list(productionId.data)).roles.filter(
+    const itemRoles = (await roles.list(productionId)).roles.filter(
       (role) => role.itemId === prop.itemId,
     );
     if (!linksFitItem(details.data, itemRoles)) return { statusCode: 400 };
 
-    const updated = await props.update(productionId.data, propId, details.data);
+    const updated = await props.update(productionId, propId, details.data);
     // Removed by someone else since it was read above.
     if (updated === "not-found") return { statusCode: 404 };
-    return {
-      statusCode: 200,
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(updated),
-    };
+    return jsonResponse(200, updated);
   };
 }

@@ -4,7 +4,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { LOCAL_ACCESS_HEADER, localAccessFrom } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import { LOCAL_ADMIN, localAccountRoutes } from "#/accounts/local-accounts.ts";
-import { accessRefusal } from "#/http/admin-only.ts";
+import { accessRefusal } from "#/http/access.ts";
 import type { Handler } from "#/http/handler.ts";
 import { matchRoute } from "#/http/match-route.ts";
 import { createUsageRoutes } from "#/usage/usage-routes.ts";
