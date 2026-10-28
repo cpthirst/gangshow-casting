@@ -77,7 +77,17 @@ Run the app against the table:
 DATA_TABLE=<table> AWS_PROFILE=gangshow-data pnpm dev
 ```
 
-On start, the API says `data: everything in table <table> (eu-west-2)`. Plain `pnpm dev`, in a shell where `DATA_TABLE` isn't set, uses the files in `apps/api/data` instead: the two never mix, and nothing copies one into the other.
+On start, the API says `data: everything in table <table> (eu-west-2)`. Plain `pnpm dev`, in a shell where `DATA_TABLE` isn't set, uses the files in `apps/api/data` instead: the two never mix, and nothing copies one into the other. Starting a new production in the table needs a story first: the one-off copy that moved 2027 there was removed, and is in git history at PR #45.
+
+### Old copies from the 2027 move
+
+The move had you back up the data folder to `~/gangshow-data-backup`. It holds young people's names, and deleted data shouldn't linger ([ADR 0010](../adr/0010-cast-member-personal-data.md)). If it's still there, delete it, along with any production folders left in `apps/api/data` from before the move:
+
+```bash
+rm -rf ~/gangshow-data-backup
+```
+
+If your computer backs itself up (Time Machine, say), remove it from those backups too.
 
 ## Restoring from point-in-time recovery
 
