@@ -2,13 +2,16 @@
   "name": "api",
   "private": true,
   "type": "module",
+  "imports": {
+    "#/*": "./src/*"
+  },
   "scripts": {
     "dev": "node --watch src/dev-server.ts",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
     "test:dynamo": "vitest run --config vitest.dynamo.config.ts",
-    "account": "node src/account-cli.ts",
-    "check:hosted": "node src/hosted-check.ts"
+    "account": "node src/cli/account-cli.ts",
+    "check:hosted": "node src/cli/hosted-check.ts"
   },
   "dependencies": {
     "@app/shared": "workspace:*",

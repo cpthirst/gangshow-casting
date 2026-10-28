@@ -133,16 +133,24 @@ CI runs both of these as separate jobs.
 │   │       ├── directives/      Vue directives: sortable rows
 │   │       └── assets/          Logos and styles.css
 │   └── api/                 Framework-free API: Lambda-shaped handlers (ADR 0006)
-│       └── src/
-│           ├── routes.ts        "<METHOD> <path>" → handler table
+│       └── src/                 By area, like the web (ADR 0028); tests sit beside their code
+│           ├── routes.ts        "<METHOD> <path>" → handler table; lambda.ts and accounts-lambda.ts host it
 │           ├── dev-server.ts    node:http stand-in for API Gateway, loopback only
-│           └── *-store.ts       In-memory and DynamoDB stores, one contract each
+│           ├── show/            cast/, running-order/: handlers and stores
+│           ├── casting/         roles/, casting-grid/ (the Excel export)
+│           ├── production/      props/
+│           ├── item-notes/      Notes per item, for casting and props
+│           ├── accounts/        The team's accounts, on the user pool
+│           ├── usage/           Usage records
+│           ├── http/            Requests, responses, route matching, permissions
+│           ├── storage/         Choosing the stores; file and DynamoDB helpers
+│           └── cli/             pnpm account and pnpm check:hosted
 ├── packages/shared/         zod schemas + inferred types: the API contract
 ├── infra/                   AWS CDK app: one AppStack (pages, API, functions, table, user pool, budget)
 ├── tooling/                 Repo scripts: demo.ts, release.ts + harness and README tests
 ├── docs/
 │   ├── adr/                 Architecture decision records (see Decisions)
-│   ├── guides/              Running the hosted app; moving to the remote database
+│   ├── guides/              Running the hosted app and the remote database
 │   └── product/<feature>/   PRD, story map and stories written by the planning skills
 ├── .claude/
 │   ├── settings.json        Permissions (allow / ask / deny) + hook registration
@@ -339,6 +347,7 @@ These cover humans and agents alike, and `pnpm install` installs them.
 | [0025](docs/adr/0025-web-source-folders.md) | The web app's source grouped into folders by kind, with a `@/` import alias |
 | [0026](docs/adr/0026-department-permissions-as-user-pool-groups.md) | Department permissions (Casting, Stage, Tech, Wardrobe) as user pool groups, each change route naming its permission |
 | [0027](docs/adr/0027-costume-group-renamed-wardrobe.md) | The `costume` group renamed `wardrobe` in one release, with no move |
+| [0028](docs/adr/0028-api-source-folders.md) | The API's source grouped by area, nested like the web's, with a `#/` import alias |
 
 ---
 
