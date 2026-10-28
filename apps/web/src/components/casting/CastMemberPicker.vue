@@ -14,8 +14,12 @@ const props = withDefaults(
     hintId?: string | undefined;
     disabled?: boolean;
     name?: string;
+    /** Who's already chosen: marked in the list, so choosing them again takes them off. */
+    chosenIds?: number[];
+    /** What to say when nobody matches, if not "No cast members match". */
+    noMatch?: string | undefined;
   }>(),
-  { name: "castMember" },
+  { name: "castMember", chosenIds: () => [] },
 );
 const choice = defineModel<CastMemberChoice>({ required: true });
 
@@ -28,6 +32,7 @@ const matches = computed(() =>
     id: member.id,
     name: `${member.firstName} ${member.lastName}`,
     details: detailsOf(member),
+    chosen: props.chosenIds.includes(member.id),
   })),
 );
 </script>
@@ -42,5 +47,6 @@ const matches = computed(() =>
     :described-by="describedBy"
     :hint-id="hintId"
     :disabled="disabled"
+    :no-match="noMatch"
   />
 </template>

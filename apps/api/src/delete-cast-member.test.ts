@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { aCastList, aCastMember } from "./cast.fixture.ts";
 import { inMemoryCastStore } from "./cast-store.ts";
 import { createDeleteCastMember } from "./delete-cast-member.ts";
+import { inMemoryPropStore, type PropStore } from "./prop-store.ts";
 import { uncastThenRemove } from "./remove-cast-member.ts";
 import { inMemoryRoleStore, type RoleStore } from "./role-store.ts";
 
@@ -20,9 +21,13 @@ const aRole = (id: number, itemId: string, castMemberIds: number[]): Role => ({
   revision: 1,
 });
 
-function setUp(roles: RoleStore = inMemoryRoleStore()) {
+function setUp(roles: RoleStore = inMemoryRoleStore(), props: PropStore = inMemoryPropStore()) {
   const store = inMemoryCastStore([aCastList([aCastMember(1), aCastMember(12, { revision: 4 })])]);
-  return { store, roles, handler: createDeleteCastMember(uncastThenRemove(store, roles)) };
+  return {
+    store,
+    roles,
+    handler: createDeleteCastMember(uncastThenRemove(store, roles), roles, props),
+  };
 }
 
 const ids = async (store: ReturnType<typeof setUp>["store"]) =>
@@ -128,7 +133,11 @@ describe("delete cast member handler with roles", () => {
       },
     };
 
-    await createDeleteCastMember(uncastThenRemove(racingCast, roles))(request("12", "4"));
+    await createDeleteCastMember(
+      uncastThenRemove(racingCast, roles),
+      roles,
+      inMemoryPropStore(),
+    )(request("12", "4"));
 
     expect(JSON.stringify(await roles.list("2027"))).not.toMatch(/"castMemberIds":\[[^\]]*\b12\b/);
   });
@@ -144,5 +153,39 @@ describe("delete cast member handler with roles", () => {
 
     await expect(handler(request("12", "4"))).rejects.toThrow();
     expect(await ids(store)).toEqual([1, 12]);
+  });
+});
+
+describe("delete cast member handler with props", () => {
+  const basket = {
+    id: 1,
+    itemId: "pirate-sketch",
+    name: "Bread basket",
+    quantity: 1,
+    roleIds: [9],
+    carrierIds: [12],
+  };
+  const setUpWithBasket = () => {
+    const props = inMemoryPropStore([{ productionId: "2027", props: [basket] }]);
+    const roles = inMemoryRoleStore([
+      { productionId: "2027", roles: [aRole(9, "pirate-sketch", [12, 1])] },
+    ]);
+    return { props, ...setUp(roles, props) };
+  };
+
+  it("takes them off every prop they carried", async () => {
+    const { props, handler } = setUpWithBasket();
+
+    expect((await handler(request("12", "4"))).statusCode).toBe(204);
+
+    expect((await props.list("2027")).props[0]?.carrierIds).toEqual([]);
+  });
+
+  it("changes no props when the delete is refused", async () => {
+    const { props, handler } = setUpWithBasket();
+
+    expect((await handler(request("12", "3"))).statusCode).toBe(409);
+
+    expect((await props.list("2027")).props[0]?.carrierIds).toEqual([12]);
   });
 });

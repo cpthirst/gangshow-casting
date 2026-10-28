@@ -1869,6 +1869,12 @@ main a {
   background: var(--white);
 }
 
+/* A prop's roles, one per line on every screen, so who carries each reads down the list. */
+.members.one-per-line {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
 /* A prop's roles sit under its name, one per line, each with who plays it; long names
    wrap rather than widen the card on a phone. */
 .prop-roles {
@@ -1883,11 +1889,29 @@ main a {
   overflow-wrap: anywhere;
 }
 
-/* How many of a prop's carriers are left to choose, under its roles (production-props FR26). */
+/* How many of a prop's carriers are left to choose, or aren't given to anyone, under its
+   roles (production-props FR26, FR27). Marked as "Nobody carries it" is, so it stands out. */
 .prop-to-choose {
   flex-basis: 100%;
   margin: 0;
+  color: var(--red-darker);
   font-size: 0.875rem;
+  font-style: italic;
+  font-weight: 700;
+}
+
+/* Who carries a prop, in brackets after each of its roles on its card and in its form
+   (production-props FR26). */
+.role-carriers,
+.prop-carriers {
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
+
+/* The tick on someone already chosen in a picker's list: choosing them again takes them off. */
+.choice-chosen {
+  margin-right: 0.25rem;
+  font-weight: 700;
 }
 
 /* The carrier picker's "Choose up to 2 · 1 left to choose", between its label and search. */

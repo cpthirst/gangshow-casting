@@ -6,7 +6,8 @@ import { icons } from "@/utils/icons.ts";
 import { carryingOf } from "@/utils/props.ts";
 
 // One prop on its item's props page, styled as a role card (production-props FR18): its roles,
-// each with who carries it from the casting now, and how many are left to choose (FR26).
+// each with who carries it from the casting now, how many are left to choose (FR26), and how
+// many aren't given to anyone (FR27).
 // roles and cast: the production's.
 // canChange: shows the pencil and trash can (production-props FR19); busy: disables them.
 const props = defineProps<{
@@ -65,12 +66,18 @@ const carrying = computed(() => carryingOf(props.prop, props.roles, props.cast))
         <span class="role-name" data-test="prop-role-name">{{ role.name }}</span>
         <!-- Real spaces, so a screen reader hears "Parrot Uncast", not one word. -->
         {{ " " }}
-        <span v-if="carriers" class="role-cast" data-test="cast">{{ carriers }}</span>
+        <!-- In brackets, as the prop form shows them. -->
+        <span v-if="carriers" class="role-cast prop-carriers"
+          >(<span data-test="cast">{{ carriers }}</span>)</span
+        >
         <span v-else class="uncast" data-test="uncast">{{ none }}</span>
       </li>
     </ul>
     <p v-if="carrying.toChoose > 0" class="prop-to-choose" data-test="to-choose">
       {{ carrying.toChoose }} left to choose
+    </p>
+    <p v-if="carrying.notGiven > 0" class="prop-to-choose" data-test="not-given">
+      {{ carrying.notGiven }} not given to anyone
     </p>
   </li>
 </template>
