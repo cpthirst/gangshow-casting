@@ -106,7 +106,7 @@ Run after the gate is green, before a story is `done` or a PR is opened. **Skip 
   - `use…` functions go in `composables/`, and Vue directives in `directives/`.
   - A new top-level folder (`stores/`, `types/`, `layouts/`) needs an ADR.
 - In `apps/api`, import across `src/` folders with the `#/` alias (`#/http/json.ts`, from `package.json` `imports`), and within a folder relatively (`./cast-store.ts`).
-- In `apps/api/src`, put each new file in its area's folder (ADR 0028), keeping its name unique across the API:
+- In `apps/api/src`, put each new file in its area's folder (ADR 0028), keeping its name unique across the API, so searching by file name finds it:
   - A route's handler, its store's contract, both stores (file and `dynamo-`) and their tests share one folder, under the web area that shows them: `show/`, `casting/` or `production/` (Props now; SFX and the Mic plot later).
   - Something more than one area uses goes outside the areas: `item-notes/`, requests and responses in `http/`, store set-up and helpers in `storage/`.
   - Entry points (`lambda.ts`, `accounts-lambda.ts`, `dev-server.ts`) and the route table stay at the top; the maintainer's commands go in `cli/`.

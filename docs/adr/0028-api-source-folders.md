@@ -40,7 +40,7 @@ As in the web, a folder used by more than one area (`item-notes`, `http`, `stora
 
 Imports across folders use a `#/` alias for `src/`, declared in `apps/api/package.json`'s `imports` field: `import { parseJson } from "#/http/json.ts"`. Imports within a folder stay relative (`./cast-store.ts`). This is the web's `@/` rule. It has to be a package import, not a tsconfig path, because Node runs the API's source directly; Node, TypeScript, Vitest and esbuild all read it with no extra setup.
 
-The change is renames and import lines only, in one `chore(api)` PR. It updates `CLAUDE.md` (Layout and the import rule), `README.md`, the path in `.claude/agents/code-reviewer.md`, and infra's comments that name API files. Accepted ADRs keep their old links, as in ADR 0025. Tidying the code inside the files comes in a later `refactor(api)` PR.
+The change is renames and import lines only, in one `chore(api)` PR. It updates `CLAUDE.md` (Layout and the import rule), `README.md`, and infra's comments that name API files. Accepted ADRs keep their old links, as in ADR 0025. Tidying the code inside the files comes in a later `refactor(api)` PR.
 
 ## Consequences
 
