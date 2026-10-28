@@ -3,13 +3,13 @@ import { readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { LOCAL_ACCESS_HEADER, localAccessFrom } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
-import { accessRefusal } from "./admin-only.ts";
-import type { Handler } from "./handler.ts";
-import { LOCAL_ADMIN, localAccountRoutes } from "./local-accounts.ts";
-import { matchRoute } from "./match-route.ts";
+import { LOCAL_ADMIN, localAccountRoutes } from "#/accounts/local-accounts.ts";
+import { accessRefusal } from "#/http/admin-only.ts";
+import type { Handler } from "#/http/handler.ts";
+import { matchRoute } from "#/http/match-route.ts";
+import { createUsageRoutes } from "#/usage/usage-routes.ts";
+import { inMemoryUsageStore } from "#/usage/usage-store.ts";
 import { dataLocation, routes } from "./routes.ts";
-import { createUsageRoutes } from "./usage-routes.ts";
-import { inMemoryUsageStore } from "./usage-store.ts";
 
 export function createDevServer(table: Record<string, Handler>) {
   return createServer(async (req, res) => {

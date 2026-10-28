@@ -12,19 +12,19 @@ import {
   UsageSummary,
 } from "@app/shared";
 import { describe, expect, it, vi } from "vitest";
-import { aCastList, aCastMember } from "./cast.fixture.ts";
-import { inMemoryCastStore } from "./cast-store.ts";
-import type { Handler } from "./handler.ts";
-import { inMemoryItemNoteStore } from "./item-note-store.ts";
+import { inMemoryRoleStore } from "#/casting/roles/role-store.ts";
+import type { Handler } from "#/http/handler.ts";
+import { lambdaEntry } from "#/http/lambda-entry.ts";
+import { inMemoryItemNoteStore } from "#/item-notes/item-note-store.ts";
+import { inMemoryPropStore } from "#/production/props/prop-store.ts";
+import { aCastList, aCastMember } from "#/show/cast/cast.fixture.ts";
+import { inMemoryCastStore } from "#/show/cast/cast-store.ts";
+import { uncastThenRemove } from "#/show/cast/remove-cast-member.ts";
+import { aRunningOrder, itemId } from "#/show/running-order/running-order.fixture.ts";
+import { inMemoryRunningOrderStore } from "#/show/running-order/running-order-store.ts";
+import { inMemoryUsageStore } from "#/usage/usage-store.ts";
 import { handler } from "./lambda.ts";
-import { lambdaEntry } from "./lambda-entry.ts";
-import { inMemoryPropStore } from "./prop-store.ts";
-import { uncastThenRemove } from "./remove-cast-member.ts";
-import { inMemoryRoleStore } from "./role-store.ts";
 import { createRoutes } from "./routes.ts";
-import { aRunningOrder, itemId } from "./running-order.fixture.ts";
-import { inMemoryRunningOrderStore } from "./running-order-store.ts";
-import { inMemoryUsageStore } from "./usage-store.ts";
 
 // The parts of an API Gateway HTTP API (payload v2) event that the entry point reads, signed
 // in as a Casting Team Member unless a test says otherwise.

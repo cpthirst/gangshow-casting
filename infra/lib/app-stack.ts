@@ -75,7 +75,7 @@ export class AppStack extends Stack {
     super(scope, id, { ...props, env: { ...props.env, region: "eu-west-2" } });
 
     // All production data in one table, one item per entity (ADR 0015). The key names
-    // match apps/api/src/dynamo-table.ts. Don't rename "DataTable" or change the construct:
+    // match apps/api/src/storage/dynamo-table.ts. Don't rename "DataTable" or change the construct:
     // either replaces the table, orphaning the retained one with all the data.
     const table = new TableV2(this, "DataTable", {
       partitionKey: { name: "pk", type: AttributeType.STRING },
@@ -194,7 +194,7 @@ export class AppStack extends Stack {
         }),
       });
 
-    // The API keeps everything in the table (apps/api/src/data-stores.ts); the region
+    // The API keeps everything in the table (apps/api/src/storage/data-stores.ts); the region
     // defaults to London, where the table is.
     const dataFunction = nodeFunction("ApiFunction", "lambda.ts", {
       DATA_TABLE: table.tableName,

@@ -343,7 +343,7 @@ describe("AppStack", () => {
       const statements = policies.flatMap((p) => p.Properties.PolicyDocument.Statement);
       const dynamo = statements.filter((s) => JSON.stringify(s.Action).includes("dynamodb:"));
       const actions = dynamo.flatMap((s) => s.Action);
-      // What the stores send (apps/api/src/dynamo-*.ts); transactions need the condition check.
+      // What the stores send (the apps/api/src/**/dynamo-*.ts stores); transactions need the condition check.
       expect(actions).toEqual(
         expect.arrayContaining([
           "dynamodb:GetItem",

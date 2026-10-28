@@ -38,7 +38,7 @@ pnpm --filter <pkg> exec vitest run <file> -t "<name>"   # one test
 | Path | What | Notes |
 |---|---|---|
 | `apps/web` | Vue 3 + Vite SPA | `src/` by kind (ADR 0025): `pages/` (one per route), `components/{app,common,show,casting}`, `services/` (calls the API or browser), `utils/` (plain logic), `router/`, `assets/`, `composables/`, `directives/`. Vitest + `@vue/test-utils` + happy-dom; Playwright layout tests in `e2e/` |
-| `apps/api` | Lambda-shaped handlers, no framework | One handler per route, listed in `routes.ts`; `dev-server.ts` (node:http) runs them locally (ADR 0006) |
+| `apps/api` | Lambda-shaped handlers, no framework | One handler per route, listed in `routes.ts`; `dev-server.ts` (node:http) runs them locally (ADR 0006). `src/` by area (ADR 0028): `show/{cast,running-order}`, `casting/{roles,casting-grid}`, `production/props`, `item-notes`, `accounts`, `usage`, plus `http/`, `storage/` and `cli/` |
 | `packages/shared` | zod schemas + inferred types | The API contract. Imported from source, no build step |
 | `infra` | CDK v2 app, one `AppStack` | Run directly by Node (`cdk.json`); add resources as stories need them |
 | `tooling` | Repo scripts | `demo.ts` runs `pnpm demo`; `release.ts` runs `pnpm release`; harness tests |
@@ -105,6 +105,11 @@ Run after the gate is green, before a story is `done` or a PR is opened. **Skip 
   - Code that calls `fetch`, browser storage or a download goes in `services/`. Plain logic goes in `utils/`, which may import types from `services/` but never its code or `components/`.
   - `use…` functions go in `composables/`, and Vue directives in `directives/`.
   - A new top-level folder (`stores/`, `types/`, `layouts/`) needs an ADR.
+- In `apps/api`, import across `src/` folders with the `#/` alias (`#/http/json.ts`, from `package.json` `imports`), and within a folder relatively (`./cast-store.ts`).
+- In `apps/api/src`, put each new file in its area's folder (ADR 0028), keeping its name unique across the API, so searching by file name finds it:
+  - A route's handler, its store's contract, both stores (file and `dynamo-`) and their tests share one folder, under the web area that shows them: `show/`, `casting/` or `production/` (Props now; SFX and the Mic plot later).
+  - Something more than one area uses goes outside the areas: `item-notes/`, requests and responses in `http/`, store set-up and helpers in `storage/`.
+  - Entry points (`lambda.ts`, `accounts-lambda.ts`, `dev-server.ts`) and the route table stay at the top; the maintainer's commands go in `cli/`.
 - When a change adds or renames something the README describes (a command, page, package, folder, ADR, skill, reviewer, hook or workflow), update `README.md` in the same PR. `tooling/src/readme.test.ts` checks the names, and `code-reviewer` checks the rest.
 - Never Read a screenshot or other image in the main session. Each one costs 30–75k tokens, again on every later turn. Take it to a file and ask `screenshot-checker` what you need to know, in text.
 - Biome owns formatting and lint — don't hand-format, run `pnpm format`.
