@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.24.0](https://github.com/cpthirst/gangshow-casting/compare/v1.23.0...v1.24.0) (2026-10-28)
+
+
+### Features
+
+* **web:** carriers follow the casting (production-props.E6.S3) ([#127](https://github.com/cpthirst/gangshow-casting/issues/127)) ([98265fd](https://github.com/cpthirst/gangshow-casting/commit/98265fdcd12b0c987f90d2ff3bce4183ef458a4d))
+* **web:** quantities and carriers in the Word props list (production-props.E6.S4) ([#129](https://github.com/cpthirst/gangshow-casting/issues/129)) ([5ed641c](https://github.com/cpthirst/gangshow-casting/commit/5ed641c54a2850ba7dd8efe50fcacd21973772db))
+
 ## [1.23.0](https://github.com/cpthirst/gangshow-casting/compare/v1.22.0...v1.23.0) (2026-10-27)
 
 
