@@ -164,11 +164,13 @@ watch(
     <p class="item-position" data-test="position">{{ positionOf(place) }}</p>
     <!-- Those without Stage, Tech or Director see the files with nothing to change them. -->
     <ReadOnlyNotice about="scenery" />
+    <!-- A fresh instance per item, so a failed upload's Try again never reaches another. -->
     <SceneryUpload
       v-if="canChangeScenery"
+      :key="place.item.id"
       :item-id="place.item.id"
       :names="files.map((file) => file.name)"
-      @uploaded="load(place.item.id)"
+      @changed="load(place.item.id)"
       @problem="fileProblem = $event"
     />
     <!-- An explicit list role: Safari drops list semantics once bullets are styled away. -->

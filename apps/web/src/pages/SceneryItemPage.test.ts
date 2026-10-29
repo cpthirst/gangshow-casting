@@ -47,6 +47,47 @@ const json = (body: unknown) => new Response(JSON.stringify(body));
 /** Where the stand-in file storage takes uploads, apart from the API, as the bucket is. */
 const STORAGE = "https://files.example/";
 
+/** The browser's XMLHttpRequest, which uploads use for their progress. happy-dom's can't
+ *  reach the stand-in file storage, so this one hands each request to the stand-in fetch, and
+ *  a test can report how much of the latest one has gone. */
+class StandInXhr extends EventTarget {
+  static latest: StandInXhr | undefined;
+  readonly upload = new EventTarget();
+  status = 0;
+  private method = "";
+  private url = "";
+  private headers: Record<string, string> | undefined;
+
+  open(method: string, url: string) {
+    this.method = method;
+    this.url = url;
+  }
+
+  setRequestHeader(name: string, value: string) {
+    this.headers = { ...this.headers, [name]: value };
+  }
+
+  send(body: FormData) {
+    StandInXhr.latest = this;
+    const init = { method: this.method, body, ...(this.headers ? { headers: this.headers } : {}) };
+    fetch(this.url, init)
+      .then((res) => {
+        this.status = res.status;
+      })
+      .catch(() => {
+        this.status = 0;
+      })
+      .finally(() => this.dispatchEvent(new Event("loadend")));
+  }
+
+  /** As the browser reports how much of the request's body has gone. */
+  sent(loaded: number, total: number) {
+    this.upload.dispatchEvent(
+      new ProgressEvent("progress", { lengthComputable: true, loaded, total }),
+    );
+  }
+}
+
 /** A stand-in API holding one saved running order (none if undefined), each item's files
  *  as file storage holds them now, read on every request and changed by deletes, and any
  *  scenery notes. */
@@ -61,6 +102,7 @@ function apiHolds(
     files[itemId] = held;
     return held;
   };
+  vi.stubGlobal("XMLHttpRequest", StandInXhr);
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init?: RequestInit) => {
@@ -644,29 +686,63 @@ describe("Deleting a scenery file", () => {
   });
 });
 
+/** A made-up file, of the size given, as the browser's file picker hands it over. */
+function aFile(name: string, size = 1_000) {
+  const file = new File(["made-up"], name);
+  Object.defineProperty(file, "size", { value: size });
+  return file;
+}
+
+// As the file picker does once someone chooses a file.
+async function choose(wrapper: VueWrapper, file: File) {
+  const input = wrapper.get("main [data-test=upload-input]");
+  Object.defineProperty(input.element, "files", { value: [file], configurable: true });
+  await input.trigger("change");
+  await flushPromises();
+}
+
+const calls = (match: (url: string, init?: RequestInit) => boolean) =>
+  vi.mocked(fetch).mock.calls.filter(([url, init]) => match(String(url), init));
+const uploadRequests = () =>
+  calls((url, init) => init?.method === "POST" && url.endsWith("/scenery-uploads"));
+const storageRequests = () => calls((url) => url === STORAGE);
+const problem = (wrapper: VueWrapper) => wrapper.get("main [data-test=file-problem]").text();
+
+/** Holds file storage's answer to uploads until the test lets them go, as a big file takes a
+ *  while on a slow connection. */
+function holdStorage() {
+  const stand = vi.mocked(fetch).getMockImplementation();
+  const waiting: (() => void)[] = [];
+  vi.mocked(fetch).mockImplementation(async (url, init) => {
+    if (url === STORAGE) await new Promise<void>((resolve) => waiting.push(resolve));
+    return stand?.(url, init) ?? new Response(null, { status: 500 });
+  });
+  return () => {
+    for (const release of waiting) release();
+  };
+}
+
+/** Drops the connection to file storage for the next upload only. */
+function failStorageOnce() {
+  const stand = vi.mocked(fetch).getMockImplementation();
+  let dropped = false;
+  vi.mocked(fetch).mockImplementation(async (url, init) => {
+    if (url === STORAGE && !dropped) {
+      dropped = true;
+      throw new TypeError("Failed to fetch");
+    }
+    return stand?.(url, init) ?? new Response(null, { status: 500 });
+  });
+}
+
+/** Answers the replace confirm as pat would. */
+function answerReplace(confirmed: boolean) {
+  const confirm = vi.fn(() => confirmed);
+  vi.stubGlobal("confirm", confirm);
+  return confirm;
+}
+
 describe("Uploading a scenery file", () => {
-  /** A made-up file, of the size given, as the browser's file picker hands it over. */
-  function aFile(name: string, size = 1_000) {
-    const file = new File(["made-up"], name);
-    Object.defineProperty(file, "size", { value: size });
-    return file;
-  }
-
-  // As the file picker does once someone chooses a file.
-  async function choose(wrapper: VueWrapper, file: File) {
-    const input = wrapper.get("main [data-test=upload-input]");
-    Object.defineProperty(input.element, "files", { value: [file], configurable: true });
-    await input.trigger("change");
-    await flushPromises();
-  }
-
-  const calls = (match: (url: string, init?: RequestInit) => boolean) =>
-    vi.mocked(fetch).mock.calls.filter(([url, init]) => match(String(url), init));
-  const uploadRequests = () =>
-    calls((url, init) => init?.method === "POST" && url.endsWith("/scenery-uploads"));
-  const storageRequests = () => calls((url) => url === STORAGE);
-  const problem = (wrapper: VueWrapper) => wrapper.get("main [data-test=file-problem]").text();
-
   it.each([
     [["stage"], "pat"],
     [["tech"], "lee"],
@@ -831,30 +907,222 @@ describe("Uploading a scenery file", () => {
     expect(rows(wrapper)).toEqual([]);
   });
 
-  it("refuses a file with the name of one the item has, keeping the old one", async () => {
+  it("tries a failed upload again with the same file, without choosing it again", async () => {
+    await signInAs(["stage"], "pat");
+    apiHolds(show);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+    failStorageOnce();
+    const appended = vi.spyOn(FormData.prototype, "append");
+    const file = aFile("set-plan.pdf", 5_000);
+    await choose(wrapper, file);
+    const again = wrapper.get("main [data-test=try-again]");
+    expect(again.text()).toBe("Try again");
+    expect(again.attributes("type")).toBe("button");
+
+    await again.trigger("click");
+    await flushPromises();
+
+    expect(uploadRequests()).toHaveLength(2);
+    // The very file chosen the first time, not a copy: a real browser's form refuses anything
+    // else. happy-dom's form hands back copies, so look at what the page put in it.
+    const sentFiles = appended.mock.calls.filter(([field]) => field === "file");
+    expect(sentFiles).toHaveLength(2);
+    expect(sentFiles[1]?.[1]).toBe(file);
+    expect(rows(wrapper)).toEqual([{ name: "set-plan.pdf", size: "5 KB" }]);
+    expect(wrapper.find("main [data-test=file-problem]").exists()).toBe(false);
+    expect(wrapper.find("main [data-test=try-again]").exists()).toBe(false);
+  });
+
+  it("tries a failed replace again as a replace, without asking again", async () => {
     await signInAs(["stage"], "pat");
     const held = { "opening-number": [{ name: "set-plan.pdf", size: 2_400_000 }] };
     apiHolds(show, held);
     const { wrapper } = await openAppAt(OPENING_NUMBER);
+    const confirm = answerReplace(true);
+    failStorageOnce();
+    await choose(wrapper, aFile("set-plan.pdf", 5_000));
+
+    await wrapper.get("main [data-test=try-again]").trigger("click");
+    await flushPromises();
+
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(uploadRequests().map(([, init]) => JSON.parse(String(init?.body)))).toEqual([
+      { name: "set-plan.pdf", size: 5_000, replace: true },
+      { name: "set-plan.pdf", size: 5_000, replace: true },
+    ]);
+    expect(held["opening-number"]).toEqual([{ name: "set-plan.pdf", size: 5_000 }]);
+  });
+});
+
+describe("Upload progress", () => {
+  it("shows how much of a file has uploaded as it goes, then its row", async () => {
+    await signInAs(["stage"], "pat");
+    apiHolds(show);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+    const release = holdStorage();
+
+    await choose(wrapper, aFile("set-plan.pdf", 40_000_000));
+    StandInXhr.latest?.sent(12_000_000, 40_000_000);
+    await flushPromises();
+
+    const progress = wrapper.get("main [data-test=upload-progress]");
+    expect(progress.text()).toBe("Uploading set-plan.pdf: 12 MB of 40 MB");
+    const bar = progress.get("progress").element;
+    if (!(bar instanceof HTMLProgressElement)) throw new Error("expected a progress bar");
+    expect(bar.value / bar.max).toBe(0.3);
+
+    release();
+    await flushPromises();
+
+    expect(rows(wrapper)).toEqual([{ name: "set-plan.pdf", size: "40 MB" }]);
+    expect(wrapper.find("main [data-test=upload-progress]").exists()).toBe(false);
+  });
+
+  it("announces an upload's start and end, but not each step between", async () => {
+    await signInAs(["stage"], "pat");
+    apiHolds(show);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+    // There before anything is said in it, so screen readers hear what is.
+    const status = wrapper.get("main [data-test=upload-status]");
+    expect(status.attributes("role")).toBe("status");
+    expect(status.text()).toBe("");
+    const release = holdStorage();
+
+    await choose(wrapper, aFile("set-plan.pdf", 40_000_000));
+    expect(status.text()).toBe("Uploading set-plan.pdf");
+    StandInXhr.latest?.sent(12_000_000, 40_000_000);
+    await flushPromises();
+    expect(status.text()).toBe("Uploading set-plan.pdf");
+    // The changing amount is shown, but not in a live region.
+    expect(wrapper.find("main [data-test=upload-progress][role], main [aria-live]").exists()).toBe(
+      false,
+    );
+
+    release();
+    await flushPromises();
+    expect(status.text()).toBe("set-plan.pdf uploaded");
+  });
+
+  it("announces a failed upload as an alert, leaving nothing said as status", async () => {
+    await signInAs(["stage"], "pat");
+    apiHolds(show);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+    const stand = vi.mocked(fetch).getMockImplementation();
+    vi.mocked(fetch).mockImplementation(async (url, init) =>
+      url === STORAGE
+        ? new Response(null, { status: 400 })
+        : (stand?.(url, init) ?? new Response(null, { status: 500 })),
+    );
+
+    await choose(wrapper, aFile("set-plan.pdf"));
+
+    expect(wrapper.get("main [data-test=file-problem]").attributes("role")).toBe("alert");
+    expect(wrapper.get("main [data-test=upload-status]").text()).toBe("");
+  });
+
+  it("downloads another file while an upload carries on", async () => {
+    await signInAs(["stage"], "pat");
+    apiHolds(show, { "opening-number": [{ name: "build-list.xlsx", size: 40_000 }] });
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+    vi.mocked(downloadFrom).mockReset();
+    const release = holdStorage();
+    await choose(wrapper, aFile("set-plan.pdf", 40_000_000));
+
+    await wrapper.get("main [data-test=file] .file-open").trigger("click");
+    await flushPromises();
+
+    expect(downloadFrom).toHaveBeenCalledWith(linkTo("build-list.xlsx"));
+    expect(wrapper.find("main [data-test=upload-progress]").exists()).toBe(true);
+    release();
+    await flushPromises();
+    expect(rows(wrapper).map((row) => row.name)).toEqual(["build-list.xlsx", "set-plan.pdf"]);
+  });
+});
+
+describe("Replacing a scenery file", () => {
+  const REPLACE = "Replace set-plan.pdf? The old copy can't be brought back.";
+  const heldSetPlan = () => ({ "opening-number": [{ name: "set-plan.pdf", size: 2_400_000 }] });
+
+  it("asks to replace a file of the same name, then keeps the new one in its place", async () => {
+    await signInAs(["stage"], "pat");
+    const held = heldSetPlan();
+    apiHolds(show, held);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+    const confirm = answerReplace(true);
 
     await choose(wrapper, aFile("set-plan.pdf", 5_000));
 
-    expect(problem(wrapper)).toBe("There's already a file called set-plan.pdf.");
-    expect(uploadRequests()).toEqual([]);
-    expect(held["opening-number"]).toEqual([{ name: "set-plan.pdf", size: 2_400_000 }]);
+    expect(confirm).toHaveBeenCalledWith(REPLACE);
+    const [[, init] = []] = uploadRequests();
+    expect(JSON.parse(String(init?.body))).toEqual({
+      name: "set-plan.pdf",
+      size: 5_000,
+      replace: true,
+    });
+    expect(held["opening-number"]).toEqual([{ name: "set-plan.pdf", size: 5_000 }]);
+    expect(rows(wrapper)).toEqual([{ name: "set-plan.pdf", size: "5 KB" }]);
   });
 
-  it("refuses a name another browser uploaded since the page loaded, as the API does", async () => {
+  it("uploads nothing when pat cancels the replace, keeping the old file", async () => {
+    await signInAs(["stage"], "pat");
+    const held = heldSetPlan();
+    apiHolds(show, held);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+    const confirm = answerReplace(false);
+
+    await choose(wrapper, aFile("set-plan.pdf", 5_000));
+
+    expect(confirm).toHaveBeenCalledWith(REPLACE);
+    expect(uploadRequests()).toEqual([]);
+    expect(storageRequests()).toEqual([]);
+    expect(held["opening-number"]).toEqual([{ name: "set-plan.pdf", size: 2_400_000 }]);
+    expect(rows(wrapper)).toEqual([{ name: "set-plan.pdf", size: "2.4 MB" }]);
+  });
+
+  it("adds a name that differs only in case as a second file, without asking", async () => {
+    await signInAs(["stage"], "pat");
+    const held = heldSetPlan();
+    apiHolds(show, held);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+    const confirm = answerReplace(true);
+
+    await choose(wrapper, aFile("Set-Plan.pdf", 5_000));
+
+    expect(confirm).not.toHaveBeenCalled();
+    expect(held["opening-number"]).toEqual([
+      { name: "set-plan.pdf", size: 2_400_000 },
+      { name: "Set-Plan.pdf", size: 5_000 },
+    ]);
+    expect(rows(wrapper)).toHaveLength(2);
+  });
+
+  it("asks to replace a file another browser added since the page loaded", async () => {
     await signInAs(["stage"], "pat");
     const held: Record<string, SceneryFile[]> = { "opening-number": [] };
     apiHolds(show, held);
     const { wrapper } = await openAppAt(OPENING_NUMBER);
     held["opening-number"] = [{ name: "set-plan.pdf", size: 2_400_000 }];
+    const confirm = answerReplace(true);
 
     await choose(wrapper, aFile("set-plan.pdf", 5_000));
 
-    expect(problem(wrapper)).toBe("There's already a file called set-plan.pdf.");
+    expect(confirm).toHaveBeenCalledWith(REPLACE);
+    expect(held["opening-number"]).toEqual([{ name: "set-plan.pdf", size: 5_000 }]);
+    expect(rows(wrapper)).toEqual([{ name: "set-plan.pdf", size: "5 KB" }]);
+  });
+
+  it("lists another browser's file and keeps it when pat cancels the replace", async () => {
+    await signInAs(["stage"], "pat");
+    const held: Record<string, SceneryFile[]> = { "opening-number": [] };
+    apiHolds(show, held);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+    held["opening-number"] = [{ name: "set-plan.pdf", size: 2_400_000 }];
+    answerReplace(false);
+
+    await choose(wrapper, aFile("set-plan.pdf", 5_000));
+
     expect(storageRequests()).toEqual([]);
     expect(held["opening-number"]).toEqual([{ name: "set-plan.pdf", size: 2_400_000 }]);
+    expect(rows(wrapper)).toEqual([{ name: "set-plan.pdf", size: "2.4 MB" }]);
   });
 });
