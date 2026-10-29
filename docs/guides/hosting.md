@@ -143,7 +143,7 @@ People already using the app pick up the new pages the next time they load it. A
 
 ## 5. Go back to the previous version
 
-If a release goes wrong, deploy the previous one: `pnpm release <previous version>` (for example `pnpm release v0.8.0`) does the steps below and merges nothing. Going back changes only the pages and the API's code. The show's data and the team's accounts stay as they are: the stack keeps the table, the user pool and the files bucket, all kept if the stack is deleted, and a deploy doesn't change what's in them.
+If a release goes wrong, deploy the previous one: `pnpm release <previous version>` (for example `pnpm release v0.8.0`) does the steps below and merges nothing. Going back changes only the pages and the API's code. The show's data, the team's accounts and the scenery files stay as they are: the table, the user pool and the files bucket outlive even a deleted stack, and a deploy doesn't change what's in them.
 
 ```bash
 git fetch --tags

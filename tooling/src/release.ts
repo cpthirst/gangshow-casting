@@ -72,8 +72,9 @@ export const newestReleaseTag = (tags: string) => releaseTags(tags).at(-1);
 const plain = (text: string) => text.replace(/\x1b\[[0-9;]*m/g, "");
 
 const RESOURCE = /^\s*\[[-+~]\]\s+AWS::/;
-// The stack's TableV2 is a GlobalTable in CloudFormation. Only the files bucket is listed:
-// the pages' bucket holds nothing a deploy can't rebuild.
+// The stack's TableV2 is a GlobalTable in CloudFormation. Only the files bucket is listed, by
+// its construct path, which must change here if it does: the pages' bucket holds nothing a
+// deploy can't rebuild.
 const STATEFUL = /AWS::(DynamoDB::(Global)?Table|Cognito::UserPool|S3::Bucket FilesBucket)\s/;
 const REMOVED_OR_REPLACED = /\b(destroy|replace|orphan)\b|requires replacement/;
 
@@ -90,7 +91,8 @@ function removedOrReplaced(diff: string) {
 
 /** The table, user pool or files bucket lines of a `cdk diff` that would destroy, replace or
  *  orphan them: they hold the show, the accounts and the scenery files (hosting guide, section
- *  1; ADR 0030). A user pool's client or group is not the pool, nor a bucket's policy the bucket. Re-check this against real `cdk diff` output after a CDK upgrade. */
+ *  1; ADR 0030). A user pool's client or group is not the pool, nor a bucket's policy the
+ *  bucket. Re-check this against real `cdk diff` output after a CDK upgrade. */
 export const statefulResourceRisks = (diff: string) =>
   removedOrReplaced(diff)
     .filter((block) => STATEFUL.test(block[0] ?? ""))
