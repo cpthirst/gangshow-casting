@@ -9,12 +9,12 @@ const props = withDefaults(defineProps<{ about?: "casting" | "props" }>(), { abo
 const notices = {
   casting: {
     canChange: canChangeCasting,
-    viewOnly: "You can view the casting, but not change it.",
+    viewOnly: "You can view the casting, but not change it: only Casting and admins can.",
     refused: "You can view the casting but not change it, so this wasn't saved.",
   },
   props: {
     canChange: canChangeProps,
-    viewOnly: "You can view the props, but not change them.",
+    viewOnly: "You can view the props, but not change them: only Stage, Director and admins can.",
     refused: "You can view the props but not change them, so this wasn't saved.",
   },
 };

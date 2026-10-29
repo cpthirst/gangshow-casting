@@ -45,7 +45,7 @@ describe("Welcome page", () => {
     );
     expect(production).not.toContain("a page each");
     expect(production).toContain(
-      "Each department's permission (Stage, Tech or Wardrobe) is what lets someone change its pages",
+      "Stage, Tech or Wardrobe lets someone change that department's pages, and Director lets them change every department's",
     );
   });
 

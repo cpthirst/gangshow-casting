@@ -2192,7 +2192,7 @@ describe.each([
     const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
 
     expect(wrapper.get("[data-test=read-only]").text()).toBe(
-      "You can view the casting, but not change it.",
+      "You can view the casting, but not change it: only Casting and admins can.",
     );
   });
 });

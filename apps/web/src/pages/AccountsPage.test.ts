@@ -100,6 +100,20 @@ describe("Accounts page", () => {
     expect(wrapper.text()).not.toContain("Team Member");
   });
 
+  it("shows Director in each account's access, after the department permissions", async () => {
+    serve([
+      account("dee", { access: ["director"] }),
+      account("kim", { access: ["director", "stage"] }),
+    ]);
+
+    const wrapper = await openPage();
+
+    expect(rows(wrapper)).toEqual([
+      ["dee", "Director", "Enabled"],
+      ["kim", "Stage, Director", "Enabled"],
+    ]);
+  });
+
   it("marks admins and disabled accounts with a badge, so they stand out", async () => {
     serve([
       account("pat", { access: "admin" }),
@@ -221,6 +235,7 @@ describe("Accounts page", () => {
         ["Stage", false],
         ["Tech", false],
         ["Wardrobe", false],
+        ["Director", false],
       ]);
       expect(form.get("[data-test=read-only-hint]").text()).toBe(
         "With nothing ticked, the account will be read-only.",
@@ -230,7 +245,7 @@ describe("Accounts page", () => {
       expect(hintId).toBeTruthy();
       expect(
         form.findAll("fieldset input").map((input) => input.attributes("aria-describedby")),
-      ).toEqual(Array(5).fill(hintId));
+      ).toEqual(Array(6).fill(hintId));
     });
 
     it("stops saying it will be read-only once a permission is ticked", async () => {
@@ -293,6 +308,22 @@ describe("Accounts page", () => {
       expect(rows(wrapper)).toEqual([["chris", "Wardrobe", "Enabled"]]);
     });
 
+    it("creates an account with Director ticked, listing it with Director", async () => {
+      const deeCreated = {
+        account: account("dee", { access: ["director"] }),
+        temporaryPassword: "Made-up-temp-5",
+      };
+      const fetchMock = serve([], () => json(deeCreated, 201));
+      const wrapper = await openPage();
+
+      await create(wrapper, "dee", ["Director"]);
+
+      expect(posts(fetchMock).map(([, init]) => init?.body)).toEqual([
+        JSON.stringify({ username: "dee", access: ["director"] }),
+      ]);
+      expect(rows(wrapper)).toEqual([["dee", "Director", "Enabled"]]);
+    });
+
     it("creates an Admin when Admin is ticked, whatever was ticked before it", async () => {
       const chrisCreated = {
         account: account("chris", { access: "admin" }),
@@ -333,6 +364,7 @@ describe("Accounts page", () => {
         ["Stage", false],
         ["Tech", false],
         ["Wardrobe", false],
+        ["Director", false],
       ]);
     });
 
@@ -752,6 +784,7 @@ describe("Accounts page", () => {
           ["Stage", true],
           ["Tech", true],
           ["Wardrobe", false],
+          ["Director", false],
         ]);
         expect(document.activeElement).toBe(box(wrapper, "Admin")?.element);
         // Across the whole row, as the Add account form is, not squeezed into one cell.
@@ -832,6 +865,7 @@ describe("Accounts page", () => {
         await tick(wrapper, "Admin");
         // Admin is everything, so the permissions can't be ticked alongside it.
         expect(box(wrapper, "Stage")?.attributes("disabled")).toBeDefined();
+        expect(box(wrapper, "Director")?.attributes("disabled")).toBeDefined();
         await save(wrapper);
         expect(rows(wrapper)).toEqual([["sam", "Admin", "Enabled"]]);
 
@@ -856,21 +890,57 @@ describe("Accounts page", () => {
         expect(rows(wrapper)).toEqual([["sam", "Casting, Stage", "Enabled"]]);
       });
 
-      it("keeps an account's Director, which has no tick box yet, when its other access changes", async () => {
-        confirmWith(true);
-        const fetchMock = serveChanges([account("kim", { access: ["casting", "director"] })], {
-          "PUT /api/accounts/kim/access": () => json(null),
+      it("gives an account Director, confirming they'll change every production department's pages but not the casting or the show", async () => {
+        const confirm = confirmWith(true);
+        const fetchMock = serveChanges([account("pat", { access: ["stage"] })], {
+          "PUT /api/accounts/pat/access": () =>
+            json(account("pat", { access: ["stage", "director"] })),
         });
         const wrapper = await openPage();
 
-        await openEditor(wrapper, "kim");
-        expect(box(wrapper, "Director")).toBeUndefined();
-        await tick(wrapper, "Stage");
+        await openEditor(wrapper, "pat");
+        await tick(wrapper, "Director");
         await save(wrapper);
 
+        expect(confirm).toHaveBeenCalledWith(
+          "Change pat's access to Stage, Director? When they next sign in, they'll be able to change every production department's pages (Scenery, Props, SFX, Mic plot and Wardrobe), but not the casting or the show. pat will be signed out on every device.",
+        );
         expect(changes(fetchMock)).toEqual([
-          ["/api/accounts/kim/access", put(["casting", "stage", "director"])],
+          ["/api/accounts/pat/access", put(["stage", "director"])],
         ]);
+        expect(rows(wrapper)).toEqual([["pat", "Stage, Director", "Enabled"]]);
+      });
+
+      it("says Casting with Director can change casting and every production department's pages", async () => {
+        const confirm = confirmWith(false);
+        serveChanges([account("sam")], {});
+        const wrapper = await openPage();
+
+        await openEditor(wrapper, "sam");
+        await tick(wrapper, "Director");
+        await save(wrapper);
+
+        expect(confirm).toHaveBeenCalledWith(
+          "Change sam's access to Casting, Director? When they next sign in, they'll be able to change casting, and every production department's pages (Scenery, Props, SFX, Mic plot and Wardrobe). sam will be signed out on every device.",
+        );
+      });
+
+      it("makes a Director read-only when Director is unticked, saying they'll only view the show", async () => {
+        const confirm = confirmWith(true);
+        const fetchMock = serveChanges([account("dee", { access: ["director"] })], {
+          "PUT /api/accounts/dee/access": () => json(account("dee", { access: [] })),
+        });
+        const wrapper = await openPage();
+
+        await openEditor(wrapper, "dee");
+        await tick(wrapper, "Director", false);
+        await save(wrapper);
+
+        expect(confirm).toHaveBeenCalledWith(
+          "Make dee read-only? When they next sign in, they'll only be able to view the show. dee will be signed out on every device.",
+        );
+        expect(changes(fetchMock)).toEqual([["/api/accounts/dee/access", put([])]]);
+        expect(rows(wrapper)).toEqual([["dee", "Read-only", "Enabled"]]);
       });
 
       it("closes without asking or saving when the access is unchanged, so no one is signed out", async () => {

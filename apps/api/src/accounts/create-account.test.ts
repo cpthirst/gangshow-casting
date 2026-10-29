@@ -108,6 +108,7 @@ describe("create account handler", () => {
     ["no access", { username: "jo" }],
     ["a permission that doesn't exist", { username: "jo", access: ["stage", "props"] }],
     ["access that isn't Admin or a list", { username: "jo", access: "superadmin" }],
+    ["Admin with Director", { username: "jo", access: ["admin", "director"] }],
     ["a permission listed twice", { username: "jo", access: ["stage", "stage"] }],
     ["the old role", { username: "jo", role: "casting" }],
   ])("refuses %s with 400, creating nothing", async (_case, body) => {

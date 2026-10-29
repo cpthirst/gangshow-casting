@@ -1123,7 +1123,7 @@ describe("Cast page", () => {
 
       expect(wrapper.text()).toContain("No cast members yet.");
       expect(wrapper.get("[data-test=read-only]").text()).toBe(
-        "You can view the casting, but not change it.",
+        "You can view the casting, but not change it: only Casting and admins can.",
       );
       expect(wrapper.find("[data-test=add-member]").exists()).toBe(false);
     });
@@ -1134,7 +1134,7 @@ describe("Cast page", () => {
       const wrapper = await openPage();
 
       expect(wrapper.get("[data-test=read-only]").text()).toBe(
-        "You can view the casting, but not change it.",
+        "You can view the casting, but not change it: only Casting and admins can.",
       );
     });
   });

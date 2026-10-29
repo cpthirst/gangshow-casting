@@ -2,7 +2,7 @@
 id: production-scenery.E1.S2
 title: Choose Director on the Accounts page and the local switch
 epic: E1
-status: draft
+status: done
 ---
 
 ## Story
@@ -49,13 +49,13 @@ And the local API saves my props changes and refuses my casting changes
 ### AC7: The read-only lines name Director
 Given "jo" has no permissions
 When jo opens a props list
-Then the read-only line or its help says who can change the props: Stage, Directors and admins
+Then the read-only line or its help says who can change the props: "Accounts with Stage or Director, and admins"
 
 ## Notes
 
 - FRs: FR1, FR3
 - Depends on: production-scenery.E1.S1
 - The tick box sits with Casting, Stage, Tech and Wardrobe, in that order with Director last.
-- Check where the app names who can change what (the read-only lines, Help's permission list, the Accounts confirmations) and add Director wherever the other permissions are named. Help's fuller description of Director comes in E3.S1.
+- Check where the app names who can change what (the read-only lines, Help's permission list, the Accounts confirmations) and add Director wherever the other permissions are named. That includes Help's lines for each department page on the Production overview (Scenery, SFX, Mic plot and Wardrobe as well as Props) and Welcome's list of department permissions. Help's fuller description of Director comes in E3.S1.
 - Out of scope: scenery's own read-only line (E2.S1).
 - From E1.S1's UX review: until this story, `AccessChoice` hides Director, so an account (or local role) with only Director shows every box empty and no read-only line, though it isn't read-only. Showing the tick box fixes that. The access confirmation must name the pages Director changes ("the Scenery, Props, SFX, Mic plot and Wardrobe pages"), not "the Director page", which `whatTheyCanChange` in `apps/web/src/utils/accounts.ts` would say today.

@@ -555,7 +555,7 @@ describe.each([
     const wrapper = await openItemsPage();
 
     expect(wrapper.get("[data-test=read-only]").text()).toBe(
-      "You can view the casting, but not change it.",
+      "You can view the casting, but not change it: only Casting and admins can.",
     );
   });
 });
