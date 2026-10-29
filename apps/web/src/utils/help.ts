@@ -321,7 +321,7 @@ export const pageHelp: PageHelp[] = [
       },
       {
         name: "Add a file",
-        does: "Adds one file of up to 100 MB to the item, showing how much has uploaded. A file with the same name as one already there replaces it, once you confirm. Scenery and set images only: no photos of cast members.",
+        does: "Adds one file of up to 100 MB to the item, chosen with the button or dragged onto it, showing how much has uploaded. A file with the same name as one already there replaces it, once you confirm. Scenery and set images only: no photos of cast members.",
         access: "scenery",
       },
       {
