@@ -139,7 +139,7 @@ describe("AppStack", () => {
       );
     });
 
-    it("lets the API function only list it, and read and delete scenery files, and the accounts function not at all", () => {
+    it("lets the API function only list it, and read, upload and delete scenery files, and the accounts function not at all", () => {
       const { template } = synth();
       const [logicalId] = filesBucket(template) ?? [];
 
@@ -150,6 +150,7 @@ describe("AppStack", () => {
         JSON.stringify(statement).includes(`"${logicalId}"`),
       );
       expect(s3.map((grant) => grant.role)).toEqual([
+        expect.stringMatching(/ApiFunction/),
         expect.stringMatching(/ApiFunction/),
         expect.stringMatching(/ApiFunction/),
         expect.stringMatching(/ApiFunction/),
@@ -176,7 +177,25 @@ describe("AppStack", () => {
             "Fn::Join": ["", [{ "Fn::GetAtt": [logicalId, "Arn"] }, "/*/*/scenery/*"]],
           },
         }),
+        // Signed upload forms, too (production-scenery FR8): only into the scenery folders.
+        expect.objectContaining({
+          Effect: "Allow",
+          Action: "s3:PutObject",
+          Resource: {
+            "Fn::Join": ["", [{ "Fn::GetAtt": [logicalId, "Arn"] }, "/*/*/scenery/*"]],
+          },
+        }),
       ]);
+    });
+
+    it("lets a page send it an upload form and read the answer, and nothing more", () => {
+      const [, bucket] = filesBucket(synth().template) ?? [];
+
+      // The signed form is the only key: a plain HTML form from any site could send it anyway,
+      // so naming one origin would protect nothing (ADR 0030).
+      expect(bucket?.Properties.CorsConfiguration).toEqual({
+        CorsRules: [{ AllowedMethods: ["POST"], AllowedOrigins: ["*"], MaxAge: 3600 }],
+      });
     });
 
     it("names the bucket in the stack's outputs, for pnpm dev's FILES_BUCKET", () => {
@@ -697,11 +716,11 @@ describe("AppStack", () => {
       }
     });
 
-    it("lets the pages ask the team's login domain for sign-in tokens, and nowhere else", () => {
+    it("lets the pages ask the team's login domain for sign-in tokens, and send uploads to the files bucket, and nowhere else", () => {
       const security = responseHeadersFor(synth().template, undefined).SecurityHeadersConfig;
 
       expect(JSON.stringify(security.ContentSecurityPolicy.ContentSecurityPolicy)).toMatch(
-        /connect-src 'self' https:\/\/",\{"Ref":"UserPoolLoginDomain\w+"\},"\.auth\.eu-west-2\.amazoncognito\.com;/,
+        /connect-src 'self' https:\/\/",\{"Ref":"UserPoolLoginDomain\w+"\},"\.auth\.eu-west-2\.amazoncognito\.com https:\/\/",\{"Fn::GetAtt":\["FilesBucket\w+","RegionalDomainName"\]\},";/,
       );
     });
 

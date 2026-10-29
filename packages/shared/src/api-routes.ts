@@ -27,6 +27,7 @@ export const routeKeys = [
   "GET /api/productions/{productionId}/items/{itemId}/scenery-files",
   "GET /api/productions/{productionId}/items/{itemId}/scenery-file-link",
   "DELETE /api/productions/{productionId}/items/{itemId}/scenery-files",
+  "POST /api/productions/{productionId}/items/{itemId}/scenery-uploads",
   "GET /api/productions/{productionId}/scenery-file-counts",
   "GET /api/productions/{productionId}/scenery-notes",
   "PUT /api/productions/{productionId}/items/{itemId}/scenery-notes",
@@ -207,6 +208,7 @@ export const routeNeeds: RouteNeeds = {
   "DELETE /api/productions/{productionId}/props/{propId}": PROPS_PERMISSIONS,
   "PUT /api/productions/{productionId}/items/{itemId}/props-notes": PROPS_PERMISSIONS,
   "DELETE /api/productions/{productionId}/items/{itemId}/scenery-files": SCENERY_PERMISSIONS,
+  "POST /api/productions/{productionId}/items/{itemId}/scenery-uploads": SCENERY_PERMISSIONS,
   "PUT /api/productions/{productionId}/items/{itemId}/scenery-notes": SCENERY_PERMISSIONS,
   // Usage is about the team, so only admins read it (usage-tracking FR4).
   "GET /api/usage": "admin",

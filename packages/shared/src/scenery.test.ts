@@ -2,10 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   browserTypeOf,
   fileTypeOf,
+  MAX_SCENERY_FILE_BYTES,
   SceneryFileCounts,
   SceneryFileLink,
   SceneryFileList,
   SceneryFileName,
+  SceneryUpload,
+  SceneryUploadRequest,
 } from "./scenery.ts";
 
 describe("SceneryFileName", () => {
@@ -72,6 +75,56 @@ describe("SceneryFileLink", () => {
   ])("refuses %s, which isn't file storage", (url) => {
     expect(SceneryFileLink.safeParse({ url }).success).toBe(false);
   });
+});
+
+describe("SceneryUploadRequest", () => {
+  it("names the file and its size, and may ask to replace one of the same name", () => {
+    const request = { name: "set-plan.pdf", size: 2_400_000, replace: true };
+    expect(SceneryUploadRequest.parse(request)).toEqual(request);
+    expect(SceneryUploadRequest.parse({ name: "set-plan.pdf", size: 0 })).toEqual({
+      name: "set-plan.pdf",
+      size: 0,
+    });
+  });
+
+  it("accepts a file of exactly 100 MB, the most file storage keeps", () => {
+    expect(MAX_SCENERY_FILE_BYTES).toBe(100_000_000);
+    const request = { name: "rig.mov", size: MAX_SCENERY_FILE_BYTES };
+    expect(SceneryUploadRequest.safeParse(request).success).toBe(true);
+  });
+
+  it.each([
+    ["a name that reaches into another folder", { name: "../Finale/plan.pdf", size: 1 }],
+    ["a negative size", { name: "a.pdf", size: -1 }],
+    ["a size in part bytes", { name: "a.pdf", size: 1.5 }],
+    // S3 swaps "${filename}" in an upload form's key for the name the browser sends.
+    ["a name file storage would rewrite", { name: "${filename}", size: 1 }],
+    ["a name with file storage's rewrite inside it", { name: "plan-${filename}.pdf", size: 1 }],
+  ])("refuses %s", (_, request) => {
+    expect(SceneryUploadRequest.safeParse(request).success).toBe(false);
+  });
+});
+
+describe("SceneryUpload", () => {
+  it("is where to send the file, and the form fields to send with it", () => {
+    const upload = {
+      url: "https://files.example/",
+      fields: { key: "2027/opening-number/scenery/set-plan.pdf", Policy: "abc" },
+    };
+    expect(SceneryUpload.parse(upload)).toEqual(upload);
+  });
+
+  it("can be the app's own server, as pnpm demo's is", () => {
+    const upload = { url: "/api/local-files/2027/opening-number/scenery/set-plan.pdf", fields: {} };
+    expect(SceneryUpload.parse(upload)).toEqual(upload);
+  });
+
+  it.each(["javascript:alert(1)", "http://files.example/", "//files.example/"])(
+    "refuses %s, which isn't file storage",
+    (url) => {
+      expect(SceneryUpload.safeParse({ url, fields: {} }).success).toBe(false);
+    },
+  );
 });
 
 describe("browserTypeOf", () => {

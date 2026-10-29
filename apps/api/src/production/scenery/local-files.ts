@@ -21,11 +21,11 @@ const decoded = (part: string) => {
 };
 
 /**
- * The local scenery file a LOCAL_FILES_PATH path names, as the folder store laid it out, with
- * the headers to send it with; undefined unless it names one. Each part is checked as a key's
- * would be, so no path can reach outside an item's scenery folder (ADR 0030).
+ * Where in the folder a LOCAL_FILES_PATH path's scenery file is, as the folder store lays it
+ * out, and its name; undefined unless it names one. Each part is checked as a key's would be,
+ * so no path can reach outside an item's scenery folder (ADR 0030).
  */
-export async function localFileAt(folder: string, path: string) {
+export function localFilePlace(folder: string, path: string) {
   if (!path.startsWith(LOCAL_FILES_PATH)) return undefined;
   const [productionId, itemId, department, name, ...rest] = path
     .slice(LOCAL_FILES_PATH.length)
@@ -43,10 +43,21 @@ export async function localFileAt(folder: string, path: string) {
   ) {
     return undefined;
   }
-  const file = join(folder, production.data, item, department, fileName.data);
+  return {
+    file: join(folder, production.data, item, department, fileName.data),
+    name: fileName.data,
+  };
+}
+
+/** The local scenery file a LOCAL_FILES_PATH path names, with the headers to send it with;
+ *  undefined unless it names one that's there. */
+export async function localFileAt(folder: string, path: string) {
+  const place = localFilePlace(folder, path);
+  if (!place) return undefined;
+  const { file, name } = place;
   const found = await ifExists(() => stat(file));
   if (!found?.isFile()) return undefined;
-  const { contentType, contentDisposition } = fileHeadersOf(fileName.data);
+  const { contentType, contentDisposition } = fileHeadersOf(name);
   return {
     file,
     headers: {

@@ -320,6 +320,11 @@ export const pageHelp: PageHelp[] = [
         access: "everyone",
       },
       {
+        name: "Add a file",
+        does: "Adds one file of up to 100 MB to the item. Scenery and set images only: no photos of cast members.",
+        access: "scenery",
+      },
+      {
         name: "Scenery notes",
         does: "Anything the stage and tech teams need to know about the item's sets.",
         access: "everyone",

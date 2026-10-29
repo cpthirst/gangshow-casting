@@ -334,10 +334,14 @@ describe("Help page", () => {
         "All items",
         "Previous and Next",
         "Files",
+        "Add a file",
         "Scenery notes",
       ]);
       expect(accessOf(wrapper, "All items", "scenery-item")).toBe("Everyone");
       expect(accessOf(wrapper, "Files", "scenery-item")).toBe("Everyone");
+      expect(accessOf(wrapper, "Add a file", "scenery-item")).toBe(
+        "Accounts with Stage, Tech or Director, and admins",
+      );
       // The icons the files show, so the help matches what's on the page.
       expect(
         lineNamed(wrapper, "Files", "scenery-item")

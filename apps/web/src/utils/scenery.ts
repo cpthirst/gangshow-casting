@@ -1,4 +1,4 @@
-import { browserTypeOf, fileTypeOf, type SceneryFile } from "@app/shared";
+import { browserTypeOf, fileTypeOf, MAX_SCENERY_FILE_BYTES, type SceneryFile } from "@app/shared";
 import { countInWords } from "./departments.ts";
 import { icons } from "./icons.ts";
 
@@ -12,6 +12,21 @@ export const sceneryFilesPath = (itemId: string) =>
 /** One of the item's files, to delete it (FR11). */
 export const sceneryFilePath = (itemId: string, name: string) =>
   `${sceneryFilesPath(itemId)}?${new URLSearchParams({ name })}`;
+
+/** Where to ask for an upload of one of the item's files (FR8). */
+export const sceneryUploadsPath = (itemId: string) =>
+  `/api/productions/${PRODUCTION_ID}/items/${encodeURIComponent(itemId)}/scenery-uploads`;
+
+/** What the page says of an upload whose name the item already has (FR9). */
+export const nameTakenMessage = (name: string) => `There's already a file called ${name}.`;
+
+/** Why the page won't upload a file, before asking the API: too big, or a name the item
+ *  already has, compared exactly (FR8, FR9); undefined if it may. */
+export function uploadRefusal({ name, size }: { name: string; size: number }, names: string[]) {
+  if (size > MAX_SCENERY_FILE_BYTES) return `${name} is over 100 MB, so it wasn't uploaded.`;
+  if (names.includes(name)) return nameTakenMessage(name);
+  return undefined;
+}
 
 /** How many files each item has, for the Overview's Scenery column (production-overview FR14). */
 export const SCENERY_FILE_COUNTS_PATH = `/api/productions/${PRODUCTION_ID}/scenery-file-counts`;

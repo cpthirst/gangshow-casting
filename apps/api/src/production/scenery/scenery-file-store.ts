@@ -1,6 +1,6 @@
 import { readdir, rm, stat } from "node:fs/promises";
 import { join } from "node:path";
-import { type SceneryFile, SceneryFileName } from "@app/shared";
+import { type SceneryFile, SceneryFileName, type SceneryUpload } from "@app/shared";
 import { folderIdOf } from "#/http/params.ts";
 import { ifExists } from "#/storage/files.ts";
 import { localFileLink } from "./local-files.ts";
@@ -21,6 +21,15 @@ export interface SceneryFileStore {
   /** Deletes one of the item's files for good (FR11), or says it was already gone. The name is
    *  a valid SceneryFileName. */
   remove(productionId: string, itemId: string, name: string): Promise<"removed" | "gone">;
+  /** Where the browser may send one file of the item's, of up to 100 MB, for a few minutes
+   *  (FR8); "taken" if the item has a file of that name and it isn't to be replaced (FR9). The
+   *  name is a valid SceneryFileName. */
+  uploadTo(
+    productionId: string,
+    itemId: string,
+    name: string,
+    options: { replace: boolean },
+  ): Promise<SceneryUpload | "taken">;
 }
 
 /** The item's place in storage: `<production>/<item id>/scenery/` (ADR 0030). The ids are
@@ -89,6 +98,13 @@ export function folderSceneryFileStore(folder: string): SceneryFileStore {
       // Gone meanwhile, if deleted in another browser at the same moment: removed all the same.
       await rm(file, { force: true });
       return "removed";
+    },
+    async uploadTo(productionId, itemId, name, { replace }) {
+      // Exactly, as the bucket compares keys, though a Mac's or Windows' folder ignores case.
+      const taken = (await store.list(productionId, itemId)).some((file) => file.name === name);
+      if (taken && !replace) return "taken";
+      // The dev server takes the file here, as the bucket would (dev-server.ts).
+      return { url: localFileLink(sceneryFolderOf(productionId, itemId), name), fields: {} };
     },
   };
   return store;

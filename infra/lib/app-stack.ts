@@ -37,7 +37,7 @@ import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 import { Architecture, Runtime } from "aws-cdk-lib/aws-lambda";
 import { NodejsFunction, OutputFormat } from "aws-cdk-lib/aws-lambda-nodejs";
 import { LogGroup, RetentionDays } from "aws-cdk-lib/aws-logs";
-import { BlockPublicAccess, Bucket, BucketEncryption } from "aws-cdk-lib/aws-s3";
+import { BlockPublicAccess, Bucket, BucketEncryption, HttpMethods } from "aws-cdk-lib/aws-s3";
 import type { Construct } from "constructs";
 import { Pages } from "./pages.ts";
 
@@ -109,6 +109,11 @@ export class AppStack extends Stack {
       blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
       encryption: BucketEncryption.S3_MANAGED,
       enforceSSL: true,
+      // The pages send uploads here with the API's signed forms (production-scenery FR8). The
+      // signed form is the only key: a plain HTML form from any site could send it anyway, so
+      // naming the app's address would protect nothing, and would make the bucket and the
+      // pages, whose policy names the bucket, each need the other first.
+      cors: [{ allowedMethods: [HttpMethods.POST], allowedOrigins: ["*"], maxAge: 3600 }],
       // The only copy of the files: deleting it must be a separate, deliberate step.
       removalPolicy: RemovalPolicy.RETAIN,
     });
@@ -226,8 +231,8 @@ export class AppStack extends Stack {
     // Reads and writes the table's items, and nothing else in DynamoDB (hosting E2.S1).
     table.grantReadWriteData(dataFunction);
     // Lists the files, and reads only scenery files, to sign the short-lived links that open or
-    // download them (ADR 0030), and deletes them (production-scenery FR11). Uploads will add
-    // only what they need.
+    // download them (ADR 0030), deletes them (production-scenery FR11), and signs the forms
+    // that upload them (FR8).
     dataFunction.addToRolePolicy(
       new PolicyStatement({ actions: ["s3:ListBucket"], resources: [filesBucket.bucketArn] }),
     );
@@ -240,6 +245,12 @@ export class AppStack extends Stack {
     dataFunction.addToRolePolicy(
       new PolicyStatement({
         actions: ["s3:DeleteObject"],
+        resources: [filesBucket.arnForObjects("*/*/scenery/*")],
+      }),
+    );
+    dataFunction.addToRolePolicy(
+      new PolicyStatement({
+        actions: ["s3:PutObject"],
         resources: [filesBucket.arnForObjects("*/*/scenery/*")],
       }),
     );
@@ -324,6 +335,7 @@ export class AppStack extends Stack {
 
     const pages = new Pages(this, "Pages", {
       api,
+      filesUrl: `https://${filesBucket.bucketRegionalDomainName}`,
       signIn: {
         clientId: webClient.userPoolClientId,
         issuer: userPool.userPoolProviderUrl,

@@ -16,6 +16,7 @@ import { createDeleteSceneryFile } from "#/production/scenery/delete-scenery-fil
 import { createGetSceneryFileLink } from "#/production/scenery/get-scenery-file-link.ts";
 import { createListSceneryFiles } from "#/production/scenery/list-scenery-files.ts";
 import type { SceneryFileStore } from "#/production/scenery/scenery-file-store.ts";
+import { createUploadSceneryFile } from "#/production/scenery/upload-scenery-file.ts";
 import { createAddCastMember } from "#/show/cast/add-cast-member.ts";
 import { createDeleteCastMember } from "#/show/cast/delete-cast-member.ts";
 import { createGetCast } from "#/show/cast/get-cast.ts";
@@ -87,6 +88,10 @@ export function createRoutes(
       createCountSceneryFiles(sceneryFiles),
     "DELETE /api/productions/{productionId}/items/{itemId}/scenery-files":
       createDeleteSceneryFile(sceneryFiles),
+    "POST /api/productions/{productionId}/items/{itemId}/scenery-uploads": createUploadSceneryFile(
+      sceneryFiles,
+      runningOrders,
+    ),
     "GET /api/productions/{productionId}/scenery-notes": createGetItemNotes(sceneryNotes),
     "PUT /api/productions/{productionId}/items/{itemId}/scenery-notes": createSaveItemNote(
       sceneryNotes,
