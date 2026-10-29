@@ -3,6 +3,7 @@ import {
   accessFrom,
   accountRouteKeys,
   adminOnlyRouteKeys,
+  CASTING_PERMISSIONS,
   isAccountRoute,
   isReadRoute,
   isRefusalAsReadOnly,
@@ -10,6 +11,7 @@ import {
   localAccessHeader,
   mayChange,
   needOf,
+  PROPS_PERMISSIONS,
   permissions,
   type RouteNeeds,
   readOnlyMayUse,
@@ -78,6 +80,13 @@ describe("accessFrom", () => {
     // Costume became Wardrobe (production-overview FR1): the old group grants nothing.
     [["costume"], []],
     [["costume", "tech"], ["tech"]],
+    [["director"], ["director"]],
+    [
+      ["director", "casting"],
+      ["casting", "director"],
+    ],
+    // An Admin's extra Director group is ignored, as any other group is.
+    [["admin", "director"], "admin"],
     // While the retiring read-only group exists, it grants nothing and cancels the rest.
     [["read-only"], []],
     [["read-only", "casting", "stage"], []],
@@ -88,23 +97,31 @@ describe("accessFrom", () => {
 });
 
 describe("routeNeeds", () => {
-  it("names the permission, or admin, for every route that isn't open to everyone", () => {
+  it("names one or more permissions, any of which allows it, or admin, for every route that isn't open to everyone", () => {
     for (const key of routeKeys.filter((key) => !readOnlyMayUse(key))) {
-      expect(["admin", "casting", "stage", "tech", "wardrobe"], key).toContain(routeNeeds[key]);
+      const need = routeNeeds[key];
+      if (need === "admin") continue;
+      expect(need, key).not.toHaveLength(0);
+      for (const permission of need ?? []) expect(permissions, key).toContain(permission);
     }
   });
 
-  it("has adding a prop need Stage", () => {
-    expect(needOf("POST /api/productions/{productionId}/items/{itemId}/props")).toBe("stage");
+  it("lets a Director use every department's change route, but none of Casting's (production-scenery FR2)", () => {
+    for (const key of routeKeys) {
+      const need = needOf(key);
+      if (need === undefined || need === "admin" || need === CASTING_PERMISSIONS) continue;
+      expect(need, key).toContain("director");
+    }
+    expect(CASTING_PERMISSIONS).not.toContain("director");
   });
 
-  it("has editing and removing a prop need Stage", () => {
-    expect(needOf("PUT /api/productions/{productionId}/props/{propId}")).toBe("stage");
-    expect(needOf("DELETE /api/productions/{productionId}/props/{propId}")).toBe("stage");
-  });
-
-  it("has saving props notes need Stage", () => {
-    expect(needOf("PUT /api/productions/{productionId}/items/{itemId}/props-notes")).toBe("stage");
+  it.each([
+    "POST /api/productions/{productionId}/items/{itemId}/props",
+    "PUT /api/productions/{productionId}/props/{propId}",
+    "DELETE /api/productions/{productionId}/props/{propId}",
+    "PUT /api/productions/{productionId}/items/{itemId}/props-notes",
+  ])("has %s need Stage or Director", (key) => {
+    expect(needOf(key)).toEqual(["stage", "director"]);
   });
 
   it("leaves reading props notes open to everyone", () => {
@@ -113,8 +130,11 @@ describe("routeNeeds", () => {
   });
 
   it("has every other change route today need Casting, or stay admin-only", () => {
-    const changes = routeKeys.filter((key) => !readOnlyMayUse(key) && needOf(key) !== "stage");
-    expect(changes.filter((key) => needOf(key) === "casting").sort()).toEqual([
+    const changes = routeKeys.filter(
+      (key) => !readOnlyMayUse(key) && needOf(key) !== PROPS_PERMISSIONS,
+    );
+    const needsCasting = (key: string) => needOf(key) === CASTING_PERMISSIONS;
+    expect(changes.filter(needsCasting).sort()).toEqual([
       "DELETE /api/productions/{productionId}/roles/{roleId}",
       "POST /api/productions/{productionId}/cast",
       "POST /api/productions/{productionId}/items/{itemId}/roles",
@@ -123,7 +143,7 @@ describe("routeNeeds", () => {
       "PUT /api/productions/{productionId}/roles/{roleId}",
     ]);
     expect(
-      changes.filter((key) => needOf(key) !== "casting").every((key) => needOf(key) === "admin"),
+      changes.filter((key) => !needsCasting(key)).every((key) => needOf(key) === "admin"),
     ).toBe(true);
   });
 
@@ -179,6 +199,14 @@ describe("mayChange", () => {
   ] as const)("lets %j change %s: %s", (access, permission, allowed) => {
     expect(mayChange(access === "admin" ? access : [...access], permission)).toBe(allowed);
   });
+
+  it.each([
+    [["director"], true],
+    [["stage"], true],
+    [["casting", "tech", "wardrobe"], false],
+  ] as const)("lets %j change what Stage or Director may: %s", (access, allowed) => {
+    expect(mayChange([...access], ["stage", "director"])).toBe(allowed);
+  });
 });
 
 describe("the local access header", () => {
@@ -218,6 +246,11 @@ describe("refusalFor", () => {
 
   it("falls back to a general line for a department without its own", () => {
     expect(refusalFor("tech")).toBe("You can view this, but not change it.");
+    expect(refusalFor("director")).toBe("You can view this, but not change it.");
+  });
+
+  it("names the first permission a route lists, so props say the props are view-only", () => {
+    expect(refusalFor(["stage", "director"])).toBe("You can view the props, but not change them.");
   });
 });
 

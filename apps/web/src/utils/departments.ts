@@ -1,4 +1,4 @@
-import type { Permission } from "@app/shared";
+import { type AnyOf, PROPS_PERMISSIONS } from "@app/shared";
 import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import { icons } from "./icons.ts";
 
@@ -12,8 +12,11 @@ export interface DepartmentPage {
   route: string;
   /** The last part of the item page's address, after /production/items/<item id>/. */
   path: string;
-  /** Who may change it: Scenery and Props are Stage's, SFX and Mic plot Tech's. */
-  permission: Permission;
+  /**
+   * Who may change it, any one of these: Scenery and Props are Stage's, SFX and Mic plot
+   * Tech's, and Wardrobe Wardrobe's, and a Director may change them all (ADR 0029).
+   */
+  permissions: AnyOf;
   icon: IconDefinition;
 }
 
@@ -24,7 +27,8 @@ export const departmentPages: DepartmentPage[] = [
     noun: "scenery",
     route: "scenery-item",
     path: "scenery",
-    permission: "stage",
+    // Tech joins with Scenery's own page (production-scenery E2.S1).
+    permissions: ["stage", "director"],
     icon: icons.scenery,
   },
   {
@@ -32,16 +36,23 @@ export const departmentPages: DepartmentPage[] = [
     noun: "props",
     route: "props-item",
     path: "props",
-    permission: "stage",
+    permissions: PROPS_PERMISSIONS,
     icon: icons.props,
   },
-  { name: "SFX", noun: "SFX", route: "sfx-item", path: "sfx", permission: "tech", icon: icons.sfx },
+  {
+    name: "SFX",
+    noun: "SFX",
+    route: "sfx-item",
+    path: "sfx",
+    permissions: ["tech", "director"],
+    icon: icons.sfx,
+  },
   {
     name: "Mic plot",
     noun: "mic plot",
     route: "mic-plot-item",
     path: "mic-plot",
-    permission: "tech",
+    permissions: ["tech", "director"],
     icon: icons.micPlot,
   },
   {
@@ -49,7 +60,7 @@ export const departmentPages: DepartmentPage[] = [
     noun: "wardrobe",
     route: "wardrobe-item",
     path: "wardrobe",
-    permission: "wardrobe",
+    permissions: ["wardrobe", "director"],
     icon: icons.wardrobe,
   },
 ];

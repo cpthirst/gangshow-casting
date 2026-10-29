@@ -856,6 +856,23 @@ describe("Accounts page", () => {
         expect(rows(wrapper)).toEqual([["sam", "Casting, Stage", "Enabled"]]);
       });
 
+      it("keeps an account's Director, which has no tick box yet, when its other access changes", async () => {
+        confirmWith(true);
+        const fetchMock = serveChanges([account("kim", { access: ["casting", "director"] })], {
+          "PUT /api/accounts/kim/access": () => json(null),
+        });
+        const wrapper = await openPage();
+
+        await openEditor(wrapper, "kim");
+        expect(box(wrapper, "Director")).toBeUndefined();
+        await tick(wrapper, "Stage");
+        await save(wrapper);
+
+        expect(changes(fetchMock)).toEqual([
+          ["/api/accounts/kim/access", put(["casting", "stage", "director"])],
+        ]);
+      });
+
       it("closes without asking or saving when the access is unchanged, so no one is signed out", async () => {
         const confirm = confirmWith(true);
         const fetchMock = serveChanges([account("kim", { access: ["stage", "tech"] })], {});

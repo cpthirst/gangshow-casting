@@ -9,6 +9,7 @@ export const anAccount = (
     stage?: boolean;
     tech?: boolean;
     wardrobe?: boolean;
+    director?: boolean;
     readOnly?: boolean;
     enabled?: boolean;
     password?: string;
@@ -21,6 +22,7 @@ export const anAccount = (
   stage: flags.stage ?? false,
   tech: flags.tech ?? false,
   wardrobe: flags.wardrobe ?? false,
+  director: flags.director ?? false,
   readOnly: flags.readOnly ?? false,
   enabled: flags.enabled ?? true,
   password: flags.password ?? "Made-up-own-1",

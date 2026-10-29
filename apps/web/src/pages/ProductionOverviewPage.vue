@@ -185,7 +185,7 @@ async function loadRunningOrder() {
                     class="icon-button"
                     :data-test="`open-${department.path}`"
                     :to="{ name: department.route, params: { itemId: item.id } }"
-                    :aria-label="`${canChange(department.permission) ? 'Edit' : 'View'} ${department.noun} for ${item.title}`"
+                    :aria-label="`${canChange(department.permissions) ? 'Edit' : 'View'} ${department.noun} for ${item.title}`"
                     :data-tooltip="department.name"
                   >
                     <FontAwesomeIcon :icon="department.icon" />

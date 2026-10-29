@@ -42,6 +42,8 @@ export const CASTING_GROUP = "casting";
 export const STAGE_GROUP = "stage";
 export const TECH_GROUP = "tech";
 export const WARDROBE_GROUP = "wardrobe";
+/** Changes every Production department, but not casting or the show (ADR 0029). */
+export const DIRECTOR_GROUP = "director";
 /**
  * The retiring group for read-only accounts (ADR 0020). Until a later release deletes it,
  * being in it grants nothing and cancels every other group, so no account is widened before
@@ -50,7 +52,13 @@ export const WARDROBE_GROUP = "wardrobe";
 export const READ_ONLY_GROUP = "read-only";
 
 /** A department's permission, held as the user pool group of the same name (ADR 0026). */
-export const permissions = [CASTING_GROUP, STAGE_GROUP, TECH_GROUP, WARDROBE_GROUP] as const;
+export const permissions = [
+  CASTING_GROUP,
+  STAGE_GROUP,
+  TECH_GROUP,
+  WARDROBE_GROUP,
+  DIRECTOR_GROUP,
+] as const;
 
 export type Permission = (typeof permissions)[number];
 
@@ -76,9 +84,14 @@ const departmentRefusals: Partial<Record<Permission, string>> = {
   stage: "You can view the props, but not change them.",
 };
 
-/** The API's answer to a change that needs a permission the caller hasn't got. */
-export const refusalFor = (permission: Permission) =>
-  departmentRefusals[permission] ?? GENERAL_REFUSAL;
+/** Permissions any one of which allows a change, the first saying what a refusal names. */
+export type AnyOf = readonly [Permission, ...Permission[]];
+
+/** The API's answer to a change that needs a permission the caller hasn't got (ADR 0029). */
+export const refusalFor = (needed: Permission | AnyOf) => {
+  const [named] = typeof needed === "string" ? [needed] : needed;
+  return departmentRefusals[named] ?? GENERAL_REFUSAL;
+};
 
 const readOnlyRefusals = new Set<unknown>(permissions.map(refusalFor));
 
@@ -109,9 +122,12 @@ export function localAccessFrom(sent: string | string[] | undefined): Access {
   return known.length === asked.length ? known : [];
 }
 
-/** Whether access allows changing a department's data: an admin may change everything. */
-export const mayChange = (access: Access, permission: Permission) =>
-  access === "admin" || access.includes(permission);
+/** Whether access allows a change needing any of the permissions: an admin may change everything. */
+export const mayChange = (access: Access, needed: Permission | AnyOf) =>
+  access === "admin" ||
+  (typeof needed === "string" ? [needed] : needed).some((permission) =>
+    access.includes(permission),
+  );
 
 /**
  * Routes that aren't a GET but change nothing stored. The export only turns the grid the page
@@ -138,8 +154,8 @@ type OpenRouteKey =
   | (typeof readsSentAsPost)[number]
   | (typeof recordsAboutTheCaller)[number];
 
-/** What a route needs: a department's permission, or an admin. */
-export type Need = Permission | "admin";
+/** What a route needs: any one of some permissions, or an admin (ADR 0029). */
+export type Need = AnyOf | "admin";
 
 /**
  * Every route that isn't open to everyone names what it needs, so a new change route missing
@@ -149,8 +165,13 @@ export type RouteNeeds = Readonly<
   Record<Exclude<RouteKey, OpenRouteKey>, Need> & Partial<Record<OpenRouteKey, "admin">>
 >;
 
+/** Who may change the props and props notes: Stage, or a Director (production-scenery FR2). */
+export const PROPS_PERMISSIONS: AnyOf = [STAGE_GROUP, DIRECTOR_GROUP];
+/** Who may change the cast, roles, casting and casting notes: Casting alone, never a Director. */
+export const CASTING_PERMISSIONS: AnyOf = [CASTING_GROUP];
+
 /**
- * What each route needs (ADR 0026). Admin-only routes are permanent or show-wide changes
+ * What each route needs (ADR 0026, ADR 0029). Admin-only routes are permanent or show-wide changes
  * (hosting FR9), and managing the team. The API refuses a route its caller's access doesn't
  * allow before the handler runs, so a new one can't forget it.
  */
@@ -161,17 +182,17 @@ export const routeNeeds: RouteNeeds = {
   "PUT /api/accounts/{username}/enabled": "admin",
   "PUT /api/accounts/{username}/access": "admin",
   "POST /api/productions/{productionId}/running-order/versions": "admin",
-  "POST /api/productions/{productionId}/cast": "casting",
-  "PUT /api/productions/{productionId}/cast/{castId}": "casting",
+  "POST /api/productions/{productionId}/cast": CASTING_PERMISSIONS,
+  "PUT /api/productions/{productionId}/cast/{castId}": CASTING_PERMISSIONS,
   "DELETE /api/productions/{productionId}/cast/{castId}": "admin",
-  "PUT /api/productions/{productionId}/items/{itemId}/notes": "casting",
-  "POST /api/productions/{productionId}/items/{itemId}/roles": "casting",
-  "PUT /api/productions/{productionId}/roles/{roleId}": "casting",
-  "DELETE /api/productions/{productionId}/roles/{roleId}": "casting",
-  "POST /api/productions/{productionId}/items/{itemId}/props": "stage",
-  "PUT /api/productions/{productionId}/props/{propId}": "stage",
-  "DELETE /api/productions/{productionId}/props/{propId}": "stage",
-  "PUT /api/productions/{productionId}/items/{itemId}/props-notes": "stage",
+  "PUT /api/productions/{productionId}/items/{itemId}/notes": CASTING_PERMISSIONS,
+  "POST /api/productions/{productionId}/items/{itemId}/roles": CASTING_PERMISSIONS,
+  "PUT /api/productions/{productionId}/roles/{roleId}": CASTING_PERMISSIONS,
+  "DELETE /api/productions/{productionId}/roles/{roleId}": CASTING_PERMISSIONS,
+  "POST /api/productions/{productionId}/items/{itemId}/props": PROPS_PERMISSIONS,
+  "PUT /api/productions/{productionId}/props/{propId}": PROPS_PERMISSIONS,
+  "DELETE /api/productions/{productionId}/props/{propId}": PROPS_PERMISSIONS,
+  "PUT /api/productions/{productionId}/items/{itemId}/props-notes": PROPS_PERMISSIONS,
   // Usage is about the team, so only admins read it (usage-tracking FR4).
   "GET /api/usage": "admin",
 };

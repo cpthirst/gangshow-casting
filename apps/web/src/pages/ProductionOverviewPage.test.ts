@@ -347,6 +347,20 @@ describe("Department buttons on the Production overview", () => {
     ]);
   });
 
+  it("names every department's button Edit for a Director", async () => {
+    await signInAs(["director"], "dee");
+    savedShowIs(show());
+    const { wrapper } = await openOverview();
+
+    expect(namesIn(wrapper, "Opening Number")).toEqual([
+      "Edit scenery for Opening Number",
+      "Edit props for Opening Number",
+      "Edit SFX for Opening Number",
+      "Edit mic plot for Opening Number",
+      "Edit wardrobe for Opening Number",
+    ]);
+  });
+
   it("names every button Edit for an admin", async () => {
     await signInAs(["admin"], "alex");
     savedShowIs(show());

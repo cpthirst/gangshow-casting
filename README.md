@@ -46,6 +46,7 @@ iCUE is hosted on AWS and is open only to the production team. Everyone signs in
 - **Admin:** everything, plus Accounts and Usage.
 - **Casting:** changes the running order drafts, cast and casting.
 - **Stage, Tech, Wardrobe:** change their own department's pages, as those arrive.
+- **Director:** changes every Production department's pages (Props today), but not casting or the show. Until the Accounts page offers it, it's given in the AWS console ([production-scenery](docs/product/production/scenery)).
 - **Read-only** (no permissions): sees every page but changes nothing, which suits reviewers such as the director.
 
 Each change route names the permission it needs ([ADR 0026](docs/adr/0026-department-permissions-as-user-pool-groups.md)). The API checks them on every request, not just the menu.
@@ -348,6 +349,7 @@ These cover humans and agents alike, and `pnpm install` installs them.
 | [0026](docs/adr/0026-department-permissions-as-user-pool-groups.md) | Department permissions (Casting, Stage, Tech, Wardrobe) as user pool groups, each change route naming its permission |
 | [0027](docs/adr/0027-costume-group-renamed-wardrobe.md) | The `costume` group renamed `wardrobe` in one release, with no move |
 | [0028](docs/adr/0028-api-source-folders.md) | The API's source grouped by area, nested like the web's, with a `#/` import alias |
+| [0029](docs/adr/0029-director-permission-and-routes-naming-any-of-several.md) | A Director permission as a user pool group, and change routes that name any of several permissions |
 
 ---
 

@@ -58,3 +58,4 @@ Then the read-only line or its help says who can change the props: Stage, Direct
 - The tick box sits with Casting, Stage, Tech and Wardrobe, in that order with Director last.
 - Check where the app names who can change what (the read-only lines, Help's permission list, the Accounts confirmations) and add Director wherever the other permissions are named. Help's fuller description of Director comes in E3.S1.
 - Out of scope: scenery's own read-only line (E2.S1).
+- From E1.S1's UX review: until this story, `AccessChoice` hides Director, so an account (or local role) with only Director shows every box empty and no read-only line, though it isn't read-only. Showing the tick box fixes that. The access confirmation must name the pages Director changes ("the Scenery, Props, SFX, Mic plot and Wardrobe pages"), not "the Director page", which `whatTheyCanChange` in `apps/web/src/utils/accounts.ts` would say today.

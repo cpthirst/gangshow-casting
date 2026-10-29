@@ -1545,6 +1545,7 @@ describe("Excel export from the grid", () => {
 
 describe.each([
   ["with Stage only", ["stage"]],
+  ["with Director only", ["director"]],
   ["with no permissions", []],
 ])("The Overview for an account %s, which can't change Casting", (_who, groups) => {
   beforeEach(async () => {

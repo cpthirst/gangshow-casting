@@ -2131,6 +2131,7 @@ describe("Item notes", () => {
 
 describe.each([
   ["with Stage only", ["stage"]],
+  ["with Director only", ["director"]],
   ["with no permissions", []],
 ])("An item's page for an account %s, which can't change Casting", (_who, groups) => {
   beforeEach(async () => {

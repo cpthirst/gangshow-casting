@@ -2,7 +2,7 @@
 id: production-scenery.E1.S1
 title: Add the Director permission to the API
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story
@@ -79,3 +79,4 @@ And none of them has the Director permission
 - SFX, Mic plot and Wardrobe have no change routes yet. When each is built, its routes name its department and Director (FR2).
 - Until E1.S2 an account with Director can only be made from the repository or the AWS console, for testing.
 - Out of scope: the Accounts page tick box and the local switch (E1.S2), and scenery routes (E2.S1, E2.S7).
+- **Built as**: [ADR 0029](../../../../adr/0029-director-permission-and-routes-naming-any-of-several.md). Saving the running order (AC3) is admin-only, so it refuses a Director with "Only admins can do this." (AC4), as it does Stage and Casting; the casting line is for the Casting routes. Director has no tick box until E1.S2, and an account that has it keeps it when its other access changes on the Accounts page.

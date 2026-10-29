@@ -18,7 +18,7 @@ import ReadOnlyNotice from "@/components/common/ReadOnlyNotice.vue";
 import PropCard from "@/components/production/PropCard.vue";
 import PropForm from "@/components/production/PropForm.vue";
 import { showPageTitle } from "@/router/index.ts";
-import { apiFetch, canChangeStage } from "@/services/sign-in.ts";
+import { apiFetch, canChangeProps } from "@/services/sign-in.ts";
 import { CAST_PATH } from "@/utils/cast.ts";
 import { addPropPath, PROPS_PATH, propPath, sortProps } from "@/utils/props.ts";
 import { PROPS_NOTES_PATH, savePropsNotesPath } from "@/utils/props-notes.ts";
@@ -268,9 +268,9 @@ async function postProp(itemId: string, details: AddPropRequest) {
       <HelpButton page="props-item" label="Help for this item" title="Item help" />
     </div>
     <p class="item-position" data-test="position">{{ position }}</p>
-    <!-- Those without Stage see the props with nothing to change them. -->
+    <!-- Those without Stage or Director see the props with nothing to change them. -->
     <ReadOnlyNotice about="props" />
-    <div v-if="canChangeStage" class="cast-actions">
+    <div v-if="canChangeProps" class="cast-actions">
       <button
         ref="addButton"
         type="button"
@@ -312,7 +312,7 @@ async function postProp(itemId: string, details: AddPropRequest) {
           :prop="prop"
           :roles="itemRoles"
           :cast="cast"
-          :can-change="canChangeStage"
+          :can-change="canChangeProps"
           :busy="busy"
           @edit="startEditing(prop)"
           @remove="removeProp(prop)"
@@ -328,7 +328,7 @@ async function postProp(itemId: string, details: AddPropRequest) {
       heading="Props notes"
       :list-path="PROPS_NOTES_PATH"
       :save-path="savePropsNotesPath(place.item.id)"
-      :can-change="canChangeStage"
+      :can-change="canChangeProps"
     />
   </template>
   <template v-else-if="notFound">
