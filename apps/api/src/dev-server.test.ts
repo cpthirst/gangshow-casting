@@ -1,6 +1,6 @@
 import { once } from "node:events";
 import { readFileSync } from "node:fs";
-import { chmod, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { request, type Server } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -9,6 +9,7 @@ import {
   adminOnlyRouteKeys,
   HealthResponse,
   LOCAL_ACCESS_HEADER,
+  MAX_SCENERY_FILE_BYTES,
   UsageSummary,
 } from "@app/shared";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
@@ -347,6 +348,99 @@ describe("dev server local scenery files (production-scenery FR10)", () => {
     } finally {
       await new Promise<void>((resolve) => bucketServer.close(() => resolve()));
     }
+  });
+});
+
+describe("dev server local scenery uploads (production-scenery FR8)", () => {
+  let folder: string;
+  let server: Server;
+  let baseUrl: string;
+  const place = (item = "opening-number") => join(folder, "2027", item, "scenery");
+  const LOCAL_APP = "http://localhost:5173";
+
+  beforeAll(async () => {
+    folder = await mkdtemp(join(tmpdir(), "local-uploads-"));
+    server = createDevServer({}, folder);
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const address = server.address();
+    if (typeof address !== "object" || address === null) throw new Error("server not listening");
+    baseUrl = `http://127.0.0.1:${address.port}`;
+  });
+  afterAll(async () => {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+    await rm(folder, { recursive: true, force: true });
+  });
+
+  // As the page sends it to the bucket: the upload's fields, then the file.
+  const form = (bytes: Uint8Array<ArrayBuffer> | string) => {
+    const body = new FormData();
+    body.append("file", new Blob([bytes]));
+    return body;
+  };
+  // null sends no Origin, as no browser's page would.
+  const upload = (path: string, body: FormData, origin: string | null = LOCAL_APP) =>
+    fetch(`${baseUrl}${path}`, {
+      method: "POST",
+      body,
+      ...(origin === null ? {} : { headers: { origin } }),
+    });
+
+  it("keeps a file sent to its local upload address, under its own name", async () => {
+    const res = await upload(
+      "/api/local-files/2027/opening-number/scenery/Set%20Plan%20(Act%201).pdf",
+      form("%PDF-1.7 made-up"),
+    );
+
+    expect(res.status).toBe(204);
+    expect(await readFile(join(place(), "Set Plan (Act 1).pdf"), "utf8")).toBe("%PDF-1.7 made-up");
+  });
+
+  it("keeps a file of exactly 100 MB, and refuses one over it, keeping nothing", async () => {
+    const path = (name: string) => `/api/local-files/2027/finale/scenery/${name}`;
+
+    const exactly = await upload(path("rig.mov"), form(new Uint8Array(MAX_SCENERY_FILE_BYTES)));
+    const over = await upload(path("big.mov"), form(new Uint8Array(MAX_SCENERY_FILE_BYTES + 1)));
+
+    expect(exactly.status).toBe(204);
+    expect(over.status).toBe(413);
+    expect(await readdir(place("finale"))).toEqual(["rig.mov"]);
+  });
+
+  it("refuses a body far over 100 MB before reading it", async () => {
+    const res = await new Promise<number | undefined>((resolve, reject) => {
+      const req = request(
+        `${baseUrl}/api/local-files/2027/opening-number/scenery/huge.mov`,
+        {
+          method: "POST",
+          headers: {
+            origin: LOCAL_APP,
+            "content-type": "multipart/form-data; boundary=x",
+            "content-length": String(MAX_SCENERY_FILE_BYTES * 2),
+          },
+        },
+        (answer) => resolve(answer.statusCode),
+      );
+      req.on("error", reject);
+      req.end();
+    });
+
+    expect(res).toBe(413);
+  });
+
+  it.each([
+    ["a path reaching outside the item's folder", "/api/local-files/2027/opening-number/..%2Fx"],
+    ["a path outside any scenery folder", "/api/local-files/2027/secret.txt"],
+  ])("answers 404 for %s, keeping nothing", async (_, path) => {
+    expect((await upload(path, form("made-up"))).status).toBe(404);
+    expect(await readdir(folder)).not.toContain("secret.txt");
+  });
+
+  it("refuses a form from another site's page, or with no page named", async () => {
+    const path = "/api/local-files/2027/pirate-sketch/scenery/x.pdf";
+
+    expect((await upload(path, form("made-up"), "https://elsewhere.example")).status).toBe(403);
+    expect((await upload(path, form("made-up"), null)).status).toBe(415);
+    await expect(readdir(place("pirate-sketch"))).rejects.toThrow();
   });
 });
 

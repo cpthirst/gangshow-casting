@@ -7,6 +7,7 @@ import HelpButton from "@/components/common/HelpButton.vue";
 import ItemNotes from "@/components/common/ItemNotes.vue";
 import ItemStepNav from "@/components/common/ItemStepNav.vue";
 import ReadOnlyNotice from "@/components/common/ReadOnlyNotice.vue";
+import SceneryUpload from "@/components/production/SceneryUpload.vue";
 import { showPageTitle } from "@/router/index.ts";
 import { downloadFrom, openFileTab } from "@/services/file-link.ts";
 import { apiFetch, canChangeScenery } from "@/services/sign-in.ts";
@@ -32,7 +33,7 @@ const route = useRoute();
 const order = ref<RunningOrder>();
 const files = ref<SceneryFile[]>([]);
 const status = ref<"loading" | "loaded" | "error">("loading");
-// Why the last file chosen didn't open, download or delete, if it didn't.
+// Why the last file chosen didn't open, download, delete or upload, if it didn't.
 const fileProblem = ref<string>();
 // A delete is on its way, so the trash icons wait for it.
 const deleting = ref(false);
@@ -163,6 +164,13 @@ watch(
     <p class="item-position" data-test="position">{{ positionOf(place) }}</p>
     <!-- Those without Stage, Tech or Director see the files with nothing to change them. -->
     <ReadOnlyNotice about="scenery" />
+    <SceneryUpload
+      v-if="canChangeScenery"
+      :item-id="place.item.id"
+      :names="files.map((file) => file.name)"
+      @uploaded="load(place.item.id)"
+      @problem="fileProblem = $event"
+    />
     <!-- An explicit list role: Safari drops list semantics once bullets are styled away. -->
     <p v-if="fileProblem" class="notice" role="alert" data-test="file-problem">{{ fileProblem }}</p>
     <!-- One row per file, as the role and prop cards: the trash icon first, as theirs. -->

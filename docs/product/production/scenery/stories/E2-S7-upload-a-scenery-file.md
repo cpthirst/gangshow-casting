@@ -2,7 +2,7 @@
 id: production-scenery.E2.S7
 title: Upload a scenery file
 epic: E2
-status: draft
+status: done
 ---
 
 ## Story
@@ -30,7 +30,7 @@ Then the upload area says "Scenery and set images only: no photos of cast member
 ### AC4: Upload works by keyboard
 Given "pat" has Stage and uses only a keyboard
 When pat reaches the upload control and chooses a file
-Then the file uploads, as it does when dragged onto the upload area
+Then the file uploads
 
 ### AC5: A file of 100 MB uploads
 Given "pat" has Stage
@@ -65,12 +65,21 @@ When the upload fails
 Then the page says "set-plan.pdf wasn't uploaded. Check your connection and try again."
 And the list doesn't show it
 
+### AC11: A file of the same name isn't replaced
+Given "Opening Number" has "set-plan.pdf"
+When "pat" uploads another file called "set-plan.pdf"
+Then it isn't uploaded, and the old file is unchanged
+And the page says "There's already a file called set-plan.pdf."
+
 ## Notes
 
 - FRs: FR5, FR8, FR12
 - Depends on: production-scenery.E2.S1
-- Files go from the browser straight to file storage, never through the API, which caps a request at 10 MB (PRD constraints). The API checks the caller's permission, the item and the name, and hands back a short-lived upload that file storage limits to 100 MB (AC7), as the ADR from E2.S1 decides.
+- Files go from the browser straight to file storage, never through the API, which caps a request at 10 MB (PRD constraints). The API checks the caller's permission, the item, the name and the stated size, and hands back a short-lived upload that file storage limits to 100 MB (AC7), as ADR 0030's "Uploading" amendment records.
+- How (agreed 2026-10-29, recorded as an amendment to ADR 0030): one route, `POST …/items/{itemId}/scenery-uploads` with `{name, size, replace?}`, returns a presigned POST (`{url, fields}`, 5 minutes) whose policy fixes the key and a `content-length-range` up to 100 MB. The browser sends the file to that URL as a form. There's no call afterwards: the page reloads the list. Without a bucket (demo, tests), the URL is a local `/api/local-files/…` path that the dev server accepts and limits the same way.
+- The route returns 409 when the name is taken, unless `replace` is true. The page never sends `replace` here; E2.S5 adds the confirm that does.
+- The bucket gets a CORS rule that allows POST from any origin (the signed form is the only key; see ADR 0030), and the pages' Content-Security-Policy lets them connect to the bucket.
+- Upload names may not contain `${`, which S3 would rewrite in the form's key (found at review).
 - The upload route names Stage, Tech and Director (E1.S1), and admins are always allowed.
 - Any file type is allowed. The page and API never inspect the contents (PRD non-goals).
-- A file with the same name as one already on the item: until E2.S5 adds the confirm, the upload is refused with "There's already a file called set-plan.pdf." so nothing is replaced unasked.
-- Out of scope: progress and replacing (E2.S5).
+- Out of scope: dragging a file onto the upload area (E2.S8); progress, trying again and replacing (E2.S5).

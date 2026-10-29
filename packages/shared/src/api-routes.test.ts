@@ -144,6 +144,12 @@ describe("routeNeeds", () => {
     );
   });
 
+  it("has uploading a scenery file need Stage, Tech or Director", () => {
+    expect(needOf("POST /api/productions/{productionId}/items/{itemId}/scenery-uploads")).toEqual(
+      SCENERY_PERMISSIONS,
+    );
+  });
+
   it("refuses a scenery change saying the scenery can be viewed, never the props", () => {
     expect(refusalFor(SCENERY_PERMISSIONS)).toBe("You can view the scenery, but not change it.");
   });

@@ -36,6 +36,7 @@ const noSceneryFiles: SceneryFileStore = {
   list: async () => [],
   linkTo: async () => undefined,
   remove: async () => "gone",
+  uploadTo: async () => "taken",
   countByItem: async () => ({}),
 };
 
@@ -1144,6 +1145,27 @@ describe("Lambda entry point", () => {
           message: "You can view the scenery, but not change it.",
         });
         expect(deleted).toEqual([]);
+      });
+
+      it.each([
+        ["sam, with Casting only", "[casting]"],
+        ["someone with no permissions", "[]"],
+      ])("refuses an upload from %s", async (_who, groups) => {
+        const { api } = setUpFiles();
+
+        const res = await api(
+          request(
+            "POST",
+            "/api/productions/2027/items/opening-number/scenery-uploads",
+            { body: JSON.stringify({ name: "set-plan.pdf", size: 1 }) },
+            groups,
+          ),
+        );
+
+        expect(res.statusCode).toBe(403);
+        expect(JSON.parse(res.body ?? "")).toEqual({
+          message: "You can view the scenery, but not change it.",
+        });
       });
     });
 

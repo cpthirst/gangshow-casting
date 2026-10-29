@@ -955,6 +955,11 @@ main a {
   cursor: not-allowed;
 }
 
+/* The scenery upload's rule sits under its button (production-scenery FR8). */
+.scenery-upload .upload-rule {
+  margin: 0.5rem 0 0;
+}
+
 /* The add/edit form: same look as the running order's item editor. */
 .cast-member-form {
   display: grid;

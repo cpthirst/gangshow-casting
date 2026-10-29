@@ -33,23 +33,26 @@ const webApp = fileURLToPath(new URL("../../apps/web", import.meta.url));
 
 // The built app is one script and one stylesheet from its own address, with no inline code.
 // Signing in leaves for the login pages by navigation, which the policy doesn't limit; the
-// app itself only asks the login domain for tokens.
-const contentSecurityPolicy = (loginUrl: string) =>
+// app itself only asks the login domain for tokens, and sends uploads to the files bucket.
+const contentSecurityPolicy = (loginUrl: string, filesUrl: string) =>
   [
     "default-src 'self'",
     "script-src 'self'",
     "style-src 'self'",
     "img-src 'self'",
     "font-src 'self'",
-    `connect-src 'self' ${loginUrl}`,
+    `connect-src 'self' ${loginUrl} ${filesUrl}`,
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'none'",
   ].join("; ");
 
-const securityHeaders = (loginUrl: string): ResponseSecurityHeadersBehavior => ({
-  contentSecurityPolicy: { contentSecurityPolicy: contentSecurityPolicy(loginUrl), override: true },
+const securityHeaders = (loginUrl: string, filesUrl: string): ResponseSecurityHeadersBehavior => ({
+  contentSecurityPolicy: {
+    contentSecurityPolicy: contentSecurityPolicy(loginUrl, filesUrl),
+    override: true,
+  },
   frameOptions: { frameOption: HeadersFrameOption.DENY, override: true },
   strictTransportSecurity: {
     accessControlMaxAge: Duration.days(730),
@@ -71,6 +74,8 @@ const SEND_PAGES_TO_THE_APP = `function handler(event) {
 
 export interface PagesProps {
   api: HttpApi;
+  /** The scenery files bucket's address, where the pages send uploads (ADR 0030). */
+  filesUrl: string;
   /** Where the pages sign people in; the app's own address is added here. */
   signIn: Omit<SignInConfig, "appUrl">;
 }
@@ -80,7 +85,7 @@ export class Pages extends Construct {
   /** The app's address, ending in "/", as sign-in's return address must match it exactly. */
   readonly url: string;
 
-  constructor(scope: Construct, id: string, { api, signIn }: PagesProps) {
+  constructor(scope: Construct, id: string, { api, filesUrl, signIn }: PagesProps) {
     super(scope, id);
 
     // Holds only the built app, rebuilt on every deploy. CDK's default removal policy
@@ -94,7 +99,7 @@ export class Pages extends Construct {
 
     const withHeaders = (id: string, cacheControl: string) =>
       new ResponseHeadersPolicy(this, id, {
-        securityHeadersBehavior: securityHeaders(signIn.loginUrl),
+        securityHeadersBehavior: securityHeaders(signIn.loginUrl, filesUrl),
         customHeadersBehavior: {
           customHeaders: [{ header: "Cache-Control", value: cacheControl, override: true }],
         },

@@ -1,3 +1,4 @@
+import { MAX_SCENERY_FILE_BYTES, SceneryUpload } from "@app/shared";
 import {
   DeleteObjectCommand,
   HeadObjectCommand,
@@ -133,6 +134,64 @@ describe("deleting scenery files from a bucket", () => {
 
     expect(await store().remove("2027", "opening-number", "set-plan.pdf")).toBe("gone");
     expect(s3.commandCalls(DeleteObjectCommand)).toEqual([]);
+  });
+});
+
+describe("uploading scenery files to a bucket", () => {
+  /** The rules file storage holds the upload to, as signed into its form. */
+  function policyOf(upload: unknown) {
+    const { fields } = SceneryUpload.parse(upload);
+    const policy = JSON.parse(Buffer.from(fields.Policy ?? "", "base64").toString("utf8"));
+    return { fields, policy };
+  }
+
+  it("signs a form that puts the file at the item's key, under its own name", async () => {
+    s3.on(HeadObjectCommand).rejects(new NotFound({ message: "", $metadata: {} }));
+
+    const upload = await store().uploadTo("2027", "opening-number", "Set Plan.pdf", {
+      replace: false,
+    });
+
+    const { fields, policy } = policyOf(upload);
+    expect(upload).toMatchObject({ url: `https://${BUCKET}.s3.eu-west-2.amazonaws.com/` });
+    expect(fields.key).toBe(`${prefix}Set Plan.pdf`);
+    expect(policy.conditions).toContainEqual({ key: `${prefix}Set Plan.pdf` });
+  });
+
+  it("has file storage refuse a file over 100 MB, whatever sends it", async () => {
+    s3.on(HeadObjectCommand).rejects(new NotFound({ message: "", $metadata: {} }));
+
+    const upload = await store().uploadTo("2027", "opening-number", "rig.mov", { replace: false });
+
+    expect(policyOf(upload).policy.conditions).toContainEqual([
+      "content-length-range",
+      0,
+      MAX_SCENERY_FILE_BYTES,
+    ]);
+  });
+
+  it("lets the form be used for 5 minutes at most", async () => {
+    s3.on(HeadObjectCommand).rejects(new NotFound({ message: "", $metadata: {} }));
+    const before = Date.now();
+
+    const upload = await store().uploadTo("2027", "opening-number", "a.pdf", { replace: false });
+
+    const expires = Date.parse(policyOf(upload).policy.expiration);
+    expect(expires - before).toBeLessThanOrEqual(5 * 60 * 1000 + 1000);
+  });
+
+  it("says a name the item already has is taken, unless it's to be replaced", async () => {
+    s3.on(HeadObjectCommand).resolves({});
+
+    const asked = (replace: boolean) =>
+      store().uploadTo("2027", "opening-number", "set-plan.pdf", { replace });
+
+    expect(await asked(false)).toBe("taken");
+    expect(s3.commandCalls(HeadObjectCommand)[0]?.args[0].input).toEqual({
+      Bucket: BUCKET,
+      Key: `${prefix}set-plan.pdf`,
+    });
+    expect(policyOf(await asked(true)).fields.key).toBe(`${prefix}set-plan.pdf`);
   });
 });
 

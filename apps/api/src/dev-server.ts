@@ -1,14 +1,17 @@
 // Local stand-in for API Gateway: serves the same handlers Lambda will run (ADR 0006).
 import { createReadStream, readFileSync } from "node:fs";
+import { mkdir, writeFile } from "node:fs/promises";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { dirname } from "node:path";
+import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
-import { LOCAL_ACCESS_HEADER, localAccessFrom } from "@app/shared";
+import { LOCAL_ACCESS_HEADER, localAccessFrom, MAX_SCENERY_FILE_BYTES } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import { LOCAL_ADMIN, localAccountRoutes } from "#/accounts/local-accounts.ts";
 import { accessRefusal } from "#/http/access.ts";
 import type { Handler } from "#/http/handler.ts";
 import { matchRoute } from "#/http/match-route.ts";
-import { LOCAL_FILES_PATH, localFileAt } from "#/production/scenery/local-files.ts";
+import { LOCAL_FILES_PATH, localFileAt, localFilePlace } from "#/production/scenery/local-files.ts";
 import { createUsageRoutes } from "#/usage/usage-routes.ts";
 import { inMemoryUsageStore } from "#/usage/usage-store.ts";
 import { dataLocation, localFilesFolder, routes } from "./routes.ts";
@@ -16,16 +19,18 @@ import { dataLocation, localFilesFolder, routes } from "./routes.ts";
 /** The dev API, serving the scenery files in localFiles too when there's no bucket. */
 export function createDevServer(table: Record<string, Handler>, localFiles?: string) {
   return createServer(async (req, res) => {
-    const refused = refusal(req);
+    const url = new URL(req.url ?? "/", "http://localhost");
+    const path = url.pathname;
+    const refused = refusal(req, path);
     if (refused) {
       res.writeHead(refused).end();
       return;
     }
-    const url = new URL(req.url ?? "/", "http://localhost");
-    const path = url.pathname;
-    // Stands in for the bucket's links, which need no sign-in either (ADR 0030).
-    if (localFiles !== undefined && req.method === "GET" && path.startsWith(LOCAL_FILES_PATH)) {
-      await sendLocalFile(res, localFiles, path);
+    // Stands in for the bucket's links and upload forms, which need no sign-in either (ADR 0030).
+    if (localFiles !== undefined && path.startsWith(LOCAL_FILES_PATH)) {
+      if (req.method === "GET") await sendLocalFile(res, localFiles, path);
+      else if (req.method === "POST") await receiveLocalFile(req, res, localFiles, path);
+      else res.writeHead(405).end();
       return;
     }
     const route = matchRoute(table, req.method ?? "", path);
@@ -80,6 +85,50 @@ async function sendLocalFile(res: ServerResponse, folder: string, path: string) 
   await pipeline(createReadStream(found.file), res).catch(() => res.destroy());
 }
 
+// The form's fields come before the file, and are short: S3's whole form is a few KB.
+const MAX_UPLOAD_BYTES = MAX_SCENERY_FILE_BYTES + 64 * 1024;
+
+// Keeps the file a local upload form sends, refusing it over 100 MB as the bucket does.
+async function receiveLocalFile(
+  req: IncomingMessage,
+  res: ServerResponse,
+  folder: string,
+  path: string,
+) {
+  const place = localFilePlace(folder, path);
+  if (!place) {
+    res.writeHead(404).end();
+    return;
+  }
+  if (Number(req.headers["content-length"] ?? 0) > MAX_UPLOAD_BYTES) {
+    tooLarge(res);
+    return;
+  }
+  try {
+    const form = await new Request("http://localhost", {
+      method: "POST",
+      headers: { "content-type": req.headers["content-type"] ?? "" },
+      body: Readable.toWeb(req),
+      duplex: "half",
+    }).formData();
+    const file = form.get("file");
+    if (!(file instanceof File)) {
+      res.writeHead(400).end();
+      return;
+    }
+    if (file.size > MAX_SCENERY_FILE_BYTES) {
+      tooLarge(res);
+      return;
+    }
+    await mkdir(dirname(place.file), { recursive: true });
+    await writeFile(place.file, Buffer.from(await file.arrayBuffer()));
+    res.writeHead(204).end();
+  } catch (error) {
+    process.stderr.write(`POST ${path} failed: ${error}\n`);
+    res.writeHead(500).end();
+  }
+}
+
 function send(
   res: ServerResponse,
   { statusCode = 200, headers = {}, body, isBase64Encoded }: APIGatewayProxyStructuredResultV2,
@@ -95,7 +144,8 @@ function send(
 // The dev API serves real cast data with no sign-in, so only the local web app may use it:
 // - Host must be local, which stops DNS rebinding (another site's name pointed at 127.0.0.1);
 // - Origin, when a browser sends one, must be local, so other sites' pages can't call it;
-// - writes must be JSON, which a cross-site form or "simple" text/plain post can't send.
+// - writes must be JSON, which a cross-site form or "simple" text/plain post can't send. The
+//   one exception, a local upload form, must name the local page it comes from.
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
 
 function hostnameOf(url: string) {
@@ -106,13 +156,18 @@ function hostnameOf(url: string) {
   }
 }
 
-function refusal(req: IncomingMessage): 403 | 415 | undefined {
+function refusal(req: IncomingMessage, path: string): 403 | 415 | undefined {
   if (!LOCAL_HOSTS.has(hostnameOf(`http://${req.headers.host ?? ""}`))) return 403;
   const { origin } = req.headers;
   if (origin !== undefined && !LOCAL_HOSTS.has(hostnameOf(origin))) return 403;
   const sendsBody = req.method === "POST" || req.method === "PUT" || req.method === "PATCH";
-  const isJson = (req.headers["content-type"] ?? "").startsWith("application/json");
-  return sendsBody && !isJson ? 415 : undefined;
+  const type = req.headers["content-type"] ?? "";
+  const isLocalUpload =
+    req.method === "POST" &&
+    path.startsWith(LOCAL_FILES_PATH) &&
+    type.startsWith("multipart/form-data") &&
+    origin !== undefined;
+  return sendsBody && !type.startsWith("application/json") && !isLocalUpload ? 415 : undefined;
 }
 
 // API Gateway caps payloads too; a running order is a few KB.

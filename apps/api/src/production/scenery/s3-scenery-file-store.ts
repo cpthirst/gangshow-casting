@@ -1,4 +1,4 @@
-import type { SceneryFile } from "@app/shared";
+import { MAX_SCENERY_FILE_BYTES, type SceneryFile } from "@app/shared";
 import {
   DeleteObjectCommand,
   GetObjectCommand,
@@ -7,6 +7,7 @@ import {
   NotFound,
   type S3Client,
 } from "@aws-sdk/client-s3";
+import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { fileHeadersOf } from "./file-headers.ts";
 import {
@@ -16,8 +17,8 @@ import {
   sceneryFolderOf,
 } from "./scenery-file-store.ts";
 
-// Long enough to start a download on a slow phone, short enough to be useless if shared
-// (production-scenery security NFR).
+// Long enough to start a download or upload on a slow phone, short enough to be useless if
+// shared (production-scenery security NFR).
 const LINK_SECONDS = 5 * 60;
 
 /** Scenery files in the private bucket infra creates (ADR 0030), one key per file. */
@@ -77,6 +78,19 @@ export function s3SceneryFileStore(s3: S3Client, bucket: string): SceneryFileSto
       if (!(await exists(Key))) return "gone";
       await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key }));
       return "removed";
+    },
+    async uploadTo(productionId, itemId, name, { replace }) {
+      const Key = `${sceneryFolderOf(productionId, itemId)}${name}`;
+      // The bucket overwrites a key without asking, so look first (FR9).
+      if (!replace && (await exists(Key))) return "taken";
+      // A form only for this key, which the bucket itself refuses over 100 MB (FR8).
+      const { url, fields } = await createPresignedPost(s3, {
+        Bucket: bucket,
+        Key,
+        Conditions: [["content-length-range", 0, MAX_SCENERY_FILE_BYTES]],
+        Expires: LINK_SECONDS,
+      });
+      return { url, fields };
     },
   };
 

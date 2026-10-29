@@ -1,8 +1,10 @@
 import {
   type ItemNote,
+  MAX_SCENERY_FILE_BYTES,
   type RunningOrder,
   SaveItemNoteRequest,
   type SceneryFile,
+  SceneryUploadRequest,
 } from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -19,6 +21,7 @@ import {
   sceneryFileLinkPath,
   sceneryFilePath,
   sceneryFilesPath,
+  sceneryUploadsPath,
 } from "@/utils/scenery.ts";
 
 // The browser's own new tabs and downloads, which happy-dom can't follow.
@@ -41,6 +44,9 @@ const linkTo = (name: string) => `https://files.example/${encodeURIComponent(nam
 
 const json = (body: unknown) => new Response(JSON.stringify(body));
 
+/** Where the stand-in file storage takes uploads, apart from the API, as the bucket is. */
+const STORAGE = "https://files.example/";
+
 /** A stand-in API holding one saved running order (none if undefined), each item's files
  *  as file storage holds them now, read on every request and changed by deletes, and any
  *  scenery notes. */
@@ -49,6 +55,12 @@ function apiHolds(
   files: Record<string, SceneryFile[]> = {},
   notes: ItemNote[] = [],
 ) {
+  // The item's files, held from now on, as an upload's first file starts them.
+  const filesOf = (itemId: string) => {
+    const held = files[itemId] ?? [];
+    files[itemId] = held;
+    return held;
+  };
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init?: RequestInit) => {
@@ -62,6 +74,25 @@ function apiHolds(
         const saved = { itemId, text, revision: revision + 1 };
         notes.splice(0, notes.length, ...notes.filter((n) => n.itemId !== itemId), saved);
         return json(saved);
+      }
+      // Hands back a form for file storage, naming the file and its size in its key's place.
+      if (init?.method === "POST" && url.endsWith("/scenery-uploads")) {
+        const itemId = url.split("/").at(-2) ?? "";
+        const { name, size, replace } = SceneryUploadRequest.parse(JSON.parse(String(init.body)));
+        const itemFiles = filesOf(itemId);
+        if (!replace && itemFiles.some((file) => file.name === name)) {
+          return new Response(null, { status: 409 });
+        }
+        return json({ url: STORAGE, fields: { key: JSON.stringify({ itemId, name, size }) } });
+      }
+      if (url === STORAGE && init?.body instanceof FormData) {
+        const { itemId, name, size } = JSON.parse(String(init.body.get("key")));
+        const itemFiles = filesOf(itemId);
+        itemFiles.splice(0, itemFiles.length, ...itemFiles.filter((f) => f.name !== name), {
+          name,
+          size,
+        });
+        return new Response(null, { status: 204 });
       }
       for (const [itemId, itemFiles] of Object.entries(files)) {
         if (init?.method === "DELETE") {
@@ -282,7 +313,13 @@ describe("An item's Scenery page", () => {
     await row.get("button[aria-label='Help for this item']").trigger("click");
 
     const names = wrapper.findAll("dialog [data-test=help-name]").map((name) => name.text());
-    expect(names).toEqual(["All items", "Previous and Next", "Files", "Scenery notes"]);
+    expect(names).toEqual([
+      "All items",
+      "Previous and Next",
+      "Files",
+      "Add a file",
+      "Scenery notes",
+    ]);
   });
 });
 
@@ -604,5 +641,220 @@ describe("Deleting a scenery file", () => {
 
     expect(trashFor(wrapper, "set-plan.pdf").attributes("aria-label")).toBe("Remove set-plan.pdf");
     expect(trashFor(wrapper, "set-plan.pdf").attributes("type")).toBe("button");
+  });
+});
+
+describe("Uploading a scenery file", () => {
+  /** A made-up file, of the size given, as the browser's file picker hands it over. */
+  function aFile(name: string, size = 1_000) {
+    const file = new File(["made-up"], name);
+    Object.defineProperty(file, "size", { value: size });
+    return file;
+  }
+
+  // As the file picker does once someone chooses a file.
+  async function choose(wrapper: VueWrapper, file: File) {
+    const input = wrapper.get("main [data-test=upload-input]");
+    Object.defineProperty(input.element, "files", { value: [file], configurable: true });
+    await input.trigger("change");
+    await flushPromises();
+  }
+
+  const calls = (match: (url: string, init?: RequestInit) => boolean) =>
+    vi.mocked(fetch).mock.calls.filter(([url, init]) => match(String(url), init));
+  const uploadRequests = () =>
+    calls((url, init) => init?.method === "POST" && url.endsWith("/scenery-uploads"));
+  const storageRequests = () => calls((url) => url === STORAGE);
+  const problem = (wrapper: VueWrapper) => wrapper.get("main [data-test=file-problem]").text();
+
+  it.each([
+    [["stage"], "pat"],
+    [["tech"], "lee"],
+    [["director"], "dee"],
+    [["admin"], "alex"],
+  ])("keeps a file %s uploads, and shows its row in name order", async (groups, name) => {
+    await signInAs(groups, name);
+    const held = { "opening-number": [{ name: "set-plan.pdf", size: 2_400_000 }] };
+    apiHolds(show, held);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    await choose(wrapper, aFile("Backdrop.png", 800_000));
+
+    expect(held["opening-number"]).toContainEqual({ name: "Backdrop.png", size: 800_000 });
+    expect(rows(wrapper)).toEqual([
+      { name: "Backdrop.png", size: "800 KB" },
+      { name: "set-plan.pdf", size: "2.4 MB" },
+    ]);
+  });
+
+  it("asks the API where to send the file by its name as chosen, and its size", async () => {
+    await signInAs(["stage"], "pat");
+    apiHolds(show);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    await choose(wrapper, aFile("Set Plan (Act 1).pdf", 2_400_000));
+
+    const [[url, init] = []] = uploadRequests();
+    expect(url).toBe(sceneryUploadsPath("opening-number"));
+    expect(JSON.parse(String(init?.body))).toEqual({
+      name: "Set Plan (Act 1).pdf",
+      size: 2_400_000,
+    });
+    expect(rows(wrapper).map((row) => row.name)).toEqual(["Set Plan (Act 1).pdf"]);
+  });
+
+  it("sends the file straight to file storage, after its form's fields, without the sign-in token", async () => {
+    await signInAs(["stage"], "pat");
+    apiHolds(show);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+    const file = aFile("set-plan.pdf");
+
+    await choose(wrapper, file);
+
+    const [[, init] = []] = storageRequests();
+    expect(init?.method).toBe("POST");
+    expect(init?.headers).toBeUndefined();
+    const form = init?.body;
+    if (!(form instanceof FormData)) throw new Error("expected a form");
+    // File storage reads the fields first and the file last.
+    expect([...form.keys()]).toEqual(["key", "file"]);
+    expect(form.get("file")).toBeInstanceOf(File);
+  });
+
+  it("says on the upload area that it's for scenery and set images only", async () => {
+    await signInAs(["stage"], "pat");
+    apiHolds(show);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    expect(wrapper.get("main [data-test=upload-area]").text()).toContain(
+      "Scenery and set images only: no photos of cast members.",
+    );
+  });
+
+  it("opens the file picker from a button, which a keyboard reaches", async () => {
+    await signInAs(["stage"], "pat");
+    apiHolds(show);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+    const input = wrapper.get("main [data-test=upload-input]");
+    if (!(input.element instanceof HTMLInputElement)) throw new Error("expected a file input");
+    const picker = vi.spyOn(input.element, "click");
+
+    const button = wrapper.get("main [data-test=upload]");
+    await button.trigger("click");
+
+    expect(button.element.tagName).toBe("BUTTON");
+    expect(button.attributes("type")).toBe("button");
+    expect(button.text()).toBe("Add a file");
+    expect(picker).toHaveBeenCalled();
+    // The button is the one stop for a keyboard: the picker's own input is skipped.
+    expect(input.attributes("tabindex")).toBe("-1");
+  });
+
+  it("gives the button back its focus once an upload ends, so a keyboard keeps its place", async () => {
+    await signInAs(["stage"], "pat");
+    apiHolds(show);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+    const button = wrapper.get("main [data-test=upload]");
+
+    await choose(wrapper, aFile("set-plan.pdf"));
+
+    expect(document.activeElement).toBe(button.element);
+  });
+
+  it("uploads a file of exactly 100 MB", async () => {
+    await signInAs(["stage"], "pat");
+    apiHolds(show);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    await choose(wrapper, aFile("rig.mov", MAX_SCENERY_FILE_BYTES));
+
+    expect(rows(wrapper)).toEqual([{ name: "rig.mov", size: "100 MB" }]);
+  });
+
+  it("refuses a file over 100 MB, saying so, without asking the API", async () => {
+    await signInAs(["stage"], "pat");
+    apiHolds(show);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    await choose(wrapper, aFile("rig.mov", 120_000_000));
+
+    expect(problem(wrapper)).toBe("rig.mov is over 100 MB, so it wasn't uploaded.");
+    expect(uploadRequests()).toEqual([]);
+    expect(rows(wrapper)).toEqual([]);
+  });
+
+  it.each([
+    [["casting"], "sam"],
+    [[], "jo"],
+  ])("gives %s no upload area", async (groups, name) => {
+    await signInAs(groups, name);
+    apiHolds(show);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    expect(wrapper.find("main [data-test=upload-area]").exists()).toBe(false);
+  });
+
+  it("says an upload whose connection dropped wasn't uploaded, and shows no row for it", async () => {
+    await signInAs(["stage"], "pat");
+    apiHolds(show);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+    const stand = vi.mocked(fetch).getMockImplementation();
+    vi.mocked(fetch).mockImplementation(async (url, init) => {
+      if (url === STORAGE) throw new TypeError("Failed to fetch");
+      return stand?.(url, init) ?? new Response(null, { status: 500 });
+    });
+
+    await choose(wrapper, aFile("set-plan.pdf"));
+
+    expect(problem(wrapper)).toBe(
+      "set-plan.pdf wasn't uploaded. Check your connection and try again.",
+    );
+    expect(rows(wrapper)).toEqual([]);
+  });
+
+  it("says an upload file storage refused wasn't uploaded", async () => {
+    await signInAs(["stage"], "pat");
+    apiHolds(show);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+    const stand = vi.mocked(fetch).getMockImplementation();
+    vi.mocked(fetch).mockImplementation(async (url, init) =>
+      url === STORAGE
+        ? new Response(null, { status: 400 })
+        : (stand?.(url, init) ?? new Response(null, { status: 500 })),
+    );
+
+    await choose(wrapper, aFile("set-plan.pdf"));
+
+    expect(problem(wrapper)).toBe(
+      "set-plan.pdf wasn't uploaded. Check your connection and try again.",
+    );
+    expect(rows(wrapper)).toEqual([]);
+  });
+
+  it("refuses a file with the name of one the item has, keeping the old one", async () => {
+    await signInAs(["stage"], "pat");
+    const held = { "opening-number": [{ name: "set-plan.pdf", size: 2_400_000 }] };
+    apiHolds(show, held);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    await choose(wrapper, aFile("set-plan.pdf", 5_000));
+
+    expect(problem(wrapper)).toBe("There's already a file called set-plan.pdf.");
+    expect(uploadRequests()).toEqual([]);
+    expect(held["opening-number"]).toEqual([{ name: "set-plan.pdf", size: 2_400_000 }]);
+  });
+
+  it("refuses a name another browser uploaded since the page loaded, as the API does", async () => {
+    await signInAs(["stage"], "pat");
+    const held: Record<string, SceneryFile[]> = { "opening-number": [] };
+    apiHolds(show, held);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+    held["opening-number"] = [{ name: "set-plan.pdf", size: 2_400_000 }];
+
+    await choose(wrapper, aFile("set-plan.pdf", 5_000));
+
+    expect(problem(wrapper)).toBe("There's already a file called set-plan.pdf.");
+    expect(storageRequests()).toEqual([]);
+    expect(held["opening-number"]).toEqual([{ name: "set-plan.pdf", size: 2_400_000 }]);
   });
 });
