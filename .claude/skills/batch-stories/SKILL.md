@@ -1,67 +1,38 @@
 ---
 name: batch-stories
-description: User-only toggle for batch mode. While it's on, the agent builds one feature's stories on one branch, commits and pushes each, and opens a single PR without push/PR prompts. Run as /batch-stories on <feature>, off, or status.
+description: User-only toggle for batch mode. While it's on, the agent builds one feature's stories on one branch, commits and pushes each, and opens a single PR at the end. Run as /batch-stories on <feature>, off, or status.
 disable-model-invocation: true
 ---
 
-# Batch stories: a temporary harness override
+# Batch stories: one feature, one branch, one PR
 
-Normally `git push` and `gh pr` are on the **ask** list in `.claude/settings.json`, and each story gets its own PR. Batch mode lifts those two prompts for **one feature**, so the agent can work through its stories on one branch and open one PR at the end.
+Normally each story gets its own branch and PR, and the user says yes before each PR opens (ADR 0031). Batch mode lets the agent work through **one feature's** stories on one branch, pushing after each, and open one PR at the end.
 
-Only the user can start it: `disable-model-invocation` stops the agent invoking this skill itself. The user's "yes" in `on` step 2 is the authorisation to change `.claude/settings.json` and to push and open the PR without asking. The harness **must** return to its committed state afterwards, and a memory note makes sure later sessions remember.
+Only the user can start it: `disable-model-invocation` stops the agent invoking this skill itself. The user's "yes" in `on` step 2 is the go-ahead to push that feature's branch after each story and to open its PR without asking again. It changes nothing in `.claude/settings.json`: `git push` and `gh pr create` are already allowed, and merging, closing, reopening, editing and reviewing PRs still ask. A memory note records that batch mode is on, so a later session knows the scope of that yes.
 
 Arguments: `on <feature> [story IDs…]`, `off`, or `status`.
 
-## The override, exactly
-
-In `.claude/settings.json`, batch mode:
-- **removes** two entries from `"ask"`: `"Bash(git push:*)"` and `"Bash(gh pr:*)"`;
-- **adds** these to `"deny"` (deny always wins), so the most common destructive commands stay blocked once the ask rule is gone:
-
-  ```
-  "Bash(gh pr merge:*)",
-  "Bash(gh pr close:*)",
-  "Bash(gh pr reopen:*)",
-  "Bash(git push --force-with-lease:*)",
-  "Bash(git push --delete:*)",
-  "Bash(git push -d:*)",
-  "Bash(git push origin +:*)"
-  ```
-
-Nothing else changes. These stay in force throughout:
-- the existing deny rules (force-push, push to `main`);
-- every hook: the guard, post-edit, the stop gate, and the pre-push gate that blocks `main`;
-- the review loop.
-
-**What's enforced and what isn't.** Deny rules match the start of a command, so they block the forms listed but not every variant: for example, flags after the branch name, `--mirror`, refspec deletes like `origin :branch`, or `gh pr edit` / `review --approve`. The pre-push hook still blocks any push to `main`, whatever its form. Beyond that, keeping to this feature's branch and never merging, editing or approving PRs is **instruction, not enforcement**. Don't run those commands while batch mode is on. (Narrow *allow* rules can't do the job instead: an **ask** rule outranks an allow, which is why the two ask entries have to be removed.)
-
-A harness test reads the *committed* settings, so an override that's accidentally committed fails the pre-push gate and CI before it can reach the remote.
+Keeping to this feature's branch, and never merging, editing or approving PRs, is **instruction, not enforcement**. The deny rules (force-pushes, deleting a remote branch, pushing to `main`) and every hook stay in force, and the pre-push hook blocks any push to `main`, whatever its form.
 
 ## `status`
 
-1. Read `batch-stories.md` in your auto-memory directory. If it exists, batch mode is **on**. Report the feature, branch and date it records.
-2. Check whether `.claude/settings.json` differs from the commit: `git diff --quiet HEAD -- .claude/settings.json`.
-3. Report the combination:
-   - **note and diff:** batch mode is on, as expected;
-   - **neither:** batch mode is off;
-   - **note but no diff:** the override was already undone. Offer to run `off` to tidy the note;
-   - **diff but no note:** an **unknown change** to the harness, possibly from another session or a manual edit. Show the diff and ask the user. Never revert it without asking.
+Read `batch-stories.md` in your auto-memory directory. If it exists, batch mode is **on**: report the feature, branch and date it records. Otherwise it's off.
 
 ## `on <feature> [story IDs…]`
 
 1. **Check it's safe to start.** If any check fails, stop and say why.
-   - Auto-memory is available. Without it, a lost session couldn't know to restore.
-   - Batch mode isn't already on, and `git diff --quiet HEAD -- .claude/settings.json` exits 0.
+   - Auto-memory is available. Without it, a later session couldn't know batch mode is on.
+   - Batch mode isn't already on.
    - `docs/product/<feature>/` has an approved PRD and story map. The stories to build are `ready`, or listed by the user.
    - Leave unrelated uncommitted work alone, and never stage or reformat it.
 2. **Confirm the scope with the user in one line:** the feature, the stories, the branch `feat/<feature>`, and "one PR at the end". Wait for a yes.
 3. **Create or switch to the branch** `feat/<feature>`, from an up-to-date `main` if it's new. The guard blocks commits and pushes on `main`.
-4. **Write the memory note first**, so a lost session still knows to restore. Create `batch-stories.md` in the auto-memory directory:
+4. **Write the memory note.** Create `batch-stories.md` in the auto-memory directory:
 
    ```markdown
    ---
    name: batch-stories
-   description: MUST RESTORE: batch mode is on for <feature>; .claude/settings.json ask/deny rules are temporarily changed
+   description: Batch mode is on for <feature>: push its branch after each story, one PR at the end
    metadata:
      type: project
    ---
@@ -69,14 +40,13 @@ A harness test reads the *committed* settings, so an override that's accidentall
    Batch mode turned on <YYYY-MM-DD> at the user's request for feature `<feature>`, branch `feat/<feature>`, stories <IDs>.
 
    **How to apply:**
-   - Never stage or commit `.claude/settings.json` while batch mode is on.
+   - The user's yes covers pushing only this feature's branch, and opening its one PR.
    - Once the feature's PR is open, or if the work stops or is abandoned, run `/batch-stories off`.
-   - The override covers only this feature and branch. Ask before pushing or opening PRs for anything else.
+   - Ask before pushing or opening PRs for anything else.
    ```
 
-   Add one line to the memory index (`MEMORY.md`): `- [MUST RESTORE: batch mode on for <feature>](batch-stories.md): run /batch-stories off when the PR is open`.
-5. **Apply the override** exactly as above. Check the file is still valid JSON, and that `git diff HEAD -- .claude/settings.json` shows only those removals and additions.
-6. **Tell the user** batch mode is on, and that you'll switch it off when the PR is open.
+   Add one line to the memory index (`MEMORY.md`): `- [Batch mode on for <feature>](batch-stories.md): run /batch-stories off when the PR is open`.
+5. **Tell the user** batch mode is on, and that you'll switch it off when the PR is open.
 
 ### While batch mode is on: the per-story loop
 
@@ -86,12 +56,11 @@ For each story, in story-map order (respecting `Depends on`):
 1. **Build it in a subagent.** Launch a `general-purpose` agent in the foreground with this brief:
    - the story's path, the branch `feat/<feature>` (already checked out; don't create a branch per story), and that it's in batch mode;
    - follow the `implement-story` skill up to a green `pnpm check`, and stop there: no review loop, no commit and no push;
-   - never touch `.claude/settings.json`;
    - if an AC is ambiguous, or a new dependency or ADR seems necessary, stop and report back without guessing: subagents can't ask the user;
    - reply in under ~15 lines: the files changed, which test covers each AC, and the gate's result.
    A documentation story skips test-first (CLAUDE.md); the subagent writes the docs and runs the gate.
 2. **Review.** Write the diff to a scratch file (`git diff > <scratchpad>/<story>.diff`) and give each routed reviewer the file's path and the story path, not the diff's text. A documentation story skips the review loop. For each `blocker`, send the findings to the **same** subagent with `SendMessage` (its context is still there) to fix, and to re-run the gate. Then re-run only the reviewers that blocked, at most 2 rounds. Batch mode doesn't skip the user's say on `ux-reviewer` findings: ask about them after each story's review, as CLAUDE.md describes.
-3. **Commit.** Mark the story `done` in the story and the map, then commit. **Stage only the story's files**, never `.claude/settings.json` and never unrelated work: `git add -A -- . ':!.claude/settings.json'`, or explicit paths. Check with `git diff --cached --name-only`. Never use `git commit -a`. Format only the files you changed, not the whole repo.
+3. **Commit.** Mark the story `done` in the story and the map, then commit. **Stage only the story's files**, never unrelated work: explicit paths. Check with `git diff --cached --name-only`. Never use `git commit -a`. Format only the files you changed, not the whole repo.
 4. Push: `git push -u origin feat/<feature>` the first time, then `git push`. The pre-push hook re-runs the gate.
 
 The next story gets a **new** subagent, not the last one: its fresh context is the point.
@@ -109,8 +78,5 @@ When every story is done, open **one** PR with the `open-pr` skill. List every s
 
 Run this as soon as the batch PR is open, or when the user asks, or if the work is abandoned.
 
-1. **Check what will be undone.** Run `git diff HEAD -- .claude/settings.json`. If it shows anything besides the override above (another edit made during the batch), stop and show the user. Restoring would throw that edit away.
-2. **Restore from the commit:** `git checkout HEAD -- .claude/settings.json`. This restores from HEAD, not the staging area.
-3. **Verify:** `git diff --quiet HEAD -- .claude/settings.json` exits 0. If it doesn't, stop and tell the user, and keep the memory note.
-4. **Clean up:** delete `batch-stories.md` and its line in `MEMORY.md`.
-5. **Tell the user** the harness is back to its committed state.
+1. Delete `batch-stories.md` and its line in `MEMORY.md`.
+2. **Tell the user** batch mode is off: each story gets its own PR again, each after its own yes.

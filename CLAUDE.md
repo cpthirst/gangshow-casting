@@ -72,7 +72,7 @@ Playwright walks each page and its forms at 320px and 360px, checking nothing sc
 Delivery chain: **write-prd → story-map → write-story → implement-story → open-pr**, plus **adr** for decisions.
 New feature work starts from a story with Given/When/Then ACs. If there isn't one, offer the chain rather than coding from a vague request. Every AC needs at least one test, except in a documentation story (see Workflow): `test-auditor` checks the mapping at review, and the PR lists which test covers each AC.
 
-**batch-stories** (`/batch-stories on <feature>` / `off` / `status`) is a user-only toggle. It temporarily lets you build one feature's stories on one branch, committing and pushing each, with a single PR at the end. Then it restores the harness. Only the user can start it.
+**batch-stories** (`/batch-stories on <feature>` / `off` / `status`) is a user-only toggle. It lets you build one feature's stories on one branch, committing and pushing each, with a single PR at the end. Only the user can start it.
 
 ## Review loop (subagents, `.claude/agents/`)
 
@@ -131,7 +131,7 @@ Trunk-based. `main` is always releasable.
 
 You may, without asking: edit code, add/upgrade dev dependencies, run any `pnpm` script, `cdk synth`/`cdk diff`, create branches and commits.
 
-Ask first: `git push`, opening/merging PRs, `cdk deploy`/`destroy`, `pnpm release` (it merges the release PR and deploys to the real AWS account, so run it only when the user asks, never as part of other work), anything touching real AWS accounts, deleting files you didn't create, changing CI or harness config (`.claude/`, `.github/`). Exception: while the user has switched on `batch-stories` for a feature, their "yes" to it covers the temporary `.claude/settings.json` change, and pushing that feature's branch and opening its single PR without asking. That PR may pass the ~400-line guideline; the skill says when to stop and check. Run `/batch-stories off` once the PR is open.
+Ask first: opening a PR (once, in the conversation: that yes covers pushing its branch and `gh pr create`, so don't ask again per command; ADR 0031), merging PRs, `cdk deploy`/`destroy`, `pnpm release` (it merges the release PR and deploys to the real AWS account, so run it only when the user asks, never as part of other work), anything touching real AWS accounts, deleting files you didn't create, changing CI or harness config (`.claude/`, `.github/`). Exception: while the user has switched on `batch-stories` for a feature, their "yes" to it covers pushing that feature's branch after each story and opening its single PR. That PR may pass the ~400-line guideline; the skill says when to stop and check. Run `/batch-stories off` once the PR is open.
 
 Never: commit secrets or read `.env*` files, force-push, push to `main`, bypass hooks (`--no-verify`).
 

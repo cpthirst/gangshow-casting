@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
@@ -15,6 +14,10 @@ function frontmatter(text: string): Record<string, string> {
 
 const claudeDir = new URL("../../.claude/", import.meta.url);
 const read = (path: string) => frontmatter(readFileSync(new URL(path, claudeDir), "utf8"));
+
+type Rules = { allow: string[]; ask: string[]; deny: string[] };
+const readSettings = (): { permissions: Rules } =>
+  JSON.parse(readFileSync(new URL("settings.json", claudeDir), "utf8"));
 
 const agents = readdirSync(new URL("agents/", claudeDir)).filter((f) => f.endsWith(".md"));
 const skills = readdirSync(new URL("skills/", claudeDir), { withFileTypes: true })
@@ -53,25 +56,42 @@ describe("harness: skills", () => {
   });
 });
 
-describe("harness: committed permissions", () => {
-  // Read from the last commit, not the working tree: batch mode (the batch-stories skill)
-  // edits the working copy on purpose, but that override must never be committed. A
-  // committed override fails here at pre-push and in CI, before it reaches the remote.
-  const committed: { permissions: { ask: string[]; deny: string[] } } = JSON.parse(
-    execFileSync("git", ["show", "HEAD:.claude/settings.json"], { encoding: "utf8" }),
-  );
+describe("harness: permissions", () => {
+  const { permissions } = readSettings();
 
-  it("asks before pushing or touching pull requests", () => {
-    expect(committed.permissions.ask).toEqual(
-      expect.arrayContaining(["Bash(git push:*)", "Bash(gh pr:*)"]),
+  // The user's one "yes" to opening a PR covers pushing its branch and creating it, so neither
+  // asks again (ADR 0031). An ask rule outranks an allow, so neither may be asked.
+  it("pushes a branch and opens a pull request without asking again", () => {
+    expect(permissions.allow).toEqual(
+      expect.arrayContaining(["Bash(git push:*)", "Bash(gh pr create:*)"]),
+    );
+    const asked = permissions.ask.filter((rule) =>
+      /^Bash\((git push\b|gh pr( create\b|:|\)))/.test(rule),
+    );
+    expect(asked).toEqual([]);
+  });
+
+  it("asks before merging, closing, reopening, editing or reviewing a pull request", () => {
+    expect(permissions.ask).toEqual(
+      expect.arrayContaining([
+        "Bash(gh pr merge:*)",
+        "Bash(gh pr close:*)",
+        "Bash(gh pr reopen:*)",
+        "Bash(gh pr edit:*)",
+        "Bash(gh pr review:*)",
+      ]),
     );
   });
 
-  it("never allows force-pushing or pushing to main", () => {
-    expect(committed.permissions.deny).toEqual(
+  it("never allows force-pushing, deleting a remote branch or pushing to main", () => {
+    expect(permissions.deny).toEqual(
       expect.arrayContaining([
         "Bash(git push --force:*)",
         "Bash(git push -f:*)",
+        "Bash(git push --force-with-lease:*)",
+        "Bash(git push --delete:*)",
+        "Bash(git push -d:*)",
+        "Bash(git push origin +:*)",
         "Bash(git push origin main:*)",
       ]),
     );

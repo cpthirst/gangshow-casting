@@ -208,7 +208,7 @@ A skill is a packaged procedure. Only its one-line description is always in cont
 ```
 write-prd ──► story-map ──► write-story ──► implement-story ──► open-pr
  prd.md       epics →        Given/When/     test-first per AC,   PR template,
- FR1..n       stories        Then ACs        gate + review loop   push asks first
+ FR1..n       stories        Then ACs        gate + review loop   one yes to open
                                    adr ◄── records significant decisions along the way
 ```
 
@@ -218,9 +218,9 @@ write-prd ──► story-map ──► write-story ──► implement-story �
 | `story-map` | `story-map.md`: epics → small vertical-slice stories, FR coverage table | User approves the map |
 | `write-story` | One story with Gherkin acceptance criteria | Definition of ready |
 | `implement-story` | Code, test-first per acceptance criterion; gate, review loop, story marked `done` | Stops and asks if an AC is ambiguous |
-| `open-pr` | Conventional PR title, filled template, push | Push needs approval; never merges |
+| `open-pr` | Conventional PR title, filled template, push | One yes covers the push and the PR (ADR 0031); never merges |
 | `adr` | `docs/adr/NNNN-*.md` | Proposed → Accepted by the user |
-| `batch-stories` | One feature's stories on one branch, each built by a fresh subagent so the session's context stays small, with a single PR at the end | Only the user can switch it on; it restores the harness afterwards |
+| `batch-stories` | One feature's stories on one branch, each built by a fresh subagent so the session's context stays small, with a single PR at the end | Only the user can switch it on; their yes covers the feature's pushes and its PR |
 
 ### 3. Reviewer subagents (`.claude/agents/`)
 Subagents run in their own context and report back. Fresh context matters: the agent that wrote the code is a poor judge of it. The reviewers have **no Edit or Write tools**, so they can report problems but can't "fix" them by weakening a test, and a harness test enforces that. They run on smaller models to keep cost down.
@@ -251,9 +251,9 @@ These are hooks in Claude Code's agent loop, not git hooks. Their output goes ba
 | `stop-gate.ts` | **Stop**, when the agent tries to finish | Runs `pnpm check` if the tree is dirty or the branch is ahead of `main`. **Blocks the first attempt to finish while the gate is red**; on the retry it lets the agent stop, so it reports the failure instead of looping |
 
 **Permissions** ([settings](.claude/settings.json)):
-- **Allowed freely:** `pnpm`, local git commands, and `cdk synth` or `cdk diff`.
-- **Asked first:** `git push`, `gh pr`, deploys and releases, `aws` commands, and edits to `.claude/` or `.github/`.
-- **Denied:** force-pushes, pushes to `main`, `cdk destroy`, and reading `.env` files.
+- **Allowed freely:** `pnpm`, local git commands, `cdk synth` or `cdk diff`, and `git push` and `gh pr create` (the agent asks once in the conversation before opening a PR, and that yes covers both: ADR 0031).
+- **Asked first:** merging, closing, reopening, editing or reviewing a PR, deploys and releases, `aws` commands, and edits to `.claude/` or `.github/`.
+- **Denied:** force-pushes, deleting a remote branch, pushes to `main`, `cdk destroy`, and reading `.env` files.
 
 ### 5. Git hooks (Lefthook)
 These cover humans and agents alike, and `pnpm install` installs them.
@@ -300,7 +300,7 @@ These cover humans and agents alike, and `pnpm install` installs them.
 3. `implement-story` on a branch. For each AC: **red** (a failing, behaviour-named test) → **green** → **refactor**. The hooks format and typecheck every edit as it happens.
 4. **Gate:** `pnpm check`. The Stop hook pushes back if the agent tries to finish while it's red.
 5. **Review loop:** the routed reviewers run in parallel, and every blocker is fixed. You decide on the UX findings. The story is marked `done`.
-6. `open-pr`: push (you approve it, and the `pre-push` hook runs the gate again) → PR with a Conventional Commit title.
+6. `open-pr`: you say yes once → push (the `pre-push` hook runs the gate again) → PR with a Conventional Commit title.
 7. **CI** re-runs the gate, the browser and database tests and the title check → **you squash-merge**.
 8. release-please updates the release PR → **`pnpm release` when you want to ship**: tag, GitHub Release, CHANGELOG and deploy.
 
@@ -353,6 +353,7 @@ These cover humans and agents alike, and `pnpm install` installs them.
 | [0028](docs/adr/0028-api-source-folders.md) | The API's source grouped by area, nested like the web's, with a `#/` import alias |
 | [0029](docs/adr/0029-director-permission-and-routes-naming-any-of-several.md) | A Director permission as a user pool group, and change routes that name any of several permissions |
 | [0030](docs/adr/0030-scenery-files-in-a-private-bucket-named-by-key.md) | Scenery files in a private S3 bucket, each named by its key under its production, item and department |
+| [0031](docs/adr/0031-one-yes-opens-a-pull-request.md) | One yes opens a pull request: it covers pushing the branch and creating the PR, while merging still asks |
 
 ---
 
