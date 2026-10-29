@@ -280,7 +280,7 @@ These cover humans and agents alike, and `pnpm install` installs them.
 
 **Workflow security:** every action is **pinned to a commit SHA**, and workflows use least-privilege tokens.
 
-**Releases:** merging the release PR doesn't deploy anything. The maintainer runs `pnpm release`, which merges the release PR, waits for its tag, then diffs and deploys that tag from their own machine. It refuses a diff that would replace the table or the user pool.
+**Releases:** merging the release PR doesn't deploy anything. The maintainer runs `pnpm release`, which merges the release PR, waits for its tag, then diffs and deploys that tag from their own machine. It refuses a diff that would replace the table, the user pool or the scenery files bucket.
 
 **The type decides the version:**
 

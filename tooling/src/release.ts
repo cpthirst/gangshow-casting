@@ -72,7 +72,10 @@ export const newestReleaseTag = (tags: string) => releaseTags(tags).at(-1);
 const plain = (text: string) => text.replace(/\x1b\[[0-9;]*m/g, "");
 
 const RESOURCE = /^\s*\[[-+~]\]\s+AWS::/;
-const STATEFUL = /AWS::(DynamoDB::Table|Cognito::UserPool)\s/;
+// The stack's TableV2 is a GlobalTable in CloudFormation. Only the files bucket is listed, by
+// its construct path, which must change here if it does: the pages' bucket holds nothing a
+// deploy can't rebuild.
+const STATEFUL = /AWS::(DynamoDB::(Global)?Table|Cognito::UserPool|S3::Bucket FilesBucket)\s/;
 const REMOVED_OR_REPLACED = /\b(destroy|replace|orphan)\b|requires replacement/;
 
 /** The resources a `cdk diff` would remove or replace, as their lines, in a block per
@@ -86,9 +89,10 @@ function removedOrReplaced(diff: string) {
   return blocks.filter((block) => block.some((line) => REMOVED_OR_REPLACED.test(line)));
 }
 
-/** The table or user pool lines of a `cdk diff` that would destroy, replace or orphan them:
- *  they hold the show and the accounts (hosting guide, section 1). A user pool's client or
- *  group is not the pool. Re-check this against real `cdk diff` output after a CDK upgrade. */
+/** The table, user pool or files bucket lines of a `cdk diff` that would destroy, replace or
+ *  orphan them: they hold the show, the accounts and the scenery files (hosting guide, section
+ *  1; ADR 0030). A user pool's client or group is not the pool, nor a bucket's policy the
+ *  bucket. Re-check this against real `cdk diff` output after a CDK upgrade. */
 export const statefulResourceRisks = (diff: string) =>
   removedOrReplaced(diff)
     .filter((block) => STATEFUL.test(block[0] ?? ""))
@@ -247,7 +251,7 @@ async function deploy(tag: string, account: string, deps: ReleaseDeps) {
   });
   if (diff.code !== 0 || !looksLikeDiff(diff.output)) {
     print(
-      "Couldn't read the deploy's diff, so the table and user pool can't be checked. Not deploying.",
+      "Couldn't read the deploy's diff, so the table, user pool and files bucket can't be checked. Not deploying.",
     );
     return 1;
   }
@@ -262,7 +266,7 @@ async function deploy(tag: string, account: string, deps: ReleaseDeps) {
   }
   const removed = removedOrReplacedLines(diff.output);
   if (removed.length > 0) {
-    print("Resources this deploy removes or replaces (not the table or user pool):");
+    print("Resources this deploy removes or replaces (not the table, user pool or files bucket):");
     for (const line of removed) print(`  ${line}`);
   }
   if (

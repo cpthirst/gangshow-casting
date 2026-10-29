@@ -37,7 +37,7 @@ pnpm infra:diff
 pnpm infra:deploy
 ```
 
-`pnpm infra:diff` shows what the deploy will change. Read it before you deploy: the table (`DataTable`) and the user pool (`UserPool`) hold the show and the accounts, and a deploy should never replace or remove either. If the diff says it would, stop and ask for help. Use `pnpm infra:deploy`, never `pnpm deploy`, which is one of pnpm's own commands and never reaches AWS.
+`pnpm infra:diff` shows what the deploy will change. Read it before you deploy: the table (`DataTable`), the user pool (`UserPool`) and the files bucket (`FilesBucket`) hold the show, the accounts and the scenery files, and a deploy should never replace or remove any of them. If the diff says it would, stop and ask for help. Use `pnpm infra:deploy`, never `pnpm deploy`, which is one of pnpm's own commands and never reaches AWS.
 
 The deploy builds the pages and the API on your machine, then uploads them. The first one takes about 15 minutes, as CloudFront sets up; later ones take a few. At the end it prints the stack's outputs:
 
@@ -119,7 +119,7 @@ export ALERT_EMAIL=you@example.com AWS_PROFILE=gangshow-admin
 pnpm release
 ```
 
-It needs a clean working tree, and it stops at the first thing that goes wrong rather than carrying on. It checks your AWS profile works before it touches anything, then switches to `main`, finds the open release pull request (by its branch, not just its title) and asks before it merges it. It merges with your admin bypass of the branch ruleset (`gh pr merge --admin`), because GitHub never runs the required checks on a release PR. Then it waits for the release's tag, checks the code really is at that tag, and shows you the `cdk diff`, listing anything it would remove or replace. It refuses a diff it can't read, and one that would replace or remove the table or the user pool. It asks before it deploys, naming the AWS account. After the deploy it offers the post-deploy check, reading the stack's outputs itself and using the check accounts `check-admin`, `check-member` and `check-read-only` (set `CHECK_ADMIN`, `CHECK_MEMBER` and `CHECK_READ_ONLY` for other names), then returns you to `main`. On a release it also says which version you replaced, so you know what to go back to. If you stop a deploy half way (Ctrl+C), check the stack's status in the AWS console before you run `pnpm release <version>` again: CloudFormation may still be updating.
+It needs a clean working tree, and it stops at the first thing that goes wrong rather than carrying on. It checks your AWS profile works before it touches anything, then switches to `main`, finds the open release pull request (by its branch, not just its title) and asks before it merges it. It merges with your admin bypass of the branch ruleset (`gh pr merge --admin`), because GitHub never runs the required checks on a release PR. Then it waits for the release's tag, checks the code really is at that tag, and shows you the `cdk diff`, listing anything it would remove or replace. It refuses a diff it can't read, and one that would replace or remove the table, the user pool or the files bucket. It asks before it deploys, naming the AWS account. After the deploy it offers the post-deploy check, reading the stack's outputs itself and using the check accounts `check-admin`, `check-member` and `check-read-only` (set `CHECK_ADMIN`, `CHECK_MEMBER` and `CHECK_READ_ONLY` for other names), then returns you to `main`. On a release it also says which version you replaced, so you know what to go back to. If you stop a deploy half way (Ctrl+C), check the stack's status in the AWS console before you run `pnpm release <version>` again: CloudFormation may still be updating.
 
 By hand:
 
@@ -143,7 +143,7 @@ People already using the app pick up the new pages the next time they load it. A
 
 ## 5. Go back to the previous version
 
-If a release goes wrong, deploy the previous one: `pnpm release <previous version>` (for example `pnpm release v0.8.0`) does the steps below and merges nothing. Going back changes only the pages and the API's code. The show's data and the team's accounts stay as they are: the stack keeps the table and the user pool, both protected from deletion, and a deploy doesn't change what's in them.
+If a release goes wrong, deploy the previous one: `pnpm release <previous version>` (for example `pnpm release v0.8.0`) does the steps below and merges nothing. Going back changes only the pages and the API's code. The show's data, the team's accounts and the scenery files stay as they are: the table, the user pool and the files bucket outlive even a deleted stack, and a deploy doesn't change what's in them.
 
 ```bash
 git fetch --tags
