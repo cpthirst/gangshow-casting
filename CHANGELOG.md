@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.31.0](https://github.com/cpthirst/gangshow-casting/compare/v1.30.0...v1.31.0) (2026-10-29)
+
+
+### Features
+
+* **web:** upload a scenery file (production-scenery.E2.S7) ([#153](https://github.com/cpthirst/gangshow-casting/issues/153)) ([9da1967](https://github.com/cpthirst/gangshow-casting/commit/9da1967b2c162e62c19302d5d569cceffad671f4))
+
 ## [1.30.0](https://github.com/cpthirst/gangshow-casting/compare/v1.29.0...v1.30.0) (2026-10-29)
 
 
