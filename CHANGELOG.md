@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.35.0](https://github.com/cpthirst/gangshow-casting/compare/v1.34.0...v1.35.0) (2026-10-29)
+
+
+### Features
+
+* **web:** record visits to Scenery pages on the Usage page (production-scenery.E3.S2) ([#162](https://github.com/cpthirst/gangshow-casting/issues/162)) ([baf5c01](https://github.com/cpthirst/gangshow-casting/commit/baf5c015e9cd17a32031df5a1ef271d69a80e1fe))
+
 ## [1.34.0](https://github.com/cpthirst/gangshow-casting/compare/v1.33.0...v1.34.0) (2026-10-29)
 
 
