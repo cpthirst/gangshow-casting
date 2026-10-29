@@ -275,6 +275,22 @@ test("a 30-item show's timelines keep readable dots, wrapping half by half", asy
 test.describe("on a desktop screen", () => {
   test.use({ viewport: { width: 1280, height: 800 }, isMobile: false });
 
+  // Just above the width where the Overview turns into cards, its table is at its tightest;
+  // the count headings are capitals that can't wrap.
+  for (const width of [1125, 1280]) {
+    test(`the Production overview's table fits ${width}px without scrolling sideways`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 800 });
+      await page.goto("/production/overview");
+      await expect(page.locator("main thead").first()).toBeVisible();
+      await expectNoSidewaysScroll(page);
+      for (const box of await page.locator("main .table-scroll").all()) {
+        expect(await box.evaluate((el) => el.scrollWidth - el.clientWidth)).toBe(0);
+      }
+    });
+  }
+
   test("timeline dots stay full size", async ({ page }) => {
     await showOf(page, 20);
     const layouts = await openTimelines(page);

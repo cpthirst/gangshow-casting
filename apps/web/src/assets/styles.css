@@ -450,6 +450,12 @@ main a {
   width: 7.5rem;
 }
 
+/* The Production overview's five count columns leave its titles little room: its # column is
+   as narrow as "Not in printed programme" allows, wrapped to one word a line. */
+.items-list .col-number.narrow {
+  width: 6rem;
+}
+
 .items-list .col-counts {
   width: 11rem;
 }

@@ -191,7 +191,7 @@ async function loadRunningOrder() {
           <!-- The same column widths in both halves, so they line up. -->
           <colgroup>
             <col class="col-departments" />
-            <col class="col-number" />
+            <col class="col-number narrow" />
             <col />
             <col v-for="department in departmentPages" :key="department.path" class="col-count" />
           </colgroup>
