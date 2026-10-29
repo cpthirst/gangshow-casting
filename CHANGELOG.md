@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.27.1](https://github.com/cpthirst/gangshow-casting/compare/v1.27.0...v1.27.1) (2026-10-29)
+
+
+### Bug Fixes
+
+* **tooling:** refuse a release that replaces the real table or the files bucket ([#141](https://github.com/cpthirst/gangshow-casting/issues/141)) ([b6bd058](https://github.com/cpthirst/gangshow-casting/commit/b6bd0586401cf71045614f7b5db1234499f524a9))
+
 ## [1.27.0](https://github.com/cpthirst/gangshow-casting/compare/v1.26.0...v1.27.0) (2026-10-29)
 
 
