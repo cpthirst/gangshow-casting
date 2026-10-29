@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.30.0](https://github.com/cpthirst/gangshow-casting/compare/v1.29.0...v1.30.0) (2026-10-29)
+
+
+### Features
+
+* **web:** show a count for each department on the Overview (production-overview.E2.S3) ([#151](https://github.com/cpthirst/gangshow-casting/issues/151)) ([2a116a4](https://github.com/cpthirst/gangshow-casting/commit/2a116a433dc48c11de5b530376be120c52f731b0))
+
 ## [1.29.0](https://github.com/cpthirst/gangshow-casting/compare/v1.28.0...v1.29.0) (2026-10-29)
 
 
