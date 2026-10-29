@@ -38,7 +38,7 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [production-scenery.E3.S1](stories/E3-S1-welcome-and-help.md) | Welcome and Help describe the Scenery page (uploading, replacing, downloading and deleting files, and the "no photos of cast members" rule) and the Director permission: what it can and can't change | FR14 | E1.S2, E2.S5 | draft |
+| [production-scenery.E3.S1](stories/E3-S1-welcome-and-help.md) | Welcome and Help describe the Scenery page (uploading, replacing, downloading and deleting files, and the "no photos of cast members" rule) and the Director permission: what it can and can't change | FR14 | E1.S2, E2.S5 | done |
 | [production-scenery.E3.S2](stories/E3-S2-scenery-page-visits.md) | The Usage page records visits to each item's Scenery page, as it records the casting item pages. Uploads, downloads and deletes aren't recorded | FR15 | E2.S1 | done |
 
 ## Order

@@ -49,6 +49,15 @@ describe("Welcome page", () => {
     );
   });
 
+  it("says each item's Scenery page holds its set plans, designs and photos, for everyone to download", async () => {
+    const { wrapper } = await openWelcome();
+
+    const production = wrapper.findAll("dd")[2]?.text().replace(/\s+/g, " ") ?? "";
+    expect(production).toContain(
+      "Each item's Scenery page holds its set plans, designs and photos, for everyone to download.",
+    );
+  });
+
   it.each([
     ["show", "running-order"],
     ["casting", "casting-overview"],

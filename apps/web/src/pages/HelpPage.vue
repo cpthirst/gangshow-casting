@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import PageHelp from "@/components/common/PageHelp.vue";
-import { pageHelp } from "@/utils/help.ts";
+import { pageHelp, permissionHelp } from "@/utils/help.ts";
 </script>
 
 <template>
@@ -18,5 +18,22 @@ import { pageHelp } from "@/utils/help.ts";
         >Go to the {{ (help.reachedFrom ?? help).title }} page</RouterLink
       >
     </p>
+  </section>
+  <section class="help-section" aria-labelledby="help-permissions">
+    <h2 id="help-permissions">Permissions</h2>
+    <p>
+      Everyone can view the show, casting and production pages. An admin gives each account the
+      permissions it needs to change things:
+    </p>
+    <ul class="help-lines" role="list">
+      <li
+        v-for="permission in permissionHelp"
+        :key="permission.name"
+        class="help-line"
+        data-test="permission"
+      >
+        <span><strong>{{ permission.name }}</strong>: {{ permission.does }}</span>
+      </li>
+    </ul>
   </section>
 </template>

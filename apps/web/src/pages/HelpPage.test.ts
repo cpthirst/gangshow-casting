@@ -290,6 +290,7 @@ describe("Help page", () => {
         "Production overview",
         "An item's scenery",
         "An item's props",
+        "Permissions",
       ]);
       await router.push("/help");
       expect(await followLink(wrapper, router, "scenery-item")).toBe("production-overview");
@@ -334,14 +335,17 @@ describe("Help page", () => {
         "All items",
         "Previous and Next",
         "Files",
+        "Remove",
         "Add a file",
         "Scenery notes",
       ]);
       expect(accessOf(wrapper, "All items", "scenery-item")).toBe("Everyone");
       expect(accessOf(wrapper, "Files", "scenery-item")).toBe("Everyone");
-      expect(accessOf(wrapper, "Add a file", "scenery-item")).toBe(
-        "Accounts with Stage, Tech or Director, and admins",
-      );
+      for (const action of ["Remove", "Add a file"]) {
+        expect(accessOf(wrapper, action, "scenery-item")).toBe(
+          "Accounts with Stage, Tech or Director, and admins",
+        );
+      }
       // The icons the files show, so the help matches what's on the page.
       expect(
         lineNamed(wrapper, "Files", "scenery-item")
@@ -365,6 +369,32 @@ describe("Help page", () => {
         "Reading: Everyone",
         "Changing: Accounts with Stage, Tech or Director, and admins",
       ]);
+    });
+
+    it("say how to download, upload, replace and remove a scenery file, and that replacing and removing can't be undone", async () => {
+      const { wrapper } = await openHelp();
+
+      const doesOf = (name: string) =>
+        lineNamed(wrapper, name, "scenery-item").get("[data-test=help-does]").text();
+      expect(doesOf("Files")).toContain("Any other file downloads.");
+      expect(doesOf("Add a file")).toContain("Adds one file of up to 100 MB");
+      expect(doesOf("Add a file")).toContain(
+        "A file with the same name as one already there replaces it, once you confirm. The old copy can't be brought back.",
+      );
+      expect(doesOf("Remove")).toBe(
+        "Takes a file off the item, once you confirm. It can't be brought back.",
+      );
+      expect(lineNamed(wrapper, "Remove", "scenery-item").get("svg").attributes("data-icon")).toBe(
+        icons.remove.iconName,
+      );
+    });
+
+    it("say scenery is for scenery and set images only, never photos of cast members", async () => {
+      const { wrapper } = await openHelp();
+
+      expect(
+        lineNamed(wrapper, "Add a file", "scenery-item").get("[data-test=help-does]").text(),
+      ).toContain("Scenery and set images only: no photos of cast members.");
     });
 
     it("name the Overview's five buttons in row order, each with its icon, its page and whether it's coming soon", async () => {
@@ -435,6 +465,37 @@ describe("Help page", () => {
       );
       expect(wrapper.text()).not.toMatch(
         /Production → (Stage|Tech|Wardrobe)|(Stage|Tech|Wardrobe) (page|view)|the (Scenery|Props|Mic plot|SFX) view/,
+      );
+    });
+  });
+
+  describe("the Permissions section", () => {
+    const permissionLines = (wrapper: Wrapper) =>
+      wrapper
+        .get("section[aria-labelledby='help-permissions']")
+        .findAll("[data-test=permission]")
+        .map((line) => line.text().replace(/\s+/g, " "));
+
+    it("comes last, with a line for each permission and for admins", async () => {
+      const { wrapper } = await openHelp();
+
+      expect(wrapper.findAll("h2").at(-1)?.text()).toBe("Permissions");
+      expect(permissionLines(wrapper).map((line) => line.split(":")[0])).toEqual([
+        "Casting",
+        "Stage",
+        "Tech",
+        "Wardrobe",
+        "Director",
+        "Admins",
+      ]);
+    });
+
+    it("says a Director changes every production department's pages, but not the cast, roles, casting or running order, and nothing admin-only", async () => {
+      const { wrapper } = await openHelp();
+
+      const director = permissionLines(wrapper).find((line) => line.startsWith("Director:"));
+      expect(director).toBe(
+        "Director: Changes every production department's pages, now and as they come: Scenery and Props today. Not the cast, roles, casting or running order, and nothing only admins can do.",
       );
     });
   });
