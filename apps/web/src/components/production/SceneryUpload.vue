@@ -3,9 +3,10 @@ import { nextTick, ref, shallowRef } from "vue";
 import { uploadSceneryFile } from "@/services/scenery-upload.ts";
 import { fileSize, replaceQuestion, uploadRefusal } from "@/utils/scenery.ts";
 
-// Uploading one file at a time to an item's scenery, chosen with the button, showing how much
-// has gone (production-scenery FR8). A name the item has replaces its file once confirmed
-// (FR9). The page shows any problem, and lists the files again when storage has changed.
+// Uploading one file at a time to an item's scenery, chosen with the button or dropped on the
+// area, showing how much has gone (production-scenery FR8). A name the item has replaces its
+// file once confirmed (FR9). The page shows any problem, and lists the files again when storage
+// has changed.
 
 const props = defineProps<{ itemId: string; names: string[] }>();
 const emit = defineEmits<{ changed: []; problem: [message: string | undefined] }>();
@@ -19,12 +20,49 @@ const sending = shallowRef<{ file: File; fraction: number }>();
 const announced = ref("");
 // The last upload, if it failed, so it can be tried again without choosing the file again.
 const failed = shallowRef<{ file: File; replace: boolean }>();
+// Whether a file is being dragged over the area, which highlights it.
+const dropping = ref(false);
 
 async function chosen() {
   const file = picker.value?.files?.[0];
   // Cleared, so choosing the same file again still uploads it.
   if (picker.value) picker.value.value = "";
   if (!file || sending.value) return;
+  await take(file);
+}
+
+// Only a drag of the computer's files, not text or a link from the page.
+const carriesFiles = (event: DragEvent) => !!event.dataTransfer?.types.includes("Files");
+
+function draggedOver(event: DragEvent) {
+  if (!carriesFiles(event)) return;
+  // Taken, or the browser won't drop the file here and opens it in place of the app instead.
+  event.preventDefault();
+  // Not drawn as a target during an upload, when a file dropped won't upload.
+  dropping.value = !sending.value;
+}
+
+function dragLeft(event: DragEvent) {
+  // Moving onto the area's own button or text still leaves it over the area.
+  const area = event.currentTarget;
+  const to = event.relatedTarget;
+  if (area instanceof Node && to instanceof Node && area.contains(to)) return;
+  dropping.value = false;
+}
+
+async function dropped(event: DragEvent) {
+  if (!carriesFiles(event)) return;
+  event.preventDefault();
+  dropping.value = false;
+  const files = event.dataTransfer?.files;
+  if (!files?.length) return;
+  if (sending.value) return emit("problem", "Wait for the upload to finish.");
+  const [file] = files;
+  if (files.length > 1 || !file) return emit("problem", "Drop one file at a time.");
+  await take(file);
+}
+
+async function take(file: File) {
   const refused = uploadRefusal(file);
   emit("problem", refused);
   if (refused) return;
@@ -67,7 +105,15 @@ async function upload(file: File, replace: boolean) {
 </script>
 
 <template>
-  <div class="cast-actions scenery-upload" data-test="upload-area">
+  <div
+    class="cast-actions scenery-upload"
+    :class="{ dropping }"
+    data-test="upload-area"
+    @dragenter="draggedOver"
+    @dragover="draggedOver"
+    @dragleave="dragLeft"
+    @drop="dropped"
+  >
     <div class="upload-buttons">
       <button
         ref="button"
@@ -78,6 +124,7 @@ async function upload(file: File, replace: boolean) {
       >
         {{ sending ? "Uploading…" : "Add a file" }}
       </button>
+      <span v-if="!sending" class="upload-drop-hint">or drag one here</span>
       <button
         v-if="failed"
         type="button"

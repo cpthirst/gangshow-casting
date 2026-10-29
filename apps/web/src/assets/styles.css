@@ -966,6 +966,23 @@ main a {
   gap: 0.5rem;
 }
 
+.scenery-upload .upload-drop-hint {
+  align-self: center;
+}
+
+/* A phone or tablet can't drag a file in, so it isn't told it can. */
+@media (hover: none) {
+  .scenery-upload .upload-drop-hint {
+    display: none;
+  }
+}
+
+/* Where a file being dragged will drop (FR8). */
+.scenery-upload.dropping {
+  outline: 2px dashed var(--red-deep);
+  outline-offset: 0.25rem;
+}
+
 /* How much of an upload has gone, under its buttons (FR8). */
 .scenery-upload .upload-progress {
   display: grid;

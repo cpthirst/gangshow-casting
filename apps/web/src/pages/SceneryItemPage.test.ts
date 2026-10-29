@@ -17,6 +17,7 @@ import { useLocalSignIn } from "@/services/sign-in.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
 import { RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
 import {
+  replaceQuestion,
   SCENERY_NOTES_PATH,
   sceneryFileLinkPath,
   sceneryFilePath,
@@ -1124,5 +1125,179 @@ describe("Replacing a scenery file", () => {
     expect(storageRequests()).toEqual([]);
     expect(held["opening-number"]).toEqual([{ name: "set-plan.pdf", size: 2_400_000 }]);
     expect(rows(wrapper)).toEqual([{ name: "set-plan.pdf", size: "2.4 MB" }]);
+  });
+});
+
+/** A drag onto the upload area, as the browser sends it: from the computer's files unless
+ *  other types are given, such as text selected on the page. */
+async function drag(
+  wrapper: VueWrapper,
+  type: string,
+  {
+    files = [],
+    types = ["Files"],
+    from,
+  }: { files?: File[]; types?: string[]; from?: Element } = {},
+) {
+  const event = new Event(type, { bubbles: true, cancelable: true });
+  Object.defineProperty(event, "dataTransfer", { value: { files, types } });
+  Object.defineProperty(event, "relatedTarget", { value: from ?? null });
+  wrapper.get("main [data-test=upload-area]").element.dispatchEvent(event);
+  await flushPromises();
+  return event;
+}
+const dropOnto = (wrapper: VueWrapper, ...files: File[]) => drag(wrapper, "drop", { files });
+const highlighted = (wrapper: VueWrapper) =>
+  wrapper.get("main [data-test=upload-area]").classes("dropping");
+
+describe("Dragging a file to upload", () => {
+  it("uploads a dropped file as a chosen one, and shows its row", async () => {
+    await signInAs(["stage"], "pat");
+    const held = { "opening-number": [{ name: "Backdrop.png", size: 800_000 }] };
+    apiHolds(show, held);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    const dropped = await dropOnto(wrapper, aFile("set-plan.pdf", 2_400_000));
+
+    // Taken by the page, so the browser doesn't open the file in place of the app.
+    expect(dropped.defaultPrevented).toBe(true);
+    expect(held["opening-number"]).toContainEqual({ name: "set-plan.pdf", size: 2_400_000 });
+    expect(rows(wrapper)).toEqual([
+      { name: "Backdrop.png", size: "800 KB" },
+      { name: "set-plan.pdf", size: "2.4 MB" },
+    ]);
+  });
+
+  it("puts a dropped file through the chosen file's checks", async () => {
+    await signInAs(["stage"], "pat");
+    apiHolds(show);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    await dropOnto(wrapper, aFile("rig.mov", 120_000_000));
+
+    expect(problem(wrapper)).toBe("rig.mov is over 100 MB, so it wasn't uploaded.");
+    expect(uploadRequests()).toEqual([]);
+  });
+
+  it("asks to replace a dropped file of the same name", async () => {
+    await signInAs(["stage"], "pat");
+    const held = { "opening-number": [{ name: "set-plan.pdf", size: 2_400_000 }] };
+    apiHolds(show, held);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+    const confirm = answerReplace(true);
+
+    await dropOnto(wrapper, aFile("set-plan.pdf", 5_000));
+
+    expect(confirm).toHaveBeenCalledWith(replaceQuestion("set-plan.pdf"));
+    expect(held["opening-number"]).toEqual([{ name: "set-plan.pdf", size: 5_000 }]);
+  });
+
+  it("highlights the upload area while a file is over it, taking the drag", async () => {
+    await signInAs(["stage"], "pat");
+    apiHolds(show);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+    expect(highlighted(wrapper)).toBe(false);
+
+    // Taken, or the browser won't let the file be dropped there.
+    const over = await drag(wrapper, "dragover");
+    expect(over.defaultPrevented).toBe(true);
+    expect(highlighted(wrapper)).toBe(true);
+
+    await dropOnto(wrapper, aFile("set-plan.pdf"));
+    expect(highlighted(wrapper)).toBe(false);
+  });
+
+  it("stops highlighting when the file is dragged away, but not onto the area's own button", async () => {
+    await signInAs(["stage"], "pat");
+    apiHolds(show);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+    await drag(wrapper, "dragenter");
+
+    // Leaving the area itself for its button is still over the area.
+    await drag(wrapper, "dragleave", { from: wrapper.get("main [data-test=upload]").element });
+    expect(highlighted(wrapper)).toBe(true);
+
+    await drag(wrapper, "dragleave", { from: document.body });
+    expect(highlighted(wrapper)).toBe(false);
+  });
+
+  it("leaves text dragged from the page alone, neither highlighting nor taking it", async () => {
+    await signInAs(["stage"], "pat");
+    apiHolds(show);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    const over = await drag(wrapper, "dragover", { types: ["text/plain"] });
+    expect(over.defaultPrevented).toBe(false);
+    expect(highlighted(wrapper)).toBe(false);
+
+    const dropped = await drag(wrapper, "drop", { types: ["text/plain"] });
+    expect(dropped.defaultPrevented).toBe(false);
+    expect(wrapper.find("main [data-test=file-problem]").exists()).toBe(false);
+  });
+
+  it("doesn't highlight the area during an upload, as a file dropped then won't upload", async () => {
+    await signInAs(["stage"], "pat");
+    apiHolds(show);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+    const release = holdStorage();
+    await choose(wrapper, aFile("set-plan.pdf", 40_000_000));
+
+    await drag(wrapper, "dragover");
+
+    expect(highlighted(wrapper)).toBe(false);
+    release();
+    await flushPromises();
+  });
+
+  it("uploads neither of two files dropped at once, saying so", async () => {
+    await signInAs(["stage"], "pat");
+    apiHolds(show);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    await dropOnto(wrapper, aFile("set-plan.pdf"), aFile("backdrop.png"));
+
+    expect(problem(wrapper)).toBe("Drop one file at a time.");
+    expect(uploadRequests()).toEqual([]);
+    expect(rows(wrapper)).toEqual([]);
+  });
+
+  it("says beside the button that a file can be dragged there", async () => {
+    await signInAs(["stage"], "pat");
+    apiHolds(show);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    const hint = wrapper.get("main [data-test=upload-area] .upload-drop-hint");
+    expect(hint.text()).toBe("or drag one here");
+    expect(hint.element.previousElementSibling).toBe(
+      wrapper.get("main [data-test=upload]").element,
+    );
+  });
+
+  it.each([
+    [["casting"], "sam"],
+    [[], "jo"],
+  ])("doesn't tell %s that a file can be dragged there", async (groups, name) => {
+    await signInAs(groups, name);
+    apiHolds(show);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    expect(wrapper.get("main").text()).not.toContain("drag one here");
+  });
+
+  it("uploads nothing dropped during an upload, saying to wait, and finishes the first", async () => {
+    await signInAs(["stage"], "pat");
+    const held: Record<string, SceneryFile[]> = { "opening-number": [] };
+    apiHolds(show, held);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+    const release = holdStorage();
+    await choose(wrapper, aFile("set-plan.pdf", 40_000_000));
+
+    await dropOnto(wrapper, aFile("backdrop.png"));
+
+    expect(problem(wrapper)).toBe("Wait for the upload to finish.");
+    expect(uploadRequests()).toHaveLength(1);
+    release();
+    await flushPromises();
+    expect(held["opening-number"]).toEqual([{ name: "set-plan.pdf", size: 40_000_000 }]);
   });
 });
