@@ -1,4 +1,4 @@
-import { flushPromises, mount } from "@vue/test-utils";
+import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory, type Router } from "vue-router";
 import { createAppRouter } from "@/router/index.ts";
@@ -35,6 +35,8 @@ const respondWith = (status: number, body: unknown) =>
 
 // The app-wide sign-in state outlives each mount, so every test starts as pnpm dev does.
 beforeEach(useLocalSignIn);
+// An app left mounted reloads its page when a later test signs in, with that test's fetch.
+enableAutoUnmount(afterEach);
 
 describe("App shell", () => {
   beforeEach(() => vi.stubGlobal("fetch", respondWith(200, { status: "ok", version: "1.2.3" })));
