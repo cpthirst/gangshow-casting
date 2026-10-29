@@ -57,13 +57,15 @@ The show calls the department **Wardrobe**, not Costume. The app's name for it d
   - the item's number, blank for items not in the printed programme;
   - its title, marked "Not in printed programme" where that applies;
   - one square button for each department page, in this order: **Scenery**, **Props**, **SFX**, **Mic plot**, **Wardrobe**, each with its own icon;
-  - the **number of props** the item has, in a column headed Props.
+  - the **number of props** the item has, in a column headed Props (amended by FR14).
 
   There's no minutes column. There are no view switches (pills) on the page.
 - **FR5**: Each square button opens that department's page for the item. Every role can open every one. Someone with that department's permission (or an Admin) can make changes there, and anyone else sees it read-only, with the line saying what can be viewed but not changed (production-props FR3). Each button's accessible name says what it opens, for which item, and whether it is to edit or to view (for example "Edit props for Opening Number").
 - **FR6**: An item's props notes appear in full under its row, labelled as props notes, as on today's Props view (production-props FR14). Items without props notes show nothing extra.
 - **FR7**: If there's no saved running order, the Overview says so and points to the Running order page, as Casting Items does.
 - **FR8**: The Overview has a **Generate Props List** button that works as it does today (production-props FR22, FR23). Later exports (Mic Plot in Excel, SFX List in Word) sit beside it when their features are built.
+
+- **FR14** (added 2026-10-29): After the item's title, the Overview has a **count column for each department page**, in button order: **Scenery**, **Props**, **SFX**, **Mic plot**, **Wardrobe**, each headed with the department's name. Each cell shows the number, with the word for what it counts written small underneath ("9" over "files", "1" over "file", "3" over "props"), and "0" when there are none. Scenery counts the item's files in file storage; Props counts its props, as FR4. A department whose page still says "Coming soon" shows a dash until its feature adds its own count. Screen readers hear each count as one phrase ("9 scenery files").
 
 ### Each item's department pages
 - **FR9**: The props item page's link back goes to the Overview. Its Previous and Next links are unchanged.
