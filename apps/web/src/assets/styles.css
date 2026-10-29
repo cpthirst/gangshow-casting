@@ -960,6 +960,26 @@ main a {
   margin: 0.5rem 0 0;
 }
 
+.scenery-upload .upload-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* How much of an upload has gone, under its buttons (FR8). */
+.scenery-upload .upload-progress {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0.5rem 0 0;
+  overflow-wrap: anywhere;
+}
+
+.scenery-upload progress {
+  width: 100%;
+  max-width: 24rem;
+  accent-color: var(--red-deep);
+}
+
 /* The add/edit form: same look as the running order's item editor. */
 .cast-member-form {
   display: grid;

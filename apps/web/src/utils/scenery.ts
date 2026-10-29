@@ -17,14 +17,15 @@ export const sceneryFilePath = (itemId: string, name: string) =>
 export const sceneryUploadsPath = (itemId: string) =>
   `/api/productions/${PRODUCTION_ID}/items/${encodeURIComponent(itemId)}/scenery-uploads`;
 
-/** What the page says of an upload whose name the item already has (FR9). */
-export const nameTakenMessage = (name: string) => `There's already a file called ${name}.`;
+/** What the page asks before an upload replaces the item's file of the same name (FR9):
+ *  there's no history, so the old copy is gone for good. */
+export const replaceQuestion = (name: string) =>
+  `Replace ${name}? The old copy can't be brought back.`;
 
-/** Why the page won't upload a file, before asking the API: too big, or a name the item
- *  already has, compared exactly (FR8, FR9); undefined if it may. */
-export function uploadRefusal({ name, size }: { name: string; size: number }, names: string[]) {
+/** Why the page won't upload a file, before asking the API: it's too big (FR8); undefined if
+ *  it may. */
+export function uploadRefusal({ name, size }: { name: string; size: number }) {
   if (size > MAX_SCENERY_FILE_BYTES) return `${name} is over 100 MB, so it wasn't uploaded.`;
-  if (names.includes(name)) return nameTakenMessage(name);
   return undefined;
 }
 
