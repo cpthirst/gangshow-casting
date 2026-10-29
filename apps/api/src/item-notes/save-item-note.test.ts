@@ -87,6 +87,7 @@ describe("item notes across running-order versions", () => {
     const saveOrder = createSaveRunningOrder(runningOrders, {
       roles: inMemoryRoleStore(),
       itemNotes: notes,
+      sceneryFiles: { keepOnlyItems: async () => {} },
     });
     await save(put({ text: "Hat change", revision: 0 }));
 

@@ -111,7 +111,11 @@ describe("data stores with a remote table", () => {
       DATA_TABLE: table.tableName,
     });
     await runningOrders.save(aRunningOrder(4, { first: ["Curtain Up", "Finale"] }));
-    const save = createSaveRunningOrder(runningOrders, { roles, itemNotes });
+    const save = createSaveRunningOrder(runningOrders, {
+      roles,
+      itemNotes,
+      sceneryFiles: { keepOnlyItems: async () => {} },
+    });
     const saveFrom = (baseVersion: number, titles: string[]) =>
       save({
         pathParameters: { productionId: "2027" },

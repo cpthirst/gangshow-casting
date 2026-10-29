@@ -30,6 +30,10 @@ export interface SceneryFileStore {
     name: string,
     options: { replace: boolean },
   ): Promise<SceneryUpload | "taken">;
+  /** Deletes every scenery file of the production's items not listed, for good, leaving other
+   *  departments' files alone (FR13). It goes by storage, not the running order, so a file put
+   *  in a removed item's folder later goes too. */
+  keepOnlyItems(productionId: string, itemIds: string[]): Promise<void>;
 }
 
 /** The item's place in storage: `<production>/<item id>/scenery/` (ADR 0030). The ids are
@@ -49,6 +53,14 @@ export function countsByItem(keys: Iterable<string>) {
     counts[itemId] = (counts[itemId] ?? 0) + 1;
   }
   return counts;
+}
+
+/** Whether the key, `<item id>/scenery/…` under the production's folder, is a scenery file or
+ *  folder of an item not kept. */
+export function isDroppedScenery(key: string, kept: ReadonlySet<string>) {
+  const [item, department, ...rest] = key.split("/");
+  const itemId = folderIdOf(item);
+  return itemId !== undefined && !kept.has(itemId) && department === "scenery" && rest.length > 0;
 }
 
 /** A file storage keeps under the item's folder, as a list of zero or one scenery files: none
@@ -105,6 +117,18 @@ export function folderSceneryFileStore(folder: string): SceneryFileStore {
       if (taken && !replace) return "taken";
       // The dev server takes the file here, as the bucket would (dev-server.ts).
       return { url: localFileLink(sceneryFolderOf(productionId, itemId), name), fields: {} };
+    },
+    async keepOnlyItems(productionId, itemIds) {
+      const kept = new Set(itemIds);
+      const items =
+        (await ifExists(() => readdir(join(folder, productionId), { withFileTypes: true }))) ?? [];
+      for (const item of items) {
+        if (!item.isDirectory() || !isDroppedScenery(`${item.name}/scenery/`, kept)) continue;
+        await rm(join(folder, sceneryFolderOf(productionId, item.name)), {
+          recursive: true,
+          force: true,
+        });
+      }
     },
   };
   return store;

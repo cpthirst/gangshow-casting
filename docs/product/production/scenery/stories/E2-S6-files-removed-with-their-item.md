@@ -2,7 +2,7 @@
 id: production-scenery.E2.S6
 title: Delete an item's scenery files when it leaves the running order
 epic: E2
-status: draft
+status: done
 ---
 
 ## Story
@@ -41,4 +41,5 @@ Then that file is deleted
 - FRs: FR13
 - Depends on: production-scenery.E2.S1
 - Runs in the removal clean-up that already deletes a removed item's notes, roles and props after each save (running-order E3.S2). Since names aren't in the database, it works from file storage: any item folder in the production that isn't in the saved running order is deleted (AC5).
-- The data function's permission to delete in file storage is limited to this production's files (infra review).
+- No infra change: the data function may already delete scenery files and nothing else (`*/*/scenery/*`, production-scenery FR11), and a batch delete needs only that permission. Other departments' files under an item's folder are left alone.
+- Refined at `write-story` (2026-10-29): the running order's remove question keeps naming only the roles and casting notes, by the maintainer's choice, though saving now deletes the item's scenery files too.
