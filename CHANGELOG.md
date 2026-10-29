@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.27.0](https://github.com/cpthirst/gangshow-casting/compare/v1.26.0...v1.27.0) (2026-10-29)
+
+
+### Features
+
+* **web:** list an item's scenery files from file storage (production-scenery.E2.S1) ([#139](https://github.com/cpthirst/gangshow-casting/issues/139)) ([83649a8](https://github.com/cpthirst/gangshow-casting/commit/83649a81c7be1a84b59d1f18237293e62d3666dd))
+
 ## [1.26.0](https://github.com/cpthirst/gangshow-casting/compare/v1.25.0...v1.26.0) (2026-10-29)
 
 
