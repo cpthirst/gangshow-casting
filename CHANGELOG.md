@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.33.0](https://github.com/cpthirst/gangshow-casting/compare/v1.32.0...v1.33.0) (2026-10-29)
+
+
+### Features
+
+* **web:** drag a file onto the upload area to upload it (production-scenery.E2.S8) ([#158](https://github.com/cpthirst/gangshow-casting/issues/158)) ([b87a392](https://github.com/cpthirst/gangshow-casting/commit/b87a39255e3e8f113ec97c6b88d41e05fae650b7))
+
 ## [1.32.0](https://github.com/cpthirst/gangshow-casting/compare/v1.31.0...v1.32.0) (2026-10-29)
 
 
