@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.36.1](https://github.com/cpthirst/gangshow-casting/compare/v1.36.0...v1.36.1) (2026-10-29)
+
+
+### Bug Fixes
+
+* **web:** show scenery notes on the Production overview ([#166](https://github.com/cpthirst/gangshow-casting/issues/166)) ([f571cbc](https://github.com/cpthirst/gangshow-casting/commit/f571cbc6b287e432300ed01312ad7c9b94c468f6))
+
 ## [1.36.0](https://github.com/cpthirst/gangshow-casting/compare/v1.35.0...v1.36.0) (2026-10-29)
 
 
