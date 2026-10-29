@@ -72,7 +72,7 @@ And every icon is hidden from screen readers, so each tile is still announced by
 
 ## Notes
 
-- **Type icons added 2026-10-29** (the maintainer, after the PR was opened): AC10 and AC11 come from E2.S3, which keeps the thumbnails. Font Awesome's free set has no GIF, JPG or PNG icons, so every image type shares the image icon (the maintainer's choice; ADR 0013 keeps to the free set). Images are GIF, JPG, JPEG, PNG, WebP, SVG, BMP, TIFF, HEIC and AVIF.
+- **Type icons added 2026-10-29** (the maintainer, after the PR was opened): AC10 and AC11 come from E2.S3, which keeps the thumbnails. Font Awesome's free set has no GIF, JPG or PNG icons, so every image type shares the image icon (the maintainer's choice; ADR 0013 keeps to the free set). Images are GIF, JPG, JPEG, PNG, WebP, SVG, BMP, TIFF, HEIC and AVIF. Word, Excel, PDF and PowerPoint icons are in their apps' colours (blue, green, red, orange, each at least 3:1 on white); the image and general file icons stay grey (the maintainer's choice).
 
 - **Agreed at `write-story` (2026-10-29)**:
   - **Open, not only download** (the maintainer, during implementation): PDFs, JPG, PNG, GIF, WebP and plain text open in a new tab, in the browser's own viewer; every other type, HTML and SVG among them, downloads. The type comes from the name's extension, never from what storage says, so a file can't choose to open. The PRD's FR10, security NFR, accessibility NFR, non-goals and risks changed to match.

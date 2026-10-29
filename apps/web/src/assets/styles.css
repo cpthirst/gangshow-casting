@@ -10,7 +10,11 @@
   --warning: #8a5a00; /* clash warnings: 5.93:1 on white, 5.25:1 on the grey surface */
   --info: #1f5f8b; /* clash info: 6.8:1 on white, 6.0:1 on the grey surface */
   --in-item: #2e7d32; /* timeline dot, in the item: 5.1:1 on white */
-  --word: #2b579a; /* the Word export buttons: 7.0:1 on white */
+  --word: #2b579a; /* the Word export buttons and Word files' icons: 7.0:1 on white */
+  /* Other file types' icons, in the colours their apps use: at least 3:1 on white. */
+  --excel: #107c41; /* 5.3:1 */
+  --pdf: #fa0f00; /* 4.1:1 */
+  --powerpoint: #d35230; /* 4.2:1 */
   --not-in-item: #8a8a8a; /* timeline dot, not in it: 3.45:1 on white (3:1 needed) */
   --sidebar-width: 15rem;
 
@@ -1428,6 +1432,24 @@ main a {
 .file-icon {
   margin-bottom: 0.25rem;
   font-size: 2.5rem;
+}
+
+/* Office files and PDFs in their apps' colours, as phones and computers show them. Images and
+   other files keep the text colour. The icon's shape tells the type too, never colour alone. */
+.file-icon.fa-file-word {
+  color: var(--word);
+}
+
+.file-icon.fa-file-excel {
+  color: var(--excel);
+}
+
+.file-icon.fa-file-pdf {
+  color: var(--pdf);
+}
+
+.file-icon.fa-file-powerpoint {
+  color: var(--powerpoint);
 }
 
 /* A long name with no spaces wraps anywhere rather than push the page sideways. */
