@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.36.0](https://github.com/cpthirst/gangshow-casting/compare/v1.35.0...v1.36.0) (2026-10-29)
+
+
+### Features
+
+* **web:** describe Scenery and Director on Welcome and Help (production-scenery.E3.S1) ([#164](https://github.com/cpthirst/gangshow-casting/issues/164)) ([fd42d3b](https://github.com/cpthirst/gangshow-casting/commit/fd42d3b08d644e450995342d1b9cd10d7646d325))
+
 ## [1.35.0](https://github.com/cpthirst/gangshow-casting/compare/v1.34.0...v1.35.0) (2026-10-29)
 
 
