@@ -71,6 +71,13 @@ export function whatHappened(entry: RecordUsageRequest, titles: Titles) {
       if (title === null) return "opened an item";
       return title ? `opened ${title}` : "opened an item no longer in the running order";
     }
+    case "scenery": {
+      const title = titles.item(entry.productionId, entry.itemId);
+      if (title === null) return "opened an item's Scenery page";
+      return title
+        ? `opened ${title}'s Scenery page`
+        : "opened a Scenery page of an item no longer in the running order";
+    }
     case "export":
       return `exported ${exportNames[entry.export]}`;
   }
@@ -84,6 +91,7 @@ const otherNames: Record<OtherFeature, string> = {
   "overview-by-item": "Overview: By item",
   "overview-grid": "Overview: Grid",
   "item-page": "Item pages",
+  "scenery-page": "Scenery pages",
   "export-excel-grid": "Export: Excel grid",
   "export-word-casting-sheets": "Export: Word casting sheets",
   "export-word-item-overview": "Export: Word item overview",

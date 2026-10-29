@@ -1301,3 +1301,60 @@ describe("Dragging a file to upload", () => {
     expect(held["opening-number"]).toEqual([{ name: "set-plan.pdf", size: 40_000_000 }]);
   });
 });
+
+describe("Recording a visit to an item's Scenery page (production-scenery FR15)", () => {
+  // Everything recorded but sessions, which are sign-ins, not uses of this page.
+  const recorded = () =>
+    calls((url, init) => url === "/api/usage" && init?.method === "POST")
+      .map(([, init]) => JSON.parse(String(init?.body)))
+      .filter((body) => body.event !== "session");
+
+  it("records opening an item's Scenery page, naming the item and its production", async () => {
+    await signInAs(["stage"], "pat");
+    apiHolds(show);
+
+    await openAppAt(OPENING_NUMBER);
+
+    expect(recorded()).toEqual([
+      { event: "scenery", productionId: "2027", itemId: "opening-number" },
+    ]);
+  });
+
+  it("records each item stepped to with Next", async () => {
+    apiHolds(show);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    await wrapper.get("main a[rel=next]").trigger("click");
+    await flushPromises();
+
+    expect(recorded().map((use) => use.itemId)).toEqual(["opening-number", "pirate-sketch"]);
+  });
+
+  it("records only the visit when pat uploads, downloads and deletes a file", async () => {
+    await signInAs(["stage"], "pat");
+    apiHolds(show, { "opening-number": [{ name: "build-list.xlsx", size: 40_000 }] });
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    await choose(wrapper, aFile("set-plan.pdf"));
+    await wrapper.get("main [data-test=file] .file-open").trigger("click");
+    await flushPromises();
+    vi.stubGlobal("confirm", () => true);
+    await wrapper.get("main [data-test=file] [data-test=delete]").trigger("click");
+    await flushPromises();
+
+    expect(downloadFrom).toHaveBeenCalled();
+    expect(rows(wrapper)).toHaveLength(1);
+    expect(recorded()).toEqual([
+      { event: "scenery", productionId: "2027", itemId: "opening-number" },
+    ]);
+  });
+
+  it("records nothing for an item that isn't in the running order", async () => {
+    apiHolds(show);
+
+    const { wrapper } = await openAppAt("/production/items/no-such-item/scenery");
+
+    expect(wrapper.get("main h1").text()).toBe("Item not found");
+    expect(recorded()).toEqual([]);
+  });
+});

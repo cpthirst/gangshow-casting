@@ -47,6 +47,12 @@ export const UsageExport = z.enum([
   "word-props-list",
 ]);
 
+const itemOnly = {
+  productionId: ProductionId,
+  // Ids are UUIDs (or slugs in tests): nothing else, so no free text can ride along.
+  itemId: z.string().regex(/^[a-z0-9-]{1,40}$/i),
+};
+
 /**
  * POST /api/usage: one thing a team member did (usage-tracking FR1, FR2). Only what happened:
  * who comes from the sign-in, never the body, so anything else sent is dropped (ADR 0023).
@@ -56,13 +62,10 @@ export const RecordUsageRequest = z.discriminatedUnion("event", [
   z.object({ event: z.literal("session") }),
   z.object({ event: z.literal("page"), page: MenuPageName }),
   z.object({ event: z.literal("view"), view: PageView }),
-  // Which item, never its title or cast: the Usage page looks the title up (FR2).
-  z.object({
-    event: z.literal("item"),
-    productionId: ProductionId,
-    // Ids are UUIDs (or slugs in tests): nothing else, so no free text can ride along.
-    itemId: z.string().regex(/^[a-z0-9-]{1,40}$/i),
-  }),
+  // Which item, never its title, cast or files: the Usage page looks the title up (FR2).
+  z.object({ event: z.literal("item"), ...itemOnly }),
+  // An item's Scenery page, counted apart from its casting page (production-scenery FR15).
+  z.object({ event: z.literal("scenery"), ...itemOnly }),
   z.object({ event: z.literal("export"), export: UsageExport }),
 ]);
 
@@ -74,6 +77,7 @@ export const UsageFeature = z.enum([
   "overview-grid",
   // Every item's page together: the summary doesn't count items one by one.
   "item-page",
+  "scenery-page",
   "export-excel-grid",
   "export-word-casting-sheets",
   "export-word-item-overview",
@@ -89,6 +93,8 @@ export function featureOf(request: RecordUsageRequest): UsageFeature | undefined
       return VIEW_FEATURES[request.view];
     case "item":
       return "item-page";
+    case "scenery":
+      return "scenery-page";
     case "export":
       return `export-${request.export}`;
     case "session":

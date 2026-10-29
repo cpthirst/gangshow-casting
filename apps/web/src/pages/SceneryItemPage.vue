@@ -11,6 +11,7 @@ import SceneryUpload from "@/components/production/SceneryUpload.vue";
 import { showPageTitle } from "@/router/index.ts";
 import { downloadFrom, openFileTab } from "@/services/file-link.ts";
 import { apiFetch, canChangeScenery } from "@/services/sign-in.ts";
+import { recordSceneryUse } from "@/services/usage.ts";
 import { icons } from "@/utils/icons.ts";
 import { neighboursOf, placeOf, positionOf, RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
 import {
@@ -50,6 +51,14 @@ const neighbours = computed(() =>
 // Loaded, but the item isn't in the latest saved running order.
 const notFound = computed(() => status.value === "loaded" && !place.value);
 const title = computed(() => (place.value ? `Scenery: ${place.value.item.title}` : ""));
+
+// Each visit is a use, once the item is found; what's done with its files isn't (FR15).
+watch(
+  () => place.value?.item.id,
+  (id) => {
+    if (order.value && id) recordSceneryUse(order.value.productionId, id);
+  },
+);
 
 // Follows the item even if the page is reused for another one (Previous and Next).
 watchEffect(() => {
