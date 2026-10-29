@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.34.0](https://github.com/cpthirst/gangshow-casting/compare/v1.33.0...v1.34.0) (2026-10-29)
+
+
+### Features
+
+* **api:** delete an item's scenery files when it leaves the show (production-scenery.E2.S6) ([#160](https://github.com/cpthirst/gangshow-casting/issues/160)) ([c76e3b0](https://github.com/cpthirst/gangshow-casting/commit/c76e3b0ff201703f1aedab08baf037a04eb2674d))
+
 ## [1.33.0](https://github.com/cpthirst/gangshow-casting/compare/v1.32.0...v1.33.0) (2026-10-29)
 
 
