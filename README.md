@@ -46,7 +46,7 @@ iCUE is hosted on AWS and is open only to the production team. Everyone signs in
 - **Admin:** everything, plus Accounts and Usage.
 - **Casting:** changes the running order drafts, cast and casting.
 - **Stage, Tech, Wardrobe:** change their own department's pages, as those arrive.
-- **Director:** changes every Production department's pages (Props today), but not casting or the show. Until the Accounts page offers it, it's given in the AWS console ([production-scenery](docs/product/production/scenery)).
+- **Director:** changes every Production department's pages (Props today), but not casting or the show. Admins give it on the Accounts page ([production-scenery](docs/product/production/scenery)).
 - **Read-only** (no permissions): sees every page but changes nothing, which suits reviewers such as the director.
 
 Each change route names the permission it needs ([ADR 0026](docs/adr/0026-department-permissions-as-user-pool-groups.md)). The API checks them on every request, not just the menu.
@@ -104,7 +104,7 @@ pnpm dev       # web on :5173 + API on :3000 (Vite proxies /api), on the real re
 pnpm check     # lint + typecheck + tests + cdk synth: the definition of "done"
 ```
 
-`pnpm dev` and `pnpm demo` start you as an admin, and the sidebar's "Local role" tick boxes let you try any mix of permissions (Casting, Stage, Tech, Wardrobe), or none.
+`pnpm dev` and `pnpm demo` start you as an admin, and the sidebar's "Local role" tick boxes let you try any mix of permissions (Casting, Stage, Tech, Wardrobe, Director), or none.
 
 **Guides:**
 - **The real data:** [the remote database guide](docs/guides/remote-data.md) covers setting up `pnpm dev` against it.

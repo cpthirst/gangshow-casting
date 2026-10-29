@@ -91,6 +91,7 @@ Run after the gate is green, before a story is `done` or a PR is opened. **Skip 
 1. Fix every `blocker`, re-run `pnpm check`, then re-run **only the reviewers that blocked**.
 2. Allow at most **2 rounds**. If blockers remain, stop and show the user the findings. Don't keep looping.
 3. `should-fix` and `nit` findings don't block. List them under "Review notes" in the PR.
+   `code-reviewer`'s `wording` findings don't block either, but apply each rewrite yourself without asking the user, then re-run `pnpm check`. If a rewrite conflicts with an AC's wording, keep the AC's wording. List the rewrites under "Review notes".
 4. If you disagree with a blocker, don't ignore it. Tell the user why.
 5. `ux-reviewer` checks UI and UX consistency across the whole web app. Its findings never block and you don't act on them yourself. When the loop is done, list them and **ask the user** (one multi-select question) which to fix now, which to note in the PR, and which to leave. Batch mode asks too. Findings you fix go through the gate again; the rest go under "Review notes".
 

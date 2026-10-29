@@ -405,7 +405,7 @@ describe("Adding a prop", () => {
 
     expect(wrapper.find("[data-test=add-prop]").exists()).toBe(false);
     expect(wrapper.get("[data-test=read-only]").text()).toBe(
-      "You can view the props, but not change them.",
+      "You can view the props, but not change them: only Stage, Director and admins can.",
     );
     expect(propsShown(wrapper)).toEqual(["Treasure chest"]);
   });

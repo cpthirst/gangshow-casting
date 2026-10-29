@@ -19,7 +19,7 @@ prd: ./prd.md
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
 | [production-scenery.E1.S1](stories/E1-S1-director-permission-in-the-api.md) | Accounts can have Director, a new sign-in group beside Casting, Stage, Tech and Wardrobe. A change route can name more than one permission, any of which allows it. Props and props notes accept Stage or Director, and casting routes still refuse Director. The props pages show their controls to Directors. Includes the ADR amending ADR 0026 | FR1, FR2, FR4 | (none) | done |
-| [production-scenery.E1.S2](stories/E1-S2-director-on-accounts-and-local-switch.md) | Director is a tick box on the Accounts page, when creating an account and later, with the confirmation saying what it can change. The "Local role" switch in dev and the demo offers it, and refusal and read-only lines name it where they name permissions | FR1, FR3 | E1.S1 | draft |
+| [production-scenery.E1.S2](stories/E1-S2-director-on-accounts-and-local-switch.md) | Director is a tick box on the Accounts page, when creating an account and later, with the confirmation saying what it can change. The "Local role" switch in dev and the demo offers it, and refusal and read-only lines name it where they name permissions | FR1, FR3 | E1.S1 | done |
 
 ## E2: Scenery files
 

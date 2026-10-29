@@ -127,6 +127,7 @@ describe("set access handler", () => {
   it.each([
     ["no body", undefined],
     ["an unknown permission", { access: ["props"] }],
+    ["Admin with Director", { access: ["admin", "director"] }],
     ["the old role", { role: "casting" }],
   ])("refuses %s with 400, changing nothing", async (_case, body) => {
     const { setAccess, accounts } = setUp();

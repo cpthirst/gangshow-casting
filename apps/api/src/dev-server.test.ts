@@ -336,6 +336,10 @@ describe("dev server local access (production-props FR9)", () => {
       reached.push("usage");
       return { statusCode: 204 };
     },
+    "POST /api/productions/{productionId}/items/{itemId}/props": async () => {
+      reached.push("add prop");
+      return { statusCode: 201 };
+    },
   };
   let server: Server;
   let baseUrl: string;
@@ -370,6 +374,18 @@ describe("dev server local access (production-props FR9)", () => {
     expect(await add.json()).toEqual({ message: "You can view the casting, but not change it." });
     expect(read.status).toBe(200);
     expect(reached).toEqual(["read"]);
+  });
+
+  it("lets a Director change the props but refuses their casting changes", async () => {
+    reached.length = 0;
+
+    const prop = await send("POST", "/api/productions/2027/items/opening/props", "director");
+    const add = await send("POST", "/api/productions/2027/cast", "director");
+
+    expect(prop.status).toBe(201);
+    expect(add.status).toBe(403);
+    expect(await add.json()).toEqual({ message: "You can view the casting, but not change it." });
+    expect(reached).toEqual(["add prop"]);
   });
 
   it("lets Casting change casting but keeps admin-only routes from it", async () => {

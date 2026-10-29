@@ -1,13 +1,14 @@
 import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import { icons } from "./icons.ts";
 
-// Who can use an action, said the same way on every page (in-app-help FR5).
+// Who can use an action, said the same way on every page (in-app-help FR5). A Director may
+// change every department's pages, but not the casting (production-scenery FR1).
 const accessLabels = {
   everyone: "Everyone",
   casting: "Accounts with Casting, and admins",
-  stage: "Accounts with Stage, and admins",
-  tech: "Accounts with Tech, and admins",
-  wardrobe: "Accounts with Wardrobe, and admins",
+  stage: "Accounts with Stage or Director, and admins",
+  tech: "Accounts with Tech or Director, and admins",
+  wardrobe: "Accounts with Wardrobe or Director, and admins",
   admins: "Admins only",
 } as const;
 

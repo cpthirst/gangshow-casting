@@ -10,6 +10,7 @@ import {
   useHostedSignIn,
   useLocalSignIn,
 } from "@/services/sign-in.ts";
+import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
 import App from "./App.vue";
 
 async function openAppAt(path: string) {
@@ -292,7 +293,7 @@ describe("App shell", () => {
         accessSwitch(wrapper)
           .findAll("label")
           .map((label) => label.text()),
-      ).toEqual(["Admin", "Casting", "Stage", "Tech", "Wardrobe"]);
+      ).toEqual(["Admin", "Casting", "Stage", "Tech", "Wardrobe", "Director"]);
       expect(tickedNames(wrapper)).toEqual(["Admin"]);
     });
 
@@ -306,7 +307,41 @@ describe("App shell", () => {
 
       expect(tickedNames(wrapper)).toEqual(["Stage", "Tech"]);
       expect(wrapper.get("[data-test=read-only]").text()).toBe(
-        "You can view the casting, but not change it.",
+        "You can view the casting, but not change it: only Casting and admins can.",
+      );
+    });
+
+    it("shows a Director the props controls and the casting read-only", async () => {
+      const show = aRunningOrder([anItem("Opening Number")]);
+      // The props page's data, by the last part of each address: one item, with nothing on it yet.
+      const answers: Record<string, unknown> = {
+        "running-order": show,
+        props: { productionId: "2027", props: [] },
+        "props-notes": { productionId: "2027", notes: [] },
+        roles: { productionId: "2027", roles: [] },
+        cast: { productionId: "2027", members: [] },
+      };
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(
+          async (url: unknown) =>
+            new Response(JSON.stringify(answers[String(url).split("/").at(-1) ?? ""] ?? {})),
+        ),
+      );
+      const { wrapper, router } = await openAppAt("/production/items/opening-number/props");
+
+      await tick(wrapper, "Admin", false);
+      await tick(wrapper, "Director", true);
+
+      expect(tickedNames(wrapper)).toEqual(["Director"]);
+      expect(wrapper.find("[data-test=add-prop]").exists()).toBe(true);
+      expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
+
+      await router.push("/cast");
+      await flushPromises();
+
+      expect(wrapper.get("[data-test=read-only]").text()).toBe(
+        "You can view the casting, but not change it: only Casting and admins can.",
       );
     });
 
@@ -342,7 +377,7 @@ describe("App shell", () => {
 
         expect(tickedNames(wrapper)).toEqual([]);
         expect(wrapper.get("[data-test=read-only]").text()).toBe(
-          "You can view the casting, but not change it.",
+          "You can view the casting, but not change it: only Casting and admins can.",
         );
       },
     );

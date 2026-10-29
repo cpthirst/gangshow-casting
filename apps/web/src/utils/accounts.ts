@@ -2,9 +2,11 @@ import {
   type AccountAccess,
   type AccountSummary,
   CASTING_GROUP,
+  DIRECTOR_GROUP,
   type Permission,
   permissions,
 } from "@app/shared";
+import { departmentPages } from "./departments.ts";
 
 export const ACCOUNTS_PATH = "/api/accounts";
 
@@ -53,12 +55,20 @@ const listed = (names: string[]) =>
 
 /** What the permissions let someone change: casting, and each other department's page. */
 function whatTheyCanChange(access: readonly Permission[]) {
+  const casting = access.includes(CASTING_GROUP) ? ["casting"] : [];
+  if (access.includes(DIRECTOR_GROUP)) {
+    // A Director's pages take in every other department's (production-scenery FR1).
+    const everyPage = `every production department's pages (${listed(departmentPages.map((page) => page.name))})`;
+    return casting.length > 0
+      ? `casting, and ${everyPage}`
+      : `${everyPage}, but not the casting or the show`;
+  }
   const pages = inOrder(access)
     .filter((permission) => permission !== CASTING_GROUP)
     .map((permission) => PERMISSION_NAMES[permission]);
   const pageWords =
     pages.length > 0 ? [`the ${listed(pages)} ${pages.length > 1 ? "pages" : "page"}`] : [];
-  return [...(access.includes(CASTING_GROUP) ? ["casting"] : []), ...pageWords].join(", and ");
+  return [...casting, ...pageWords].join(", and ");
 }
 
 /** What the person will be able to do once they sign back in with the access. */

@@ -1442,7 +1442,9 @@ describe("Running order page", () => {
 
       // In the same place and style as the "Only admins …" line other members see.
       const notice = wrapper.get(".draft-bar [data-test=read-only]");
-      expect(notice.text()).toBe("You can view the casting, but not change it.");
+      expect(notice.text()).toBe(
+        "You can view the casting, but not change it: only Casting and admins can.",
+      );
       expect(notice.classes()).toContain("access-note");
       expect(wrapper.find("[data-test=admin-only]").exists()).toBe(false);
     });

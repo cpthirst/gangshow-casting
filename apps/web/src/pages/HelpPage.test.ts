@@ -19,7 +19,7 @@ async function openHelp() {
 const ACCESS_LABELS = [
   "Everyone",
   "Accounts with Casting, and admins",
-  "Accounts with Stage, and admins",
+  "Accounts with Stage or Director, and admins",
   "Admins only",
 ];
 
@@ -309,13 +309,15 @@ describe("Help page", () => {
       expect(accessOf(wrapper, "All items", "props-item")).toBe("Everyone");
       expect(accessOf(wrapper, "Previous and Next", "props-item")).toBe("Everyone");
       for (const action of ["Add prop", "Edit", "Remove"]) {
-        expect(accessOf(wrapper, action, "props-item")).toBe("Accounts with Stage, and admins");
+        expect(accessOf(wrapper, action, "props-item")).toBe(
+          "Accounts with Stage or Director, and admins",
+        );
       }
       expect(
         lineNamed(wrapper, "Props notes", "props-item")
           .findAll("[data-test=help-access]")
           .map((label) => label.text()),
-      ).toEqual(["Reading: Everyone", "Changing: Accounts with Stage, and admins"]);
+      ).toEqual(["Reading: Everyone", "Changing: Accounts with Stage or Director, and admins"]);
     });
 
     it("name the Overview's five buttons in row order, each with its icon, its page and whether it's coming soon", async () => {
@@ -348,7 +350,7 @@ describe("Help page", () => {
       ]);
     });
 
-    it("label each button with the department that changes its page, as do admins, and that everyone can view it", async () => {
+    it("label each button with the department that changes its page, as do Directors and admins, and that everyone can view it", async () => {
       const { wrapper } = await openHelp();
 
       const access = (name: string) =>
@@ -364,7 +366,7 @@ describe("Help page", () => {
       ] as const) {
         expect(access(name)).toEqual([
           "Reading: Everyone",
-          `Changing: Accounts with ${department}, and admins`,
+          `Changing: Accounts with ${department} or Director, and admins`,
         ]);
       }
     });
