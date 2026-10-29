@@ -67,15 +67,29 @@ describe("the in-memory user directory", () => {
     });
   });
 
-  const none = { admin: false, casting: false, stage: false, tech: false, wardrobe: false };
+  const none = {
+    admin: false,
+    casting: false,
+    stage: false,
+    tech: false,
+    wardrobe: false,
+    director: false,
+  };
   it.each([
     ["admin", { ...none, admin: true }],
     [["casting"], { ...none, casting: true }],
     [["stage", "tech"], { ...none, stage: true, tech: true }],
+    [["casting", "director"], { ...none, casting: true, director: true }],
     [[], none],
   ] as const)("gives an account the access %j and no other", async (access, groups) => {
     const { directory, accounts } = memoryUserDirectory([
-      anAccount("jo", { admin: true, casting: true, wardrobe: true, readOnly: true }),
+      anAccount("jo", {
+        admin: true,
+        casting: true,
+        wardrobe: true,
+        director: true,
+        readOnly: true,
+      }),
     ]);
 
     await directory.setAccess("jo", access === "admin" ? access : [...access]);

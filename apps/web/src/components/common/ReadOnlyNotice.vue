@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { canChangeCasting, canChangeStage, changeRefusedAsReadOnly } from "@/services/sign-in.ts";
+import { canChangeCasting, canChangeProps, changeRefusedAsReadOnly } from "@/services/sign-in.ts";
 
 // What the page is about, which says whose permission changes it: the casting pages and
-// Running order need Casting; the props pages need Stage.
+// Running order need Casting; the props pages need Stage or Director.
 const props = withDefaults(defineProps<{ about?: "casting" | "props" }>(), { about: "casting" });
 
 const notices = {
@@ -13,7 +13,7 @@ const notices = {
     refused: "You can view the casting but not change it, so this wasn't saved.",
   },
   props: {
-    canChange: canChangeStage,
+    canChange: canChangeProps,
     viewOnly: "You can view the props, but not change them.",
     refused: "You can view the props but not change them, so this wasn't saved.",
   },

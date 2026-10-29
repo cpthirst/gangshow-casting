@@ -31,6 +31,7 @@ export const PERMISSION_NAMES: Record<Permission, string> = {
   stage: "Stage",
   tech: "Tech",
   wardrobe: "Wardrobe",
+  director: "Director",
 };
 
 /** What an account may do, at a glance: "Admin", its permissions, or "Read-only". */

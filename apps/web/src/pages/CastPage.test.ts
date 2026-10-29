@@ -1069,6 +1069,7 @@ describe("Cast page", () => {
 
   describe.each([
     ["with Stage only", ["stage"]],
+    ["with Director only", ["director"]],
     ["with no permissions", []],
   ])("for an account %s, which can't change Casting", (_who, groups) => {
     beforeEach(async () => {

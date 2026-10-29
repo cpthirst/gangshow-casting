@@ -5,6 +5,7 @@ import {
   ItemNoteList,
   LOCAL_ACCESS_HEADER,
   needOf,
+  PROPS_PERMISSIONS,
   Role,
   readOnlyMayUse,
   refusalFor,
@@ -672,7 +673,7 @@ describe("Lambda entry point", () => {
       expect(saved).toEqual([201, 201, 200]);
       for (const key of changeRoutes) {
         const kim = await send(key, "[casting stage]");
-        const alone = await send(key, needOf(key) === "stage" ? "[stage]" : "[casting]");
+        const alone = await send(key, needOf(key) === PROPS_PERMISSIONS ? "[stage]" : "[casting]");
         expect(kim, key).toEqual(alone);
       }
     });
@@ -704,6 +705,81 @@ describe("Lambda entry point", () => {
       for (const key of changeRoutes) {
         expect(await send(key, "[costume]"), key).toEqual(await send(key, "[]"));
       }
+    });
+
+    describe("Director (ADR 0029)", () => {
+      // Casting someone: a role with a cast member in it.
+      const castSomeone = (send: ReturnType<typeof as>) =>
+        send("POST", `/api/productions/2027/items/${pirate}/roles`, {
+          name: "Captain",
+          size: "lead",
+          castMemberIds: [1],
+        });
+
+      it("refuses dee's casting changes with Director only, saying the casting is read-only and changing nothing", async () => {
+        const { api, stored } = setUp();
+        const before = await stored();
+        const dee = as("[director]");
+
+        for (const change of [...castingChanges(dee), castSomeone(dee)]) {
+          const res = await api(change);
+
+          expect(res.statusCode).toBe(403);
+          expect(JSON.parse(res.body ?? "")).toEqual(READ_ONLY);
+        }
+        expect(await stored()).toEqual(before);
+      });
+
+      it("refuses dee's running order and every other admin-only change, saying only admins can", async () => {
+        const { api, stored } = setUp();
+        const before = await stored();
+        const send = everyRoute();
+
+        const saved = await api(
+          as("[director]")("POST", "/api/productions/2027/running-order/versions", {
+            baseVersion: 4,
+            change: { type: "update", halves: aRunningOrder(4).halves },
+          }),
+        );
+
+        expect(saved.statusCode).toBe(403);
+        expect(JSON.parse(saved.body ?? "")).toEqual(ONLY_ADMINS);
+        expect(await stored()).toEqual(before);
+        for (const key of adminOnlyRouteKeys) {
+          const { res, ran } = await send(key, "[director]");
+          expect(JSON.parse(res.body ?? ""), key).toEqual(ONLY_ADMINS);
+          expect(ran, key).toBe(false);
+        }
+      });
+
+      it("lets dee, with Director only, use exactly the props and props notes changes", async () => {
+        const send = everyRoute();
+
+        for (const key of changeRoutes) {
+          const { ran } = await send(key, "[director]");
+          expect(ran, key).toBe(needOf(key) === PROPS_PERMISSIONS);
+        }
+      });
+
+      it("saves kim's casting and props changes, with Casting and Director", async () => {
+        const { api } = setUp();
+        const kim = as("[casting director]");
+
+        const cast = await api(castSomeone(kim));
+        const prop = await api(
+          kim("POST", `/api/productions/2027/items/${pirate}/props`, { name: "Cutlass" }),
+        );
+
+        expect([cast.statusCode, prop.statusCode]).toEqual([201, 201]);
+      });
+
+      it("lets an admin whose sign-in also carries Director use every route, as any admin", async () => {
+        const send = everyRoute();
+
+        for (const key of routeKeys) {
+          expect(await send(key, "[admin director]"), key).toEqual(await send(key, "[admin]"));
+        }
+      });
     });
 
     it("lets alex, an admin, use every route, admin-only ones included", async () => {
@@ -767,6 +843,7 @@ describe("Lambda entry point", () => {
 
       it.each([
         ["pat, with Stage", "[stage]", "Treasure chest"],
+        ["dee, with Director", "[director]", "Cutlass"],
         ["alex, an admin", "[admin]", "Parrot"],
       ])("saves a prop from %s", async (_who, groups, name) => {
         const { api, props } = setUpProps();
@@ -782,6 +859,7 @@ describe("Lambda entry point", () => {
       it.each([
         ["sam, with Casting only", "[casting]"],
         ["lee, with Tech and Wardrobe", "[tech wardrobe]"],
+        ["lee, with Casting, Tech and Wardrobe", "[casting tech wardrobe]"],
         ["chris, with Wardrobe only", "[wardrobe]"],
       ])(
         "refuses a prop from %s, saying the props are read-only, adding nothing",
@@ -811,6 +889,7 @@ describe("Lambda entry point", () => {
 
       it.each([
         ["pat, with Stage", "[stage]"],
+        ["dee, with Director", "[director]"],
         ["alex, an admin", "[admin]"],
       ])("edits and removes a prop for %s", async (_who, groups) => {
         const { api, props } = setUpProps();
@@ -879,6 +958,7 @@ describe("Lambda entry point", () => {
 
       it.each([
         ["pat, with Stage", "[stage]"],
+        ["dee, with Director", "[director]"],
         ["alex, an admin", "[admin]"],
       ])("saves props notes from %s, kept for the next read", async (_who, groups) => {
         const { api } = setUpNotes();

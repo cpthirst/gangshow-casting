@@ -410,15 +410,28 @@ describe("Adding a prop", () => {
     expect(propsShown(wrapper)).toEqual(["Treasure chest"]);
   });
 
-  it("doesn't say the props are view-only to someone with Stage", async () => {
-    await signInAs(["stage"], "pat");
-    savedShowIs(show);
+  it.each([
+    ["pat, with Stage", ["stage"], "pat"],
+    ["dee, with Director", ["director"], "dee"],
+  ])(
+    "offers every props control to %s, not saying they're view-only",
+    async (_who, groups, name) => {
+      await signInAs(groups, name);
+      savedShowIs(show, [aProp(1, "pirate-sketch", "Treasure chest")]);
 
-    const { wrapper } = await openAppAt(PIRATE_PROPS);
+      const { wrapper } = await openAppAt(PIRATE_PROPS);
 
-    expect(wrapper.find("[data-test=add-prop]").exists()).toBe(true);
-    expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
-  });
+      expect(wrapper.find("[data-test=add-prop]").exists()).toBe(true);
+      const card = wrapper.get("[data-test=prop]");
+      expect([
+        card.find("[data-test=edit]").exists(),
+        card.find("[data-test=remove]").exists(),
+      ]).toEqual([true, true]);
+      const notes = wrapper.get("section[aria-labelledby=notes-heading]");
+      expect(notes.find("textarea").exists()).toBe(true);
+      expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
+    },
+  );
 });
 
 describe("Props notes", () => {

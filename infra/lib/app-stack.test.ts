@@ -205,16 +205,18 @@ describe("AppStack", () => {
       });
     });
 
-    it("has a group for each department, and keeps the retiring read-only group for now (ADR 0026)", () => {
+    it("has a group for each department and Director, and keeps the retiring read-only group for now (ADR 0026, ADR 0029)", () => {
       const { template } = synth();
 
-      for (const groupName of ["casting", "stage", "tech", "wardrobe", "read-only"]) {
+      for (const groupName of ["casting", "stage", "tech", "wardrobe", "director", "read-only"]) {
         template.hasResourceProperties("AWS::Cognito::UserPoolGroup", {
           GroupName: groupName,
           UserPoolId: { Ref: Match.stringLikeRegexp("UserPool") },
         });
       }
-      template.resourceCountIs("AWS::Cognito::UserPoolGroup", 6);
+      template.resourceCountIs("AWS::Cognito::UserPoolGroup", 7);
+      // The stack puts no one in a group, so adding one changes no account's access.
+      template.resourceCountIs("AWS::Cognito::UserPoolUserToGroupAttachment", 0);
       // Costume became Wardrobe (ADR 0027).
       expect(
         template.findResources("AWS::Cognito::UserPoolGroup", {

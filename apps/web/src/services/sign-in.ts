@@ -1,11 +1,12 @@
 import {
   type Access,
+  type AnyOf,
   accessFrom,
   isRefusalAsReadOnly,
   LOCAL_ACCESS_HEADER,
   localAccessHeader,
   mayChange,
-  type Permission,
+  PROPS_PERMISSIONS,
   type SignInConfig,
 } from "@app/shared";
 import { computed, ref, shallowRef } from "vue";
@@ -109,10 +110,10 @@ export const isAdmin = computed(() => access.value === "admin");
  * change Casting; everyone else sees them read-only (team-roles FR6, production-props FR3).
  */
 export const canChangeCasting = computed(() => mayChange(access.value, "casting"));
-/** The props pages show their change controls only to those who may change Stage. */
-export const canChangeStage = computed(() => mayChange(access.value, "stage"));
-/** Whether the pages for a department's data show their change controls. */
-export const canChange = (permission: Permission) => mayChange(access.value, permission);
+/** The props pages show their change controls only to those with Stage or Director. */
+export const canChangeProps = computed(() => mayChange(access.value, PROPS_PERMISSIONS));
+/** Whether the pages for a department's data show their change controls: any one permission will do. */
+export const canChange = (needed: AnyOf) => mayChange(access.value, needed);
 /** A change was refused because the person may only read: pages say it wasn't saved. */
 export const changeRefusedAsReadOnly = computed(() => refusedAsReadOnly.value);
 

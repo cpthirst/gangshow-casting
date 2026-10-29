@@ -1,4 +1,4 @@
-import { type Access, needOf, refusalFor } from "@app/shared";
+import { type Access, mayChange, needOf, refusalFor } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import { messageResponse } from "./json.ts";
 
@@ -17,8 +17,8 @@ export function groupsFrom(claim: unknown): string[] {
 
 /**
  * A 403 if the caller's access doesn't allow the route; undefined to go ahead (ADR 0026).
- * Each route needs what the shared table names, a route missing from it an admin, and the
- * reads and recording usage nothing.
+ * Each route needs any one of the permissions the shared table names (ADR 0029), a route
+ * missing from it an admin, and the reads and recording usage nothing.
  */
 export function accessRefusal(
   routeKey: string,
@@ -28,5 +28,5 @@ export function accessRefusal(
   const need = needOf(routeKey);
   if (need === undefined) return undefined;
   if (need === "admin") return messageResponse(403, "Only admins can do this.");
-  return access.includes(need) ? undefined : messageResponse(403, refusalFor(need));
+  return mayChange(access, need) ? undefined : messageResponse(403, refusalFor(need));
 }

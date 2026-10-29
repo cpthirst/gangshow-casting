@@ -70,6 +70,7 @@ export function groupFlags(access: Access): GroupFlags {
     stage: has("stage"),
     tech: has("tech"),
     wardrobe: has("wardrobe"),
+    director: has("director"),
   };
 }
 

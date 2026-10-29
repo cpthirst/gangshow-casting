@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import {
   ADMIN_GROUP,
   CASTING_GROUP,
+  DIRECTOR_GROUP,
   isAccountRoute,
   READ_ONLY_GROUP,
   type RouteKey,
@@ -174,6 +175,8 @@ export class AppStack extends Stack {
     userPool.addGroup("StageGroup", { groupName: STAGE_GROUP });
     userPool.addGroup("TechGroup", { groupName: TECH_GROUP });
     userPool.addGroup("WardrobeGroup", { groupName: WARDROBE_GROUP });
+    // Changes every Production department, but not casting or the show (ADR 0029). Starts empty.
+    userPool.addGroup("DirectorGroup", { groupName: DIRECTOR_GROUP });
     // Retiring: `pnpm account roles` moves everyone out, then a later release deletes it.
     userPool.addGroup("ReadOnlyGroup", { groupName: READ_ONLY_GROUP });
 

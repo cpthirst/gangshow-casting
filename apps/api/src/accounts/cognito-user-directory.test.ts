@@ -58,6 +58,19 @@ describe("the Cognito user directory", () => {
     });
   });
 
+  it("reads the director group as the Director permission, alongside others", async () => {
+    cognito.on(AdminGetUserCommand).resolves({ Username: "kim", Enabled: true });
+    cognito.on(AdminListGroupsForUserCommand).resolves({
+      Groups: [{ GroupName: "director" }, { GroupName: "casting" }],
+    });
+
+    expect(await directory().find("kim")).toEqual({
+      username: "kim",
+      enabled: true,
+      access: ["casting", "director"],
+    });
+  });
+
   it("shows no permission for an account still in the old costume group", async () => {
     cognito.on(AdminGetUserCommand).resolves({ Username: "lee", Enabled: true });
     cognito.on(AdminListGroupsForUserCommand).resolves({ Groups: [{ GroupName: "costume" }] });
@@ -154,12 +167,14 @@ describe("the Cognito user directory", () => {
       .resolves({ Users: [{ Username: "kim" }] })
       .on(ListUsersInGroupCommand, { UserPoolId: POOL, GroupName: "wardrobe" })
       .resolves({ Users: [] })
+      .on(ListUsersInGroupCommand, { UserPoolId: POOL, GroupName: "director" })
+      .resolves({ Users: [{ Username: "sam" }] })
       .on(ListUsersInGroupCommand, { UserPoolId: POOL, GroupName: "read-only" })
       .resolves({ Users: [{ Username: "jo" }] });
 
     // lee is in no group, and jo in read-only as well as admin: both may only read (ADR 0026).
     expect(await directory().list()).toEqual([
-      { username: "sam", enabled: true, access: ["casting"] },
+      { username: "sam", enabled: true, access: ["casting", "director"] },
       { username: "lee", enabled: false, access: [] },
       { username: "pat", enabled: true, access: "admin" },
       { username: "jo", enabled: true, access: [] },
@@ -274,6 +289,8 @@ describe("the Cognito user directory", () => {
     [[], ["casting", "stage", "tech", "wardrobe"], undefined],
     [["casting"], ["stage", "read-only"], "casting"],
     ["admin", ["tech", "wardrobe"], "admin"],
+    [["director"], ["stage"], "director"],
+    ["admin", ["director"], "admin"],
   ] as const)(
     "leaves an account given the access %j in exactly its groups, out of every other",
     async (access, removed, added) => {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { type Permission, permissions } from "@app/shared";
+import { DIRECTOR_GROUP, type Permission, permissions } from "@app/shared";
 import { computed, useId } from "vue";
 import { PERMISSION_NAMES } from "@/utils/accounts.ts";
 
@@ -13,6 +13,10 @@ const { readOnlyHint = "With nothing ticked, the account will be read-only." } =
 }>();
 const admin = defineModel<boolean>("admin", { required: true });
 const ticked = defineModel<Permission[]>("permissions", { required: true });
+
+// Director waits for its tick box and confirmation (production-scenery E1.S2). An account
+// that has it keeps it, as only the boxes shown are ticked or unticked.
+const offered = permissions.filter((permission) => permission !== DIRECTOR_GROUP);
 
 const hintId = `${useId()}-read-only`;
 // Nothing ticked is a choice too, so it's said rather than left to be guessed.
@@ -33,7 +37,7 @@ const describedBy = computed(() => (readOnly.value ? hintId : undefined));
       <span>Admin</span>
     </label>
     <!-- Admin is everything, so the permissions wait until it's unticked. -->
-    <label v-for="permission in permissions" :key="permission" class="checkbox">
+    <label v-for="permission in offered" :key="permission" class="checkbox">
       <input
         v-model="ticked"
         type="checkbox"
