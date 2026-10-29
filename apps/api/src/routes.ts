@@ -11,13 +11,15 @@ import { createAddProp } from "#/production/props/add-prop.ts";
 import { createGetProps } from "#/production/props/get-props.ts";
 import { createRemoveProp } from "#/production/props/remove-prop.ts";
 import { createUpdateProp } from "#/production/props/update-prop.ts";
+import { createListSceneryFiles } from "#/production/scenery/list-scenery-files.ts";
+import type { SceneryFileStore } from "#/production/scenery/scenery-file-store.ts";
 import { createAddCastMember } from "#/show/cast/add-cast-member.ts";
 import { createDeleteCastMember } from "#/show/cast/delete-cast-member.ts";
 import { createGetCast } from "#/show/cast/get-cast.ts";
 import { createUpdateCastMember } from "#/show/cast/update-cast-member.ts";
 import { createGetRunningOrder } from "#/show/running-order/get-running-order.ts";
 import { createSaveRunningOrder } from "#/show/running-order/save-running-order.ts";
-import { dataStores, type Stores, usageStore } from "#/storage/data-stores.ts";
+import { dataStores, type Stores, sceneryFileStore, usageStore } from "#/storage/data-stores.ts";
 import { createUsageRoutes } from "#/usage/usage-routes.ts";
 import type { UsageStore } from "#/usage/usage-store.ts";
 import { handler as health } from "./health.ts";
@@ -27,8 +29,18 @@ import { handler as health } from "./health.ts";
  * the account routes: those run in their own function (account-routes.ts, ADR 0017).
  */
 export function createRoutes(
-  { runningOrders, cast, roles, removeCastMember, itemNotes, props, propsNotes }: Stores,
+  {
+    runningOrders,
+    cast,
+    roles,
+    removeCastMember,
+    itemNotes,
+    props,
+    propsNotes,
+    sceneryNotes,
+  }: Stores,
   usage: UsageStore,
+  sceneryFiles: SceneryFileStore,
 ): Record<Exclude<RouteKey, AccountRouteKey>, Handler> {
   return {
     "GET /api/health": health,
@@ -64,6 +76,13 @@ export function createRoutes(
       propsNotes,
       runningOrders,
     ),
+    "GET /api/productions/{productionId}/items/{itemId}/scenery-files":
+      createListSceneryFiles(sceneryFiles),
+    "GET /api/productions/{productionId}/scenery-notes": createGetItemNotes(sceneryNotes),
+    "PUT /api/productions/{productionId}/items/{itemId}/scenery-notes": createSaveItemNote(
+      sceneryNotes,
+      runningOrders,
+    ),
     "POST /api/productions/{productionId}/casting-grid/export": exportCastingGrid,
     "POST /api/productions/{productionId}/items/{itemId}/roles": createAddRole(
       roles,
@@ -77,8 +96,9 @@ export function createRoutes(
 }
 
 const { where, ...stores } = dataStores();
+const sceneryFiles = sceneryFileStore();
 /** Where the data is kept, for the dev server to say on start. */
-export const dataLocation = where;
+export const dataLocation = `${where}; ${sceneryFiles.where}`;
 
 /** The routes on the data the environment names (data-stores.ts). */
-export const routes = createRoutes(stores, usageStore());
+export const routes = createRoutes(stores, usageStore(), sceneryFiles.store);

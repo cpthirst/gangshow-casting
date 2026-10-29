@@ -36,7 +36,7 @@ iCUE is hosted on AWS and is open only to the production team. Everyone signs in
 | **Show → Cast** | The Scouts, Explorers and Network members in this production: name, section, Scout group or Explorer unit, age band, and short Singing and Acting notes. Search and filter, add, edit and remove | [cast-management](docs/product/cast-management) |
 | **Casting → Overview** | The whole cast at once, three ways: **By person** (who carries how many parts, and of what size, section by section), **By item** (each item's parts in show order) and **Grid** (people against items). Clashes are flagged. Export the grid to Excel and the other two views to Word | [casting/overview](docs/product/casting/overview) |
 | **Casting → Items** | Every item in running order, with how far its casting has got | [casting/items](docs/product/casting/items) |
-| **Production → Overview** | One page for every department, open to every role. It lists the show's items in running order, each with a square button for every department (Scenery, Props, SFX, Mic plot, Wardrobe), its props count and its props notes, plus Generate Props List for the Word props list. Only Props is live: its button opens the item's props page, where Stage adds its props and the roles that use them, each shown with who plays it; the other departments' pages say "Coming soon" | [production-props](docs/product/production/props), [production-overview](docs/product/production/overview) |
+| **Production → Overview** | One page for every department, open to every role. It lists the show's items in running order, each with a square button for every department (Scenery, Props, SFX, Mic plot, Wardrobe), its props count and its props notes, plus Generate Props List for the Word props list. Props and Scenery are live. Props opens the item's props page, where Stage adds its props and the roles that use them, each shown with who plays it. Scenery opens the item's files, kept in a private bucket, and its scenery notes, which Stage, Tech and Director change. The other departments' pages say "Coming soon" | [production-props](docs/product/production/props), [production-overview](docs/product/production/overview) |
 | **An item's page** | The item's parts (lead, supporting, cameo, ensemble), who plays each, warnings about quick changes and short gaps between appearances, and the item's notes. Step to the previous or next item | [casting/item-overview](docs/product/casting/item-overview), [roles](docs/product/casting/roles), [rules](docs/product/casting/rules) |
 | **Help** | What each page is for and what its buttons do, with who can use each | [in-app-help](docs/product/in-app-help) |
 | **Accounts** (admins) | Create the team's sign-in accounts, see and change each one's access (Admin, or any mix of Casting, Stage, Tech and Wardrobe), reset passwords, and disable or enable accounts | [hosting](docs/product/hosting), [team-roles](docs/product/team-roles) |
@@ -46,7 +46,7 @@ iCUE is hosted on AWS and is open only to the production team. Everyone signs in
 - **Admin:** everything, plus Accounts and Usage.
 - **Casting:** changes the running order drafts, cast and casting.
 - **Stage, Tech, Wardrobe:** change their own department's pages, as those arrive.
-- **Director:** changes every Production department's pages (Props today), but not casting or the show. Admins give it on the Accounts page ([production-scenery](docs/product/production/scenery)).
+- **Director:** changes every Production department's pages (Props and Scenery today), but not casting or the show. Admins give it on the Accounts page ([production-scenery](docs/product/production/scenery)).
 - **Read-only** (no permissions): sees every page but changes nothing, which suits reviewers such as the director.
 
 Each change route names the permission it needs ([ADR 0026](docs/adr/0026-department-permissions-as-user-pool-groups.md)). The API checks them on every request, not just the menu.
@@ -104,6 +104,8 @@ pnpm dev       # web on :5173 + API on :3000 (Vite proxies /api), on the real re
 pnpm check     # lint + typecheck + tests + cdk synth: the definition of "done"
 ```
 
+Locally, scenery files live in `apps/api/data/files` unless `FILES_BUCKET` names the bucket (the stack's `FilesBucketName` output, ADR 0030).
+
 `pnpm dev` and `pnpm demo` start you as an admin, and the sidebar's "Local role" tick boxes let you try any mix of permissions (Casting, Stage, Tech, Wardrobe, Director), or none.
 
 **Guides:**
@@ -139,15 +141,15 @@ CI runs both of these as separate jobs.
 │           ├── dev-server.ts    node:http stand-in for API Gateway, loopback only
 │           ├── show/            cast/, running-order/: handlers and stores
 │           ├── casting/         roles/, casting-grid/ (the Excel export)
-│           ├── production/      props/
-│           ├── item-notes/      Notes per item, for casting and props
+│           ├── production/      props/, scenery/ (files in a bucket, or a local folder)
+│           ├── item-notes/      Notes per item, for casting, props and scenery
 │           ├── accounts/        The team's accounts, on the user pool
 │           ├── usage/           Usage records
 │           ├── http/            Requests, responses, route matching, permissions
 │           ├── storage/         Choosing the stores; file and DynamoDB helpers
 │           └── cli/             pnpm account and pnpm check:hosted
 ├── packages/shared/         zod schemas + inferred types: the API contract
-├── infra/                   AWS CDK app: one AppStack (pages, API, functions, table, user pool, budget)
+├── infra/                   AWS CDK app: one AppStack (pages, API, functions, table, files bucket, user pool, budget)
 ├── tooling/                 Repo scripts: demo.ts, release.ts + harness and README tests
 ├── docs/
 │   ├── adr/                 Architecture decision records (see Decisions)
@@ -350,6 +352,7 @@ These cover humans and agents alike, and `pnpm install` installs them.
 | [0027](docs/adr/0027-costume-group-renamed-wardrobe.md) | The `costume` group renamed `wardrobe` in one release, with no move |
 | [0028](docs/adr/0028-api-source-folders.md) | The API's source grouped by area, nested like the web's, with a `#/` import alias |
 | [0029](docs/adr/0029-director-permission-and-routes-naming-any-of-several.md) | A Director permission as a user pool group, and change routes that name any of several permissions |
+| [0030](docs/adr/0030-scenery-files-in-a-private-bucket-named-by-key.md) | Scenery files in a private S3 bucket, each named by its key under its production, item and department |
 
 ---
 

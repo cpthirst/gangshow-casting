@@ -1395,14 +1395,53 @@ main a {
   list-style: none;
 }
 
+/* An item's scenery files as a grid of tiles: two across on a phone, more as there's room. */
+.file-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(9rem, 100%), 1fr));
+  gap: 0.5rem;
+  margin: 1rem 0;
+  padding: 0;
+  list-style: none;
+}
+
+.file-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 1rem 0.75rem;
+  text-align: center;
+}
+
+.file-icon {
+  margin-bottom: 0.25rem;
+  font-size: 2.5rem;
+}
+
+/* A long name with no spaces wraps anywhere rather than push the page sideways. */
+.file-name {
+  overflow-wrap: anywhere;
+  font-weight: 700;
+}
+
+.file-size {
+  font-size: 0.875rem;
+}
+
+/* Every card's surface, so roles, props and files look alike. */
+.role-card,
+.file-tile {
+  border-radius: 0.5rem;
+  background: var(--white);
+}
+
 .role-card {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem 0.75rem;
   align-items: center;
   padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
-  background: var(--white);
 }
 
 .role-name {

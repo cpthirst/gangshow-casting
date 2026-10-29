@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promis
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { dataStores, usageStore } from "./data-stores.ts";
+import { dataStores, sceneryFileStore, usageStore } from "./data-stores.ts";
 
 describe("data stores", () => {
   let dataDir: string;
@@ -43,6 +43,23 @@ describe("data stores", () => {
 
     expect(await usage.recordedSince()).toBe("2026-10-24T09:00:00.000Z");
     expect(await readdir(dataDir)).toEqual([]);
+  });
+
+  it("keeps scenery files in the local files' own folder when no bucket is configured, even with a remote table", async () => {
+    const place = join(dataDir, "files", "2027", "finale", "scenery");
+    await mkdir(place, { recursive: true });
+    await writeFile(join(place, "curtain.pdf"), "made-up");
+
+    const files = sceneryFileStore({ DATA_DIR: dataDir, DATA_TABLE: "GangshowData" });
+
+    expect(await files.store.list("2027", "finale")).toEqual([{ name: "curtain.pdf", size: 7 }]);
+    expect(files.where).toBe(`scenery files in ${join(dataDir, "files")}`);
+  });
+
+  it("keeps scenery files in the bucket FILES_BUCKET names, in London", async () => {
+    const files = sceneryFileStore({ DATA_DIR: dataDir, FILES_BUCKET: "made-up-files" });
+
+    expect(files.where).toBe("scenery files in bucket made-up-files (eu-west-2)");
   });
 
   it("says where item notes are kept when a remote table is configured", () => {

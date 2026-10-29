@@ -2,7 +2,7 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { aTestTable, type TestTable } from "#/storage/dynamo.fixture.ts";
 import { documentClient } from "#/storage/dynamo-table.ts";
-import { dynamoItemNoteStore, PROPS_NOTE } from "./dynamo-item-note-store.ts";
+import { dynamoItemNoteStore, PROPS_NOTE, SCENERY_NOTE } from "./dynamo-item-note-store.ts";
 import { behavesAsAnItemNoteStore } from "./item-note-store.contract.ts";
 
 describe("DynamoDB item note store", () => {
@@ -28,6 +28,21 @@ describe("DynamoDB item note store", () => {
 
       expect((await casting.list("2027")).notes.map((note) => note.text)).toEqual(["Sword fight"]);
       expect((await props.list("2027")).notes.map((note) => note.text)).toEqual(["Chest"]);
+    });
+  });
+
+  describe("for scenery notes", () => {
+    behavesAsAnItemNoteStore(() => dynamoItemNoteStore(table.db, table.tableName, SCENERY_NOTE));
+
+    it("keeps scenery notes apart from the props notes", async () => {
+      const props = dynamoItemNoteStore(table.db, table.tableName, PROPS_NOTE);
+      const scenery = dynamoItemNoteStore(table.db, table.tableName, SCENERY_NOTE);
+      await props.save("2027", "pirate-sketch", 0, "Chest");
+
+      await scenery.save("2027", "pirate-sketch", 0, "Cloud");
+
+      expect((await props.list("2027")).notes.map((note) => note.text)).toEqual(["Chest"]);
+      expect((await scenery.list("2027")).notes.map((note) => note.text)).toEqual(["Cloud"]);
     });
   });
 

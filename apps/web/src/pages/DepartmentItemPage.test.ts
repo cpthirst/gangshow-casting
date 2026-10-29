@@ -27,8 +27,8 @@ const show = aRunningOrder([anItem("Opening Number"), anItem("Pirate Sketch")], 
 
 const json = (body: unknown) => new Response(JSON.stringify(body));
 
-/** A stand-in API holding one saved running order (none if undefined), and no props or
- *  casting. */
+/** A stand-in API holding one saved running order (none if undefined), and no props,
+ *  casting or scenery files. */
 function savedShowIs(order: RunningOrder | undefined) {
   vi.stubGlobal(
     "fetch",
@@ -40,6 +40,7 @@ function savedShowIs(order: RunningOrder | undefined) {
       if (url === PROPS_NOTES_PATH) return json({ productionId: "2027", notes: [] });
       if (url === ROLES_PATH) return json({ productionId: "2027", roles: [] });
       if (url === CAST_PATH) return json({ productionId: "2027", members: [] });
+      if (url.endsWith("/scenery-files")) return json({ files: [] });
       if (url === "/api/usage") return new Response(null, { status: 204 });
       return json({ status: "ok", version: "dev" });
     }),
@@ -87,7 +88,6 @@ describe("A department's item page", () => {
   });
 
   it.each([
-    ["Scenery", "scenery"],
     ["SFX", "sfx"],
     ["Wardrobe", "wardrobe"],
   ])("opens the %s page for the item, titled for both, coming soon", async (department, path) => {

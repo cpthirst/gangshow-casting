@@ -24,6 +24,9 @@ export const routeKeys = [
   "DELETE /api/productions/{productionId}/props/{propId}",
   "GET /api/productions/{productionId}/props-notes",
   "PUT /api/productions/{productionId}/items/{itemId}/props-notes",
+  "GET /api/productions/{productionId}/items/{itemId}/scenery-files",
+  "GET /api/productions/{productionId}/scenery-notes",
+  "PUT /api/productions/{productionId}/items/{itemId}/scenery-notes",
   "POST /api/productions/{productionId}/casting-grid/export",
   "PUT /api/productions/{productionId}/items/{itemId}/notes",
   "POST /api/productions/{productionId}/items/{itemId}/roles",
@@ -167,6 +170,11 @@ export type RouteNeeds = Readonly<
 
 /** Who may change the props and props notes: Stage, or a Director (production-scenery FR2). */
 export const PROPS_PERMISSIONS: AnyOf = [STAGE_GROUP, DIRECTOR_GROUP];
+/**
+ * Who may change scenery: Stage and Tech share it, and a Director may too (production-scenery
+ * FR5). Tech first, as a refusal names the first: Stage's line is about the props.
+ */
+export const SCENERY_PERMISSIONS: AnyOf = [TECH_GROUP, STAGE_GROUP, DIRECTOR_GROUP];
 /** Who may change the cast, roles, casting and casting notes: Casting alone, never a Director. */
 export const CASTING_PERMISSIONS: AnyOf = [CASTING_GROUP];
 
@@ -193,6 +201,7 @@ export const routeNeeds: RouteNeeds = {
   "PUT /api/productions/{productionId}/props/{propId}": PROPS_PERMISSIONS,
   "DELETE /api/productions/{productionId}/props/{propId}": PROPS_PERMISSIONS,
   "PUT /api/productions/{productionId}/items/{itemId}/props-notes": PROPS_PERMISSIONS,
+  "PUT /api/productions/{productionId}/items/{itemId}/scenery-notes": SCENERY_PERMISSIONS,
   // Usage is about the team, so only admins read it (usage-tracking FR4).
   "GET /api/usage": "admin",
 };

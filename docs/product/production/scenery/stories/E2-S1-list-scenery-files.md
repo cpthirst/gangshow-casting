@@ -2,7 +2,7 @@
 id: production-scenery.E2.S1
 title: List an item's scenery files from file storage
 epic: E2
-status: draft
+status: done
 ---
 
 ## Story
@@ -45,9 +45,9 @@ When the running order is saved with it moved to third
 Then its Scenery page still shows "set-plan.pdf"
 
 ### AC7: A name is shown as text
-Given a file named "<b>plan</b>.pdf"
+Given a file named "<b>plan.pdf"
 When someone opens the item's Scenery page
-Then the tile shows the name exactly as "<b>plan</b>.pdf", not as bold text
+Then the tile shows the name exactly as "<b>plan.pdf", not as bold text
 
 ### AC8: Every signed-in role can list the files
 Given "jo" has no permissions
@@ -77,7 +77,25 @@ When sam opens a Scenery page
 Then it shows "You can view the scenery, but not change it."
 And someone with Stage, Tech or Director, or an admin, sees no such line
 
+### AC13: Each item has scenery notes, kept apart from its other notes
+Given "lee" has Tech only
+When lee saves "Fly the cloud in after the blackout" as the scenery notes on "Opening Number"
+Then its Scenery page shows them on the next load, and its casting and props notes are unchanged
+And someone with Casting only reads them but can't change them, and the API refuses their save
+
+### AC14: The page has its own help
+Given someone on a Scenery page
+When they choose "Help for this item"
+Then it explains All items, Previous and Next, and the scenery notes, and says Stage, Tech or Director can change scenery
+
 ## Notes
+
+- AC13 and AC14 were added at review (2026-10-29, the maintainer's choice of the UX review's findings), so the Scenery page matches the Props item page: notes below the files, and a Help button. The Help page's Overview line for Scenery now names Stage, Tech or Director too.
+
+- **Decided 2026-10-29** (ADR 0030): one private S3 bucket, keys `<production>/<item id>/scenery/<name>` (a department folder per item, so SFX and Wardrobe can follow). Locally, a folder laid out the same way until `FILES_BUCKET` is set; `pnpm dev` gets it after the first deploy. The bucket's refusal of anyone signed out (AC9) is checked by the stack's tests, not `pnpm check:hosted`.
+- Readings agreed at `write-story`: names sort ignoring case (AC1); sizes use decimal units ("2.4 MB", "800 KB"); the read-only line reads "You can view the scenery, but not change it: only Stage, Tech, Director and admins can."; the empty message is the same for everyone until upload (E2.S7).
+- Follow-up (infra review): `pnpm release` refuses a diff that replaces or orphans the table or user pool, but not yet the files bucket. Add `FilesBucket` to that check (`tooling/src/release.ts`), in its own change.
+- AC7's example was "<b>plan</b>.pdf" until implementation: a name can't hold a `/` (ADR 0030), so it became "<b>plan.pdf".
 
 - FRs: FR5 (who sees the read-only view), FR6, FR7 (grid, name and size, general icon), FR12
 - Depends on: production-scenery.E1.S1

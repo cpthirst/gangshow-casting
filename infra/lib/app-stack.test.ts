@@ -85,6 +85,85 @@ describe("AppStack", () => {
     });
   });
 
+  describe("scenery files bucket (ADR 0030)", () => {
+    /** The files bucket's resources, found by construct id, so the pages' bucket can't match. */
+    const filesBucket = (template: Template) => {
+      const buckets = Object.entries(template.findResources("AWS::S3::Bucket"));
+      return buckets.find(([logicalId]) => logicalId.startsWith("FilesBucket"));
+    };
+    const statementsOf = (template: Template) =>
+      resourcesOfType(template, "AWS::IAM::Policy").flatMap((policy) =>
+        policy.Properties.PolicyDocument.Statement.map((statement: unknown) => ({
+          role: JSON.stringify(policy.Properties.Roles),
+          statement,
+        })),
+      );
+
+    it("is private, encrypted, unversioned and kept if the stack goes", () => {
+      const [, bucket] = filesBucket(synth().template) ?? [];
+
+      expect(bucket?.Properties).toEqual(
+        expect.objectContaining({
+          PublicAccessBlockConfiguration: {
+            BlockPublicAcls: true,
+            BlockPublicPolicy: true,
+            IgnorePublicAcls: true,
+            RestrictPublicBuckets: true,
+          },
+          BucketEncryption: {
+            ServerSideEncryptionConfiguration: [
+              { ServerSideEncryptionByDefault: { SSEAlgorithm: "AES256" } },
+            ],
+          },
+        }),
+      );
+      // A replaced or deleted file is gone (production-scenery non-goals, ADR 0010).
+      expect(bucket?.Properties.VersioningConfiguration).toBeUndefined();
+      expect(bucket?.DeletionPolicy).toBe("Retain");
+    });
+
+    it("refuses anyone not signed in: its policy allows no one, and denies requests without TLS", () => {
+      const { template } = synth();
+      const [logicalId] = filesBucket(template) ?? [];
+      const policies = resourcesOfType(template, "AWS::S3::BucketPolicy").filter(
+        (policy) => policy.Properties.Bucket.Ref === logicalId,
+      );
+      const statements = policies.flatMap((p) => p.Properties.PolicyDocument.Statement);
+
+      expect(statements.filter((s) => s.Effect === "Allow")).toEqual([]);
+      expect(statements).toContainEqual(
+        expect.objectContaining({
+          Effect: "Deny",
+          Condition: { Bool: { "aws:SecureTransport": "false" } },
+        }),
+      );
+    });
+
+    it("lets the API function only list it, and the accounts function not at all", () => {
+      const { template } = synth();
+      const [logicalId] = filesBucket(template) ?? [];
+
+      template.hasResourceProperties("AWS::Lambda::Function", {
+        Environment: { Variables: { FILES_BUCKET: { Ref: logicalId } } },
+      });
+      const s3 = statementsOf(template).filter(({ statement }) =>
+        JSON.stringify(statement).includes(`"${logicalId}"`),
+      );
+      expect(s3.map((grant) => grant.role)).toEqual([expect.stringMatching(/ApiFunction/)]);
+      expect(s3[0]?.statement).toEqual(
+        expect.objectContaining({
+          Effect: "Allow",
+          Action: "s3:ListBucket",
+          Resource: { "Fn::GetAtt": [logicalId, "Arn"] },
+        }),
+      );
+    });
+
+    it("names the bucket in the stack's outputs, for pnpm dev's FILES_BUCKET", () => {
+      synth().template.hasOutput("FilesBucketName", {});
+    });
+  });
+
   describe("budget alert (remote-data FR13)", () => {
     it("is a monthly cost budget of about £5", () => {
       synth().template.hasResourceProperties("AWS::Budgets::Budget", {
@@ -740,6 +819,8 @@ function deployedConfig(stack: AppStack): Record<string, unknown> {
 }
 
 const pagesBucketStatements = (template: Template): Statement[] => {
-  const [policy] = resourcesOfType(template, "AWS::S3::BucketPolicy");
+  const policy = resourcesOfType(template, "AWS::S3::BucketPolicy").find((p) =>
+    /^PagesBucket/.test(p.Properties.Bucket.Ref),
+  );
   return policy?.Properties.PolicyDocument.Statement ?? [];
 };
