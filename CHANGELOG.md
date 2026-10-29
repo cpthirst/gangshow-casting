@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.28.0](https://github.com/cpthirst/gangshow-casting/compare/v1.27.1...v1.28.0) (2026-10-29)
+
+
+### Features
+
+* **web:** open or download a scenery file (production-scenery.E2.S2) ([#146](https://github.com/cpthirst/gangshow-casting/issues/146)) ([f4de891](https://github.com/cpthirst/gangshow-casting/commit/f4de8916bb3249bded1c6b805fcd6f8b68a06913))
+* **web:** show scenery file type icons in their apps' colours (production-scenery.E2.S2) ([#148](https://github.com/cpthirst/gangshow-casting/issues/148)) ([fea2744](https://github.com/cpthirst/gangshow-casting/commit/fea2744ba47d525ef936eda603b5753fbf939422))
+
 ## [1.27.1](https://github.com/cpthirst/gangshow-casting/compare/v1.27.0...v1.27.1) (2026-10-29)
 
 
