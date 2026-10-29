@@ -8,15 +8,19 @@ const PRODUCTION_ID = "2027";
 export const sceneryFilesPath = (itemId: string) =>
   `/api/productions/${PRODUCTION_ID}/items/${encodeURIComponent(itemId)}/scenery-files`;
 
+/** One of the item's files, to delete it (FR11). */
+export const sceneryFilePath = (itemId: string, name: string) =>
+  `${sceneryFilesPath(itemId)}?${new URLSearchParams({ name })}`;
+
 /** A short-lived link that opens or downloads one of the item's files (FR10). */
 export const sceneryFileLinkPath = (itemId: string, name: string) =>
   `/api/productions/${PRODUCTION_ID}/items/${encodeURIComponent(itemId)}/scenery-file-link?${new URLSearchParams({ name })}`;
 
-/** Whether choosing the file's tile opens it in a new tab, rather than downloading it. */
+/** Whether choosing the file's row opens it in a new tab, rather than downloading it. */
 export const opensInBrowser = (name: string) => browserTypeOf(name) !== undefined;
 
-/** A tile's name for screen readers: what choosing it does, and the file's type (FR10). */
-export function tileLabel(name: string) {
+/** A file's name for screen readers: what choosing it does, and the file's type (FR10). */
+export function fileLabel(name: string) {
   const action = `${opensInBrowser(name) ? "Open" : "Download"} ${name}`;
   const type = fileTypeOf(name);
   return type ? `${action}, ${type} file` : action;
@@ -34,7 +38,7 @@ const typesByIcon = [
   ],
 ] as const;
 
-/** The icon on a file's tile, from its name: its type's own, or the general file icon (FR7). */
+/** The icon on a file's row, from its name: its type's own, or the general file icon (FR7). */
 export function fileIconOf(name: string) {
   const type = fileTypeOf(name);
   const found = typesByIcon.find(([, types]) => types.some((each) => each === type));
@@ -61,7 +65,7 @@ const units = [
   { unit: "KB", bytes: 1e3 },
 ];
 
-/** A file's size, short enough for a tile: "2.4 MB", "800 KB". */
+/** A file's size, short enough for a row: "2.4 MB", "800 KB". */
 export function fileSize(bytes: number) {
   const fits = units.find(({ bytes: size }) => bytes >= size);
   if (!fits) return bytes === 1 ? "1 byte" : `${bytes} bytes`;

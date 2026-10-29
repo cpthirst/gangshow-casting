@@ -1,4 +1,10 @@
-import { HeadObjectCommand, ListObjectsV2Command, NotFound, S3Client } from "@aws-sdk/client-s3";
+import {
+  DeleteObjectCommand,
+  HeadObjectCommand,
+  ListObjectsV2Command,
+  NotFound,
+  S3Client,
+} from "@aws-sdk/client-s3";
 import { mockClient } from "aws-sdk-client-mock";
 import { beforeEach, describe, expect, it } from "vitest";
 import { s3SceneryFileStore } from "./s3-scenery-file-store.ts";
@@ -106,5 +112,26 @@ describe("links to scenery files in a bucket", () => {
     s3.on(HeadObjectCommand).rejects(new NotFound({ message: "Not Found", $metadata: {} }));
 
     expect(await linkTo("set-plan.pdf")).toBeUndefined();
+  });
+});
+
+describe("deleting scenery files from a bucket", () => {
+  it("deletes the item's file by its key", async () => {
+    s3.on(HeadObjectCommand).resolves({});
+    s3.on(DeleteObjectCommand).resolves({});
+
+    expect(await store().remove("2027", "opening-number", "set-plan.pdf")).toBe("removed");
+    expect(s3.commandCalls(DeleteObjectCommand)[0]?.args[0].input).toEqual({
+      Bucket: BUCKET,
+      Key: `${prefix}set-plan.pdf`,
+    });
+  });
+
+  // S3 answers a delete of a missing key as if it worked, so the store looks first.
+  it("says a file that isn't there is gone, deleting nothing", async () => {
+    s3.on(HeadObjectCommand).rejects(new NotFound({ message: "Not Found", $metadata: {} }));
+
+    expect(await store().remove("2027", "opening-number", "set-plan.pdf")).toBe("gone");
+    expect(s3.commandCalls(DeleteObjectCommand)).toEqual([]);
   });
 });

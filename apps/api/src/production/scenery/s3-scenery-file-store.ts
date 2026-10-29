@@ -1,5 +1,6 @@
 import type { SceneryFile } from "@app/shared";
 import {
+  DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
   ListObjectsV2Command,
@@ -40,12 +41,7 @@ export function s3SceneryFileStore(s3: S3Client, bucket: string): SceneryFileSto
     },
     async linkTo(productionId, itemId, name) {
       const Key = `${sceneryFolderOf(productionId, itemId)}${name}`;
-      try {
-        await s3.send(new HeadObjectCommand({ Bucket: bucket, Key }));
-      } catch (error) {
-        if (error instanceof NotFound) return undefined;
-        throw error;
-      }
+      if (!(await exists(Key))) return undefined;
       // The link names its type and name itself, so what storage holds can't make it open.
       const { contentType, contentDisposition } = fileHeadersOf(name);
       const get = new GetObjectCommand({
@@ -56,5 +52,22 @@ export function s3SceneryFileStore(s3: S3Client, bucket: string): SceneryFileSto
       });
       return getSignedUrl(s3, get, { expiresIn: LINK_SECONDS });
     },
+    async remove(productionId, itemId, name) {
+      const Key = `${sceneryFolderOf(productionId, itemId)}${name}`;
+      // S3 answers a delete of a missing key as if it worked, so look first (AC6's "gone").
+      if (!(await exists(Key))) return "gone";
+      await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key }));
+      return "removed";
+    },
   };
+
+  async function exists(Key: string) {
+    try {
+      await s3.send(new HeadObjectCommand({ Bucket: bucket, Key }));
+      return true;
+    } catch (error) {
+      if (error instanceof NotFound) return false;
+      throw error;
+    }
+  }
 }

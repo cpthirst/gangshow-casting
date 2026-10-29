@@ -14,12 +14,12 @@ As someone on the Stage or Tech team, I want to upload a set plan or design to a
 ### AC1: Stage, Tech, Director and admins can upload a file
 Given "pat" has Stage, "lee" has Tech, "dee" has Director and "alex" is an Admin
 When each uploads a file to the Scenery page for "Opening Number"
-Then each upload is kept, and its tile shows in the grid with its name and size, in name order
+Then each upload is kept, and its row shows in the list with its name and size, in name order
 
 ### AC2: The file keeps the name it was uploaded with
 Given "pat" has Stage
 When pat uploads "Set Plan (Act 1).pdf"
-Then its tile shows "Set Plan (Act 1).pdf"
+Then its row shows "Set Plan (Act 1).pdf"
 And it is in the item's place in file storage under that name
 
 ### AC3: The upload area states the images rule
@@ -35,7 +35,7 @@ Then the file uploads, as it does when dragged onto the upload area
 ### AC5: A file of 100 MB uploads
 Given "pat" has Stage
 When pat uploads a file of exactly 100 MB
-Then it is kept and shows in the grid
+Then it is kept and shows in the list
 
 ### AC6: The page refuses a file over 100 MB
 Given "pat" has Stage
@@ -63,7 +63,7 @@ Then the API refuses it with 400 or 404, and nothing is put in file storage outs
 Given "pat" has Stage and the connection drops during the upload of "set-plan.pdf"
 When the upload fails
 Then the page says "set-plan.pdf wasn't uploaded. Check your connection and try again."
-And the grid doesn't show it
+And the list doesn't show it
 
 ## Notes
 

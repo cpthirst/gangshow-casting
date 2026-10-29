@@ -333,14 +333,14 @@ describe("Help page", () => {
       expect(names(wrapper, "scenery-item")).toEqual([
         "All items",
         "Previous and Next",
-        "File tiles",
+        "Files",
         "Scenery notes",
       ]);
       expect(accessOf(wrapper, "All items", "scenery-item")).toBe("Everyone");
-      expect(accessOf(wrapper, "File tiles", "scenery-item")).toBe("Everyone");
-      // The icons the tiles show, so the help matches what's on the page.
+      expect(accessOf(wrapper, "Files", "scenery-item")).toBe("Everyone");
+      // The icons the files show, so the help matches what's on the page.
       expect(
-        lineNamed(wrapper, "File tiles", "scenery-item")
+        lineNamed(wrapper, "Files", "scenery-item")
           .findAll("svg")
           .map((svg) => svg.attributes("data-icon")),
       ).toEqual(

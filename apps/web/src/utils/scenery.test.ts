@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest";
 import { icons } from "./icons.ts";
 import {
   fileIconOf,
+  fileLabel,
   fileSize,
   sceneryFileLinkPath,
   sceneryFilesPath,
   sortFiles,
-  tileLabel,
 } from "./scenery.ts";
 
 describe("sceneryFilesPath", () => {
@@ -66,15 +66,15 @@ describe("sceneryFileLinkPath", () => {
   });
 });
 
-describe("tileLabel", () => {
+describe("fileLabel", () => {
   it.each([
     ["set-plan.pdf", "Open set-plan.pdf, PDF file"],
     ["Backdrop.png", "Open Backdrop.png, PNG file"],
     ["build-list.xlsx", "Download build-list.xlsx, XLSX file"],
     ["notes.html", "Download notes.html, HTML file"],
     ["notes", "Download notes"],
-  ])("names the tile for %s %j", (name, label) => {
-    expect(tileLabel(name)).toBe(label);
+  ])("names the file for %s %j", (name, label) => {
+    expect(fileLabel(name)).toBe(label);
   });
 });
 

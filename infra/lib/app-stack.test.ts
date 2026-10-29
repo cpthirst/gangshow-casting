@@ -139,7 +139,7 @@ describe("AppStack", () => {
       );
     });
 
-    it("lets the API function only list it and read scenery files, and the accounts function not at all", () => {
+    it("lets the API function only list it, and read and delete scenery files, and the accounts function not at all", () => {
       const { template } = synth();
       const [logicalId] = filesBucket(template) ?? [];
 
@@ -150,6 +150,7 @@ describe("AppStack", () => {
         JSON.stringify(statement).includes(`"${logicalId}"`),
       );
       expect(s3.map((grant) => grant.role)).toEqual([
+        expect.stringMatching(/ApiFunction/),
         expect.stringMatching(/ApiFunction/),
         expect.stringMatching(/ApiFunction/),
       ]);
@@ -163,6 +164,14 @@ describe("AppStack", () => {
         expect.objectContaining({
           Effect: "Allow",
           Action: "s3:GetObject",
+          Resource: {
+            "Fn::Join": ["", [{ "Fn::GetAtt": [logicalId, "Arn"] }, "/*/*/scenery/*"]],
+          },
+        }),
+        // Deleting one, too (production-scenery FR11): nothing outside the scenery folders.
+        expect.objectContaining({
+          Effect: "Allow",
+          Action: "s3:DeleteObject",
           Resource: {
             "Fn::Join": ["", [{ "Fn::GetAtt": [logicalId, "Arn"] }, "/*/*/scenery/*"]],
           },

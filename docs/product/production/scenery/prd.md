@@ -29,7 +29,7 @@ Access doesn't fit the production team either. The show's director works across 
 |---|---|---|
 | Scenery files live with the item | Places the team needs to look for an item's scenery files | 1 (its Scenery page) |
 | Sharing a file is quick | Time to upload a file to an item, starting on its Scenery page | Under 30 seconds, plus the upload itself |
-| Files are recognisable at a glance | Files on a Scenery page shown without a thumbnail (images) or a type icon (everything else) | 0 |
+| Files are recognisable at a glance | Files on a Scenery page shown without a type icon | 0 |
 | Access matches what someone does | Changes the API accepts outside an account's permissions, covered by tests for every change route and every permission, Director included | 0 |
 | Nobody's access changes in the release | Existing accounts whose access changes with no admin action | 0 |
 | Scenery data is never public | Scenery files reachable by anyone who isn't signed in | 0 |
@@ -39,7 +39,7 @@ Access doesn't fit the production team either. The show's director works across 
 - **Folders, tags, or a description per file.** A file is its name, type and size.
 - **Renaming a file in the app.** It keeps the name it was uploaded with.
 - **Versions or history.** Replacing a file keeps only the newest copy, and a deleted file can't be brought back.
-- **Viewing or editing files inside the app**, beyond image thumbnails. A PDF, image or plain-text file opens in the browser's own viewer, in a new tab; every other file downloads.
+- **Viewing or editing files inside the app**, image thumbnails included (E2.S3 dropped 2026-10-29). A PDF, image or plain-text file opens in the browser's own viewer, in a new tab; every other file downloads.
 - **Checking what is in an image**, such as spotting photos of people. The page states the rule (FR8), and the team follows it.
 - **Deleting files at the end of a production.** Not considered for now.
 - **Recording uploads, downloads or deletes on the Usage page.** Only page visits are recorded (FR15).
@@ -63,17 +63,16 @@ Access doesn't fit the production team either. The show's director works across 
 
 ### An item's Scenery page
 - **FR6**: Each item's Scenery page (production-overview FR10) replaces "Coming soon" with the item's files. The page keeps its link back to the Overview, its Previous and Next links, and its not-found message.
-- **FR7**: The files are shown as a **grid** of tiles, sorted by name. Each tile shows:
-  - a **thumbnail preview** for an image (at least JPG and PNG);
-  - otherwise a **type icon**: distinct icons for PDF, DOCX (Word), XLSX (Excel) and PPTX (PowerPoint), and a general file icon for any other type. An image whose preview can't be shown gets an image icon;
-  - the file's **name**, exactly as it is held in storage (the name it was uploaded with), with its size;
-  - for those who can change scenery, a **trash icon** to delete it.
+- **FR7**: The files are shown as a **list**, one row per file as on the other item pages, sorted by name (a grid of tiles until 2026-10-29). Each row shows, from the left:
+  - for those who can change scenery, a **trash icon** to delete it;
+  - a **type icon**, in a column of its own: distinct icons for PDF, Word, Excel, PowerPoint and images, and a general file icon for any other type. There are no thumbnail previews (dropped 2026-10-29);
+  - the file's **name**, in full, exactly as it is held in storage (the name it was uploaded with), with its size.
 
   An item with no files says so, and, for those who can change scenery, how to add one.
 - **FR8**: Someone who can change scenery can **upload** a file, one at a time, of any type, up to **100 MB**. The upload area says "Scenery and set images only: no photos of cast members." The page shows progress while the file uploads. A file over the limit, or an upload that fails, is named with the reason.
 - **FR9**: Uploading a file with the same name as one already on that item **replaces** it, after the page asks to confirm ("Replace set-plan.pdf?"). Names are compared exactly, as stored.
-- **FR10**: Anyone can **open or download** a file by choosing its tile. A PDF, image (JPG, PNG, GIF, WebP) or plain-text file opens in a new browser tab; any other file downloads. Either way it keeps its stored name.
-- **FR11**: The trash icon asks to confirm ("Delete set-plan.pdf? This can't be undone."), then deletes the file for everyone.
+- **FR10**: Anyone can **open or download** a file by choosing its row. A PDF, image (JPG, PNG, GIF, WebP) or plain-text file opens in a new browser tab; any other file downloads. Either way it keeps its stored name.
+- **FR11**: The trash icon asks to confirm ("Remove set-plan.pdf? This can't be undone."), then deletes the file for everyone.
 - **FR12**: Each item's files are its own, tied to that item in the current production. Moving an item in the running order keeps its files with it.
 - **FR13**: When an item is removed from the running order, its files are deleted along with everything else about it, in the same removal clean-up that runs when the running order is saved (running-order E3.S2). Nothing is deleted until the save, so Reset still undoes a removal. As with the item's notes and roles, a clean-up that fails is repaired by the next save.
 
@@ -92,12 +91,12 @@ Access doesn't fit the production team either. The show's director works across 
   - Adding the Director permission and its sign-in group changes the AWS sign-in setup, and a Scenery page shared by Stage and Tech changes ADR 0026's rule that each change route names one permission. Both need a decision record amending ADR 0026, and the infra and security reviews.
   - The images rule (FR8) stands in for checks: the app stores no photos of cast members (CLAUDE.md, ADR 0010). Files hold no personal data the app relies on.
 - **Accessibility**: WCAG 2.2 AA.
-  - Each tile has an accessible name saying the file's name and type, and what choosing it does ("Open set-plan.pdf, PDF file", "Download build-list.xlsx, XLSX file"). Each trash icon's name says which file it deletes. Thumbnails and type icons are decorative to screen readers.
+  - Each file has an accessible name saying the file's name and type, and what choosing it does ("Open set-plan.pdf, PDF file", "Download build-list.xlsx, XLSX file"). Each trash icon's name says which file it deletes. Type icons are decorative to screen readers.
   - Upload works by keyboard, not only by drag and drop. Progress and errors are announced.
-  - Targets are at least 24 by 24 CSS pixels (44 by 44 where the grid allows).
+  - Targets are at least 24 by 24 CSS pixels (44 by 44 where the layout allows).
   - The page works at 320px and 360px with no sideways scrolling, long file names included (they wrap or are shortened with the full name available).
 - **Performance**:
-  - A Scenery page with about 30 files shows its grid in under 1 second, with thumbnails loading after. Thumbnails mustn't download each full-size image on a phone connection where a smaller preview is possible.
+  - A Scenery page with about 30 files shows its files in under 1 second.
   - Uploads and downloads go at the speed of the connection: the app adds no limit below 100 MB, and a slow upload doesn't block the rest of the page.
 
 ## Constraints and assumptions

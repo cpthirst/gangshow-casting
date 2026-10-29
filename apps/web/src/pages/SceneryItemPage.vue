@@ -10,17 +10,19 @@ import ReadOnlyNotice from "@/components/common/ReadOnlyNotice.vue";
 import { showPageTitle } from "@/router/index.ts";
 import { downloadFrom, openFileTab } from "@/services/file-link.ts";
 import { apiFetch, canChangeScenery } from "@/services/sign-in.ts";
+import { icons } from "@/utils/icons.ts";
 import { neighboursOf, placeOf, positionOf, RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
 import {
   fileIconOf,
+  fileLabel,
   fileSize,
   opensInBrowser,
   SCENERY_NOTES_PATH,
   saveSceneryNotesPath,
   sceneryFileLinkPath,
+  sceneryFilePath,
   sceneryFilesPath,
   sortFiles,
-  tileLabel,
 } from "@/utils/scenery.ts";
 
 // One item's scenery files (production-scenery FR6, FR7) and notes, laid out as the props
@@ -30,8 +32,10 @@ const route = useRoute();
 const order = ref<RunningOrder>();
 const files = ref<SceneryFile[]>([]);
 const status = ref<"loading" | "loaded" | "error">("loading");
-// Why the last file chosen didn't open or download, if it didn't.
+// Why the last file chosen didn't open, download or delete, if it didn't.
 const fileProblem = ref<string>();
+// A delete is on its way, so the trash icons wait for it.
+const deleting = ref(false);
 
 const itemId = computed(() =>
   typeof route.params.itemId === "string" ? route.params.itemId : undefined,
@@ -104,6 +108,35 @@ async function choose({ name }: SceneryFile) {
   }
 }
 
+// For everyone, for good (FR11): there's no history to bring it back, so confirm first.
+async function remove({ name }: SceneryFile) {
+  const id = itemId.value;
+  if (!id || deleting.value) return;
+  if (!window.confirm(`Remove ${name}? This can't be undone.`)) return;
+  fileProblem.value = undefined;
+  deleting.value = true;
+  const code = await sendDelete(id, name);
+  deleting.value = false;
+  if (code === 204) {
+    files.value = files.value.filter((file) => file.name !== name);
+  } else if (code === 404) {
+    // Deleted in another browser meanwhile: say so, and catch up with storage.
+    fileProblem.value = `${name} isn't there any more.`;
+    await load(id);
+  } else {
+    fileProblem.value = `Couldn't remove ${name}. Try again.`;
+  }
+}
+
+// The status code, or undefined if the request didn't get an answer.
+async function sendDelete(id: string, name: string) {
+  try {
+    return (await apiFetch(sceneryFilePath(id, name), { method: "DELETE" })).status;
+  } catch {
+    return undefined;
+  }
+}
+
 watch(
   itemId,
   (id) => {
@@ -132,15 +165,29 @@ watch(
     <ReadOnlyNotice about="scenery" />
     <!-- An explicit list role: Safari drops list semantics once bullets are styled away. -->
     <p v-if="fileProblem" class="notice" role="alert" data-test="file-problem">{{ fileProblem }}</p>
-    <ul v-if="files.length > 0" class="file-tiles" role="list" aria-label="Scenery files">
-      <li v-for="file in files" :key="file.name" data-test="file">
+    <!-- One row per file, as the role and prop cards: the trash icon first, as theirs. -->
+    <ul v-if="files.length > 0" class="role-cards" role="list" aria-label="Scenery files">
+      <li v-for="file in files" :key="file.name" class="role-card" data-test="file">
+        <span v-if="canChangeScenery" class="row-icons">
+          <button
+            type="button"
+            class="icon-button"
+            data-test="delete"
+            :aria-label="`Remove ${file.name}`"
+            data-tooltip="Remove file"
+            :disabled="deleting"
+            @click="remove(file)"
+          >
+            <FontAwesomeIcon :icon="icons.remove" />
+          </button>
+        </span>
         <button
           type="button"
-          class="file-tile"
-          :aria-label="tileLabel(file.name)"
+          class="file-open"
+          :aria-label="fileLabel(file.name)"
           @click="choose(file)"
         >
-          <FontAwesomeIcon :icon="fileIconOf(file.name)" class="file-icon" />
+          <FontAwesomeIcon :icon="fileIconOf(file.name)" class="file-icon" fixed-width />
           <span class="file-name" data-test="name">{{ file.name }}</span>
           <span class="file-size" data-test="size">{{ fileSize(file.size) }}</span>
         </button>
