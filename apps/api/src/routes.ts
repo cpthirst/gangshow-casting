@@ -11,6 +11,7 @@ import { createAddProp } from "#/production/props/add-prop.ts";
 import { createGetProps } from "#/production/props/get-props.ts";
 import { createRemoveProp } from "#/production/props/remove-prop.ts";
 import { createUpdateProp } from "#/production/props/update-prop.ts";
+import { createGetSceneryFileLink } from "#/production/scenery/get-scenery-file-link.ts";
 import { createListSceneryFiles } from "#/production/scenery/list-scenery-files.ts";
 import type { SceneryFileStore } from "#/production/scenery/scenery-file-store.ts";
 import { createAddCastMember } from "#/show/cast/add-cast-member.ts";
@@ -78,6 +79,8 @@ export function createRoutes(
     ),
     "GET /api/productions/{productionId}/items/{itemId}/scenery-files":
       createListSceneryFiles(sceneryFiles),
+    "GET /api/productions/{productionId}/items/{itemId}/scenery-file-link":
+      createGetSceneryFileLink(sceneryFiles),
     "GET /api/productions/{productionId}/scenery-notes": createGetItemNotes(sceneryNotes),
     "PUT /api/productions/{productionId}/items/{itemId}/scenery-notes": createSaveItemNote(
       sceneryNotes,
@@ -99,6 +102,9 @@ const { where, ...stores } = dataStores();
 const sceneryFiles = sceneryFileStore();
 /** Where the data is kept, for the dev server to say on start. */
 export const dataLocation = `${where}; ${sceneryFiles.where}`;
+
+/** The local scenery files' folder, which the dev server serves; undefined with a bucket. */
+export const localFilesFolder = sceneryFiles.folder;
 
 /** The routes on the data the environment names (data-stores.ts). */
 export const routes = createRoutes(stores, usageStore(), sceneryFiles.store);

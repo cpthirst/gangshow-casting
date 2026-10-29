@@ -1,6 +1,9 @@
 import { once } from "node:events";
 import { readFileSync } from "node:fs";
+import { chmod, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { request, type Server } from "node:http";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
   AccountList,
   adminOnlyRouteKeys,
@@ -233,6 +236,116 @@ describe("dev server when a handler fails", () => {
       expect(res.status).toBe(500);
     } finally {
       await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+});
+
+describe("dev server local scenery files (production-scenery FR10)", () => {
+  let folder: string;
+  let server: Server;
+  let port: number;
+  const place = () => join(folder, "2027", "opening-number", "scenery");
+  const SET_PLAN = Buffer.from("%PDF-1.7 made-up set plan");
+
+  beforeAll(async () => {
+    folder = await mkdtemp(join(tmpdir(), "local-files-"));
+    await mkdir(place(), { recursive: true });
+    await writeFile(join(place(), "set-plan.pdf"), SET_PLAN);
+    await writeFile(join(place(), "notes.html"), "<script>alert('made-up')</script>");
+    await writeFile(join(folder, "2027", "secret.txt"), "outside any item's scenery");
+    server = createDevServer({}, folder);
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const address = server.address();
+    if (typeof address !== "object" || address === null) throw new Error("server not listening");
+    port = address.port;
+  });
+  afterAll(async () => {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+    await rm(folder, { recursive: true, force: true });
+  });
+
+  // Sent as written, unlike fetch, which would tidy away a "..".
+  const get = (path: string) =>
+    new Promise<{ status: number | undefined; headers: Record<string, unknown>; body: Buffer }>(
+      (resolve, reject) => {
+        const req = request({ host: "127.0.0.1", port, path }, async (res) => {
+          const chunks: Buffer[] = [];
+          for await (const chunk of res) chunks.push(Buffer.from(chunk));
+          resolve({ status: res.statusCode, headers: res.headers, body: Buffer.concat(chunks) });
+        });
+        req.on("error", reject);
+        req.end();
+      },
+    );
+
+  it("serves a PDF unchanged, to open in the browser under its name", async () => {
+    const res = await get("/api/local-files/2027/opening-number/scenery/set-plan.pdf");
+
+    expect(res.status).toBe(200);
+    expect(res.body.equals(SET_PLAN)).toBe(true);
+    expect(res.headers).toEqual(
+      expect.objectContaining({
+        "content-type": "application/pdf",
+        "content-disposition": expect.stringMatching(/^inline; filename="set-plan.pdf"/),
+        "x-content-type-options": "nosniff",
+      }),
+    );
+  });
+
+  it("serves an HTML file only as a download that can't run anything", async () => {
+    const res = await get("/api/local-files/2027/opening-number/scenery/notes.html");
+
+    expect(res.headers).toEqual(
+      expect.objectContaining({
+        "content-type": "application/octet-stream",
+        "content-disposition": expect.stringMatching(/^attachment; filename="notes.html"/),
+        "content-security-policy": "sandbox",
+        "x-content-type-options": "nosniff",
+      }),
+    );
+  });
+
+  it.each([
+    ["a file that isn't there", "/api/local-files/2027/opening-number/scenery/gone.pdf"],
+    [
+      "a path reaching outside the item's folder",
+      "/api/local-files/2027/opening-number/scenery/../../secret.txt",
+    ],
+    [
+      "an encoded path reaching outside it",
+      "/api/local-files/2027/opening-number/scenery/..%2F..%2Fsecret.txt",
+    ],
+    ["a file outside any scenery folder", "/api/local-files/2027/secret.txt"],
+  ])("answers 404 for %s", async (_, path) => {
+    const res = await get(path);
+
+    expect(res.status).toBe(404);
+    expect(res.body.toString()).not.toContain("outside");
+  });
+
+  it("keeps serving after a file it can't read", async () => {
+    const locked = join(place(), "locked.pdf");
+    await writeFile(locked, "made-up");
+    await chmod(locked, 0);
+
+    await get("/api/local-files/2027/opening-number/scenery/locked.pdf").catch(() => undefined);
+    const res = await get("/api/local-files/2027/opening-number/scenery/set-plan.pdf");
+
+    expect(res.status).toBe(200);
+  });
+
+  it("serves no local files when the scenery files are in a bucket", async () => {
+    const bucketServer = createDevServer({});
+    await new Promise<void>((resolve) => bucketServer.listen(0, resolve));
+    const address = bucketServer.address();
+    if (typeof address !== "object" || address === null) throw new Error("server not listening");
+    try {
+      const res = await fetch(
+        `http://localhost:${address.port}/api/local-files/2027/opening-number/scenery/set-plan.pdf`,
+      );
+      expect(res.status).toBe(404);
+    } finally {
+      await new Promise<void>((resolve) => bucketServer.close(() => resolve()));
     }
   });
 });

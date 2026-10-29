@@ -139,7 +139,7 @@ describe("AppStack", () => {
       );
     });
 
-    it("lets the API function only list it, and the accounts function not at all", () => {
+    it("lets the API function only list it and read scenery files, and the accounts function not at all", () => {
       const { template } = synth();
       const [logicalId] = filesBucket(template) ?? [];
 
@@ -149,14 +149,25 @@ describe("AppStack", () => {
       const s3 = statementsOf(template).filter(({ statement }) =>
         JSON.stringify(statement).includes(`"${logicalId}"`),
       );
-      expect(s3.map((grant) => grant.role)).toEqual([expect.stringMatching(/ApiFunction/)]);
-      expect(s3[0]?.statement).toEqual(
+      expect(s3.map((grant) => grant.role)).toEqual([
+        expect.stringMatching(/ApiFunction/),
+        expect.stringMatching(/ApiFunction/),
+      ]);
+      expect(s3.map((grant) => grant.statement)).toEqual([
         expect.objectContaining({
           Effect: "Allow",
           Action: "s3:ListBucket",
           Resource: { "Fn::GetAtt": [logicalId, "Arn"] },
         }),
-      );
+        // Signed links to scenery files reach only the keys under an item's scenery folder.
+        expect.objectContaining({
+          Effect: "Allow",
+          Action: "s3:GetObject",
+          Resource: {
+            "Fn::Join": ["", [{ "Fn::GetAtt": [logicalId, "Arn"] }, "/*/*/scenery/*"]],
+          },
+        }),
+      ]);
     });
 
     it("names the bucket in the stack's outputs, for pnpm dev's FILES_BUCKET", () => {

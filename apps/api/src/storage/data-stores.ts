@@ -120,8 +120,9 @@ export function sceneryFileStore(env: Env = process.env) {
     return {
       store: s3SceneryFileStore(new S3Client({ region }), bucket),
       where: `scenery files in bucket ${bucket} (${region})`,
+      folder: undefined,
     };
   }
   const folder = join(dataDirFrom(env), "files");
-  return { store: folderSceneryFileStore(folder), where: `scenery files in ${folder}` };
+  return { store: folderSceneryFileStore(folder), where: `scenery files in ${folder}`, folder };
 }

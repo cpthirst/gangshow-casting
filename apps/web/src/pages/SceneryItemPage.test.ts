@@ -9,11 +9,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory } from "vue-router";
 import App from "@/App.vue";
 import { createAppRouter } from "@/router/index.ts";
+import { downloadFrom, openFileTab } from "@/services/file-link.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
 import { RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
-import { SCENERY_NOTES_PATH, sceneryFilesPath } from "@/utils/scenery.ts";
+import { SCENERY_NOTES_PATH, sceneryFileLinkPath, sceneryFilesPath } from "@/utils/scenery.ts";
+
+// The browser's own new tabs and downloads, which happy-dom can't follow.
+vi.mock("@/services/file-link.ts", () => ({ openFileTab: vi.fn(), downloadFrom: vi.fn() }));
 
 enableAutoUnmount(afterEach);
 // As on pnpm dev: everyone acts as an admin, unless a test signs someone in.
@@ -26,6 +30,9 @@ afterEach(() => {
 
 // Made-up items, in show order: Opening Number, Pirate Sketch | Finale.
 const show = aRunningOrder([anItem("Opening Number"), anItem("Pirate Sketch")], [anItem("Finale")]);
+
+/** The stand-in API's short-lived link to a file. */
+const linkTo = (name: string) => `https://files.example/${encodeURIComponent(name)}?signed`;
 
 const json = (body: unknown) => new Response(JSON.stringify(body));
 
@@ -52,7 +59,11 @@ function apiHolds(
       }
       for (const [itemId, itemFiles] of Object.entries(files)) {
         if (url === sceneryFilesPath(itemId)) return json({ files: itemFiles });
+        for (const { name } of itemFiles) {
+          if (url === sceneryFileLinkPath(itemId, name)) return json({ url: linkTo(name) });
+        }
       }
+      if (url.includes("/scenery-file-link?")) return new Response(null, { status: 404 });
       if (url.endsWith("/scenery-files")) return json({ files: [] });
       if (url === "/api/usage") return new Response(null, { status: 204 });
       return json({ status: "ok", version: "dev" });
@@ -239,7 +250,7 @@ describe("An item's Scenery page", () => {
     await row.get("button[aria-label='Help for this item']").trigger("click");
 
     const names = wrapper.findAll("dialog [data-test=help-name]").map((name) => name.text());
-    expect(names).toEqual(["All items", "Previous and Next", "Scenery notes"]);
+    expect(names).toEqual(["All items", "Previous and Next", "File tiles", "Scenery notes"]);
   });
 });
 
@@ -277,5 +288,154 @@ describe("Scenery notes", () => {
 
     expect(notesSection(wrapper).get("[data-test=notes-text]").text()).toBe("Cloud");
     expect(notesSection(wrapper).find("textarea").exists()).toBe(false);
+  });
+});
+
+describe("Opening and downloading a scenery file", () => {
+  const tab = { show: vi.fn(), close: vi.fn() };
+  beforeEach(() => {
+    vi.mocked(openFileTab).mockReset().mockReturnValue(tab);
+    vi.mocked(downloadFrom).mockReset();
+    tab.show.mockReset();
+    tab.close.mockReset();
+  });
+
+  const tileFor = (wrapper: VueWrapper, name: string) => {
+    const tile = wrapper
+      .findAll("main [data-test=file]")
+      .find((found) => found.get("[data-test=name]").text() === name);
+    if (!tile) throw new Error(`no tile for ${name}`);
+    return tile.get("button");
+  };
+
+  async function choose(wrapper: VueWrapper, name: string) {
+    await tileFor(wrapper, name).trigger("click");
+    await flushPromises();
+  }
+
+  const linkRequests = () =>
+    vi
+      .mocked(fetch)
+      .mock.calls.map(([url]) => String(url))
+      .filter((url) => url.includes("/scenery-file-link?"));
+
+  it("opens a PDF in a new tab, opened on the click, leaving the page open", async () => {
+    apiHolds(show, openingNumberFiles);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    await choose(wrapper, "set-plan.pdf");
+
+    expect(linkRequests()).toEqual([sceneryFileLinkPath("opening-number", "set-plan.pdf")]);
+    expect(tab.show).toHaveBeenCalledWith(linkTo("set-plan.pdf"));
+    // Opened before the API answered, so a phone doesn't block it as a pop-up.
+    const linkCall = vi.mocked(fetch).mock.calls.findIndex(([url]) => String(url).includes("link"));
+    expect(vi.mocked(openFileTab).mock.invocationCallOrder[0]).toBeLessThan(
+      vi.mocked(fetch).mock.invocationCallOrder[linkCall] ?? 0,
+    );
+    expect(downloadFrom).not.toHaveBeenCalled();
+    expect(wrapper.get("main h1").text()).toBe("Scenery: Opening Number");
+  });
+
+  it("downloads a spreadsheet, opening no tab", async () => {
+    apiHolds(show, openingNumberFiles);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    await choose(wrapper, "build-list.xlsx");
+
+    expect(downloadFrom).toHaveBeenCalledWith(linkTo("build-list.xlsx"));
+    expect(openFileTab).not.toHaveBeenCalled();
+  });
+
+  it("asks for a file renamed in storage by its new name", async () => {
+    apiHolds(show, { "opening-number": [{ name: "build-list-v2.xlsx", size: 10 }] });
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    await choose(wrapper, "build-list-v2.xlsx");
+
+    expect(linkRequests()).toEqual([sceneryFileLinkPath("opening-number", "build-list-v2.xlsx")]);
+    expect(downloadFrom).toHaveBeenCalledWith(linkTo("build-list-v2.xlsx"));
+  });
+
+  it("lets someone with no permissions open and download files, as an admin can", async () => {
+    await signInAs([], "jo");
+    apiHolds(show, openingNumberFiles);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    await choose(wrapper, "set-plan.pdf");
+    await choose(wrapper, "build-list.xlsx");
+
+    expect(tab.show).toHaveBeenCalledWith(linkTo("set-plan.pdf"));
+    expect(downloadFrom).toHaveBeenCalledWith(linkTo("build-list.xlsx"));
+  });
+
+  it.each(["notes.html", "plan.svg"])("only downloads %s, which could run script", async (name) => {
+    apiHolds(show, { "opening-number": [{ name, size: 10 }] });
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    await choose(wrapper, name);
+
+    expect(downloadFrom).toHaveBeenCalledWith(linkTo(name));
+    expect(openFileTab).not.toHaveBeenCalled();
+  });
+
+  it("says a file deleted since the page loaded isn't there any more, and refreshes the grid", async () => {
+    const held = { "opening-number": [...openingNumberFiles["opening-number"]] };
+    apiHolds(show, held);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+    // Deleted from file storage, outside the app.
+    held["opening-number"] = held["opening-number"].filter((f) => f.name !== "set-plan.pdf");
+
+    await choose(wrapper, "set-plan.pdf");
+
+    expect(wrapper.get("main [data-test=file-problem]").text()).toBe(
+      "set-plan.pdf isn't there any more.",
+    );
+    expect(wrapper.get("main [data-test=file-problem]").attributes("role")).toBe("alert");
+    expect(wrapper.get("main [data-test=file-problem]").classes()).toContain("notice");
+    expect(tiles(wrapper).map((tile) => tile.name)).toEqual(["Backdrop.png", "build-list.xlsx"]);
+    expect(tab.close).toHaveBeenCalled();
+    expect(tab.show).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["set-plan.pdf", "Couldn't open set-plan.pdf. Try again."],
+    ["build-list.xlsx", "Couldn't download build-list.xlsx. Try again."],
+  ])("says %s couldn't be opened or downloaded when the API fails", async (name, message) => {
+    apiHolds(show, openingNumberFiles);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+    const stand = vi.mocked(fetch).getMockImplementation();
+    vi.mocked(fetch).mockImplementation(async (url, init) =>
+      String(url).includes("/scenery-file-link?")
+        ? new Response(null, { status: 500 })
+        : (stand?.(url, init) ?? new Response(null, { status: 500 })),
+    );
+
+    await choose(wrapper, name);
+
+    expect(wrapper.get("main [data-test=file-problem]").text()).toBe(message);
+    // Only a file that opens has a tab waiting for it, which mustn't be left blank.
+    expect(tab.close).toHaveBeenCalledTimes(name === "set-plan.pdf" ? 1 : 0);
+    expect(tab.show).not.toHaveBeenCalled();
+    expect(downloadFrom).not.toHaveBeenCalled();
+  });
+
+  it("names each tile for what choosing it does, and the file's type", async () => {
+    apiHolds(show, {
+      "opening-number": [
+        { name: "set-plan.pdf", size: 10 },
+        { name: "build-list.xlsx", size: 10 },
+        { name: "notes", size: 10 },
+      ],
+    });
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    const names = wrapper
+      .findAll("main [data-test=file] button")
+      .map((b) => b.attributes("aria-label"));
+    expect(names).toEqual([
+      "Download build-list.xlsx, XLSX file",
+      "Download notes",
+      "Open set-plan.pdf, PDF file",
+    ]);
   });
 });

@@ -11,6 +11,7 @@ import {
   refusalFor,
   routeKeys,
   SCENERY_PERMISSIONS,
+  SceneryFileLink,
   SceneryFileList,
   UsageSummary,
 } from "@app/shared";
@@ -30,7 +31,10 @@ import { inMemoryUsageStore } from "#/usage/usage-store.ts";
 import { handler } from "./lambda.ts";
 import { createRoutes } from "./routes.ts";
 
-const noSceneryFiles: SceneryFileStore = { list: async () => [] };
+const noSceneryFiles: SceneryFileStore = {
+  list: async () => [],
+  linkTo: async () => undefined,
+};
 
 // The parts of an API Gateway HTTP API (payload v2) event that the entry point reads, signed
 // in as a Casting Team Member unless a test says otherwise.
@@ -158,7 +162,7 @@ describe("Lambda entry point", () => {
       ["admin", "[admin]"],
     ])("lists an item's scenery files for an account with %s", async (_, groups) => {
       const setPlan = { name: "set-plan.pdf", size: 2_400_000 };
-      const api = entry({ list: async () => [setPlan] });
+      const api = entry({ ...noSceneryFiles, list: async () => [setPlan] });
 
       const res = await api(
         request("GET", "/api/productions/2027/items/opening-number/scenery-files", {}, groups),
@@ -166,6 +170,30 @@ describe("Lambda entry point", () => {
 
       expect(res.statusCode).toBe(200);
       expect(SceneryFileList.parse(JSON.parse(res.body ?? ""))).toEqual({ files: [setPlan] });
+    });
+
+    it.each([
+      ["no permissions", "[]"],
+      ["admin", "[admin]"],
+    ])("links to an item's scenery file for an account with %s", async (_, groups) => {
+      const url = "https://files.example/2027/opening-number/scenery/set-plan.pdf?signed";
+      const api = entry({
+        ...noSceneryFiles,
+        linkTo: async (_production, item, name) =>
+          item === "opening-number" && name === "set-plan.pdf" ? url : undefined,
+      });
+
+      const res = await api(
+        request(
+          "GET",
+          "/api/productions/2027/items/opening-number/scenery-file-link",
+          { queryStringParameters: { name: "set-plan.pdf" } },
+          groups,
+        ),
+      );
+
+      expect(res.statusCode).toBe(200);
+      expect(SceneryFileLink.parse(JSON.parse(res.body ?? ""))).toEqual({ url });
     });
   });
 

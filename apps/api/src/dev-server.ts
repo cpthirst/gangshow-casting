@@ -1,17 +1,20 @@
 // Local stand-in for API Gateway: serves the same handlers Lambda will run (ADR 0006).
-import { readFileSync } from "node:fs";
+import { createReadStream, readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { pipeline } from "node:stream/promises";
 import { LOCAL_ACCESS_HEADER, localAccessFrom } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import { LOCAL_ADMIN, localAccountRoutes } from "#/accounts/local-accounts.ts";
 import { accessRefusal } from "#/http/access.ts";
 import type { Handler } from "#/http/handler.ts";
 import { matchRoute } from "#/http/match-route.ts";
+import { LOCAL_FILES_PATH, localFileAt } from "#/production/scenery/local-files.ts";
 import { createUsageRoutes } from "#/usage/usage-routes.ts";
 import { inMemoryUsageStore } from "#/usage/usage-store.ts";
-import { dataLocation, routes } from "./routes.ts";
+import { dataLocation, localFilesFolder, routes } from "./routes.ts";
 
-export function createDevServer(table: Record<string, Handler>) {
+/** The dev API, serving the scenery files in localFiles too when there's no bucket. */
+export function createDevServer(table: Record<string, Handler>, localFiles?: string) {
   return createServer(async (req, res) => {
     const refused = refusal(req);
     if (refused) {
@@ -20,6 +23,11 @@ export function createDevServer(table: Record<string, Handler>) {
     }
     const url = new URL(req.url ?? "/", "http://localhost");
     const path = url.pathname;
+    // Stands in for the bucket's links, which need no sign-in either (ADR 0030).
+    if (localFiles !== undefined && req.method === "GET" && path.startsWith(LOCAL_FILES_PATH)) {
+      await sendLocalFile(res, localFiles, path);
+      return;
+    }
     const route = matchRoute(table, req.method ?? "", path);
     if (!route) {
       res.writeHead(404).end();
@@ -59,6 +67,17 @@ export function createDevServer(table: Record<string, Handler>) {
       res.writeHead(500).end();
     }
   });
+}
+
+async function sendLocalFile(res: ServerResponse, folder: string, path: string) {
+  const found = await localFileAt(folder, path);
+  if (!found) {
+    res.writeHead(404).end();
+    return;
+  }
+  res.writeHead(200, found.headers);
+  // Too late for a 404 if the file can't be read, or the browser stops reading: just cut it off.
+  await pipeline(createReadStream(found.file), res).catch(() => res.destroy());
 }
 
 function send(
@@ -144,7 +163,7 @@ function releaseVersion(): string {
 export function startDevServer(port: number) {
   process.env.APP_VERSION ??= releaseVersion();
   // Loopback only: the dev API is unauthenticated, so keep it off the local network.
-  return createDevServer(devRoutes()).listen(port, "127.0.0.1", () => {
+  return createDevServer(devRoutes(), localFilesFolder).listen(port, "127.0.0.1", () => {
     process.stdout.write(`api listening on http://127.0.0.1:${port}; data: ${dataLocation}\n`);
   });
 }

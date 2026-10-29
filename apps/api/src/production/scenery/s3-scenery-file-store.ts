@@ -1,6 +1,18 @@
 import type { SceneryFile } from "@app/shared";
-import { ListObjectsV2Command, type S3Client } from "@aws-sdk/client-s3";
+import {
+  GetObjectCommand,
+  HeadObjectCommand,
+  ListObjectsV2Command,
+  NotFound,
+  type S3Client,
+} from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { fileHeadersOf } from "./file-headers.ts";
 import { asSceneryFiles, type SceneryFileStore, sceneryFolderOf } from "./scenery-file-store.ts";
+
+// Long enough to start a download on a slow phone, short enough to be useless if shared
+// (production-scenery security NFR).
+const LINK_SECONDS = 5 * 60;
 
 /** Scenery files in the private bucket infra creates (ADR 0030), one key per file. */
 export function s3SceneryFileStore(s3: S3Client, bucket: string): SceneryFileStore {
@@ -25,6 +37,24 @@ export function s3SceneryFileStore(s3: S3Client, bucket: string): SceneryFileSto
         token = page.IsTruncated ? page.NextContinuationToken : undefined;
       } while (token !== undefined);
       return files;
+    },
+    async linkTo(productionId, itemId, name) {
+      const Key = `${sceneryFolderOf(productionId, itemId)}${name}`;
+      try {
+        await s3.send(new HeadObjectCommand({ Bucket: bucket, Key }));
+      } catch (error) {
+        if (error instanceof NotFound) return undefined;
+        throw error;
+      }
+      // The link names its type and name itself, so what storage holds can't make it open.
+      const { contentType, contentDisposition } = fileHeadersOf(name);
+      const get = new GetObjectCommand({
+        Bucket: bucket,
+        Key,
+        ResponseContentType: contentType,
+        ResponseContentDisposition: contentDisposition,
+      });
+      return getSignedUrl(s3, get, { expiresIn: LINK_SECONDS });
     },
   };
 }

@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { fileSize, sceneryFilesPath, sortFiles } from "./scenery.ts";
+import {
+  fileSize,
+  sceneryFileLinkPath,
+  sceneryFilesPath,
+  sortFiles,
+  tileLabel,
+} from "./scenery.ts";
 
 describe("sceneryFilesPath", () => {
   it("is the item's files in the production", () => {
@@ -47,5 +53,25 @@ describe("fileSize", () => {
     [3_200_000_000, "3.2 GB"],
   ])("writes %i bytes as %s", (bytes, written) => {
     expect(fileSize(bytes)).toBe(written);
+  });
+});
+
+describe("sceneryFileLinkPath", () => {
+  it("asks for a link to one of the item's files, by its name", () => {
+    expect(sceneryFileLinkPath("opening-number", "set plan & build #2.pdf")).toBe(
+      "/api/productions/2027/items/opening-number/scenery-file-link?name=set+plan+%26+build+%232.pdf",
+    );
+  });
+});
+
+describe("tileLabel", () => {
+  it.each([
+    ["set-plan.pdf", "Open set-plan.pdf, PDF file"],
+    ["Backdrop.png", "Open Backdrop.png, PNG file"],
+    ["build-list.xlsx", "Download build-list.xlsx, XLSX file"],
+    ["notes.html", "Download notes.html, HTML file"],
+    ["notes", "Download notes"],
+  ])("names the tile for %s %j", (name, label) => {
+    expect(tileLabel(name)).toBe(label);
   });
 });

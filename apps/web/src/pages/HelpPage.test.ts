@@ -326,16 +326,18 @@ describe("Help page", () => {
       ).toEqual(["Reading: Everyone", "Changing: Accounts with Stage or Director, and admins"]);
     });
 
-    it("say how to reach an item's scenery, then explain its links and notes, and that Stage, Tech or Director change it", async () => {
+    it("say how to reach an item's scenery, then explain its links, files and notes, and that Stage, Tech or Director change it", async () => {
       const { wrapper } = await openHelp();
 
       expect(summaryOf(wrapper, "scenery-item")).toContain("Production → Overview");
       expect(names(wrapper, "scenery-item")).toEqual([
         "All items",
         "Previous and Next",
+        "File tiles",
         "Scenery notes",
       ]);
       expect(accessOf(wrapper, "All items", "scenery-item")).toBe("Everyone");
+      expect(accessOf(wrapper, "File tiles", "scenery-item")).toBe("Everyone");
       expect(
         lineNamed(wrapper, "Scenery notes", "scenery-item")
           .findAll("[data-test=help-access]")
