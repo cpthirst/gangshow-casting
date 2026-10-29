@@ -15,7 +15,7 @@ As someone on the Stage or Tech team, I want to see an upload's progress and to 
 Given "pat" has Stage
 When pat uploads "set-plan.pdf", of 40 MB
 Then the page shows how much of it has uploaded, as it goes
-And it shows the tile once the upload finishes
+And it shows the row once the upload finishes
 
 ### AC2: Progress and the result are announced
 Given "pat" uses a screen reader
@@ -24,14 +24,14 @@ Then it announces that the upload has started and when it has finished or failed
 
 ### AC3: The rest of the page works during an upload
 Given "pat" is uploading a large file
-When pat chooses another file's tile
+When pat chooses another file's row
 Then that file downloads while the upload carries on
 
 ### AC4: A file of the same name asks to replace
 Given "Opening Number" has "set-plan.pdf"
 When "pat" uploads another file called "set-plan.pdf"
 Then the page asks "Replace set-plan.pdf?"
-And when pat confirms, the new file is kept in its place, and the tile shows its size
+And when pat confirms, the new file is kept in its place, and the row shows its size
 
 ### AC5: Cancelling a replace keeps the old file
 Given "Opening Number" has "set-plan.pdf"

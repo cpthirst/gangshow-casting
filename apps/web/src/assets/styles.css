@@ -1399,41 +1399,26 @@ main a {
   list-style: none;
 }
 
-/* An item's scenery files as a grid of tiles: two across on a phone, more as there's room. */
-.file-tiles {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(9rem, 100%), 1fr));
-  /* Every row as tall as the tallest, so all the tiles are one size. */
-  grid-auto-rows: 1fr;
-  gap: 0.5rem;
-  margin: 1rem 0;
-  padding: 0;
-  list-style: none;
-}
-
-/* A button filling its grid cell: choosing it opens or downloads the file. */
-.file-tile {
+/* The rest of the row: choosing it opens or downloads the file. The type icon is a column of
+   its own, so the names line up. */
+.file-open {
   display: flex;
-  flex-direction: column;
+  flex: 1;
+  gap: 0.75rem;
   align-items: center;
-  gap: 0.25rem;
-  width: 100%;
-  height: 100%;
-  padding: 1rem 0.75rem;
-  border: 2px solid transparent;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: none;
   color: inherit;
   font: inherit;
-  text-align: center;
+  text-align: left;
   cursor: pointer;
 }
 
-.file-tile:hover {
-  border-color: var(--red-darker);
-}
-
 .file-icon {
-  margin-bottom: 0.25rem;
-  font-size: 2.5rem;
+  flex-shrink: 0;
+  font-size: 1.5rem;
 }
 
 /* Office files and PDFs in their apps' colours, as phones and computers show them. Images and
@@ -1454,54 +1439,33 @@ main a {
   color: var(--powerpoint);
 }
 
-/* Holds the trash icon in the tile's corner. */
-.file-tiles > li {
-  position: relative;
-}
-
-/* Above the tile's button, not in it: a button can't hold another. Its tooltip opens to the
-   left, so the last column's never reaches past the page. */
-.file-tiles .file-delete {
-  position: absolute;
-  top: 0.25rem;
-  right: 0.25rem;
-  margin: 0;
-}
-
-.file-tiles .file-delete::after {
-  right: 0;
-  left: auto;
-}
-
-/* A long name wraps anywhere rather than push the page sideways, and stops at two lines with
-   an ellipsis, so every tile is the same size. Its title shows the whole name on hover. */
+/* A long name with no spaces wraps anywhere rather than push the page sideways. */
 .file-name {
-  display: -webkit-box;
-  overflow: hidden;
+  flex: 1;
+  min-width: 0;
   overflow-wrap: anywhere;
   font-weight: 700;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
+}
+
+.file-open:hover .file-name {
+  color: var(--red-darker);
+  text-decoration: underline;
 }
 
 .file-size {
+  flex-shrink: 0;
   font-size: 0.875rem;
 }
 
 /* Every card's surface, so roles, props and files look alike. */
-.role-card,
-.file-tile {
-  border-radius: 0.5rem;
-  background: var(--white);
-}
-
 .role-card {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem 0.75rem;
   align-items: center;
   padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  background: var(--white);
 }
 
 .role-name {

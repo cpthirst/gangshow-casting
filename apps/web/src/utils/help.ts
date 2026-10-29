@@ -315,8 +315,8 @@ export const pageHelp: PageHelp[] = [
           icons.imageFile,
           icons.file,
         ],
-        name: "File tiles",
-        does: "Opens a PDF, image or text file in a new tab. Any other file downloads. Each tile's icon shows its type: PDF, Word, Excel, PowerPoint, image, or any other file.",
+        name: "Files",
+        does: "Opens a PDF, image or text file in a new tab. Any other file downloads. Each file's icon shows its type: PDF, Word, Excel, PowerPoint, image, or any other file.",
         access: "everyone",
       },
       {

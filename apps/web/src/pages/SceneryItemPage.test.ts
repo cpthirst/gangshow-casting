@@ -95,10 +95,10 @@ async function openAppAt(path: string) {
   return { wrapper, router };
 }
 
-const tiles = (wrapper: VueWrapper) =>
-  wrapper.findAll("main [data-test=file]").map((tile) => ({
-    name: tile.get("[data-test=name]").text(),
-    size: tile.get("[data-test=size]").text(),
+const rows = (wrapper: VueWrapper) =>
+  wrapper.findAll("main [data-test=file]").map((row) => ({
+    name: row.get("[data-test=name]").text(),
+    size: row.get("[data-test=size]").text(),
   }));
 
 const OPENING_NUMBER = "/production/items/opening-number/scenery";
@@ -112,12 +112,12 @@ const openingNumberFiles = {
 };
 
 describe("An item's Scenery page", () => {
-  it("shows a tile for each of the item's files, by name, with its size", async () => {
+  it("shows a row for each of the item's files, by name, with its size", async () => {
     apiHolds(show, openingNumberFiles);
     const { wrapper } = await openAppAt(OPENING_NUMBER);
 
     expect(wrapper.get("main h1").text()).toBe("Scenery: Opening Number");
-    expect(tiles(wrapper)).toEqual([
+    expect(rows(wrapper)).toEqual([
       { name: "Backdrop.png", size: "800 KB" },
       { name: "build-list.xlsx", size: "40 KB" },
       { name: "set-plan.pdf", size: "2.4 MB" },
@@ -125,7 +125,7 @@ describe("An item's Scenery page", () => {
     expect(wrapper.get("main").text()).not.toContain("Coming soon");
   });
 
-  it("gives each tile its type's icon, hidden from screen readers", async () => {
+  it("gives each row its type's icon, hidden from screen readers", async () => {
     apiHolds(show, {
       "opening-number": [
         { name: "plan.pdf", size: 10 },
@@ -156,14 +156,14 @@ describe("An item's Scenery page", () => {
   it("shows the names file storage holds each time the page opens", async () => {
     apiHolds(show, { "opening-number": [{ name: "set-plan.pdf", size: 10 }] });
     const first = await openAppAt(OPENING_NUMBER);
-    expect(tiles(first.wrapper).map((tile) => tile.name)).toEqual(["set-plan.pdf"]);
+    expect(rows(first.wrapper).map((row) => row.name)).toEqual(["set-plan.pdf"]);
     first.wrapper.unmount();
 
     // Renamed directly in file storage, outside the app.
     apiHolds(show, { "opening-number": [{ name: "set-plan-v2.pdf", size: 10 }] });
     const { wrapper } = await openAppAt(OPENING_NUMBER);
 
-    expect(tiles(wrapper).map((tile) => tile.name)).toEqual(["set-plan-v2.pdf"]);
+    expect(rows(wrapper).map((row) => row.name)).toEqual(["set-plan-v2.pdf"]);
   });
 
   it("says when the item has no files", async () => {
@@ -181,20 +181,20 @@ describe("An item's Scenery page", () => {
       finale: [{ name: "curtain.pdf", size: 10 }],
     });
     const { wrapper } = await openAppAt("/production/items/pirate-sketch/scenery");
-    expect(tiles(wrapper).map((tile) => tile.name)).toEqual(["ship.png"]);
+    expect(rows(wrapper).map((row) => row.name)).toEqual(["ship.png"]);
 
     await wrapper.get("main a[rel=next]").trigger("click");
     await flushPromises();
 
     expect(wrapper.get("main h1").text()).toBe("Scenery: Finale");
-    expect(tiles(wrapper).map((tile) => tile.name)).toEqual(["curtain.pdf"]);
+    expect(rows(wrapper).map((row) => row.name)).toEqual(["curtain.pdf"]);
   });
 
   it("shows a name as text, never as markup", async () => {
     apiHolds(show, { "opening-number": [{ name: "<b>plan.pdf", size: 10 }] });
     const { wrapper } = await openAppAt(OPENING_NUMBER);
 
-    expect(tiles(wrapper).map((tile) => tile.name)).toEqual(["<b>plan.pdf"]);
+    expect(rows(wrapper).map((row) => row.name)).toEqual(["<b>plan.pdf"]);
     expect(wrapper.find("main [data-test=file] b").exists()).toBe(false);
   });
 
@@ -203,7 +203,7 @@ describe("An item's Scenery page", () => {
     apiHolds(show, openingNumberFiles);
     const { wrapper } = await openAppAt(OPENING_NUMBER);
 
-    expect(tiles(wrapper).map((tile) => tile.name)).toEqual([
+    expect(rows(wrapper).map((row) => row.name)).toEqual([
       "Backdrop.png",
       "build-list.xlsx",
       "set-plan.pdf",
@@ -282,7 +282,7 @@ describe("An item's Scenery page", () => {
     await row.get("button[aria-label='Help for this item']").trigger("click");
 
     const names = wrapper.findAll("dialog [data-test=help-name]").map((name) => name.text());
-    expect(names).toEqual(["All items", "Previous and Next", "File tiles", "Scenery notes"]);
+    expect(names).toEqual(["All items", "Previous and Next", "Files", "Scenery notes"]);
   });
 });
 
@@ -332,16 +332,16 @@ describe("Opening and downloading a scenery file", () => {
     tab.close.mockReset();
   });
 
-  const tileFor = (wrapper: VueWrapper, name: string) => {
-    const tile = wrapper
+  const rowFor = (wrapper: VueWrapper, name: string) => {
+    const row = wrapper
       .findAll("main [data-test=file]")
       .find((found) => found.get("[data-test=name]").text() === name);
-    if (!tile) throw new Error(`no tile for ${name}`);
-    return tile.get(".file-tile");
+    if (!row) throw new Error(`no row for ${name}`);
+    return row.get(".file-open");
   };
 
   async function choose(wrapper: VueWrapper, name: string) {
-    await tileFor(wrapper, name).trigger("click");
+    await rowFor(wrapper, name).trigger("click");
     await flushPromises();
   }
 
@@ -424,7 +424,7 @@ describe("Opening and downloading a scenery file", () => {
     );
     expect(wrapper.get("main [data-test=file-problem]").attributes("role")).toBe("alert");
     expect(wrapper.get("main [data-test=file-problem]").classes()).toContain("notice");
-    expect(tiles(wrapper).map((tile) => tile.name)).toEqual(["Backdrop.png", "build-list.xlsx"]);
+    expect(rows(wrapper).map((row) => row.name)).toEqual(["Backdrop.png", "build-list.xlsx"]);
     expect(tab.close).toHaveBeenCalled();
     expect(tab.show).not.toHaveBeenCalled();
   });
@@ -451,7 +451,7 @@ describe("Opening and downloading a scenery file", () => {
     expect(downloadFrom).not.toHaveBeenCalled();
   });
 
-  it("names each tile for what choosing it does, and the file's type", async () => {
+  it("names each file for what choosing it does, and the file's type", async () => {
     apiHolds(show, {
       "opening-number": [
         { name: "set-plan.pdf", size: 10 },
@@ -462,7 +462,7 @@ describe("Opening and downloading a scenery file", () => {
     const { wrapper } = await openAppAt(OPENING_NUMBER);
 
     const names = wrapper
-      .findAll("main [data-test=file] .file-tile")
+      .findAll("main [data-test=file] .file-open")
       .map((b) => b.attributes("aria-label"));
     expect(names).toEqual([
       "Download build-list.xlsx, XLSX file",
@@ -478,11 +478,11 @@ describe("Deleting a scenery file", () => {
   const heldFiles = () => ({ "opening-number": [...openingNumberFiles["opening-number"]] });
 
   const trashFor = (wrapper: VueWrapper, name: string) => {
-    const tile = wrapper
+    const row = wrapper
       .findAll("main [data-test=file]")
       .find((found) => found.get("[data-test=name]").text() === name);
-    if (!tile) throw new Error(`no tile for ${name}`);
-    return tile.get("[data-test=delete]");
+    if (!row) throw new Error(`no row for ${name}`);
+    return row.get("[data-test=delete]");
   };
 
   async function trash(wrapper: VueWrapper, name: string, confirmed: boolean) {
@@ -504,7 +504,7 @@ describe("Deleting a scenery file", () => {
     [["tech"], "lee"],
     [["director"], "dee"],
     [["admin"], "alex"],
-  ])("gives %s a trash icon on every tile", async (groups, name) => {
+  ])("gives %s a trash icon on every row", async (groups, name) => {
     await signInAs(groups, name);
     apiHolds(show, openingNumberFiles);
     const { wrapper } = await openAppAt(OPENING_NUMBER);
@@ -512,7 +512,22 @@ describe("Deleting a scenery file", () => {
     expect(wrapper.findAll("main [data-test=file] [data-test=delete]")).toHaveLength(3);
   });
 
-  it("asks to confirm, then deletes the file and its tile for pat, with Stage", async () => {
+  it("shows each file as a row: the trash icon first, then its type icon, then its name", async () => {
+    await signInAs(["stage"], "pat");
+    apiHolds(show, openingNumberFiles);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    const row = wrapper.get("main [data-test=file]");
+    expect(row.classes()).toContain("role-card");
+    const parts = row.findAll("[data-test=delete], .file-icon, [data-test=name]");
+    expect(parts.map((part) => part.attributes("data-test") ?? "icon")).toEqual([
+      "delete",
+      "icon",
+      "name",
+    ]);
+  });
+
+  it("asks to confirm, then deletes the file and its row for pat, with Stage", async () => {
     await signInAs(["stage"], "pat");
     const held = heldFiles();
     apiHolds(show, held);
@@ -522,7 +537,7 @@ describe("Deleting a scenery file", () => {
 
     expect(confirm).toHaveBeenCalledWith(QUESTION);
     expect(deletes()).toEqual([sceneryFilePath("opening-number", "set-plan.pdf")]);
-    expect(tiles(wrapper).map((tile) => tile.name)).toEqual(["Backdrop.png", "build-list.xlsx"]);
+    expect(rows(wrapper).map((row) => row.name)).toEqual(["Backdrop.png", "build-list.xlsx"]);
     expect(held["opening-number"].map((file) => file.name)).not.toContain("set-plan.pdf");
   });
 
@@ -535,7 +550,7 @@ describe("Deleting a scenery file", () => {
 
     expect(confirm).toHaveBeenCalledWith(QUESTION);
     expect(deletes()).toEqual([]);
-    expect(tiles(wrapper).map((tile) => tile.name)).toContain("set-plan.pdf");
+    expect(rows(wrapper).map((row) => row.name)).toContain("set-plan.pdf");
   });
 
   it("gives sam, with Casting only, no trash icon", async () => {
@@ -543,11 +558,11 @@ describe("Deleting a scenery file", () => {
     apiHolds(show, openingNumberFiles);
     const { wrapper } = await openAppAt(OPENING_NUMBER);
 
-    expect(tiles(wrapper)).toHaveLength(3);
+    expect(rows(wrapper)).toHaveLength(3);
     expect(wrapper.find("main [data-test=delete]").exists()).toBe(false);
   });
 
-  it("says a file deleted in another browser is gone, and its tile goes", async () => {
+  it("says a file deleted in another browser is gone, and its row goes", async () => {
     await signInAs(["stage"], "pat");
     const held = heldFiles();
     apiHolds(show, held);
@@ -560,10 +575,10 @@ describe("Deleting a scenery file", () => {
     expect(wrapper.get("main [data-test=file-problem]").text()).toBe(
       "set-plan.pdf isn't there any more.",
     );
-    expect(tiles(wrapper).map((tile) => tile.name)).toEqual(["Backdrop.png", "build-list.xlsx"]);
+    expect(rows(wrapper).map((row) => row.name)).toEqual(["Backdrop.png", "build-list.xlsx"]);
   });
 
-  it("says a delete that failed didn't happen, keeping the tile", async () => {
+  it("says a delete that failed didn't happen, keeping the row", async () => {
     await signInAs(["stage"], "pat");
     apiHolds(show, heldFiles());
     const { wrapper } = await openAppAt(OPENING_NUMBER);
@@ -579,7 +594,7 @@ describe("Deleting a scenery file", () => {
     expect(wrapper.get("main [data-test=file-problem]").text()).toBe(
       "Couldn't remove set-plan.pdf. Try again.",
     );
-    expect(tiles(wrapper).map((tile) => tile.name)).toContain("set-plan.pdf");
+    expect(rows(wrapper).map((row) => row.name)).toContain("set-plan.pdf");
   });
 
   it("names each trash icon for its file, for screen readers", async () => {
@@ -589,18 +604,5 @@ describe("Deleting a scenery file", () => {
 
     expect(trashFor(wrapper, "set-plan.pdf").attributes("aria-label")).toBe("Remove set-plan.pdf");
     expect(trashFor(wrapper, "set-plan.pdf").attributes("type")).toBe("button");
-  });
-});
-
-describe("A scenery file with a long name", () => {
-  const LONG_NAME = "opening-number-set-plan-with-the-flats-and-the-tabs-final-v3-revised.pdf";
-
-  it("keeps the whole name to show on hover, as its tile clips it to two lines", async () => {
-    apiHolds(show, { "opening-number": [{ name: LONG_NAME, size: 10 }] });
-    const { wrapper } = await openAppAt(OPENING_NUMBER);
-
-    const name = wrapper.get("main [data-test=file] [data-test=name]");
-    expect(name.text()).toBe(LONG_NAME);
-    expect(name.attributes("title")).toBe(LONG_NAME);
   });
 });

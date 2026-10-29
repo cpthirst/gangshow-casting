@@ -114,3 +114,4 @@ Then it explains All items, Previous and Next, and the scenery notes, and says S
 - Story map: this story was the walking skeleton with upload. It was split at `write-story` because storage, the ADR, both stores and the page already make a full PR. Uploading is E2.S7.
 - Offer the maintainer a browser layout walk of a Scenery page with long file names, at 320px and 360px (CLAUDE.md: ask first).
 - Out of scope: uploading (E2.S7), downloading (E2.S2), thumbnails and type icons (E2.S3), deleting (E2.S4).
+- The grid of tiles became a list, one row per file, on 2026-10-29 (production-scenery.E2.S4; PRD FR7).

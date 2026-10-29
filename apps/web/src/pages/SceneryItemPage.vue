@@ -14,6 +14,7 @@ import { icons } from "@/utils/icons.ts";
 import { neighboursOf, placeOf, positionOf, RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
 import {
   fileIconOf,
+  fileLabel,
   fileSize,
   opensInBrowser,
   SCENERY_NOTES_PATH,
@@ -22,7 +23,6 @@ import {
   sceneryFilePath,
   sceneryFilesPath,
   sortFiles,
-  tileLabel,
 } from "@/utils/scenery.ts";
 
 // One item's scenery files (production-scenery FR6, FR7) and notes, laid out as the props
@@ -165,30 +165,31 @@ watch(
     <ReadOnlyNotice about="scenery" />
     <!-- An explicit list role: Safari drops list semantics once bullets are styled away. -->
     <p v-if="fileProblem" class="notice" role="alert" data-test="file-problem">{{ fileProblem }}</p>
-    <ul v-if="files.length > 0" class="file-tiles" role="list" aria-label="Scenery files">
-      <li v-for="file in files" :key="file.name" data-test="file">
+    <!-- One row per file, as the role and prop cards: the trash icon first, as theirs. -->
+    <ul v-if="files.length > 0" class="role-cards" role="list" aria-label="Scenery files">
+      <li v-for="file in files" :key="file.name" class="role-card" data-test="file">
+        <span v-if="canChangeScenery" class="row-icons">
+          <button
+            type="button"
+            class="icon-button"
+            data-test="delete"
+            :aria-label="`Remove ${file.name}`"
+            data-tooltip="Remove file"
+            :disabled="deleting"
+            @click="remove(file)"
+          >
+            <FontAwesomeIcon :icon="icons.remove" />
+          </button>
+        </span>
         <button
           type="button"
-          class="file-tile"
-          :aria-label="tileLabel(file.name)"
+          class="file-open"
+          :aria-label="fileLabel(file.name)"
           @click="choose(file)"
         >
-          <FontAwesomeIcon :icon="fileIconOf(file.name)" class="file-icon" />
-          <!-- Clipped to two lines, so every tile is the same size; the whole name on hover. -->
-          <span class="file-name" data-test="name" :title="file.name">{{ file.name }}</span>
+          <FontAwesomeIcon :icon="fileIconOf(file.name)" class="file-icon" fixed-width />
+          <span class="file-name" data-test="name">{{ file.name }}</span>
           <span class="file-size" data-test="size">{{ fileSize(file.size) }}</span>
-        </button>
-        <button
-          v-if="canChangeScenery"
-          type="button"
-          class="icon-button file-delete"
-          data-test="delete"
-          :aria-label="`Remove ${file.name}`"
-          data-tooltip="Remove file"
-          :disabled="deleting"
-          @click="remove(file)"
-        >
-          <FontAwesomeIcon :icon="icons.remove" />
         </button>
       </li>
     </ul>

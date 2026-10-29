@@ -87,3 +87,4 @@ And every icon is hidden from screen readers, so each tile is still announced by
 - The link is a short-lived one made by the API for one file of one item (ADR from E2.S1), and the response tells the browser the file's type and stored name: show it for PDFs, images and text, save it for the rest (PRD security NFR).
 - Downloading isn't recorded on the Usage page (FR15).
 - Out of scope: previews in the app beyond thumbnails (PRD non-goals).
+- The grid of tiles became a list, one row per file, on 2026-10-29 (production-scenery.E2.S4; PRD FR7).
