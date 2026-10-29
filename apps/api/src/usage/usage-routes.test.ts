@@ -81,12 +81,36 @@ describe("recording usage", () => {
     ]);
   });
 
+  it("records an item's Scenery page apart from its casting page, naming only the item", async () => {
+    const { store, record } = setUp();
+
+    await record(
+      signedInAs("pat", {
+        event: "scenery",
+        productionId: "2027",
+        itemId: "opening-number",
+        title: "Opening Number",
+      }),
+    );
+
+    expect(await store.since(daysAgo(1))).toEqual([
+      {
+        username: "pat",
+        event: "scenery",
+        productionId: "2027",
+        itemId: "opening-number",
+        at: NOW.toISOString(),
+      },
+    ]);
+  });
+
   it.each([
     ["not JSON"],
     [JSON.stringify({ event: "Admin secrets" })],
     [JSON.stringify({ event: "page", page: "Admin secrets" })],
     [JSON.stringify({ event: "item", productionId: "2027", itemId: "" })],
     [JSON.stringify({ event: "item", productionId: "../secrets", itemId: "made-up-item" })],
+    [JSON.stringify({ event: "scenery", productionId: "2027", itemId: "../secrets" })],
   ])("refuses %s as invalid, recording nothing", async (body) => {
     const { store, record } = setUp();
 
@@ -199,6 +223,23 @@ describe("reading usage", () => {
     ]);
   });
 
+  it("counts Scenery page visits as Scenery pages, not Item pages", async () => {
+    const scenery = (at: string) => ({
+      username: "pat",
+      event: "scenery" as const,
+      productionId: "2027",
+      itemId: "opening-number",
+      at,
+    });
+    const { summary } = setUp([scenery(daysAgo(2)), scenery(daysAgo(1))]);
+
+    const { people, features } = await summary();
+
+    expect(people[0]?.uses).toEqual({ "scenery-page": 2 });
+    expect(features).toContainEqual({ feature: "scenery-page", uses: 2, people: 1 });
+    expect(features).toContainEqual({ feature: "item-page", uses: 0, people: 0 });
+  });
+
   it("counts opening the Production overview as a use of that page", async () => {
     const { summary } = setUp([opened("robin", "production-overview", daysAgo(2))]);
 
@@ -274,6 +315,7 @@ describe("reading usage", () => {
       "overview-by-item",
       "overview-grid",
       "item-page",
+      "scenery-page",
       "export-excel-grid",
       "export-word-casting-sheets",
       "export-word-item-overview",

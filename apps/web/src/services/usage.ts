@@ -42,3 +42,7 @@ export const recordExport = (kind: UsageExport) => record({ event: "export", exp
 /** Records opening an item's page: which item only, never its title or cast. */
 export const recordItemUse = (productionId: string, itemId: string) =>
   record({ event: "item", productionId, itemId });
+
+/** Records opening an item's Scenery page: which item only, never its title or files. */
+export const recordSceneryUse = (productionId: string, itemId: string) =>
+  record({ event: "scenery", productionId, itemId });

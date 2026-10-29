@@ -223,6 +223,32 @@ describe("Usage page", () => {
     ]);
   });
 
+  it("shows Scenery pages apart from Item pages, per person and in the totals", async () => {
+    serve({
+      recordedSince: "2026-10-01T18:00:00.000Z",
+      features: [
+        { feature: "item-page", uses: 0, people: 0 },
+        { feature: "scenery-page", uses: 1, people: 1 },
+      ],
+      people: [
+        {
+          username: "robin",
+          sessions: 1,
+          lastSession: "2026-10-20T18:00:00.000Z",
+          uses: { "scenery-page": 1 },
+        },
+      ],
+    });
+
+    const wrapper = await openPage();
+
+    expect(rows(wrapper)).toContainEqual(["robin", "1", "20 October 2026", ["Scenery pages 1"]]);
+    expect(totals(wrapper)).toEqual([
+      ["Item pages", "0", "0"],
+      ["Scenery pages", "1", "1"],
+    ]);
+  });
+
   it("shows exports after everything else", async () => {
     serve({
       recordedSince: "2026-10-01T18:00:00.000Z",
@@ -434,6 +460,49 @@ describe("Usage page", () => {
       const wrapper = await openPage();
 
       expect(activity(wrapper)[0]?.[1]).toBe("opened an item no longer in the running order");
+    });
+
+    it("names an item's Scenery page by the item's title", async () => {
+      const order = aRunningOrder([anItem("Opening Number")]);
+      const use = { event: "scenery" as const, productionId: "2027", itemId: "opening-number" };
+      serve(
+        { ...since, activity: [{ username: "pat", at: "2026-10-20T18:00:00.000Z", ...use }] },
+        json({ accounts }),
+        order,
+      );
+
+      const wrapper = await openPage();
+
+      expect(activity(wrapper)[0]?.[1]).toBe("opened Opening Number's Scenery page");
+    });
+
+    it("says a Scenery page's item is no longer in the running order", async () => {
+      const order = aRunningOrder([anItem("Opening Number")]);
+      const use = { event: "scenery" as const, productionId: "2027", itemId: "cut-sketch" };
+      serve(
+        { ...since, activity: [{ username: "pat", at: "2026-10-20T18:00:00.000Z", ...use }] },
+        json({ accounts }),
+        order,
+      );
+
+      const wrapper = await openPage();
+
+      expect(activity(wrapper)[0]?.[1]).toBe(
+        "opened a Scenery page of an item no longer in the running order",
+      );
+    });
+
+    it("still lists a Scenery page's use when the running order can't be loaded", async () => {
+      const use = { event: "scenery" as const, productionId: "2027", itemId: "opening-number" };
+      serve(
+        { ...since, activity: [{ username: "pat", at: "2026-10-20T18:00:00.000Z", ...use }] },
+        json({ accounts }),
+        "unavailable",
+      );
+
+      const wrapper = await openPage();
+
+      expect(activity(wrapper)[0]?.[1]).toBe("opened an item's Scenery page");
     });
 
     it("still lists an item's use, as an item, when the running order can't be loaded", async () => {
