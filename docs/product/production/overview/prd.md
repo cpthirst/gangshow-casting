@@ -61,7 +61,7 @@ The show calls the department **Wardrobe**, not Costume. The app's name for it d
 
   There's no minutes column. There are no view switches (pills) on the page.
 - **FR5**: Each square button opens that department's page for the item. Every role can open every one. Someone with that department's permission (or an Admin) can make changes there, and anyone else sees it read-only, with the line saying what can be viewed but not changed (production-props FR3). Each button's accessible name says what it opens, for which item, and whether it is to edit or to view (for example "Edit props for Opening Number").
-- **FR6**: An item's props notes appear in full under its row, labelled as props notes, as on today's Props view (production-props FR14). Items without props notes show nothing extra.
+- **FR6**: An item's scenery notes and props notes appear in full under its row, each labelled as such, scenery first as the row shows Scenery before Props (production-props FR14). Items without notes show nothing extra.
 - **FR7**: If there's no saved running order, the Overview says so and points to the Running order page, as Casting Items does.
 - **FR8**: The Overview has a **Generate Props List** button that works as it does today (production-props FR22, FR23). Later exports (Mic Plot in Excel, SFX List in Word) sit beside it when their features are built.
 
