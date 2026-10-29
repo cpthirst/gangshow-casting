@@ -1,6 +1,6 @@
 # 0029. A Director permission, and change routes that name any of several permissions
 
-- **Status**: Proposed
+- **Status**: Accepted
 - **Date**: 2026-10-29
 - **Deciders**: Nick Hirst
 
