@@ -360,6 +360,7 @@ describe("An item's Scenery page", () => {
       "All items",
       "Previous and Next",
       "Files",
+      "Remove",
       "Add a file",
       "Scenery notes",
     ]);

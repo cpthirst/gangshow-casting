@@ -320,8 +320,14 @@ export const pageHelp: PageHelp[] = [
         access: "everyone",
       },
       {
+        icons: [icons.remove],
+        name: "Remove",
+        does: "Takes a file off the item, once you confirm. It can't be brought back.",
+        access: "scenery",
+      },
+      {
         name: "Add a file",
-        does: "Adds one file of up to 100 MB to the item, chosen with the button or dragged onto it, showing how much has uploaded. A file with the same name as one already there replaces it, once you confirm. Scenery and set images only: no photos of cast members.",
+        does: "Adds one file of up to 100 MB to the item, chosen with the button or dragged onto it, showing how much has uploaded. A file with the same name as one already there replaces it, once you confirm. The old copy can't be brought back. Scenery and set images only: no photos of cast members.",
         access: "scenery",
       },
       {
@@ -374,6 +380,28 @@ export const pageHelp: PageHelp[] = [
         changeAccess: "stage",
       },
     ],
+  },
+];
+
+/** What each permission lets someone change, for the Help page's Permissions section. */
+export const permissionHelp = [
+  {
+    name: "Casting",
+    does: "Changes the cast, the roles and who plays them, and the running order, which an admin then saves.",
+  },
+  { name: "Stage", does: "Changes the Scenery and Props pages." },
+  {
+    name: "Tech",
+    does: "Changes the Scenery page, and the SFX and Mic plot pages when they come.",
+  },
+  { name: "Wardrobe", does: "Changes what the cast wear in each item, once that page comes." },
+  {
+    name: "Director",
+    does: "Changes every production department's pages, now and as they come: Scenery and Props today. Not the cast, roles, casting or running order, and nothing only admins can do.",
+  },
+  {
+    name: "Admins",
+    does: "Change everything. Only admins can delete cast members, add and remove items, save the running order, and manage accounts.",
   },
 ];
 
