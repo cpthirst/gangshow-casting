@@ -104,7 +104,7 @@ pnpm dev       # web on :5173 + API on :3000 (Vite proxies /api), on the real re
 pnpm check     # lint + typecheck + tests + cdk synth: the definition of "done"
 ```
 
-Locally, scenery files live in `apps/api/data/files` unless `FILES_BUCKET` names the bucket (the stack's `FilesBucketName` output, ADR 0030).
+`pnpm dev` keeps scenery files in the real bucket, as it keeps the data in the real table. `pnpm demo`, and any run without `FILES_BUCKET`, keeps them in `apps/api/data/files` (ADR 0030).
 
 `pnpm dev` and `pnpm demo` start you as an admin, and the sidebar's "Local role" tick boxes let you try any mix of permissions (Casting, Stage, Tech, Wardrobe, Director), or none.
 

@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "DATA_TABLE=GangshowCasting-DataTable447BC44E-1TSYLDJ8MDOBT AWS_PROFILE=default pnpm --parallel --filter web --filter api dev",
+    "dev": "DATA_TABLE=GangshowCasting-DataTable447BC44E-1TSYLDJ8MDOBT FILES_BUCKET=gangshowcasting-filesbucket16450113-zkt7ydsx22ky AWS_PROFILE=default pnpm --parallel --filter web --filter api dev",
     "demo": "node tooling/src/demo.ts",
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck && pnpm typecheck:harness",
