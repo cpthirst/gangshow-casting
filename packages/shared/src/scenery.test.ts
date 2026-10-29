@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   browserTypeOf,
   fileTypeOf,
+  SceneryFileCounts,
   SceneryFileLink,
   SceneryFileList,
   SceneryFileName,
@@ -38,6 +39,17 @@ describe("SceneryFileList", () => {
 
   it("refuses a negative size", () => {
     expect(SceneryFileList.safeParse({ files: [{ name: "a.pdf", size: -1 }] }).success).toBe(false);
+  });
+});
+
+describe("SceneryFileCounts", () => {
+  it("is how many files each item has, by item id", () => {
+    const counts = { counts: { "opening-number": 9, finale: 1 } };
+    expect(SceneryFileCounts.parse(counts)).toEqual(counts);
+  });
+
+  it.each([-1, 1.5])("refuses a count of %s", (count) => {
+    expect(SceneryFileCounts.safeParse({ counts: { finale: count } }).success).toBe(false);
   });
 });
 

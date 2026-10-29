@@ -2,7 +2,7 @@
 id: production-overview.E2.S3
 title: Show a count for each department on the Overview
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story

@@ -11,6 +11,7 @@ import {
   refusalFor,
   routeKeys,
   SCENERY_PERMISSIONS,
+  SceneryFileCounts,
   SceneryFileLink,
   SceneryFileList,
   UsageSummary,
@@ -35,6 +36,7 @@ const noSceneryFiles: SceneryFileStore = {
   list: async () => [],
   linkTo: async () => undefined,
   remove: async () => "gone",
+  countByItem: async () => ({}),
 };
 
 // The parts of an API Gateway HTTP API (payload v2) event that the entry point reads, signed
@@ -171,6 +173,22 @@ describe("Lambda entry point", () => {
 
       expect(res.statusCode).toBe(200);
       expect(SceneryFileList.parse(JSON.parse(res.body ?? ""))).toEqual({ files: [setPlan] });
+    });
+
+    it.each([
+      ["Casting only", "[casting]"],
+      ["no permissions", "[]"],
+    ])("counts each item's scenery files for an account with %s", async (_, groups) => {
+      const api = entry({ ...noSceneryFiles, countByItem: async () => ({ "opening-number": 9 }) });
+
+      const res = await api(
+        request("GET", "/api/productions/2027/scenery-file-counts", {}, groups),
+      );
+
+      expect(res.statusCode).toBe(200);
+      expect(SceneryFileCounts.parse(JSON.parse(res.body ?? ""))).toEqual({
+        counts: { "opening-number": 9 },
+      });
     });
 
     it.each([

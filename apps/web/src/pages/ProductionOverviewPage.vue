@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ItemNoteList, PropList, RunningOrder } from "@app/shared";
+import { ItemNoteList, PropList, RunningOrder, SceneryFileCounts } from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, nextTick, onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
@@ -8,15 +8,16 @@ import { latestPropsList } from "@/services/latest-show.ts";
 import { apiFetch, canChange } from "@/services/sign-in.ts";
 import { recordExport } from "@/services/usage.ts";
 import { downloadPropsList } from "@/services/word-export.ts";
-import { departmentPages } from "@/utils/departments.ts";
+import { type DepartmentCount, type DepartmentPage, departmentPages } from "@/utils/departments.ts";
 import { icons } from "@/utils/icons.ts";
-import { PROPS_PATH, propCountLabel, propCounts } from "@/utils/props.ts";
+import { PROPS_PATH, propCounts, propsCount } from "@/utils/props.ts";
 import { PROPS_NOTES_PATH } from "@/utils/props-notes.ts";
 import { RUNNING_ORDER_PATH, runningClock } from "@/utils/running-order.ts";
+import { SCENERY_FILE_COUNTS_PATH, sceneryCount } from "@/utils/scenery.ts";
 
 // Production's one page: the show's items, each with a button for every department's page
-// for it and how many props it has (production-overview FR4–FR8, FR10), laid out as the
-// casting Items list.
+// for it and a count for each department (production-overview FR4–FR8, FR10, FR14), laid out
+// as the casting Items list.
 
 const route = useRoute();
 
@@ -27,8 +28,10 @@ type State =
   | { status: "loaded"; order: RunningOrder };
 
 const state = ref<State>({ status: "loading" });
-// Loaded separately: if the props fail, the items still show, just without counts.
-const countOf = ref<((itemId: string) => number) | "error">();
+// Each loaded separately: if one fails, the items still show, just without its counts.
+type Counts = ((itemId: string) => number) | "error";
+const propsCountOf = ref<Counts>();
+const sceneryCountOf = ref<Counts>();
 // Each item's props notes, by item id (production-props FR14); cleared notes are left out.
 const notes = ref<Map<string, string> | "error">();
 const notesOf = (itemId: string) =>
@@ -39,10 +42,23 @@ const halves = computed(() =>
   state.value.status === "loaded" ? runningClock(state.value.order).halves : [],
 );
 
-/** The item's count; none while the props are loading or unavailable, so a count that
- *  couldn't be loaded never reads as 0. */
-const countFor = (itemId: string) =>
-  typeof countOf.value === "function" ? countOf.value(itemId) : undefined;
+/** A department's count for the item: "coming-soon" for a department not built yet, and none
+ *  while its counts are loading or unavailable, so a count that couldn't be loaded never
+ *  reads as 0. */
+function countFor(
+  department: DepartmentPage,
+  itemId: string,
+): DepartmentCount | "coming-soon" | undefined {
+  if (department.path === "scenery") return shownCount(sceneryCountOf.value, sceneryCount, itemId);
+  if (department.path === "props") return shownCount(propsCountOf.value, propsCount, itemId);
+  return "coming-soon";
+}
+
+const shownCount = (
+  counts: Counts | undefined,
+  inWords: (count: number) => DepartmentCount,
+  itemId: string,
+) => (typeof counts === "function" ? inWords(counts(itemId)) : undefined);
 
 // The props list in Word, for every role, built in the browser with everything as saved at
 // that moment (production-props FR22, FR23; ADR 0022).
@@ -78,6 +94,7 @@ async function generatePropsList() {
 onMounted(() => {
   loadRunningOrder();
   loadProps();
+  loadSceneryCounts();
   loadNotes();
 });
 
@@ -97,9 +114,21 @@ async function loadProps() {
   try {
     const res = await apiFetch(PROPS_PATH);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    countOf.value = propCounts(PropList.parse(await res.json()).props);
+    propsCountOf.value = propCounts(PropList.parse(await res.json()).props);
   } catch {
-    countOf.value = "error";
+    propsCountOf.value = "error";
+  }
+}
+
+// From file storage on every visit, so a file added there is counted (FR14).
+async function loadSceneryCounts() {
+  try {
+    const res = await apiFetch(SCENERY_FILE_COUNTS_PATH);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const { counts } = SceneryFileCounts.parse(await res.json());
+    sceneryCountOf.value = (itemId) => counts[itemId] ?? 0;
+  } catch {
+    sceneryCountOf.value = "error";
   }
 }
 
@@ -148,7 +177,12 @@ async function loadRunningOrder() {
     <p v-if="generateFailed" class="notice word-export-error" role="alert">
       Couldn't generate the props list. Try again.
     </p>
-    <p v-if="countOf === 'error'" class="notice" role="alert">Couldn't load the props counts.</p>
+    <p v-if="propsCountOf === 'error'" class="notice" role="alert">
+      Couldn't load the props counts.
+    </p>
+    <p v-if="sceneryCountOf === 'error'" class="notice" role="alert">
+      Couldn't load the scenery counts.
+    </p>
     <p v-if="notes === 'error'" class="notice" role="alert">Couldn't load the notes.</p>
     <section v-for="{ half, rows } in halves" :key="half.id" class="half" :aria-labelledby="half.id">
       <h2 :id="half.id">{{ half.name }}</h2>
@@ -159,14 +193,22 @@ async function loadRunningOrder() {
             <col class="col-departments" />
             <col class="col-number" />
             <col />
-            <col class="col-prop-count" />
+            <col v-for="department in departmentPages" :key="department.path" class="col-count" />
           </colgroup>
           <thead role="rowgroup">
             <tr role="row">
               <th scope="col" role="columnheader">Open</th>
               <th scope="col" role="columnheader">#</th>
               <th scope="col" role="columnheader">Item</th>
-              <th scope="col" role="columnheader">Props</th>
+              <th
+                v-for="department in departmentPages"
+                :key="department.path"
+                class="count"
+                scope="col"
+                role="columnheader"
+              >
+                {{ department.name }}
+              </th>
             </tr>
           </thead>
           <tbody role="rowgroup">
@@ -198,12 +240,30 @@ async function loadRunningOrder() {
                 <td class="title" data-label="Item" role="cell">
                   <span data-test="title">{{ item.title }}</span>
                 </td>
-                <td data-test="count" class="prop-count" data-label="Props" role="cell">
-                  <!-- The bare number under its heading; screen readers hear it labelled. -->
-                  <template v-for="count in [countFor(item.id)]" :key="item.id">
-                    <template v-if="count !== undefined">
-                      <span aria-hidden="true">{{ count }}</span>
-                      <span class="visually-hidden">{{ propCountLabel(count) }}</span>
+                <!-- Each count's number and word are hidden from screen readers, which hear them
+                     as one phrase instead ("9 scenery files"). -->
+                <td
+                  v-for="department in departmentPages"
+                  :key="department.path"
+                  data-test="count"
+                  :data-department="department.path"
+                  class="count"
+                  :data-label="department.name"
+                  role="cell"
+                >
+                  <template v-for="count in [countFor(department, item.id)]" :key="item.id">
+                    <template v-if="count === 'coming-soon'">
+                      <span aria-hidden="true">–</span>
+                      <span class="visually-hidden">Coming soon</span>
+                    </template>
+                    <template v-else-if="count">
+                      <span class="count-number" data-test="count-number" aria-hidden="true">{{
+                        count.number
+                      }}</span>
+                      <span class="count-word" data-test="count-word" aria-hidden="true">{{
+                        count.word
+                      }}</span>
+                      <span class="visually-hidden">{{ count.label }}</span>
                     </template>
                   </template>
                 </td>
@@ -216,7 +276,10 @@ async function loadRunningOrder() {
                 :class="{ 'not-printed': number === null }"
                 data-test="props-notes"
               >
-                <td colspan="4" class="item-notes-text" data-label="Props notes" role="cell">
+                <!-- Across every column: Open, #, Item and each department's count. -->
+                <td
+                  :colspan="3 + departmentPages.length"
+                  class="item-notes-text" data-label="Props notes" role="cell">
                   {{ notesOf(item.id) }}
                 </td>
               </tr>

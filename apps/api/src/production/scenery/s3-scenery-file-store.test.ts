@@ -135,3 +135,40 @@ describe("deleting scenery files from a bucket", () => {
     expect(s3.commandCalls(DeleteObjectCommand)).toEqual([]);
   });
 });
+
+describe("counting scenery files in a bucket", () => {
+  it("counts each item's own scenery files from one listing of the production", async () => {
+    s3.on(ListObjectsV2Command).resolves({
+      Contents: [
+        { Key: "2027/opening-number/scenery/set-plan.pdf" },
+        { Key: "2027/opening-number/scenery/backdrop.png" },
+        { Key: "2027/finale/scenery/curtain.pdf" },
+        // Nested below a scenery folder, another department's, and a folder's placeholder.
+        { Key: "2027/finale/scenery/old/curtain-v1.pdf" },
+        { Key: "2027/finale/sfx/thunder.mp3" },
+        { Key: "2027/finale/scenery/" },
+      ],
+    });
+
+    expect(await store().countByItem("2027")).toEqual({ "opening-number": 2, finale: 1 });
+    expect(s3.commandCalls(ListObjectsV2Command)[0]?.args[0].input).toEqual({
+      Bucket: BUCKET,
+      Prefix: "2027/",
+    });
+  });
+
+  it("follows the listing's pages to the end", async () => {
+    s3.on(ListObjectsV2Command)
+      .resolvesOnce({
+        Contents: [{ Key: "2027/finale/scenery/a.pdf" }],
+        IsTruncated: true,
+        NextContinuationToken: "page-2",
+      })
+      .resolvesOnce({ Contents: [{ Key: "2027/finale/scenery/b.pdf" }] });
+
+    expect(await store().countByItem("2027")).toEqual({ finale: 2 });
+    expect(s3.commandCalls(ListObjectsV2Command)[1]?.args[0].input.ContinuationToken).toBe(
+      "page-2",
+    );
+  });
+});

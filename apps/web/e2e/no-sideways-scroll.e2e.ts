@@ -95,14 +95,15 @@ test("the items list and an item's casting page fit the screen", async ({ page }
   await expectNoSidewaysScroll(page);
 });
 
-test("the Production overview's five department buttons and props count fit the screen", async ({
+test("the Production overview's five department buttons and counts fit the screen", async ({
   page,
 }) => {
   await page.goto("/production/overview");
   const row = page.locator("[data-test=item]", { hasText: PIRATE_SKETCH });
 
   await expect(row.locator(".icon-button")).toHaveCount(5);
-  await expect(row.locator("[data-test=count]")).toBeVisible();
+  await expect(row.locator("[data-test=count]")).toHaveCount(5);
+  await expect(row.locator("[data-test=count][data-department=scenery]")).toBeVisible();
   await expectNoSidewaysScroll(page);
 });
 

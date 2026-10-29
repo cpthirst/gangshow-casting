@@ -5,9 +5,9 @@ import {
   carriersOf,
   carryingOf,
   type PropFormFields,
-  propCountLabel,
   propCounts,
   propDetailsFrom,
+  propsCount,
   propsListOf,
   rolesOf,
   sortProps,
@@ -63,13 +63,13 @@ describe("propCounts", () => {
   });
 });
 
-describe("propCountLabel", () => {
+describe("propsCount", () => {
   it.each([
-    [0, "0 props"],
-    [1, "1 prop"],
-    [3, "3 props"],
-  ])("labels %i as %s", (count, label) => {
-    expect(propCountLabel(count)).toBe(label);
+    [0, "props", "0 props"],
+    [1, "prop", "1 prop"],
+    [3, "props", "3 props"],
+  ])("shows %i over %s, read as %s", (count, word, label) => {
+    expect(propsCount(count)).toEqual({ number: count, word, label });
   });
 });
 

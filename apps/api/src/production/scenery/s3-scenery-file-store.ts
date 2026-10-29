@@ -9,7 +9,12 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { fileHeadersOf } from "./file-headers.ts";
-import { asSceneryFiles, type SceneryFileStore, sceneryFolderOf } from "./scenery-file-store.ts";
+import {
+  asSceneryFiles,
+  countsByItem,
+  type SceneryFileStore,
+  sceneryFolderOf,
+} from "./scenery-file-store.ts";
 
 // Long enough to start a download on a slow phone, short enough to be useless if shared
 // (production-scenery security NFR).
@@ -38,6 +43,20 @@ export function s3SceneryFileStore(s3: S3Client, bucket: string): SceneryFileSto
         token = page.IsTruncated ? page.NextContinuationToken : undefined;
       } while (token !== undefined);
       return files;
+    },
+    async countByItem(productionId) {
+      const prefix = `${productionId}/`;
+      const keys: string[] = [];
+      let token: string | undefined;
+      // Every key in the production, a page at a time: one listing for all its items.
+      do {
+        const page = await s3.send(
+          new ListObjectsV2Command({ Bucket: bucket, Prefix: prefix, ContinuationToken: token }),
+        );
+        for (const { Key = "" } of page.Contents ?? []) keys.push(Key.slice(prefix.length));
+        token = page.IsTruncated ? page.NextContinuationToken : undefined;
+      } while (token !== undefined);
+      return countsByItem(keys);
     },
     async linkTo(productionId, itemId, name) {
       const Key = `${sceneryFolderOf(productionId, itemId)}${name}`;

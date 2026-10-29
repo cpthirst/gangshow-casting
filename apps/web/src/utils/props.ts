@@ -10,6 +10,7 @@ import {
   type RunningOrder,
 } from "@app/shared";
 import { sortCast } from "./cast.ts";
+import { countInWords } from "./departments.ts";
 import { type CastMemberChoice, castOf, fullName, sortRoles } from "./roles.ts";
 import { runningClock } from "./running-order.ts";
 
@@ -36,8 +37,9 @@ export function propCounts(props: readonly Prop[]) {
   return (itemId: string) => counts.get(itemId) ?? 0;
 }
 
-/** A count with its label, so it never reads as a bare number: "1 prop", "3 props". */
-export const propCountLabel = (count: number) => `${count} prop${count === 1 ? "" : "s"}`;
+/** An item's props count on the Overview: "3" over "props", read as "3 props". */
+export const propsCount = (props: number) =>
+  countInWords(props, "prop", "props", (word) => `${props} ${word}`);
 
 /** Props by name, ignoring case and comparing numbers by value ("Umbrella 2" before
  *  "Umbrella 10"), as roles are (production-props FR21). Returns a new array. */
