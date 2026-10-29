@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.32.0](https://github.com/cpthirst/gangshow-casting/compare/v1.31.0...v1.32.0) (2026-10-29)
+
+
+### Features
+
+* **web:** show upload progress, and replace a file of the same name (production-scenery.E2.S5) ([#155](https://github.com/cpthirst/gangshow-casting/issues/155)) ([d6d89f3](https://github.com/cpthirst/gangshow-casting/commit/d6d89f38caaedb71865591a9edfcdd41ebba5ec2))
+
 ## [1.31.0](https://github.com/cpthirst/gangshow-casting/compare/v1.30.0...v1.31.0) (2026-10-29)
 
 
