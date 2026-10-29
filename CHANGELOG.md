@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.26.0](https://github.com/cpthirst/gangshow-casting/compare/v1.25.0...v1.26.0) (2026-10-29)
+
+
+### Features
+
+* **web:** choose Director on the Accounts page and the local switch (production-scenery.E1.S2) ([#137](https://github.com/cpthirst/gangshow-casting/issues/137)) ([f99b435](https://github.com/cpthirst/gangshow-casting/commit/f99b435b2c0b9b23f852ccded40338ddd3b85918))
+
 ## [1.25.0](https://github.com/cpthirst/gangshow-casting/compare/v1.24.0...v1.25.0) (2026-10-29)
 
 
