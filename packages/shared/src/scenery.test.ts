@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { SceneryFileList, SceneryFileName } from "./scenery.ts";
+import {
+  browserTypeOf,
+  fileTypeOf,
+  SceneryFileLink,
+  SceneryFileList,
+  SceneryFileName,
+} from "./scenery.ts";
 
 describe("SceneryFileName", () => {
   it.each(["set-plan.pdf", "Backdrop v2 (final).png", "<b>plan.pdf", "x".repeat(255)])(
@@ -32,5 +38,61 @@ describe("SceneryFileList", () => {
 
   it("refuses a negative size", () => {
     expect(SceneryFileList.safeParse({ files: [{ name: "a.pdf", size: -1 }] }).success).toBe(false);
+  });
+});
+
+describe("SceneryFileLink", () => {
+  it("is a link that downloads one file", () => {
+    const link = { url: "https://files.example/2027/opening-number/scenery/set-plan.pdf?x=1" };
+    expect(SceneryFileLink.parse(link)).toEqual(link);
+  });
+
+  it("can be a link on the app's own server, as pnpm demo's are", () => {
+    const link = { url: "/api/local-files/2027/opening-number/scenery/set-plan.pdf" };
+    expect(SceneryFileLink.parse(link)).toEqual(link);
+  });
+
+  it.each([
+    "javascript:alert(1)",
+    "http://files.example/set-plan.pdf",
+    "/production/overview",
+    "//files.example/set-plan.pdf",
+  ])("refuses %s, which isn't file storage", (url) => {
+    expect(SceneryFileLink.safeParse({ url }).success).toBe(false);
+  });
+});
+
+describe("browserTypeOf", () => {
+  it.each([
+    ["set-plan.pdf", "application/pdf"],
+    ["Backdrop.PNG", "image/png"],
+    ["photo.jpg", "image/jpeg"],
+    ["photo.jpeg", "image/jpeg"],
+    ["sketch.gif", "image/gif"],
+    ["sketch.webp", "image/webp"],
+    ["cues.txt", "text/plain; charset=utf-8"],
+  ])("opens %s in the browser as %s", (name, type) => {
+    expect(browserTypeOf(name)).toBe(type);
+  });
+
+  it.each(["notes.html", "notes.htm", "plan.svg", "plan.xml", "build-list.xlsx", "notes", "pdf"])(
+    "leaves %s to download, as it could run script or the browser can't show it",
+    (name) => {
+      expect(browserTypeOf(name)).toBeUndefined();
+    },
+  );
+});
+
+describe("fileTypeOf", () => {
+  it.each([
+    ["set-plan.pdf", "PDF"],
+    ["build-list.xlsx", "XLSX"],
+    ["Backdrop v2.final.png", "PNG"],
+  ])("names %s's type %s, from its extension", (name, type) => {
+    expect(fileTypeOf(name)).toBe(type);
+  });
+
+  it.each(["notes", ".hidden", "trailing."])("gives %s no type", (name) => {
+    expect(fileTypeOf(name)).toBeUndefined();
   });
 });

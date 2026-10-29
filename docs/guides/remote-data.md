@@ -65,12 +65,17 @@ Then create the profile the app will use: an IAM user, `gangshow-data`, with no 
       "Effect": "Allow",
       "Action": "s3:ListBucket",
       "Resource": "arn:aws:s3:::<files bucket>"
+    },
+    {
+      "Effect": "Allow",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::<files bucket>/*/*/scenery/*"
     }
   ]
 }
 ```
 
-Give it an access key, and run `aws configure --profile gangshow-data`. It can't delete or change the table itself, only the rows in it, and it can only list the scenery files.
+Give it an access key, and run `aws configure --profile gangshow-data`. It can't delete or change the table itself, only the rows in it, and it can only list the scenery files and read them, to sign the links that open or download them.
 
 Finally, delete the `gangshow-admin` access key in IAM. Make a new one when you next need to deploy, and delete that afterwards too.
 

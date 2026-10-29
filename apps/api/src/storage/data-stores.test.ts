@@ -54,12 +54,14 @@ describe("data stores", () => {
 
     expect(await files.store.list("2027", "finale")).toEqual([{ name: "curtain.pdf", size: 7 }]);
     expect(files.where).toBe(`scenery files in ${join(dataDir, "files")}`);
+    expect(files.folder).toBe(join(dataDir, "files"));
   });
 
   it("keeps scenery files in the bucket FILES_BUCKET names, in London", async () => {
     const files = sceneryFileStore({ DATA_DIR: dataDir, FILES_BUCKET: "made-up-files" });
 
     expect(files.where).toBe("scenery files in bucket made-up-files (eu-west-2)");
+    expect(files.folder).toBeUndefined();
   });
 
   it("says where item notes are kept when a remote table is configured", () => {

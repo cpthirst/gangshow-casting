@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { RunningOrder, type SceneryFile, SceneryFileList } from "@app/shared";
+import { RunningOrder, type SceneryFile, SceneryFileLink, SceneryFileList } from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, ref, watch, watchEffect } from "vue";
 import { useRoute } from "vue-router";
@@ -8,15 +8,19 @@ import ItemNotes from "@/components/common/ItemNotes.vue";
 import ItemStepNav from "@/components/common/ItemStepNav.vue";
 import ReadOnlyNotice from "@/components/common/ReadOnlyNotice.vue";
 import { showPageTitle } from "@/router/index.ts";
+import { downloadFrom, openFileTab } from "@/services/file-link.ts";
 import { apiFetch, canChangeScenery } from "@/services/sign-in.ts";
 import { icons } from "@/utils/icons.ts";
 import { neighboursOf, placeOf, positionOf, RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
 import {
   fileSize,
+  opensInBrowser,
   SCENERY_NOTES_PATH,
   saveSceneryNotesPath,
+  sceneryFileLinkPath,
   sceneryFilesPath,
   sortFiles,
+  tileLabel,
 } from "@/utils/scenery.ts";
 
 // One item's scenery files (production-scenery FR6, FR7) and notes, laid out as the props
@@ -26,6 +30,8 @@ const route = useRoute();
 const order = ref<RunningOrder>();
 const files = ref<SceneryFile[]>([]);
 const status = ref<"loading" | "loaded" | "error">("loading");
+// Why the last file chosen didn't open or download, if it didn't.
+const fileProblem = ref<string>();
 
 const itemId = computed(() =>
   typeof route.params.itemId === "string" ? route.params.itemId : undefined,
@@ -74,7 +80,38 @@ async function okJson(res: Response): Promise<unknown> {
   return res.json();
 }
 
-watch(itemId, (id) => id && load(id), { immediate: true });
+// A file opens in a new tab or downloads through a short-lived link (FR10). A file deleted
+// since the page loaded says so, and the grid catches up with storage.
+async function choose({ name }: SceneryFile) {
+  const id = itemId.value;
+  if (!id) return;
+  fileProblem.value = undefined;
+  const tab = opensInBrowser(name) ? openFileTab() : undefined;
+  try {
+    const res = await apiFetch(sceneryFileLinkPath(id, name));
+    if (res.status === 404) {
+      tab?.close();
+      fileProblem.value = `${name} isn't there any more.`;
+      await load(id);
+      return;
+    }
+    const { url } = SceneryFileLink.parse(await okJson(res));
+    if (tab) tab.show(url);
+    else downloadFrom(url);
+  } catch {
+    tab?.close();
+    fileProblem.value = `Couldn't ${tab ? "open" : "download"} ${name}. Try again.`;
+  }
+}
+
+watch(
+  itemId,
+  (id) => {
+    fileProblem.value = undefined;
+    if (id) load(id);
+  },
+  { immediate: true },
+);
 </script>
 
 <template>
@@ -94,11 +131,19 @@ watch(itemId, (id) => id && load(id), { immediate: true });
     <!-- Those without Stage, Tech or Director see the files with nothing to change them. -->
     <ReadOnlyNotice about="scenery" />
     <!-- An explicit list role: Safari drops list semantics once bullets are styled away. -->
+    <p v-if="fileProblem" class="notice" role="alert" data-test="file-problem">{{ fileProblem }}</p>
     <ul v-if="files.length > 0" class="file-tiles" role="list" aria-label="Scenery files">
-      <li v-for="file in files" :key="file.name" class="file-tile" data-test="file">
-        <FontAwesomeIcon :icon="icons.file" class="file-icon" />
-        <span class="file-name" data-test="name">{{ file.name }}</span>
-        <span class="file-size" data-test="size">{{ fileSize(file.size) }}</span>
+      <li v-for="file in files" :key="file.name" data-test="file">
+        <button
+          type="button"
+          class="file-tile"
+          :aria-label="tileLabel(file.name)"
+          @click="choose(file)"
+        >
+          <FontAwesomeIcon :icon="icons.file" class="file-icon" />
+          <span class="file-name" data-test="name">{{ file.name }}</span>
+          <span class="file-size" data-test="size">{{ fileSize(file.size) }}</span>
+        </button>
       </li>
     </ul>
     <p v-else data-test="no-files">No scenery files for this item yet.</p>

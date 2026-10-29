@@ -19,6 +19,7 @@
     "@aws-sdk/client-dynamodb": "^3.1152.0",
     "@aws-sdk/client-s3": "^3.1158.0",
     "@aws-sdk/lib-dynamodb": "^3.1152.0",
+    "@aws-sdk/s3-request-presigner": "^3.1158.0",
     "write-excel-file": "^4.1.1"
   },
   "devDependencies": {

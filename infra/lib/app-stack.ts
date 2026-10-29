@@ -225,9 +225,16 @@ export class AppStack extends Stack {
     });
     // Reads and writes the table's items, and nothing else in DynamoDB (hosting E2.S1).
     table.grantReadWriteData(dataFunction);
-    // Lists the files and nothing more, until downloads and uploads need more (ADR 0030).
+    // Lists the files, and reads only scenery files, to sign the short-lived links that open or
+    // download them (ADR 0030). Uploads will add only what they need.
     dataFunction.addToRolePolicy(
       new PolicyStatement({ actions: ["s3:ListBucket"], resources: [filesBucket.bucketArn] }),
+    );
+    dataFunction.addToRolePolicy(
+      new PolicyStatement({
+        actions: ["s3:GetObject"],
+        resources: [filesBucket.arnForObjects("*/*/scenery/*")],
+      }),
     );
     const apiIntegration = new HttpLambdaIntegration("ApiIntegration", dataFunction);
 

@@ -2,6 +2,7 @@ import { readdir, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { type SceneryFile, SceneryFileName } from "@app/shared";
 import { ifExists } from "#/storage/files.ts";
+import { localFileLink } from "./local-files.ts";
 
 /**
  * Where each item's scenery files live (ADR 0030). Names come from storage each time, so a
@@ -10,6 +11,9 @@ import { ifExists } from "#/storage/files.ts";
 export interface SceneryFileStore {
   /** The item's files, in no particular order; none if it has no folder yet. */
   list(productionId: string, itemId: string): Promise<SceneryFile[]>;
+  /** A short-lived link that opens or downloads one of the item's files (FR10); undefined if
+   *  it isn't there. The name is a valid SceneryFileName. */
+  linkTo(productionId: string, itemId: string, name: string): Promise<string | undefined>;
 }
 
 /** The item's place in storage: `<production>/<item id>/scenery/` (ADR 0030). The ids are
@@ -37,6 +41,11 @@ export function folderSceneryFileStore(folder: string): SceneryFileStore {
         }),
       );
       return sized.flat();
+    },
+    async linkTo(productionId, itemId, name) {
+      const folderOfItem = sceneryFolderOf(productionId, itemId);
+      const found = await ifExists(() => stat(join(folder, folderOfItem, name)));
+      return found?.isFile() ? localFileLink(folderOfItem, name) : undefined;
     },
   };
 }

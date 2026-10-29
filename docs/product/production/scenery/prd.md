@@ -39,7 +39,7 @@ Access doesn't fit the production team either. The show's director works across 
 - **Folders, tags, or a description per file.** A file is its name, type and size.
 - **Renaming a file in the app.** It keeps the name it was uploaded with.
 - **Versions or history.** Replacing a file keeps only the newest copy, and a deleted file can't be brought back.
-- **Viewing or editing files inside the app**, beyond image thumbnails. Every file opens by downloading it.
+- **Viewing or editing files inside the app**, beyond image thumbnails. A PDF, image or plain-text file opens in the browser's own viewer, in a new tab; every other file downloads.
 - **Checking what is in an image**, such as spotting photos of people. The page states the rule (FR8), and the team follows it.
 - **Deleting files at the end of a production.** Not considered for now.
 - **Recording uploads, downloads or deletes on the Usage page.** Only page visits are recorded (FR15).
@@ -72,7 +72,7 @@ Access doesn't fit the production team either. The show's director works across 
   An item with no files says so, and, for those who can change scenery, how to add one.
 - **FR8**: Someone who can change scenery can **upload** a file, one at a time, of any type, up to **100 MB**. The upload area says "Scenery and set images only: no photos of cast members." The page shows progress while the file uploads. A file over the limit, or an upload that fails, is named with the reason.
 - **FR9**: Uploading a file with the same name as one already on that item **replaces** it, after the page asks to confirm ("Replace set-plan.pdf?"). Names are compared exactly, as stored.
-- **FR10**: Anyone can **download** a file by choosing its tile. It downloads with its stored name.
+- **FR10**: Anyone can **open or download** a file by choosing its tile. A PDF, image (JPG, PNG, GIF, WebP) or plain-text file opens in a new browser tab; any other file downloads. Either way it keeps its stored name.
 - **FR11**: The trash icon asks to confirm ("Delete set-plan.pdf? This can't be undone."), then deletes the file for everyone.
 - **FR12**: Each item's files are its own, tied to that item in the current production. Moving an item in the running order keeps its files with it.
 - **FR13**: When an item is removed from the running order, its files are deleted along with everything else about it, in the same removal clean-up that runs when the running order is saved (running-order E3.S2). Nothing is deleted until the save, so Reset still undoes a removal. As with the item's notes and roles, a clean-up that fails is repaired by the next save.
@@ -88,11 +88,11 @@ Access doesn't fit the production team either. The show's director works across 
 - **Security and safeguarding**:
   - Every upload, download, list and delete needs a signed-in account (ADR 0018). Files are never publicly reachable: not by guessing an address, and not through a link that outlives its use. Any download link expires within minutes.
   - The API enforces FR5 for every upload and delete, and checks the size limit itself, not only the page.
-  - A file is always downloaded, never opened as a page of the app, so an uploaded HTML or script file can't run in it. A file's name is shown as text, never as markup, and can't choose where in storage the file goes.
+  - A file is never opened as a page of the app. Only types that can't run script (PDF, images other than SVG, plain text) open in the browser, and never from the app's own address; every other type, HTML and SVG among them, always downloads, so an uploaded HTML or script file can't run. A file's name is shown as text, never as markup, and can't choose where in storage the file goes.
   - Adding the Director permission and its sign-in group changes the AWS sign-in setup, and a Scenery page shared by Stage and Tech changes ADR 0026's rule that each change route names one permission. Both need a decision record amending ADR 0026, and the infra and security reviews.
   - The images rule (FR8) stands in for checks: the app stores no photos of cast members (CLAUDE.md, ADR 0010). Files hold no personal data the app relies on.
 - **Accessibility**: WCAG 2.2 AA.
-  - Each tile has an accessible name saying the file's name and type, and what choosing it does ("Download set-plan.pdf"). Each trash icon's name says which file it deletes. Thumbnails and type icons are decorative to screen readers.
+  - Each tile has an accessible name saying the file's name and type, and what choosing it does ("Open set-plan.pdf, PDF file", "Download build-list.xlsx, XLSX file"). Each trash icon's name says which file it deletes. Thumbnails and type icons are decorative to screen readers.
   - Upload works by keyboard, not only by drag and drop. Progress and errors are announced.
   - Targets are at least 24 by 24 CSS pixels (44 by 44 where the grid allows).
   - The page works at 320px and 360px with no sideways scrolling, long file names included (they wrap or are shortened with the full name available).
@@ -119,7 +119,7 @@ Access doesn't fit the production team either. The show's director works across 
 | A file becomes reachable without signing in, e.g. a shared download link | L | H | Short-lived links, storage that's never public, security and infra reviews, a check in the post-deploy test (`pnpm check:hosted`) |
 | Someone replaces or deletes the latest version by mistake | M | M | Both ask to confirm and name the file. There's no history (non-goal), so the release notes and Help say so |
 | A 100 MB upload fails on a backstage phone connection | M | L | Progress shown, a clear error naming the file, and the user can retry |
-| An uploaded file carries something harmful (script, malware) | L | M | Files only ever download and never open in the app. There's no scanning; revisit if files are shared beyond the team |
+| An uploaded file carries something harmful (script, malware) | L | M | Only types that can't run script open in the browser, away from the app's address; the rest only download. There's no scanning; revisit if files are shared beyond the team |
 | Storage costs creep up | L | L | The 100 MB cap, the existing budget alert, and files tied to one production |
 | Director widens access beyond Production, or Stage/Tech sharing a route breaks the one-permission rule | L | M | Tests for every change route with each permission (Director included) and with none, plus an ADR for the "any of these permissions" rule |
 

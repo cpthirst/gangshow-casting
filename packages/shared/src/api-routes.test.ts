@@ -142,8 +142,10 @@ describe("routeNeeds", () => {
     expect(refusalFor(SCENERY_PERMISSIONS)).toBe("You can view this, but not change it.");
   });
 
-  it("leaves listing an item's scenery files open to everyone", () => {
-    const key = "GET /api/productions/{productionId}/items/{itemId}/scenery-files";
+  it.each([
+    "GET /api/productions/{productionId}/items/{itemId}/scenery-files",
+    "GET /api/productions/{productionId}/items/{itemId}/scenery-file-link",
+  ] as const)("leaves %s open to everyone", (key) => {
     expect(routeKeys).toContain(key);
     expect(needOf(key)).toBeUndefined();
   });

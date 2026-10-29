@@ -307,6 +307,11 @@ export const pageHelp: PageHelp[] = [
         access: "everyone",
       },
       {
+        name: "File tiles",
+        does: "Opens a PDF, image or text file in a new tab. Any other file downloads.",
+        access: "everyone",
+      },
+      {
         name: "Scenery notes",
         does: "Anything the stage and tech teams need to know about the item's sets.",
         access: "everyone",
