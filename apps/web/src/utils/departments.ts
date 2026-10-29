@@ -20,6 +20,25 @@ export interface DepartmentPage {
   icon: IconDefinition;
 }
 
+/** A department's count on the Overview (production-overview FR14): the number, the small
+ *  word under it ("files"), and the one phrase screen readers hear ("9 scenery files"). */
+export interface DepartmentCount {
+  number: number;
+  word: string;
+  label: string;
+}
+
+/** A count in words, "file" for one and "files" otherwise, and the phrase read out for it. */
+export function countInWords(
+  number: number,
+  one: string,
+  many: string,
+  label: (word: string) => string,
+): DepartmentCount {
+  const word = number === 1 ? one : many;
+  return { number, word, label: label(word) };
+}
+
 // In the order the Overview's buttons show them (production-overview FR4, FR5).
 export const departmentPages: DepartmentPage[] = [
   {

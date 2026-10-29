@@ -317,7 +317,9 @@ describe("Adding a prop", () => {
     await flushPromises();
     expect(router.currentRoute.value.name).toBe("production-overview");
     const row = wrapper.get("[data-test=item][data-item-id=pirate-sketch]");
-    expect(row.get("[data-test=count] .visually-hidden").text()).toBe("1 prop");
+    expect(row.get("[data-test=count][data-department=props] .visually-hidden").text()).toBe(
+      "1 prop",
+    );
   });
 
   it("lets an admin add a prop, as for Stage", async () => {
@@ -937,7 +939,9 @@ describe("Editing and removing a prop", () => {
     await flushPromises();
     expect(router.currentRoute.value.name).toBe("production-overview");
     const row = wrapper.get("[data-test=item][data-item-id=pirate-sketch]");
-    expect(row.get("[data-test=count] .visually-hidden").text()).toBe("1 prop");
+    expect(row.get("[data-test=count][data-department=props] .visually-hidden").text()).toBe(
+      "1 prop",
+    );
   });
 
   it("keeps a prop when its removal is cancelled", async () => {
@@ -1101,7 +1105,9 @@ describe("A prop's quantity", () => {
   async function openOverviewFrom(wrapper: VueWrapper) {
     await wrapper.get("main nav[aria-label='Item navigation'] a").trigger("click");
     await flushPromises();
-    return wrapper.get("[data-test=item][data-item-id=village-square] [data-test=count]");
+    return wrapper.get(
+      "[data-test=item][data-item-id=village-square] [data-test=count][data-department=props]",
+    );
   }
 
   it("starts a new prop at a quantity of 1, under its label, and shows none on its card", async () => {

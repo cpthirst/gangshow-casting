@@ -10,6 +10,7 @@ import { PROPS_PATH } from "@/utils/props.ts";
 import { PROPS_NOTES_PATH } from "@/utils/props-notes.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
 import { RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
+import { SCENERY_FILE_COUNTS_PATH } from "@/utils/scenery.ts";
 
 enableAutoUnmount(afterEach);
 // As on pnpm dev: everyone acts as an admin, unless a test signs someone in.
@@ -20,18 +21,22 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
-/** A stand-in API answering the running order, props and props notes paths as given (no
- *  props notes unless a test says). */
+/** A stand-in API answering the running order, props, props notes and scenery counts paths as
+ *  given (no props notes or scenery files unless a test says). */
 function apiAnswers(answers: {
   order: () => Response;
   props: () => Response;
   notes?: () => Response;
+  scenery?: () => Response;
 }) {
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string) => {
       if (url === RUNNING_ORDER_PATH) return answers.order();
       if (url === PROPS_PATH) return answers.props();
+      if (url === SCENERY_FILE_COUNTS_PATH) {
+        return answers.scenery?.() ?? json({ counts: {} })();
+      }
       if (url === PROPS_NOTES_PATH) {
         return answers.notes?.() ?? json({ productionId: "2027", notes: [] })();
       }
@@ -83,6 +88,17 @@ const titlesIn = (wrapper: VueWrapper, halfName: string) =>
 
 const rowFor = (wrapper: VueWrapper, title: string) =>
   wrapper.findAll("[data-test=item]").find((row) => row.get("[data-test=title]").text() === title);
+
+/** A department's count cell in an item's row. */
+const countIn = (wrapper: VueWrapper, title: string, department: string) =>
+  rowFor(wrapper, title)?.get(`[data-test=count][data-department=${department}]`);
+
+/** What a count cell shows: its number, and the small word under it. */
+const shown = (cell: ReturnType<typeof countIn>) =>
+  cell && {
+    number: cell.get("[data-test=count-number]").text(),
+    word: cell.get("[data-test=count-word]").text(),
+  };
 
 describe("Production overview", () => {
   it("is titled Overview, with a help button and no view switch", async () => {
@@ -153,13 +169,22 @@ describe("Production overview", () => {
     expect(titlesIn(wrapper, "Second half")?.at(-1)).toBe("Finale");
   });
 
-  it("heads its columns Open, #, Item and Props, with no minutes", async () => {
+  it("heads a count column for each department after the title, in button order, with no minutes", async () => {
     savedShowIs(show());
 
     const { wrapper } = await openOverview();
 
     const headings = wrapper.get("main table").findAll("thead th");
-    expect(headings.map((th) => th.text())).toEqual(["Open", "#", "Item", "Props"]);
+    expect(headings.map((th) => th.text())).toEqual([
+      "Open",
+      "#",
+      "Item",
+      "Scenery",
+      "Props",
+      "SFX",
+      "Mic plot",
+      "Wardrobe",
+    ]);
     expect(wrapper.find("[data-test=minutes]").exists()).toBe(false);
   });
 
@@ -192,7 +217,7 @@ describe("Production overview", () => {
     expect(rowFor(wrapper, "Pirate Sketch")?.get("[data-test=number]").text()).toBe("2");
   });
 
-  it("shows each item's props count as a number, labelled for screen readers", async () => {
+  it("shows each item's props count as a number over a small word, read as one phrase", async () => {
     savedShowIs(show(), [
       aProp(1, "Pirate Sketch"),
       aProp(2, "Pirate Sketch"),
@@ -202,12 +227,12 @@ describe("Production overview", () => {
 
     const { wrapper } = await openOverview();
 
-    const countOf = (title: string) => rowFor(wrapper, title)?.get("[data-test=count]");
-    expect(countOf("Pirate Sketch")?.get("[aria-hidden=true]").text()).toBe("3");
+    const countOf = (title: string) => countIn(wrapper, title, "props");
+    expect(shown(countOf("Pirate Sketch"))).toEqual({ number: "3", word: "props" });
     expect(countOf("Pirate Sketch")?.get(".visually-hidden").text()).toBe("3 props");
-    expect(countOf("Opening Number")?.get("[aria-hidden=true]").text()).toBe("1");
+    expect(shown(countOf("Opening Number"))).toEqual({ number: "1", word: "prop" });
     expect(countOf("Opening Number")?.get(".visually-hidden").text()).toBe("1 prop");
-    expect(countOf("Finale")?.get("[aria-hidden=true]").text()).toBe("0");
+    expect(shown(countOf("Finale"))).toEqual({ number: "0", word: "props" });
     expect(countOf("Finale")?.attributes("data-label")).toBe("Props");
   });
 
@@ -216,8 +241,8 @@ describe("Production overview", () => {
 
     const { wrapper } = await openOverview();
 
-    const count = rowFor(wrapper, "Pirate Sketch")?.get("[data-test=count]");
-    expect(count?.get("[aria-hidden=true]").text()).toBe("11");
+    const count = countIn(wrapper, "Pirate Sketch", "props");
+    expect(shown(count)?.number).toBe("11");
     expect(count?.get(".visually-hidden").text()).toBe("11 props");
   });
 
@@ -300,7 +325,9 @@ describe("Production overview", () => {
 
     expect(titlesIn(wrapper, "First half")).toEqual(["Opening Number", "Pirate Sketch"]);
     expect(wrapper.get("main [role=alert]").text()).toBe("Couldn't load the props counts.");
-    const counts = wrapper.findAll("[data-test=count]").map((cell) => cell.text());
+    const counts = wrapper
+      .findAll("[data-test=count][data-department=props]")
+      .map((cell) => cell.text());
     expect(counts.length).toBeGreaterThan(0);
     for (const count of counts) expect(count).not.toMatch(/\d/);
   });
@@ -462,7 +489,9 @@ describe("Props notes on the Production overview", () => {
 
     const notes = notesFor(wrapper, "Pirate Sketch");
     expect(notes?.textContent?.trim()).toBe("Chest set stage left before the blackout");
-    expect(notes?.querySelector("td")?.getAttribute("colspan")).toBe("4");
+    expect(notes?.querySelector("td")?.getAttribute("colspan")).toBe(
+      String(wrapper.get("main table").findAll("thead th").length),
+    );
     expect(notes?.querySelector("td")?.getAttribute("data-label")).toBe("Props notes");
   });
 
@@ -487,5 +516,101 @@ describe("Props notes on the Production overview", () => {
 
     expect(titlesIn(wrapper, "First half")).toEqual(["Opening Number", "Pirate Sketch"]);
     expect(wrapper.get("main [role=alert]").text()).toBe("Couldn't load the notes.");
+  });
+});
+
+describe("Scenery counts on the Production overview", () => {
+  const sceneryCounts = (counts: Record<string, number>) => json({ counts });
+  const showWithFiles = (counts: Record<string, number>) =>
+    apiAnswers({
+      order: json(show()),
+      props: json({ productionId: "2027", props: [aProp(1, "Opening Number")] }),
+      scenery: sceneryCounts(counts),
+    });
+
+  it("shows each item's scenery file count over the word files, or file for one", async () => {
+    showWithFiles({ [anItem("Opening Number").id]: 9, [anItem("Finale").id]: 1 });
+
+    const { wrapper } = await openOverview();
+
+    expect(shown(countIn(wrapper, "Opening Number", "scenery"))).toEqual({
+      number: "9",
+      word: "files",
+    });
+    expect(shown(countIn(wrapper, "Finale", "scenery"))).toEqual({ number: "1", word: "file" });
+    expect(countIn(wrapper, "Opening Number", "scenery")?.attributes("data-label")).toBe("Scenery");
+  });
+
+  it("asks storage again on each visit, so a file added outside the app is counted", async () => {
+    const counts = { [anItem("Opening Number").id]: 2 };
+    apiAnswers({
+      order: json(show()),
+      props: json({ productionId: "2027", props: [] }),
+      scenery: () => json({ counts })(),
+    });
+    await openOverview();
+    counts[anItem("Opening Number").id] = 3;
+
+    const { wrapper } = await openOverview();
+
+    expect(shown(countIn(wrapper, "Opening Number", "scenery"))?.number).toBe("3");
+  });
+
+  it("shows 0 for an item with no scenery files and no props", async () => {
+    showWithFiles({});
+
+    const { wrapper } = await openOverview();
+
+    expect(shown(countIn(wrapper, "Finale", "scenery"))).toEqual({ number: "0", word: "files" });
+    expect(shown(countIn(wrapper, "Finale", "props"))).toEqual({ number: "0", word: "props" });
+  });
+
+  it("reads each count to screen readers as one phrase, not a number and a word apart", async () => {
+    showWithFiles({ [anItem("Opening Number").id]: 9 });
+
+    const { wrapper } = await openOverview();
+
+    const scenery = countIn(wrapper, "Opening Number", "scenery");
+    expect(scenery?.get(".visually-hidden").text()).toBe("9 scenery files");
+    expect(scenery?.get("[data-test=count-number]").attributes("aria-hidden")).toBe("true");
+    expect(scenery?.get("[data-test=count-word]").attributes("aria-hidden")).toBe("true");
+    const props = countIn(wrapper, "Opening Number", "props");
+    expect(props?.get(".visually-hidden").text()).toBe("1 prop");
+    expect(props?.get("[data-test=count-word]").attributes("aria-hidden")).toBe("true");
+  });
+
+  it.each([
+    ["sfx", "SFX"],
+    ["mic-plot", "Mic plot"],
+    ["wardrobe", "Wardrobe"],
+  ])("shows a dash in every item's %s cell, read as Coming soon", async (department, label) => {
+    showWithFiles({});
+
+    const { wrapper } = await openOverview();
+
+    const cells = wrapper.findAll(`[data-test=count][data-department=${department}]`);
+    expect(cells).toHaveLength(show().halves.flatMap((half) => half.items).length);
+    for (const cell of cells) {
+      expect(cell.get("[aria-hidden=true]").text()).toBe("–");
+      expect(cell.get(".visually-hidden").text()).toBe("Coming soon");
+      expect(cell.attributes("data-label")).toBe(label);
+    }
+  });
+
+  it("still shows the items and props counts when the scenery counts fail, with no scenery 0", async () => {
+    apiAnswers({
+      order: json(show()),
+      props: json({ productionId: "2027", props: [aProp(1, "Opening Number")] }),
+      scenery: status(500),
+    });
+
+    const { wrapper } = await openOverview();
+
+    expect(titlesIn(wrapper, "First half")).toEqual(["Opening Number", "Pirate Sketch"]);
+    expect(shown(countIn(wrapper, "Opening Number", "props"))?.number).toBe("1");
+    expect(wrapper.get("main [role=alert]").text()).toBe("Couldn't load the scenery counts.");
+    const cells = wrapper.findAll("[data-test=count][data-department=scenery]");
+    expect(cells.length).toBeGreaterThan(0);
+    for (const cell of cells) expect(cell.text()).toBe("");
   });
 });

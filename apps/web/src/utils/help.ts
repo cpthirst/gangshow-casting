@@ -240,7 +240,7 @@ export const pageHelp: PageHelp[] = [
     page: "production-overview",
     title: "Production overview",
     summary:
-      "The show's items in running order, each with a button for every department's page for it, and how many props it needs.",
+      "The show's items in running order, each with a button for every department's page for it, and a count of what that department has for it.",
     // One line per button, in the row's order (production-overview FR4), standing in for an
     // icon legend on the page. Each line's labels say who can change its page.
     lines: [

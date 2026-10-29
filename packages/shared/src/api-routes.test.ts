@@ -151,6 +151,7 @@ describe("routeNeeds", () => {
   it.each([
     "GET /api/productions/{productionId}/items/{itemId}/scenery-files",
     "GET /api/productions/{productionId}/items/{itemId}/scenery-file-link",
+    "GET /api/productions/{productionId}/scenery-file-counts",
   ] as const)("leaves %s open to everyone", (key) => {
     expect(routeKeys).toContain(key);
     expect(needOf(key)).toBeUndefined();

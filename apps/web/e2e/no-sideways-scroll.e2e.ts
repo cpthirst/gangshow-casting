@@ -95,14 +95,15 @@ test("the items list and an item's casting page fit the screen", async ({ page }
   await expectNoSidewaysScroll(page);
 });
 
-test("the Production overview's five department buttons and props count fit the screen", async ({
+test("the Production overview's five department buttons and counts fit the screen", async ({
   page,
 }) => {
   await page.goto("/production/overview");
   const row = page.locator("[data-test=item]", { hasText: PIRATE_SKETCH });
 
   await expect(row.locator(".icon-button")).toHaveCount(5);
-  await expect(row.locator("[data-test=count]")).toBeVisible();
+  await expect(row.locator("[data-test=count]")).toHaveCount(5);
+  await expect(row.locator("[data-test=count][data-department=scenery]")).toBeVisible();
   await expectNoSidewaysScroll(page);
 });
 
@@ -273,6 +274,22 @@ test("a 30-item show's timelines keep readable dots, wrapping half by half", asy
 
 test.describe("on a desktop screen", () => {
   test.use({ viewport: { width: 1280, height: 800 }, isMobile: false });
+
+  // Just above the width where the Overview turns into cards, its table is at its tightest;
+  // the count headings are capitals that can't wrap.
+  for (const width of [1125, 1280]) {
+    test(`the Production overview's table fits ${width}px without scrolling sideways`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 800 });
+      await page.goto("/production/overview");
+      await expect(page.locator("main thead").first()).toBeVisible();
+      await expectNoSidewaysScroll(page);
+      for (const box of await page.locator("main .table-scroll").all()) {
+        expect(await box.evaluate((el) => el.scrollWidth - el.clientWidth)).toBe(0);
+      }
+    });
+  }
 
   test("timeline dots stay full size", async ({ page }) => {
     await showOf(page, 20);

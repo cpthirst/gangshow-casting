@@ -24,6 +24,13 @@ export const SceneryFile = z.strictObject({
  *  file storage holds them now (production-scenery FR6). */
 export const SceneryFileList = z.strictObject({ files: z.array(SceneryFile) });
 
+/** GET /api/productions/{productionId}/scenery-file-counts: how many files each item has, by
+ *  item id, as file storage holds them now (production-overview FR14). An item with none may be
+ *  left out. */
+export const SceneryFileCounts = z.strictObject({
+  counts: z.record(z.string(), z.number().int().min(0)),
+});
+
 /** GET /api/productions/{productionId}/items/{itemId}/scenery-file-link?name=…: a short-lived
  *  link that opens or downloads one file (production-scenery FR10): file storage's, over HTTPS,
  *  or the local API's when run locally. Never anything else the page could be sent to. */

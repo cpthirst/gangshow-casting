@@ -27,6 +27,7 @@ export const routeKeys = [
   "GET /api/productions/{productionId}/items/{itemId}/scenery-files",
   "GET /api/productions/{productionId}/items/{itemId}/scenery-file-link",
   "DELETE /api/productions/{productionId}/items/{itemId}/scenery-files",
+  "GET /api/productions/{productionId}/scenery-file-counts",
   "GET /api/productions/{productionId}/scenery-notes",
   "PUT /api/productions/{productionId}/items/{itemId}/scenery-notes",
   "POST /api/productions/{productionId}/casting-grid/export",

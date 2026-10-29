@@ -450,12 +450,34 @@ main a {
   width: 7.5rem;
 }
 
+/* The Production overview's five count columns leave its titles little room: its # column is
+   as narrow as "Not in printed programme" allows, wrapped to one word a line. */
+.items-list .col-number.narrow {
+  width: 6rem;
+}
+
 .items-list .col-counts {
   width: 11rem;
 }
 
-.items-list .col-prop-count {
-  width: 5rem;
+/* One per department on the Production overview, just wide enough for its heading in capitals
+   ("WARDROBE"), which can't wrap: slim side padding keeps all five narrow. Centred, so digits
+   line up. */
+.items-list .col-count {
+  width: 5.5rem;
+}
+
+.running-order th.count,
+.running-order td.count {
+  padding-right: 0.25rem;
+  padding-left: 0.25rem;
+  text-align: center;
+}
+
+/* The word a count counts, small under its number ("9" over "files"). */
+.count-word {
+  display: block;
+  font-size: 0.75rem;
 }
 
 .items-list .col-minutes {
@@ -598,6 +620,16 @@ main a {
 
   .running-order td.moves {
     margin-bottom: 0.25rem;
+  }
+
+  /* On a phone's card each count is a line of its own, so the word sits beside its number:
+     "SCENERY 9 files". */
+  .running-order td.count {
+    text-align: left;
+  }
+
+  .count-word {
+    display: inline;
   }
 
   .running-order td.title {

@@ -1,4 +1,5 @@
 import { browserTypeOf, fileTypeOf, type SceneryFile } from "@app/shared";
+import { countInWords } from "./departments.ts";
 import { icons } from "./icons.ts";
 
 // Only one production for now (see docs/product/running-order/prd.md).
@@ -11,6 +12,13 @@ export const sceneryFilesPath = (itemId: string) =>
 /** One of the item's files, to delete it (FR11). */
 export const sceneryFilePath = (itemId: string, name: string) =>
   `${sceneryFilesPath(itemId)}?${new URLSearchParams({ name })}`;
+
+/** How many files each item has, for the Overview's Scenery column (production-overview FR14). */
+export const SCENERY_FILE_COUNTS_PATH = `/api/productions/${PRODUCTION_ID}/scenery-file-counts`;
+
+/** An item's scenery count on the Overview: "9" over "files", read as "9 scenery files". */
+export const sceneryCount = (files: number) =>
+  countInWords(files, "file", "files", (word) => `${files} scenery ${word}`);
 
 /** A short-lived link that opens or downloads one of the item's files (FR10). */
 export const sceneryFileLinkPath = (itemId: string, name: string) =>
