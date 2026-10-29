@@ -51,7 +51,7 @@ export function createRoutes(
     "GET /api/productions/{productionId}/running-order": createGetRunningOrder(runningOrders),
     "POST /api/productions/{productionId}/running-order/versions": createSaveRunningOrder(
       runningOrders,
-      { roles, itemNotes },
+      { roles, itemNotes, sceneryFiles },
     ),
     "GET /api/productions/{productionId}/cast": createGetCast(cast),
     "POST /api/productions/{productionId}/cast": createAddCastMember(cast),

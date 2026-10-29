@@ -1,6 +1,7 @@
 import { MAX_SCENERY_FILE_BYTES, SceneryUpload } from "@app/shared";
 import {
   DeleteObjectCommand,
+  DeleteObjectsCommand,
   HeadObjectCommand,
   ListObjectsV2Command,
   NotFound,
@@ -229,5 +230,87 @@ describe("counting scenery files in a bucket", () => {
     expect(s3.commandCalls(ListObjectsV2Command)[1]?.args[0].input.ContinuationToken).toBe(
       "page-2",
     );
+  });
+});
+
+describe("deleting removed items' scenery files from a bucket", () => {
+  const deleted = () =>
+    s3
+      .commandCalls(DeleteObjectsCommand)
+      .flatMap((call) => call.args[0].input.Delete?.Objects?.map(({ Key }) => Key) ?? []);
+
+  it("deletes every scenery key of the items not kept, from one listing of the production", async () => {
+    s3.on(ListObjectsV2Command).resolves({
+      Contents: [
+        { Key: "2027/opening-number/scenery/set-plan.pdf" },
+        { Key: "2027/cut-sketch/scenery/set-plan.pdf" },
+        // Nested below its scenery folder, and the folder's placeholder: all of its scenery.
+        { Key: "2027/cut-sketch/scenery/old/backdrop.png" },
+        { Key: "2027/cut-sketch/scenery/" },
+        // Another department's file, and one at the production's top, aren't scenery.
+        { Key: "2027/cut-sketch/sfx/thunder.mp3" },
+        { Key: "2027/readme.txt" },
+      ],
+    });
+    s3.on(DeleteObjectsCommand).resolves({});
+
+    await store().keepOnlyItems("2027", ["opening-number"]);
+
+    expect(s3.commandCalls(ListObjectsV2Command)[0]?.args[0].input).toEqual({
+      Bucket: BUCKET,
+      Prefix: "2027/",
+    });
+    expect(s3.commandCalls(DeleteObjectsCommand)[0]?.args[0].input).toEqual({
+      Bucket: BUCKET,
+      Delete: {
+        Objects: [
+          { Key: "2027/cut-sketch/scenery/set-plan.pdf" },
+          { Key: "2027/cut-sketch/scenery/old/backdrop.png" },
+          { Key: "2027/cut-sketch/scenery/" },
+        ],
+        Quiet: true,
+      },
+    });
+  });
+
+  it("asks to delete nothing when every item with files is kept", async () => {
+    s3.on(ListObjectsV2Command).resolves({
+      Contents: [{ Key: "2027/opening-number/scenery/set-plan.pdf" }],
+    });
+
+    await store().keepOnlyItems("2027", ["opening-number"]);
+
+    expect(s3.commandCalls(DeleteObjectsCommand)).toEqual([]);
+  });
+
+  it("follows the listing's pages, and deletes at most 1,000 keys a request", async () => {
+    const keys = (from: number, to: number) =>
+      Array.from({ length: to - from }, (_, i) => ({
+        Key: `2027/cut-sketch/scenery/${from + i}.pdf`,
+      }));
+    s3.on(ListObjectsV2Command)
+      .resolvesOnce({ Contents: keys(0, 1_000), IsTruncated: true, NextContinuationToken: "p2" })
+      .resolvesOnce({ Contents: keys(1_000, 1_001) });
+    s3.on(DeleteObjectsCommand).resolves({});
+
+    await store().keepOnlyItems("2027", []);
+
+    const sizes = s3
+      .commandCalls(DeleteObjectsCommand)
+      .map((call) => call.args[0].input.Delete?.Objects?.length);
+    expect(sizes).toEqual([1_000, 1]);
+    expect(deleted()).toHaveLength(1_001);
+  });
+
+  // S3 answers a batch it couldn't wholly delete as a success, listing the keys it kept.
+  it("fails when the bucket couldn't delete a key, so the next save tries again", async () => {
+    s3.on(ListObjectsV2Command).resolves({
+      Contents: [{ Key: "2027/cut-sketch/scenery/set-plan.pdf" }],
+    });
+    s3.on(DeleteObjectsCommand).resolves({
+      Errors: [{ Key: "2027/cut-sketch/scenery/set-plan.pdf", Code: "AccessDenied" }],
+    });
+
+    await expect(store().keepOnlyItems("2027", [])).rejects.toThrow();
   });
 });

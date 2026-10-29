@@ -1,7 +1,15 @@
+import { existsSync } from "node:fs";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { RunningOrder, type RunningOrderItem, type SaveRunningOrderRequest } from "@app/shared";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { inMemoryRoleStore } from "#/casting/roles/role-store.ts";
 import { inMemoryItemNoteStore } from "#/item-notes/item-note-store.ts";
+import {
+  folderSceneryFileStore,
+  type SceneryFileStore,
+} from "#/production/scenery/scenery-file-store.ts";
 import { anItem, aRunningOrder, itemId } from "./running-order.fixture.ts";
 import { inMemoryRunningOrderStore } from "./running-order-store.ts";
 import { createSaveRunningOrder } from "./save-running-order.ts";
@@ -36,13 +44,20 @@ const titlesIn = (body: string | undefined) =>
     half.items.map((item) => item.title),
   );
 
+// A clean-up store with nothing to delete.
+const noCleanup = { keepOnlyItems: async () => {} };
+
 function setUp() {
   const store = inMemoryRunningOrderStore([
     aRunningOrder(6, { first: ["Curtain Up", "Pirate Panic", "Dance One"] }),
   ]);
   const roles = inMemoryRoleStore();
   const itemNotes = inMemoryItemNoteStore();
-  const handler = createSaveRunningOrder(store, { roles, itemNotes }, () => NOW);
+  const handler = createSaveRunningOrder(
+    store,
+    { roles, itemNotes, sceneryFiles: noCleanup },
+    () => NOW,
+  );
   return { store, roles, itemNotes, handler };
 }
 
@@ -230,7 +245,11 @@ describe("save running order handler", () => {
     const log = vi.spyOn(console, "error").mockImplementation(() => {});
     const handler = createSaveRunningOrder(
       store,
-      { roles: { keepOnlyItems: failing }, itemNotes: { keepOnlyItems: failing } },
+      {
+        roles: { keepOnlyItems: failing },
+        itemNotes: { keepOnlyItems: failing },
+        sceneryFiles: { keepOnlyItems: failing },
+      },
       () => NOW,
     );
 
@@ -247,10 +266,8 @@ describe("save running order handler", () => {
       aRunningOrder(6, { first: ["Curtain Up", "Pirate Panic", "Dance One"] }),
     ]);
     const kept: string[][] = [];
-    const casting = {
-      roles: { keepOnlyItems: async (_p: string, ids: string[]) => void kept.push(ids) },
-      itemNotes: { keepOnlyItems: async () => {} },
-    };
+    const keeping = { keepOnlyItems: async (_p: string, ids: string[]) => void kept.push(ids) };
+    const casting = { roles: keeping, itemNotes: noCleanup, sceneryFiles: keeping };
     // Someone else saves version 8, with a new item, just after this save writes 7.
     const racing = {
       ...store,
@@ -267,7 +284,9 @@ describe("save running order handler", () => {
       () => NOW,
     )(request(update(6, ["Curtain Up", "Pirate Panic"])));
 
-    expect(kept).toEqual([[itemId("Curtain Up"), itemId("Encore")]]);
+    // Roles, then scenery files.
+    const newest = [itemId("Curtain Up"), itemId("Encore")];
+    expect(kept).toEqual([newest, newest]);
   });
 
   it("keeps every item's notes and roles when a draft only reorders", async () => {
@@ -300,5 +319,118 @@ describe("save running order handler", () => {
     expect(res.statusCode).toBe(409);
     expect((await roles.list("2027")).roles).toHaveLength(1);
     expect((await itemNotes.list("2027")).notes).toHaveLength(1);
+  });
+});
+
+describe("save running order handler, with scenery files", () => {
+  const cut = itemId("Cut Sketch");
+  const opening = itemId("Opening Number");
+  let folder: string;
+  beforeEach(async () => {
+    folder = await mkdtemp(join(tmpdir(), "running-order-scenery-"));
+  });
+  afterEach(async () => {
+    await rm(folder, { recursive: true, force: true });
+  });
+
+  function setUpScenery(sceneryFiles: Pick<SceneryFileStore, "keepOnlyItems"> = files()) {
+    const store = inMemoryRunningOrderStore([
+      aRunningOrder(6, { first: ["Opening Number", "Cut Sketch"] }),
+    ]);
+    const cleanup = {
+      roles: inMemoryRoleStore(),
+      itemNotes: inMemoryItemNoteStore(),
+      sceneryFiles,
+    };
+    return createSaveRunningOrder(store, cleanup, () => NOW);
+  }
+  const files = () => folderSceneryFileStore(folder);
+
+  // Put straight into file storage, as an upload or someone outside the app would (made-up).
+  async function putFile(item: string, name: string, department = "scenery", production = "2027") {
+    const file = join(folder, production, item, department, name);
+    await mkdir(join(file, ".."), { recursive: true });
+    await writeFile(file, "made-up");
+  }
+  const namesOf = async (item: string, production = "2027") =>
+    (await files().list(production, item)).map((file) => file.name).sort();
+
+  it("deletes a removed item's scenery files from file storage once the version is saved", async () => {
+    const handler = setUpScenery();
+    await putFile(cut, "set-plan.pdf");
+    await putFile(cut, "backdrop.png");
+
+    const res = await handler(request(update(6, ["Opening Number"])));
+
+    expect(res.statusCode).toBe(201);
+    expect(await namesOf(cut)).toEqual([]);
+    expect(existsSync(join(folder, "2027", cut, "scenery"))).toBe(false);
+  });
+
+  it("keeps the scenery files of the items still in the show", async () => {
+    const handler = setUpScenery();
+    await putFile(opening, "set-plan.pdf");
+    await putFile(cut, "backdrop.png");
+
+    await handler(request(update(6, ["Opening Number"])));
+
+    expect(await namesOf(opening)).toEqual(["set-plan.pdf"]);
+  });
+
+  it("deletes no scenery files when the save is refused", async () => {
+    const handler = setUpScenery();
+    await putFile(cut, "set-plan.pdf");
+
+    // Stale, then a new item with no title: neither saves a version.
+    const stale = await handler(request(update(5, ["Opening Number"])));
+    const untitled = await handler(request(update(6, ["Opening Number", ""])));
+
+    expect([stale.statusCode, untitled.statusCode]).toEqual([409, 400]);
+    expect(await namesOf(cut)).toEqual(["set-plan.pdf"]);
+  });
+
+  it("deletes the files on the next save when the clean-up after removing the item failed", async () => {
+    let failed = false;
+    const failingOnce = {
+      async keepOnlyItems(productionId: string, itemIds: string[]) {
+        if (!failed) {
+          failed = true;
+          throw new Error("file storage unavailable");
+        }
+        await files().keepOnlyItems(productionId, itemIds);
+      },
+    };
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const handler = setUpScenery(failingOnce);
+    await putFile(cut, "set-plan.pdf");
+
+    await handler(request(update(6, ["Opening Number"])));
+    expect(await namesOf(cut)).toEqual(["set-plan.pdf"]);
+    expect(log).toHaveBeenCalled();
+    await handler(request(update(7, ["Opening Number"])));
+
+    expect(await namesOf(cut)).toEqual([]);
+    log.mockRestore();
+  });
+
+  it("deletes a file put in a removed item's folder after it was removed, on the next save", async () => {
+    const handler = setUpScenery();
+    await handler(request(update(6, ["Opening Number"])));
+    await putFile(cut, "late.pdf");
+
+    await handler(request(update(7, ["Opening Number"])));
+
+    expect(await namesOf(cut)).toEqual([]);
+  });
+
+  it("leaves another department's files, and another production's scenery, alone", async () => {
+    const handler = setUpScenery();
+    await putFile(cut, "thunder.mp3", "sfx");
+    await putFile(cut, "set-plan.pdf", "scenery", "2026");
+
+    await handler(request(update(6, ["Opening Number"])));
+
+    expect(existsSync(join(folder, "2027", cut, "sfx", "thunder.mp3"))).toBe(true);
+    expect(await namesOf(cut, "2026")).toEqual(["set-plan.pdf"]);
   });
 });

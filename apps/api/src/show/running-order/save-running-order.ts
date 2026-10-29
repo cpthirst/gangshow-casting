@@ -5,20 +5,23 @@ import type { ApiEvent } from "#/http/handler.ts";
 import { jsonResponse, parseJson } from "#/http/json.ts";
 import { productionIdOf } from "#/http/params.ts";
 import type { ItemNoteStore } from "#/item-notes/item-note-store.ts";
+import type { SceneryFileStore } from "#/production/scenery/scenery-file-store.ts";
 import { applyChange } from "./running-order-changes.ts";
 import type { RunningOrderStore } from "./running-order-store.ts";
 
-/** Where the casting kept about each item lives: it goes when the item leaves the show. */
-export interface CastingCleanup {
+/** Where what's kept about each item lives, its casting and its scenery files: it goes when
+ *  the item leaves the show. */
+export interface ItemCleanup {
   roles: Pick<RoleStore, "keepOnlyItems">;
   itemNotes: Pick<ItemNoteStore, "keepOnlyItems">;
+  sceneryFiles: Pick<SceneryFileStore, "keepOnlyItems">;
 }
 
 // POST /api/productions/{productionId}/running-order/versions: apply one change to the
 // latest version and save the result as the next version.
 export function createSaveRunningOrder(
   store: RunningOrderStore,
-  casting: CastingCleanup,
+  cleanup: ItemCleanup,
   now = () => new Date(),
 ) {
   return async (event: ApiEvent): Promise<APIGatewayProxyStructuredResultV2> => {
@@ -40,7 +43,7 @@ export function createSaveRunningOrder(
       const newer = await store.latest(productionId);
       return newer ? jsonResponse(409, newer) : { statusCode: 409 };
     }
-    await removeCastingOfDroppedItems(store, casting, productionId, next);
+    await removeWhatDroppedItemsKept(store, cleanup, productionId, next);
     return jsonResponse(201, next);
   };
 }
@@ -52,23 +55,24 @@ export function createSaveRunningOrder(
  * fails, the next save finishes the job. The version is saved either way, so a failure is
  * logged rather than reported to the user as a failed save.
  */
-async function removeCastingOfDroppedItems(
+async function removeWhatDroppedItemsKept(
   store: RunningOrderStore,
-  casting: CastingCleanup,
+  cleanup: ItemCleanup,
   productionId: string,
   saved: RunningOrder,
 ) {
   try {
     const newest = (await store.latest(productionId)) ?? saved;
     const itemIds = newest.halves.flatMap((half) => half.items).map((item) => item.id);
-    await casting.roles.keepOnlyItems(productionId, itemIds);
-    await casting.itemNotes.keepOnlyItems(productionId, itemIds);
+    await cleanup.roles.keepOnlyItems(productionId, itemIds);
+    await cleanup.itemNotes.keepOnlyItems(productionId, itemIds);
+    await cleanup.sceneryFiles.keepOnlyItems(productionId, itemIds);
     // A dropped item's props and props notes are kept, for now: whether they go too is an open
     // question in docs/product/production/props/prd.md, to settle before item removal is built.
   } catch (error) {
     // Only the error's name: a store's message can quote stored casting (ADR 0010).
     console.error(
-      `Couldn't remove dropped items' casting in production ${productionId}: ${error instanceof Error ? error.name : "unknown error"}`,
+      `Couldn't remove dropped items' casting or scenery files in production ${productionId}: ${error instanceof Error ? error.name : "unknown error"}`,
     );
   }
 }

@@ -93,6 +93,7 @@ describe("list scenery files handler", () => {
     const save = createSaveRunningOrder(runningOrders, {
       roles: inMemoryRoleStore(),
       itemNotes: inMemoryItemNoteStore(),
+      sceneryFiles: folderSceneryFileStore(folder),
     });
     await putFile(openingNumber, "set-plan.pdf", 10);
 

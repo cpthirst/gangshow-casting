@@ -38,6 +38,7 @@ const noSceneryFiles: SceneryFileStore = {
   remove: async () => "gone",
   uploadTo: async () => "taken",
   countByItem: async () => ({}),
+  keepOnlyItems: async () => {},
 };
 
 // The parts of an API Gateway HTTP API (payload v2) event that the entry point reads, signed

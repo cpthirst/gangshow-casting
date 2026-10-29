@@ -1,6 +1,7 @@
 import { MAX_SCENERY_FILE_BYTES, type SceneryFile } from "@app/shared";
 import {
   DeleteObjectCommand,
+  DeleteObjectsCommand,
   GetObjectCommand,
   HeadObjectCommand,
   ListObjectsV2Command,
@@ -13,6 +14,7 @@ import { fileHeadersOf } from "./file-headers.ts";
 import {
   asSceneryFiles,
   countsByItem,
+  isDroppedScenery,
   type SceneryFileStore,
   sceneryFolderOf,
 } from "./scenery-file-store.ts";
@@ -20,6 +22,8 @@ import {
 // Long enough to start a download or upload on a slow phone, short enough to be useless if
 // shared (production-scenery security NFR).
 const LINK_SECONDS = 5 * 60;
+// The most keys S3 deletes in one request.
+const DELETE_BATCH = 1_000;
 
 /** Scenery files in the private bucket infra creates (ADR 0030), one key per file. */
 export function s3SceneryFileStore(s3: S3Client, bucket: string): SceneryFileStore {
@@ -46,18 +50,7 @@ export function s3SceneryFileStore(s3: S3Client, bucket: string): SceneryFileSto
       return files;
     },
     async countByItem(productionId) {
-      const prefix = `${productionId}/`;
-      const keys: string[] = [];
-      let token: string | undefined;
-      // Every key in the production, a page at a time: one listing for all its items.
-      do {
-        const page = await s3.send(
-          new ListObjectsV2Command({ Bucket: bucket, Prefix: prefix, ContinuationToken: token }),
-        );
-        for (const { Key = "" } of page.Contents ?? []) keys.push(Key.slice(prefix.length));
-        token = page.IsTruncated ? page.NextContinuationToken : undefined;
-      } while (token !== undefined);
-      return countsByItem(keys);
+      return countsByItem(await keysIn(productionId));
     },
     async linkTo(productionId, itemId, name) {
       const Key = `${sceneryFolderOf(productionId, itemId)}${name}`;
@@ -92,7 +85,39 @@ export function s3SceneryFileStore(s3: S3Client, bucket: string): SceneryFileSto
       });
       return { url, fields };
     },
+    async keepOnlyItems(productionId, itemIds) {
+      const kept = new Set(itemIds);
+      const dropped = (await keysIn(productionId))
+        .filter((key) => isDroppedScenery(key, kept))
+        .map((key) => ({ Key: `${productionId}/${key}` }));
+      for (let at = 0; at < dropped.length; at += DELETE_BATCH) {
+        const { Errors = [] } = await s3.send(
+          new DeleteObjectsCommand({
+            Bucket: bucket,
+            Delete: { Objects: dropped.slice(at, at + DELETE_BATCH), Quiet: true },
+          }),
+        );
+        // Only how many: a key names a file, which could say something about the show.
+        if (Errors.length > 0) throw new Error(`${Errors.length} scenery files weren't deleted`);
+      }
+    },
   };
+
+  /** Every key in the production, a page at a time, relative to its folder: one listing for
+   *  all its items. */
+  async function keysIn(productionId: string) {
+    const prefix = `${productionId}/`;
+    const keys: string[] = [];
+    let token: string | undefined;
+    do {
+      const page = await s3.send(
+        new ListObjectsV2Command({ Bucket: bucket, Prefix: prefix, ContinuationToken: token }),
+      );
+      for (const { Key = "" } of page.Contents ?? []) keys.push(Key.slice(prefix.length));
+      token = page.IsTruncated ? page.NextContinuationToken : undefined;
+    } while (token !== undefined);
+    return keys;
+  }
 
   async function exists(Key: string) {
     try {
