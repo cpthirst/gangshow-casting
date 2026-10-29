@@ -4,7 +4,7 @@
 
 - **Addresses:** the app is at http://localhost:5190 and its API at :3190. It runs alongside `pnpm dev` (:5173 and :3000) and never touches its data.
 - **Fresh each start:** each start copies `data/` to a temporary folder. Your changes last until you stop the demo (Ctrl+C), and the next start begins from this show again.
-- **The show:** 60 cast members across Scouts, Explorers, Network and no section. Two halves of 10 items, each with a length, and a 20-minute interval. Roles of every size, including ensembles of up to 30. Two people have no parts yet, and one role ("Squirrel" in Woodland Dance) is uncast.
+- **The show:** 60 cast members across Scouts, Explorers, Network and no section. Two halves of 10 items, each with a length, and a 20-minute interval. Roles of every size, including ensembles of up to 30. Two people have no parts yet, and one role ("Squirrel" in Woodland Dance) is uncast. The Big Opening and Pirate Sketch have made-up scenery files.
 
 ## Planted clashes
 
@@ -31,4 +31,5 @@ The details behind each one:
 - **Cause a clash:**
   - cast a member of the Opening Chorus in Pirate Sketch, for a back-to-back warning;
   - move Wide Game out from between Night Hike and Thank You Leaders and save, turning Pip's quick change into a back-to-back error.
+- **Open and download scenery files:** Production → Overview → Scenery on The Big Opening has made-up files of each kind. `set-plan.pdf`, `stage-layout.png` and `cue-notes.txt` open in a new tab. `build-list.csv` and `lighting-notes.html` download, and the HTML file's script never runs. Pirate Sketch has one file, and every other item has none. To see a file that's gone, delete one from the demo's temporary folder (under `files/2027/itm-01/scenery/`) and then choose its tile.
 - **See each permission:** the demo starts as an Admin. Untick Admin under "Local role" in the sidebar, then tick any mix of Casting, Stage, Tech and Wardrobe (or none) to see what that account would see. The demo's API refuses their changes as the live app would.

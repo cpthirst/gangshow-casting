@@ -1,7 +1,14 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { CastList, RoleList, RunningOrder } from "@app/shared";
+import {
+  browserTypeOf,
+  CastList,
+  RoleList,
+  RunningOrder,
+  SceneryFileLink,
+  SceneryFileList,
+} from "@app/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 // Deliberately the web app's own rules, so the demo guide can't drift from them. clashes.ts
 // must stay plain TypeScript (no Vue or browser imports) for this to load under node.
@@ -177,6 +184,23 @@ describe("the demo API", () => {
     const body = CastList.parse(await (await fetch(api)).json());
     expect(body.members.map((member) => member.lastName)).toContain("Person");
     expect(committed("cast.json").members).toHaveLength(60);
+  });
+
+  it("has scenery files on The Big Opening, some that open and some that download", async () => {
+    const files = `http://127.0.0.1:${port}/api/productions/2027/items/itm-01/scenery-files`;
+    const names = SceneryFileList.parse(await (await fetch(files)).json()).files.map(
+      (file) => file.name,
+    );
+    expect(names.some((name) => browserTypeOf(name) !== undefined)).toBe(true);
+    expect(names.some((name) => browserTypeOf(name) === undefined)).toBe(true);
+
+    for (const name of names) {
+      const linkPath = `/api/productions/2027/items/itm-01/scenery-file-link?${new URLSearchParams({ name })}`;
+      const { url } = SceneryFileLink.parse(
+        await (await fetch(`http://127.0.0.1:${port}${linkPath}`)).json(),
+      );
+      expect((await fetch(`http://127.0.0.1:${port}${url}`)).status, name).toBe(200);
+    }
   });
 });
 
