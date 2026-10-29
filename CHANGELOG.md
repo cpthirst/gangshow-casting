@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.25.0](https://github.com/cpthirst/gangshow-casting/compare/v1.24.0...v1.25.0) (2026-10-29)
+
+
+### Features
+
+* **api:** add the Director permission to the API (production-scenery.E1.S1) ([#135](https://github.com/cpthirst/gangshow-casting/issues/135)) ([fab4984](https://github.com/cpthirst/gangshow-casting/commit/fab4984b259a76c4bf2976939aefafff5d7ee728))
+
 ## [1.24.0](https://github.com/cpthirst/gangshow-casting/compare/v1.23.0...v1.24.0) (2026-10-28)
 
 
