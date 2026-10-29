@@ -10,9 +10,9 @@ import ReadOnlyNotice from "@/components/common/ReadOnlyNotice.vue";
 import { showPageTitle } from "@/router/index.ts";
 import { downloadFrom, openFileTab } from "@/services/file-link.ts";
 import { apiFetch, canChangeScenery } from "@/services/sign-in.ts";
-import { icons } from "@/utils/icons.ts";
 import { neighboursOf, placeOf, positionOf, RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
 import {
+  fileIconOf,
   fileSize,
   opensInBrowser,
   SCENERY_NOTES_PATH,
@@ -140,7 +140,7 @@ watch(
           :aria-label="tileLabel(file.name)"
           @click="choose(file)"
         >
-          <FontAwesomeIcon :icon="icons.file" class="file-icon" />
+          <FontAwesomeIcon :icon="fileIconOf(file.name)" class="file-icon" />
           <span class="file-name" data-test="name">{{ file.name }}</span>
           <span class="file-size" data-test="size">{{ fileSize(file.size) }}</span>
         </button>

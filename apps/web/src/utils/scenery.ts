@@ -1,4 +1,5 @@
 import { browserTypeOf, fileTypeOf, type SceneryFile } from "@app/shared";
+import { icons } from "./icons.ts";
 
 // Only one production for now (see docs/product/running-order/prd.md).
 const PRODUCTION_ID = "2027";
@@ -19,6 +20,25 @@ export function tileLabel(name: string) {
   const action = `${opensInBrowser(name) ? "Open" : "Download"} ${name}`;
   const type = fileTypeOf(name);
   return type ? `${action}, ${type} file` : action;
+}
+
+// Each icon and the extensions that show it; images all share one.
+const typesByIcon = [
+  [icons.pdfFile, ["PDF"]],
+  [icons.wordFile, ["DOC", "DOCX"]],
+  [icons.excelFile, ["XLS", "XLSX"]],
+  [icons.powerPointFile, ["PPT", "PPTX"]],
+  [
+    icons.imageFile,
+    ["GIF", "JPG", "JPEG", "PNG", "WEBP", "SVG", "BMP", "TIF", "TIFF", "HEIC", "AVIF"],
+  ],
+] as const;
+
+/** The icon on a file's tile, from its name: its type's own, or the general file icon (FR7). */
+export function fileIconOf(name: string) {
+  const type = fileTypeOf(name);
+  const found = typesByIcon.find(([, types]) => types.some((each) => each === type));
+  return found?.[0] ?? icons.file;
 }
 
 /** Every item's scenery notes, apart from its casting and props notes. */

@@ -14,6 +14,9 @@ import {
   faFile,
   faFileAudio,
   faFileExcel,
+  faFileImage,
+  faFilePdf,
+  faFilePowerpoint,
   faFileWord,
   faGripVertical,
   faHammer,
@@ -40,8 +43,14 @@ export const icons = {
   micPlot: faMicrophone,
   wardrobe: faShirt,
   remove: faTrashCan,
-  // A file on an item's Scenery page, whatever its type, until types get their own icons.
+  // A file on an item's Scenery page: one for each type the team uses most, and a general
+  // one for the rest. Every image type shares one, as the free set has no PNG or JPG icon.
   file: faFile,
+  pdfFile: faFilePdf,
+  wordFile: faFileWord,
+  excelFile: faFileExcel,
+  powerPointFile: faFilePowerpoint,
+  imageFile: faFileImage,
   // An account's actions on the Accounts page.
   resetPassword: faKey,
   disable: faUserSlash,

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { icons } from "./icons.ts";
 import {
+  fileIconOf,
   fileSize,
   sceneryFileLinkPath,
   sceneryFilesPath,
@@ -74,4 +76,37 @@ describe("tileLabel", () => {
   ])("names the tile for %s %j", (name, label) => {
     expect(tileLabel(name)).toBe(label);
   });
+});
+
+describe("fileIconOf", () => {
+  it.each([
+    ["plan.pdf", icons.pdfFile],
+    ["PLAN.PDF", icons.pdfFile],
+    ["notes.docx", icons.wordFile],
+    ["old-notes.doc", icons.wordFile],
+    ["build.xlsx", icons.excelFile],
+    ["costs.xls", icons.excelFile],
+    ["pitch.pptx", icons.powerPointFile],
+    ["pitch-2026.ppt", icons.powerPointFile],
+    ["Backdrop.png", icons.imageFile],
+    ["PHOTO.JPEG", icons.imageFile],
+    ["photo.jpg", icons.imageFile],
+    ["sketch.gif", icons.imageFile],
+    ["sketch.webp", icons.imageFile],
+    ["logo.svg", icons.imageFile],
+    ["scan.tiff", icons.imageFile],
+    ["scan.tif", icons.imageFile],
+    ["drawing.bmp", icons.imageFile],
+    ["render.avif", icons.imageFile],
+    ["phone.heic", icons.imageFile],
+  ])("gives %s its type's icon", (name, icon) => {
+    expect(fileIconOf(name)).toBe(icon);
+  });
+
+  it.each(["model.skp", "build-list.csv", "readme", "cue-notes.txt"])(
+    "gives %s the general file icon",
+    (name) => {
+      expect(fileIconOf(name)).toBe(icons.file);
+    },
+  );
 });
