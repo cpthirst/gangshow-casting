@@ -10,6 +10,8 @@ import {
   readOnlyMayUse,
   refusalFor,
   routeKeys,
+  SCENERY_PERMISSIONS,
+  SceneryFileList,
   UsageSummary,
 } from "@app/shared";
 import { describe, expect, it, vi } from "vitest";
@@ -18,6 +20,7 @@ import type { Handler } from "#/http/handler.ts";
 import { lambdaEntry } from "#/http/lambda-entry.ts";
 import { inMemoryItemNoteStore } from "#/item-notes/item-note-store.ts";
 import { inMemoryPropStore } from "#/production/props/prop-store.ts";
+import type { SceneryFileStore } from "#/production/scenery/scenery-file-store.ts";
 import { aCastList, aCastMember } from "#/show/cast/cast.fixture.ts";
 import { inMemoryCastStore } from "#/show/cast/cast-store.ts";
 import { uncastThenRemove } from "#/show/cast/remove-cast-member.ts";
@@ -26,6 +29,8 @@ import { inMemoryRunningOrderStore } from "#/show/running-order/running-order-st
 import { inMemoryUsageStore } from "#/usage/usage-store.ts";
 import { handler } from "./lambda.ts";
 import { createRoutes } from "./routes.ts";
+
+const noSceneryFiles: SceneryFileStore = { list: async () => [] };
 
 // The parts of an API Gateway HTTP API (payload v2) event that the entry point reads, signed
 // in as a Casting Team Member unless a test says otherwise.
@@ -103,7 +108,7 @@ describe("Lambda entry point", () => {
   // API Gateway lets only signed-in requests through (infra's authorizer, and the post-deploy
   // check), so every request that reaches the entry point is a signed-in one.
   describe("on the show's data", () => {
-    const entry = () => {
+    const entry = (sceneryFiles = noSceneryFiles) => {
       const cast = inMemoryCastStore([aCastList([aCastMember(1)])]);
       const roles = inMemoryRoleStore();
       return lambdaEntry(
@@ -117,9 +122,11 @@ describe("Lambda entry point", () => {
             itemNotes: inMemoryItemNoteStore(),
             props: inMemoryPropStore(),
             propsNotes: inMemoryItemNoteStore(),
+            sceneryNotes: inMemoryItemNoteStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
+          sceneryFiles,
         ),
       );
     };
@@ -145,6 +152,21 @@ describe("Lambda entry point", () => {
         expect.objectContaining({ itemId: itemId("Pirate Sketch"), text: "Hat change" }),
       ]);
     });
+
+    it.each([
+      ["no permissions", "[]"],
+      ["admin", "[admin]"],
+    ])("lists an item's scenery files for an account with %s", async (_, groups) => {
+      const setPlan = { name: "set-plan.pdf", size: 2_400_000 };
+      const api = entry({ list: async () => [setPlan] });
+
+      const res = await api(
+        request("GET", "/api/productions/2027/items/opening-number/scenery-files", {}, groups),
+      );
+
+      expect(res.statusCode).toBe(200);
+      expect(SceneryFileList.parse(JSON.parse(res.body ?? ""))).toEqual({ files: [setPlan] });
+    });
   });
 
   describe("admin-only actions (ADR 0018)", () => {
@@ -162,9 +184,11 @@ describe("Lambda entry point", () => {
             itemNotes: inMemoryItemNoteStore(),
             props: inMemoryPropStore(),
             propsNotes: inMemoryItemNoteStore(),
+            sceneryNotes: inMemoryItemNoteStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
+          noSceneryFiles,
         ),
       );
       return { api, cast, runningOrders };
@@ -312,9 +336,11 @@ describe("Lambda entry point", () => {
             itemNotes,
             props: inMemoryPropStore(),
             propsNotes: inMemoryItemNoteStore(),
+            sceneryNotes: inMemoryItemNoteStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
+          noSceneryFiles,
         ),
       );
       return { api, cast, roles, itemNotes, runningOrders };
@@ -524,9 +550,11 @@ describe("Lambda entry point", () => {
             itemNotes,
             props: inMemoryPropStore(),
             propsNotes: inMemoryItemNoteStore(),
+            sceneryNotes: inMemoryItemNoteStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
+          noSceneryFiles,
         ),
       );
       // What the stores hold, to show a refused change changed nothing.
@@ -673,7 +701,8 @@ describe("Lambda entry point", () => {
       expect(saved).toEqual([201, 201, 200]);
       for (const key of changeRoutes) {
         const kim = await send(key, "[casting stage]");
-        const alone = await send(key, needOf(key) === PROPS_PERMISSIONS ? "[stage]" : "[casting]");
+        const stages = needOf(key) === PROPS_PERMISSIONS || needOf(key) === SCENERY_PERMISSIONS;
+        const alone = await send(key, stages ? "[stage]" : "[casting]");
         expect(kim, key).toEqual(alone);
       }
     });
@@ -682,11 +711,13 @@ describe("Lambda entry point", () => {
       ["lee, with Tech and Wardrobe only", "[tech wardrobe]"],
       ["chris, with Wardrobe only", "[wardrobe]"],
     ])(
-      "refuses every change from %s, saying what is read-only, or admins' only for admin-only ones",
+      "refuses every change from %s but Tech's scenery notes, saying what is read-only, or admins' only for admin-only ones",
       async (_who, groups) => {
         const send = everyRoute();
+        const techMay = (key: string) =>
+          groups.includes("tech") && needOf(key) === SCENERY_PERMISSIONS;
 
-        for (const key of changeRoutes) {
+        for (const key of changeRoutes.filter((key) => !techMay(key))) {
           const { res, ran } = await send(key, groups);
 
           expect(res.statusCode, key).toBe(403);
@@ -752,12 +783,13 @@ describe("Lambda entry point", () => {
         }
       });
 
-      it("lets dee, with Director only, use exactly the props and props notes changes", async () => {
+      it("lets dee, with Director only, use exactly the props, props notes and scenery notes changes", async () => {
         const send = everyRoute();
 
         for (const key of changeRoutes) {
           const { ran } = await send(key, "[director]");
-          expect(ran, key).toBe(needOf(key) === PROPS_PERMISSIONS);
+          const production = [PROPS_PERMISSIONS, SCENERY_PERMISSIONS];
+          expect(ran, key).toBe(production.some((need) => needOf(key) === need));
         }
       });
 
@@ -831,9 +863,11 @@ describe("Lambda entry point", () => {
               itemNotes: inMemoryItemNoteStore(),
               props,
               propsNotes: inMemoryItemNoteStore(),
+              sceneryNotes: inMemoryItemNoteStore(),
               removeCastMember: uncastThenRemove(cast, roles),
             },
             inMemoryUsageStore(),
+            noSceneryFiles,
           ),
         );
         return { api, props };
@@ -922,6 +956,83 @@ describe("Lambda entry point", () => {
       );
     });
 
+    describe("scenery notes, which need Stage, Tech or Director", () => {
+      const setUpNotes = () => {
+        const cast = inMemoryCastStore();
+        const roles = inMemoryRoleStore();
+        const itemNotes = inMemoryItemNoteStore();
+        const propsNotes = inMemoryItemNoteStore();
+        const api = lambdaEntry(
+          createRoutes(
+            {
+              cast,
+              roles,
+              runningOrders: inMemoryRunningOrderStore([
+                aRunningOrder(4, { first: ["Pirate Sketch"] }),
+              ]),
+              itemNotes,
+              props: inMemoryPropStore(),
+              propsNotes,
+              sceneryNotes: inMemoryItemNoteStore(),
+              removeCastMember: uncastThenRemove(cast, roles),
+            },
+            inMemoryUsageStore(),
+            noSceneryFiles,
+          ),
+        );
+        return { api, itemNotes, propsNotes };
+      };
+      const NOTES_PATH = `/api/productions/2027/items/${pirate}/scenery-notes`;
+      const saveNotes = (groups: string, text: string) =>
+        as(groups)("PUT", NOTES_PATH, { revision: 0, text });
+      const sceneryNotes = async (api: ReturnType<typeof setUpNotes>["api"]) =>
+        ItemNoteList.parse(
+          JSON.parse(
+            (await api(as("[casting]")("GET", "/api/productions/2027/scenery-notes"))).body ?? "",
+          ),
+        ).notes.map((note) => note.text);
+
+      it.each([
+        ["pat, with Stage", "[stage]"],
+        ["lee, with Tech", "[tech]"],
+        ["dee, with Director", "[director]"],
+        ["alex, an admin", "[admin]"],
+      ])("saves scenery notes from %s, kept for the next read", async (_who, groups) => {
+        const { api } = setUpNotes();
+
+        const res = await api(saveNotes(groups, "Fly the cloud in after the blackout"));
+
+        expect(res.statusCode).toBe(200);
+        expect(await sceneryNotes(api)).toEqual(["Fly the cloud in after the blackout"]);
+      });
+
+      it("keeps scenery notes apart from the casting and props notes", async () => {
+        const { api, itemNotes, propsNotes } = setUpNotes();
+        await itemNotes.save("2027", pirate, 0, "Sword fight");
+        await propsNotes.save("2027", pirate, 0, "Chest");
+
+        await api(saveNotes("[tech]", "Cloud"));
+
+        expect((await itemNotes.list("2027")).notes.map((note) => note.text)).toEqual([
+          "Sword fight",
+        ]);
+        expect((await propsNotes.list("2027")).notes.map((note) => note.text)).toEqual(["Chest"]);
+        expect(await sceneryNotes(api)).toEqual(["Cloud"]);
+      });
+
+      it("refuses scenery notes from sam, with Casting only, saving nothing", async () => {
+        const { api } = setUpNotes();
+
+        const res = await api(saveNotes("[casting]", "Cloud"));
+
+        expect(res.statusCode).toBe(403);
+        expect(JSON.parse(res.body ?? "")).toEqual({
+          message: "You can view this, but not change it.",
+        });
+        expect(await sceneryNotes(api)).toEqual([]);
+      });
+    });
+
     describe("props notes, which need Stage", () => {
       const PROPS_READ_ONLY = { message: "You can view the props, but not change them." };
       const setUpNotes = () => {
@@ -939,9 +1050,11 @@ describe("Lambda entry point", () => {
               itemNotes,
               props: inMemoryPropStore(),
               propsNotes: inMemoryItemNoteStore(),
+              sceneryNotes: inMemoryItemNoteStore(),
               removeCastMember: uncastThenRemove(cast, roles),
             },
             inMemoryUsageStore(),
+            noSceneryFiles,
           ),
         );
         return { api, itemNotes };
@@ -1072,9 +1185,11 @@ describe("Lambda entry point", () => {
             itemNotes: inMemoryItemNoteStore(),
             props: inMemoryPropStore(),
             propsNotes: inMemoryItemNoteStore(),
+            sceneryNotes: inMemoryItemNoteStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
+          noSceneryFiles,
         ),
       );
     };

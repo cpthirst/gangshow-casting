@@ -11,6 +11,7 @@ import NotFoundPage from "@/pages/NotFoundPage.vue";
 import ProductionOverviewPage from "@/pages/ProductionOverviewPage.vue";
 import PropsItemPage from "@/pages/PropsItemPage.vue";
 import RunningOrderPage from "@/pages/RunningOrderPage.vue";
+import SceneryItemPage from "@/pages/SceneryItemPage.vue";
 import UsagePage from "@/pages/UsagePage.vue";
 import WelcomePage from "@/pages/WelcomePage.vue";
 import { comingSoonPages } from "@/utils/departments.ts";
@@ -171,6 +172,12 @@ export function createAppRouter(history: RouterHistory = createWebHistory()) {
         path: "/production/items/:itemId/props",
         name: "props-item",
         component: PropsItemPage,
+        meta: { title: "Item", menuPage: "production-overview" },
+      },
+      {
+        path: "/production/items/:itemId/scenery",
+        name: "scenery-item",
+        component: SceneryItemPage,
         meta: { title: "Item", menuPage: "production-overview" },
       },
       ...comingSoonPages.map((department) => ({

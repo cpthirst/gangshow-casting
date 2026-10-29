@@ -7,6 +7,7 @@ const accessLabels = {
   everyone: "Everyone",
   casting: "Accounts with Casting, and admins",
   stage: "Accounts with Stage or Director, and admins",
+  scenery: "Accounts with Stage, Tech or Director, and admins",
   tech: "Accounts with Tech or Director, and admins",
   wardrobe: "Accounts with Wardrobe or Director, and admins",
   admins: "Admins only",
@@ -246,9 +247,9 @@ export const pageHelp: PageHelp[] = [
       {
         icons: [icons.scenery],
         name: "Scenery",
-        does: "Opens the item's scenery page, for the sets it needs. Coming soon.",
+        does: "Opens the item's scenery page, with the files for its sets.",
         access: "everyone",
-        changeAccess: "stage",
+        changeAccess: "scenery",
       },
       {
         icons: [icons.props],
@@ -283,6 +284,33 @@ export const pageHelp: PageHelp[] = [
         name: "Generate Props List",
         does: "Saves every item's props, characters and cast as a Word document.",
         access: "everyone",
+      },
+    ],
+  },
+  {
+    page: "scenery-item",
+    title: "An item's scenery",
+    summary:
+      "One item's scenery files and notes. Open an item's scenery from Production → Overview.",
+    reachedFrom: { page: "production-overview", title: "Production overview" },
+    lines: [
+      {
+        icons: [icons.allItems],
+        name: "All items",
+        does: "Goes back to the Production overview.",
+        access: "everyone",
+      },
+      {
+        icons: [icons.back, icons.forward],
+        name: "Previous and Next",
+        does: "Steps to the item before or after this one in the show.",
+        access: "everyone",
+      },
+      {
+        name: "Scenery notes",
+        does: "Anything the stage and tech teams need to know about the item's sets.",
+        access: "everyone",
+        changeAccess: "scenery",
       },
     ],
   },

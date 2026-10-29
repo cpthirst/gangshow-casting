@@ -5,7 +5,8 @@ import { productionIdOf } from "#/http/params.ts";
 import type { ItemNoteStore } from "./item-note-store.ts";
 
 // GET /api/productions/{productionId}/item-notes: every item's notes (casting-item-overview
-// FR8, FR9). Also serves /props-notes, from the props notes store (production-props FR20).
+// FR8, FR9). Also serves /props-notes and /scenery-notes, each from its own store
+// (production-props FR20, production-scenery E2.S1).
 export function createGetItemNotes(store: ItemNoteStore) {
   return async (event: ApiEvent): Promise<APIGatewayProxyStructuredResultV2> => {
     const productionId = productionIdOf(event);

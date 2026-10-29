@@ -286,7 +286,13 @@ describe("Help page", () => {
     it("follow the casting's, as the Production overview and an item's props, each linking to its page", async () => {
       const { wrapper, router } = await openHelp();
 
-      expect(sectionTitles(wrapper).slice(5)).toEqual(["Production overview", "An item's props"]);
+      expect(sectionTitles(wrapper).slice(5)).toEqual([
+        "Production overview",
+        "An item's scenery",
+        "An item's props",
+      ]);
+      await router.push("/help");
+      expect(await followLink(wrapper, router, "scenery-item")).toBe("production-overview");
       await router.push("/help");
       expect(await followLink(wrapper, router, "props-item")).toBe("production-overview");
       await router.push("/help");
@@ -320,6 +326,26 @@ describe("Help page", () => {
       ).toEqual(["Reading: Everyone", "Changing: Accounts with Stage or Director, and admins"]);
     });
 
+    it("say how to reach an item's scenery, then explain its links and notes, and that Stage, Tech or Director change it", async () => {
+      const { wrapper } = await openHelp();
+
+      expect(summaryOf(wrapper, "scenery-item")).toContain("Production → Overview");
+      expect(names(wrapper, "scenery-item")).toEqual([
+        "All items",
+        "Previous and Next",
+        "Scenery notes",
+      ]);
+      expect(accessOf(wrapper, "All items", "scenery-item")).toBe("Everyone");
+      expect(
+        lineNamed(wrapper, "Scenery notes", "scenery-item")
+          .findAll("[data-test=help-access]")
+          .map((label) => label.text()),
+      ).toEqual([
+        "Reading: Everyone",
+        "Changing: Accounts with Stage, Tech or Director, and admins",
+      ]);
+    });
+
     it("name the Overview's five buttons in row order, each with its icon, its page and whether it's coming soon", async () => {
       const { wrapper } = await openHelp();
 
@@ -343,7 +369,6 @@ describe("Help page", () => {
         expect.stringContaining("the item's wardrobe page"),
       ]);
       expect(buttons.filter((name) => doesOf(name).includes("Coming soon"))).toEqual([
-        "Scenery",
         "SFX",
         "Mic plot",
         "Wardrobe",
@@ -358,7 +383,7 @@ describe("Help page", () => {
           .findAll("[data-test=help-access]")
           .map((label) => label.text());
       for (const [name, department] of [
-        ["Scenery", "Stage"],
+        ["Scenery", "Stage, Tech"],
         ["Props", "Stage"],
         ["SFX", "Tech"],
         ["Mic plot", "Tech"],

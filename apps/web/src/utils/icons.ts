@@ -11,6 +11,7 @@ import {
   faCircleDot,
   faCircleInfo,
   faCircleQuestion,
+  faFile,
   faFileAudio,
   faFileExcel,
   faFileWord,
@@ -39,6 +40,8 @@ export const icons = {
   micPlot: faMicrophone,
   wardrobe: faShirt,
   remove: faTrashCan,
+  // A file on an item's Scenery page, whatever its type, until types get their own icons.
+  file: faFile,
   // An account's actions on the Accounts page.
   resetPassword: faKey,
   disable: faUserSlash,

@@ -66,6 +66,8 @@ export function inMemoryItemNoteStore(): ItemNoteStore {
 
 /** The file props notes are kept in, apart from the casting notes (production-props FR20). */
 export const PROPS_NOTES_FILE = "props-notes.json";
+/** The file scenery notes are kept in, apart from the others (production-scenery E2.S1). */
+export const SCENERY_NOTES_FILE = "scenery-notes.json";
 
 /** Local file: `<dataDir>/<productionId>/item-notes.json` (git-ignored), or the file named,
  *  created with the first notes. Free text about a production of young people, so kept

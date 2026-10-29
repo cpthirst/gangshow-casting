@@ -15,15 +15,16 @@ export const ItemNote = z.strictObject({
   revision: z.number().int().min(1),
 });
 
-/** GET /api/productions/{productionId}/item-notes (or /props-notes): every item's notes. */
+/** GET /api/productions/{productionId}/item-notes, and the props and scenery equivalents
+ *  (/props-notes, /scenery-notes): every item's notes. */
 export const ItemNoteList = z.strictObject({
   productionId: ProductionId,
   notes: z.array(ItemNote).max(1000),
 });
 
 /**
- * PUT /api/productions/{productionId}/items/{itemId}/notes (or /props-notes): the new text
- * (trimmed; "" clears the notes) and the revision it was based on, 0 for an item with no notes yet.
+ * PUT /api/productions/{productionId}/items/{itemId}/notes, or its props or scenery equivalent:
+ * the new text (trimmed; "" clears the notes) and the revision it was based on, 0 for an item with no notes yet.
  * 200 returns the saved ItemNote; 409 means someone else saved first.
  */
 export const SaveItemNoteRequest = z.strictObject({

@@ -7,5 +7,6 @@ export * from "./item-note.ts";
 export * from "./prop.ts";
 export * from "./role.ts";
 export * from "./running-order.ts";
+export * from "./scenery.ts";
 export * from "./sign-in-config.ts";
 export * from "./usage.ts";

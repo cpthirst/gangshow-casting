@@ -18,6 +18,7 @@ import {
   refusalFor,
   routeKeys,
   routeNeeds,
+  SCENERY_PERMISSIONS,
 } from "./api-routes.ts";
 
 describe("adminOnlyRouteKeys", () => {
@@ -129,9 +130,30 @@ describe("routeNeeds", () => {
     expect(needOf("GET /api/productions/{productionId}/props-notes")).toBeUndefined();
   });
 
+  it("has saving scenery notes need Stage, Tech or Director, and reading them need nothing", () => {
+    expect(needOf("PUT /api/productions/{productionId}/items/{itemId}/scenery-notes")).toEqual(
+      SCENERY_PERMISSIONS,
+    );
+    expect(SCENERY_PERMISSIONS).toEqual(expect.arrayContaining(["stage", "tech", "director"]));
+    expect(needOf("GET /api/productions/{productionId}/scenery-notes")).toBeUndefined();
+  });
+
+  it("refuses a scenery change with the general line, never the props one", () => {
+    expect(refusalFor(SCENERY_PERMISSIONS)).toBe("You can view this, but not change it.");
+  });
+
+  it("leaves listing an item's scenery files open to everyone", () => {
+    const key = "GET /api/productions/{productionId}/items/{itemId}/scenery-files";
+    expect(routeKeys).toContain(key);
+    expect(needOf(key)).toBeUndefined();
+  });
+
   it("has every other change route today need Casting, or stay admin-only", () => {
     const changes = routeKeys.filter(
-      (key) => !readOnlyMayUse(key) && needOf(key) !== PROPS_PERMISSIONS,
+      (key) =>
+        !readOnlyMayUse(key) &&
+        needOf(key) !== PROPS_PERMISSIONS &&
+        needOf(key) !== SCENERY_PERMISSIONS,
     );
     const needsCasting = (key: string) => needOf(key) === CASTING_PERMISSIONS;
     expect(changes.filter(needsCasting).sort()).toEqual([

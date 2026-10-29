@@ -33,9 +33,11 @@ import {
   UserPoolClientIdentityProvider,
 } from "aws-cdk-lib/aws-cognito";
 import { AttributeType, TableV2 } from "aws-cdk-lib/aws-dynamodb";
+import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 import { Architecture, Runtime } from "aws-cdk-lib/aws-lambda";
 import { NodejsFunction, OutputFormat } from "aws-cdk-lib/aws-lambda-nodejs";
 import { LogGroup, RetentionDays } from "aws-cdk-lib/aws-logs";
+import { BlockPublicAccess, Bucket, BucketEncryption } from "aws-cdk-lib/aws-s3";
 import type { Construct } from "constructs";
 import { Pages } from "./pages.ts";
 
@@ -97,6 +99,23 @@ export class AppStack extends Stack {
     new CfnOutput(this, "DataTableName", {
       value: table.tableName,
       description: "Set DATA_TABLE to this to keep the API's data here",
+    });
+
+    // Each item's scenery files, keyed <production>/<item id>/scenery/<name> (ADR 0030). Never
+    // public: only the API reaches it, behind the sign-in. No versioning, so a replaced or
+    // deleted file is gone. Don't rename "FilesBucket": that replaces the bucket, orphaning the
+    // retained one with every file.
+    const filesBucket = new Bucket(this, "FilesBucket", {
+      blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
+      encryption: BucketEncryption.S3_MANAGED,
+      enforceSSL: true,
+      // The only copy of the files: deleting it must be a separate, deliberate step.
+      removalPolicy: RemovalPolicy.RETAIN,
+    });
+
+    new CfnOutput(this, "FilesBucketName", {
+      value: filesBucket.bucketName,
+      description: "Set FILES_BUCKET to this to keep the API's scenery files here",
     });
 
     // An email if the month's AWS spend is forecast to pass about £5, or does (remote-data
@@ -197,14 +216,19 @@ export class AppStack extends Stack {
         }),
       });
 
-    // The API keeps everything in the table (apps/api/src/storage/data-stores.ts); the region
-    // defaults to London, where the table is.
+    // The API keeps everything in the table, and scenery files in the bucket
+    // (apps/api/src/storage/data-stores.ts); both are in London.
     const dataFunction = nodeFunction("ApiFunction", "lambda.ts", {
       DATA_TABLE: table.tableName,
+      FILES_BUCKET: filesBucket.bucketName,
       APP_VERSION: releaseVersion(),
     });
     // Reads and writes the table's items, and nothing else in DynamoDB (hosting E2.S1).
     table.grantReadWriteData(dataFunction);
+    // Lists the files and nothing more, until downloads and uploads need more (ADR 0030).
+    dataFunction.addToRolePolicy(
+      new PolicyStatement({ actions: ["s3:ListBucket"], resources: [filesBucket.bucketArn] }),
+    );
     const apiIntegration = new HttpLambdaIntegration("ApiIntegration", dataFunction);
 
     // The only function allowed to manage the team's accounts (ADR 0017, ADR 0018), and only

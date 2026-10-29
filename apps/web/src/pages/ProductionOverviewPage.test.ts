@@ -339,13 +339,28 @@ describe("Department buttons on the Production overview", () => {
     const { wrapper } = await openOverview();
 
     expect(namesIn(wrapper, "Opening Number")).toEqual([
-      "View scenery for Opening Number",
+      "Edit scenery for Opening Number",
       "View props for Opening Number",
       "Edit SFX for Opening Number",
       "Edit mic plot for Opening Number",
       "View wardrobe for Opening Number",
     ]);
   });
+
+  it.each([
+    [["stage"], "Edit scenery for Opening Number"],
+    [["tech"], "Edit scenery for Opening Number"],
+    [["casting"], "View scenery for Opening Number"],
+  ])(
+    "names the Scenery button for %s as %s, as Stage and Tech share scenery",
+    async (groups, name) => {
+      await signInAs(groups, "lee");
+      savedShowIs(show());
+      const { wrapper } = await openOverview();
+
+      expect(namesIn(wrapper, "Opening Number")[0]).toBe(name);
+    },
+  );
 
   it("names every department's button Edit for a Director", async () => {
     await signInAs(["director"], "dee");
