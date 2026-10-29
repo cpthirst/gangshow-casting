@@ -60,12 +60,17 @@ Then create the profile the app will use: an IAM user, `gangshow-data`, with no 
         "dynamodb:ConditionCheckItem"
       ],
       "Resource": "arn:aws:dynamodb:eu-west-2:<account-id>:table/<table>"
+    },
+    {
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::<files bucket>"
     }
   ]
 }
 ```
 
-Give it an access key, and run `aws configure --profile gangshow-data`. It can't delete or change the table itself, only the rows in it.
+Give it an access key, and run `aws configure --profile gangshow-data`. It can't delete or change the table itself, only the rows in it, and it can only list the scenery files.
 
 Finally, delete the `gangshow-admin` access key in IAM. Make a new one when you next need to deploy, and delete that afterwards too.
 
@@ -74,10 +79,10 @@ Finally, delete the `gangshow-admin` access key in IAM. Make a new one when you 
 Run the app against the table:
 
 ```bash
-DATA_TABLE=<table> AWS_PROFILE=gangshow-data pnpm dev
+DATA_TABLE=<table> FILES_BUCKET=<files bucket> AWS_PROFILE=gangshow-data pnpm dev
 ```
 
-On start, the API says `data: everything in table <table> (eu-west-2)`. Plain `pnpm dev`, in a shell where `DATA_TABLE` isn't set, uses the files in `apps/api/data` instead: the two never mix, and nothing copies one into the other. Starting a new production in the table needs a story first: the one-off copy that moved 2027 there was removed, and is in git history at PR #45.
+`<files bucket>` is the stack's `FilesBucketName` output, where the scenery files are kept (ADR 0030). On start, the API says `data: everything in table <table> (eu-west-2); scenery files in bucket <files bucket> (eu-west-2)`. `pnpm demo`, or the API run without `DATA_TABLE` and `FILES_BUCKET`, uses the files in `apps/api/data` instead: the two never mix, and nothing copies one into the other. Starting a new production in the table needs a story first: the one-off copy that moved 2027 there was removed, and is in git history at PR #45.
 
 ### Old copies from the 2027 move
 
