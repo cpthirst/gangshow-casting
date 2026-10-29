@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.29.0](https://github.com/cpthirst/gangshow-casting/compare/v1.28.0...v1.29.0) (2026-10-29)
+
+
+### Features
+
+* **web:** delete a scenery file (production-scenery.E2.S4) ([#149](https://github.com/cpthirst/gangshow-casting/issues/149)) ([235c518](https://github.com/cpthirst/gangshow-casting/commit/235c5187beda4fe08ae856bb856a737b5611bd61))
+
 ## [1.28.0](https://github.com/cpthirst/gangshow-casting/compare/v1.27.1...v1.28.0) (2026-10-29)
 
 
