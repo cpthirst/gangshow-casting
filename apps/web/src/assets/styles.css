@@ -591,6 +591,12 @@ main a {
     border-bottom: 4px solid var(--surface);
   }
 
+  /* An item with scenery and props notes: the separator goes below the last of them. */
+  .running-order tbody tr.item-notes-row:has(+ .item-notes-row) {
+    padding-bottom: 0.25rem;
+    border-bottom: none;
+  }
+
   .running-order td {
     padding: 0.125rem 0;
     border: none;

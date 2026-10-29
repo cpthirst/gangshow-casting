@@ -13,7 +13,7 @@ import { icons } from "@/utils/icons.ts";
 import { PROPS_PATH, propCounts, propsCount } from "@/utils/props.ts";
 import { PROPS_NOTES_PATH } from "@/utils/props-notes.ts";
 import { RUNNING_ORDER_PATH, runningClock } from "@/utils/running-order.ts";
-import { SCENERY_FILE_COUNTS_PATH, sceneryCount } from "@/utils/scenery.ts";
+import { SCENERY_FILE_COUNTS_PATH, SCENERY_NOTES_PATH, sceneryCount } from "@/utils/scenery.ts";
 
 // Production's one page: the show's items, each with a button for every department's page
 // for it and a count for each department (production-overview FR4–FR8, FR10, FR14), laid out
@@ -32,10 +32,23 @@ const state = ref<State>({ status: "loading" });
 type Counts = ((itemId: string) => number) | "error";
 const propsCountOf = ref<Counts>();
 const sceneryCountOf = ref<Counts>();
-// Each item's props notes, by item id (production-props FR14); cleared notes are left out.
-const notes = ref<Map<string, string> | "error">();
-const notesOf = (itemId: string) =>
-  notes.value instanceof Map ? notes.value.get(itemId) : undefined;
+// Each item's scenery and props notes, by item id (production-props FR14); cleared notes are
+// left out. Shown under the item in the order its row shows the departments.
+type Notes = Map<string, string> | "error";
+const sceneryNotes = ref<Notes>();
+const propsNotes = ref<Notes>();
+const notesFailed = computed(() => sceneryNotes.value === "error" || propsNotes.value === "error");
+
+function notesUnder(itemId: string) {
+  const kinds = [
+    { label: "Scenery notes", test: "scenery-notes", notes: sceneryNotes.value },
+    { label: "Props notes", test: "props-notes", notes: propsNotes.value },
+  ];
+  return kinds.flatMap(({ notes, ...kind }) => {
+    const text = notes instanceof Map ? notes.get(itemId) : undefined;
+    return text ? [{ ...kind, text }] : [];
+  });
+}
 
 // Numbers come from the running clock, so they always match the Running order page.
 const halves = computed(() =>
@@ -95,18 +108,23 @@ onMounted(() => {
   loadRunningOrder();
   loadProps();
   loadSceneryCounts();
-  loadNotes();
+  loadNotes(SCENERY_NOTES_PATH).then((notes) => {
+    sceneryNotes.value = notes;
+  });
+  loadNotes(PROPS_NOTES_PATH).then((notes) => {
+    propsNotes.value = notes;
+  });
 });
 
-async function loadNotes() {
+async function loadNotes(path: string): Promise<Notes> {
   try {
-    const res = await apiFetch(PROPS_NOTES_PATH);
+    const res = await apiFetch(path);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const list = ItemNoteList.parse(await res.json()).notes;
-    notes.value = new Map(list.filter((n) => n.text !== "").map((n) => [n.itemId, n.text]));
+    return new Map(list.filter((n) => n.text !== "").map((n) => [n.itemId, n.text]));
   } catch {
-    // The items still show; only their notes are missing.
-    notes.value = "error";
+    // The items still show; only these notes are missing.
+    return "error";
   }
 }
 
@@ -183,7 +201,7 @@ async function loadRunningOrder() {
     <p v-if="sceneryCountOf === 'error'" class="notice" role="alert">
       Couldn't load the scenery counts.
     </p>
-    <p v-if="notes === 'error'" class="notice" role="alert">Couldn't load the notes.</p>
+    <p v-if="notesFailed" class="notice" role="alert">Couldn't load the notes.</p>
     <section v-for="{ half, rows } in halves" :key="half.id" class="half" :aria-labelledby="half.id">
       <h2 :id="half.id">{{ half.name }}</h2>
       <div class="table-scroll" tabindex="0" role="region" :aria-label="`${half.name} items`">
@@ -268,19 +286,20 @@ async function loadRunningOrder() {
                   </template>
                 </td>
               </tr>
-              <!-- The item's props notes, in full, across the table under its row (FR14). -->
+              <!-- The item's scenery and props notes, in full, across the table under its row (FR14). -->
               <tr
-                v-if="notesOf(item.id)"
+                v-for="note in notesUnder(item.id)"
+                :key="note.test"
                 role="row"
                 class="item-notes-row"
                 :class="{ 'not-printed': number === null }"
-                data-test="props-notes"
+                :data-test="note.test"
               >
                 <!-- Across every column: Open, #, Item and each department's count. -->
                 <td
                   :colspan="3 + departmentPages.length"
-                  class="item-notes-text" data-label="Props notes" role="cell">
-                  {{ notesOf(item.id) }}
+                  class="item-notes-text" :data-label="note.label" role="cell">
+                  {{ note.text }}
                 </td>
               </tr>
             </template>

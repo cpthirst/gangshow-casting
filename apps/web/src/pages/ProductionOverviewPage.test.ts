@@ -10,7 +10,7 @@ import { PROPS_PATH } from "@/utils/props.ts";
 import { PROPS_NOTES_PATH } from "@/utils/props-notes.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
 import { RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
-import { SCENERY_FILE_COUNTS_PATH } from "@/utils/scenery.ts";
+import { SCENERY_FILE_COUNTS_PATH, SCENERY_NOTES_PATH } from "@/utils/scenery.ts";
 
 enableAutoUnmount(afterEach);
 // As on pnpm dev: everyone acts as an admin, unless a test signs someone in.
@@ -21,12 +21,13 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
-/** A stand-in API answering the running order, props, props notes and scenery counts paths as
- *  given (no props notes or scenery files unless a test says). */
+/** A stand-in API answering the running order, props, notes and scenery counts paths as given
+ *  (no notes or scenery files unless a test says). */
 function apiAnswers(answers: {
   order: () => Response;
   props: () => Response;
   notes?: () => Response;
+  sceneryNotes?: () => Response;
   scenery?: () => Response;
 }) {
   vi.stubGlobal(
@@ -39,6 +40,9 @@ function apiAnswers(answers: {
       }
       if (url === PROPS_NOTES_PATH) {
         return answers.notes?.() ?? json({ productionId: "2027", notes: [] })();
+      }
+      if (url === SCENERY_NOTES_PATH) {
+        return answers.sceneryNotes?.() ?? json({ productionId: "2027", notes: [] })();
       }
       if (url === "/api/usage") return new Response(null, { status: 204 });
       return json({ status: "ok", version: "dev" })();
@@ -515,6 +519,88 @@ describe("Props notes on the Production overview", () => {
     const { wrapper } = await openOverview();
 
     expect(titlesIn(wrapper, "First half")).toEqual(["Opening Number", "Pirate Sketch"]);
+    expect(wrapper.get("main [role=alert]").text()).toBe("Couldn't load the notes.");
+  });
+});
+
+describe("Scenery notes on the Production overview", () => {
+  type Note = { itemId: string; text: string; revision: number };
+  const withNotes = (scenery: Note[], props: Note[] = []) =>
+    apiAnswers({
+      order: json(show()),
+      props: json({ productionId: "2027", props: [] }),
+      sceneryNotes: json({ productionId: "2027", notes: scenery }),
+      notes: json({ productionId: "2027", notes: props }),
+    });
+
+  /** The notes rows straight after the item's own row, each as its label and text. */
+  const notesUnder = (wrapper: VueWrapper, title: string) => {
+    const shown: { label: string | null | undefined; text: string | undefined }[] = [];
+    let row = rowFor(wrapper, title)?.element.nextElementSibling;
+    while (row?.matches(".item-notes-row")) {
+      const cell = row.querySelector("td");
+      shown.push({ label: cell?.getAttribute("data-label"), text: cell?.textContent?.trim() });
+      row = row.nextElementSibling;
+    }
+    return shown;
+  };
+
+  it("shows an item's scenery notes in full, under its row and across the table", async () => {
+    withNotes([
+      { itemId: "pirate-sketch", text: "Fly the cloud in after the blackout", revision: 1 },
+    ]);
+
+    const { wrapper } = await openOverview();
+
+    expect(notesUnder(wrapper, "Pirate Sketch")).toEqual([
+      { label: "Scenery notes", text: "Fly the cloud in after the blackout" },
+    ]);
+    const cell = wrapper.get("[data-test=scenery-notes] td");
+    expect(cell.attributes("colspan")).toBe(
+      String(wrapper.get("main table").findAll("thead th").length),
+    );
+  });
+
+  it("shows the scenery notes before the props notes, as the row shows Scenery before Props", async () => {
+    withNotes(
+      [{ itemId: "pirate-sketch", text: "Fly the cloud in after the blackout", revision: 1 }],
+      [{ itemId: "pirate-sketch", text: "Chest set stage left before the blackout", revision: 1 }],
+    );
+
+    const { wrapper } = await openOverview();
+
+    expect(notesUnder(wrapper, "Pirate Sketch")).toEqual([
+      { label: "Scenery notes", text: "Fly the cloud in after the blackout" },
+      { label: "Props notes", text: "Chest set stage left before the blackout" },
+    ]);
+  });
+
+  it("shows nothing extra for an item with no scenery notes, or cleared ones", async () => {
+    withNotes([{ itemId: "opening-number", text: "", revision: 2 }]);
+
+    const { wrapper } = await openOverview();
+
+    expect(notesUnder(wrapper, "Opening Number")).toEqual([]);
+    expect(wrapper.findAll("[data-test=scenery-notes]")).toEqual([]);
+  });
+
+  it("still lists the items and their props notes, and says so, when the scenery notes can't be loaded", async () => {
+    apiAnswers({
+      order: json(show()),
+      props: json({ productionId: "2027", props: [] }),
+      sceneryNotes: status(500),
+      notes: json({
+        productionId: "2027",
+        notes: [{ itemId: "pirate-sketch", text: "Chest set stage left", revision: 1 }],
+      }),
+    });
+
+    const { wrapper } = await openOverview();
+
+    expect(titlesIn(wrapper, "First half")).toEqual(["Opening Number", "Pirate Sketch"]);
+    expect(notesUnder(wrapper, "Pirate Sketch")).toEqual([
+      { label: "Props notes", text: "Chest set stage left" },
+    ]);
     expect(wrapper.get("main [role=alert]").text()).toBe("Couldn't load the notes.");
   });
 });
