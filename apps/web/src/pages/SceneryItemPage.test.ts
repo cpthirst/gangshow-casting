@@ -111,13 +111,31 @@ describe("An item's Scenery page", () => {
     expect(wrapper.get("main").text()).not.toContain("Coming soon");
   });
 
-  it("gives each tile a general file icon, hidden from screen readers", async () => {
-    apiHolds(show, openingNumberFiles);
+  it("gives each tile its type's icon, hidden from screen readers", async () => {
+    apiHolds(show, {
+      "opening-number": [
+        { name: "plan.pdf", size: 10 },
+        { name: "notes.docx", size: 10 },
+        { name: "build.xlsx", size: 10 },
+        { name: "pitch.pptx", size: 10 },
+        { name: "PHOTO.JPEG", size: 10 },
+        { name: "model.skp", size: 10 },
+        { name: "readme", size: 10 },
+      ],
+    });
     const { wrapper } = await openAppAt(OPENING_NUMBER);
 
     const icons = wrapper.findAll("main [data-test=file] svg");
-    expect(icons).toHaveLength(3);
-    expect(icons.every((icon) => icon.classes().includes("fa-file"))).toBe(true);
+    // Sorted by name: build, model, notes, PHOTO, pitch, plan, readme.
+    expect(icons.map((icon) => icon.classes().find((name) => name.startsWith("fa-file")))).toEqual([
+      "fa-file-excel",
+      "fa-file",
+      "fa-file-word",
+      "fa-file-image",
+      "fa-file-powerpoint",
+      "fa-file-pdf",
+      "fa-file",
+    ]);
     expect(icons.every((icon) => icon.attributes("aria-hidden") === "true")).toBe(true);
   });
 

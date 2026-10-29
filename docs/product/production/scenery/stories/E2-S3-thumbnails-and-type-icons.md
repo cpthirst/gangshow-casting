@@ -16,37 +16,29 @@ Given "Opening Number" has "Backdrop.png" and "stage-left.jpg"
 When someone opens its Scenery page
 Then each of their tiles shows a thumbnail of the image
 
-### AC2: Office files and PDFs show their own icons
-Given "Opening Number" has "plan.pdf", "notes.docx", "build.xlsx" and "pitch.pptx"
-When someone opens its Scenery page
-Then each tile shows a different icon: PDF, Word, Excel and PowerPoint
-
-### AC3: Any other type shows a general file icon
-Given "Opening Number" has "model.skp" and "readme"
-When someone opens its Scenery page
-Then each shows the general file icon
-
-### AC4: An image whose preview can't show gets an image icon
+### AC2: An image whose preview can't show keeps its image icon
 Given "Opening Number" has "broken.png", which isn't a readable image
 When someone opens its Scenery page
-Then its tile shows an image icon, and the page shows no broken-image symbol
+Then its tile shows the image icon, and the page shows no broken-image symbol
 
-### AC5: The type comes from the name, whatever its case
-Given "PLAN.PDF" and "Photo.JPEG"
+### AC3: The type comes from the name, whatever its case
+Given "Photo.JPEG"
 When someone opens the Scenery page
-Then "PLAN.PDF" shows the PDF icon and "Photo.JPEG" a thumbnail
+Then it shows a thumbnail
 
-### AC6: The grid shows before the thumbnails
+### AC4: The grid shows before the thumbnails
 Given an item with 30 files, 20 of them images
 When someone opens its Scenery page
 Then the grid of names, sizes and icons shows first, and each thumbnail fills in as it loads
 
-### AC7: Thumbnails and icons are hidden from screen readers
+### AC5: Thumbnails and icons are hidden from screen readers
 Given someone using a screen reader on a Scenery page
 When they move through the tiles
 Then each tile is announced by its name only, as in E2.S2, and not by its thumbnail or icon
 
 ## Notes
+
+- **Type icons moved to E2.S2** (2026-10-29, the maintainer): PDF, Word, Excel, PowerPoint and image icons, and the general file icon for the rest, shipped with downloading. This story keeps the thumbnails; ACs renumbered.
 
 - FRs: FR7
 - Depends on: production-scenery.E2.S2, whose short-lived links the thumbnails reuse

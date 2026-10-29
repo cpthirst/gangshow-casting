@@ -338,6 +338,21 @@ describe("Help page", () => {
       ]);
       expect(accessOf(wrapper, "All items", "scenery-item")).toBe("Everyone");
       expect(accessOf(wrapper, "File tiles", "scenery-item")).toBe("Everyone");
+      // The icons the tiles show, so the help matches what's on the page.
+      expect(
+        lineNamed(wrapper, "File tiles", "scenery-item")
+          .findAll("svg")
+          .map((svg) => svg.attributes("data-icon")),
+      ).toEqual(
+        [
+          icons.pdfFile,
+          icons.wordFile,
+          icons.excelFile,
+          icons.powerPointFile,
+          icons.imageFile,
+          icons.file,
+        ].map((icon) => icon.iconName),
+      );
       expect(
         lineNamed(wrapper, "Scenery notes", "scenery-item")
           .findAll("[data-test=help-access]")

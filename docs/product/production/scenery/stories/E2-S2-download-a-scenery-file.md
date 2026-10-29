@@ -59,7 +59,20 @@ Then "set-plan.pdf" is named "Open set-plan.pdf, PDF file"
 And "build-list.xlsx" is named "Download build-list.xlsx, XLSX file"
 And a file with no extension, such as "notes", is named "Download notes"
 
+### AC10: Office files, PDFs and images show their own icons
+Given "Opening Number" has "plan.pdf", "notes.docx", "old-notes.doc", "build.xlsx", "costs.xls", "pitch.pptx", "pitch-2026.ppt", "Backdrop.png" and "PHOTO.JPEG"
+When someone opens its Scenery page
+Then "plan.pdf" shows the PDF icon, the two Word files the Word icon, the two Excel files the Excel icon, the two PowerPoint files the PowerPoint icon, and the two images the image icon, whatever the case of their names
+
+### AC11: Any other file shows the general file icon
+Given "Opening Number" has "model.skp", "build-list.csv" and "readme"
+When someone opens its Scenery page
+Then each shows the general file icon
+And every icon is hidden from screen readers, so each tile is still announced by its name (AC9)
+
 ## Notes
+
+- **Type icons added 2026-10-29** (the maintainer, after the PR was opened): AC10 and AC11 come from E2.S3, which keeps the thumbnails. Font Awesome's free set has no GIF, JPG or PNG icons, so every image type shares the image icon (the maintainer's choice; ADR 0013 keeps to the free set). Images are GIF, JPG, JPEG, PNG, WebP, SVG, BMP, TIFF, HEIC and AVIF. Word, Excel, PDF and PowerPoint icons are in their apps' colours (blue, green, red, orange, each at least 3:1 on white); the image and general file icons stay grey (the maintainer's choice).
 
 - **Agreed at `write-story` (2026-10-29)**:
   - **Open, not only download** (the maintainer, during implementation): PDFs, JPG, PNG, GIF, WebP and plain text open in a new tab, in the browser's own viewer; every other type, HTML and SVG among them, downloads. The type comes from the name's extension, never from what storage says, so a file can't choose to open. The PRD's FR10, security NFR, accessibility NFR, non-goals and risks changed to match.
