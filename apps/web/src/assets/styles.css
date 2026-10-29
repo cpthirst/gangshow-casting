@@ -1403,6 +1403,8 @@ main a {
 .file-tiles {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(9rem, 100%), 1fr));
+  /* Every row as tall as the tallest, so all the tiles are one size. */
+  grid-auto-rows: 1fr;
   gap: 0.5rem;
   margin: 1rem 0;
   padding: 0;
@@ -1452,10 +1454,35 @@ main a {
   color: var(--powerpoint);
 }
 
-/* A long name with no spaces wraps anywhere rather than push the page sideways. */
+/* Holds the trash icon in the tile's corner. */
+.file-tiles > li {
+  position: relative;
+}
+
+/* Above the tile's button, not in it: a button can't hold another. Its tooltip opens to the
+   left, so the last column's never reaches past the page. */
+.file-tiles .file-delete {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  margin: 0;
+}
+
+.file-tiles .file-delete::after {
+  right: 0;
+  left: auto;
+}
+
+/* A long name wraps anywhere rather than push the page sideways, and stops at two lines with
+   an ellipsis, so every tile is the same size. Its title shows the whole name on hover. */
 .file-name {
+  display: -webkit-box;
+  overflow: hidden;
   overflow-wrap: anywhere;
   font-weight: 700;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
 }
 
 .file-size {

@@ -10,6 +10,7 @@ import ReadOnlyNotice from "@/components/common/ReadOnlyNotice.vue";
 import { showPageTitle } from "@/router/index.ts";
 import { downloadFrom, openFileTab } from "@/services/file-link.ts";
 import { apiFetch, canChangeScenery } from "@/services/sign-in.ts";
+import { icons } from "@/utils/icons.ts";
 import { neighboursOf, placeOf, positionOf, RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
 import {
   fileIconOf,
@@ -18,6 +19,7 @@ import {
   SCENERY_NOTES_PATH,
   saveSceneryNotesPath,
   sceneryFileLinkPath,
+  sceneryFilePath,
   sceneryFilesPath,
   sortFiles,
   tileLabel,
@@ -30,8 +32,10 @@ const route = useRoute();
 const order = ref<RunningOrder>();
 const files = ref<SceneryFile[]>([]);
 const status = ref<"loading" | "loaded" | "error">("loading");
-// Why the last file chosen didn't open or download, if it didn't.
+// Why the last file chosen didn't open, download or delete, if it didn't.
 const fileProblem = ref<string>();
+// A delete is on its way, so the trash icons wait for it.
+const deleting = ref(false);
 
 const itemId = computed(() =>
   typeof route.params.itemId === "string" ? route.params.itemId : undefined,
@@ -104,6 +108,35 @@ async function choose({ name }: SceneryFile) {
   }
 }
 
+// For everyone, for good (FR11): there's no history to bring it back, so confirm first.
+async function remove({ name }: SceneryFile) {
+  const id = itemId.value;
+  if (!id || deleting.value) return;
+  if (!window.confirm(`Remove ${name}? This can't be undone.`)) return;
+  fileProblem.value = undefined;
+  deleting.value = true;
+  const code = await sendDelete(id, name);
+  deleting.value = false;
+  if (code === 204) {
+    files.value = files.value.filter((file) => file.name !== name);
+  } else if (code === 404) {
+    // Deleted in another browser meanwhile: say so, and catch up with storage.
+    fileProblem.value = `${name} isn't there any more.`;
+    await load(id);
+  } else {
+    fileProblem.value = `Couldn't remove ${name}. Try again.`;
+  }
+}
+
+// The status code, or undefined if the request didn't get an answer.
+async function sendDelete(id: string, name: string) {
+  try {
+    return (await apiFetch(sceneryFilePath(id, name), { method: "DELETE" })).status;
+  } catch {
+    return undefined;
+  }
+}
+
 watch(
   itemId,
   (id) => {
@@ -141,8 +174,21 @@ watch(
           @click="choose(file)"
         >
           <FontAwesomeIcon :icon="fileIconOf(file.name)" class="file-icon" />
-          <span class="file-name" data-test="name">{{ file.name }}</span>
+          <!-- Clipped to two lines, so every tile is the same size; the whole name on hover. -->
+          <span class="file-name" data-test="name" :title="file.name">{{ file.name }}</span>
           <span class="file-size" data-test="size">{{ fileSize(file.size) }}</span>
+        </button>
+        <button
+          v-if="canChangeScenery"
+          type="button"
+          class="icon-button file-delete"
+          data-test="delete"
+          :aria-label="`Remove ${file.name}`"
+          data-tooltip="Remove file"
+          :disabled="deleting"
+          @click="remove(file)"
+        >
+          <FontAwesomeIcon :icon="icons.remove" />
         </button>
       </li>
     </ul>

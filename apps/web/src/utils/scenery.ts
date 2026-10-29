@@ -8,6 +8,10 @@ const PRODUCTION_ID = "2027";
 export const sceneryFilesPath = (itemId: string) =>
   `/api/productions/${PRODUCTION_ID}/items/${encodeURIComponent(itemId)}/scenery-files`;
 
+/** One of the item's files, to delete it (FR11). */
+export const sceneryFilePath = (itemId: string, name: string) =>
+  `${sceneryFilesPath(itemId)}?${new URLSearchParams({ name })}`;
+
 /** A short-lived link that opens or downloads one of the item's files (FR10). */
 export const sceneryFileLinkPath = (itemId: string, name: string) =>
   `/api/productions/${PRODUCTION_ID}/items/${encodeURIComponent(itemId)}/scenery-file-link?${new URLSearchParams({ name })}`;

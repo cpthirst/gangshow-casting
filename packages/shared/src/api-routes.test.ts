@@ -138,8 +138,14 @@ describe("routeNeeds", () => {
     expect(needOf("GET /api/productions/{productionId}/scenery-notes")).toBeUndefined();
   });
 
-  it("refuses a scenery change with the general line, never the props one", () => {
-    expect(refusalFor(SCENERY_PERMISSIONS)).toBe("You can view this, but not change it.");
+  it("has deleting a scenery file need Stage, Tech or Director", () => {
+    expect(needOf("DELETE /api/productions/{productionId}/items/{itemId}/scenery-files")).toEqual(
+      SCENERY_PERMISSIONS,
+    );
+  });
+
+  it("refuses a scenery change saying the scenery can be viewed, never the props", () => {
+    expect(refusalFor(SCENERY_PERMISSIONS)).toBe("You can view the scenery, but not change it.");
   });
 
   it.each([
@@ -268,8 +274,11 @@ describe("refusalFor", () => {
     expect(refusalFor("stage")).toBe("You can view the props, but not change them.");
   });
 
+  it("says the scenery can be viewed but not changed, for Tech", () => {
+    expect(refusalFor("tech")).toBe("You can view the scenery, but not change it.");
+  });
+
   it("falls back to a general line for a department without its own", () => {
-    expect(refusalFor("tech")).toBe("You can view this, but not change it.");
     expect(refusalFor("director")).toBe("You can view this, but not change it.");
   });
 

@@ -2,7 +2,7 @@
 id: production-scenery.E2.S4
 title: Delete a scenery file
 epic: E2
-status: draft
+status: done
 ---
 
 ## Story
@@ -19,7 +19,7 @@ Then the tile has a trash icon
 ### AC2: Deleting asks to confirm, then deletes it for everyone
 Given "pat" has Stage
 When pat chooses the trash icon on "set-plan.pdf"
-Then the page asks "Delete set-plan.pdf? This can't be undone."
+Then the page asks "Remove set-plan.pdf? This can't be undone."
 And when pat confirms, the tile goes, and the file is gone from file storage
 
 ### AC3: Cancelling keeps the file
@@ -46,7 +46,7 @@ Then the page says it's gone, and the tile goes
 ### AC7: The trash icon is named for its file
 Given someone using a screen reader with Stage
 When they reach the trash icon on "set-plan.pdf"
-Then it's named "Delete set-plan.pdf"
+Then it's named "Remove set-plan.pdf"
 
 ## Notes
 
@@ -54,3 +54,5 @@ Then it's named "Delete set-plan.pdf"
 - Depends on: production-scenery.E2.S1 (a file can be put in storage directly for tests)
 - The delete route names Stage, Tech and Director.
 - There's no history: a deleted file can't be brought back (PRD non-goals).
+- The page says "Remove", not "Delete", to match the props page's "Remove prop" (maintainer's choice at review, 2026-10-29). The file is still deleted from storage for good.
+- Done alongside: long file names stop at two lines with an ellipsis, so every tile is the same size; the whole name shows on hover (maintainer's request).

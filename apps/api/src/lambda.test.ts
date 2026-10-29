@@ -34,6 +34,7 @@ import { createRoutes } from "./routes.ts";
 const noSceneryFiles: SceneryFileStore = {
   list: async () => [],
   linkTo: async () => undefined,
+  remove: async () => "gone",
 };
 
 // The parts of an API Gateway HTTP API (payload v2) event that the entry point reads, signed
@@ -1055,9 +1056,76 @@ describe("Lambda entry point", () => {
 
         expect(res.statusCode).toBe(403);
         expect(JSON.parse(res.body ?? "")).toEqual({
-          message: "You can view this, but not change it.",
+          message: "You can view the scenery, but not change it.",
         });
         expect(await sceneryNotes(api)).toEqual([]);
+      });
+    });
+
+    describe("deleting a scenery file, which needs Stage, Tech or Director", () => {
+      // A file store that records what it was asked to delete.
+      const setUpFiles = () => {
+        const deleted: string[] = [];
+        const cast = inMemoryCastStore();
+        const roles = inMemoryRoleStore();
+        const api = lambdaEntry(
+          createRoutes(
+            {
+              cast,
+              roles,
+              runningOrders: inMemoryRunningOrderStore(),
+              itemNotes: inMemoryItemNoteStore(),
+              props: inMemoryPropStore(),
+              propsNotes: inMemoryItemNoteStore(),
+              sceneryNotes: inMemoryItemNoteStore(),
+              removeCastMember: uncastThenRemove(cast, roles),
+            },
+            inMemoryUsageStore(),
+            {
+              ...noSceneryFiles,
+              remove: async (production, item, name) => {
+                deleted.push(`${production}/${item}/${name}`);
+                return "removed";
+              },
+            },
+          ),
+        );
+        return { api, deleted };
+      };
+      const deleteSetPlan = (groups: string) =>
+        request(
+          "DELETE",
+          "/api/productions/2027/items/opening-number/scenery-files",
+          { queryStringParameters: { name: "set-plan.pdf" } },
+          groups,
+        );
+
+      it.each([
+        ["pat, with Stage", "[stage]"],
+        ["lee, with Tech", "[tech]"],
+        ["dee, with Director", "[director]"],
+        ["alex, an admin", "[admin]"],
+      ])("deletes the file for %s", async (_who, groups) => {
+        const { api, deleted } = setUpFiles();
+
+        expect((await api(deleteSetPlan(groups))).statusCode).toBe(204);
+        expect(deleted).toEqual(["2027/opening-number/set-plan.pdf"]);
+      });
+
+      it.each([
+        ["sam, with Casting only", "[casting]"],
+        ["wren, with Wardrobe only", "[wardrobe]"],
+        ["someone with no permissions", "[]"],
+      ])("refuses %s, deleting nothing", async (_who, groups) => {
+        const { api, deleted } = setUpFiles();
+
+        const res = await api(deleteSetPlan(groups));
+
+        expect(res.statusCode).toBe(403);
+        expect(JSON.parse(res.body ?? "")).toEqual({
+          message: "You can view the scenery, but not change it.",
+        });
+        expect(deleted).toEqual([]);
       });
     });
 

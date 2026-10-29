@@ -11,6 +11,7 @@ import { createAddProp } from "#/production/props/add-prop.ts";
 import { createGetProps } from "#/production/props/get-props.ts";
 import { createRemoveProp } from "#/production/props/remove-prop.ts";
 import { createUpdateProp } from "#/production/props/update-prop.ts";
+import { createDeleteSceneryFile } from "#/production/scenery/delete-scenery-file.ts";
 import { createGetSceneryFileLink } from "#/production/scenery/get-scenery-file-link.ts";
 import { createListSceneryFiles } from "#/production/scenery/list-scenery-files.ts";
 import type { SceneryFileStore } from "#/production/scenery/scenery-file-store.ts";
@@ -81,6 +82,8 @@ export function createRoutes(
       createListSceneryFiles(sceneryFiles),
     "GET /api/productions/{productionId}/items/{itemId}/scenery-file-link":
       createGetSceneryFileLink(sceneryFiles),
+    "DELETE /api/productions/{productionId}/items/{itemId}/scenery-files":
+      createDeleteSceneryFile(sceneryFiles),
     "GET /api/productions/{productionId}/scenery-notes": createGetItemNotes(sceneryNotes),
     "PUT /api/productions/{productionId}/items/{itemId}/scenery-notes": createSaveItemNote(
       sceneryNotes,

@@ -26,6 +26,7 @@ export const routeKeys = [
   "PUT /api/productions/{productionId}/items/{itemId}/props-notes",
   "GET /api/productions/{productionId}/items/{itemId}/scenery-files",
   "GET /api/productions/{productionId}/items/{itemId}/scenery-file-link",
+  "DELETE /api/productions/{productionId}/items/{itemId}/scenery-files",
   "GET /api/productions/{productionId}/scenery-notes",
   "PUT /api/productions/{productionId}/items/{itemId}/scenery-notes",
   "POST /api/productions/{productionId}/casting-grid/export",
@@ -86,6 +87,7 @@ const GENERAL_REFUSAL = "You can view this, but not change it.";
 const departmentRefusals: Partial<Record<Permission, string>> = {
   casting: "You can view the casting, but not change it.",
   stage: "You can view the props, but not change them.",
+  tech: "You can view the scenery, but not change it.",
 };
 
 /** Permissions any one of which allows a change, the first saying what a refusal names. */
@@ -173,7 +175,8 @@ export type RouteNeeds = Readonly<
 export const PROPS_PERMISSIONS: AnyOf = [STAGE_GROUP, DIRECTOR_GROUP];
 /**
  * Who may change scenery: Stage and Tech share it, and a Director may too (production-scenery
- * FR5). Tech first, as a refusal names the first: Stage's line is about the props.
+ * FR5). Tech first, as a refusal names the first: Tech's line is about the scenery, Stage's
+ * the props.
  */
 export const SCENERY_PERMISSIONS: AnyOf = [TECH_GROUP, STAGE_GROUP, DIRECTOR_GROUP];
 /** Who may change the cast, roles, casting and casting notes: Casting alone, never a Director. */
@@ -202,6 +205,7 @@ export const routeNeeds: RouteNeeds = {
   "PUT /api/productions/{productionId}/props/{propId}": PROPS_PERMISSIONS,
   "DELETE /api/productions/{productionId}/props/{propId}": PROPS_PERMISSIONS,
   "PUT /api/productions/{productionId}/items/{itemId}/props-notes": PROPS_PERMISSIONS,
+  "DELETE /api/productions/{productionId}/items/{itemId}/scenery-files": SCENERY_PERMISSIONS,
   "PUT /api/productions/{productionId}/items/{itemId}/scenery-notes": SCENERY_PERMISSIONS,
   // Usage is about the team, so only admins read it (usage-tracking FR4).
   "GET /api/usage": "admin",

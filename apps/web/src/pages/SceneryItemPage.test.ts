@@ -14,7 +14,12 @@ import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
 import { RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
-import { SCENERY_NOTES_PATH, sceneryFileLinkPath, sceneryFilesPath } from "@/utils/scenery.ts";
+import {
+  SCENERY_NOTES_PATH,
+  sceneryFileLinkPath,
+  sceneryFilePath,
+  sceneryFilesPath,
+} from "@/utils/scenery.ts";
 
 // The browser's own new tabs and downloads, which happy-dom can't follow.
 vi.mock("@/services/file-link.ts", () => ({ openFileTab: vi.fn(), downloadFrom: vi.fn() }));
@@ -37,7 +42,8 @@ const linkTo = (name: string) => `https://files.example/${encodeURIComponent(nam
 const json = (body: unknown) => new Response(JSON.stringify(body));
 
 /** A stand-in API holding one saved running order (none if undefined), each item's files
- *  as file storage holds them now, read on every request, and any scenery notes. */
+ *  as file storage holds them now, read on every request and changed by deletes, and any
+ *  scenery notes. */
 function apiHolds(
   order: RunningOrder | undefined,
   files: Record<string, SceneryFile[]> = {},
@@ -58,12 +64,20 @@ function apiHolds(
         return json(saved);
       }
       for (const [itemId, itemFiles] of Object.entries(files)) {
+        if (init?.method === "DELETE") {
+          const at = itemFiles.findIndex(({ name }) => url === sceneryFilePath(itemId, name));
+          if (at < 0) continue;
+          itemFiles.splice(at, 1);
+          return new Response(null, { status: 204 });
+        }
         if (url === sceneryFilesPath(itemId)) return json({ files: itemFiles });
         for (const { name } of itemFiles) {
           if (url === sceneryFileLinkPath(itemId, name)) return json({ url: linkTo(name) });
         }
       }
-      if (url.includes("/scenery-file-link?")) return new Response(null, { status: 404 });
+      if (url.includes("/scenery-file-link?") || init?.method === "DELETE") {
+        return new Response(null, { status: 404 });
+      }
       if (url.endsWith("/scenery-files")) return json({ files: [] });
       if (url === "/api/usage") return new Response(null, { status: 204 });
       return json({ status: "ok", version: "dev" });
@@ -125,7 +139,7 @@ describe("An item's Scenery page", () => {
     });
     const { wrapper } = await openAppAt(OPENING_NUMBER);
 
-    const icons = wrapper.findAll("main [data-test=file] svg");
+    const icons = wrapper.findAll("main [data-test=file] .file-icon");
     // Sorted by name: build, model, notes, PHOTO, pitch, plan, readme.
     expect(icons.map((icon) => icon.classes().find((name) => name.startsWith("fa-file")))).toEqual([
       "fa-file-excel",
@@ -323,7 +337,7 @@ describe("Opening and downloading a scenery file", () => {
       .findAll("main [data-test=file]")
       .find((found) => found.get("[data-test=name]").text() === name);
     if (!tile) throw new Error(`no tile for ${name}`);
-    return tile.get("button");
+    return tile.get(".file-tile");
   };
 
   async function choose(wrapper: VueWrapper, name: string) {
@@ -448,12 +462,145 @@ describe("Opening and downloading a scenery file", () => {
     const { wrapper } = await openAppAt(OPENING_NUMBER);
 
     const names = wrapper
-      .findAll("main [data-test=file] button")
+      .findAll("main [data-test=file] .file-tile")
       .map((b) => b.attributes("aria-label"));
     expect(names).toEqual([
       "Download build-list.xlsx, XLSX file",
       "Download notes",
       "Open set-plan.pdf, PDF file",
     ]);
+  });
+});
+
+describe("Deleting a scenery file", () => {
+  const QUESTION = "Remove set-plan.pdf? This can't be undone.";
+  // Fresh copies, as deletes change what the stand-in API holds.
+  const heldFiles = () => ({ "opening-number": [...openingNumberFiles["opening-number"]] });
+
+  const trashFor = (wrapper: VueWrapper, name: string) => {
+    const tile = wrapper
+      .findAll("main [data-test=file]")
+      .find((found) => found.get("[data-test=name]").text() === name);
+    if (!tile) throw new Error(`no tile for ${name}`);
+    return tile.get("[data-test=delete]");
+  };
+
+  async function trash(wrapper: VueWrapper, name: string, confirmed: boolean) {
+    const confirm = vi.fn(() => confirmed);
+    vi.stubGlobal("confirm", confirm);
+    await trashFor(wrapper, name).trigger("click");
+    await flushPromises();
+    return confirm;
+  }
+
+  const deletes = () =>
+    vi
+      .mocked(fetch)
+      .mock.calls.filter(([, init]) => init?.method === "DELETE")
+      .map(([url]) => String(url));
+
+  it.each([
+    [["stage"], "pat"],
+    [["tech"], "lee"],
+    [["director"], "dee"],
+    [["admin"], "alex"],
+  ])("gives %s a trash icon on every tile", async (groups, name) => {
+    await signInAs(groups, name);
+    apiHolds(show, openingNumberFiles);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    expect(wrapper.findAll("main [data-test=file] [data-test=delete]")).toHaveLength(3);
+  });
+
+  it("asks to confirm, then deletes the file and its tile for pat, with Stage", async () => {
+    await signInAs(["stage"], "pat");
+    const held = heldFiles();
+    apiHolds(show, held);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    const confirm = await trash(wrapper, "set-plan.pdf", true);
+
+    expect(confirm).toHaveBeenCalledWith(QUESTION);
+    expect(deletes()).toEqual([sceneryFilePath("opening-number", "set-plan.pdf")]);
+    expect(tiles(wrapper).map((tile) => tile.name)).toEqual(["Backdrop.png", "build-list.xlsx"]);
+    expect(held["opening-number"].map((file) => file.name)).not.toContain("set-plan.pdf");
+  });
+
+  it("keeps the file when pat cancels", async () => {
+    await signInAs(["stage"], "pat");
+    apiHolds(show, heldFiles());
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    const confirm = await trash(wrapper, "set-plan.pdf", false);
+
+    expect(confirm).toHaveBeenCalledWith(QUESTION);
+    expect(deletes()).toEqual([]);
+    expect(tiles(wrapper).map((tile) => tile.name)).toContain("set-plan.pdf");
+  });
+
+  it("gives sam, with Casting only, no trash icon", async () => {
+    await signInAs(["casting"], "sam");
+    apiHolds(show, openingNumberFiles);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    expect(tiles(wrapper)).toHaveLength(3);
+    expect(wrapper.find("main [data-test=delete]").exists()).toBe(false);
+  });
+
+  it("says a file deleted in another browser is gone, and its tile goes", async () => {
+    await signInAs(["stage"], "pat");
+    const held = heldFiles();
+    apiHolds(show, held);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+    // Deleted in another browser after the page loaded.
+    held["opening-number"] = held["opening-number"].filter((f) => f.name !== "set-plan.pdf");
+
+    await trash(wrapper, "set-plan.pdf", true);
+
+    expect(wrapper.get("main [data-test=file-problem]").text()).toBe(
+      "set-plan.pdf isn't there any more.",
+    );
+    expect(tiles(wrapper).map((tile) => tile.name)).toEqual(["Backdrop.png", "build-list.xlsx"]);
+  });
+
+  it("says a delete that failed didn't happen, keeping the tile", async () => {
+    await signInAs(["stage"], "pat");
+    apiHolds(show, heldFiles());
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+    const stand = vi.mocked(fetch).getMockImplementation();
+    vi.mocked(fetch).mockImplementation(async (url, init) =>
+      init?.method === "DELETE"
+        ? new Response(null, { status: 500 })
+        : (stand?.(url, init) ?? new Response(null, { status: 500 })),
+    );
+
+    await trash(wrapper, "set-plan.pdf", true);
+
+    expect(wrapper.get("main [data-test=file-problem]").text()).toBe(
+      "Couldn't remove set-plan.pdf. Try again.",
+    );
+    expect(tiles(wrapper).map((tile) => tile.name)).toContain("set-plan.pdf");
+  });
+
+  it("names each trash icon for its file, for screen readers", async () => {
+    await signInAs(["stage"], "pat");
+    apiHolds(show, openingNumberFiles);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    expect(trashFor(wrapper, "set-plan.pdf").attributes("aria-label")).toBe("Remove set-plan.pdf");
+    expect(trashFor(wrapper, "set-plan.pdf").attributes("type")).toBe("button");
+  });
+});
+
+describe("A scenery file with a long name", () => {
+  const LONG_NAME = "opening-number-set-plan-with-the-flats-and-the-tabs-final-v3-revised.pdf";
+
+  it("keeps the whole name to show on hover, as its tile clips it to two lines", async () => {
+    apiHolds(show, { "opening-number": [{ name: LONG_NAME, size: 10 }] });
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    const name = wrapper.get("main [data-test=file] [data-test=name]");
+    expect(name.text()).toBe(LONG_NAME);
+    expect(name.attributes("title")).toBe(LONG_NAME);
   });
 });

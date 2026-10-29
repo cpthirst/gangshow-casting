@@ -1,4 +1,4 @@
-import { readdir, stat } from "node:fs/promises";
+import { readdir, rm, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { type SceneryFile, SceneryFileName } from "@app/shared";
 import { ifExists } from "#/storage/files.ts";
@@ -14,6 +14,9 @@ export interface SceneryFileStore {
   /** A short-lived link that opens or downloads one of the item's files (FR10); undefined if
    *  it isn't there. The name is a valid SceneryFileName. */
   linkTo(productionId: string, itemId: string, name: string): Promise<string | undefined>;
+  /** Deletes one of the item's files for good (FR11), or says it was already gone. The name is
+   *  a valid SceneryFileName. */
+  remove(productionId: string, itemId: string, name: string): Promise<"removed" | "gone">;
 }
 
 /** The item's place in storage: `<production>/<item id>/scenery/` (ADR 0030). The ids are
@@ -46,6 +49,14 @@ export function folderSceneryFileStore(folder: string): SceneryFileStore {
       const folderOfItem = sceneryFolderOf(productionId, itemId);
       const found = await ifExists(() => stat(join(folder, folderOfItem, name)));
       return found?.isFile() ? localFileLink(folderOfItem, name) : undefined;
+    },
+    async remove(productionId, itemId, name) {
+      const file = join(folder, sceneryFolderOf(productionId, itemId), name);
+      const found = await ifExists(() => stat(file));
+      if (!found?.isFile()) return "gone";
+      // Gone meanwhile, if deleted in another browser at the same moment: removed all the same.
+      await rm(file, { force: true });
+      return "removed";
     },
   };
 }

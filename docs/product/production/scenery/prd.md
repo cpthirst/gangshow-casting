@@ -72,7 +72,7 @@ Access doesn't fit the production team either. The show's director works across 
 - **FR8**: Someone who can change scenery can **upload** a file, one at a time, of any type, up to **100 MB**. The upload area says "Scenery and set images only: no photos of cast members." The page shows progress while the file uploads. A file over the limit, or an upload that fails, is named with the reason.
 - **FR9**: Uploading a file with the same name as one already on that item **replaces** it, after the page asks to confirm ("Replace set-plan.pdf?"). Names are compared exactly, as stored.
 - **FR10**: Anyone can **open or download** a file by choosing its tile. A PDF, image (JPG, PNG, GIF, WebP) or plain-text file opens in a new browser tab; any other file downloads. Either way it keeps its stored name.
-- **FR11**: The trash icon asks to confirm ("Delete set-plan.pdf? This can't be undone."), then deletes the file for everyone.
+- **FR11**: The trash icon asks to confirm ("Remove set-plan.pdf? This can't be undone."), then deletes the file for everyone.
 - **FR12**: Each item's files are its own, tied to that item in the current production. Moving an item in the running order keeps its files with it.
 - **FR13**: When an item is removed from the running order, its files are deleted along with everything else about it, in the same removal clean-up that runs when the running order is saved (running-order E3.S2). Nothing is deleted until the save, so Reset still undoes a removal. As with the item's notes and roles, a clean-up that fails is repaired by the next save.
 
