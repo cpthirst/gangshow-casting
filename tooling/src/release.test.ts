@@ -55,14 +55,30 @@ describe("release tags", () => {
 describe("what a cdk diff would remove", () => {
   const table = "AWS::DynamoDB::Table DataTable DataTable447BC44E";
   const pool = "AWS::Cognito::UserPool UserPool UserPool6BA7E5F2";
+  // What the stack's TableV2 really is in CloudFormation (infra/lib/app-stack.ts).
+  const globalTable = "AWS::DynamoDB::GlobalTable DataTable DataTable447BC44E";
+  const filesBucket = "AWS::S3::Bucket FilesBucket FilesBucketC1D2E3F4";
 
   it.each([
     ["destroyed", `[-] ${table} destroy`],
     ["replaced", `[~] ${table} replace`],
     ["orphaned", `[-] ${table} orphan`],
     ["a user pool replaced", `[~] ${pool} replace`],
-  ])("flags a table or user pool that would be %s", (_name, line) => {
+    ["the stack's global table replaced", `[~] ${globalTable} replace`],
+    ["the stack's global table orphaned", `[-] ${globalTable} orphan`],
+    ["the files bucket replaced", `[~] ${filesBucket} replace`],
+    ["the files bucket orphaned", `[-] ${filesBucket} orphan`],
+  ])("flags a table, user pool or files bucket that would be %s", (_name, line) => {
     expect(statefulResourceRisks(`Resources\n${line}\n`)).toEqual([line]);
+  });
+
+  it("doesn't mistake the pages' bucket, or the files bucket's policy, for the files bucket", () => {
+    const diff = [
+      "[-] AWS::S3::Bucket Pages PagesAB12 destroy",
+      "[-] AWS::S3::BucketPolicy FilesBucket/Policy FilesBucketPolicyAB12 destroy",
+    ].join("\n");
+
+    expect(statefulResourceRisks(diff)).toEqual([]);
   });
 
   it("reads a diff that has colour codes", () => {
@@ -398,7 +414,7 @@ describe("release: deploying", () => {
     expect(asked.at(-1)).toContain("made-up");
   });
 
-  it("refuses a diff that would replace the table or user pool, and returns to main", async () => {
+  it("refuses a diff that would replace the table, user pool or files bucket, and returns to main", async () => {
     const { deps, commands, printed } = fakeMachine({
       yes: [true],
       ...merged,
