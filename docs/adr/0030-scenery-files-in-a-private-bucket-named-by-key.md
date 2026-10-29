@@ -1,6 +1,6 @@
 # 0030. Scenery files in a private bucket, each named by its key
 
-- **Status**: Proposed
+- **Status**: Accepted
 - **Date**: 2026-10-29
 - **Deciders**: Nick Hirst
 
