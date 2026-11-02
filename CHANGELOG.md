@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.38.0](https://github.com/cpthirst/gangshow-casting/compare/v1.37.1...v1.38.0) (2026-11-02)
+
+
+### Features
+
+* **web:** give a mic channel to a cast member in the item (production-mics.E1.S1) ([#175](https://github.com/cpthirst/gangshow-casting/issues/175)) ([a55eb64](https://github.com/cpthirst/gangshow-casting/commit/a55eb6468ebe25d3d5e489edec20d1be83739ea1))
+
 ## [1.37.1](https://github.com/cpthirst/gangshow-casting/compare/v1.37.0...v1.37.1) (2026-11-02)
 
 
