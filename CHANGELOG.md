@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.37.0](https://github.com/cpthirst/gangshow-casting/compare/v1.36.1...v1.37.0) (2026-11-02)
+
+
+### Features
+
+* **web:** add SFX and Wardrobe files and notes (production-sfx-wardrobe) ([#170](https://github.com/cpthirst/gangshow-casting/issues/170)) ([2650e3f](https://github.com/cpthirst/gangshow-casting/commit/2650e3fe56afe6866b55f5c25d798830cb72d692))
+
 ## [1.36.1](https://github.com/cpthirst/gangshow-casting/compare/v1.36.0...v1.36.1) (2026-10-29)
 
 
