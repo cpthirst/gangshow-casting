@@ -2,7 +2,7 @@
 id: production-mics.E1.S1
 title: Give a mic channel to a cast member in the item
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story
@@ -74,3 +74,4 @@ And if the clean-up fails, the next save deletes it
 - Channel pickers are labelled "Mic 3 cast member" and so on; the page works at 320px and 360px with no sideways scrolling (PRD accessibility).
 - Ask before adding a browser layout walk for the page (CLAUDE.md).
 - Out of scope: roles (E1.S2), notes (E1.S3), the item-before rule (E2.S1), the Overview count (E3.S1).
+- Follow-up for E2.S3: until taking someone out of an item or the cast frees their channel, a channel can still hold someone who has left the cast; its picker then reads as empty, though the channel is taken.

@@ -1,0 +1,9 @@
+{
+  "productionId": "2027",
+  "items": [
+    {
+      "itemId": "itm-2",
+      "mics": [{ "channel": 1, "castMemberId": 2 }, { "channel": 24, "castMemberId": 1 }]
+    }
+  ]
+}

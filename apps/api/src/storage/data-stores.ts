@@ -26,6 +26,8 @@ import {
   type ItemFileStores,
 } from "#/production/item-files/item-file-store.ts";
 import { s3ItemFileStore } from "#/production/item-files/s3-item-file-store.ts";
+import { dynamoMicPlotStore } from "#/production/mic-plot/dynamo-mic-plot-store.ts";
+import { fileMicPlotStore } from "#/production/mic-plot/mic-plot-store.ts";
 import { dynamoPropStore } from "#/production/props/dynamo-prop-store.ts";
 import { filePropStore } from "#/production/props/prop-store.ts";
 import { fileCastStore } from "#/show/cast/cast-store.ts";
@@ -78,6 +80,7 @@ export function fileStores(dataDir: string) {
     sceneryNotes: fileItemNoteStore(dataDir, SCENERY_NOTES_FILE),
     sfxNotes: fileItemNoteStore(dataDir, SFX_NOTES_FILE),
     wardrobeNotes: fileItemNoteStore(dataDir, WARDROBE_NOTES_FILE),
+    micPlots: fileMicPlotStore(dataDir),
   };
 }
 
@@ -97,6 +100,7 @@ export function remoteStores(db: DynamoDBDocumentClient, table: string): Stores 
     sceneryNotes: dynamoItemNoteStore(db, table, SCENERY_NOTE),
     sfxNotes: dynamoItemNoteStore(db, table, SFX_NOTE),
     wardrobeNotes: dynamoItemNoteStore(db, table, WARDROBE_NOTE),
+    micPlots: dynamoMicPlotStore(db, table),
   };
 }
 

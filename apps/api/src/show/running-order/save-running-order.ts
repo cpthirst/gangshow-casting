@@ -6,11 +6,12 @@ import { jsonResponse, parseJson } from "#/http/json.ts";
 import { productionIdOf } from "#/http/params.ts";
 import type { ItemNoteStore } from "#/item-notes/item-note-store.ts";
 import type { ItemFileStore } from "#/production/item-files/item-file-store.ts";
+import type { MicPlotStore } from "#/production/mic-plot/mic-plot-store.ts";
 import { applyChange } from "./running-order-changes.ts";
 import type { RunningOrderStore } from "./running-order-store.ts";
 
-/** Where what's kept about each item lives, its casting, its scenery files, and its SFX and
- *  Wardrobe files and notes: it goes when the item leaves the show. */
+/** Where what's kept about each item lives, its casting, its scenery files, its SFX and
+ *  Wardrobe files and notes, and its mic plot: it goes when the item leaves the show. */
 export interface ItemCleanup {
   roles: Pick<RoleStore, "keepOnlyItems">;
   itemNotes: Pick<ItemNoteStore, "keepOnlyItems">;
@@ -19,6 +20,7 @@ export interface ItemCleanup {
   sfxNotes: Pick<ItemNoteStore, "keepOnlyItems">;
   wardrobeFiles: Pick<ItemFileStore, "keepOnlyItems">;
   wardrobeNotes: Pick<ItemNoteStore, "keepOnlyItems">;
+  micPlots: Pick<MicPlotStore, "keepOnlyItems">;
 }
 
 // POST /api/productions/{productionId}/running-order/versions: apply one change to the
@@ -75,12 +77,13 @@ async function removeWhatDroppedItemsKept(
     await cleanup.sfxNotes.keepOnlyItems(productionId, itemIds);
     await cleanup.wardrobeFiles.keepOnlyItems(productionId, itemIds);
     await cleanup.wardrobeNotes.keepOnlyItems(productionId, itemIds);
+    await cleanup.micPlots.keepOnlyItems(productionId, itemIds);
     // A dropped item's props and props notes are kept, for now: whether they go too is an open
     // question in docs/product/production/props/prd.md, to settle before item removal is built.
   } catch (error) {
     // Only the error's name: a store's message can quote stored casting (ADR 0010).
     console.error(
-      `Couldn't remove dropped items' casting, scenery, SFX or Wardrobe in production ${productionId}: ${error instanceof Error ? error.name : "unknown error"}`,
+      `Couldn't remove dropped items' casting, scenery, SFX, Wardrobe or mic plot in production ${productionId}: ${error instanceof Error ? error.name : "unknown error"}`,
     );
   }
 }

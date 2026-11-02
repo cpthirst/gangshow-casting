@@ -5,6 +5,7 @@ import {
   isRefusalAsReadOnly,
   LOCAL_ACCESS_HEADER,
   localAccessHeader,
+  MIC_PLOT_PERMISSIONS,
   mayChange,
   PROPS_PERMISSIONS,
   SCENERY_PERMISSIONS,
@@ -119,6 +120,8 @@ export const canChangeProps = computed(() => mayChange(access.value, PROPS_PERMI
 export const canChangeScenery = computed(() => mayChange(access.value, SCENERY_PERMISSIONS));
 /** The SFX pages show their change controls only to those with Tech or Director. */
 export const canChangeSfx = computed(() => mayChange(access.value, SFX_PERMISSIONS));
+/** The Mic plot pages show their change controls only to those with Tech or Director. */
+export const canChangeMicPlot = computed(() => mayChange(access.value, MIC_PLOT_PERMISSIONS));
 /** The Wardrobe pages show their change controls only to those with Wardrobe or Director. */
 export const canChangeWardrobe = computed(() => mayChange(access.value, WARDROBE_PERMISSIONS));
 /** Whether the pages for a department's data show their change controls: any one permission will do. */

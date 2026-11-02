@@ -18,7 +18,7 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [production-mics.E1.S1](stories/E1-S1-give-a-channel-to-a-cast-member.md) | Walking skeleton: the Mic plot page replaces "Coming soon" with Mic 1 to Mic 24. Tech, Director and Admins can give a channel to a cast member cast in the item, or clear it; everyone else sees it read-only, with the read-only line. Someone already on a channel in the item isn't offered for another. The API enforces all of it. An item's mic plot is deleted with the item | FR1, FR2, FR3, FR4, FR11 | (none) | ready |
+| [production-mics.E1.S1](stories/E1-S1-give-a-channel-to-a-cast-member.md) | Walking skeleton: the Mic plot page replaces "Coming soon" with Mic 1 to Mic 24. Tech, Director and Admins can give a channel to a cast member cast in the item, or clear it; everyone else sees it read-only, with the read-only line. Someone already on a channel in the item isn't offered for another. The API enforces all of it. An item's mic plot is deleted with the item | FR1, FR2, FR3, FR4, FR11 | (none) | done |
 | [production-mics.E1.S2](stories/E1-S2-choose-the-role.md) | Each channel has a role, chosen from the item's casting roles that cast member is cast in, or left blank for someone in the item without a named part. The API refuses a role the cast member doesn't have in the item | FR3 | E1.S1 | ready |
 | [production-mics.E1.S3](stories/E1-S3-mic-plot-notes.md) | Mic plot notes under the channels, changed by Tech, Director and Admins, deleted with the item | FR8, FR11 | E1.S1 | ready |
 

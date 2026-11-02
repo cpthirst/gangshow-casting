@@ -113,6 +113,19 @@ test("a department's page for a long-titled item fits the screen", async ({ page
   await expectNoSidewaysScroll(page);
 });
 
+test("an item's 24 mics, and a channel's cast member picker, fit the screen", async ({ page }) => {
+  // e2e/data gives the long Pirate Sketch title's Mic 1 to the cast's longest name.
+  const longest = "Alexandra-Rose Featherstonehaugh-Smythe";
+  await page.goto("/production/items/itm-2/mic-plot");
+  await expect(page.getByLabel("Mic 1 cast member")).toHaveValue(longest);
+  await expect(page.getByLabel("Mic 24 cast member")).toBeVisible();
+  await expectNoSidewaysScroll(page);
+
+  await page.getByLabel("Mic 2 cast member").fill("o");
+  await expect(page.getByRole("option", { name: /Jo Newcomer/ })).toBeVisible();
+  await expectNoSidewaysScroll(page);
+});
+
 test("an item's props, and a prop's carrier picker, fit the screen", async ({ page }) => {
   // e2e/data gives the long Pirate Sketch title a long-named prop that the Pirates' longest
   // name carries, with one more to choose.

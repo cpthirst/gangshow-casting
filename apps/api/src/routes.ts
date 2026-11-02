@@ -13,6 +13,8 @@ import { createGetItemFileLink } from "#/production/item-files/get-item-file-lin
 import type { ItemFileStores } from "#/production/item-files/item-file-store.ts";
 import { createListItemFiles } from "#/production/item-files/list-item-files.ts";
 import { createUploadItemFile } from "#/production/item-files/upload-item-file.ts";
+import { createAllocateMic } from "#/production/mic-plot/allocate-mic.ts";
+import { createGetMicPlot } from "#/production/mic-plot/get-mic-plot.ts";
 import { createAddProp } from "#/production/props/add-prop.ts";
 import { createGetProps } from "#/production/props/get-props.ts";
 import { createRemoveProp } from "#/production/props/remove-prop.ts";
@@ -44,6 +46,7 @@ export function createRoutes(
     sceneryNotes,
     sfxNotes,
     wardrobeNotes,
+    micPlots,
   }: Stores,
   usage: UsageStore,
   files: ItemFileStores,
@@ -54,7 +57,16 @@ export function createRoutes(
     "GET /api/productions/{productionId}/running-order": createGetRunningOrder(runningOrders),
     "POST /api/productions/{productionId}/running-order/versions": createSaveRunningOrder(
       runningOrders,
-      { roles, itemNotes, sceneryFiles, sfxFiles, sfxNotes, wardrobeFiles, wardrobeNotes },
+      {
+        roles,
+        itemNotes,
+        sceneryFiles,
+        sfxFiles,
+        sfxNotes,
+        wardrobeFiles,
+        wardrobeNotes,
+        micPlots,
+      },
     ),
     "GET /api/productions/{productionId}/cast": createGetCast(cast),
     "POST /api/productions/{productionId}/cast": createAddCastMember(cast),
@@ -129,6 +141,12 @@ export function createRoutes(
     "PUT /api/productions/{productionId}/items/{itemId}/wardrobe-notes": createSaveItemNote(
       wardrobeNotes,
       runningOrders,
+    ),
+    "GET /api/productions/{productionId}/mic-plot": createGetMicPlot(micPlots),
+    "PUT /api/productions/{productionId}/items/{itemId}/mic-plot": createAllocateMic(
+      micPlots,
+      runningOrders,
+      roles,
     ),
     "POST /api/productions/{productionId}/casting-grid/export": exportCastingGrid,
     "POST /api/productions/{productionId}/items/{itemId}/roles": createAddRole(

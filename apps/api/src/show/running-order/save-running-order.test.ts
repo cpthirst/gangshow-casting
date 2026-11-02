@@ -10,6 +10,8 @@ import {
   folderItemFileStore,
   type ItemFileStore,
 } from "#/production/item-files/item-file-store.ts";
+import type { MicPlotStore } from "#/production/mic-plot/mic-plot-store.ts";
+import { inMemoryMicPlotStore } from "#/production/mic-plot/mic-plot-store.ts";
 import { anItem, aRunningOrder, itemId } from "./running-order.fixture.ts";
 import { inMemoryRunningOrderStore } from "./running-order-store.ts";
 import { createSaveRunningOrder } from "./save-running-order.ts";
@@ -63,6 +65,7 @@ function setUp() {
       sfxNotes: noCleanup,
       wardrobeFiles: noCleanup,
       wardrobeNotes: noCleanup,
+      micPlots: noCleanup,
     },
     () => NOW,
   );
@@ -261,6 +264,7 @@ describe("save running order handler", () => {
         sfxNotes: { keepOnlyItems: failing },
         wardrobeFiles: { keepOnlyItems: failing },
         wardrobeNotes: { keepOnlyItems: failing },
+        micPlots: { keepOnlyItems: failing },
       },
       () => NOW,
     );
@@ -287,6 +291,7 @@ describe("save running order handler", () => {
       sfxNotes: noCleanup,
       wardrobeFiles: noCleanup,
       wardrobeNotes: noCleanup,
+      micPlots: noCleanup,
     };
     // Someone else saves version 8, with a new item, just after this save writes 7.
     const racing = {
@@ -365,6 +370,7 @@ describe("save running order handler, with scenery files", () => {
       sfxNotes: noCleanup,
       wardrobeFiles: noCleanup,
       wardrobeNotes: noCleanup,
+      micPlots: noCleanup,
     };
     return createSaveRunningOrder(store, cleanup, () => NOW);
   }
@@ -485,6 +491,7 @@ describe("save running order handler, with SFX files and notes", () => {
         sfxNotes,
         wardrobeFiles: noCleanup,
         wardrobeNotes: noCleanup,
+        micPlots: noCleanup,
       },
       () => NOW,
     );
@@ -556,6 +563,7 @@ describe("save running order handler, with Wardrobe files and notes", () => {
         sfxNotes: noCleanup,
         wardrobeFiles: folderItemFileStore(folder, "wardrobe"),
         wardrobeNotes,
+        micPlots: noCleanup,
       },
       () => NOW,
     );
@@ -600,5 +608,75 @@ describe("save running order handler, with Wardrobe files and notes", () => {
     expect(stale.statusCode).toBe(409);
     expect(await wardrobeNamesOf(cut)).toEqual(["hat.jpg"]);
     expect((await wardrobeNotes.list("2027")).notes).toHaveLength(1);
+  });
+});
+
+describe("save running order handler, with mic plots", () => {
+  const old = itemId("Old Sketch");
+  const opening = itemId("Opening Number");
+  // Made-up cast member id: Alex.
+  const alex = 1;
+
+  function setUpMics(micPlots = inMemoryMicPlotStore()) {
+    const store = inMemoryRunningOrderStore([
+      aRunningOrder(6, { first: ["Opening Number", "Old Sketch"] }),
+    ]);
+    const cleanup = {
+      roles: inMemoryRoleStore(),
+      itemNotes: inMemoryItemNoteStore(),
+      sceneryFiles: noCleanup,
+      sfxFiles: noCleanup,
+      sfxNotes: noCleanup,
+      wardrobeFiles: noCleanup,
+      wardrobeNotes: noCleanup,
+      micPlots,
+    };
+    return { micPlots, handler: createSaveRunningOrder(store, cleanup, () => NOW) };
+  }
+  const itemsWithMics = async (micPlots: MicPlotStore) =>
+    (await micPlots.list("2027")).items.map((plot) => plot.itemId);
+
+  it("deletes a removed item's mic plot once the version is saved, keeping the others'", async () => {
+    const { micPlots, handler } = setUpMics();
+    await micPlots.allocate("2027", old, 1, alex);
+    await micPlots.allocate("2027", opening, 3, alex);
+
+    const res = await handler(request(update(6, ["Opening Number"])));
+
+    expect(res.statusCode).toBe(201);
+    expect(await itemsWithMics(micPlots)).toEqual([opening]);
+  });
+
+  it("deletes no mic plot when the save is refused", async () => {
+    const { micPlots, handler } = setUpMics();
+    await micPlots.allocate("2027", old, 1, alex);
+
+    const stale = await handler(request(update(5, ["Opening Number"])));
+
+    expect(stale.statusCode).toBe(409);
+    expect(await itemsWithMics(micPlots)).toEqual([old]);
+  });
+
+  it("deletes a removed item's mic plot at the next save when the clean-up failed", async () => {
+    const micPlots = inMemoryMicPlotStore();
+    await micPlots.allocate("2027", old, 1, alex);
+    let failing = true;
+    const flaky: MicPlotStore = {
+      ...micPlots,
+      async keepOnlyItems(productionId, itemIds) {
+        if (failing) throw new Error("table unavailable");
+        await micPlots.keepOnlyItems(productionId, itemIds);
+      },
+    };
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { handler } = setUpMics(flaky);
+
+    expect((await handler(request(update(6, ["Opening Number"])))).statusCode).toBe(201);
+    expect(await itemsWithMics(micPlots)).toEqual([old]);
+    failing = false;
+    expect((await handler(request(update(7, ["Opening Number"])))).statusCode).toBe(201);
+
+    expect(await itemsWithMics(micPlots)).toEqual([]);
+    log.mockRestore();
   });
 });

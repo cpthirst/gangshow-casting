@@ -1,5 +1,6 @@
 import {
   type AnyOf,
+  MIC_PLOT_PERMISSIONS,
   PROPS_PERMISSIONS,
   SCENERY_PERMISSIONS,
   SFX_PERMISSIONS,
@@ -81,7 +82,7 @@ export const departmentPages: DepartmentPage[] = [
     noun: "mic plot",
     route: "mic-plot-item",
     path: "mic-plot",
-    permissions: ["tech", "director"],
+    permissions: MIC_PLOT_PERMISSIONS,
     icon: icons.micPlot,
   },
   {
@@ -93,9 +94,3 @@ export const departmentPages: DepartmentPage[] = [
     icon: icons.wardrobe,
   },
 ];
-
-/** The departments whose item pages say "Coming soon" until their own feature fills them.
- *  Props, Scenery, SFX and Wardrobe already have their own (PropsItemPage, SceneryItemPage,
- *  SfxItemPage, WardrobeItemPage); take each department out as its page arrives. */
-const ownPages = ["props-item", "scenery-item", "sfx-item", "wardrobe-item"];
-export const comingSoonPages = departmentPages.filter((page) => !ownPages.includes(page.route));

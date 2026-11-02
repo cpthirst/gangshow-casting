@@ -1,0 +1,44 @@
+import { AllocateMicRequest, RunningOrderItem } from "@app/shared";
+import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
+import type { RoleStore } from "#/casting/roles/role-store.ts";
+import type { ApiEvent } from "#/http/handler.ts";
+import { jsonResponse, parseJson } from "#/http/json.ts";
+import { productionIdOf } from "#/http/params.ts";
+import type { RunningOrderStore } from "#/show/running-order/running-order-store.ts";
+import type { MicPlotStore } from "./mic-plot-store.ts";
+
+// PUT /api/productions/{productionId}/items/{itemId}/mic-plot: give one of the item's channels
+// to a cast member cast in it, or free it (production-mics FR3, FR4). Only Tech, a Director or
+// an admin get here (routeNeeds in @app/shared).
+export function createAllocateMic(
+  micPlots: MicPlotStore,
+  runningOrders: RunningOrderStore,
+  roles: RoleStore,
+) {
+  return async (event: ApiEvent): Promise<APIGatewayProxyStructuredResultV2> => {
+    const productionId = productionIdOf(event);
+    const itemId = RunningOrderItem.shape.id.safeParse(event.pathParameters?.itemId);
+    if (productionId === undefined || !itemId.success) return { statusCode: 404 };
+    // The body is checked first, so a bad request is a 400 whatever the item.
+    const request = AllocateMicRequest.safeParse(parseJson(event.body));
+    if (!request.success) return { statusCode: 400 };
+
+    // Mic plots belong to items in the latest saved running order, as roles do.
+    const order = await runningOrders.latest(productionId);
+    const inShow = order?.halves.some((half) => half.items.some((item) => item.id === itemId.data));
+    if (!inShow) return { statusCode: 404 };
+
+    const { channel, castMemberId } = request.data;
+    if (castMemberId !== null) {
+      const itemRoles = (await roles.list(productionId)).roles.filter(
+        (role) => role.itemId === itemId.data,
+      );
+      const castInItem = itemRoles.some((role) => role.castMemberIds.includes(castMemberId));
+      if (!castInItem) return { statusCode: 400 };
+    }
+
+    const plot = await micPlots.allocate(productionId, itemId.data, channel, castMemberId);
+    if ("onAnotherChannel" in plot) return jsonResponse(409, plot.onAnotherChannel);
+    return jsonResponse(200, plot);
+  };
+}
