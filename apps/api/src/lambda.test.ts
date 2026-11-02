@@ -8,6 +8,8 @@ import {
   HealthResponse,
   ItemNoteList,
   LOCAL_ACCESS_HEADER,
+  MIC_PLOT_PERMISSIONS,
+  MicPlotList,
   needOf,
   PROPS_PERMISSIONS,
   Role,
@@ -31,6 +33,7 @@ import {
   folderItemFileStore,
   type ItemFileStore,
 } from "#/production/item-files/item-file-store.ts";
+import { inMemoryMicPlotStore } from "#/production/mic-plot/mic-plot-store.ts";
 import { inMemoryPropStore } from "#/production/props/prop-store.ts";
 import { aCastList, aCastMember } from "#/show/cast/cast.fixture.ts";
 import { inMemoryCastStore } from "#/show/cast/cast-store.ts";
@@ -143,6 +146,7 @@ describe("Lambda entry point", () => {
             sceneryNotes: inMemoryItemNoteStore(),
             sfxNotes: inMemoryItemNoteStore(),
             wardrobeNotes: inMemoryItemNoteStore(),
+            micPlots: inMemoryMicPlotStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
@@ -247,6 +251,7 @@ describe("Lambda entry point", () => {
             sceneryNotes: inMemoryItemNoteStore(),
             sfxNotes: inMemoryItemNoteStore(),
             wardrobeNotes: inMemoryItemNoteStore(),
+            micPlots: inMemoryMicPlotStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
@@ -401,6 +406,7 @@ describe("Lambda entry point", () => {
             sceneryNotes: inMemoryItemNoteStore(),
             sfxNotes: inMemoryItemNoteStore(),
             wardrobeNotes: inMemoryItemNoteStore(),
+            micPlots: inMemoryMicPlotStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
@@ -617,6 +623,7 @@ describe("Lambda entry point", () => {
             sceneryNotes: inMemoryItemNoteStore(),
             sfxNotes: inMemoryItemNoteStore(),
             wardrobeNotes: inMemoryItemNoteStore(),
+            micPlots: inMemoryMicPlotStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
@@ -777,12 +784,14 @@ describe("Lambda entry point", () => {
       ["lee, with Tech and Wardrobe only", "[tech wardrobe]"],
       ["chris, with Wardrobe only", "[wardrobe]"],
     ])(
-      "refuses every change from %s but Tech's scenery and SFX changes and Wardrobe's own, saying what is read-only, or admins' only for admin-only ones",
+      "refuses every change from %s but Tech's scenery, SFX and mic plot changes and Wardrobe's own, saying what is read-only, or admins' only for admin-only ones",
       async (_who, groups) => {
         const send = everyRoute();
         const techMay = (key: string) =>
           groups.includes("tech") &&
-          (needOf(key) === SCENERY_PERMISSIONS || needOf(key) === SFX_PERMISSIONS);
+          [SCENERY_PERMISSIONS, SFX_PERMISSIONS, MIC_PLOT_PERMISSIONS].some(
+            (need) => need === needOf(key),
+          );
         const wardrobeMay = (key: string) =>
           groups.includes("wardrobe") && needOf(key) === WARDROBE_PERMISSIONS;
 
@@ -854,7 +863,7 @@ describe("Lambda entry point", () => {
         }
       });
 
-      it("lets dee, with Director only, use exactly the props, scenery, SFX and Wardrobe changes", async () => {
+      it("lets dee, with Director only, use exactly the props, scenery, SFX, mic plot and Wardrobe changes", async () => {
         const send = everyRoute();
 
         for (const key of changeRoutes) {
@@ -863,6 +872,7 @@ describe("Lambda entry point", () => {
             PROPS_PERMISSIONS,
             SCENERY_PERMISSIONS,
             SFX_PERMISSIONS,
+            MIC_PLOT_PERMISSIONS,
             WARDROBE_PERMISSIONS,
           ];
           expect(ran, key).toBe(production.some((need) => needOf(key) === need));
@@ -942,6 +952,7 @@ describe("Lambda entry point", () => {
               sceneryNotes: inMemoryItemNoteStore(),
               sfxNotes: inMemoryItemNoteStore(),
               wardrobeNotes: inMemoryItemNoteStore(),
+              micPlots: inMemoryMicPlotStore(),
               removeCastMember: uncastThenRemove(cast, roles),
             },
             inMemoryUsageStore(),
@@ -1054,6 +1065,7 @@ describe("Lambda entry point", () => {
               sceneryNotes: inMemoryItemNoteStore(),
               sfxNotes: inMemoryItemNoteStore(),
               wardrobeNotes: inMemoryItemNoteStore(),
+              micPlots: inMemoryMicPlotStore(),
               removeCastMember: uncastThenRemove(cast, roles),
             },
             inMemoryUsageStore(),
@@ -1131,6 +1143,7 @@ describe("Lambda entry point", () => {
               sceneryNotes: inMemoryItemNoteStore(),
               sfxNotes: inMemoryItemNoteStore(),
               wardrobeNotes: inMemoryItemNoteStore(),
+              micPlots: inMemoryMicPlotStore(),
               removeCastMember: uncastThenRemove(cast, roles),
             },
             inMemoryUsageStore(),
@@ -1227,6 +1240,7 @@ describe("Lambda entry point", () => {
               sceneryNotes: inMemoryItemNoteStore(),
               sfxNotes: inMemoryItemNoteStore(),
               wardrobeNotes: inMemoryItemNoteStore(),
+              micPlots: inMemoryMicPlotStore(),
               removeCastMember: uncastThenRemove(cast, roles),
             },
             inMemoryUsageStore(),
@@ -1377,6 +1391,7 @@ describe("Lambda entry point", () => {
             sceneryNotes,
             sfxNotes: inMemoryItemNoteStore(),
             wardrobeNotes: inMemoryItemNoteStore(),
+            micPlots: inMemoryMicPlotStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
@@ -1552,6 +1567,7 @@ describe("Lambda entry point", () => {
             sceneryNotes,
             sfxNotes,
             wardrobeNotes: inMemoryItemNoteStore(),
+            micPlots: inMemoryMicPlotStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
@@ -1687,6 +1703,132 @@ describe("Lambda entry point", () => {
     });
   });
 
+  describe("mic plot (production-mics E1.S1)", () => {
+    const opening = itemId("Opening Number");
+    const MIC_PLOT_READ_ONLY = { message: "You can view the mic plot, but not change it." };
+    // Made-up cast: Alex Morgan (1) and Sam Patel (2) are cast in Opening Number; Jo Reed (3)
+    // only in the Finale.
+    const [alex, sam, jo] = [1, 2, 3];
+
+    const setUpMics = () => {
+      const cast = inMemoryCastStore([aCastList([aCastMember(1), aCastMember(2), aCastMember(3)])]);
+      const roles = inMemoryRoleStore([
+        {
+          productionId: "2027",
+          roles: [
+            {
+              id: 1,
+              itemId: opening,
+              name: "Chorus",
+              size: "ensemble",
+              castMemberIds: [alex, sam],
+              revision: 1,
+            },
+            {
+              id: 2,
+              itemId: itemId("Finale"),
+              name: "Soloist",
+              size: "lead",
+              castMemberIds: [jo],
+              revision: 1,
+            },
+          ],
+        },
+      ]);
+      return lambdaEntry(
+        createRoutes(
+          {
+            cast,
+            roles,
+            runningOrders: inMemoryRunningOrderStore([
+              aRunningOrder(4, { first: ["Opening Number", "Finale"] }),
+            ]),
+            itemNotes: inMemoryItemNoteStore(),
+            props: inMemoryPropStore(),
+            propsNotes: inMemoryItemNoteStore(),
+            sceneryNotes: inMemoryItemNoteStore(),
+            sfxNotes: inMemoryItemNoteStore(),
+            wardrobeNotes: inMemoryItemNoteStore(),
+            micPlots: inMemoryMicPlotStore(),
+            removeCastMember: uncastThenRemove(cast, roles),
+          },
+          inMemoryUsageStore(),
+          { scenery: noSceneryFiles, sfx: noSceneryFiles, wardrobe: noSceneryFiles },
+        ),
+      );
+    };
+    const give = (groups: string, channel: number, castMemberId: number | null) =>
+      request(
+        "PUT",
+        `/api/productions/2027/items/${opening}/mic-plot`,
+        { body: JSON.stringify({ channel, castMemberId }) },
+        groups,
+      );
+    const micsAt = async (api: ReturnType<typeof setUpMics>) =>
+      MicPlotList.parse(
+        JSON.parse(
+          (await api(request("GET", "/api/productions/2027/mic-plot", {}, "[]"))).body ?? "",
+        ),
+      ).items;
+
+    it("lets lee, with Tech, give Mic 3 to Alex, which anyone signed in then reads, and clear it", async () => {
+      const api = setUpMics();
+
+      expect((await api(give("[tech]", 3, alex))).statusCode).toBe(200);
+      expect(await micsAt(api)).toEqual([
+        { itemId: opening, mics: [{ channel: 3, castMemberId: alex }] },
+      ]);
+
+      expect((await api(give("[tech]", 3, null))).statusCode).toBe(200);
+      expect(await micsAt(api)).toEqual([]);
+    });
+
+    it.each([
+      ["dee, with Director only", "[director]"],
+      ["alex, an admin", "[admin]"],
+    ])("saves Mic 5 for Sam when %s gives it", async (_who, groups) => {
+      const api = setUpMics();
+
+      expect((await api(give(groups, 5, sam))).statusCode).toBe(200);
+      expect(await micsAt(api)).toEqual([
+        { itemId: opening, mics: [{ channel: 5, castMemberId: sam }] },
+      ]);
+    });
+
+    it.each([
+      ["kim, with Casting, Stage and Wardrobe", "[casting stage wardrobe]"],
+      ["someone with no permissions", "[]"],
+    ])(
+      "refuses %s a mic, saying the mic plot is view-only, and changes nothing",
+      async (_who, groups) => {
+        const api = setUpMics();
+        await api(give("[tech]", 3, alex));
+        const before = await micsAt(api);
+
+        for (const change of [give(groups, 5, sam), give(groups, 3, null)]) {
+          const res = await api(change);
+          expect(res.statusCode).toBe(403);
+          expect(JSON.parse(res.body ?? "")).toEqual(MIC_PLOT_READ_ONLY);
+        }
+        expect(await micsAt(api)).toEqual(before);
+      },
+    );
+
+    it.each([
+      ["Jo, who isn't cast in the item", 4, jo, 400],
+      ["Alex, already on Mic 3", 4, alex, 409],
+      ["Mic 25", 25, sam, 400],
+      ["Mic 0", 0, sam, 400],
+    ])("refuses Tech giving a mic to %s, changing nothing", async (_what, channel, who, status) => {
+      const api = setUpMics();
+      await api(give("[tech]", 3, alex));
+      const before = await micsAt(api);
+
+      expect((await api(give("[tech]", channel, who))).statusCode).toBe(status);
+      expect(await micsAt(api)).toEqual(before);
+    });
+  });
+
   describe("usage (ADR 0023)", () => {
     const setUp = () => {
       const cast = inMemoryCastStore([aCastList([aCastMember(1)])]);
@@ -1703,6 +1845,7 @@ describe("Lambda entry point", () => {
             sceneryNotes: inMemoryItemNoteStore(),
             sfxNotes: inMemoryItemNoteStore(),
             wardrobeNotes: inMemoryItemNoteStore(),
+            micPlots: inMemoryMicPlotStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),

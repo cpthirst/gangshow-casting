@@ -98,6 +98,7 @@ describe("list scenery files handler", () => {
       sfxNotes: { keepOnlyItems: async () => {} },
       wardrobeFiles: { keepOnlyItems: async () => {} },
       wardrobeNotes: { keepOnlyItems: async () => {} },
+      micPlots: { keepOnlyItems: async () => {} },
     });
     await putFile(openingNumber, "set-plan.pdf", 10);
 

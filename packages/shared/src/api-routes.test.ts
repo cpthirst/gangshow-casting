@@ -9,6 +9,7 @@ import {
   isRefusalAsReadOnly,
   localAccessFrom,
   localAccessHeader,
+  MIC_PLOT_PERMISSIONS,
   mayChange,
   needOf,
   PROPS_PERMISSIONS,
@@ -208,6 +209,22 @@ describe("routeNeeds", () => {
     expect(needOf(key)).toBeUndefined();
   });
 
+  it("has giving out a mic need Tech or Director, and refuse others naming the mic plot", () => {
+    const key = "PUT /api/productions/{productionId}/items/{itemId}/mic-plot";
+    expect(needOf(key)).toEqual(MIC_PLOT_PERMISSIONS);
+    expect(MIC_PLOT_PERMISSIONS).toEqual(["tech", "director"]);
+    expect(refusalOn(key, MIC_PLOT_PERMISSIONS)).toBe(
+      "You can view the mic plot, but not change it.",
+    );
+    expect(isRefusalAsReadOnly(refusalOn(key, MIC_PLOT_PERMISSIONS))).toBe(true);
+  });
+
+  it("leaves the mic plot open to everyone signed in to read", () => {
+    const key = "GET /api/productions/{productionId}/mic-plot";
+    expect(routeKeys).toContain(key);
+    expect(needOf(key)).toBeUndefined();
+  });
+
   it("refuses a scenery change still saying the scenery can be viewed", () => {
     const key = "PUT /api/productions/{productionId}/items/{itemId}/scenery-notes";
     expect(refusalOn(key, SCENERY_PERMISSIONS)).toBe(
@@ -222,6 +239,7 @@ describe("routeNeeds", () => {
         needOf(key) !== PROPS_PERMISSIONS &&
         needOf(key) !== SCENERY_PERMISSIONS &&
         needOf(key) !== SFX_PERMISSIONS &&
+        needOf(key) !== MIC_PLOT_PERMISSIONS &&
         needOf(key) !== WARDROBE_PERMISSIONS,
     );
     const needsCasting = (key: string) => needOf(key) === CASTING_PERMISSIONS;

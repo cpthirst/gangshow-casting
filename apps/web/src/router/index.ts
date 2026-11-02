@@ -5,8 +5,8 @@ import CastingItemPage from "@/pages/CastingItemPage.vue";
 import CastingItemsPage from "@/pages/CastingItemsPage.vue";
 import CastingOverviewPage from "@/pages/CastingOverviewPage.vue";
 import CastPage from "@/pages/CastPage.vue";
-import DepartmentItemPage from "@/pages/DepartmentItemPage.vue";
 import HelpPage from "@/pages/HelpPage.vue";
+import MicPlotItemPage from "@/pages/MicPlotItemPage.vue";
 import NotFoundPage from "@/pages/NotFoundPage.vue";
 import ProductionOverviewPage from "@/pages/ProductionOverviewPage.vue";
 import PropsItemPage from "@/pages/PropsItemPage.vue";
@@ -16,7 +16,6 @@ import SfxItemPage from "@/pages/SfxItemPage.vue";
 import UsagePage from "@/pages/UsagePage.vue";
 import WardrobeItemPage from "@/pages/WardrobeItemPage.vue";
 import WelcomePage from "@/pages/WelcomePage.vue";
-import { comingSoonPages } from "@/utils/departments.ts";
 
 declare module "vue-router" {
   interface RouteMeta {
@@ -194,13 +193,12 @@ export function createAppRouter(history: RouterHistory = createWebHistory()) {
         component: WardrobeItemPage,
         meta: { title: "Item", menuPage: "production-overview" },
       },
-      ...comingSoonPages.map((department) => ({
-        path: `/production/items/:itemId/${department.path}`,
-        name: department.route,
-        component: DepartmentItemPage,
-        props: { department },
+      {
+        path: "/production/items/:itemId/mic-plot",
+        name: "mic-plot-item",
+        component: MicPlotItemPage,
         meta: { title: "Item", menuPage: "production-overview" },
-      })),
+      },
       // Where Sign out goes first, so the page being left can ask about unsaved changes.
       {
         path: "/signing-out",

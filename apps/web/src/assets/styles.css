@@ -1538,6 +1538,35 @@ main a {
   font-size: 0.875rem;
 }
 
+/* An item's 24 mics, one card per channel: one column on a phone, more as the page widens,
+   so all 24 fit without scrolling sideways (production-mics PRD accessibility). */
+.mic-channels {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
+  gap: 0.5rem;
+  margin: 1rem 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Its card is .role-card's; the channel's name keeps one width, so the pickers line up. */
+.mic-channel {
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+.mic-name {
+  flex-shrink: 0;
+  width: 3.75rem;
+  font-weight: 700;
+}
+
+/* A long name wraps rather than push the page sideways. */
+.mic-channel [data-test="on-mic"] {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 /* Every card's surface, so roles, props and files look alike. */
 .role-card {
   display: flex;
@@ -2073,6 +2102,22 @@ main a {
 /* The cast member search: a list of choices drops down under the field as you type. */
 .combobox {
   position: relative;
+}
+
+/* On a Mic plot channel, the search fills the rest of the card. */
+.mic-channel .combobox {
+  flex: 1;
+  min-width: 0;
+}
+
+.mic-channel .combobox input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--text);
+  border-radius: 0.25rem;
+  background: var(--white);
+  color: var(--text);
+  font: inherit;
 }
 
 .combobox [role="listbox"] {
