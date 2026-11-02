@@ -26,7 +26,7 @@ prd: ./prd.md
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
 | [production-sfx-wardrobe.E2.S1](stories/E2-S1-overview-counts-notes-and-usage.md) | The Overview's SFX and Wardrobe columns count files instead of a dash, their notes appear under each row after scenery and props notes, and the Usage page records visits to both pages | FR10, FR11, FR13 | E1.S2 | done |
-| [production-sfx-wardrobe.E2.S2](stories/E2-S2-welcome-and-help.md) | Welcome and Help describe both pages, who can change each, SFX audio opening in a new tab, and Wardrobe's rule | FR12 | E1.S2, E1.S3 | ready |
+| [production-sfx-wardrobe.E2.S2](stories/E2-S2-welcome-and-help.md) | Welcome and Help describe both pages, who can change each, SFX audio opening in a new tab, and Wardrobe's rule | FR12 | E1.S2, E1.S3 | done |
 
 ## Order
 

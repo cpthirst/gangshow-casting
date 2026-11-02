@@ -8,8 +8,8 @@ import logo from "@/assets/logo.jpg";
     <h1>Welcome</h1>
     <p data-test="intro">
       This is iCUE, the Chester Gang Show's app for managing the show, so every department works
-      from the same information. Today it covers casting, showing who is in which item and when;
-      props lists, sound effects and mic plots are to come.
+      from the same information. Today it covers casting, showing who is in which item and when,
+      and what each department needs for each item; mic plots are to come.
     </p>
     <p data-test="help-note">
       New here? Check out <RouterLink :to="{ name: 'help' }">Help</RouterLink> first: it explains
@@ -52,8 +52,10 @@ import logo from "@/assets/logo.jpg";
         What each department needs for each item, on one page: the
         <RouterLink :to="{ name: 'production-overview' }">Overview</RouterLink>, with the show's
         items in running order and a button to open each department's page for them. Each item's
-        Scenery page holds its set plans, designs and photos, for everyone to download. Stage, Tech or Wardrobe lets
-        someone change that department's pages, and Director lets them change every department's.
+        Scenery page holds its set plans, designs and photos, for everyone to download. The
+        Overview's SFX and Wardrobe buttons open each item's sound effects files and costume
+        designs, with notes for each. Stage, Tech or Wardrobe lets someone change that
+        department's pages, and Director lets them change every department's.
       </dd>
     </dl>
   </section>

@@ -41,17 +41,17 @@ export const sceneryDepartment: FilesDepartment = {
   help: "scenery-item",
 };
 
-// Its help comes with the Help page's SFX section (production-sfx-wardrobe E2.S2).
 export const sfxDepartment: FilesDepartment = {
   key: "sfx",
   name: "SFX",
   noun: "SFX",
   route: "sfx-item",
   permissions: SFX_PERMISSIONS,
+  help: "sfx-item",
 };
 
 // Its rule stands in for checking each file, as Scenery's does (production-sfx-wardrobe FR4,
-// ADR 0010). Its help comes with the Help page's Wardrobe section (E2.S2).
+// ADR 0010).
 export const wardrobeDepartment: FilesDepartment = {
   key: "wardrobe",
   name: "Wardrobe",
@@ -59,6 +59,7 @@ export const wardrobeDepartment: FilesDepartment = {
   route: "wardrobe-item",
   permissions: WARDROBE_PERMISSIONS,
   uploadRule: "Costume designs and images only: no photos of cast members.",
+  help: "wardrobe-item",
 };
 
 const itemPath = (itemId: string) =>

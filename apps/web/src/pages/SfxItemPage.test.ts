@@ -216,6 +216,25 @@ describe("An item's SFX page", () => {
     expect(router.currentRoute.value.fullPath).toBe("/production/overview");
   });
 
+  it("has a help button beside the item's name, which opens the SFX page's help", async () => {
+    apiHolds(show);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    const row = wrapper.get("main .page-title-row");
+    expect(row.get("h1").text()).toBe("SFX: Opening Number");
+    await row.get("button[aria-label='Help for this item']").trigger("click");
+
+    const names = wrapper.findAll("dialog [data-test=help-name]").map((name) => name.text());
+    expect(names).toEqual([
+      "All items",
+      "Previous and Next",
+      "Files",
+      "Remove",
+      "Add a file",
+      "SFX notes",
+    ]);
+  });
+
   it("says an item that isn't in the running order wasn't found, with a link back", async () => {
     apiHolds(show);
     const { wrapper } = await openAppAt("/production/items/no-such-item/sfx");

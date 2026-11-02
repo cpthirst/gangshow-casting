@@ -137,7 +137,9 @@ describe("Help page", () => {
   it("never calls the department Costume", async () => {
     const { wrapper } = await openHelp();
 
-    expect(wrapper.text()).not.toContain("Costume");
+    // Wardrobe's upload rule names costume designs, which isn't naming the department.
+    const rule = "Costume designs and images only";
+    expect(wrapper.text().replaceAll(rule, "")).not.toContain("Costume");
   });
 
   it("shows every role the same help", async () => {
@@ -290,10 +292,14 @@ describe("Help page", () => {
         "Production overview",
         "An item's scenery",
         "An item's props",
+        "An item's SFX",
+        "An item's wardrobe",
         "Permissions",
       ]);
-      await router.push("/help");
-      expect(await followLink(wrapper, router, "scenery-item")).toBe("production-overview");
+      for (const page of ["scenery-item", "sfx-item", "wardrobe-item"]) {
+        await router.push("/help");
+        expect(await followLink(wrapper, router, page)).toBe("production-overview");
+      }
       await router.push("/help");
       expect(await followLink(wrapper, router, "props-item")).toBe("production-overview");
       await router.push("/help");
@@ -397,6 +403,68 @@ describe("Help page", () => {
       ).toContain("Scenery and set images only: no photos of cast members.");
     });
 
+    it.each([
+      ["SFX", "sfx-item", "Tech or Director"],
+      ["Wardrobe", "wardrobe-item", "Wardrobe or Director"],
+    ])(
+      "say how to reach an item's %s page, then explain its links, files and notes, and who changes it",
+      async (department, page, changers) => {
+        const { wrapper } = await openHelp();
+
+        expect(summaryOf(wrapper, page)).toContain(`One item's ${department} files and notes.`);
+        expect(summaryOf(wrapper, page)).toContain("Production → Overview");
+        expect(names(wrapper, page)).toEqual([
+          "All items",
+          "Previous and Next",
+          "Files",
+          "Remove",
+          "Add a file",
+          `${department} notes`,
+        ]);
+        for (const action of ["All items", "Previous and Next", "Files"]) {
+          expect(accessOf(wrapper, action, page)).toBe("Everyone");
+        }
+        for (const action of ["Remove", "Add a file"]) {
+          expect(accessOf(wrapper, action, page)).toBe(`Accounts with ${changers}, and admins`);
+        }
+        expect(
+          lineNamed(wrapper, `${department} notes`, page)
+            .findAll("[data-test=help-access]")
+            .map((label) => label.text()),
+        ).toEqual(["Reading: Everyone", `Changing: Accounts with ${changers}, and admins`]);
+
+        const doesOf = (name: string) =>
+          lineNamed(wrapper, name, page).get("[data-test=help-does]").text();
+        expect(doesOf("Files")).toContain("Any other file downloads.");
+        expect(doesOf("Add a file")).toContain("Adds one file of up to 100 MB");
+        expect(doesOf("Add a file")).toContain(
+          "A file with the same name as one already there replaces it, once you confirm. The old copy can't be brought back.",
+        );
+        expect(doesOf("Remove")).toBe(
+          "Takes a file off the item, once you confirm. It can't be brought back.",
+        );
+      },
+    );
+
+    it("say an SFX file that's MP3, WAV, M4A, AAC or OGG plays in a new tab", async () => {
+      const { wrapper } = await openHelp();
+
+      expect(lineNamed(wrapper, "Files", "sfx-item").get("[data-test=help-does]").text()).toContain(
+        "Plays an MP3, WAV, M4A, AAC or OGG file in a new tab",
+      );
+    });
+
+    it("say Wardrobe is for costume designs and images only, never photos of cast members, and SFX has no such rule", async () => {
+      const { wrapper } = await openHelp();
+
+      const addAFile = (page: string) =>
+        lineNamed(wrapper, "Add a file", page).get("[data-test=help-does]").text();
+      expect(addAFile("wardrobe-item")).toContain(
+        "Costume designs and images only: no photos of cast members.",
+      );
+      expect(addAFile("sfx-item")).not.toContain("photos");
+    });
+
     it("name the Overview's five buttons in row order, each with its icon, its page and whether it's coming soon", async () => {
       const { wrapper } = await openHelp();
 
@@ -419,11 +487,7 @@ describe("Help page", () => {
         expect.stringContaining("the item's mic plot page"),
         expect.stringContaining("the item's wardrobe page"),
       ]);
-      expect(buttons.filter((name) => doesOf(name).includes("Coming soon"))).toEqual([
-        "SFX",
-        "Mic plot",
-        "Wardrobe",
-      ]);
+      expect(buttons.filter((name) => doesOf(name).includes("Coming soon"))).toEqual(["Mic plot"]);
     });
 
     it("label each button with the department that changes its page, as do Directors and admins, and that everyone can view it", async () => {
@@ -469,6 +533,26 @@ describe("Help page", () => {
     });
   });
 
+  it("says SFX and Wardrobe are here, and only the Mic plot is still to come", async () => {
+    const { wrapper } = await openHelp();
+
+    const stillToCome = /\b(to come|coming|comes?)\b/i;
+    const lineTexts = wrapper
+      .findAll("[data-test=help-line], [data-test=permission]")
+      .map((line) => line.text().replace(/\s+/g, " ").trim());
+    // A line about SFX or Wardrobe, or any part of a line that names them, says nothing is to come.
+    for (const text of lineTexts) {
+      if (/^(SFX|Wardrobe)\b/.test(text)) expect(text).not.toMatch(stillToCome);
+      for (const clause of text.split(/[.,;:]/)) {
+        if (/SFX|wardrobe/i.test(clause)) expect(clause).not.toMatch(stillToCome);
+      }
+    }
+    for (const page of ["sfx-item", "wardrobe-item"]) {
+      expect(sectionFor(wrapper, page).text()).not.toMatch(stillToCome);
+    }
+    expect(lineTexts.find((text) => text.startsWith("Mic plot"))).toContain("Coming soon");
+  });
+
   describe("the Permissions section", () => {
     const permissionLines = (wrapper: Wrapper) =>
       wrapper
@@ -495,7 +579,7 @@ describe("Help page", () => {
 
       const director = permissionLines(wrapper).find((line) => line.startsWith("Director:"));
       expect(director).toBe(
-        "Director: Changes every production department's pages, now and as they come: Scenery and Props today. Not the cast, roles, casting or running order, and nothing only admins can do.",
+        "Director: Changes every production department's pages, now and as they come: Scenery, Props, SFX and Wardrobe today. Not the cast, roles, casting or running order, and nothing only admins can do.",
       );
     });
   });
