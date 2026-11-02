@@ -261,7 +261,7 @@ export const pageHelp: PageHelp[] = [
       {
         icons: [icons.sfx],
         name: "SFX",
-        does: "Opens the item's SFX page, for its sound effects. Coming soon.",
+        does: "Opens the item's SFX page, with the files for its sound effects.",
         access: "everyone",
         changeAccess: "tech",
       },
@@ -275,7 +275,7 @@ export const pageHelp: PageHelp[] = [
       {
         icons: [icons.wardrobe],
         name: "Wardrobe",
-        does: "Opens the item's wardrobe page, for what the cast wear. Coming soon.",
+        does: "Opens the item's wardrobe page, with the files for what the cast wear.",
         access: "everyone",
         changeAccess: "wardrobe",
       },
@@ -381,6 +381,108 @@ export const pageHelp: PageHelp[] = [
       },
     ],
   },
+  {
+    page: "sfx-item",
+    title: "An item's SFX",
+    summary: "One item's SFX files and notes. Open an item's SFX from Production → Overview.",
+    reachedFrom: { page: "production-overview", title: "Production overview" },
+    lines: [
+      {
+        icons: [icons.allItems],
+        name: "All items",
+        does: "Goes back to the Production overview.",
+        access: "everyone",
+      },
+      {
+        icons: [icons.back, icons.forward],
+        name: "Previous and Next",
+        does: "Steps to the item before or after this one in the show.",
+        access: "everyone",
+      },
+      {
+        icons: [
+          icons.audioFile,
+          icons.pdfFile,
+          icons.wordFile,
+          icons.excelFile,
+          icons.powerPointFile,
+          icons.imageFile,
+          icons.file,
+        ],
+        name: "Files",
+        does: "Plays an MP3, WAV, M4A, AAC or OGG file in a new tab, and opens a PDF, image or text file there too. Any other file downloads. Each file's icon shows its type: audio, PDF, Word, Excel, PowerPoint, image, or any other file.",
+        access: "everyone",
+      },
+      {
+        icons: [icons.remove],
+        name: "Remove",
+        does: "Takes a file off the item, once you confirm. It can't be brought back.",
+        access: "tech",
+      },
+      {
+        name: "Add a file",
+        does: "Adds one file of up to 100 MB to the item, chosen with the button or dragged onto it, showing how much has uploaded. A file with the same name as one already there replaces it, once you confirm. The old copy can't be brought back.",
+        access: "tech",
+      },
+      {
+        name: "SFX notes",
+        does: "Anything the tech team needs to know about the item's sound effects.",
+        access: "everyone",
+        changeAccess: "tech",
+      },
+    ],
+  },
+  {
+    page: "wardrobe-item",
+    title: "An item's wardrobe",
+    summary:
+      "One item's Wardrobe files and notes. Open an item's Wardrobe from Production → Overview.",
+    reachedFrom: { page: "production-overview", title: "Production overview" },
+    lines: [
+      {
+        icons: [icons.allItems],
+        name: "All items",
+        does: "Goes back to the Production overview.",
+        access: "everyone",
+      },
+      {
+        icons: [icons.back, icons.forward],
+        name: "Previous and Next",
+        does: "Steps to the item before or after this one in the show.",
+        access: "everyone",
+      },
+      {
+        icons: [
+          icons.pdfFile,
+          icons.wordFile,
+          icons.excelFile,
+          icons.powerPointFile,
+          icons.imageFile,
+          icons.file,
+        ],
+        name: "Files",
+        does: "Opens a PDF, image or text file in a new tab. Any other file downloads. Each file's icon shows its type: PDF, Word, Excel, PowerPoint, image, or any other file.",
+        access: "everyone",
+      },
+      {
+        icons: [icons.remove],
+        name: "Remove",
+        does: "Takes a file off the item, once you confirm. It can't be brought back.",
+        access: "wardrobe",
+      },
+      {
+        name: "Add a file",
+        does: "Adds one file of up to 100 MB to the item, chosen with the button or dragged onto it, showing how much has uploaded. A file with the same name as one already there replaces it, once you confirm. The old copy can't be brought back. Costume designs and images only: no photos of cast members.",
+        access: "wardrobe",
+      },
+      {
+        name: "Wardrobe notes",
+        does: "Anything the wardrobe team needs to know about what the cast wear in the item.",
+        access: "everyone",
+        changeAccess: "wardrobe",
+      },
+    ],
+  },
 ];
 
 /** What each permission lets someone change, for the Help page's Permissions section. */
@@ -392,12 +494,12 @@ export const permissionHelp = [
   { name: "Stage", does: "Changes the Scenery and Props pages." },
   {
     name: "Tech",
-    does: "Changes the Scenery page, and the SFX and Mic plot pages when they come.",
+    does: "Changes the Scenery and SFX pages, and the Mic plot page when it comes.",
   },
-  { name: "Wardrobe", does: "Changes what the cast wear in each item, once that page comes." },
+  { name: "Wardrobe", does: "Changes what the cast wear in each item: its files and notes." },
   {
     name: "Director",
-    does: "Changes every production department's pages, now and as they come: Scenery and Props today. Not the cast, roles, casting or running order, and nothing only admins can do.",
+    does: "Changes every production department's pages, now and as they come: Scenery, Props, SFX and Wardrobe today. Not the cast, roles, casting or running order, and nothing only admins can do.",
   },
   {
     name: "Admins",

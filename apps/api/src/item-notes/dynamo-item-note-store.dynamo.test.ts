@@ -2,7 +2,13 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { aTestTable, type TestTable } from "#/storage/dynamo.fixture.ts";
 import { documentClient } from "#/storage/dynamo-table.ts";
-import { dynamoItemNoteStore, PROPS_NOTE, SCENERY_NOTE } from "./dynamo-item-note-store.ts";
+import {
+  dynamoItemNoteStore,
+  PROPS_NOTE,
+  SCENERY_NOTE,
+  SFX_NOTE,
+  WARDROBE_NOTE,
+} from "./dynamo-item-note-store.ts";
 import { behavesAsAnItemNoteStore } from "./item-note-store.contract.ts";
 
 describe("DynamoDB item note store", () => {
@@ -43,6 +49,36 @@ describe("DynamoDB item note store", () => {
 
       expect((await props.list("2027")).notes.map((note) => note.text)).toEqual(["Chest"]);
       expect((await scenery.list("2027")).notes.map((note) => note.text)).toEqual(["Cloud"]);
+    });
+  });
+
+  describe("for SFX notes", () => {
+    behavesAsAnItemNoteStore(() => dynamoItemNoteStore(table.db, table.tableName, SFX_NOTE));
+
+    it("keeps SFX notes apart from the scenery notes", async () => {
+      const scenery = dynamoItemNoteStore(table.db, table.tableName, SCENERY_NOTE);
+      const sfx = dynamoItemNoteStore(table.db, table.tableName, SFX_NOTE);
+      await scenery.save("2027", "pirate-sketch", 0, "Cloud");
+
+      await sfx.save("2027", "pirate-sketch", 0, "Thunder");
+
+      expect((await scenery.list("2027")).notes.map((note) => note.text)).toEqual(["Cloud"]);
+      expect((await sfx.list("2027")).notes.map((note) => note.text)).toEqual(["Thunder"]);
+    });
+  });
+
+  describe("for Wardrobe notes", () => {
+    behavesAsAnItemNoteStore(() => dynamoItemNoteStore(table.db, table.tableName, WARDROBE_NOTE));
+
+    it("keeps Wardrobe notes apart from the SFX notes", async () => {
+      const sfx = dynamoItemNoteStore(table.db, table.tableName, SFX_NOTE);
+      const wardrobe = dynamoItemNoteStore(table.db, table.tableName, WARDROBE_NOTE);
+      await sfx.save("2027", "pirate-sketch", 0, "Thunder");
+
+      await wardrobe.save("2027", "pirate-sketch", 0, "Eye patches");
+
+      expect((await sfx.list("2027")).notes.map((note) => note.text)).toEqual(["Thunder"]);
+      expect((await wardrobe.list("2027")).notes.map((note) => note.text)).toEqual(["Eye patches"]);
     });
   });
 

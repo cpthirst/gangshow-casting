@@ -306,8 +306,28 @@ describe("dev server local scenery files (production-scenery FR10)", () => {
     );
   });
 
+  it("serves an SFX audio file from the item's SFX folder, to play in the browser", async () => {
+    const sfx = join(folder, "2027", "opening-number", "sfx");
+    await mkdir(sfx, { recursive: true });
+    await writeFile(join(sfx, "thunder.mp3"), "made-up");
+
+    const res = await get("/api/local-files/2027/opening-number/sfx/thunder.mp3");
+
+    expect(res.status).toBe(200);
+    expect(res.body.toString()).toBe("made-up");
+    expect(res.headers).toEqual(
+      expect.objectContaining({
+        "content-type": "audio/mpeg",
+        "content-disposition": expect.stringMatching(/^inline; filename="thunder.mp3"/),
+        "x-content-type-options": "nosniff",
+      }),
+    );
+    expect(res.headers["content-security-policy"]).toBeUndefined();
+  });
+
   it.each([
     ["a file that isn't there", "/api/local-files/2027/opening-number/scenery/gone.pdf"],
+    ["a folder no department keeps", "/api/local-files/2027/opening-number/secrets/secret.txt"],
     [
       "a path reaching outside the item's folder",
       "/api/local-files/2027/opening-number/scenery/../../secret.txt",
@@ -393,6 +413,24 @@ describe("dev server local scenery uploads (production-scenery FR8)", () => {
 
     expect(res.status).toBe(204);
     expect(await readFile(join(place(), "Set Plan (Act 1).pdf"), "utf8")).toBe("%PDF-1.7 made-up");
+  });
+
+  it("keeps a file sent to an item's SFX upload address in its SFX folder", async () => {
+    const res = await upload("/api/local-files/2027/finale/sfx/thunder.mp3", form("made-up"));
+
+    expect(res.status).toBe(204);
+    expect(await readFile(join(folder, "2027", "finale", "sfx", "thunder.mp3"), "utf8")).toBe(
+      "made-up",
+    );
+  });
+
+  it("keeps a file sent to an item's Wardrobe upload address in its Wardrobe folder", async () => {
+    const res = await upload("/api/local-files/2027/finale/wardrobe/hat.jpg", form("made-up"));
+
+    expect(res.status).toBe(204);
+    expect(await readFile(join(folder, "2027", "finale", "wardrobe", "hat.jpg"), "utf8")).toBe(
+      "made-up",
+    );
   });
 
   it("keeps a file of exactly 100 MB, and refuses one over it, keeping nothing", async () => {

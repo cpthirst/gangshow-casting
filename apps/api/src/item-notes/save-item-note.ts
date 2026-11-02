@@ -8,8 +8,9 @@ import type { ItemNoteStore } from "./item-note-store.ts";
 
 // PUT /api/productions/{productionId}/items/{itemId}/notes: replace an item's notes, unless
 // someone else saved them since the revision in the body (casting-item-overview FR8, FR10).
-// Also saves props notes at /props-notes and scenery notes at /scenery-notes, each into its
-// own store (production-props FR20, production-scenery E2.S1).
+// Also saves props notes at /props-notes, scenery notes at /scenery-notes, SFX notes at
+// /sfx-notes and Wardrobe notes at /wardrobe-notes, each into its own store (production-props
+// FR20, production-scenery E2.S1, production-sfx-wardrobe FR8).
 export function createSaveItemNote(notes: ItemNoteStore, runningOrders: RunningOrderStore) {
   return async (event: ApiEvent): Promise<APIGatewayProxyStructuredResultV2> => {
     const productionId = productionIdOf(event);

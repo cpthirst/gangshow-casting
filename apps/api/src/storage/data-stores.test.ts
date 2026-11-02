@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promis
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { dataStores, sceneryFileStore, usageStore } from "./data-stores.ts";
+import { dataStores, itemFileStores, usageStore } from "./data-stores.ts";
 
 describe("data stores", () => {
   let dataDir: string;
@@ -50,18 +50,68 @@ describe("data stores", () => {
     await mkdir(place, { recursive: true });
     await writeFile(join(place, "curtain.pdf"), "made-up");
 
-    const files = sceneryFileStore({ DATA_DIR: dataDir, DATA_TABLE: "GangshowData" });
+    const files = itemFileStores({ DATA_DIR: dataDir, DATA_TABLE: "GangshowData" });
 
-    expect(await files.store.list("2027", "finale")).toEqual([{ name: "curtain.pdf", size: 7 }]);
-    expect(files.where).toBe(`scenery files in ${join(dataDir, "files")}`);
+    expect(await files.stores.scenery.list("2027", "finale")).toEqual([
+      { name: "curtain.pdf", size: 7 },
+    ]);
+    expect(files.where).toBe(`scenery, SFX and Wardrobe files in ${join(dataDir, "files")}`);
     expect(files.folder).toBe(join(dataDir, "files"));
   });
 
-  it("keeps scenery files in the bucket FILES_BUCKET names, in London", async () => {
-    const files = sceneryFileStore({ DATA_DIR: dataDir, FILES_BUCKET: "made-up-files" });
+  it("keeps SFX files beside the scenery files, each in the item's own folder for them", async () => {
+    const place = join(dataDir, "files", "2027", "finale", "sfx");
+    await mkdir(place, { recursive: true });
+    await writeFile(join(place, "thunder.mp3"), "made-up");
 
-    expect(files.where).toBe("scenery files in bucket made-up-files (eu-west-2)");
+    const { stores } = itemFileStores({ DATA_DIR: dataDir });
+
+    expect(await stores.sfx.list("2027", "finale")).toEqual([{ name: "thunder.mp3", size: 7 }]);
+    expect(await stores.scenery.list("2027", "finale")).toEqual([]);
+  });
+
+  it("keeps Wardrobe files beside the others, in the item's own folder for them", async () => {
+    const place = join(dataDir, "files", "2027", "finale", "wardrobe");
+    await mkdir(place, { recursive: true });
+    await writeFile(join(place, "jacket-pattern.pdf"), "made-up");
+
+    const { stores } = itemFileStores({ DATA_DIR: dataDir });
+
+    expect(await stores.wardrobe.list("2027", "finale")).toEqual([
+      { name: "jacket-pattern.pdf", size: 7 },
+    ]);
+    expect(await stores.sfx.list("2027", "finale")).toEqual([]);
+  });
+
+  it("keeps scenery files in the bucket FILES_BUCKET names, in London", async () => {
+    const files = itemFileStores({ DATA_DIR: dataDir, FILES_BUCKET: "made-up-files" });
+
+    expect(files.where).toBe("scenery, SFX and Wardrobe files in bucket made-up-files (eu-west-2)");
     expect(files.folder).toBeUndefined();
+  });
+
+  it("keeps SFX notes in their own local file, apart from the scenery notes", async () => {
+    const stores = dataStores({ DATA_DIR: dataDir });
+
+    await stores.sfxNotes.save("2027", "finale", 0, "Thunder on the second verse");
+
+    const file = JSON.parse(await readFile(join(dataDir, "2027", "sfx-notes.json"), "utf8"));
+    expect(file.notes).toEqual([
+      { itemId: "finale", text: "Thunder on the second verse", revision: 1 },
+    ]);
+    expect((await stores.sceneryNotes.list("2027")).notes).toEqual([]);
+  });
+
+  it("keeps Wardrobe notes in their own local file, apart from the others", async () => {
+    const stores = dataStores({ DATA_DIR: dataDir });
+
+    await stores.wardrobeNotes.save("2027", "finale", 0, "Gold jackets for the chorus");
+
+    const file = JSON.parse(await readFile(join(dataDir, "2027", "wardrobe-notes.json"), "utf8"));
+    expect(file.notes).toEqual([
+      { itemId: "finale", text: "Gold jackets for the chorus", revision: 1 },
+    ]);
+    expect((await stores.sfxNotes.list("2027")).notes).toEqual([]);
   });
 
   it("says where item notes are kept when a remote table is configured", () => {

@@ -1,4 +1,10 @@
-import { type AnyOf, PROPS_PERMISSIONS, SCENERY_PERMISSIONS } from "@app/shared";
+import {
+  type AnyOf,
+  PROPS_PERMISSIONS,
+  SCENERY_PERMISSIONS,
+  SFX_PERMISSIONS,
+  WARDROBE_PERMISSIONS,
+} from "@app/shared";
 import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import { icons } from "./icons.ts";
 
@@ -39,6 +45,11 @@ export function countInWords(
   return { number, word, label: label(word) };
 }
 
+/** An item's file count on the Overview: "9" over "files", read with the department's noun
+ *  as "9 scenery files". */
+export const filesCount = (files: number, noun: string) =>
+  countInWords(files, "file", "files", (word) => `${files} ${noun} ${word}`);
+
 // In the order the Overview's buttons show them (production-overview FR4, FR5).
 export const departmentPages: DepartmentPage[] = [
   {
@@ -62,7 +73,7 @@ export const departmentPages: DepartmentPage[] = [
     noun: "SFX",
     route: "sfx-item",
     path: "sfx",
-    permissions: ["tech", "director"],
+    permissions: SFX_PERMISSIONS,
     icon: icons.sfx,
   },
   {
@@ -78,14 +89,13 @@ export const departmentPages: DepartmentPage[] = [
     noun: "wardrobe",
     route: "wardrobe-item",
     path: "wardrobe",
-    permissions: ["wardrobe", "director"],
+    permissions: WARDROBE_PERMISSIONS,
     icon: icons.wardrobe,
   },
 ];
 
 /** The departments whose item pages say "Coming soon" until their own feature fills them.
- *  Props and Scenery already have their own (PropsItemPage, SceneryItemPage); take each
- *  department out as its page arrives. */
-export const comingSoonPages = departmentPages.filter(
-  (page) => page.route !== "props-item" && page.route !== "scenery-item",
-);
+ *  Props, Scenery, SFX and Wardrobe already have their own (PropsItemPage, SceneryItemPage,
+ *  SfxItemPage, WardrobeItemPage); take each department out as its page arrives. */
+const ownPages = ["props-item", "scenery-item", "sfx-item", "wardrobe-item"];
+export const comingSoonPages = departmentPages.filter((page) => !ownPages.includes(page.route));

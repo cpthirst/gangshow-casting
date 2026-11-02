@@ -249,6 +249,41 @@ describe("Usage page", () => {
     ]);
   });
 
+  it("shows SFX and Wardrobe pages apart from Scenery and Item pages, per person and in the totals", async () => {
+    serve({
+      recordedSince: "2026-10-01T18:00:00.000Z",
+      features: [
+        { feature: "item-page", uses: 0, people: 0 },
+        { feature: "scenery-page", uses: 0, people: 0 },
+        { feature: "sfx-page", uses: 1, people: 1 },
+        { feature: "wardrobe-page", uses: 1, people: 1 },
+      ],
+      people: [
+        {
+          username: "robin",
+          sessions: 1,
+          lastSession: "2026-10-20T18:00:00.000Z",
+          uses: { "sfx-page": 1, "wardrobe-page": 1 },
+        },
+      ],
+    });
+
+    const wrapper = await openPage();
+
+    expect(rows(wrapper)).toContainEqual([
+      "robin",
+      "1",
+      "20 October 2026",
+      ["SFX pages 1", "Wardrobe pages 1"],
+    ]);
+    expect(totals(wrapper)).toEqual([
+      ["Item pages", "0", "0"],
+      ["Scenery pages", "0", "0"],
+      ["SFX pages", "1", "1"],
+      ["Wardrobe pages", "1", "1"],
+    ]);
+  });
+
   it("shows exports after everything else", async () => {
     serve({
       recordedSince: "2026-10-01T18:00:00.000Z",
@@ -491,6 +526,64 @@ describe("Usage page", () => {
         "opened a Scenery page of an item no longer in the running order",
       );
     });
+
+    it.each([
+      ["sfx", "SFX"],
+      ["wardrobe", "Wardrobe"],
+    ] as const)("names an item's %s page by the item's title", async (event, page) => {
+      const order = aRunningOrder([anItem("Opening Number")]);
+      const use = { event, productionId: "2027", itemId: "opening-number" };
+      serve(
+        { ...since, activity: [{ username: "lee", at: "2026-10-20T18:00:00.000Z", ...use }] },
+        json({ accounts }),
+        order,
+      );
+
+      const wrapper = await openPage();
+
+      expect(activity(wrapper)[0]?.[1]).toBe(`opened Opening Number's ${page} page`);
+    });
+
+    it.each([
+      ["sfx", "an SFX page"],
+      ["wardrobe", "a Wardrobe page"],
+    ] as const)(
+      "says the item of %s's page is no longer in the running order",
+      async (event, page) => {
+        const order = aRunningOrder([anItem("Opening Number")]);
+        const use = { event, productionId: "2027", itemId: "cut-sketch" };
+        serve(
+          { ...since, activity: [{ username: "lee", at: "2026-10-20T18:00:00.000Z", ...use }] },
+          json({ accounts }),
+          order,
+        );
+
+        const wrapper = await openPage();
+
+        expect(activity(wrapper)[0]?.[1]).toBe(
+          `opened ${page} of an item no longer in the running order`,
+        );
+      },
+    );
+
+    it.each([
+      ["sfx", "SFX"],
+      ["wardrobe", "Wardrobe"],
+    ] as const)(
+      "still lists %s page use when the running order can't be loaded",
+      async (event, page) => {
+        const use = { event, productionId: "2027", itemId: "opening-number" };
+        serve(
+          { ...since, activity: [{ username: "lee", at: "2026-10-20T18:00:00.000Z", ...use }] },
+          json({ accounts }),
+          "unavailable",
+        );
+
+        const wrapper = await openPage();
+
+        expect(activity(wrapper)[0]?.[1]).toBe(`opened an item's ${page} page`);
+      },
+    );
 
     it("still lists a Scenery page's use when the running order can't be loaded", async () => {
       const use = { event: "scenery" as const, productionId: "2027", itemId: "opening-number" };

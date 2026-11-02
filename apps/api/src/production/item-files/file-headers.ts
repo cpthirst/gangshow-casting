@@ -1,4 +1,4 @@
-import { browserTypeOf } from "@app/shared";
+import { browserTypeOf, type FileDepartment } from "@app/shared";
 
 // A plain-ASCII name for browsers that don't read filename*: anything else becomes "_".
 const plainName = (name: string) => name.replace(/[^\x20-\x7e]|["\\%]/g, "_");
@@ -11,12 +11,13 @@ const encodedName = (name: string) =>
   );
 
 /**
- * How a scenery file is sent (production-scenery FR10): a PDF, image or text file opens in the
- * browser as its type, and anything else, HTML and SVG among them, downloads as bytes the
- * browser won't show. Either way under its stored name. The type comes from the name alone.
+ * How a department's file is sent (production-scenery FR10): a PDF, image or text file, or an
+ * audio file on SFX (production-sfx-wardrobe FR6), opens in the browser as its type, and
+ * anything else, HTML and SVG among them, downloads as bytes the browser won't show. Either way
+ * under its stored name. The type comes from the name alone.
  */
-export function fileHeadersOf(name: string) {
-  const browserType = browserTypeOf(name);
+export function fileHeadersOf(name: string, department: FileDepartment) {
+  const browserType = browserTypeOf(name, department);
   const how = browserType ? "inline" : "attachment";
   return {
     contentType: browserType ?? "application/octet-stream",

@@ -6,11 +6,11 @@ import App from "@/App.vue";
 import { createAppRouter } from "@/router/index.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
+import { departmentNotesPath, fileCountsPath } from "@/utils/item-files.ts";
 import { PROPS_PATH } from "@/utils/props.ts";
 import { PROPS_NOTES_PATH } from "@/utils/props-notes.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
 import { RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
-import { SCENERY_FILE_COUNTS_PATH, SCENERY_NOTES_PATH } from "@/utils/scenery.ts";
 
 enableAutoUnmount(afterEach);
 // As on pnpm dev: everyone acts as an admin, unless a test signs someone in.
@@ -21,23 +21,38 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
-/** A stand-in API answering the running order, props, notes and scenery counts paths as given
- *  (no notes or scenery files unless a test says). */
+const SCENERY_FILE_COUNTS_PATH = fileCountsPath("scenery");
+const SFX_FILE_COUNTS_PATH = fileCountsPath("sfx");
+const WARDROBE_FILE_COUNTS_PATH = fileCountsPath("wardrobe");
+const SCENERY_NOTES_PATH = departmentNotesPath("scenery");
+const SFX_NOTES_PATH = departmentNotesPath("sfx");
+const WARDROBE_NOTES_PATH = departmentNotesPath("wardrobe");
+
+/** A stand-in API answering the running order, props, notes and file counts paths as given
+ *  (no notes or files unless a test says). */
 function apiAnswers(answers: {
   order: () => Response;
   props: () => Response;
   notes?: () => Response;
   sceneryNotes?: () => Response;
+  sfxNotes?: () => Response;
+  wardrobeNotes?: () => Response;
   scenery?: () => Response;
+  sfx?: () => Response;
+  wardrobe?: () => Response;
 }) {
+  const noNotes = json({ productionId: "2027", notes: [] });
+  const noFiles = json({ counts: {} });
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string) => {
       if (url === RUNNING_ORDER_PATH) return answers.order();
       if (url === PROPS_PATH) return answers.props();
-      if (url === SCENERY_FILE_COUNTS_PATH) {
-        return answers.scenery?.() ?? json({ counts: {} })();
-      }
+      if (url === SCENERY_FILE_COUNTS_PATH) return (answers.scenery ?? noFiles)();
+      if (url === SFX_FILE_COUNTS_PATH) return (answers.sfx ?? noFiles)();
+      if (url === WARDROBE_FILE_COUNTS_PATH) return (answers.wardrobe ?? noFiles)();
+      if (url === SFX_NOTES_PATH) return (answers.sfxNotes ?? noNotes)();
+      if (url === WARDROBE_NOTES_PATH) return (answers.wardrobeNotes ?? noNotes)();
       if (url === PROPS_NOTES_PATH) {
         return answers.notes?.() ?? json({ productionId: "2027", notes: [] })();
       }
@@ -665,21 +680,17 @@ describe("Scenery counts on the Production overview", () => {
     expect(props?.get("[data-test=count-word]").attributes("aria-hidden")).toBe("true");
   });
 
-  it.each([
-    ["sfx", "SFX"],
-    ["mic-plot", "Mic plot"],
-    ["wardrobe", "Wardrobe"],
-  ])("shows a dash in every item's %s cell, read as Coming soon", async (department, label) => {
+  it("shows a dash in every item's mic-plot cell, read as Coming soon", async () => {
     showWithFiles({});
 
     const { wrapper } = await openOverview();
 
-    const cells = wrapper.findAll(`[data-test=count][data-department=${department}]`);
+    const cells = wrapper.findAll("[data-test=count][data-department=mic-plot]");
     expect(cells).toHaveLength(show().halves.flatMap((half) => half.items).length);
     for (const cell of cells) {
       expect(cell.get("[aria-hidden=true]").text()).toBe("–");
       expect(cell.get(".visually-hidden").text()).toBe("Coming soon");
-      expect(cell.attributes("data-label")).toBe(label);
+      expect(cell.attributes("data-label")).toBe("Mic plot");
     }
   });
 
@@ -698,5 +709,141 @@ describe("Scenery counts on the Production overview", () => {
     const cells = wrapper.findAll("[data-test=count][data-department=scenery]");
     expect(cells.length).toBeGreaterThan(0);
     for (const cell of cells) expect(cell.text()).toBe("");
+  });
+});
+
+describe("SFX and Wardrobe on the Production overview (production-sfx-wardrobe FR10, FR11)", () => {
+  type Note = { itemId: string; text: string; revision: number };
+  const notes = (list: Note[]) => json({ productionId: "2027", notes: list });
+  const opening = anItem("Opening Number").id;
+  const showWithFiles = () =>
+    apiAnswers({
+      order: json(show()),
+      props: json({ productionId: "2027", props: [] }),
+      sfx: json({ counts: { [opening]: 3 } }),
+      wardrobe: json({ counts: { [opening]: 1 } }),
+    });
+
+  it("counts each item's SFX and Wardrobe files, 0 for none, leaving the Mic plot a dash", async () => {
+    showWithFiles();
+
+    const { wrapper } = await openOverview();
+
+    expect(shown(countIn(wrapper, "Opening Number", "sfx"))).toEqual({
+      number: "3",
+      word: "files",
+    });
+    expect(shown(countIn(wrapper, "Opening Number", "wardrobe"))).toEqual({
+      number: "1",
+      word: "file",
+    });
+    expect(shown(countIn(wrapper, "Finale", "sfx"))).toEqual({ number: "0", word: "files" });
+    expect(shown(countIn(wrapper, "Finale", "wardrobe"))).toEqual({ number: "0", word: "files" });
+    expect(countIn(wrapper, "Opening Number", "mic-plot")?.text()).toBe("–Coming soon");
+  });
+
+  it("reads each SFX and Wardrobe count to screen readers as one phrase", async () => {
+    showWithFiles();
+
+    const { wrapper } = await openOverview();
+
+    const sfx = countIn(wrapper, "Opening Number", "sfx");
+    expect(sfx?.get(".visually-hidden").text()).toBe("3 SFX files");
+    expect(sfx?.get("[data-test=count-number]").attributes("aria-hidden")).toBe("true");
+    expect(sfx?.get("[data-test=count-word]").attributes("aria-hidden")).toBe("true");
+    const wardrobe = countIn(wrapper, "Opening Number", "wardrobe");
+    expect(wardrobe?.get(".visually-hidden").text()).toBe("1 wardrobe file");
+    expect(wardrobe?.get("[data-test=count-number]").attributes("aria-hidden")).toBe("true");
+    expect(wardrobe?.get("[data-test=count-word]").attributes("aria-hidden")).toBe("true");
+  });
+
+  it("still shows the other counts when the SFX or Wardrobe counts fail, with no 0 for either", async () => {
+    apiAnswers({
+      order: json(show()),
+      props: json({ productionId: "2027", props: [] }),
+      sfx: status(500),
+      wardrobe: status(500),
+    });
+
+    const { wrapper } = await openOverview();
+
+    expect(shown(countIn(wrapper, "Opening Number", "scenery"))?.number).toBe("0");
+    expect(wrapper.findAll("main [role=alert]").map((alert) => alert.text())).toEqual([
+      "Couldn't load the SFX counts.",
+      "Couldn't load the wardrobe counts.",
+    ]);
+    for (const department of ["sfx", "wardrobe"]) {
+      const cells = wrapper.findAll(`[data-test=count][data-department=${department}]`);
+      expect(cells.length).toBeGreaterThan(0);
+      for (const cell of cells) expect(cell.text()).toBe("");
+    }
+  });
+
+  /** The notes rows straight after the item's own row, each as its label and text. */
+  const notesUnder = (wrapper: VueWrapper, title: string) => {
+    const found: { label: string | null | undefined; text: string | undefined }[] = [];
+    let row = rowFor(wrapper, title)?.element.nextElementSibling;
+    while (row?.matches(".item-notes-row")) {
+      const cell = row.querySelector("td");
+      found.push({ label: cell?.getAttribute("data-label"), text: cell?.textContent?.trim() });
+      row = row.nextElementSibling;
+    }
+    return found;
+  };
+
+  it("shows an item's scenery, props, SFX and Wardrobe notes in full, labelled, in that order", async () => {
+    const note = (text: string) => [{ itemId: opening, text, revision: 1 }];
+    apiAnswers({
+      order: json(show()),
+      props: json({ productionId: "2027", props: [] }),
+      sceneryNotes: notes(note("Fly the cloud in after the blackout")),
+      notes: notes(note("Chest set stage left")),
+      sfxNotes: notes(note("Thunder on the second chorus")),
+      wardrobeNotes: notes(note("Gold jackets for the chorus")),
+    });
+
+    const { wrapper } = await openOverview();
+
+    expect(notesUnder(wrapper, "Opening Number")).toEqual([
+      { label: "Scenery notes", text: "Fly the cloud in after the blackout" },
+      { label: "Props notes", text: "Chest set stage left" },
+      { label: "SFX notes", text: "Thunder on the second chorus" },
+      { label: "Wardrobe notes", text: "Gold jackets for the chorus" },
+    ]);
+    const cell = wrapper.get("[data-test=wardrobe-notes] td");
+    expect(cell.attributes("colspan")).toBe(
+      String(wrapper.get("main table").findAll("thead th").length),
+    );
+  });
+
+  it("shows nothing extra for an item with no notes, or cleared SFX and Wardrobe notes", async () => {
+    apiAnswers({
+      order: json(show()),
+      props: json({ productionId: "2027", props: [] }),
+      sfxNotes: notes([{ itemId: opening, text: "", revision: 2 }]),
+      wardrobeNotes: notes([{ itemId: opening, text: "", revision: 2 }]),
+    });
+
+    const { wrapper } = await openOverview();
+
+    expect(notesUnder(wrapper, "Opening Number")).toEqual([]);
+    expect(notesUnder(wrapper, "Finale")).toEqual([]);
+  });
+
+  it("still lists the items, and says so, when the SFX or Wardrobe notes can't be loaded", async () => {
+    apiAnswers({
+      order: json(show()),
+      props: json({ productionId: "2027", props: [] }),
+      sfxNotes: status(500),
+      wardrobeNotes: notes([{ itemId: opening, text: "Gold jackets", revision: 1 }]),
+    });
+
+    const { wrapper } = await openOverview();
+
+    expect(titlesIn(wrapper, "First half")).toEqual(["Opening Number", "Pirate Sketch"]);
+    expect(notesUnder(wrapper, "Opening Number")).toEqual([
+      { label: "Wardrobe notes", text: "Gold jackets" },
+    ]);
+    expect(wrapper.get("main [role=alert]").text()).toBe("Couldn't load the notes.");
   });
 });

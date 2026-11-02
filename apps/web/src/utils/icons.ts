@@ -43,7 +43,7 @@ export const icons = {
   micPlot: faMicrophone,
   wardrobe: faShirt,
   remove: faTrashCan,
-  // A file on an item's Scenery page: one for each type the team uses most, and a general
+  // A file on an item's Scenery, SFX or Wardrobe page: one for each type the team uses most, and a general
   // one for the rest. Every image type shares one, as the free set has no PNG or JPG icon.
   file: faFile,
   pdfFile: faFilePdf,
@@ -51,6 +51,8 @@ export const icons = {
   excelFile: faFileExcel,
   powerPointFile: faFilePowerpoint,
   imageFile: faFileImage,
+  // Audio only on an item's SFX page, where it plays in the browser.
+  audioFile: faFileAudio,
   // An account's actions on the Accounts page.
   resetPassword: faKey,
   disable: faUserSlash,

@@ -1,4 +1,4 @@
-import { type Access, mayChange, needOf, refusalFor } from "@app/shared";
+import { type Access, mayChange, needOf, refusalOn } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import { messageResponse } from "./json.ts";
 
@@ -28,5 +28,5 @@ export function accessRefusal(
   const need = needOf(routeKey);
   if (need === undefined) return undefined;
   if (need === "admin") return messageResponse(403, "Only admins can do this.");
-  return mayChange(access, need) ? undefined : messageResponse(403, refusalFor(need));
+  return mayChange(access, need) ? undefined : messageResponse(403, refusalOn(routeKey, need));
 }

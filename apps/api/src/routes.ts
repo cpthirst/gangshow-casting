@@ -7,23 +7,23 @@ import { createUpdateRole } from "#/casting/roles/update-role.ts";
 import type { Handler } from "#/http/handler.ts";
 import { createGetItemNotes } from "#/item-notes/get-item-notes.ts";
 import { createSaveItemNote } from "#/item-notes/save-item-note.ts";
+import { createCountItemFiles } from "#/production/item-files/count-item-files.ts";
+import { createDeleteItemFile } from "#/production/item-files/delete-item-file.ts";
+import { createGetItemFileLink } from "#/production/item-files/get-item-file-link.ts";
+import type { ItemFileStores } from "#/production/item-files/item-file-store.ts";
+import { createListItemFiles } from "#/production/item-files/list-item-files.ts";
+import { createUploadItemFile } from "#/production/item-files/upload-item-file.ts";
 import { createAddProp } from "#/production/props/add-prop.ts";
 import { createGetProps } from "#/production/props/get-props.ts";
 import { createRemoveProp } from "#/production/props/remove-prop.ts";
 import { createUpdateProp } from "#/production/props/update-prop.ts";
-import { createCountSceneryFiles } from "#/production/scenery/count-scenery-files.ts";
-import { createDeleteSceneryFile } from "#/production/scenery/delete-scenery-file.ts";
-import { createGetSceneryFileLink } from "#/production/scenery/get-scenery-file-link.ts";
-import { createListSceneryFiles } from "#/production/scenery/list-scenery-files.ts";
-import type { SceneryFileStore } from "#/production/scenery/scenery-file-store.ts";
-import { createUploadSceneryFile } from "#/production/scenery/upload-scenery-file.ts";
 import { createAddCastMember } from "#/show/cast/add-cast-member.ts";
 import { createDeleteCastMember } from "#/show/cast/delete-cast-member.ts";
 import { createGetCast } from "#/show/cast/get-cast.ts";
 import { createUpdateCastMember } from "#/show/cast/update-cast-member.ts";
 import { createGetRunningOrder } from "#/show/running-order/get-running-order.ts";
 import { createSaveRunningOrder } from "#/show/running-order/save-running-order.ts";
-import { dataStores, type Stores, sceneryFileStore, usageStore } from "#/storage/data-stores.ts";
+import { dataStores, itemFileStores, type Stores, usageStore } from "#/storage/data-stores.ts";
 import { createUsageRoutes } from "#/usage/usage-routes.ts";
 import type { UsageStore } from "#/usage/usage-store.ts";
 import { handler as health } from "./health.ts";
@@ -42,16 +42,19 @@ export function createRoutes(
     props,
     propsNotes,
     sceneryNotes,
+    sfxNotes,
+    wardrobeNotes,
   }: Stores,
   usage: UsageStore,
-  sceneryFiles: SceneryFileStore,
+  files: ItemFileStores,
 ): Record<Exclude<RouteKey, AccountRouteKey>, Handler> {
+  const { scenery: sceneryFiles, sfx: sfxFiles, wardrobe: wardrobeFiles } = files;
   return {
     "GET /api/health": health,
     "GET /api/productions/{productionId}/running-order": createGetRunningOrder(runningOrders),
     "POST /api/productions/{productionId}/running-order/versions": createSaveRunningOrder(
       runningOrders,
-      { roles, itemNotes, sceneryFiles },
+      { roles, itemNotes, sceneryFiles, sfxFiles, sfxNotes, wardrobeFiles, wardrobeNotes },
     ),
     "GET /api/productions/{productionId}/cast": createGetCast(cast),
     "POST /api/productions/{productionId}/cast": createAddCastMember(cast),
@@ -81,20 +84,50 @@ export function createRoutes(
       runningOrders,
     ),
     "GET /api/productions/{productionId}/items/{itemId}/scenery-files":
-      createListSceneryFiles(sceneryFiles),
+      createListItemFiles(sceneryFiles),
     "GET /api/productions/{productionId}/items/{itemId}/scenery-file-link":
-      createGetSceneryFileLink(sceneryFiles),
-    "GET /api/productions/{productionId}/scenery-file-counts":
-      createCountSceneryFiles(sceneryFiles),
+      createGetItemFileLink(sceneryFiles),
+    "GET /api/productions/{productionId}/scenery-file-counts": createCountItemFiles(sceneryFiles),
     "DELETE /api/productions/{productionId}/items/{itemId}/scenery-files":
-      createDeleteSceneryFile(sceneryFiles),
-    "POST /api/productions/{productionId}/items/{itemId}/scenery-uploads": createUploadSceneryFile(
+      createDeleteItemFile(sceneryFiles),
+    "POST /api/productions/{productionId}/items/{itemId}/scenery-uploads": createUploadItemFile(
       sceneryFiles,
       runningOrders,
     ),
     "GET /api/productions/{productionId}/scenery-notes": createGetItemNotes(sceneryNotes),
     "PUT /api/productions/{productionId}/items/{itemId}/scenery-notes": createSaveItemNote(
       sceneryNotes,
+      runningOrders,
+    ),
+    "GET /api/productions/{productionId}/items/{itemId}/sfx-files": createListItemFiles(sfxFiles),
+    "GET /api/productions/{productionId}/items/{itemId}/sfx-file-link":
+      createGetItemFileLink(sfxFiles),
+    "DELETE /api/productions/{productionId}/items/{itemId}/sfx-files":
+      createDeleteItemFile(sfxFiles),
+    "POST /api/productions/{productionId}/items/{itemId}/sfx-uploads": createUploadItemFile(
+      sfxFiles,
+      runningOrders,
+    ),
+    "GET /api/productions/{productionId}/sfx-file-counts": createCountItemFiles(sfxFiles),
+    "GET /api/productions/{productionId}/sfx-notes": createGetItemNotes(sfxNotes),
+    "PUT /api/productions/{productionId}/items/{itemId}/sfx-notes": createSaveItemNote(
+      sfxNotes,
+      runningOrders,
+    ),
+    "GET /api/productions/{productionId}/items/{itemId}/wardrobe-files":
+      createListItemFiles(wardrobeFiles),
+    "GET /api/productions/{productionId}/items/{itemId}/wardrobe-file-link":
+      createGetItemFileLink(wardrobeFiles),
+    "DELETE /api/productions/{productionId}/items/{itemId}/wardrobe-files":
+      createDeleteItemFile(wardrobeFiles),
+    "POST /api/productions/{productionId}/items/{itemId}/wardrobe-uploads": createUploadItemFile(
+      wardrobeFiles,
+      runningOrders,
+    ),
+    "GET /api/productions/{productionId}/wardrobe-file-counts": createCountItemFiles(wardrobeFiles),
+    "GET /api/productions/{productionId}/wardrobe-notes": createGetItemNotes(wardrobeNotes),
+    "PUT /api/productions/{productionId}/items/{itemId}/wardrobe-notes": createSaveItemNote(
+      wardrobeNotes,
       runningOrders,
     ),
     "POST /api/productions/{productionId}/casting-grid/export": exportCastingGrid,
@@ -110,12 +143,12 @@ export function createRoutes(
 }
 
 const { where, ...stores } = dataStores();
-const sceneryFiles = sceneryFileStore();
+const files = itemFileStores();
 /** Where the data is kept, for the dev server to say on start. */
-export const dataLocation = `${where}; ${sceneryFiles.where}`;
+export const dataLocation = `${where}; ${files.where}`;
 
-/** The local scenery files' folder, which the dev server serves; undefined with a bucket. */
-export const localFilesFolder = sceneryFiles.folder;
+/** The local item files' folder, which the dev server serves; undefined with a bucket. */
+export const localFilesFolder = files.folder;
 
 /** The routes on the data the environment names (data-stores.ts). */
-export const routes = createRoutes(stores, usageStore(), sceneryFiles.store);
+export const routes = createRoutes(stores, usageStore(), files.stores);

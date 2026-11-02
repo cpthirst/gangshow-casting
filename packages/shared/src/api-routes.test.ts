@@ -16,9 +16,12 @@ import {
   type RouteNeeds,
   readOnlyMayUse,
   refusalFor,
+  refusalOn,
   routeKeys,
   routeNeeds,
   SCENERY_PERMISSIONS,
+  SFX_PERMISSIONS,
+  WARDROBE_PERMISSIONS,
 } from "./api-routes.ts";
 
 describe("adminOnlyRouteKeys", () => {
@@ -163,12 +166,63 @@ describe("routeNeeds", () => {
     expect(needOf(key)).toBeUndefined();
   });
 
+  it.each([
+    "DELETE /api/productions/{productionId}/items/{itemId}/sfx-files",
+    "POST /api/productions/{productionId}/items/{itemId}/sfx-uploads",
+    "PUT /api/productions/{productionId}/items/{itemId}/sfx-notes",
+  ] as const)("has %s need Tech or Director, and refuse others naming the SFX", (key) => {
+    expect(needOf(key)).toEqual(SFX_PERMISSIONS);
+    expect(SFX_PERMISSIONS).toEqual(["tech", "director"]);
+    expect(refusalOn(key, SFX_PERMISSIONS)).toBe("You can view the SFX, but not change them.");
+  });
+
+  it.each([
+    "GET /api/productions/{productionId}/items/{itemId}/sfx-files",
+    "GET /api/productions/{productionId}/items/{itemId}/sfx-file-link",
+    "GET /api/productions/{productionId}/sfx-notes",
+    "GET /api/productions/{productionId}/sfx-file-counts",
+  ] as const)("leaves %s open to everyone", (key) => {
+    expect(routeKeys).toContain(key);
+    expect(needOf(key)).toBeUndefined();
+  });
+
+  it.each([
+    "DELETE /api/productions/{productionId}/items/{itemId}/wardrobe-files",
+    "POST /api/productions/{productionId}/items/{itemId}/wardrobe-uploads",
+    "PUT /api/productions/{productionId}/items/{itemId}/wardrobe-notes",
+  ] as const)("has %s need Wardrobe or Director, and refuse others naming the wardrobe", (key) => {
+    expect(needOf(key)).toEqual(WARDROBE_PERMISSIONS);
+    expect(WARDROBE_PERMISSIONS).toEqual(["wardrobe", "director"]);
+    expect(refusalOn(key, WARDROBE_PERMISSIONS)).toBe(
+      "You can view the wardrobe, but not change it.",
+    );
+  });
+
+  it.each([
+    "GET /api/productions/{productionId}/items/{itemId}/wardrobe-files",
+    "GET /api/productions/{productionId}/items/{itemId}/wardrobe-file-link",
+    "GET /api/productions/{productionId}/wardrobe-notes",
+    "GET /api/productions/{productionId}/wardrobe-file-counts",
+  ] as const)("leaves %s open to everyone", (key) => {
+    expect(routeKeys).toContain(key);
+    expect(needOf(key)).toBeUndefined();
+  });
+
+  it("refuses a scenery change still saying the scenery can be viewed", () => {
+    const key = "PUT /api/productions/{productionId}/items/{itemId}/scenery-notes";
+    expect(refusalOn(key, SCENERY_PERMISSIONS)).toBe(
+      "You can view the scenery, but not change it.",
+    );
+  });
+
   it("has every other change route today need Casting, or stay admin-only", () => {
     const changes = routeKeys.filter(
       (key) =>
         !readOnlyMayUse(key) &&
         needOf(key) !== PROPS_PERMISSIONS &&
-        needOf(key) !== SCENERY_PERMISSIONS,
+        needOf(key) !== SCENERY_PERMISSIONS &&
+        needOf(key) !== SFX_PERMISSIONS &&
+        needOf(key) !== WARDROBE_PERMISSIONS,
     );
     const needsCasting = (key: string) => needOf(key) === CASTING_PERMISSIONS;
     expect(changes.filter(needsCasting).sort()).toEqual([
@@ -285,6 +339,10 @@ describe("refusalFor", () => {
     expect(refusalFor("tech")).toBe("You can view the scenery, but not change it.");
   });
 
+  it("says the wardrobe can be viewed but not changed, for Wardrobe", () => {
+    expect(refusalFor("wardrobe")).toBe("You can view the wardrobe, but not change it.");
+  });
+
   it("falls back to a general line for a department without its own", () => {
     expect(refusalFor("director")).toBe("You can view this, but not change it.");
   });
@@ -299,6 +357,7 @@ describe("isRefusalAsReadOnly", () => {
     expect(permissions.every((permission) => isRefusalAsReadOnly(refusalFor(permission)))).toBe(
       true,
     );
+    expect(isRefusalAsReadOnly("You can view the SFX, but not change them.")).toBe(true);
     expect(isRefusalAsReadOnly("Only admins can do this.")).toBe(false);
     expect(isRefusalAsReadOnly(undefined)).toBe(false);
   });

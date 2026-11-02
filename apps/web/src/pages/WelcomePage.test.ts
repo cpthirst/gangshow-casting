@@ -28,7 +28,8 @@ describe("Welcome page", () => {
     const intro = wrapper.get("[data-test=intro]").text();
     expect(intro).toContain("iCUE");
     // It's more than a casting tool: say what's coming, so people know where it's going.
-    expect(intro).toMatch(/props lists, sound effects and mic plots/);
+    expect(intro).toContain("and what each department needs for each item; mic plots are to come.");
+    expect(intro).not.toMatch(/(props|sound effects)[^;]*(to come|coming)/i);
     expect(intro).toContain("Chester Gang Show");
     expect(intro.split(/(?<=\.)\s+/).length).toBeLessThanOrEqual(2);
   });
@@ -56,6 +57,16 @@ describe("Welcome page", () => {
     expect(production).toContain(
       "Each item's Scenery page holds its set plans, designs and photos, for everyone to download.",
     );
+  });
+
+  it("says the Overview's SFX and Wardrobe buttons open each item's files and notes, and neither is coming soon", async () => {
+    const { wrapper } = await openWelcome();
+
+    const production = wrapper.findAll("dd")[2]?.text().replace(/\s+/g, " ") ?? "";
+    expect(production).toContain(
+      "The Overview's SFX and Wardrobe buttons open each item's sound effects files and costume designs, with notes for each.",
+    );
+    expect(wrapper.text()).not.toMatch(/coming soon/i);
   });
 
   it.each([

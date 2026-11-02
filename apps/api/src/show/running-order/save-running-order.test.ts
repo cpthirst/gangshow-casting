@@ -7,9 +7,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { inMemoryRoleStore } from "#/casting/roles/role-store.ts";
 import { inMemoryItemNoteStore } from "#/item-notes/item-note-store.ts";
 import {
-  folderSceneryFileStore,
-  type SceneryFileStore,
-} from "#/production/scenery/scenery-file-store.ts";
+  folderItemFileStore,
+  type ItemFileStore,
+} from "#/production/item-files/item-file-store.ts";
 import { anItem, aRunningOrder, itemId } from "./running-order.fixture.ts";
 import { inMemoryRunningOrderStore } from "./running-order-store.ts";
 import { createSaveRunningOrder } from "./save-running-order.ts";
@@ -55,7 +55,15 @@ function setUp() {
   const itemNotes = inMemoryItemNoteStore();
   const handler = createSaveRunningOrder(
     store,
-    { roles, itemNotes, sceneryFiles: noCleanup },
+    {
+      roles,
+      itemNotes,
+      sceneryFiles: noCleanup,
+      sfxFiles: noCleanup,
+      sfxNotes: noCleanup,
+      wardrobeFiles: noCleanup,
+      wardrobeNotes: noCleanup,
+    },
     () => NOW,
   );
   return { store, roles, itemNotes, handler };
@@ -249,6 +257,10 @@ describe("save running order handler", () => {
         roles: { keepOnlyItems: failing },
         itemNotes: { keepOnlyItems: failing },
         sceneryFiles: { keepOnlyItems: failing },
+        sfxFiles: { keepOnlyItems: failing },
+        sfxNotes: { keepOnlyItems: failing },
+        wardrobeFiles: { keepOnlyItems: failing },
+        wardrobeNotes: { keepOnlyItems: failing },
       },
       () => NOW,
     );
@@ -267,7 +279,15 @@ describe("save running order handler", () => {
     ]);
     const kept: string[][] = [];
     const keeping = { keepOnlyItems: async (_p: string, ids: string[]) => void kept.push(ids) };
-    const casting = { roles: keeping, itemNotes: noCleanup, sceneryFiles: keeping };
+    const casting = {
+      roles: keeping,
+      itemNotes: noCleanup,
+      sceneryFiles: keeping,
+      sfxFiles: noCleanup,
+      sfxNotes: noCleanup,
+      wardrobeFiles: noCleanup,
+      wardrobeNotes: noCleanup,
+    };
     // Someone else saves version 8, with a new item, just after this save writes 7.
     const racing = {
       ...store,
@@ -333,7 +353,7 @@ describe("save running order handler, with scenery files", () => {
     await rm(folder, { recursive: true, force: true });
   });
 
-  function setUpScenery(sceneryFiles: Pick<SceneryFileStore, "keepOnlyItems"> = files()) {
+  function setUpScenery(sceneryFiles: Pick<ItemFileStore, "keepOnlyItems"> = files()) {
     const store = inMemoryRunningOrderStore([
       aRunningOrder(6, { first: ["Opening Number", "Cut Sketch"] }),
     ]);
@@ -341,10 +361,14 @@ describe("save running order handler, with scenery files", () => {
       roles: inMemoryRoleStore(),
       itemNotes: inMemoryItemNoteStore(),
       sceneryFiles,
+      sfxFiles: noCleanup,
+      sfxNotes: noCleanup,
+      wardrobeFiles: noCleanup,
+      wardrobeNotes: noCleanup,
     };
     return createSaveRunningOrder(store, cleanup, () => NOW);
   }
-  const files = () => folderSceneryFileStore(folder);
+  const files = () => folderItemFileStore(folder, "scenery");
 
   // Put straight into file storage, as an upload or someone outside the app would (made-up).
   async function putFile(item: string, name: string, department = "scenery", production = "2027") {
@@ -432,5 +456,149 @@ describe("save running order handler, with scenery files", () => {
 
     expect(existsSync(join(folder, "2027", cut, "sfx", "thunder.mp3"))).toBe(true);
     expect(await namesOf(cut, "2026")).toEqual(["set-plan.pdf"]);
+  });
+});
+
+describe("save running order handler, with SFX files and notes", () => {
+  const cut = itemId("Cut Sketch");
+  const opening = itemId("Opening Number");
+  let folder: string;
+  beforeEach(async () => {
+    folder = await mkdtemp(join(tmpdir(), "running-order-sfx-"));
+  });
+  afterEach(async () => {
+    await rm(folder, { recursive: true, force: true });
+  });
+
+  function setUpSfx() {
+    const store = inMemoryRunningOrderStore([
+      aRunningOrder(6, { first: ["Opening Number", "Cut Sketch"] }),
+    ]);
+    const sfxNotes = inMemoryItemNoteStore();
+    const handler = createSaveRunningOrder(
+      store,
+      {
+        roles: inMemoryRoleStore(),
+        itemNotes: inMemoryItemNoteStore(),
+        sceneryFiles: folderItemFileStore(folder, "scenery"),
+        sfxFiles: folderItemFileStore(folder, "sfx"),
+        sfxNotes,
+        wardrobeFiles: noCleanup,
+        wardrobeNotes: noCleanup,
+      },
+      () => NOW,
+    );
+    return { handler, sfxNotes };
+  }
+
+  // Put straight into file storage, as an upload would (made-up).
+  async function putFile(item: string, department: string, name: string) {
+    const file = join(folder, "2027", item, department, name);
+    await mkdir(join(file, ".."), { recursive: true });
+    await writeFile(file, "made-up");
+  }
+  const sfxNamesOf = async (item: string) =>
+    (await folderItemFileStore(folder, "sfx").list("2027", item)).map((file) => file.name);
+
+  it("deletes a removed item's SFX files and SFX note with its scenery files, once the version is saved", async () => {
+    const { handler, sfxNotes } = setUpSfx();
+    await putFile(cut, "sfx", "boing.mp3");
+    await putFile(cut, "scenery", "set-plan.pdf");
+    await putFile(opening, "sfx", "thunder.mp3");
+    await sfxNotes.save("2027", cut, 0, "Boing on the fall");
+    await sfxNotes.save("2027", opening, 0, "Thunder on the second verse");
+
+    const res = await handler(request(update(6, ["Opening Number"])));
+
+    expect(res.statusCode).toBe(201);
+    expect(existsSync(join(folder, "2027", cut, "sfx"))).toBe(false);
+    expect(existsSync(join(folder, "2027", cut, "scenery"))).toBe(false);
+    expect(await sfxNamesOf(opening)).toEqual(["thunder.mp3"]);
+    expect((await sfxNotes.list("2027")).notes.map((note) => note.itemId)).toEqual([opening]);
+  });
+
+  it("deletes no SFX files or notes when the save is refused, so Reset still undoes a removal", async () => {
+    const { handler, sfxNotes } = setUpSfx();
+    await putFile(cut, "sfx", "boing.mp3");
+    await sfxNotes.save("2027", cut, 0, "Boing on the fall");
+
+    const stale = await handler(request(update(5, ["Opening Number"])));
+
+    expect(stale.statusCode).toBe(409);
+    expect(await sfxNamesOf(cut)).toEqual(["boing.mp3"]);
+    expect((await sfxNotes.list("2027")).notes).toHaveLength(1);
+  });
+});
+
+describe("save running order handler, with Wardrobe files and notes", () => {
+  const cut = itemId("Cut Sketch");
+  const opening = itemId("Opening Number");
+  let folder: string;
+  beforeEach(async () => {
+    folder = await mkdtemp(join(tmpdir(), "running-order-wardrobe-"));
+  });
+  afterEach(async () => {
+    await rm(folder, { recursive: true, force: true });
+  });
+
+  function setUpWardrobe() {
+    const store = inMemoryRunningOrderStore([
+      aRunningOrder(6, { first: ["Opening Number", "Cut Sketch"] }),
+    ]);
+    const wardrobeNotes = inMemoryItemNoteStore();
+    const handler = createSaveRunningOrder(
+      store,
+      {
+        roles: inMemoryRoleStore(),
+        itemNotes: inMemoryItemNoteStore(),
+        sceneryFiles: folderItemFileStore(folder, "scenery"),
+        sfxFiles: folderItemFileStore(folder, "sfx"),
+        sfxNotes: noCleanup,
+        wardrobeFiles: folderItemFileStore(folder, "wardrobe"),
+        wardrobeNotes,
+      },
+      () => NOW,
+    );
+    return { handler, wardrobeNotes };
+  }
+
+  // Put straight into file storage, as an upload would (made-up).
+  async function putFile(item: string, department: string, name: string) {
+    const file = join(folder, "2027", item, department, name);
+    await mkdir(join(file, ".."), { recursive: true });
+    await writeFile(file, "made-up");
+  }
+  const wardrobeNamesOf = async (item: string) =>
+    (await folderItemFileStore(folder, "wardrobe").list("2027", item)).map((file) => file.name);
+
+  it("deletes a removed item's Wardrobe files and Wardrobe note with its scenery and SFX files, once the version is saved", async () => {
+    const { handler, wardrobeNotes } = setUpWardrobe();
+    await putFile(cut, "wardrobe", "hat.jpg");
+    await putFile(cut, "scenery", "set-plan.pdf");
+    await putFile(cut, "sfx", "boing.mp3");
+    await putFile(opening, "wardrobe", "jacket-pattern.pdf");
+    await wardrobeNotes.save("2027", cut, 0, "Top hat");
+    await wardrobeNotes.save("2027", opening, 0, "Gold jackets for the chorus");
+
+    const res = await handler(request(update(6, ["Opening Number"])));
+
+    expect(res.statusCode).toBe(201);
+    expect(existsSync(join(folder, "2027", cut, "wardrobe"))).toBe(false);
+    expect(existsSync(join(folder, "2027", cut, "scenery"))).toBe(false);
+    expect(existsSync(join(folder, "2027", cut, "sfx"))).toBe(false);
+    expect(await wardrobeNamesOf(opening)).toEqual(["jacket-pattern.pdf"]);
+    expect((await wardrobeNotes.list("2027")).notes.map((note) => note.itemId)).toEqual([opening]);
+  });
+
+  it("deletes no Wardrobe files or notes when the save is refused", async () => {
+    const { handler, wardrobeNotes } = setUpWardrobe();
+    await putFile(cut, "wardrobe", "hat.jpg");
+    await wardrobeNotes.save("2027", cut, 0, "Top hat");
+
+    const stale = await handler(request(update(5, ["Opening Number"])));
+
+    expect(stale.statusCode).toBe(409);
+    expect(await wardrobeNamesOf(cut)).toEqual(["hat.jpg"]);
+    expect((await wardrobeNotes.list("2027")).notes).toHaveLength(1);
   });
 });

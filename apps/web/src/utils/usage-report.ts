@@ -1,5 +1,6 @@
 import {
   type AccountSummary,
+  type FileDepartment,
   type MenuPageName,
   type PageView,
   type PersonUsage,
@@ -46,6 +47,13 @@ const exportNames: Record<UsageExport, string> = {
   "word-props-list": "the Word props list",
 };
 
+/** Each department's item page, as the activity names it, with its article for "opened a…". */
+const departmentPageNames: Record<FileDepartment, { name: string; aPage: string }> = {
+  scenery: { name: "Scenery", aPage: "a Scenery page" },
+  sfx: { name: "SFX", aPage: "an SFX page" },
+  wardrobe: { name: "Wardrobe", aPage: "a Wardrobe page" },
+};
+
 type Titles = {
   page: (page: MenuPageName) => string;
   /**
@@ -71,12 +79,15 @@ export function whatHappened(entry: RecordUsageRequest, titles: Titles) {
       if (title === null) return "opened an item";
       return title ? `opened ${title}` : "opened an item no longer in the running order";
     }
-    case "scenery": {
+    case "scenery":
+    case "sfx":
+    case "wardrobe": {
+      const { name, aPage } = departmentPageNames[entry.event];
       const title = titles.item(entry.productionId, entry.itemId);
-      if (title === null) return "opened an item's Scenery page";
+      if (title === null) return `opened an item's ${name} page`;
       return title
-        ? `opened ${title}'s Scenery page`
-        : "opened a Scenery page of an item no longer in the running order";
+        ? `opened ${title}'s ${name} page`
+        : `opened ${aPage} of an item no longer in the running order`;
     }
     case "export":
       return `exported ${exportNames[entry.export]}`;
@@ -92,6 +103,8 @@ const otherNames: Record<OtherFeature, string> = {
   "overview-grid": "Overview: Grid",
   "item-page": "Item pages",
   "scenery-page": "Scenery pages",
+  "sfx-page": "SFX pages",
+  "wardrobe-page": "Wardrobe pages",
   "export-excel-grid": "Export: Excel grid",
   "export-word-casting-sheets": "Export: Word casting sheets",
   "export-word-item-overview": "Export: Word item overview",

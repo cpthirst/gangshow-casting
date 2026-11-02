@@ -4,17 +4,17 @@ import { join } from "node:path";
 import { SceneryFileLink } from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { itemId } from "#/show/running-order/running-order.fixture.ts";
-import { createGetSceneryFileLink } from "./get-scenery-file-link.ts";
-import { folderSceneryFileStore } from "./scenery-file-store.ts";
+import { createGetItemFileLink } from "./get-item-file-link.ts";
+import { folderItemFileStore } from "./item-file-store.ts";
 
 const openingNumber = itemId("Opening Number");
 
 describe("scenery file link handler", () => {
   let folder: string;
-  let getLink: ReturnType<typeof createGetSceneryFileLink>;
+  let getLink: ReturnType<typeof createGetItemFileLink>;
   beforeEach(async () => {
     folder = await mkdtemp(join(tmpdir(), "scenery-links-"));
-    getLink = createGetSceneryFileLink(folderSceneryFileStore(folder));
+    getLink = createGetItemFileLink(folderItemFileStore(folder, "scenery"));
   });
   afterEach(async () => {
     await rm(folder, { recursive: true, force: true });

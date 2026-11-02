@@ -1,9 +1,9 @@
-import { SceneryUpload } from "@app/shared";
-import { sceneryUploadsPath } from "@/utils/scenery.ts";
+import { type FileDepartment, SceneryUpload } from "@app/shared";
+import { itemUploadsPath } from "@/utils/item-files.ts";
 import { apiFetch } from "./sign-in.ts";
 
-// Uploading one of an item's scenery files (production-scenery FR8): the API says where, then
-// the file goes straight to file storage, never through the API (ADR 0030).
+// Uploading one of an item's scenery, SFX or Wardrobe files (production-scenery FR8): the API
+// says where, then the file goes straight to file storage, never through the API (ADR 0030).
 
 /** How an upload ended: kept, refused for a name the item already has, or not kept at all. */
 export type UploadResult = "uploaded" | "taken" | "failed";
@@ -15,13 +15,14 @@ export interface UploadOptions {
   onProgress: (fraction: number) => void;
 }
 
-export async function uploadSceneryFile(
+export async function uploadItemFile(
+  department: FileDepartment,
   itemId: string,
   file: File,
   { replace, onProgress }: UploadOptions,
 ): Promise<UploadResult> {
   try {
-    const asked = await apiFetch(sceneryUploadsPath(itemId), {
+    const asked = await apiFetch(itemUploadsPath(department, itemId), {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ name: file.name, size: file.size, ...(replace ? { replace } : {}) }),

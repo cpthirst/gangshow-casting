@@ -3,12 +3,13 @@ import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import type { ApiEvent } from "#/http/handler.ts";
 import { jsonResponse } from "#/http/json.ts";
 import { folderIdOf, productionIdOf } from "#/http/params.ts";
-import type { SceneryFileStore } from "./scenery-file-store.ts";
+import type { ItemFileStore } from "./item-file-store.ts";
 
-// GET /api/productions/{productionId}/items/{itemId}/scenery-file-link?name=…: a short-lived
-// link that opens or downloads one of the item's files (production-scenery FR10). Open to every
-// signed-in role. 404 if the file isn't there any more, so the page can say so.
-export function createGetSceneryFileLink(store: SceneryFileStore) {
+// GET /api/productions/{productionId}/items/{itemId}/scenery-file-link?name=…, or
+// /sfx-file-link or /wardrobe-file-link: a short-lived link that opens or downloads one of the item's files
+// (production-scenery FR10). Open to every signed-in role. 404 if the file isn't there any
+// more, so the page can say so.
+export function createGetItemFileLink(store: ItemFileStore) {
   return async (event: ApiEvent): Promise<APIGatewayProxyStructuredResultV2> => {
     const productionId = productionIdOf(event);
     const itemId = folderIdOf(event.pathParameters?.itemId);

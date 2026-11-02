@@ -17,16 +17,16 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [production-sfx-wardrobe.E1.S1](stories/E1-S1-sfx-files-and-notes.md) | Walking skeleton: Scenery's routes, file store, page, upload, notes and clean-up take a department, with Scenery's tests passing unchanged. The SFX page gets the whole set: list, upload (choose, drag, progress, replace), open or download, delete, notes, the read-only line, and its files and notes deleted with their item. The API reaches `sfx` files as well as scenery's. Includes the ADR amending ADR 0030 | FR1, FR2, FR3, FR5, FR7, FR8, FR9 | (none) | ready |
-| [production-sfx-wardrobe.E1.S2](stories/E1-S2-wardrobe-files-and-notes.md) | The same set for Wardrobe, changed by Wardrobe, Director and Admins, with "Costume designs and images only: no photos of cast members." on the upload area. The API reaches `wardrobe` files | FR1, FR2, FR3, FR4, FR5, FR7, FR8, FR9 | E1.S1 | ready |
-| [production-sfx-wardrobe.E1.S3](stories/E1-S3-sfx-audio-plays-in-the-browser.md) | On SFX only, MP3, WAV, M4A, AAC and OGG files show the audio file icon and open in a new tab to play, instead of downloading. Audio on Scenery and Wardrobe still downloads | FR6 | E1.S1 | ready |
+| [production-sfx-wardrobe.E1.S1](stories/E1-S1-sfx-files-and-notes.md) | Walking skeleton: Scenery's routes, file store, page, upload, notes and clean-up take a department, with Scenery's tests passing unchanged. The SFX page gets the whole set: list, upload (choose, drag, progress, replace), open or download, delete, notes, the read-only line, and its files and notes deleted with their item. The API reaches `sfx` files as well as scenery's. Includes the ADR amending ADR 0030 | FR1, FR2, FR3, FR5, FR7, FR8, FR9 | (none) | done |
+| [production-sfx-wardrobe.E1.S2](stories/E1-S2-wardrobe-files-and-notes.md) | The same set for Wardrobe, changed by Wardrobe, Director and Admins, with "Costume designs and images only: no photos of cast members." on the upload area. The API reaches `wardrobe` files | FR1, FR2, FR3, FR4, FR5, FR7, FR8, FR9 | E1.S1 | done |
+| [production-sfx-wardrobe.E1.S3](stories/E1-S3-sfx-audio-plays-in-the-browser.md) | On SFX only, MP3, WAV, M4A, AAC and OGG files show the audio file icon and open in a new tab to play, instead of downloading. Audio on Scenery and Wardrobe still downloads | FR6 | E1.S1 | done |
 
 ## E2: Overview, Usage and Help
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [production-sfx-wardrobe.E2.S1](stories/E2-S1-overview-counts-notes-and-usage.md) | The Overview's SFX and Wardrobe columns count files instead of a dash, their notes appear under each row after scenery and props notes, and the Usage page records visits to both pages | FR10, FR11, FR13 | E1.S2 | ready |
-| [production-sfx-wardrobe.E2.S2](stories/E2-S2-welcome-and-help.md) | Welcome and Help describe both pages, who can change each, SFX audio opening in a new tab, and Wardrobe's rule | FR12 | E1.S2, E1.S3 | ready |
+| [production-sfx-wardrobe.E2.S1](stories/E2-S1-overview-counts-notes-and-usage.md) | The Overview's SFX and Wardrobe columns count files instead of a dash, their notes appear under each row after scenery and props notes, and the Usage page records visits to both pages | FR10, FR11, FR13 | E1.S2 | done |
+| [production-sfx-wardrobe.E2.S2](stories/E2-S2-welcome-and-help.md) | Welcome and Help describe both pages, who can change each, SFX audio opening in a new tab, and Wardrobe's rule | FR12 | E1.S2, E1.S3 | done |
 
 ## Order
 

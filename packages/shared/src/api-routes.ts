@@ -31,6 +31,20 @@ export const routeKeys = [
   "GET /api/productions/{productionId}/scenery-file-counts",
   "GET /api/productions/{productionId}/scenery-notes",
   "PUT /api/productions/{productionId}/items/{itemId}/scenery-notes",
+  "GET /api/productions/{productionId}/items/{itemId}/sfx-files",
+  "GET /api/productions/{productionId}/items/{itemId}/sfx-file-link",
+  "DELETE /api/productions/{productionId}/items/{itemId}/sfx-files",
+  "POST /api/productions/{productionId}/items/{itemId}/sfx-uploads",
+  "GET /api/productions/{productionId}/sfx-file-counts",
+  "GET /api/productions/{productionId}/sfx-notes",
+  "PUT /api/productions/{productionId}/items/{itemId}/sfx-notes",
+  "GET /api/productions/{productionId}/items/{itemId}/wardrobe-files",
+  "GET /api/productions/{productionId}/items/{itemId}/wardrobe-file-link",
+  "DELETE /api/productions/{productionId}/items/{itemId}/wardrobe-files",
+  "POST /api/productions/{productionId}/items/{itemId}/wardrobe-uploads",
+  "GET /api/productions/{productionId}/wardrobe-file-counts",
+  "GET /api/productions/{productionId}/wardrobe-notes",
+  "PUT /api/productions/{productionId}/items/{itemId}/wardrobe-notes",
   "POST /api/productions/{productionId}/casting-grid/export",
   "PUT /api/productions/{productionId}/items/{itemId}/notes",
   "POST /api/productions/{productionId}/items/{itemId}/roles",
@@ -90,6 +104,7 @@ const departmentRefusals: Partial<Record<Permission, string>> = {
   casting: "You can view the casting, but not change it.",
   stage: "You can view the props, but not change them.",
   tech: "You can view the scenery, but not change it.",
+  wardrobe: "You can view the wardrobe, but not change it.",
 };
 
 /** Permissions any one of which allows a change, the first saying what a refusal names. */
@@ -101,7 +116,26 @@ export const refusalFor = (needed: Permission | AnyOf) => {
   return departmentRefusals[named] ?? GENERAL_REFUSAL;
 };
 
-const readOnlyRefusals = new Set<unknown>(permissions.map(refusalFor));
+/**
+ * What a route says when it refuses a change, where its first permission's line would name
+ * the wrong thing: Tech's line is about the scenery (production-sfx-wardrobe E1.S1).
+ */
+const routeRefusals = new Map<string, string>(
+  [
+    "DELETE /api/productions/{productionId}/items/{itemId}/sfx-files",
+    "POST /api/productions/{productionId}/items/{itemId}/sfx-uploads",
+    "PUT /api/productions/{productionId}/items/{itemId}/sfx-notes",
+  ].map((key) => [key, "You can view the SFX, but not change them."]),
+);
+
+/** The API's answer to a change on the route from someone without the permission it needs. */
+export const refusalOn = (key: string, needed: Permission | AnyOf) =>
+  routeRefusals.get(key) ?? refusalFor(needed);
+
+const readOnlyRefusals = new Set<unknown>([
+  ...permissions.map(refusalFor),
+  ...routeRefusals.values(),
+]);
 
 /** Whether a refusal says the change needed a permission, which pages recognise (team-roles FR12). */
 export const isRefusalAsReadOnly = (message: unknown) => readOnlyRefusals.has(message);
@@ -181,6 +215,10 @@ export const PROPS_PERMISSIONS: AnyOf = [STAGE_GROUP, DIRECTOR_GROUP];
  * the props.
  */
 export const SCENERY_PERMISSIONS: AnyOf = [TECH_GROUP, STAGE_GROUP, DIRECTOR_GROUP];
+/** Who may change the SFX files and notes: Tech, or a Director (production-sfx-wardrobe FR1). */
+export const SFX_PERMISSIONS: AnyOf = [TECH_GROUP, DIRECTOR_GROUP];
+/** Who may change the Wardrobe files and notes: Wardrobe, or a Director (production-sfx-wardrobe FR1). */
+export const WARDROBE_PERMISSIONS: AnyOf = [WARDROBE_GROUP, DIRECTOR_GROUP];
 /** Who may change the cast, roles, casting and casting notes: Casting alone, never a Director. */
 export const CASTING_PERMISSIONS: AnyOf = [CASTING_GROUP];
 
@@ -210,6 +248,12 @@ export const routeNeeds: RouteNeeds = {
   "DELETE /api/productions/{productionId}/items/{itemId}/scenery-files": SCENERY_PERMISSIONS,
   "POST /api/productions/{productionId}/items/{itemId}/scenery-uploads": SCENERY_PERMISSIONS,
   "PUT /api/productions/{productionId}/items/{itemId}/scenery-notes": SCENERY_PERMISSIONS,
+  "DELETE /api/productions/{productionId}/items/{itemId}/sfx-files": SFX_PERMISSIONS,
+  "POST /api/productions/{productionId}/items/{itemId}/sfx-uploads": SFX_PERMISSIONS,
+  "PUT /api/productions/{productionId}/items/{itemId}/sfx-notes": SFX_PERMISSIONS,
+  "DELETE /api/productions/{productionId}/items/{itemId}/wardrobe-files": WARDROBE_PERMISSIONS,
+  "POST /api/productions/{productionId}/items/{itemId}/wardrobe-uploads": WARDROBE_PERMISSIONS,
+  "PUT /api/productions/{productionId}/items/{itemId}/wardrobe-notes": WARDROBE_PERMISSIONS,
   // Usage is about the team, so only admins read it (usage-tracking FR4).
   "GET /api/usage": "admin",
 };

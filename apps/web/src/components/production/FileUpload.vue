@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { nextTick, ref, shallowRef } from "vue";
-import { uploadSceneryFile } from "@/services/scenery-upload.ts";
+import { uploadItemFile } from "@/services/file-upload.ts";
+import type { FilesDepartment } from "@/utils/item-files.ts";
 import { fileSize, replaceQuestion, uploadRefusal } from "@/utils/scenery.ts";
 
-// Uploading one file at a time to an item's scenery, chosen with the button or dropped on the
-// area, showing how much has gone (production-scenery FR8). A name the item has replaces its
-// file once confirmed (FR9). The page shows any problem, and lists the files again when storage
-// has changed.
+// Uploading one file at a time to an item's scenery, SFX or Wardrobe, chosen with the button or
+// dropped on the area, showing how much has gone (production-scenery FR8). A name the item has
+// replaces its file once confirmed (FR9). The page shows any problem, and lists the files again
+// when storage has changed.
 
-const props = defineProps<{ itemId: string; names: string[] }>();
+const props = defineProps<{ department: FilesDepartment; itemId: string; names: string[] }>();
 const emit = defineEmits<{ changed: []; problem: [message: string | undefined] }>();
 
 const button = ref<HTMLButtonElement>();
@@ -77,7 +78,7 @@ async function upload(file: File, replace: boolean) {
   failed.value = undefined;
   sending.value = { file, fraction: 0 };
   announced.value = `Uploading ${file.name}`;
-  const result = await uploadSceneryFile(props.itemId, file, {
+  const result = await uploadItemFile(props.department.key, props.itemId, file, {
     replace,
     onProgress: (fraction) => {
       if (sending.value) sending.value = { ...sending.value, fraction };
@@ -106,7 +107,7 @@ async function upload(file: File, replace: boolean) {
 
 <template>
   <div
-    class="cast-actions scenery-upload"
+    class="cast-actions file-upload"
     :class="{ dropping }"
     data-test="upload-area"
     @dragenter="draggedOver"
@@ -154,6 +155,6 @@ async function upload(file: File, replace: boolean) {
     </div>
     <!-- There before anything is said in it, so screen readers hear each change. -->
     <p class="visually-hidden" role="status" data-test="upload-status">{{ announced }}</p>
-    <p class="upload-rule">Scenery and set images only: no photos of cast members.</p>
+    <p v-if="department.uploadRule" class="upload-rule">{{ department.uploadRule }}</p>
   </div>
 </template>

@@ -5,21 +5,21 @@ import { MAX_SCENERY_FILE_BYTES, SceneryUpload } from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { aRunningOrder, itemId } from "#/show/running-order/running-order.fixture.ts";
 import { inMemoryRunningOrderStore } from "#/show/running-order/running-order-store.ts";
-import { folderSceneryFileStore } from "./scenery-file-store.ts";
-import { createUploadSceneryFile } from "./upload-scenery-file.ts";
+import { folderItemFileStore } from "./item-file-store.ts";
+import { createUploadItemFile } from "./upload-item-file.ts";
 
 const openingNumber = itemId("Opening Number");
 const finale = itemId("Finale");
 
 describe("upload scenery file handler", () => {
   let folder: string;
-  let upload: ReturnType<typeof createUploadSceneryFile>;
+  let upload: ReturnType<typeof createUploadItemFile>;
   beforeEach(async () => {
     folder = await mkdtemp(join(tmpdir(), "scenery-uploads-"));
     const runningOrders = inMemoryRunningOrderStore([
       aRunningOrder(1, { first: ["Opening Number"], second: ["Finale"] }),
     ]);
-    upload = createUploadSceneryFile(folderSceneryFileStore(folder), runningOrders);
+    upload = createUploadItemFile(folderItemFileStore(folder, "scenery"), runningOrders);
   });
   afterEach(async () => {
     await rm(folder, { recursive: true, force: true });

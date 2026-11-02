@@ -2,7 +2,7 @@
 id: production-sfx-wardrobe.E1.S3
 title: Play SFX audio files in the browser
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story
