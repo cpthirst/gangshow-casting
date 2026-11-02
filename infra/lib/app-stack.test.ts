@@ -400,6 +400,22 @@ describe("AppStack", () => {
       }
     });
 
+    it("lets the API call each function with one permission, however many routes it serves", () => {
+      const { template } = synth();
+
+      // One permission per route outgrew Lambda's 20 KB policy limit as routes were added.
+      const permissions = resourcesOfType(template, "AWS::Lambda::Permission").filter(
+        (p) => p.Properties.Principal === "apigateway.amazonaws.com",
+      );
+      const functions = permissions.map(
+        (p) => JSON.stringify(p.Properties.FunctionName).match(/(Api|Accounts)Function/)?.[1],
+      );
+      expect(functions.sort()).toEqual(["Accounts", "Api"]);
+      for (const permission of permissions) {
+        expect(JSON.stringify(permission.Properties.SourceArn)).toMatch(/\/\*\/\*"/);
+      }
+    });
+
     it("lets only the accounts function manage the team's accounts, with just the actions it uses", () => {
       const { template } = synth();
 

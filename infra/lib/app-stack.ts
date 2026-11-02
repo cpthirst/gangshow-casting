@@ -259,7 +259,11 @@ export class AppStack extends Stack {
         resources: departmentFiles,
       }),
     );
-    const apiIntegration = new HttpLambdaIntegration("ApiIntegration", dataFunction);
+    // One invoke permission for the whole API, not one per route: a statement per route outgrew
+    // Lambda's 20 KB policy limit. The token check still guards each route.
+    const apiIntegration = new HttpLambdaIntegration("ApiIntegration", dataFunction, {
+      scopePermissionToRoute: false,
+    });
 
     // The only function allowed to manage the team's accounts (ADR 0017, ADR 0018), and only
     // with the actions the account routes use.
@@ -280,7 +284,9 @@ export class AppStack extends Stack {
       "cognito-idp:AdminAddUserToGroup",
       "cognito-idp:AdminRemoveUserFromGroup",
     );
-    const accountsIntegration = new HttpLambdaIntegration("AccountsIntegration", accountsFunction);
+    const accountsIntegration = new HttpLambdaIntegration("AccountsIntegration", accountsFunction, {
+      scopePermissionToRoute: false,
+    });
 
     // Every route, and the $default catch-all, needs a token from the team's pool, so an
     // unknown path gets 401 rather than 404 (ADR 0018).
