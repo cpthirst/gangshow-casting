@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   browserTypeOf,
+  fileDepartments,
   fileTypeOf,
   MAX_SCENERY_FILE_BYTES,
   SceneryFileCounts,
@@ -136,16 +137,33 @@ describe("browserTypeOf", () => {
     ["sketch.gif", "image/gif"],
     ["sketch.webp", "image/webp"],
     ["cues.txt", "text/plain; charset=utf-8"],
-  ])("opens %s in the browser as %s", (name, type) => {
-    expect(browserTypeOf(name)).toBe(type);
+  ])("opens %s in the browser as %s, in every department", (name, type) => {
+    for (const department of fileDepartments) expect(browserTypeOf(name, department)).toBe(type);
   });
 
   it.each(["notes.html", "notes.htm", "plan.svg", "plan.xml", "build-list.xlsx", "notes", "pdf"])(
     "leaves %s to download, as it could run script or the browser can't show it",
     (name) => {
-      expect(browserTypeOf(name)).toBeUndefined();
+      for (const department of fileDepartments)
+        expect(browserTypeOf(name, department)).toBeUndefined();
     },
   );
+
+  it.each([
+    ["thunder.mp3", "audio/mpeg"],
+    ["applause.WAV", "audio/wav"],
+    ["intro.m4a", "audio/mp4"],
+    ["chime.aac", "audio/aac"],
+    ["wind.ogg", "audio/ogg"],
+  ])("plays %s in the browser as %s, on SFX only", (name, type) => {
+    expect(browserTypeOf(name, "sfx")).toBe(type);
+    expect(browserTypeOf(name, "scenery")).toBeUndefined();
+    expect(browserTypeOf(name, "wardrobe")).toBeUndefined();
+  });
+
+  it("goes by a name's last extension, so notes.mp3.html downloads on SFX", () => {
+    expect(browserTypeOf("notes.mp3.html", "sfx")).toBeUndefined();
+  });
 });
 
 describe("fileTypeOf", () => {

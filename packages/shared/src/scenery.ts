@@ -90,11 +90,25 @@ const browserTypes = new Map([
   ["TXT", "text/plain; charset=utf-8"],
 ]);
 
+// Audio, which can't run script either, plays in the browser's own player, but only on SFX,
+// where it's the cues themselves (production-sfx-wardrobe FR6).
+const audioTypes = new Map([
+  ["MP3", "audio/mpeg"],
+  ["WAV", "audio/wav"],
+  ["M4A", "audio/mp4"],
+  ["AAC", "audio/aac"],
+  ["OGG", "audio/ogg"],
+]);
+
 /**
- * The type a file opens in the browser as, from its name alone, so neither storage nor
- * whoever uploaded it can make a file open; undefined for a file that only downloads.
+ * The type a department's file opens in the browser as, from its name alone, so neither
+ * storage nor whoever uploaded it can make a file open; undefined for a file that only
+ * downloads.
  */
-export const browserTypeOf = (name: string) => browserTypes.get(fileTypeOf(name) ?? "");
+export function browserTypeOf(name: string, department: FileDepartment) {
+  const type = fileTypeOf(name) ?? "";
+  return browserTypes.get(type) ?? (department === "sfx" ? audioTypes.get(type) : undefined);
+}
 
 export type SceneryFile = z.infer<typeof SceneryFile>;
 export type SceneryFileList = z.infer<typeof SceneryFileList>;

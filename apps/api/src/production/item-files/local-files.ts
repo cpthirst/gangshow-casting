@@ -47,6 +47,7 @@ export function localFilePlace(folder: string, path: string) {
   return {
     file: join(folder, production.data, item, fileDepartment, fileName.data),
     name: fileName.data,
+    department: fileDepartment,
   };
 }
 
@@ -55,10 +56,10 @@ export function localFilePlace(folder: string, path: string) {
 export async function localFileAt(folder: string, path: string) {
   const place = localFilePlace(folder, path);
   if (!place) return undefined;
-  const { file, name } = place;
+  const { file, name, department } = place;
   const found = await ifExists(() => stat(file));
   if (!found?.isFile()) return undefined;
-  const { contentType, contentDisposition } = fileHeadersOf(name);
+  const { contentType, contentDisposition } = fileHeadersOf(name, department);
   return {
     file,
     headers: {

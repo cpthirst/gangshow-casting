@@ -176,10 +176,9 @@ describe("An item's SFX page", () => {
 
     expect(wrapper.get("main h1").text()).toBe("SFX: Opening Number");
     expect(wrapper.get("main").text()).not.toContain("Coming soon");
-    // Audio downloads with the general file icon, for now.
     expect(rows(wrapper)).toEqual([
-      { icon: "fa-file", name: "applause.wav", size: "8.1 MB" },
-      { icon: "fa-file", name: "thunder.mp3", size: "2.4 MB" },
+      { icon: "fa-file-audio", name: "applause.wav", size: "8.1 MB" },
+      { icon: "fa-file-audio", name: "thunder.mp3", size: "2.4 MB" },
     ]);
     expect(wrapper.find("main ul[aria-label='SFX files']").exists()).toBe(true);
   });
@@ -329,6 +328,44 @@ describe("Uploading an SFX file", () => {
   );
 });
 
+describe("An item's SFX audio files", () => {
+  it("shows each audio file with the audio file icon", async () => {
+    const audio = ["thunder.mp3", "applause.wav", "intro.m4a", "chime.aac", "wind.ogg"];
+    apiHolds(show, { sfx: { "opening-number": audio.map((name) => ({ name, size: 10 })) } });
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    expect(rows(wrapper).map(({ name, icon }) => [name, icon])).toEqual(
+      [...audio].sort().map((name) => [name, "fa-file-audio"]),
+    );
+  });
+
+  it("shows a PDF with the PDF icon and a Word file with the Word icon, as on Scenery", async () => {
+    apiHolds(show, {
+      sfx: {
+        "opening-number": [
+          { name: "cue-sheet.pdf", size: 10 },
+          { name: "cues.docx", size: 10 },
+        ],
+      },
+    });
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    expect(rows(wrapper).map(({ name, icon }) => [name, icon])).toEqual([
+      ["cue-sheet.pdf", "fa-file-pdf"],
+      ["cues.docx", "fa-file-word"],
+    ]);
+  });
+
+  it("names an audio file for a screen reader as one that opens", async () => {
+    apiHolds(show, { sfx: { "opening-number": [{ name: "thunder.mp3", size: 10 }] } });
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    expect(rowFor(wrapper, "thunder.mp3").get(".file-open").attributes("aria-label")).toBe(
+      "Open thunder.mp3, MP3 file",
+    );
+  });
+});
+
 describe("Opening and downloading an SFX file", () => {
   const tab = { show: vi.fn(), close: vi.fn() };
   beforeEach(() => {
@@ -337,29 +374,55 @@ describe("Opening and downloading an SFX file", () => {
     tab.show.mockReset();
   });
 
-  it("opens a PDF in a new tab, and downloads an MP3", async () => {
+  async function choose(wrapper: VueWrapper, name: string) {
+    await rowFor(wrapper, name).get(".file-open").trigger("click");
+    await flushPromises();
+  }
+
+  it("opens an MP3 in a new tab to play, with no download", async () => {
+    await signInAs([], "jo");
+    apiHolds(show, { sfx: { "opening-number": [{ name: "thunder.mp3", size: 10 }] } });
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    await choose(wrapper, "thunder.mp3");
+
+    expect(requests((url) => url.includes("-file-link?"))).toEqual([
+      "/api/productions/2027/items/opening-number/sfx-file-link?name=thunder.mp3",
+    ]);
+    expect(tab.show).toHaveBeenCalledWith(linkTo("thunder.mp3"));
+    expect(downloadFrom).not.toHaveBeenCalled();
+  });
+
+  it("downloads notes.mp3.html, going by its last extension, and opens no tab", async () => {
+    await signInAs([], "jo");
+    apiHolds(show, { sfx: { "opening-number": [{ name: "notes.mp3.html", size: 10 }] } });
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    await choose(wrapper, "notes.mp3.html");
+
+    expect(downloadFrom).toHaveBeenCalledWith(linkTo("notes.mp3.html"));
+    expect(openFileTab).not.toHaveBeenCalled();
+  });
+
+  it("opens a PDF in a new tab, and downloads a Word file", async () => {
     await signInAs([], "jo");
     apiHolds(show, {
       sfx: {
         "opening-number": [
           { name: "cue-sheet.pdf", size: 10 },
-          { name: "thunder.mp3", size: 10 },
+          { name: "cues.docx", size: 10 },
         ],
       },
     });
     const { wrapper } = await openAppAt(OPENING_NUMBER);
 
-    await rowFor(wrapper, "cue-sheet.pdf").get(".file-open").trigger("click");
-    await flushPromises();
-    await rowFor(wrapper, "thunder.mp3").get(".file-open").trigger("click");
-    await flushPromises();
+    await choose(wrapper, "cue-sheet.pdf");
+    await choose(wrapper, "cues.docx");
 
-    expect(requests((url) => url.includes("-file-link?"))).toEqual([
-      "/api/productions/2027/items/opening-number/sfx-file-link?name=cue-sheet.pdf",
-      "/api/productions/2027/items/opening-number/sfx-file-link?name=thunder.mp3",
-    ]);
     expect(tab.show).toHaveBeenCalledWith(linkTo("cue-sheet.pdf"));
-    expect(downloadFrom).toHaveBeenCalledWith(linkTo("thunder.mp3"));
+    expect(tab.show).toHaveBeenCalledTimes(1);
+    expect(downloadFrom).toHaveBeenCalledWith(linkTo("cues.docx"));
+    expect(downloadFrom).toHaveBeenCalledTimes(1);
   });
 });
 

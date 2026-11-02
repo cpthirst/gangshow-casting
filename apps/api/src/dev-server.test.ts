@@ -306,7 +306,7 @@ describe("dev server local scenery files (production-scenery FR10)", () => {
     );
   });
 
-  it("serves an SFX file from the item's SFX folder, as a download", async () => {
+  it("serves an SFX audio file from the item's SFX folder, to play in the browser", async () => {
     const sfx = join(folder, "2027", "opening-number", "sfx");
     await mkdir(sfx, { recursive: true });
     await writeFile(join(sfx, "thunder.mp3"), "made-up");
@@ -315,7 +315,14 @@ describe("dev server local scenery files (production-scenery FR10)", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.toString()).toBe("made-up");
-    expect(res.headers["content-disposition"]).toMatch(/^attachment; filename="thunder.mp3"/);
+    expect(res.headers).toEqual(
+      expect.objectContaining({
+        "content-type": "audio/mpeg",
+        "content-disposition": expect.stringMatching(/^inline; filename="thunder.mp3"/),
+        "x-content-type-options": "nosniff",
+      }),
+    );
+    expect(res.headers["content-security-policy"]).toBeUndefined();
   });
 
   it.each([

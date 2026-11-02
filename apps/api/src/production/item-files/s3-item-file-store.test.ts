@@ -1,4 +1,4 @@
-import { MAX_SCENERY_FILE_BYTES, SceneryUpload } from "@app/shared";
+import { type FileDepartment, MAX_SCENERY_FILE_BYTES, SceneryUpload } from "@app/shared";
 import {
   DeleteObjectCommand,
   DeleteObjectsCommand,
@@ -15,7 +15,7 @@ const BUCKET = "made-up-files";
 const s3 = mockClient(S3Client);
 // Made-up keys, so a link can be signed without AWS.
 const credentials = { accessKeyId: "MADEUPKEY", secretAccessKey: "made-up-secret" };
-const storeFor = (department: "scenery" | "sfx") =>
+const storeFor = (department: FileDepartment) =>
   s3ItemFileStore(new S3Client({ region: "eu-west-2", credentials }), BUCKET, department);
 const store = () => storeFor("scenery");
 const prefix = "2027/opening-number/scenery/";
@@ -110,6 +110,22 @@ describe("links to scenery files in a bucket", () => {
     expect(link?.searchParams.get("response-content-disposition")).toMatch(
       /^attachment; filename="notes.html"/,
     );
+  });
+
+  it("has an MP3 on SFX play in the browser as audio, and on Scenery or Wardrobe download", async () => {
+    s3.on(HeadObjectCommand).resolves({});
+    const linkFor = async (department: FileDepartment) =>
+      new URL((await storeFor(department).linkTo("2027", "opening-number", "thunder.mp3")) ?? "")
+        .searchParams;
+
+    const sfx = await linkFor("sfx");
+    expect(sfx.get("response-content-type")).toBe("audio/mpeg");
+    expect(sfx.get("response-content-disposition")).toMatch(/^inline; filename="thunder.mp3"/);
+    for (const department of ["scenery", "wardrobe"] as const) {
+      const other = await linkFor(department);
+      expect(other.get("response-content-type")).toBe("application/octet-stream");
+      expect(other.get("response-content-disposition")).toMatch(/^attachment;/);
+    }
   });
 
   it("links to nothing when the file isn't there", async () => {

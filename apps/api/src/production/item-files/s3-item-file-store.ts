@@ -62,7 +62,7 @@ export function s3ItemFileStore(
       const Key = `${folderOf(productionId, itemId)}${name}`;
       if (!(await exists(Key))) return undefined;
       // The link names its type and name itself, so what storage holds can't make it open.
-      const { contentType, contentDisposition } = fileHeadersOf(name);
+      const { contentType, contentDisposition } = fileHeadersOf(name, department);
       const get = new GetObjectCommand({
         Bucket: bucket,
         Key,

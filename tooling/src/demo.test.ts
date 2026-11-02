@@ -191,8 +191,8 @@ describe("the demo API", () => {
     const names = SceneryFileList.parse(await (await fetch(files)).json()).files.map(
       (file) => file.name,
     );
-    expect(names.some((name) => browserTypeOf(name) !== undefined)).toBe(true);
-    expect(names.some((name) => browserTypeOf(name) === undefined)).toBe(true);
+    expect(names.some((name) => browserTypeOf(name, "scenery") !== undefined)).toBe(true);
+    expect(names.some((name) => browserTypeOf(name, "scenery") === undefined)).toBe(true);
 
     for (const name of names) {
       const linkPath = `/api/productions/2027/items/itm-01/scenery-file-link?${new URLSearchParams({ name })}`;

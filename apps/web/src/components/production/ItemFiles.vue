@@ -106,7 +106,7 @@ async function choose({ name }: SceneryFile) {
   const id = itemId.value;
   if (!id) return;
   fileProblem.value = undefined;
-  const tab = opensInBrowser(name) ? openFileTab() : undefined;
+  const tab = opensInBrowser(name, key.value) ? openFileTab() : undefined;
   try {
     const res = await apiFetch(itemFileLinkPath(key.value, id, name));
     if (res.status === 404) {
@@ -220,10 +220,10 @@ watch(
         <button
           type="button"
           class="file-open"
-          :aria-label="fileLabel(file.name)"
+          :aria-label="fileLabel(file.name, department.key)"
           @click="choose(file)"
         >
-          <FontAwesomeIcon :icon="fileIconOf(file.name)" class="file-icon" fixed-width />
+          <FontAwesomeIcon :icon="fileIconOf(file.name, department.key)" class="file-icon" fixed-width />
           <span class="file-name" data-test="name">{{ file.name }}</span>
           <span class="file-size" data-test="size">{{ fileSize(file.size) }}</span>
         </button>

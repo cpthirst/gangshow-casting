@@ -336,6 +336,18 @@ describe("Opening and downloading a Wardrobe file", () => {
     expect(tab.show).toHaveBeenCalledWith(linkTo("colour-swatch.png"));
     expect(downloadFrom).toHaveBeenCalledWith(linkTo("fabric-order.xlsx"));
   });
+
+  it("shows an MP3 with the general file icon, and downloads it", async () => {
+    apiHolds(show, { wardrobe: { "opening-number": [{ name: "thunder.mp3", size: 10 }] } });
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    expect(rows(wrapper).map((row) => row.icon)).toEqual(["fa-file"]);
+    await rowFor(wrapper, "thunder.mp3").get(".file-open").trigger("click");
+    await flushPromises();
+
+    expect(downloadFrom).toHaveBeenCalledWith(linkTo("thunder.mp3"));
+    expect(openFileTab).not.toHaveBeenCalled();
+  });
 });
 
 describe("Deleting a Wardrobe file", () => {

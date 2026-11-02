@@ -419,6 +419,18 @@ describe("Opening and downloading a scenery file", () => {
     expect(openFileTab).not.toHaveBeenCalled();
   });
 
+  it("shows an MP3 with the general file icon, and downloads it", async () => {
+    apiHolds(show, { "opening-number": [{ name: "thunder.mp3", size: 10 }] });
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    const icon = wrapper.get("main [data-test=file] .file-icon").classes();
+    expect(icon.filter((name) => name.startsWith("fa-file"))).toEqual(["fa-file"]);
+    await choose(wrapper, "thunder.mp3");
+
+    expect(downloadFrom).toHaveBeenCalledWith(linkTo("thunder.mp3"));
+    expect(openFileTab).not.toHaveBeenCalled();
+  });
+
   it("asks for a file renamed in storage by its new name", async () => {
     apiHolds(show, { "opening-number": [{ name: "build-list-v2.xlsx", size: 10 }] });
     const { wrapper } = await openAppAt(OPENING_NUMBER);

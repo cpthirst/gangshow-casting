@@ -1,4 +1,10 @@
-import { browserTypeOf, fileTypeOf, MAX_SCENERY_FILE_BYTES, type SceneryFile } from "@app/shared";
+import {
+  browserTypeOf,
+  type FileDepartment,
+  fileTypeOf,
+  MAX_SCENERY_FILE_BYTES,
+  type SceneryFile,
+} from "@app/shared";
 import { countInWords } from "./departments.ts";
 import { icons } from "./icons.ts";
 import {
@@ -46,12 +52,13 @@ export const sceneryCount = (files: number) =>
 export const sceneryFileLinkPath = (itemId: string, name: string) =>
   itemFileLinkPath("scenery", itemId, name);
 
-/** Whether choosing the file's row opens it in a new tab, rather than downloading it. */
-export const opensInBrowser = (name: string) => browserTypeOf(name) !== undefined;
+/** Whether choosing the department's file opens it in a new tab, rather than downloading it. */
+export const opensInBrowser = (name: string, department: FileDepartment) =>
+  browserTypeOf(name, department) !== undefined;
 
 /** A file's name for screen readers: what choosing it does, and the file's type (FR10). */
-export function fileLabel(name: string) {
-  const action = `${opensInBrowser(name) ? "Open" : "Download"} ${name}`;
+export function fileLabel(name: string, department: FileDepartment) {
+  const action = `${opensInBrowser(name, department) ? "Open" : "Download"} ${name}`;
   const type = fileTypeOf(name);
   return type ? `${action}, ${type} file` : action;
 }
@@ -68,8 +75,11 @@ const typesByIcon = [
   ],
 ] as const;
 
-/** The icon on a file's row, from its name: its type's own, or the general file icon (FR7). */
-export function fileIconOf(name: string) {
+/** The icon on a department's file's row, from its name: its type's own, or the general file
+ *  icon (FR7). Audio has its own only where it plays in the browser, on SFX
+ *  (production-sfx-wardrobe FR6); elsewhere it only downloads. */
+export function fileIconOf(name: string, department: FileDepartment) {
+  if (browserTypeOf(name, department)?.startsWith("audio/")) return icons.audioFile;
   const type = fileTypeOf(name);
   const found = typesByIcon.find(([, types]) => types.some((each) => each === type));
   return found?.[0] ?? icons.file;

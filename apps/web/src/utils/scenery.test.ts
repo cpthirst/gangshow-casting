@@ -74,7 +74,7 @@ describe("fileLabel", () => {
     ["notes.html", "Download notes.html, HTML file"],
     ["notes", "Download notes"],
   ])("names the file for %s %j", (name, label) => {
-    expect(fileLabel(name)).toBe(label);
+    expect(fileLabel(name, "scenery")).toBe(label);
   });
 });
 
@@ -100,13 +100,29 @@ describe("fileIconOf", () => {
     ["render.avif", icons.imageFile],
     ["phone.heic", icons.imageFile],
   ])("gives %s its type's icon", (name, icon) => {
-    expect(fileIconOf(name)).toBe(icon);
+    expect(fileIconOf(name, "scenery")).toBe(icon);
   });
 
   it.each(["model.skp", "build-list.csv", "readme", "cue-notes.txt"])(
     "gives %s the general file icon",
     (name) => {
-      expect(fileIconOf(name)).toBe(icons.file);
+      expect(fileIconOf(name, "scenery")).toBe(icons.file);
     },
   );
+});
+
+describe("an SFX file's icon and name", () => {
+  it.each(["thunder.mp3", "applause.WAV", "intro.m4a", "chime.aac", "wind.ogg"])(
+    "gives %s the audio file icon on SFX, and the general one elsewhere",
+    (name) => {
+      expect(fileIconOf(name, "sfx")).toBe(icons.audioFile);
+      expect(fileIconOf(name, "scenery")).toBe(icons.file);
+      expect(fileIconOf(name, "wardrobe")).toBe(icons.file);
+    },
+  );
+
+  it("says an audio file opens on SFX, and downloads elsewhere", () => {
+    expect(fileLabel("thunder.mp3", "sfx")).toBe("Open thunder.mp3, MP3 file");
+    expect(fileLabel("thunder.mp3", "wardrobe")).toBe("Download thunder.mp3, MP3 file");
+  });
 });
