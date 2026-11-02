@@ -96,6 +96,8 @@ describe("list scenery files handler", () => {
       sceneryFiles: folderItemFileStore(folder, "scenery"),
       sfxFiles: { keepOnlyItems: async () => {} },
       sfxNotes: { keepOnlyItems: async () => {} },
+      wardrobeFiles: { keepOnlyItems: async () => {} },
+      wardrobeNotes: { keepOnlyItems: async () => {} },
     });
     await putFile(openingNumber, "set-plan.pdf", 10);
 

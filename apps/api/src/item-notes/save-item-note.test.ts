@@ -90,6 +90,8 @@ describe("item notes across running-order versions", () => {
       sceneryFiles: { keepOnlyItems: async () => {} },
       sfxFiles: { keepOnlyItems: async () => {} },
       sfxNotes: { keepOnlyItems: async () => {} },
+      wardrobeFiles: { keepOnlyItems: async () => {} },
+      wardrobeNotes: { keepOnlyItems: async () => {} },
     });
     await save(put({ text: "Hat change", revision: 0 }));
 

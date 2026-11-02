@@ -139,13 +139,15 @@ describe("AppStack", () => {
       );
     });
 
-    it("lets the API function only list it, and read, upload and delete scenery and SFX files, and the accounts function not at all", () => {
+    it("lets the API function only list it, and read, upload and delete scenery, SFX and Wardrobe files, and the accounts function not at all", () => {
       const { template } = synth();
       const [logicalId] = filesBucket(template) ?? [];
-      // Only the keys under an item's scenery or SFX folder (ADR 0030, ADR 0032).
-      const departmentFolders = ["/*/*/scenery/*", "/*/*/sfx/*"].map((folder) => ({
-        "Fn::Join": ["", [{ "Fn::GetAtt": [logicalId, "Arn"] }, folder]],
-      }));
+      // Only the keys under an item's scenery, SFX or Wardrobe folder (ADR 0030, ADR 0032).
+      const departmentFolders = ["/*/*/scenery/*", "/*/*/sfx/*", "/*/*/wardrobe/*"].map(
+        (folder) => ({
+          "Fn::Join": ["", [{ "Fn::GetAtt": [logicalId, "Arn"] }, folder]],
+        }),
+      );
 
       template.hasResourceProperties("AWS::Lambda::Function", {
         Environment: { Variables: { FILES_BUCKET: { Ref: logicalId } } },

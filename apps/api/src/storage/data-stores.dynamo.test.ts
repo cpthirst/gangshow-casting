@@ -117,6 +117,8 @@ describe("data stores with a remote table", () => {
       sceneryFiles: { keepOnlyItems: async () => {} },
       sfxFiles: { keepOnlyItems: async () => {} },
       sfxNotes: { keepOnlyItems: async () => {} },
+      wardrobeFiles: { keepOnlyItems: async () => {} },
+      wardrobeNotes: { keepOnlyItems: async () => {} },
     });
     const saveFrom = (baseVersion: number, titles: string[]) =>
       save({

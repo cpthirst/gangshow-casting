@@ -40,7 +40,7 @@ function savedShowIs(order: RunningOrder | undefined) {
       if (url === PROPS_NOTES_PATH) return json({ productionId: "2027", notes: [] });
       if (url === ROLES_PATH) return json({ productionId: "2027", roles: [] });
       if (url === CAST_PATH) return json({ productionId: "2027", members: [] });
-      if (url.endsWith("/scenery-files") || url.endsWith("/sfx-files")) {
+      if (/\/(scenery|sfx|wardrobe)-files$/.test(url)) {
         return json({ files: [] });
       }
       if (url === "/api/usage") return new Response(null, { status: 204 });
@@ -86,21 +86,7 @@ describe("A department's item page", () => {
     expect(router.currentRoute.value.fullPath).toBe("/production/items/opening-number/mic-plot");
     expect(wrapper.get("main h1").text()).toBe("Mic plot: Opening Number");
     expect(wrapper.get("[data-test=position]").text()).toBe("Item 1 · First half");
-    expect(wrapper.get("main").text()).toContain("Coming soon");
-  });
-
-  it.each([
-    ["Mic plot", "mic-plot"],
-    ["Wardrobe", "wardrobe"],
-  ])("opens the %s page for the item, titled for both, coming soon", async (department, path) => {
-    savedShowIs(show);
-    const { wrapper, router } = await openAppAt("/production/overview");
-
-    await choose(wrapper, department, "Opening Number");
-
-    expect(router.currentRoute.value.fullPath).toBe(`/production/items/opening-number/${path}`);
-    expect(wrapper.get("main h1").text()).toBe(`${department}: Opening Number`);
-    expect(document.title).toBe(`${department}: Opening Number · iCUE`);
+    expect(document.title).toBe("Mic plot: Opening Number · iCUE");
     expect(wrapper.get("main").text()).toContain("Coming soon");
   });
 
@@ -142,7 +128,7 @@ describe("A department's item page", () => {
 
   it("says an item that isn't in the running order wasn't found, with a link back to the Overview", async () => {
     savedShowIs(show);
-    const { wrapper, router } = await openAppAt("/production/items/no-such-item/wardrobe");
+    const { wrapper, router } = await openAppAt("/production/items/no-such-item/mic-plot");
 
     expect(wrapper.get("main h1").text()).toBe("Item not found");
     expect(document.title).toBe("Item not found · iCUE");
@@ -154,7 +140,7 @@ describe("A department's item page", () => {
 
   it("says the item wasn't found when there's no saved running order", async () => {
     savedShowIs(undefined);
-    const { wrapper } = await openAppAt("/production/items/finale/wardrobe");
+    const { wrapper } = await openAppAt("/production/items/finale/mic-plot");
 
     expect(wrapper.get("main h1").text()).toBe("Item not found");
   });
@@ -164,7 +150,7 @@ describe("A department's item page", () => {
       "fetch",
       vi.fn(async () => new Response(null, { status: 500 })),
     );
-    const { wrapper } = await openAppAt("/production/items/finale/wardrobe");
+    const { wrapper } = await openAppAt("/production/items/finale/mic-plot");
 
     expect(wrapper.get("main [role=alert]").text()).toBe("Couldn't load the item.");
     expect(wrapper.get("main").text()).not.toContain("Item not found");

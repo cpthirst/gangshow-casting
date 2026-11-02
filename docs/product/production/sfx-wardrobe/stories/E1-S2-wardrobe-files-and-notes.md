@@ -2,7 +2,7 @@
 id: production-sfx-wardrobe.E1.S2
 title: Keep each item's Wardrobe files and notes on its Wardrobe page
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story

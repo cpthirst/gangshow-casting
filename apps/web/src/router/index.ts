@@ -14,6 +14,7 @@ import RunningOrderPage from "@/pages/RunningOrderPage.vue";
 import SceneryItemPage from "@/pages/SceneryItemPage.vue";
 import SfxItemPage from "@/pages/SfxItemPage.vue";
 import UsagePage from "@/pages/UsagePage.vue";
+import WardrobeItemPage from "@/pages/WardrobeItemPage.vue";
 import WelcomePage from "@/pages/WelcomePage.vue";
 import { comingSoonPages } from "@/utils/departments.ts";
 
@@ -185,6 +186,12 @@ export function createAppRouter(history: RouterHistory = createWebHistory()) {
         path: "/production/items/:itemId/sfx",
         name: "sfx-item",
         component: SfxItemPage,
+        meta: { title: "Item", menuPage: "production-overview" },
+      },
+      {
+        path: "/production/items/:itemId/wardrobe",
+        name: "wardrobe-item",
+        component: WardrobeItemPage,
         meta: { title: "Item", menuPage: "production-overview" },
       },
       ...comingSoonPages.map((department) => ({

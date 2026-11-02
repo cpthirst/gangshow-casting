@@ -4,7 +4,7 @@ import type { ApiEvent } from "#/http/handler.ts";
 import { folderIdOf, productionIdOf } from "#/http/params.ts";
 import type { ItemFileStore } from "./item-file-store.ts";
 
-// DELETE /api/productions/{productionId}/items/{itemId}/scenery-files?name=…, or /sfx-files:
+// DELETE /api/productions/{productionId}/items/{itemId}/scenery-files?name=…, or /sfx-files or /wardrobe-files:
 // delete one of the item's files for good (production-scenery FR11, production-sfx-wardrobe
 // FR7). Only those the department's routeNeeds name get here (@app/shared). 404 if it's
 // already gone, so the page can say so.

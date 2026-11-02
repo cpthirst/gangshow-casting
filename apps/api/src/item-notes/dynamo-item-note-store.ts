@@ -10,6 +10,8 @@ export const PROPS_NOTE = "PROPSNOTE#";
 export const SCENERY_NOTE = "SCENERYNOTE#";
 /** SFX notes' sort key prefix, apart from the others (production-sfx-wardrobe FR8). */
 export const SFX_NOTE = "SFXNOTE#";
+/** Wardrobe notes' sort key prefix, apart from the others (production-sfx-wardrobe FR8). */
+export const WARDROBE_NOTE = "WARDROBENOTE#";
 
 /** Item notes in the production data table: one row per show item's notes (ADR 0015), keyed
  *  under `prefix`, so props notes are kept the same way, apart. */

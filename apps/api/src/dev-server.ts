@@ -20,7 +20,7 @@ import { createUsageRoutes } from "#/usage/usage-routes.ts";
 import { inMemoryUsageStore } from "#/usage/usage-store.ts";
 import { dataLocation, localFilesFolder, routes } from "./routes.ts";
 
-/** The dev API, serving the scenery and SFX files in localFiles too when there's no bucket. */
+/** The dev API, serving the scenery, SFX and Wardrobe files in localFiles too when there's no bucket. */
 export function createDevServer(table: Record<string, Handler>, localFiles?: string) {
   return createServer(async (req, res) => {
     const url = new URL(req.url ?? "/", "http://localhost");

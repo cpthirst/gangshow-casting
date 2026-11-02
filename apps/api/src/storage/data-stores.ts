@@ -11,12 +11,14 @@ import {
   PROPS_NOTE,
   SCENERY_NOTE,
   SFX_NOTE,
+  WARDROBE_NOTE,
 } from "#/item-notes/dynamo-item-note-store.ts";
 import {
   fileItemNoteStore,
   PROPS_NOTES_FILE,
   SCENERY_NOTES_FILE,
   SFX_NOTES_FILE,
+  WARDROBE_NOTES_FILE,
 } from "#/item-notes/item-note-store.ts";
 import {
   folderItemFileStore,
@@ -45,7 +47,7 @@ const defaultDataDir = fileURLToPath(new URL("../../data", import.meta.url));
  * - DATA_TABLE: the remote table, if any (remote-data FR4), which then holds everything;
  * - DATA_TABLE_REGION: the table's region, default London, where infra deploys it. Not
  *   AWS_REGION, so a shell set up for other AWS work can't point the API elsewhere.
- * - FILES_BUCKET: the bucket for scenery and SFX files, if any (ADR 0030), always in London.
+ * - FILES_BUCKET: the bucket for scenery, SFX and Wardrobe files, if any (ADR 0030), always in London.
  * The AWS SDK reads the credentials and profile itself.
  */
 type Env = Record<string, string | undefined>;
@@ -75,6 +77,7 @@ export function fileStores(dataDir: string) {
     propsNotes: fileItemNoteStore(dataDir, PROPS_NOTES_FILE),
     sceneryNotes: fileItemNoteStore(dataDir, SCENERY_NOTES_FILE),
     sfxNotes: fileItemNoteStore(dataDir, SFX_NOTES_FILE),
+    wardrobeNotes: fileItemNoteStore(dataDir, WARDROBE_NOTES_FILE),
   };
 }
 
@@ -93,6 +96,7 @@ export function remoteStores(db: DynamoDBDocumentClient, table: string): Stores 
     propsNotes: dynamoItemNoteStore(db, table, PROPS_NOTE),
     sceneryNotes: dynamoItemNoteStore(db, table, SCENERY_NOTE),
     sfxNotes: dynamoItemNoteStore(db, table, SFX_NOTE),
+    wardrobeNotes: dynamoItemNoteStore(db, table, WARDROBE_NOTE),
   };
 }
 
@@ -121,10 +125,11 @@ export function usageStore(env: Env = process.env) {
 const storesFor = (storeOf: (department: FileDepartment) => ItemFileStore): ItemFileStores => ({
   scenery: storeOf("scenery"),
   sfx: storeOf("sfx"),
+  wardrobe: storeOf("wardrobe"),
 });
 
 /**
- * Where scenery and SFX files are kept: the bucket FILES_BUCKET names, otherwise a folder
+ * Where scenery, SFX and Wardrobe files are kept: the bucket FILES_BUCKET names, otherwise a folder
  * beside the local files, laid out the same way (ADR 0030, ADR 0032). Apart from the table, so
  * pnpm dev can use the remote table before the bucket exists.
  */
@@ -135,14 +140,14 @@ export function itemFileStores(env: Env = process.env) {
     const s3 = new S3Client({ region });
     return {
       stores: storesFor((department) => s3ItemFileStore(s3, bucket, department)),
-      where: `scenery and SFX files in bucket ${bucket} (${region})`,
+      where: `scenery, SFX and Wardrobe files in bucket ${bucket} (${region})`,
       folder: undefined,
     };
   }
   const folder = join(dataDirFrom(env), "files");
   return {
     stores: storesFor((department) => folderItemFileStore(folder, department)),
-    where: `scenery and SFX files in ${folder}`,
+    where: `scenery, SFX and Wardrobe files in ${folder}`,
     folder,
   };
 }

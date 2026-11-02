@@ -70,6 +70,8 @@ export const PROPS_NOTES_FILE = "props-notes.json";
 export const SCENERY_NOTES_FILE = "scenery-notes.json";
 /** The file SFX notes are kept in, apart from the others (production-sfx-wardrobe FR8). */
 export const SFX_NOTES_FILE = "sfx-notes.json";
+/** The file Wardrobe notes are kept in, apart from the others (production-sfx-wardrobe FR8). */
+export const WARDROBE_NOTES_FILE = "wardrobe-notes.json";
 
 /** Local file: `<dataDir>/<productionId>/item-notes.json` (git-ignored), or the file named,
  *  created with the first notes. Free text about a production of young people, so kept

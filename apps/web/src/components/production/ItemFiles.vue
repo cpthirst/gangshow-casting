@@ -23,8 +23,8 @@ import { neighboursOf, placeOf, positionOf, RUNNING_ORDER_PATH } from "@/utils/r
 import { fileIconOf, fileLabel, fileSize, opensInBrowser, sortFiles } from "@/utils/scenery.ts";
 import FileUpload from "./FileUpload.vue";
 
-// One item's files and notes for a department, Scenery's or SFX's (production-scenery FR6,
-// FR7, production-sfx-wardrobe FR2), laid out as the props item page.
+// One item's files and notes for a department, Scenery's, SFX's or Wardrobe's
+// (production-scenery FR6, FR7, production-sfx-wardrobe FR2), laid out as the props item page.
 
 const props = defineProps<{
   department: FilesDepartment;

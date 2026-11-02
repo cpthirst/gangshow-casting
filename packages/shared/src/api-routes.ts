@@ -37,6 +37,12 @@ export const routeKeys = [
   "POST /api/productions/{productionId}/items/{itemId}/sfx-uploads",
   "GET /api/productions/{productionId}/sfx-notes",
   "PUT /api/productions/{productionId}/items/{itemId}/sfx-notes",
+  "GET /api/productions/{productionId}/items/{itemId}/wardrobe-files",
+  "GET /api/productions/{productionId}/items/{itemId}/wardrobe-file-link",
+  "DELETE /api/productions/{productionId}/items/{itemId}/wardrobe-files",
+  "POST /api/productions/{productionId}/items/{itemId}/wardrobe-uploads",
+  "GET /api/productions/{productionId}/wardrobe-notes",
+  "PUT /api/productions/{productionId}/items/{itemId}/wardrobe-notes",
   "POST /api/productions/{productionId}/casting-grid/export",
   "PUT /api/productions/{productionId}/items/{itemId}/notes",
   "POST /api/productions/{productionId}/items/{itemId}/roles",
@@ -96,6 +102,7 @@ const departmentRefusals: Partial<Record<Permission, string>> = {
   casting: "You can view the casting, but not change it.",
   stage: "You can view the props, but not change them.",
   tech: "You can view the scenery, but not change it.",
+  wardrobe: "You can view the wardrobe, but not change it.",
 };
 
 /** Permissions any one of which allows a change, the first saying what a refusal names. */
@@ -208,6 +215,8 @@ export const PROPS_PERMISSIONS: AnyOf = [STAGE_GROUP, DIRECTOR_GROUP];
 export const SCENERY_PERMISSIONS: AnyOf = [TECH_GROUP, STAGE_GROUP, DIRECTOR_GROUP];
 /** Who may change the SFX files and notes: Tech, or a Director (production-sfx-wardrobe FR1). */
 export const SFX_PERMISSIONS: AnyOf = [TECH_GROUP, DIRECTOR_GROUP];
+/** Who may change the Wardrobe files and notes: Wardrobe, or a Director (production-sfx-wardrobe FR1). */
+export const WARDROBE_PERMISSIONS: AnyOf = [WARDROBE_GROUP, DIRECTOR_GROUP];
 /** Who may change the cast, roles, casting and casting notes: Casting alone, never a Director. */
 export const CASTING_PERMISSIONS: AnyOf = [CASTING_GROUP];
 
@@ -240,6 +249,9 @@ export const routeNeeds: RouteNeeds = {
   "DELETE /api/productions/{productionId}/items/{itemId}/sfx-files": SFX_PERMISSIONS,
   "POST /api/productions/{productionId}/items/{itemId}/sfx-uploads": SFX_PERMISSIONS,
   "PUT /api/productions/{productionId}/items/{itemId}/sfx-notes": SFX_PERMISSIONS,
+  "DELETE /api/productions/{productionId}/items/{itemId}/wardrobe-files": WARDROBE_PERMISSIONS,
+  "POST /api/productions/{productionId}/items/{itemId}/wardrobe-uploads": WARDROBE_PERMISSIONS,
+  "PUT /api/productions/{productionId}/items/{itemId}/wardrobe-notes": WARDROBE_PERMISSIONS,
   // Usage is about the team, so only admins read it (usage-tracking FR4).
   "GET /api/usage": "admin",
 };

@@ -4,10 +4,10 @@ import { uploadItemFile } from "@/services/file-upload.ts";
 import type { FilesDepartment } from "@/utils/item-files.ts";
 import { fileSize, replaceQuestion, uploadRefusal } from "@/utils/scenery.ts";
 
-// Uploading one file at a time to an item's scenery or SFX, chosen with the button or dropped
-// on the area, showing how much has gone (production-scenery FR8). A name the item has replaces
-// its file once confirmed (FR9). The page shows any problem, and lists the files again when
-// storage has changed.
+// Uploading one file at a time to an item's scenery, SFX or Wardrobe, chosen with the button or
+// dropped on the area, showing how much has gone (production-scenery FR8). A name the item has
+// replaces its file once confirmed (FR9). The page shows any problem, and lists the files again
+// when storage has changed.
 
 const props = defineProps<{ department: FilesDepartment; itemId: string; names: string[] }>();
 const emit = defineEmits<{ changed: []; problem: [message: string | undefined] }>();

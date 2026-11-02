@@ -7,14 +7,14 @@ const isUnsafe = (char: string) =>
 /**
  * The Production departments that keep files per item, each in its own folder,
  * `<production>/<item id>/<department>/` (ADR 0030, ADR 0032). Each has the same routes, named
- * after it (`/scenery-files`, `/sfx-files`), and the shapes below.
+ * after it (`/scenery-files`, `/sfx-files`, `/wardrobe-files`), and the shapes below.
  */
-export const fileDepartments = ["scenery", "sfx"] as const;
+export const fileDepartments = ["scenery", "sfx", "wardrobe"] as const;
 export type FileDepartment = (typeof fileDepartments)[number];
 
 /**
  * A scenery file's name: the last part of its key in file storage, after
- * `<production>/<item id>/scenery/` (ADR 0030), and an SFX file's, after `…/sfx/`. It can't
+ * `<production>/<item id>/scenery/` (ADR 0030), and an SFX or Wardrobe file's, after `…/sfx/` or `…/wardrobe/`. It can't
  * reach outside its item's folder.
  */
 export const SceneryFileName = z

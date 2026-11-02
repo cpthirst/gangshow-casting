@@ -43,17 +43,18 @@ export function createRoutes(
     propsNotes,
     sceneryNotes,
     sfxNotes,
+    wardrobeNotes,
   }: Stores,
   usage: UsageStore,
   files: ItemFileStores,
 ): Record<Exclude<RouteKey, AccountRouteKey>, Handler> {
-  const { scenery: sceneryFiles, sfx: sfxFiles } = files;
+  const { scenery: sceneryFiles, sfx: sfxFiles, wardrobe: wardrobeFiles } = files;
   return {
     "GET /api/health": health,
     "GET /api/productions/{productionId}/running-order": createGetRunningOrder(runningOrders),
     "POST /api/productions/{productionId}/running-order/versions": createSaveRunningOrder(
       runningOrders,
-      { roles, itemNotes, sceneryFiles, sfxFiles, sfxNotes },
+      { roles, itemNotes, sceneryFiles, sfxFiles, sfxNotes, wardrobeFiles, wardrobeNotes },
     ),
     "GET /api/productions/{productionId}/cast": createGetCast(cast),
     "POST /api/productions/{productionId}/cast": createAddCastMember(cast),
@@ -110,6 +111,21 @@ export function createRoutes(
     "GET /api/productions/{productionId}/sfx-notes": createGetItemNotes(sfxNotes),
     "PUT /api/productions/{productionId}/items/{itemId}/sfx-notes": createSaveItemNote(
       sfxNotes,
+      runningOrders,
+    ),
+    "GET /api/productions/{productionId}/items/{itemId}/wardrobe-files":
+      createListItemFiles(wardrobeFiles),
+    "GET /api/productions/{productionId}/items/{itemId}/wardrobe-file-link":
+      createGetItemFileLink(wardrobeFiles),
+    "DELETE /api/productions/{productionId}/items/{itemId}/wardrobe-files":
+      createDeleteItemFile(wardrobeFiles),
+    "POST /api/productions/{productionId}/items/{itemId}/wardrobe-uploads": createUploadItemFile(
+      wardrobeFiles,
+      runningOrders,
+    ),
+    "GET /api/productions/{productionId}/wardrobe-notes": createGetItemNotes(wardrobeNotes),
+    "PUT /api/productions/{productionId}/items/{itemId}/wardrobe-notes": createSaveItemNote(
+      wardrobeNotes,
       runningOrders,
     ),
     "POST /api/productions/{productionId}/casting-grid/export": exportCastingGrid,

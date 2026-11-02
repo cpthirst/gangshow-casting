@@ -2,8 +2,8 @@ import { type FileDepartment, SceneryUpload } from "@app/shared";
 import { itemUploadsPath } from "@/utils/item-files.ts";
 import { apiFetch } from "./sign-in.ts";
 
-// Uploading one of an item's scenery or SFX files (production-scenery FR8): the API says where,
-// then the file goes straight to file storage, never through the API (ADR 0030).
+// Uploading one of an item's scenery, SFX or Wardrobe files (production-scenery FR8): the API
+// says where, then the file goes straight to file storage, never through the API (ADR 0030).
 
 /** How an upload ended: kept, refused for a name the item already has, or not kept at all. */
 export type UploadResult = "uploaded" | "taken" | "failed";

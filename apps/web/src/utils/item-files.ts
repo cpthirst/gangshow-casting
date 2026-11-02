@@ -1,7 +1,14 @@
-import { type AnyOf, type FileDepartment, SCENERY_PERMISSIONS, SFX_PERMISSIONS } from "@app/shared";
+import {
+  type AnyOf,
+  type FileDepartment,
+  SCENERY_PERMISSIONS,
+  SFX_PERMISSIONS,
+  WARDROBE_PERMISSIONS,
+} from "@app/shared";
 
-// Each item's files and notes for a Production department, Scenery's or SFX's, which share
-// one page layout (production-sfx-wardrobe FR2) and the API's routes, each named after it.
+// Each item's files and notes for a Production department, Scenery's, SFX's or Wardrobe's,
+// which share one page layout (production-sfx-wardrobe FR2) and the API's routes, each named
+// after it.
 
 // Only one production for now (see docs/product/running-order/prd.md).
 const PRODUCTION_ID = "2027";
@@ -41,6 +48,17 @@ export const sfxDepartment: FilesDepartment = {
   noun: "SFX",
   route: "sfx-item",
   permissions: SFX_PERMISSIONS,
+};
+
+// Its rule stands in for checking each file, as Scenery's does (production-sfx-wardrobe FR4,
+// ADR 0010). Its help comes with the Help page's Wardrobe section (E2.S2).
+export const wardrobeDepartment: FilesDepartment = {
+  key: "wardrobe",
+  name: "Wardrobe",
+  noun: "Wardrobe",
+  route: "wardrobe-item",
+  permissions: WARDROBE_PERMISSIONS,
+  uploadRule: "Costume designs and images only: no photos of cast members.",
 };
 
 const itemPath = (itemId: string) =>

@@ -20,6 +20,7 @@ import {
   SceneryFileList,
   SFX_PERMISSIONS,
   UsageSummary,
+  WARDROBE_PERMISSIONS,
 } from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { inMemoryRoleStore } from "#/casting/roles/role-store.ts";
@@ -141,10 +142,11 @@ describe("Lambda entry point", () => {
             propsNotes: inMemoryItemNoteStore(),
             sceneryNotes: inMemoryItemNoteStore(),
             sfxNotes: inMemoryItemNoteStore(),
+            wardrobeNotes: inMemoryItemNoteStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
-          { scenery: sceneryFiles, sfx: noSceneryFiles },
+          { scenery: sceneryFiles, sfx: noSceneryFiles, wardrobe: noSceneryFiles },
         ),
       );
     };
@@ -244,10 +246,11 @@ describe("Lambda entry point", () => {
             propsNotes: inMemoryItemNoteStore(),
             sceneryNotes: inMemoryItemNoteStore(),
             sfxNotes: inMemoryItemNoteStore(),
+            wardrobeNotes: inMemoryItemNoteStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
-          { scenery: noSceneryFiles, sfx: noSceneryFiles },
+          { scenery: noSceneryFiles, sfx: noSceneryFiles, wardrobe: noSceneryFiles },
         ),
       );
       return { api, cast, runningOrders };
@@ -397,10 +400,11 @@ describe("Lambda entry point", () => {
             propsNotes: inMemoryItemNoteStore(),
             sceneryNotes: inMemoryItemNoteStore(),
             sfxNotes: inMemoryItemNoteStore(),
+            wardrobeNotes: inMemoryItemNoteStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
-          { scenery: noSceneryFiles, sfx: noSceneryFiles },
+          { scenery: noSceneryFiles, sfx: noSceneryFiles, wardrobe: noSceneryFiles },
         ),
       );
       return { api, cast, roles, itemNotes, runningOrders };
@@ -612,10 +616,11 @@ describe("Lambda entry point", () => {
             propsNotes: inMemoryItemNoteStore(),
             sceneryNotes: inMemoryItemNoteStore(),
             sfxNotes: inMemoryItemNoteStore(),
+            wardrobeNotes: inMemoryItemNoteStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
-          { scenery: noSceneryFiles, sfx: noSceneryFiles },
+          { scenery: noSceneryFiles, sfx: noSceneryFiles, wardrobe: noSceneryFiles },
         ),
       );
       // What the stores hold, to show a refused change changed nothing.
@@ -772,14 +777,16 @@ describe("Lambda entry point", () => {
       ["lee, with Tech and Wardrobe only", "[tech wardrobe]"],
       ["chris, with Wardrobe only", "[wardrobe]"],
     ])(
-      "refuses every change from %s but Tech's scenery and SFX changes, saying what is read-only, or admins' only for admin-only ones",
+      "refuses every change from %s but Tech's scenery and SFX changes and Wardrobe's own, saying what is read-only, or admins' only for admin-only ones",
       async (_who, groups) => {
         const send = everyRoute();
         const techMay = (key: string) =>
           groups.includes("tech") &&
           (needOf(key) === SCENERY_PERMISSIONS || needOf(key) === SFX_PERMISSIONS);
+        const wardrobeMay = (key: string) =>
+          groups.includes("wardrobe") && needOf(key) === WARDROBE_PERMISSIONS;
 
-        for (const key of changeRoutes.filter((key) => !techMay(key))) {
+        for (const key of changeRoutes.filter((key) => !techMay(key) && !wardrobeMay(key))) {
           const { res, ran } = await send(key, groups);
 
           expect(res.statusCode, key).toBe(403);
@@ -847,12 +854,17 @@ describe("Lambda entry point", () => {
         }
       });
 
-      it("lets dee, with Director only, use exactly the props, scenery and SFX changes", async () => {
+      it("lets dee, with Director only, use exactly the props, scenery, SFX and Wardrobe changes", async () => {
         const send = everyRoute();
 
         for (const key of changeRoutes) {
           const { ran } = await send(key, "[director]");
-          const production = [PROPS_PERMISSIONS, SCENERY_PERMISSIONS, SFX_PERMISSIONS];
+          const production = [
+            PROPS_PERMISSIONS,
+            SCENERY_PERMISSIONS,
+            SFX_PERMISSIONS,
+            WARDROBE_PERMISSIONS,
+          ];
           expect(ran, key).toBe(production.some((need) => needOf(key) === need));
         }
       });
@@ -929,10 +941,11 @@ describe("Lambda entry point", () => {
               propsNotes: inMemoryItemNoteStore(),
               sceneryNotes: inMemoryItemNoteStore(),
               sfxNotes: inMemoryItemNoteStore(),
+              wardrobeNotes: inMemoryItemNoteStore(),
               removeCastMember: uncastThenRemove(cast, roles),
             },
             inMemoryUsageStore(),
-            { scenery: noSceneryFiles, sfx: noSceneryFiles },
+            { scenery: noSceneryFiles, sfx: noSceneryFiles, wardrobe: noSceneryFiles },
           ),
         );
         return { api, props };
@@ -1040,10 +1053,11 @@ describe("Lambda entry point", () => {
               propsNotes,
               sceneryNotes: inMemoryItemNoteStore(),
               sfxNotes: inMemoryItemNoteStore(),
+              wardrobeNotes: inMemoryItemNoteStore(),
               removeCastMember: uncastThenRemove(cast, roles),
             },
             inMemoryUsageStore(),
-            { scenery: noSceneryFiles, sfx: noSceneryFiles },
+            { scenery: noSceneryFiles, sfx: noSceneryFiles, wardrobe: noSceneryFiles },
           ),
         );
         return { api, itemNotes, propsNotes };
@@ -1116,6 +1130,7 @@ describe("Lambda entry point", () => {
               propsNotes: inMemoryItemNoteStore(),
               sceneryNotes: inMemoryItemNoteStore(),
               sfxNotes: inMemoryItemNoteStore(),
+              wardrobeNotes: inMemoryItemNoteStore(),
               removeCastMember: uncastThenRemove(cast, roles),
             },
             inMemoryUsageStore(),
@@ -1128,6 +1143,7 @@ describe("Lambda entry point", () => {
                 },
               },
               sfx: noSceneryFiles,
+              wardrobe: noSceneryFiles,
             },
           ),
         );
@@ -1210,10 +1226,11 @@ describe("Lambda entry point", () => {
               propsNotes: inMemoryItemNoteStore(),
               sceneryNotes: inMemoryItemNoteStore(),
               sfxNotes: inMemoryItemNoteStore(),
+              wardrobeNotes: inMemoryItemNoteStore(),
               removeCastMember: uncastThenRemove(cast, roles),
             },
             inMemoryUsageStore(),
-            { scenery: noSceneryFiles, sfx: noSceneryFiles },
+            { scenery: noSceneryFiles, sfx: noSceneryFiles, wardrobe: noSceneryFiles },
           ),
         );
         return { api, itemNotes };
@@ -1359,12 +1376,14 @@ describe("Lambda entry point", () => {
             propsNotes: inMemoryItemNoteStore(),
             sceneryNotes,
             sfxNotes: inMemoryItemNoteStore(),
+            wardrobeNotes: inMemoryItemNoteStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
           {
             scenery: folderItemFileStore(folder, "scenery"),
             sfx: folderItemFileStore(folder, "sfx"),
+            wardrobe: folderItemFileStore(folder, "wardrobe"),
           },
         ),
       );
@@ -1487,6 +1506,171 @@ describe("Lambda entry point", () => {
     });
   });
 
+  describe("Wardrobe files and notes (production-sfx-wardrobe E1.S2)", () => {
+    const opening = itemId("Opening Number");
+    const WARDROBE_READ_ONLY = { message: "You can view the wardrobe, but not change it." };
+    let folder: string;
+    beforeEach(async () => {
+      folder = await mkdtemp(join(tmpdir(), "lambda-wardrobe-"));
+    });
+    afterEach(async () => {
+      await rm(folder, { recursive: true, force: true });
+    });
+
+    const setUpWardrobe = () => {
+      const cast = inMemoryCastStore();
+      const roles = inMemoryRoleStore();
+      const sceneryNotes = inMemoryItemNoteStore();
+      const sfxNotes = inMemoryItemNoteStore();
+      const api = lambdaEntry(
+        createRoutes(
+          {
+            cast,
+            roles,
+            runningOrders: inMemoryRunningOrderStore([
+              aRunningOrder(4, { first: ["Opening Number", "Finale"] }),
+            ]),
+            itemNotes: inMemoryItemNoteStore(),
+            props: inMemoryPropStore(),
+            propsNotes: inMemoryItemNoteStore(),
+            sceneryNotes,
+            sfxNotes,
+            wardrobeNotes: inMemoryItemNoteStore(),
+            removeCastMember: uncastThenRemove(cast, roles),
+          },
+          inMemoryUsageStore(),
+          {
+            scenery: folderItemFileStore(folder, "scenery"),
+            sfx: folderItemFileStore(folder, "sfx"),
+            wardrobe: folderItemFileStore(folder, "wardrobe"),
+          },
+        ),
+      );
+      return { api, sceneryNotes, sfxNotes };
+    };
+
+    // Put straight into file storage, as an upload would (made-up files).
+    async function putFile(department: string, name: string) {
+      const place = join(folder, "2027", opening, department);
+      await mkdir(place, { recursive: true });
+      await writeFile(join(place, name), "made-up");
+    }
+    // A request signed in with the groups, with a JSON body or query string as given.
+    const as =
+      (groups: string) =>
+      (method: string, rawPath: string, extra: { body?: unknown; query?: object } = {}) =>
+        request(
+          method,
+          rawPath,
+          {
+            ...(extra.body === undefined ? {} : { body: JSON.stringify(extra.body) }),
+            ...(extra.query === undefined ? {} : { queryStringParameters: extra.query }),
+          },
+          groups,
+        );
+    const itemPath = (end: string) => `/api/productions/2027/items/${opening}/${end}`;
+    const namesAt = async (api: ReturnType<typeof setUpWardrobe>["api"], end: string) =>
+      SceneryFileList.parse(
+        JSON.parse((await api(as("[casting]")("GET", itemPath(end)))).body ?? ""),
+      ).files.map((file) => file.name);
+    const deletePattern = (groups: string) =>
+      as(groups)("DELETE", itemPath("wardrobe-files"), { query: { name: "jacket-pattern.pdf" } });
+    const uploadPattern = (groups: string) =>
+      as(groups)("POST", itemPath("wardrobe-uploads"), {
+        body: { name: "jacket-pattern.pdf", size: 1_200_000 },
+      });
+    const saveWardrobeNotes = (groups: string, text: string) =>
+      as(groups)("PUT", itemPath("wardrobe-notes"), { body: { revision: 0, text } });
+    const notesAt = async (api: ReturnType<typeof setUpWardrobe>["api"], list: string) =>
+      ItemNoteList.parse(
+        JSON.parse((await api(as("[casting]")("GET", `/api/productions/2027/${list}`))).body ?? ""),
+      ).notes;
+
+    it("lists only the item's Wardrobe files on the Wardrobe route, not its scenery or SFX files", async () => {
+      const { api } = setUpWardrobe();
+      await putFile("scenery", "set-plan.pdf");
+      await putFile("sfx", "thunder.mp3");
+      await putFile("wardrobe", "jacket-pattern.pdf");
+
+      expect(await namesAt(api, "wardrobe-files")).toEqual(["jacket-pattern.pdf"]);
+    });
+
+    it("links to a Wardrobe file, which anyone signed in may ask for", async () => {
+      const { api } = setUpWardrobe();
+      await putFile("wardrobe", "colour-swatch.png");
+
+      const res = await api(
+        as("[]")("GET", itemPath("wardrobe-file-link"), { query: { name: "colour-swatch.png" } }),
+      );
+
+      expect(res.statusCode).toBe(200);
+      expect(SceneryFileLink.parse(JSON.parse(res.body ?? "")).url).toContain(
+        "/wardrobe/colour-swatch.png",
+      );
+    });
+
+    it("refuses a Wardrobe request for an SFX file, leaving it untouched", async () => {
+      const { api } = setUpWardrobe();
+      await putFile("sfx", "thunder.mp3");
+      const name = { query: { name: "../sfx/thunder.mp3" } };
+
+      const deleted = await api(as("[wardrobe]")("DELETE", itemPath("wardrobe-files"), name));
+      const linked = await api(as("[wardrobe]")("GET", itemPath("wardrobe-file-link"), name));
+
+      expect([deleted.statusCode, linked.statusCode]).toEqual([400, 400]);
+      expect(existsSync(join(folder, "2027", opening, "sfx", "thunder.mp3"))).toBe(true);
+    });
+
+    it.each([
+      ["kit, with Wardrobe", "[wardrobe]"],
+      ["dee, with Director", "[director]"],
+      ["ash, an admin", "[admin]"],
+    ])("lets %s upload, delete and change the Wardrobe notes", async (_who, groups) => {
+      const { api } = setUpWardrobe();
+      await putFile("wardrobe", "jacket-pattern.pdf");
+
+      const deleted = await api(deletePattern(groups));
+      const uploaded = await api(uploadPattern(groups));
+      const saved = await api(saveWardrobeNotes(groups, "Gold jackets for the chorus"));
+
+      expect([deleted.statusCode, uploaded.statusCode, saved.statusCode]).toEqual([204, 200, 200]);
+    });
+
+    it("refuses lee, with Tech only, an upload, delete or note change, saying the wardrobe is view-only", async () => {
+      const { api } = setUpWardrobe();
+      await putFile("wardrobe", "jacket-pattern.pdf");
+
+      for (const res of [
+        await api(uploadPattern("[tech]")),
+        await api(deletePattern("[tech]")),
+        await api(saveWardrobeNotes("[tech]", "Gold jackets")),
+      ]) {
+        expect(res.statusCode).toBe(403);
+        expect(JSON.parse(res.body ?? "")).toEqual(WARDROBE_READ_ONLY);
+      }
+      expect(await namesAt(api, "wardrobe-files")).toEqual(["jacket-pattern.pdf"]);
+      expect(await notesAt(api, "wardrobe-notes")).toEqual([]);
+    });
+
+    it("keeps Wardrobe notes per item, apart from the scenery and SFX notes", async () => {
+      const { api, sceneryNotes, sfxNotes } = setUpWardrobe();
+      await sceneryNotes.save("2027", opening, 0, "Cloud");
+      await sfxNotes.save("2027", opening, 0, "Thunder");
+
+      await api(saveWardrobeNotes("[wardrobe]", "Gold jackets for the chorus"));
+
+      expect(await notesAt(api, "wardrobe-notes")).toEqual([
+        { itemId: opening, text: "Gold jackets for the chorus", revision: 1 },
+      ]);
+      expect(await notesAt(api, "scenery-notes")).toEqual([
+        { itemId: opening, text: "Cloud", revision: 1 },
+      ]);
+      expect(await notesAt(api, "sfx-notes")).toEqual([
+        { itemId: opening, text: "Thunder", revision: 1 },
+      ]);
+    });
+  });
+
   describe("usage (ADR 0023)", () => {
     const setUp = () => {
       const cast = inMemoryCastStore([aCastList([aCastMember(1)])]);
@@ -1502,10 +1686,11 @@ describe("Lambda entry point", () => {
             propsNotes: inMemoryItemNoteStore(),
             sceneryNotes: inMemoryItemNoteStore(),
             sfxNotes: inMemoryItemNoteStore(),
+            wardrobeNotes: inMemoryItemNoteStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
-          { scenery: noSceneryFiles, sfx: noSceneryFiles },
+          { scenery: noSceneryFiles, sfx: noSceneryFiles, wardrobe: noSceneryFiles },
         ),
       );
     };

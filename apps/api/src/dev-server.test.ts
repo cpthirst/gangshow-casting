@@ -417,6 +417,15 @@ describe("dev server local scenery uploads (production-scenery FR8)", () => {
     );
   });
 
+  it("keeps a file sent to an item's Wardrobe upload address in its Wardrobe folder", async () => {
+    const res = await upload("/api/local-files/2027/finale/wardrobe/hat.jpg", form("made-up"));
+
+    expect(res.status).toBe(204);
+    expect(await readFile(join(folder, "2027", "finale", "wardrobe", "hat.jpg"), "utf8")).toBe(
+      "made-up",
+    );
+  });
+
   it("keeps a file of exactly 100 MB, and refuses one over it, keeping nothing", async () => {
     const path = (name: string) => `/api/local-files/2027/finale/scenery/${name}`;
 

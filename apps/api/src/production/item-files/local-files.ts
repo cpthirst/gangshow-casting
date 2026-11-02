@@ -23,7 +23,7 @@ const decoded = (part: string) => {
 /**
  * Where in the folder a LOCAL_FILES_PATH path's item file is, as the folder store lays it out,
  * and its name; undefined unless it names one. Each part is checked as a key's would be, so no
- * path can reach outside an item's scenery or SFX folder (ADR 0030, ADR 0032).
+ * path can reach outside an item's scenery, SFX or Wardrobe folder (ADR 0030, ADR 0032).
  */
 export function localFilePlace(folder: string, path: string) {
   if (!path.startsWith(LOCAL_FILES_PATH)) return undefined;

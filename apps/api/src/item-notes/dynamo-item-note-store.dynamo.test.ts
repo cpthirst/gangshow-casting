@@ -7,6 +7,7 @@ import {
   PROPS_NOTE,
   SCENERY_NOTE,
   SFX_NOTE,
+  WARDROBE_NOTE,
 } from "./dynamo-item-note-store.ts";
 import { behavesAsAnItemNoteStore } from "./item-note-store.contract.ts";
 
@@ -63,6 +64,21 @@ describe("DynamoDB item note store", () => {
 
       expect((await scenery.list("2027")).notes.map((note) => note.text)).toEqual(["Cloud"]);
       expect((await sfx.list("2027")).notes.map((note) => note.text)).toEqual(["Thunder"]);
+    });
+  });
+
+  describe("for Wardrobe notes", () => {
+    behavesAsAnItemNoteStore(() => dynamoItemNoteStore(table.db, table.tableName, WARDROBE_NOTE));
+
+    it("keeps Wardrobe notes apart from the SFX notes", async () => {
+      const sfx = dynamoItemNoteStore(table.db, table.tableName, SFX_NOTE);
+      const wardrobe = dynamoItemNoteStore(table.db, table.tableName, WARDROBE_NOTE);
+      await sfx.save("2027", "pirate-sketch", 0, "Thunder");
+
+      await wardrobe.save("2027", "pirate-sketch", 0, "Eye patches");
+
+      expect((await sfx.list("2027")).notes.map((note) => note.text)).toEqual(["Thunder"]);
+      expect((await wardrobe.list("2027")).notes.map((note) => note.text)).toEqual(["Eye patches"]);
     });
   });
 

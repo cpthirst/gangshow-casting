@@ -6,7 +6,7 @@ import { folderIdOf, productionIdOf } from "#/http/params.ts";
 import type { RunningOrderStore } from "#/show/running-order/running-order-store.ts";
 import type { ItemFileStore } from "./item-file-store.ts";
 
-// POST /api/productions/{productionId}/items/{itemId}/scenery-uploads, or /sfx-uploads: where
+// POST /api/productions/{productionId}/items/{itemId}/scenery-uploads, or /sfx-uploads or /wardrobe-uploads: where
 // the browser may send one file, straight to file storage, which refuses it over 100 MB
 // (production-scenery FR8, ADR 0030). The file never passes through here. Only those the
 // department's routeNeeds name get here (@app/shared). 409 for a name the item already has,

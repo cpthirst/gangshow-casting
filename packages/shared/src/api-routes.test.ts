@@ -21,6 +21,7 @@ import {
   routeNeeds,
   SCENERY_PERMISSIONS,
   SFX_PERMISSIONS,
+  WARDROBE_PERMISSIONS,
 } from "./api-routes.ts";
 
 describe("adminOnlyRouteKeys", () => {
@@ -184,6 +185,27 @@ describe("routeNeeds", () => {
     expect(needOf(key)).toBeUndefined();
   });
 
+  it.each([
+    "DELETE /api/productions/{productionId}/items/{itemId}/wardrobe-files",
+    "POST /api/productions/{productionId}/items/{itemId}/wardrobe-uploads",
+    "PUT /api/productions/{productionId}/items/{itemId}/wardrobe-notes",
+  ] as const)("has %s need Wardrobe or Director, and refuse others naming the wardrobe", (key) => {
+    expect(needOf(key)).toEqual(WARDROBE_PERMISSIONS);
+    expect(WARDROBE_PERMISSIONS).toEqual(["wardrobe", "director"]);
+    expect(refusalOn(key, WARDROBE_PERMISSIONS)).toBe(
+      "You can view the wardrobe, but not change it.",
+    );
+  });
+
+  it.each([
+    "GET /api/productions/{productionId}/items/{itemId}/wardrobe-files",
+    "GET /api/productions/{productionId}/items/{itemId}/wardrobe-file-link",
+    "GET /api/productions/{productionId}/wardrobe-notes",
+  ] as const)("leaves %s open to everyone", (key) => {
+    expect(routeKeys).toContain(key);
+    expect(needOf(key)).toBeUndefined();
+  });
+
   it("refuses a scenery change still saying the scenery can be viewed", () => {
     const key = "PUT /api/productions/{productionId}/items/{itemId}/scenery-notes";
     expect(refusalOn(key, SCENERY_PERMISSIONS)).toBe(
@@ -197,7 +219,8 @@ describe("routeNeeds", () => {
         !readOnlyMayUse(key) &&
         needOf(key) !== PROPS_PERMISSIONS &&
         needOf(key) !== SCENERY_PERMISSIONS &&
-        needOf(key) !== SFX_PERMISSIONS,
+        needOf(key) !== SFX_PERMISSIONS &&
+        needOf(key) !== WARDROBE_PERMISSIONS,
     );
     const needsCasting = (key: string) => needOf(key) === CASTING_PERMISSIONS;
     expect(changes.filter(needsCasting).sort()).toEqual([
@@ -312,6 +335,10 @@ describe("refusalFor", () => {
 
   it("says the scenery can be viewed but not changed, for Tech", () => {
     expect(refusalFor("tech")).toBe("You can view the scenery, but not change it.");
+  });
+
+  it("says the wardrobe can be viewed but not changed, for Wardrobe", () => {
+    expect(refusalFor("wardrobe")).toBe("You can view the wardrobe, but not change it.");
   });
 
   it("falls back to a general line for a department without its own", () => {

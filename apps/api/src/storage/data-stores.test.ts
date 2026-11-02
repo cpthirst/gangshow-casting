@@ -55,7 +55,7 @@ describe("data stores", () => {
     expect(await files.stores.scenery.list("2027", "finale")).toEqual([
       { name: "curtain.pdf", size: 7 },
     ]);
-    expect(files.where).toBe(`scenery and SFX files in ${join(dataDir, "files")}`);
+    expect(files.where).toBe(`scenery, SFX and Wardrobe files in ${join(dataDir, "files")}`);
     expect(files.folder).toBe(join(dataDir, "files"));
   });
 
@@ -70,10 +70,23 @@ describe("data stores", () => {
     expect(await stores.scenery.list("2027", "finale")).toEqual([]);
   });
 
+  it("keeps Wardrobe files beside the others, in the item's own folder for them", async () => {
+    const place = join(dataDir, "files", "2027", "finale", "wardrobe");
+    await mkdir(place, { recursive: true });
+    await writeFile(join(place, "jacket-pattern.pdf"), "made-up");
+
+    const { stores } = itemFileStores({ DATA_DIR: dataDir });
+
+    expect(await stores.wardrobe.list("2027", "finale")).toEqual([
+      { name: "jacket-pattern.pdf", size: 7 },
+    ]);
+    expect(await stores.sfx.list("2027", "finale")).toEqual([]);
+  });
+
   it("keeps scenery files in the bucket FILES_BUCKET names, in London", async () => {
     const files = itemFileStores({ DATA_DIR: dataDir, FILES_BUCKET: "made-up-files" });
 
-    expect(files.where).toBe("scenery and SFX files in bucket made-up-files (eu-west-2)");
+    expect(files.where).toBe("scenery, SFX and Wardrobe files in bucket made-up-files (eu-west-2)");
     expect(files.folder).toBeUndefined();
   });
 
@@ -87,6 +100,18 @@ describe("data stores", () => {
       { itemId: "finale", text: "Thunder on the second verse", revision: 1 },
     ]);
     expect((await stores.sceneryNotes.list("2027")).notes).toEqual([]);
+  });
+
+  it("keeps Wardrobe notes in their own local file, apart from the others", async () => {
+    const stores = dataStores({ DATA_DIR: dataDir });
+
+    await stores.wardrobeNotes.save("2027", "finale", 0, "Gold jackets for the chorus");
+
+    const file = JSON.parse(await readFile(join(dataDir, "2027", "wardrobe-notes.json"), "utf8"));
+    expect(file.notes).toEqual([
+      { itemId: "finale", text: "Gold jackets for the chorus", revision: 1 },
+    ]);
+    expect((await stores.sfxNotes.list("2027")).notes).toEqual([]);
   });
 
   it("says where item notes are kept when a remote table is configured", () => {

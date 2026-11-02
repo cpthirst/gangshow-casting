@@ -6,7 +6,7 @@ import { folderIdOf, productionIdOf } from "#/http/params.ts";
 import type { ItemFileStore } from "./item-file-store.ts";
 
 // GET /api/productions/{productionId}/items/{itemId}/scenery-file-link?name=…, or
-// /sfx-file-link: a short-lived link that opens or downloads one of the item's files
+// /sfx-file-link or /wardrobe-file-link: a short-lived link that opens or downloads one of the item's files
 // (production-scenery FR10). Open to every signed-in role. 404 if the file isn't there any
 // more, so the page can say so.
 export function createGetItemFileLink(store: ItemFileStore) {

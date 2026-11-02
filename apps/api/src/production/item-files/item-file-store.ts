@@ -11,7 +11,7 @@ import { ifExists } from "#/storage/files.ts";
 import { localFileLink } from "./local-files.ts";
 
 /**
- * Where each item's files live for one department, Scenery's or SFX's (ADR 0030, ADR 0032).
+ * Where each item's files live for one department, Scenery's, SFX's or Wardrobe's (ADR 0030, ADR 0032).
  * Names come from storage each time, so a file renamed, added or removed there, outside the
  * app, shows on the next list. A store never reaches another department's files.
  */
