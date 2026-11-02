@@ -1,21 +1,27 @@
 import { browserTypeOf, fileTypeOf, MAX_SCENERY_FILE_BYTES, type SceneryFile } from "@app/shared";
 import { countInWords } from "./departments.ts";
 import { icons } from "./icons.ts";
+import {
+  departmentNotesPath,
+  itemFileLinkPath,
+  itemFilePath,
+  itemFilesPath,
+  itemUploadsPath,
+  saveDepartmentNotesPath,
+} from "./item-files.ts";
 
 // Only one production for now (see docs/product/running-order/prd.md).
 const PRODUCTION_ID = "2027";
 
 /** The item's scenery files, as file storage holds them now (production-scenery FR6). */
-export const sceneryFilesPath = (itemId: string) =>
-  `/api/productions/${PRODUCTION_ID}/items/${encodeURIComponent(itemId)}/scenery-files`;
+export const sceneryFilesPath = (itemId: string) => itemFilesPath("scenery", itemId);
 
 /** One of the item's files, to delete it (FR11). */
 export const sceneryFilePath = (itemId: string, name: string) =>
-  `${sceneryFilesPath(itemId)}?${new URLSearchParams({ name })}`;
+  itemFilePath("scenery", itemId, name);
 
 /** Where to ask for an upload of one of the item's files (FR8). */
-export const sceneryUploadsPath = (itemId: string) =>
-  `/api/productions/${PRODUCTION_ID}/items/${encodeURIComponent(itemId)}/scenery-uploads`;
+export const sceneryUploadsPath = (itemId: string) => itemUploadsPath("scenery", itemId);
 
 /** What the page asks before an upload replaces the item's file of the same name (FR9):
  *  there's no history, so the old copy is gone for good. */
@@ -38,7 +44,7 @@ export const sceneryCount = (files: number) =>
 
 /** A short-lived link that opens or downloads one of the item's files (FR10). */
 export const sceneryFileLinkPath = (itemId: string, name: string) =>
-  `/api/productions/${PRODUCTION_ID}/items/${encodeURIComponent(itemId)}/scenery-file-link?${new URLSearchParams({ name })}`;
+  itemFileLinkPath("scenery", itemId, name);
 
 /** Whether choosing the file's row opens it in a new tab, rather than downloading it. */
 export const opensInBrowser = (name: string) => browserTypeOf(name) !== undefined;
@@ -70,11 +76,10 @@ export function fileIconOf(name: string) {
 }
 
 /** Every item's scenery notes, apart from its casting and props notes. */
-export const SCENERY_NOTES_PATH = `/api/productions/${PRODUCTION_ID}/scenery-notes`;
+export const SCENERY_NOTES_PATH = departmentNotesPath("scenery");
 
 /** Where an item's scenery notes are saved. */
-export const saveSceneryNotesPath = (itemId: string) =>
-  `/api/productions/${PRODUCTION_ID}/items/${encodeURIComponent(itemId)}/scenery-notes`;
+export const saveSceneryNotesPath = (itemId: string) => saveDepartmentNotesPath("scenery", itemId);
 
 const byName = new Intl.Collator("en-GB", { sensitivity: "base", numeric: true });
 

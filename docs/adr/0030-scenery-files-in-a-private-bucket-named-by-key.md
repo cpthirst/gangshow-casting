@@ -1,6 +1,6 @@
 # 0030. Scenery files in a private bucket, each named by its key
 
-- **Status**: Accepted
+- **Status**: Accepted. Amended by [ADR 0032](0032-sfx-files-beside-scenery-files.md): SFX files under each item's `sfx/` folder, with their own routes, and the API's access widened to them
 - **Date**: 2026-10-29
 - **Deciders**: Nick Hirst
 

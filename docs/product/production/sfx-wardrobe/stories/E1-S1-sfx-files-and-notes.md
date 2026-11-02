@@ -2,7 +2,7 @@
 id: production-sfx-wardrobe.E1.S1
 title: Keep each item's SFX files and notes on its SFX page
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story
@@ -95,7 +95,7 @@ Then they pass without changes to what they check
 
 - FRs: FR1, FR2, FR3, FR5, FR7, FR8, FR9
 - Depends on: none (production-scenery is done)
-- Files are kept under `<production>/<item id>/sfx/` in the existing bucket (ADR 0030). The API's access to the bucket widens to `sfx` keys and nothing else. That needs an ADR amending ADR 0030, and the infra and security reviews. No new AWS resource.
+- Files are kept under `<production>/<item id>/sfx/` in the existing bucket (ADR 0030). The API's access to the bucket widens to `sfx` keys and nothing else. That needs an ADR amending ADR 0030 ([ADR 0032](../../../../adr/0032-sfx-files-beside-scenery-files.md)), and the infra and security reviews. No new AWS resource.
 - Scenery's routes, file store, page, upload component and notes are expected to take a department rather than be copied, so the pages stay alike. Scenery's routes and addresses stay as they are.
 - The API's refusal is named per route, not by the first permission it names: today Tech's refusal talks about the scenery (production-scenery E1.S1).
 - In this story, audio files download with the general file icon. Playing them comes in E1.S3.

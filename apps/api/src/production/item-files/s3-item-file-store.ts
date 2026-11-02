@@ -1,4 +1,4 @@
-import { MAX_SCENERY_FILE_BYTES, type SceneryFile } from "@app/shared";
+import { type FileDepartment, MAX_SCENERY_FILE_BYTES, type SceneryFile } from "@app/shared";
 import {
   DeleteObjectCommand,
   DeleteObjectsCommand,
@@ -12,12 +12,12 @@ import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { fileHeadersOf } from "./file-headers.ts";
 import {
-  asSceneryFiles,
+  asItemFiles,
   countsByItem,
-  isDroppedScenery,
-  type SceneryFileStore,
-  sceneryFolderOf,
-} from "./scenery-file-store.ts";
+  type ItemFileStore,
+  isDroppedFile,
+  itemFolderOf,
+} from "./item-file-store.ts";
 
 // Long enough to start a download or upload on a slow phone, short enough to be useless if
 // shared (production-scenery security NFR).
@@ -25,11 +25,17 @@ const LINK_SECONDS = 5 * 60;
 // The most keys S3 deletes in one request.
 const DELETE_BATCH = 1_000;
 
-/** Scenery files in the private bucket infra creates (ADR 0030), one key per file. */
-export function s3SceneryFileStore(s3: S3Client, bucket: string): SceneryFileStore {
+/** The department's files in the private bucket infra creates (ADR 0030), one key per file. */
+export function s3ItemFileStore(
+  s3: S3Client,
+  bucket: string,
+  department: FileDepartment,
+): ItemFileStore {
+  const folderOf = (productionId: string, itemId: string) =>
+    itemFolderOf(productionId, itemId, department);
   return {
     async list(productionId, itemId) {
-      const prefix = sceneryFolderOf(productionId, itemId);
+      const prefix = folderOf(productionId, itemId);
       const files: SceneryFile[] = [];
       let token: string | undefined;
       // Up to 1,000 keys a page. The delimiter keeps anything in a folder below out of them.
@@ -43,17 +49,17 @@ export function s3SceneryFileStore(s3: S3Client, bucket: string): SceneryFileSto
           }),
         );
         for (const { Key = "", Size = 0 } of page.Contents ?? []) {
-          files.push(...asSceneryFiles(Key.slice(prefix.length), Size));
+          files.push(...asItemFiles(Key.slice(prefix.length), Size));
         }
         token = page.IsTruncated ? page.NextContinuationToken : undefined;
       } while (token !== undefined);
       return files;
     },
     async countByItem(productionId) {
-      return countsByItem(await keysIn(productionId));
+      return countsByItem(await keysIn(productionId), department);
     },
     async linkTo(productionId, itemId, name) {
-      const Key = `${sceneryFolderOf(productionId, itemId)}${name}`;
+      const Key = `${folderOf(productionId, itemId)}${name}`;
       if (!(await exists(Key))) return undefined;
       // The link names its type and name itself, so what storage holds can't make it open.
       const { contentType, contentDisposition } = fileHeadersOf(name);
@@ -66,14 +72,14 @@ export function s3SceneryFileStore(s3: S3Client, bucket: string): SceneryFileSto
       return getSignedUrl(s3, get, { expiresIn: LINK_SECONDS });
     },
     async remove(productionId, itemId, name) {
-      const Key = `${sceneryFolderOf(productionId, itemId)}${name}`;
+      const Key = `${folderOf(productionId, itemId)}${name}`;
       // S3 answers a delete of a missing key as if it worked, so look first (AC6's "gone").
       if (!(await exists(Key))) return "gone";
       await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key }));
       return "removed";
     },
     async uploadTo(productionId, itemId, name, { replace }) {
-      const Key = `${sceneryFolderOf(productionId, itemId)}${name}`;
+      const Key = `${folderOf(productionId, itemId)}${name}`;
       // The bucket overwrites a key without asking, so look first (FR9).
       if (!replace && (await exists(Key))) return "taken";
       // A form only for this key, which the bucket itself refuses over 100 MB (FR8).
@@ -88,7 +94,7 @@ export function s3SceneryFileStore(s3: S3Client, bucket: string): SceneryFileSto
     async keepOnlyItems(productionId, itemIds) {
       const kept = new Set(itemIds);
       const dropped = (await keysIn(productionId))
-        .filter((key) => isDroppedScenery(key, kept))
+        .filter((key) => isDroppedFile(key, kept, department))
         .map((key) => ({ Key: `${productionId}/${key}` }));
       for (let at = 0; at < dropped.length; at += DELETE_BATCH) {
         const { Errors = [] } = await s3.send(
@@ -98,7 +104,8 @@ export function s3SceneryFileStore(s3: S3Client, bucket: string): SceneryFileSto
           }),
         );
         // Only how many: a key names a file, which could say something about the show.
-        if (Errors.length > 0) throw new Error(`${Errors.length} scenery files weren't deleted`);
+        if (Errors.length > 0)
+          throw new Error(`${Errors.length} ${department} files weren't deleted`);
       }
     },
   };

@@ -28,7 +28,7 @@ const show = aRunningOrder([anItem("Opening Number"), anItem("Pirate Sketch")], 
 const json = (body: unknown) => new Response(JSON.stringify(body));
 
 /** A stand-in API holding one saved running order (none if undefined), and no props,
- *  casting or scenery files. */
+ *  casting, scenery files or SFX files. */
 function savedShowIs(order: RunningOrder | undefined) {
   vi.stubGlobal(
     "fetch",
@@ -40,7 +40,9 @@ function savedShowIs(order: RunningOrder | undefined) {
       if (url === PROPS_NOTES_PATH) return json({ productionId: "2027", notes: [] });
       if (url === ROLES_PATH) return json({ productionId: "2027", roles: [] });
       if (url === CAST_PATH) return json({ productionId: "2027", members: [] });
-      if (url.endsWith("/scenery-files")) return json({ files: [] });
+      if (url.endsWith("/scenery-files") || url.endsWith("/sfx-files")) {
+        return json({ files: [] });
+      }
       if (url === "/api/usage") return new Response(null, { status: 204 });
       return json({ status: "ok", version: "dev" });
     }),
@@ -88,7 +90,7 @@ describe("A department's item page", () => {
   });
 
   it.each([
-    ["SFX", "sfx"],
+    ["Mic plot", "mic-plot"],
     ["Wardrobe", "wardrobe"],
   ])("opens the %s page for the item, titled for both, coming soon", async (department, path) => {
     savedShowIs(show);
@@ -102,18 +104,18 @@ describe("A department's item page", () => {
     expect(wrapper.get("main").text()).toContain("Coming soon");
   });
 
-  it("goes back to the Overview, and steps to the previous and next items' SFX pages", async () => {
+  it("goes back to the Overview, and steps to the previous and next items' Mic plot pages", async () => {
     savedShowIs(show);
-    const { wrapper, router } = await openAppAt("/production/items/pirate-sketch/sfx");
+    const { wrapper, router } = await openAppAt("/production/items/pirate-sketch/mic-plot");
 
     expect(stepLinks(wrapper)).toEqual([
-      { rel: "prev", href: "/production/items/opening-number/sfx" },
-      { rel: "next", href: "/production/items/finale/sfx" },
+      { rel: "prev", href: "/production/items/opening-number/mic-plot" },
+      { rel: "next", href: "/production/items/finale/mic-plot" },
     ]);
 
     await wrapper.get("main a[rel=next]").trigger("click");
     await flushPromises();
-    expect(wrapper.get("main h1").text()).toBe("SFX: Finale");
+    expect(wrapper.get("main h1").text()).toBe("Mic plot: Finale");
 
     await wrapper.get("main a.back-link").trigger("click");
     await flushPromises();
@@ -122,11 +124,11 @@ describe("A department's item page", () => {
 
   it("has no Previous on the first item, and no Next on the last", async () => {
     savedShowIs(show);
-    const first = await openAppAt("/production/items/opening-number/sfx");
+    const first = await openAppAt("/production/items/opening-number/mic-plot");
     expect(stepLinks(first.wrapper).map((link) => link.rel)).toEqual(["next"]);
     first.wrapper.unmount();
 
-    const { wrapper } = await openAppAt("/production/items/finale/sfx");
+    const { wrapper } = await openAppAt("/production/items/finale/mic-plot");
     expect(stepLinks(wrapper).map((link) => link.rel)).toEqual(["prev"]);
   });
 

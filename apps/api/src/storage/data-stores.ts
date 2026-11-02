@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import type { FileDepartment } from "@app/shared";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { S3Client } from "@aws-sdk/client-s3";
 import type { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
@@ -9,16 +10,22 @@ import {
   dynamoItemNoteStore,
   PROPS_NOTE,
   SCENERY_NOTE,
+  SFX_NOTE,
 } from "#/item-notes/dynamo-item-note-store.ts";
 import {
   fileItemNoteStore,
   PROPS_NOTES_FILE,
   SCENERY_NOTES_FILE,
+  SFX_NOTES_FILE,
 } from "#/item-notes/item-note-store.ts";
+import {
+  folderItemFileStore,
+  type ItemFileStore,
+  type ItemFileStores,
+} from "#/production/item-files/item-file-store.ts";
+import { s3ItemFileStore } from "#/production/item-files/s3-item-file-store.ts";
 import { dynamoPropStore } from "#/production/props/dynamo-prop-store.ts";
 import { filePropStore } from "#/production/props/prop-store.ts";
-import { s3SceneryFileStore } from "#/production/scenery/s3-scenery-file-store.ts";
-import { folderSceneryFileStore } from "#/production/scenery/scenery-file-store.ts";
 import { fileCastStore } from "#/show/cast/cast-store.ts";
 import { dynamoCastStore } from "#/show/cast/dynamo-cast-store.ts";
 import { dynamoRemoveCastMember } from "#/show/cast/dynamo-remove-cast-member.ts";
@@ -38,7 +45,7 @@ const defaultDataDir = fileURLToPath(new URL("../../data", import.meta.url));
  * - DATA_TABLE: the remote table, if any (remote-data FR4), which then holds everything;
  * - DATA_TABLE_REGION: the table's region, default London, where infra deploys it. Not
  *   AWS_REGION, so a shell set up for other AWS work can't point the API elsewhere.
- * - FILES_BUCKET: the bucket for scenery files, if any (ADR 0030), always in London.
+ * - FILES_BUCKET: the bucket for scenery and SFX files, if any (ADR 0030), always in London.
  * The AWS SDK reads the credentials and profile itself.
  */
 type Env = Record<string, string | undefined>;
@@ -67,6 +74,7 @@ export function fileStores(dataDir: string) {
     props: filePropStore(dataDir),
     propsNotes: fileItemNoteStore(dataDir, PROPS_NOTES_FILE),
     sceneryNotes: fileItemNoteStore(dataDir, SCENERY_NOTES_FILE),
+    sfxNotes: fileItemNoteStore(dataDir, SFX_NOTES_FILE),
   };
 }
 
@@ -84,6 +92,7 @@ export function remoteStores(db: DynamoDBDocumentClient, table: string): Stores 
     props: dynamoPropStore(db, table),
     propsNotes: dynamoItemNoteStore(db, table, PROPS_NOTE),
     sceneryNotes: dynamoItemNoteStore(db, table, SCENERY_NOTE),
+    sfxNotes: dynamoItemNoteStore(db, table, SFX_NOTE),
   };
 }
 
@@ -108,21 +117,32 @@ export function usageStore(env: Env = process.env) {
   return remote ? dynamoUsageStore(remote.db, remote.table) : inMemoryUsageStore();
 }
 
+/** A store for each department's files, all kept the same way. */
+const storesFor = (storeOf: (department: FileDepartment) => ItemFileStore): ItemFileStores => ({
+  scenery: storeOf("scenery"),
+  sfx: storeOf("sfx"),
+});
+
 /**
- * Where scenery files are kept: the bucket FILES_BUCKET names, otherwise a folder beside the
- * local files, laid out the same way (ADR 0030). Apart from the table, so pnpm dev can use the
- * remote table before the bucket exists.
+ * Where scenery and SFX files are kept: the bucket FILES_BUCKET names, otherwise a folder
+ * beside the local files, laid out the same way (ADR 0030, ADR 0032). Apart from the table, so
+ * pnpm dev can use the remote table before the bucket exists.
  */
-export function sceneryFileStore(env: Env = process.env) {
+export function itemFileStores(env: Env = process.env) {
   const bucket = env.FILES_BUCKET;
   if (bucket) {
     const region = "eu-west-2";
+    const s3 = new S3Client({ region });
     return {
-      store: s3SceneryFileStore(new S3Client({ region }), bucket),
-      where: `scenery files in bucket ${bucket} (${region})`,
+      stores: storesFor((department) => s3ItemFileStore(s3, bucket, department)),
+      where: `scenery and SFX files in bucket ${bucket} (${region})`,
       folder: undefined,
     };
   }
   const folder = join(dataDirFrom(env), "files");
-  return { store: folderSceneryFileStore(folder), where: `scenery files in ${folder}`, folder };
+  return {
+    stores: storesFor((department) => folderItemFileStore(folder, department)),
+    where: `scenery and SFX files in ${folder}`,
+    folder,
+  };
 }

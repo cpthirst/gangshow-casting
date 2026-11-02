@@ -4,14 +4,14 @@ import type { ApiEvent } from "#/http/handler.ts";
 import { jsonResponse, parseJson } from "#/http/json.ts";
 import { folderIdOf, productionIdOf } from "#/http/params.ts";
 import type { RunningOrderStore } from "#/show/running-order/running-order-store.ts";
-import type { SceneryFileStore } from "./scenery-file-store.ts";
+import type { ItemFileStore } from "./item-file-store.ts";
 
-// POST /api/productions/{productionId}/items/{itemId}/scenery-uploads: where the browser may
-// send one file, straight to file storage, which refuses it over 100 MB (production-scenery
-// FR8, ADR 0030). The file never passes through here. Only Stage, Tech, Director or an admin
-// get here (routeNeeds in @app/shared). 409 for a name the item already has, unless the
-// request says it replaces it (FR9).
-export function createUploadSceneryFile(store: SceneryFileStore, runningOrders: RunningOrderStore) {
+// POST /api/productions/{productionId}/items/{itemId}/scenery-uploads, or /sfx-uploads: where
+// the browser may send one file, straight to file storage, which refuses it over 100 MB
+// (production-scenery FR8, ADR 0030). The file never passes through here. Only those the
+// department's routeNeeds name get here (@app/shared). 409 for a name the item already has,
+// unless the request says it replaces it (FR9).
+export function createUploadItemFile(store: ItemFileStore, runningOrders: RunningOrderStore) {
   return async (event: ApiEvent): Promise<APIGatewayProxyStructuredResultV2> => {
     const productionId = productionIdOf(event);
     const itemId = folderIdOf(event.pathParameters?.itemId);

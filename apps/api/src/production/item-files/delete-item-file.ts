@@ -2,12 +2,13 @@ import { SceneryFileName } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import type { ApiEvent } from "#/http/handler.ts";
 import { folderIdOf, productionIdOf } from "#/http/params.ts";
-import type { SceneryFileStore } from "./scenery-file-store.ts";
+import type { ItemFileStore } from "./item-file-store.ts";
 
-// DELETE /api/productions/{productionId}/items/{itemId}/scenery-files?name=…: delete one of the
-// item's files for good (production-scenery FR11). Only Stage, Tech, Director or an admin get
-// here (routeNeeds in @app/shared). 404 if it's already gone, so the page can say so.
-export function createDeleteSceneryFile(store: SceneryFileStore) {
+// DELETE /api/productions/{productionId}/items/{itemId}/scenery-files?name=…, or /sfx-files:
+// delete one of the item's files for good (production-scenery FR11, production-sfx-wardrobe
+// FR7). Only those the department's routeNeeds name get here (@app/shared). 404 if it's
+// already gone, so the page can say so.
+export function createDeleteItemFile(store: ItemFileStore) {
   return async (event: ApiEvent): Promise<APIGatewayProxyStructuredResultV2> => {
     const productionId = productionIdOf(event);
     const itemId = folderIdOf(event.pathParameters?.itemId);

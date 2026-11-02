@@ -3,18 +3,18 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { itemId } from "#/show/running-order/running-order.fixture.ts";
-import { createDeleteSceneryFile } from "./delete-scenery-file.ts";
-import { folderSceneryFileStore } from "./scenery-file-store.ts";
+import { createDeleteItemFile } from "./delete-item-file.ts";
+import { folderItemFileStore } from "./item-file-store.ts";
 
 const openingNumber = itemId("Opening Number");
 const finale = itemId("Finale");
 
 describe("delete scenery file handler", () => {
   let folder: string;
-  let deleteFile: ReturnType<typeof createDeleteSceneryFile>;
+  let deleteFile: ReturnType<typeof createDeleteItemFile>;
   beforeEach(async () => {
     folder = await mkdtemp(join(tmpdir(), "scenery-deletes-"));
-    deleteFile = createDeleteSceneryFile(folderSceneryFileStore(folder));
+    deleteFile = createDeleteItemFile(folderItemFileStore(folder, "scenery"));
   });
   afterEach(async () => {
     await rm(folder, { recursive: true, force: true });

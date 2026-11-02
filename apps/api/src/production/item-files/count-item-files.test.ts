@@ -4,18 +4,18 @@ import { join } from "node:path";
 import { SceneryFileCounts } from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { itemId } from "#/show/running-order/running-order.fixture.ts";
-import { createCountSceneryFiles } from "./count-scenery-files.ts";
-import { folderSceneryFileStore } from "./scenery-file-store.ts";
+import { createCountItemFiles } from "./count-item-files.ts";
+import { folderItemFileStore } from "./item-file-store.ts";
 
 const openingNumber = itemId("Opening Number");
 const finale = itemId("Finale");
 
 describe("count scenery files handler", () => {
   let folder: string;
-  let count: ReturnType<typeof createCountSceneryFiles>;
+  let count: ReturnType<typeof createCountItemFiles>;
   beforeEach(async () => {
     folder = await mkdtemp(join(tmpdir(), "scenery-counts-"));
-    count = createCountSceneryFiles(folderSceneryFileStore(folder));
+    count = createCountItemFiles(folderItemFileStore(folder, "scenery"));
   });
   afterEach(async () => {
     await rm(folder, { recursive: true, force: true });

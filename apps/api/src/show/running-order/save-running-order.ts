@@ -5,16 +5,18 @@ import type { ApiEvent } from "#/http/handler.ts";
 import { jsonResponse, parseJson } from "#/http/json.ts";
 import { productionIdOf } from "#/http/params.ts";
 import type { ItemNoteStore } from "#/item-notes/item-note-store.ts";
-import type { SceneryFileStore } from "#/production/scenery/scenery-file-store.ts";
+import type { ItemFileStore } from "#/production/item-files/item-file-store.ts";
 import { applyChange } from "./running-order-changes.ts";
 import type { RunningOrderStore } from "./running-order-store.ts";
 
-/** Where what's kept about each item lives, its casting and its scenery files: it goes when
- *  the item leaves the show. */
+/** Where what's kept about each item lives, its casting, its scenery files, and its SFX files
+ *  and notes: it goes when the item leaves the show. */
 export interface ItemCleanup {
   roles: Pick<RoleStore, "keepOnlyItems">;
   itemNotes: Pick<ItemNoteStore, "keepOnlyItems">;
-  sceneryFiles: Pick<SceneryFileStore, "keepOnlyItems">;
+  sceneryFiles: Pick<ItemFileStore, "keepOnlyItems">;
+  sfxFiles: Pick<ItemFileStore, "keepOnlyItems">;
+  sfxNotes: Pick<ItemNoteStore, "keepOnlyItems">;
 }
 
 // POST /api/productions/{productionId}/running-order/versions: apply one change to the
@@ -67,12 +69,14 @@ async function removeWhatDroppedItemsKept(
     await cleanup.roles.keepOnlyItems(productionId, itemIds);
     await cleanup.itemNotes.keepOnlyItems(productionId, itemIds);
     await cleanup.sceneryFiles.keepOnlyItems(productionId, itemIds);
+    await cleanup.sfxFiles.keepOnlyItems(productionId, itemIds);
+    await cleanup.sfxNotes.keepOnlyItems(productionId, itemIds);
     // A dropped item's props and props notes are kept, for now: whether they go too is an open
     // question in docs/product/production/props/prd.md, to settle before item removal is built.
   } catch (error) {
     // Only the error's name: a store's message can quote stored casting (ADR 0010).
     console.error(
-      `Couldn't remove dropped items' casting or scenery files in production ${productionId}: ${error instanceof Error ? error.name : "unknown error"}`,
+      `Couldn't remove dropped items' casting, scenery or SFX in production ${productionId}: ${error instanceof Error ? error.name : "unknown error"}`,
     );
   }
 }

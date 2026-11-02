@@ -9,13 +9,15 @@ import {
 } from "@aws-sdk/client-s3";
 import { mockClient } from "aws-sdk-client-mock";
 import { beforeEach, describe, expect, it } from "vitest";
-import { s3SceneryFileStore } from "./s3-scenery-file-store.ts";
+import { s3ItemFileStore } from "./s3-item-file-store.ts";
 
 const BUCKET = "made-up-files";
 const s3 = mockClient(S3Client);
 // Made-up keys, so a link can be signed without AWS.
 const credentials = { accessKeyId: "MADEUPKEY", secretAccessKey: "made-up-secret" };
-const store = () => s3SceneryFileStore(new S3Client({ region: "eu-west-2", credentials }), BUCKET);
+const storeFor = (department: "scenery" | "sfx") =>
+  s3ItemFileStore(new S3Client({ region: "eu-west-2", credentials }), BUCKET, department);
+const store = () => storeFor("scenery");
 const prefix = "2027/opening-number/scenery/";
 
 beforeEach(() => s3.reset());
@@ -312,5 +314,61 @@ describe("deleting removed items' scenery files from a bucket", () => {
     });
 
     await expect(store().keepOnlyItems("2027", [])).rejects.toThrow();
+  });
+});
+
+describe("SFX files in a bucket, kept apart from the scenery files", () => {
+  const sfx = () => storeFor("sfx");
+
+  it("lists the item's own SFX folder", async () => {
+    s3.on(ListObjectsV2Command).resolves({
+      Contents: [{ Key: "2027/opening-number/sfx/thunder.mp3", Size: 2_400_000 }],
+    });
+
+    expect(await sfx().list("2027", "opening-number")).toEqual([
+      { name: "thunder.mp3", size: 2_400_000 },
+    ]);
+    expect(s3.commandCalls(ListObjectsV2Command)[0]?.args[0].input.Prefix).toBe(
+      "2027/opening-number/sfx/",
+    );
+  });
+
+  it("signs a form that puts the file under the item's SFX folder", async () => {
+    s3.on(HeadObjectCommand).rejects(new NotFound({ message: "", $metadata: {} }));
+
+    const upload = SceneryUpload.parse(
+      await sfx().uploadTo("2027", "opening-number", "thunder.mp3", { replace: false }),
+    );
+
+    expect(upload.fields.key).toBe("2027/opening-number/sfx/thunder.mp3");
+  });
+
+  it("deletes the item's SFX file by its key", async () => {
+    s3.on(HeadObjectCommand).resolves({});
+    s3.on(DeleteObjectCommand).resolves({});
+
+    await sfx().remove("2027", "opening-number", "thunder.mp3");
+
+    expect(s3.commandCalls(DeleteObjectCommand)[0]?.args[0].input).toEqual({
+      Bucket: BUCKET,
+      Key: "2027/opening-number/sfx/thunder.mp3",
+    });
+  });
+
+  it("deletes only the SFX keys of the items not kept, leaving their scenery", async () => {
+    s3.on(ListObjectsV2Command).resolves({
+      Contents: [
+        { Key: "2027/cut-sketch/sfx/boing.mp3" },
+        { Key: "2027/cut-sketch/scenery/set-plan.pdf" },
+        { Key: "2027/opening-number/sfx/thunder.mp3" },
+      ],
+    });
+    s3.on(DeleteObjectsCommand).resolves({});
+
+    await sfx().keepOnlyItems("2027", ["opening-number"]);
+
+    expect(s3.commandCalls(DeleteObjectsCommand)[0]?.args[0].input.Delete?.Objects).toEqual([
+      { Key: "2027/cut-sketch/sfx/boing.mp3" },
+    ]);
   });
 });

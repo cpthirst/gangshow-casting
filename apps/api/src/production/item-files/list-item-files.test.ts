@@ -8,18 +8,18 @@ import { inMemoryItemNoteStore } from "#/item-notes/item-note-store.ts";
 import { anItem, aRunningOrder, itemId } from "#/show/running-order/running-order.fixture.ts";
 import { inMemoryRunningOrderStore } from "#/show/running-order/running-order-store.ts";
 import { createSaveRunningOrder } from "#/show/running-order/save-running-order.ts";
-import { createListSceneryFiles } from "./list-scenery-files.ts";
-import { folderSceneryFileStore } from "./scenery-file-store.ts";
+import { folderItemFileStore } from "./item-file-store.ts";
+import { createListItemFiles } from "./list-item-files.ts";
 
 const openingNumber = itemId("Opening Number");
 const finale = itemId("Finale");
 
 describe("list scenery files handler", () => {
   let folder: string;
-  let list: ReturnType<typeof createListSceneryFiles>;
+  let list: ReturnType<typeof createListItemFiles>;
   beforeEach(async () => {
     folder = await mkdtemp(join(tmpdir(), "scenery-files-"));
-    list = createListSceneryFiles(folderSceneryFileStore(folder));
+    list = createListItemFiles(folderItemFileStore(folder, "scenery"));
   });
   afterEach(async () => {
     await rm(folder, { recursive: true, force: true });
@@ -93,7 +93,9 @@ describe("list scenery files handler", () => {
     const save = createSaveRunningOrder(runningOrders, {
       roles: inMemoryRoleStore(),
       itemNotes: inMemoryItemNoteStore(),
-      sceneryFiles: folderSceneryFileStore(folder),
+      sceneryFiles: folderItemFileStore(folder, "scenery"),
+      sfxFiles: { keepOnlyItems: async () => {} },
+      sfxNotes: { keepOnlyItems: async () => {} },
     });
     await putFile(openingNumber, "set-plan.pdf", 10);
 

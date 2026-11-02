@@ -139,9 +139,13 @@ describe("AppStack", () => {
       );
     });
 
-    it("lets the API function only list it, and read, upload and delete scenery files, and the accounts function not at all", () => {
+    it("lets the API function only list it, and read, upload and delete scenery and SFX files, and the accounts function not at all", () => {
       const { template } = synth();
       const [logicalId] = filesBucket(template) ?? [];
+      // Only the keys under an item's scenery or SFX folder (ADR 0030, ADR 0032).
+      const departmentFolders = ["/*/*/scenery/*", "/*/*/sfx/*"].map((folder) => ({
+        "Fn::Join": ["", [{ "Fn::GetAtt": [logicalId, "Arn"] }, folder]],
+      }));
 
       template.hasResourceProperties("AWS::Lambda::Function", {
         Environment: { Variables: { FILES_BUCKET: { Ref: logicalId } } },
@@ -161,29 +165,23 @@ describe("AppStack", () => {
           Action: "s3:ListBucket",
           Resource: { "Fn::GetAtt": [logicalId, "Arn"] },
         }),
-        // Signed links to scenery files reach only the keys under an item's scenery folder.
+        // Signed links to files reach only the keys under an item's department folders.
         expect.objectContaining({
           Effect: "Allow",
           Action: "s3:GetObject",
-          Resource: {
-            "Fn::Join": ["", [{ "Fn::GetAtt": [logicalId, "Arn"] }, "/*/*/scenery/*"]],
-          },
+          Resource: departmentFolders,
         }),
-        // Deleting one, too (production-scenery FR11): nothing outside the scenery folders.
+        // Deleting one, too (production-scenery FR11): nothing outside those folders.
         expect.objectContaining({
           Effect: "Allow",
           Action: "s3:DeleteObject",
-          Resource: {
-            "Fn::Join": ["", [{ "Fn::GetAtt": [logicalId, "Arn"] }, "/*/*/scenery/*"]],
-          },
+          Resource: departmentFolders,
         }),
-        // Signed upload forms, too (production-scenery FR8): only into the scenery folders.
+        // Signed upload forms, too (production-scenery FR8): only into those folders.
         expect.objectContaining({
           Effect: "Allow",
           Action: "s3:PutObject",
-          Resource: {
-            "Fn::Join": ["", [{ "Fn::GetAtt": [logicalId, "Arn"] }, "/*/*/scenery/*"]],
-          },
+          Resource: departmentFolders,
         }),
       ]);
     });

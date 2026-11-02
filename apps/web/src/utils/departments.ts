@@ -1,4 +1,4 @@
-import { type AnyOf, PROPS_PERMISSIONS, SCENERY_PERMISSIONS } from "@app/shared";
+import { type AnyOf, PROPS_PERMISSIONS, SCENERY_PERMISSIONS, SFX_PERMISSIONS } from "@app/shared";
 import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import { icons } from "./icons.ts";
 
@@ -62,7 +62,7 @@ export const departmentPages: DepartmentPage[] = [
     noun: "SFX",
     route: "sfx-item",
     path: "sfx",
-    permissions: ["tech", "director"],
+    permissions: SFX_PERMISSIONS,
     icon: icons.sfx,
   },
   {
@@ -84,8 +84,7 @@ export const departmentPages: DepartmentPage[] = [
 ];
 
 /** The departments whose item pages say "Coming soon" until their own feature fills them.
- *  Props and Scenery already have their own (PropsItemPage, SceneryItemPage); take each
- *  department out as its page arrives. */
-export const comingSoonPages = departmentPages.filter(
-  (page) => page.route !== "props-item" && page.route !== "scenery-item",
-);
+ *  Props, Scenery and SFX already have their own (PropsItemPage, SceneryItemPage,
+ *  SfxItemPage); take each department out as its page arrives. */
+const ownPages = ["props-item", "scenery-item", "sfx-item"];
+export const comingSoonPages = departmentPages.filter((page) => !ownPages.includes(page.route));

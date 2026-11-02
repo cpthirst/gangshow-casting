@@ -1,3 +1,7 @@
+import { existsSync } from "node:fs";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
   adminOnlyRouteKeys,
   CastList,
@@ -8,21 +12,25 @@ import {
   PROPS_PERMISSIONS,
   Role,
   readOnlyMayUse,
-  refusalFor,
+  refusalOn,
   routeKeys,
   SCENERY_PERMISSIONS,
   SceneryFileCounts,
   SceneryFileLink,
   SceneryFileList,
+  SFX_PERMISSIONS,
   UsageSummary,
 } from "@app/shared";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { inMemoryRoleStore } from "#/casting/roles/role-store.ts";
 import type { Handler } from "#/http/handler.ts";
 import { lambdaEntry } from "#/http/lambda-entry.ts";
 import { inMemoryItemNoteStore } from "#/item-notes/item-note-store.ts";
+import {
+  folderItemFileStore,
+  type ItemFileStore,
+} from "#/production/item-files/item-file-store.ts";
 import { inMemoryPropStore } from "#/production/props/prop-store.ts";
-import type { SceneryFileStore } from "#/production/scenery/scenery-file-store.ts";
 import { aCastList, aCastMember } from "#/show/cast/cast.fixture.ts";
 import { inMemoryCastStore } from "#/show/cast/cast-store.ts";
 import { uncastThenRemove } from "#/show/cast/remove-cast-member.ts";
@@ -32,7 +40,7 @@ import { inMemoryUsageStore } from "#/usage/usage-store.ts";
 import { handler } from "./lambda.ts";
 import { createRoutes } from "./routes.ts";
 
-const noSceneryFiles: SceneryFileStore = {
+const noSceneryFiles: ItemFileStore = {
   list: async () => [],
   linkTo: async () => undefined,
   remove: async () => "gone",
@@ -132,10 +140,11 @@ describe("Lambda entry point", () => {
             props: inMemoryPropStore(),
             propsNotes: inMemoryItemNoteStore(),
             sceneryNotes: inMemoryItemNoteStore(),
+            sfxNotes: inMemoryItemNoteStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
-          sceneryFiles,
+          { scenery: sceneryFiles, sfx: noSceneryFiles },
         ),
       );
     };
@@ -234,10 +243,11 @@ describe("Lambda entry point", () => {
             props: inMemoryPropStore(),
             propsNotes: inMemoryItemNoteStore(),
             sceneryNotes: inMemoryItemNoteStore(),
+            sfxNotes: inMemoryItemNoteStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
-          noSceneryFiles,
+          { scenery: noSceneryFiles, sfx: noSceneryFiles },
         ),
       );
       return { api, cast, runningOrders };
@@ -386,10 +396,11 @@ describe("Lambda entry point", () => {
             props: inMemoryPropStore(),
             propsNotes: inMemoryItemNoteStore(),
             sceneryNotes: inMemoryItemNoteStore(),
+            sfxNotes: inMemoryItemNoteStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
-          noSceneryFiles,
+          { scenery: noSceneryFiles, sfx: noSceneryFiles },
         ),
       );
       return { api, cast, roles, itemNotes, runningOrders };
@@ -600,10 +611,11 @@ describe("Lambda entry point", () => {
             props: inMemoryPropStore(),
             propsNotes: inMemoryItemNoteStore(),
             sceneryNotes: inMemoryItemNoteStore(),
+            sfxNotes: inMemoryItemNoteStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
-          noSceneryFiles,
+          { scenery: noSceneryFiles, sfx: noSceneryFiles },
         ),
       );
       // What the stores hold, to show a refused change changed nothing.
@@ -760,11 +772,12 @@ describe("Lambda entry point", () => {
       ["lee, with Tech and Wardrobe only", "[tech wardrobe]"],
       ["chris, with Wardrobe only", "[wardrobe]"],
     ])(
-      "refuses every change from %s but Tech's scenery notes, saying what is read-only, or admins' only for admin-only ones",
+      "refuses every change from %s but Tech's scenery and SFX changes, saying what is read-only, or admins' only for admin-only ones",
       async (_who, groups) => {
         const send = everyRoute();
         const techMay = (key: string) =>
-          groups.includes("tech") && needOf(key) === SCENERY_PERMISSIONS;
+          groups.includes("tech") &&
+          (needOf(key) === SCENERY_PERMISSIONS || needOf(key) === SFX_PERMISSIONS);
 
         for (const key of changeRoutes.filter((key) => !techMay(key))) {
           const { res, ran } = await send(key, groups);
@@ -772,7 +785,9 @@ describe("Lambda entry point", () => {
           expect(res.statusCode, key).toBe(403);
           const need = needOf(key);
           expect(JSON.parse(res.body ?? ""), key).toEqual(
-            need === undefined || need === "admin" ? ONLY_ADMINS : { message: refusalFor(need) },
+            need === undefined || need === "admin"
+              ? ONLY_ADMINS
+              : { message: refusalOn(key, need) },
           );
           expect(ran, key).toBe(false);
         }
@@ -832,12 +847,12 @@ describe("Lambda entry point", () => {
         }
       });
 
-      it("lets dee, with Director only, use exactly the props, props notes and scenery notes changes", async () => {
+      it("lets dee, with Director only, use exactly the props, scenery and SFX changes", async () => {
         const send = everyRoute();
 
         for (const key of changeRoutes) {
           const { ran } = await send(key, "[director]");
-          const production = [PROPS_PERMISSIONS, SCENERY_PERMISSIONS];
+          const production = [PROPS_PERMISSIONS, SCENERY_PERMISSIONS, SFX_PERMISSIONS];
           expect(ran, key).toBe(production.some((need) => needOf(key) === need));
         }
       });
@@ -913,10 +928,11 @@ describe("Lambda entry point", () => {
               props,
               propsNotes: inMemoryItemNoteStore(),
               sceneryNotes: inMemoryItemNoteStore(),
+              sfxNotes: inMemoryItemNoteStore(),
               removeCastMember: uncastThenRemove(cast, roles),
             },
             inMemoryUsageStore(),
-            noSceneryFiles,
+            { scenery: noSceneryFiles, sfx: noSceneryFiles },
           ),
         );
         return { api, props };
@@ -1023,10 +1039,11 @@ describe("Lambda entry point", () => {
               props: inMemoryPropStore(),
               propsNotes,
               sceneryNotes: inMemoryItemNoteStore(),
+              sfxNotes: inMemoryItemNoteStore(),
               removeCastMember: uncastThenRemove(cast, roles),
             },
             inMemoryUsageStore(),
-            noSceneryFiles,
+            { scenery: noSceneryFiles, sfx: noSceneryFiles },
           ),
         );
         return { api, itemNotes, propsNotes };
@@ -1098,15 +1115,19 @@ describe("Lambda entry point", () => {
               props: inMemoryPropStore(),
               propsNotes: inMemoryItemNoteStore(),
               sceneryNotes: inMemoryItemNoteStore(),
+              sfxNotes: inMemoryItemNoteStore(),
               removeCastMember: uncastThenRemove(cast, roles),
             },
             inMemoryUsageStore(),
             {
-              ...noSceneryFiles,
-              remove: async (production, item, name) => {
-                deleted.push(`${production}/${item}/${name}`);
-                return "removed";
+              scenery: {
+                ...noSceneryFiles,
+                remove: async (production, item, name) => {
+                  deleted.push(`${production}/${item}/${name}`);
+                  return "removed";
+                },
               },
+              sfx: noSceneryFiles,
             },
           ),
         );
@@ -1188,10 +1209,11 @@ describe("Lambda entry point", () => {
               props: inMemoryPropStore(),
               propsNotes: inMemoryItemNoteStore(),
               sceneryNotes: inMemoryItemNoteStore(),
+              sfxNotes: inMemoryItemNoteStore(),
               removeCastMember: uncastThenRemove(cast, roles),
             },
             inMemoryUsageStore(),
-            noSceneryFiles,
+            { scenery: noSceneryFiles, sfx: noSceneryFiles },
           ),
         );
         return { api, itemNotes };
@@ -1309,6 +1331,162 @@ describe("Lambda entry point", () => {
     );
   });
 
+  describe("SFX files and notes (production-sfx-wardrobe E1.S1)", () => {
+    const opening = itemId("Opening Number");
+    const SFX_READ_ONLY = { message: "You can view the SFX, but not change them." };
+    let folder: string;
+    beforeEach(async () => {
+      folder = await mkdtemp(join(tmpdir(), "lambda-sfx-"));
+    });
+    afterEach(async () => {
+      await rm(folder, { recursive: true, force: true });
+    });
+
+    const setUpSfx = () => {
+      const cast = inMemoryCastStore();
+      const roles = inMemoryRoleStore();
+      const sceneryNotes = inMemoryItemNoteStore();
+      const api = lambdaEntry(
+        createRoutes(
+          {
+            cast,
+            roles,
+            runningOrders: inMemoryRunningOrderStore([
+              aRunningOrder(4, { first: ["Opening Number", "Finale"] }),
+            ]),
+            itemNotes: inMemoryItemNoteStore(),
+            props: inMemoryPropStore(),
+            propsNotes: inMemoryItemNoteStore(),
+            sceneryNotes,
+            sfxNotes: inMemoryItemNoteStore(),
+            removeCastMember: uncastThenRemove(cast, roles),
+          },
+          inMemoryUsageStore(),
+          {
+            scenery: folderItemFileStore(folder, "scenery"),
+            sfx: folderItemFileStore(folder, "sfx"),
+          },
+        ),
+      );
+      return { api, sceneryNotes };
+    };
+
+    // Put straight into file storage, as an upload would (made-up files).
+    async function putFile(department: string, name: string) {
+      const place = join(folder, "2027", opening, department);
+      await mkdir(place, { recursive: true });
+      await writeFile(join(place, name), "made-up");
+    }
+    // A request signed in with the groups, with a JSON body or query string as given.
+    const as =
+      (groups: string) =>
+      (method: string, rawPath: string, extra: { body?: unknown; query?: object } = {}) =>
+        request(
+          method,
+          rawPath,
+          {
+            ...(extra.body === undefined ? {} : { body: JSON.stringify(extra.body) }),
+            ...(extra.query === undefined ? {} : { queryStringParameters: extra.query }),
+          },
+          groups,
+        );
+    const itemPath = (end: string) => `/api/productions/2027/items/${opening}/${end}`;
+    const namesAt = async (api: ReturnType<typeof setUpSfx>["api"], end: string) =>
+      SceneryFileList.parse(
+        JSON.parse((await api(as("[casting]")("GET", itemPath(end)))).body ?? ""),
+      ).files.map((file) => file.name);
+    const deleteThunder = (groups: string) =>
+      as(groups)("DELETE", itemPath("sfx-files"), { query: { name: "thunder.mp3" } });
+    const uploadThunder = (groups: string) =>
+      as(groups)("POST", itemPath("sfx-uploads"), {
+        body: { name: "thunder.mp3", size: 2_400_000 },
+      });
+    const saveSfxNotes = (groups: string, text: string) =>
+      as(groups)("PUT", itemPath("sfx-notes"), { body: { revision: 0, text } });
+    const notesAt = async (api: ReturnType<typeof setUpSfx>["api"], list: string) =>
+      ItemNoteList.parse(
+        JSON.parse((await api(as("[casting]")("GET", `/api/productions/2027/${list}`))).body ?? ""),
+      ).notes;
+
+    it("lists only the item's SFX files on the SFX route, and only its scenery files on Scenery's", async () => {
+      const { api } = setUpSfx();
+      await putFile("scenery", "set-plan.pdf");
+      await putFile("sfx", "thunder.mp3");
+
+      expect(await namesAt(api, "sfx-files")).toEqual(["thunder.mp3"]);
+      expect(await namesAt(api, "scenery-files")).toEqual(["set-plan.pdf"]);
+    });
+
+    it("links to an SFX file, which anyone signed in may ask for", async () => {
+      const { api } = setUpSfx();
+      await putFile("sfx", "thunder.mp3");
+
+      const res = await api(
+        as("[]")("GET", itemPath("sfx-file-link"), { query: { name: "thunder.mp3" } }),
+      );
+
+      expect(res.statusCode).toBe(200);
+      expect(SceneryFileLink.parse(JSON.parse(res.body ?? "")).url).toContain("/sfx/thunder.mp3");
+    });
+
+    it("refuses an SFX request for a scenery file, leaving it untouched", async () => {
+      const { api } = setUpSfx();
+      await putFile("scenery", "set-plan.pdf");
+      const name = { query: { name: "../scenery/set-plan.pdf" } };
+
+      const deleted = await api(as("[tech]")("DELETE", itemPath("sfx-files"), name));
+      const linked = await api(as("[tech]")("GET", itemPath("sfx-file-link"), name));
+
+      expect([deleted.statusCode, linked.statusCode]).toEqual([400, 400]);
+      expect(existsSync(join(folder, "2027", opening, "scenery", "set-plan.pdf"))).toBe(true);
+    });
+
+    it.each([
+      ["lee, with Tech", "[tech]"],
+      ["dee, with Director", "[director]"],
+      ["ash, an admin", "[admin]"],
+    ])("lets %s upload, delete and change the SFX notes", async (_who, groups) => {
+      const { api } = setUpSfx();
+      await putFile("sfx", "thunder.mp3");
+
+      const deleted = await api(deleteThunder(groups));
+      const uploaded = await api(uploadThunder(groups));
+      const saved = await api(saveSfxNotes(groups, "Thunder on the second verse"));
+
+      expect([deleted.statusCode, uploaded.statusCode, saved.statusCode]).toEqual([204, 200, 200]);
+    });
+
+    it("refuses pat, with Stage only, an upload, delete or note change, saying the SFX is view-only", async () => {
+      const { api } = setUpSfx();
+      await putFile("sfx", "thunder.mp3");
+
+      for (const res of [
+        await api(uploadThunder("[stage]")),
+        await api(deleteThunder("[stage]")),
+        await api(saveSfxNotes("[stage]", "Thunder")),
+      ]) {
+        expect(res.statusCode).toBe(403);
+        expect(JSON.parse(res.body ?? "")).toEqual(SFX_READ_ONLY);
+      }
+      expect(await namesAt(api, "sfx-files")).toEqual(["thunder.mp3"]);
+      expect(await notesAt(api, "sfx-notes")).toEqual([]);
+    });
+
+    it("keeps SFX notes per item, apart from the scenery notes", async () => {
+      const { api, sceneryNotes } = setUpSfx();
+      await sceneryNotes.save("2027", opening, 0, "Cloud");
+
+      await api(saveSfxNotes("[tech]", "Thunder on the second verse"));
+
+      expect(await notesAt(api, "sfx-notes")).toEqual([
+        { itemId: opening, text: "Thunder on the second verse", revision: 1 },
+      ]);
+      expect(await notesAt(api, "scenery-notes")).toEqual([
+        { itemId: opening, text: "Cloud", revision: 1 },
+      ]);
+    });
+  });
+
   describe("usage (ADR 0023)", () => {
     const setUp = () => {
       const cast = inMemoryCastStore([aCastList([aCastMember(1)])]);
@@ -1323,10 +1501,11 @@ describe("Lambda entry point", () => {
             props: inMemoryPropStore(),
             propsNotes: inMemoryItemNoteStore(),
             sceneryNotes: inMemoryItemNoteStore(),
+            sfxNotes: inMemoryItemNoteStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
-          noSceneryFiles,
+          { scenery: noSceneryFiles, sfx: noSceneryFiles },
         ),
       );
     };

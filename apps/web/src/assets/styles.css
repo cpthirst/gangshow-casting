@@ -961,43 +961,44 @@ main a {
   cursor: not-allowed;
 }
 
-/* The scenery upload's rule sits under its button (production-scenery FR8). */
-.scenery-upload .upload-rule {
+/* The upload's rule sits under its button (production-scenery FR8). */
+.file-upload .upload-rule {
   margin: 0.5rem 0 0;
 }
 
-.scenery-upload .upload-buttons {
+.file-upload .upload-buttons {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
 }
 
-.scenery-upload .upload-drop-hint {
+.file-upload .upload-drop-hint {
   align-self: center;
 }
 
-/* A phone or tablet can't drag a file in, so it isn't told it can. */
+/* A phone or tablet can't drag a file in, so it isn't told it can: by the upload's button, or
+   by an item's empty list. */
 @media (hover: none) {
-  .scenery-upload .upload-drop-hint {
+  .upload-drop-hint {
     display: none;
   }
 }
 
 /* Where a file being dragged will drop (FR8). */
-.scenery-upload.dropping {
+.file-upload.dropping {
   outline: 2px dashed var(--red-deep);
   outline-offset: 0.25rem;
 }
 
 /* How much of an upload has gone, under its buttons (FR8). */
-.scenery-upload .upload-progress {
+.file-upload .upload-progress {
   display: grid;
   gap: 0.25rem;
   margin: 0.5rem 0 0;
   overflow-wrap: anywhere;
 }
 
-.scenery-upload progress {
+.file-upload progress {
   width: 100%;
   max-width: 24rem;
   accent-color: var(--red-deep);

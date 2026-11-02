@@ -4,13 +4,14 @@ import {
   canChangeCasting,
   canChangeProps,
   canChangeScenery,
+  canChangeSfx,
   changeRefusedAsReadOnly,
 } from "@/services/sign-in.ts";
 
 // What the page is about, which says whose permission changes it: the casting pages and
 // Running order need Casting; the props pages need Stage or Director; the Scenery pages
-// Stage, Tech or Director.
-const props = withDefaults(defineProps<{ about?: "casting" | "props" | "scenery" }>(), {
+// Stage, Tech or Director; the SFX pages Tech or Director.
+const props = withDefaults(defineProps<{ about?: "casting" | "props" | "scenery" | "sfx" }>(), {
   about: "casting",
 });
 
@@ -30,6 +31,11 @@ const notices = {
     viewOnly:
       "You can view the scenery, but not change it: only Stage, Tech, Director and admins can.",
     refused: "You can view the scenery but not change it, so this wasn't saved.",
+  },
+  sfx: {
+    canChange: canChangeSfx,
+    viewOnly: "You can view the SFX, but not change them: only Tech, Director and admins can.",
+    refused: "You can view the SFX but not change them, so this wasn't saved.",
   },
 };
 const notice = computed(() => notices[props.about]);

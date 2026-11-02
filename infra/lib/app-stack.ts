@@ -101,10 +101,10 @@ export class AppStack extends Stack {
       description: "Set DATA_TABLE to this to keep the API's data here",
     });
 
-    // Each item's scenery files, keyed <production>/<item id>/scenery/<name> (ADR 0030). Never
-    // public: only the API reaches it, behind the sign-in. No versioning, so a replaced or
-    // deleted file is gone. Don't rename "FilesBucket": that replaces the bucket, orphaning the
-    // retained one with every file.
+    // Each item's scenery and SFX files, keyed <production>/<item id>/<department>/<name>
+    // (ADR 0030, ADR 0032). Never public: only the API reaches it, behind the sign-in. No
+    // versioning, so a replaced or deleted file is gone. Don't rename "FilesBucket": that
+    // replaces the bucket, orphaning the retained one with every file.
     const filesBucket = new Bucket(this, "FilesBucket", {
       blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
       encryption: BucketEncryption.S3_MANAGED,
@@ -120,7 +120,7 @@ export class AppStack extends Stack {
 
     new CfnOutput(this, "FilesBucketName", {
       value: filesBucket.bucketName,
-      description: "Set FILES_BUCKET to this to keep the API's scenery files here",
+      description: "Set FILES_BUCKET to this to keep the API's scenery and SFX files here",
     });
 
     // An email if the month's AWS spend is forecast to pass about £5, or does (remote-data
@@ -221,7 +221,7 @@ export class AppStack extends Stack {
         }),
       });
 
-    // The API keeps everything in the table, and scenery files in the bucket
+    // The API keeps everything in the table, and scenery and SFX files in the bucket
     // (apps/api/src/storage/data-stores.ts); both are in London.
     const dataFunction = nodeFunction("ApiFunction", "lambda.ts", {
       DATA_TABLE: table.tableName,
@@ -230,28 +230,31 @@ export class AppStack extends Stack {
     });
     // Reads and writes the table's items, and nothing else in DynamoDB (hosting E2.S1).
     table.grantReadWriteData(dataFunction);
-    // Lists the files, and reads only scenery files, to sign the short-lived links that open or
-    // download them (ADR 0030), deletes them (production-scenery FR11), and signs the forms
-    // that upload them (FR8).
+    // Lists the files, and reads only scenery and SFX files, to sign the short-lived links that
+    // open or download them (ADR 0030, ADR 0032), deletes them (production-scenery FR11), and
+    // signs the forms that upload them (FR8). Nothing outside those departments' folders.
+    const departmentFiles = ["scenery", "sfx"].map((department) =>
+      filesBucket.arnForObjects(`*/*/${department}/*`),
+    );
     dataFunction.addToRolePolicy(
       new PolicyStatement({ actions: ["s3:ListBucket"], resources: [filesBucket.bucketArn] }),
     );
     dataFunction.addToRolePolicy(
       new PolicyStatement({
         actions: ["s3:GetObject"],
-        resources: [filesBucket.arnForObjects("*/*/scenery/*")],
+        resources: departmentFiles,
       }),
     );
     dataFunction.addToRolePolicy(
       new PolicyStatement({
         actions: ["s3:DeleteObject"],
-        resources: [filesBucket.arnForObjects("*/*/scenery/*")],
+        resources: departmentFiles,
       }),
     );
     dataFunction.addToRolePolicy(
       new PolicyStatement({
         actions: ["s3:PutObject"],
-        resources: [filesBucket.arnForObjects("*/*/scenery/*")],
+        resources: departmentFiles,
       }),
     );
     const apiIntegration = new HttpLambdaIntegration("ApiIntegration", dataFunction);
