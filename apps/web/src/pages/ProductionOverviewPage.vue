@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { ItemNoteList, PropList, RunningOrder, SceneryFileCounts } from "@app/shared";
+import {
+  type FileDepartment,
+  fileDepartments,
+  ItemNoteList,
+  PropList,
+  RunningOrder,
+  SceneryFileCounts,
+} from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, nextTick, onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
@@ -8,12 +15,17 @@ import { latestPropsList } from "@/services/latest-show.ts";
 import { apiFetch, canChange } from "@/services/sign-in.ts";
 import { recordExport } from "@/services/usage.ts";
 import { downloadPropsList } from "@/services/word-export.ts";
-import { type DepartmentCount, type DepartmentPage, departmentPages } from "@/utils/departments.ts";
+import {
+  type DepartmentCount,
+  type DepartmentPage,
+  departmentPages,
+  filesCount,
+} from "@/utils/departments.ts";
 import { icons } from "@/utils/icons.ts";
+import { departmentNotesPath, fileCountsPath } from "@/utils/item-files.ts";
 import { PROPS_PATH, propCounts, propsCount } from "@/utils/props.ts";
 import { PROPS_NOTES_PATH } from "@/utils/props-notes.ts";
 import { RUNNING_ORDER_PATH, runningClock } from "@/utils/running-order.ts";
-import { SCENERY_FILE_COUNTS_PATH, SCENERY_NOTES_PATH, sceneryCount } from "@/utils/scenery.ts";
 
 // Production's one page: the show's items, each with a button for every department's page
 // for it and a count for each department (production-overview FR4–FR8, FR10, FR14), laid out
@@ -31,22 +43,35 @@ const state = ref<State>({ status: "loading" });
 // Each loaded separately: if one fails, the items still show, just without its counts.
 type Counts = ((itemId: string) => number) | "error";
 const propsCountOf = ref<Counts>();
-const sceneryCountOf = ref<Counts>();
-// Each item's scenery and props notes, by item id (production-props FR14); cleared notes are
-// left out. Shown under the item in the order its row shows the departments.
+// Each department with files, by its key: how many files each item has.
+const fileCountsOf = ref<Partial<Record<FileDepartment, Counts>>>({});
+const isFileDepartment = (path: string): path is FileDepartment =>
+  fileDepartments.some((department) => department === path);
+// The departments whose file counts couldn't be loaded, as their counts' alerts name them.
+const fileCountsFailed = computed(() =>
+  departmentPages.filter(
+    ({ path }) => isFileDepartment(path) && fileCountsOf.value[path] === "error",
+  ),
+);
+
+// Each item's notes for each department, by item id (production-props FR14,
+// production-sfx-wardrobe FR11); cleared notes are left out. Shown under the item in this
+// order: Scenery, Props, SFX, Wardrobe.
 type Notes = Map<string, string> | "error";
-const sceneryNotes = ref<Notes>();
-const propsNotes = ref<Notes>();
-const notesFailed = computed(() => sceneryNotes.value === "error" || propsNotes.value === "error");
+const noteKinds = [
+  { key: "scenery", label: "Scenery notes", path: departmentNotesPath("scenery") },
+  { key: "props", label: "Props notes", path: PROPS_NOTES_PATH },
+  { key: "sfx", label: "SFX notes", path: departmentNotesPath("sfx") },
+  { key: "wardrobe", label: "Wardrobe notes", path: departmentNotesPath("wardrobe") },
+];
+const notesOf = ref<Record<string, Notes>>({});
+const notesFailed = computed(() => Object.values(notesOf.value).includes("error"));
 
 function notesUnder(itemId: string) {
-  const kinds = [
-    { label: "Scenery notes", test: "scenery-notes", notes: sceneryNotes.value },
-    { label: "Props notes", test: "props-notes", notes: propsNotes.value },
-  ];
-  return kinds.flatMap(({ notes, ...kind }) => {
+  return noteKinds.flatMap(({ key, label }) => {
+    const notes = notesOf.value[key];
     const text = notes instanceof Map ? notes.get(itemId) : undefined;
-    return text ? [{ ...kind, text }] : [];
+    return text ? [{ key, label, text }] : [];
   });
 }
 
@@ -62,8 +87,11 @@ function countFor(
   department: DepartmentPage,
   itemId: string,
 ): DepartmentCount | "coming-soon" | undefined {
-  if (department.path === "scenery") return shownCount(sceneryCountOf.value, sceneryCount, itemId);
-  if (department.path === "props") return shownCount(propsCountOf.value, propsCount, itemId);
+  const { path, noun } = department;
+  if (isFileDepartment(path)) {
+    return shownCount(fileCountsOf.value[path], (files) => filesCount(files, noun), itemId);
+  }
+  if (path === "props") return shownCount(propsCountOf.value, propsCount, itemId);
   return "coming-soon";
 }
 
@@ -107,13 +135,16 @@ async function generatePropsList() {
 onMounted(() => {
   loadRunningOrder();
   loadProps();
-  loadSceneryCounts();
-  loadNotes(SCENERY_NOTES_PATH).then((notes) => {
-    sceneryNotes.value = notes;
-  });
-  loadNotes(PROPS_NOTES_PATH).then((notes) => {
-    propsNotes.value = notes;
-  });
+  for (const department of fileDepartments) {
+    loadFileCounts(department).then((counts) => {
+      fileCountsOf.value = { ...fileCountsOf.value, [department]: counts };
+    });
+  }
+  for (const { key, path } of noteKinds) {
+    loadNotes(path).then((notes) => {
+      notesOf.value = { ...notesOf.value, [key]: notes };
+    });
+  }
 });
 
 async function loadNotes(path: string): Promise<Notes> {
@@ -139,14 +170,14 @@ async function loadProps() {
 }
 
 // From file storage on every visit, so a file added there is counted (FR14).
-async function loadSceneryCounts() {
+async function loadFileCounts(department: FileDepartment): Promise<Counts> {
   try {
-    const res = await apiFetch(SCENERY_FILE_COUNTS_PATH);
+    const res = await apiFetch(fileCountsPath(department));
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const { counts } = SceneryFileCounts.parse(await res.json());
-    sceneryCountOf.value = (itemId) => counts[itemId] ?? 0;
+    return (itemId) => counts[itemId] ?? 0;
   } catch {
-    sceneryCountOf.value = "error";
+    return "error";
   }
 }
 
@@ -198,8 +229,8 @@ async function loadRunningOrder() {
     <p v-if="propsCountOf === 'error'" class="notice" role="alert">
       Couldn't load the props counts.
     </p>
-    <p v-if="sceneryCountOf === 'error'" class="notice" role="alert">
-      Couldn't load the scenery counts.
+    <p v-for="{ path, noun } in fileCountsFailed" :key="path" class="notice" role="alert">
+      Couldn't load the {{ noun }} counts.
     </p>
     <p v-if="notesFailed" class="notice" role="alert">Couldn't load the notes.</p>
     <section v-for="{ half, rows } in halves" :key="half.id" class="half" :aria-labelledby="half.id">
@@ -286,14 +317,14 @@ async function loadRunningOrder() {
                   </template>
                 </td>
               </tr>
-              <!-- The item's scenery and props notes, in full, across the table under its row (FR14). -->
+              <!-- The item's notes, in full, across the table under its row (FR14). -->
               <tr
                 v-for="note in notesUnder(item.id)"
-                :key="note.test"
+                :key="note.key"
                 role="row"
                 class="item-notes-row"
                 :class="{ 'not-printed': number === null }"
-                :data-test="note.test"
+                :data-test="`${note.key}-notes`"
               >
                 <!-- Across every column: Open, #, Item and each department's count. -->
                 <td

@@ -2,7 +2,7 @@
 id: production-sfx-wardrobe.E2.S1
 title: Show SFX and Wardrobe on the Overview and the Usage page
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story

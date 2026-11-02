@@ -54,6 +54,14 @@ describe("RecordUsageRequest", () => {
     expect(RecordUsageRequest.parse({ ...use, title: "Night at the movies" })).toEqual(use);
   });
 
+  it.each(["sfx", "wardrobe"])(
+    "accepts opening an item's %s page, keeping only which item",
+    (event) => {
+      const use = { event, productionId: "2027", itemId: "made-up-item" };
+      expect(RecordUsageRequest.parse({ ...use, title: "Night at the movies" })).toEqual(use);
+    },
+  );
+
   it.each(["excel-grid", "word-casting-sheets", "word-item-overview", "word-props-list"])(
     "accepts the export %s",
     (exported) => {
@@ -95,6 +103,17 @@ describe("featureOf", () => {
       "item-page",
     );
   });
+
+  it.each([
+    ["scenery", "scenery-page"],
+    ["sfx", "sfx-page"],
+    ["wardrobe", "wardrobe-page"],
+  ] as const)(
+    "counts every item's %s page as one feature, apart from item pages",
+    (event, feature) => {
+      expect(featureOf({ event, productionId: "2027", itemId: "made-up-item" })).toBe(feature);
+    },
+  );
 
   it("names the export made", () => {
     expect(featureOf({ event: "export", export: "excel-grid" })).toBe("export-excel-grid");

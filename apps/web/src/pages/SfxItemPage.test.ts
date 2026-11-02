@@ -505,3 +505,62 @@ describe("Who can change the SFX", () => {
     expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
   });
 });
+
+describe("Recording a visit to an item's SFX page (production-sfx-wardrobe FR13)", () => {
+  const tab = { show: vi.fn(), close: vi.fn() };
+  beforeEach(() => {
+    vi.mocked(openFileTab).mockReset().mockReturnValue(tab);
+    vi.mocked(downloadFrom).mockReset();
+  });
+  // Everything recorded but sessions, which are sign-ins, not uses of this page.
+  const recorded = () =>
+    vi
+      .mocked(fetch)
+      .mock.calls.filter(([url, init]) => url === "/api/usage" && init?.method === "POST")
+      .map(([, init]) => JSON.parse(String(init?.body)))
+      .filter((body) => body.event !== "session");
+
+  it("records lee opening an item's SFX page, naming only the item and its production", async () => {
+    await signInAs(["tech"], "lee");
+    apiHolds(show);
+
+    await openAppAt(OPENING_NUMBER);
+
+    expect(recorded()).toEqual([{ event: "sfx", productionId: "2027", itemId: "opening-number" }]);
+  });
+
+  it("records only the visit when lee uploads, plays, downloads and deletes files", async () => {
+    await signInAs(["tech"], "lee");
+    apiHolds(show, {
+      sfx: {
+        "opening-number": [
+          { name: "thunder.mp3", size: 10 },
+          { name: "cues.docx", size: 10 },
+        ],
+      },
+    });
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    await chooseToUpload(wrapper, aFile("rain.mp3"));
+    await rowFor(wrapper, "thunder.mp3").get(".file-open").trigger("click");
+    await rowFor(wrapper, "cues.docx").get(".file-open").trigger("click");
+    await flushPromises();
+    answerConfirm(true);
+    await rowFor(wrapper, "cues.docx").get("[data-test=delete]").trigger("click");
+    await flushPromises();
+
+    expect(names(wrapper)).toEqual(["rain.mp3", "thunder.mp3"]);
+    expect(tab.show).toHaveBeenCalledWith(linkTo("thunder.mp3"));
+    expect(downloadFrom).toHaveBeenCalledWith(linkTo("cues.docx"));
+    expect(recorded()).toEqual([{ event: "sfx", productionId: "2027", itemId: "opening-number" }]);
+  });
+
+  it("records nothing for an item that isn't in the running order", async () => {
+    apiHolds(show);
+
+    const { wrapper } = await openAppAt("/production/items/no-such-item/sfx");
+
+    expect(wrapper.get("main h1").text()).toBe("Item not found");
+    expect(recorded()).toEqual([]);
+  });
+});

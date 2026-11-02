@@ -108,6 +108,7 @@ export function createRoutes(
       sfxFiles,
       runningOrders,
     ),
+    "GET /api/productions/{productionId}/sfx-file-counts": createCountItemFiles(sfxFiles),
     "GET /api/productions/{productionId}/sfx-notes": createGetItemNotes(sfxNotes),
     "PUT /api/productions/{productionId}/items/{itemId}/sfx-notes": createSaveItemNote(
       sfxNotes,
@@ -123,6 +124,7 @@ export function createRoutes(
       wardrobeFiles,
       runningOrders,
     ),
+    "GET /api/productions/{productionId}/wardrobe-file-counts": createCountItemFiles(wardrobeFiles),
     "GET /api/productions/{productionId}/wardrobe-notes": createGetItemNotes(wardrobeNotes),
     "PUT /api/productions/{productionId}/items/{itemId}/wardrobe-notes": createSaveItemNote(
       wardrobeNotes,

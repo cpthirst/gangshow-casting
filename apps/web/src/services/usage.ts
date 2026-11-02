@@ -1,4 +1,5 @@
 import {
+  type FileDepartment,
   MenuPageName,
   type PageView,
   type RecordUsageRequest,
@@ -43,6 +44,10 @@ export const recordExport = (kind: UsageExport) => record({ event: "export", exp
 export const recordItemUse = (productionId: string, itemId: string) =>
   record({ event: "item", productionId, itemId });
 
-/** Records opening an item's Scenery page: which item only, never its title or files. */
-export const recordSceneryUse = (productionId: string, itemId: string) =>
-  record({ event: "scenery", productionId, itemId });
+/** Records opening an item's Scenery, SFX or Wardrobe page: which item only, never its title
+ *  or files (production-scenery FR15, production-sfx-wardrobe FR13). */
+export const recordDepartmentPageUse = (
+  department: FileDepartment,
+  productionId: string,
+  itemId: string,
+) => record({ event: department, productionId, itemId });

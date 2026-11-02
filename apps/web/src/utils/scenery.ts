@@ -5,7 +5,6 @@ import {
   MAX_SCENERY_FILE_BYTES,
   type SceneryFile,
 } from "@app/shared";
-import { countInWords } from "./departments.ts";
 import { icons } from "./icons.ts";
 import {
   departmentNotesPath,
@@ -15,9 +14,6 @@ import {
   itemUploadsPath,
   saveDepartmentNotesPath,
 } from "./item-files.ts";
-
-// Only one production for now (see docs/product/running-order/prd.md).
-const PRODUCTION_ID = "2027";
 
 /** The item's scenery files, as file storage holds them now (production-scenery FR6). */
 export const sceneryFilesPath = (itemId: string) => itemFilesPath("scenery", itemId);
@@ -40,13 +36,6 @@ export function uploadRefusal({ name, size }: { name: string; size: number }) {
   if (size > MAX_SCENERY_FILE_BYTES) return `${name} is over 100 MB, so it wasn't uploaded.`;
   return undefined;
 }
-
-/** How many files each item has, for the Overview's Scenery column (production-overview FR14). */
-export const SCENERY_FILE_COUNTS_PATH = `/api/productions/${PRODUCTION_ID}/scenery-file-counts`;
-
-/** An item's scenery count on the Overview: "9" over "files", read as "9 scenery files". */
-export const sceneryCount = (files: number) =>
-  countInWords(files, "file", "files", (word) => `${files} scenery ${word}`);
 
 /** A short-lived link that opens or downloads one of the item's files (FR10). */
 export const sceneryFileLinkPath = (itemId: string, name: string) =>

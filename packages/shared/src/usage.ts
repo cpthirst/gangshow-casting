@@ -66,6 +66,9 @@ export const RecordUsageRequest = z.discriminatedUnion("event", [
   z.object({ event: z.literal("item"), ...itemOnly }),
   // An item's Scenery page, counted apart from its casting page (production-scenery FR15).
   z.object({ event: z.literal("scenery"), ...itemOnly }),
+  // Its SFX and Wardrobe pages, each counted apart as Scenery's are (production-sfx-wardrobe FR13).
+  z.object({ event: z.literal("sfx"), ...itemOnly }),
+  z.object({ event: z.literal("wardrobe"), ...itemOnly }),
   z.object({ event: z.literal("export"), export: UsageExport }),
 ]);
 
@@ -78,6 +81,8 @@ export const UsageFeature = z.enum([
   // Every item's page together: the summary doesn't count items one by one.
   "item-page",
   "scenery-page",
+  "sfx-page",
+  "wardrobe-page",
   "export-excel-grid",
   "export-word-casting-sheets",
   "export-word-item-overview",
@@ -94,7 +99,9 @@ export function featureOf(request: RecordUsageRequest): UsageFeature | undefined
     case "item":
       return "item-page";
     case "scenery":
-      return "scenery-page";
+    case "sfx":
+    case "wardrobe":
+      return `${request.event}-page`;
     case "export":
       return `export-${request.export}`;
     case "session":

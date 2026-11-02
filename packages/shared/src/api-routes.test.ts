@@ -180,6 +180,7 @@ describe("routeNeeds", () => {
     "GET /api/productions/{productionId}/items/{itemId}/sfx-files",
     "GET /api/productions/{productionId}/items/{itemId}/sfx-file-link",
     "GET /api/productions/{productionId}/sfx-notes",
+    "GET /api/productions/{productionId}/sfx-file-counts",
   ] as const)("leaves %s open to everyone", (key) => {
     expect(routeKeys).toContain(key);
     expect(needOf(key)).toBeUndefined();
@@ -201,6 +202,7 @@ describe("routeNeeds", () => {
     "GET /api/productions/{productionId}/items/{itemId}/wardrobe-files",
     "GET /api/productions/{productionId}/items/{itemId}/wardrobe-file-link",
     "GET /api/productions/{productionId}/wardrobe-notes",
+    "GET /api/productions/{productionId}/wardrobe-file-counts",
   ] as const)("leaves %s open to everyone", (key) => {
     expect(routeKeys).toContain(key);
     expect(needOf(key)).toBeUndefined();

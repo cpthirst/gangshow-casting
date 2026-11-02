@@ -431,3 +431,33 @@ describe("Who can change the wardrobe", () => {
     expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
   });
 });
+
+describe("Recording a visit to an item's Wardrobe page (production-sfx-wardrobe FR13)", () => {
+  // Everything recorded but sessions, which are sign-ins, not uses of this page.
+  const recorded = () =>
+    vi
+      .mocked(fetch)
+      .mock.calls.filter(([url, init]) => url === "/api/usage" && init?.method === "POST")
+      .map(([, init]) => JSON.parse(String(init?.body)))
+      .filter((body) => body.event !== "session");
+
+  it("records lee opening an item's Wardrobe page, naming only the item and its production", async () => {
+    await signInAs(["tech"], "lee");
+    apiHolds(show);
+
+    await openAppAt(OPENING_NUMBER);
+
+    expect(recorded()).toEqual([
+      { event: "wardrobe", productionId: "2027", itemId: "opening-number" },
+    ]);
+  });
+
+  it("records nothing for an item that isn't in the running order", async () => {
+    apiHolds(show);
+
+    const { wrapper } = await openAppAt("/production/items/no-such-item/wardrobe");
+
+    expect(wrapper.get("main h1").text()).toBe("Item not found");
+    expect(recorded()).toEqual([]);
+  });
+});

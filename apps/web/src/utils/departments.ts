@@ -45,6 +45,11 @@ export function countInWords(
   return { number, word, label: label(word) };
 }
 
+/** An item's file count on the Overview: "9" over "files", read with the department's noun
+ *  as "9 scenery files". */
+export const filesCount = (files: number, noun: string) =>
+  countInWords(files, "file", "files", (word) => `${files} ${noun} ${word}`);
+
 // In the order the Overview's buttons show them (production-overview FR4, FR5).
 export const departmentPages: DepartmentPage[] = [
   {

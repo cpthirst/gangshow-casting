@@ -10,6 +10,7 @@ import ReadOnlyNotice from "@/components/common/ReadOnlyNotice.vue";
 import { showPageTitle } from "@/router/index.ts";
 import { downloadFrom, openFileTab } from "@/services/file-link.ts";
 import { apiFetch, canChange } from "@/services/sign-in.ts";
+import { recordDepartmentPageUse } from "@/services/usage.ts";
 import { icons } from "@/utils/icons.ts";
 import {
   departmentNotesPath,
@@ -26,11 +27,7 @@ import FileUpload from "./FileUpload.vue";
 // One item's files and notes for a department, Scenery's, SFX's or Wardrobe's
 // (production-scenery FR6, FR7, production-sfx-wardrobe FR2), laid out as the props item page.
 
-const props = defineProps<{
-  department: FilesDepartment;
-  /** Records a visit to the item's page, for a department whose visits the Usage page shows. */
-  recordVisit?: (productionId: string, itemId: string) => void;
-}>();
+const props = defineProps<{ department: FilesDepartment }>();
 
 const route = useRoute();
 const key = computed(() => props.department.key);
@@ -62,7 +59,7 @@ const title = computed(() =>
 watch(
   () => place.value?.item.id,
   (id) => {
-    if (order.value && id) props.recordVisit?.(order.value.productionId, id);
+    if (order.value && id) recordDepartmentPageUse(key.value, order.value.productionId, id);
   },
 );
 

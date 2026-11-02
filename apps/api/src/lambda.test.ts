@@ -1436,6 +1436,22 @@ describe("Lambda entry point", () => {
       expect(await namesAt(api, "scenery-files")).toEqual(["set-plan.pdf"]);
     });
 
+    it("counts each item's SFX and Wardrobe files on their own routes, for anyone signed in", async () => {
+      const { api } = setUpSfx();
+      await putFile("scenery", "set-plan.pdf");
+      for (const name of ["thunder.mp3", "rain.mp3", "bell.wav"]) await putFile("sfx", name);
+      await putFile("wardrobe", "jacket-pattern.pdf");
+      const countsAt = async (list: string) => {
+        const res = await api(as("[]")("GET", `/api/productions/2027/${list}`));
+        expect(res.statusCode).toBe(200);
+        return SceneryFileCounts.parse(JSON.parse(res.body ?? "")).counts;
+      };
+
+      expect(await countsAt("sfx-file-counts")).toEqual({ [opening]: 3 });
+      expect(await countsAt("wardrobe-file-counts")).toEqual({ [opening]: 1 });
+      expect(await countsAt("scenery-file-counts")).toEqual({ [opening]: 1 });
+    });
+
     it("links to an SFX file, which anyone signed in may ask for", async () => {
       const { api } = setUpSfx();
       await putFile("sfx", "thunder.mp3");
