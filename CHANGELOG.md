@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.37.1](https://github.com/cpthirst/gangshow-casting/compare/v1.37.0...v1.37.1) (2026-11-02)
+
+
+### Bug Fixes
+
+* **infra:** give each API function one invoke permission, not one per route ([#172](https://github.com/cpthirst/gangshow-casting/issues/172)) ([06f84cc](https://github.com/cpthirst/gangshow-casting/commit/06f84cc324a5c81a54c6923e1f3ca8b3dc7bae8b))
+
 ## [1.37.0](https://github.com/cpthirst/gangshow-casting/compare/v1.36.1...v1.37.0) (2026-11-02)
 
 
