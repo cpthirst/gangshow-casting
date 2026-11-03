@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.40.0](https://github.com/cpthirst/gangshow-casting/compare/v1.39.0...v1.40.0) (2026-11-03)
+
+
+### Features
+
+* **web:** keep Mic plot notes for each item (production-mics.E1.S3) ([#179](https://github.com/cpthirst/gangshow-casting/issues/179)) ([c4ae1f6](https://github.com/cpthirst/gangshow-casting/commit/c4ae1f631966b867cc304924fd5cf3ea467ac290))
+
 ## [1.39.0](https://github.com/cpthirst/gangshow-casting/compare/v1.38.0...v1.39.0) (2026-11-03)
 
 
