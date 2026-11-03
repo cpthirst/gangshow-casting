@@ -1,5 +1,6 @@
 import { type CastMember, type ItemMicPlot, MIC_CHANNELS, type Role } from "@app/shared";
 import { sortCast } from "./cast.ts";
+import { sortRoles } from "./roles.ts";
 
 // Only one production for now (see docs/product/running-order/prd.md).
 const PRODUCTION_ID = "2027";
@@ -40,4 +41,17 @@ export function choicesFor(channel: number, itemCast: CastMember[], plot: ItemMi
     plot?.mics.filter((mic) => mic.channel !== channel).map((mic) => mic.castMemberId),
   );
   return itemCast.filter((member) => !elsewhere.has(member.id));
+}
+
+/** A mic's role, as plain text: every role its cast member plays in the item, ensembles too,
+ *  biggest first ("Narrator, Alien 1"). Worked out from the casting, never saved, so it always
+ *  matches it (production-mics FR3). Nothing while the mic is free. */
+export function micRolesText(itemId: string, castMemberId: number | null, roles: Role[]) {
+  if (castMemberId === null) return "";
+  const theirs = roles.filter(
+    (role) => role.itemId === itemId && role.castMemberIds.includes(castMemberId),
+  );
+  return sortRoles(theirs)
+    .map((role) => role.name)
+    .join(", ");
 }

@@ -55,7 +55,7 @@ Each item's Mic plot page in the app only says "Coming soon" (production-overvie
 ### An item's Mic plot page
 
 - **FR2**: Each item's Mic plot page (production-overview FR10) replaces "Coming soon" with **all 24 channels, Mic 1 to Mic 24, in order**, always all of them, used or not. The page keeps its link back to the Overview, its Previous and Next links, and its not-found message.
-- **FR3**: Each channel has a **cast member** and a **role**. The cast member is chosen from the cast members cast in that item. The role is chosen from the item's casting roles that cast member is cast in. A cast member in the item without a named role can be given a mic with the role left blank. Either can be cleared to free the channel.
+- **FR3**: Each channel has a **cast member**, chosen from the cast members cast in that item, and shows their **role**: every role that cast member plays in the item, ensembles included, biggest part first, as plain text. The role is never chosen or saved: it is worked out from the casting, so it always matches it (decided 2026-11-03). Clearing the cast member frees the channel.
 - **FR4**: A cast member can be on **only one channel in an item**. Someone already on a channel in this item isn't offered for another.
 - **FR5**: A channel used in the **item directly before** (in the same half) by a different cast member **can't be allocated** in this item, however short that item is. It is shown **greyed out and disabled**, with "Used in previous item" as its visible text, and it can't be chosen by mouse, keyboard or screen reader. The cast member who had that channel in the item before can keep it in this item: for them the channel is open.
 - **FR6**: The rule in FR5 **resets at the interval**: the first item after the interval, and the first item of the show, can use any channel.
@@ -88,7 +88,7 @@ Each item's Mic plot page in the app only says "Coming soon" (production-overvie
 ## Non-functional requirements
 
 - **Security and safeguarding**:
-  - Every read, change and export needs a signed-in account; the API enforces FR1, FR3, FR4 and FR5 itself, so a request can't allocate a blocked channel, a cast member not in the item, a role the item doesn't have, or someone twice.
+  - Every read, change and export needs a signed-in account; the API enforces FR1, FR3, FR4 and FR5 itself, so a request can't allocate a blocked channel, a cast member not in the item, or someone twice.
   - No new personal data. The mic plot links existing cast members and roles to channel numbers; it shows only first name, surname and role. The Excel export holds the same, like the existing Word exports, and Help reminds the team it contains under-18s' names and is for the production team only.
   - Cast names in the page and the workbook are shown as text, never as markup or spreadsheet formulas (a name starting with "=" stays text).
   - Test data and fixtures use made-up names only. The 2026 reference spreadsheet holds real names and is never committed.
@@ -110,7 +110,7 @@ Each item's Mic plot page in the app only says "Coming soon" (production-overvie
 | Risk                                                    | Likelihood | Impact | Mitigation                                                                                         |
 | ------------------------------------------------------- | ---------- | ------ | -------------------------------------------------------------------------------------------------- |
 | Reordering items makes saved allocations break the rule | M          | M      | FR10 keeps them visible and clearable, never silently deleted                                      |
-| A chorus member needs a mic but has no role in casting  | H          | L      | Role can be left blank (FR3); casting can add a role                                               |
+| A chorus member needs a mic but has no role in casting  | H          | L      | Their ensemble shows as the role (FR3); casting can add a role                                     |
 | 24 channels with two pickers each don't fit at 320px    | M          | M      | One channel per row on narrow screens; browser layout tests at 320px and 360px (ask before adding) |
 | The exported workbook is shared outside the team        | L          | H      | Same handling as the Word exports; Help reminds the team; only signed-in accounts can generate it  |
 | A name is read as a spreadsheet formula                 | L          | M      | Names written as text; a test with a name starting "="                                             |

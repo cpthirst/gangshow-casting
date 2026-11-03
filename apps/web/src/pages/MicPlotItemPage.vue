@@ -24,12 +24,14 @@ import {
   channelsOf,
   choicesFor,
   MIC_PLOT_PATH,
+  micRolesText,
 } from "@/utils/mic-plot.ts";
 import { type CastMemberChoice, fullName, ROLES_PATH } from "@/utils/roles.ts";
 import { neighboursOf, placeOf, positionOf, RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
 
-// One item's mic plot: Mic 1 to Mic 24, each given to a cast member in the item or free
-// (production-mics FR2, FR3, FR4), laid out as the other department item pages.
+// One item's mic plot: Mic 1 to Mic 24, each given to a cast member in the item or free, with
+// the roles they play there (production-mics FR2, FR3, FR4), laid out as the other department
+// item pages.
 
 const route = useRoute();
 const order = ref<RunningOrder>();
@@ -198,7 +200,8 @@ async function allocate(channel: number, castMemberId: number | null) {
         @focusout="leave(mic.channel)"
       >
         <template v-if="canChangeMicPlot">
-          <span class="row-icons">
+          <!-- role-actions: on phones the icon gets its own line, as on role and prop cards. -->
+          <span class="role-actions row-icons">
             <button
               type="button"
               class="icon-button"
@@ -210,6 +213,11 @@ async function allocate(channel: number, castMemberId: number | null) {
               <FontAwesomeIcon :icon="icons.remove" />
             </button>
           </span>
+        </template>
+        <!-- The channel's name, then who is on it and their roles under them, in one column,
+             so the roles start where the cast member picker does. -->
+        <div class="mic-body">
+          <template v-if="canChangeMicPlot">
           <label :for="pickerId(mic.channel)" class="mic-name"
             ><span data-test="channel">Mic {{ mic.channel }}</span
             ><span class="visually-hidden"> cast member</span></label
@@ -223,11 +231,16 @@ async function allocate(channel: number, castMemberId: number | null) {
             no-match="No one in this item matches"
             @update:model-value="pick(mic.channel, $event)"
           />
-        </template>
-        <template v-else>
-          <span class="mic-name" data-test="channel">Mic {{ mic.channel }}</span>
-          <span data-test="on-mic">{{ nameOf(mic.castMemberId) || "No one" }}</span>
-        </template>
+          </template>
+          <template v-else>
+            <span class="mic-name" data-test="channel">Mic {{ mic.channel }}</span>
+            <span data-test="on-mic">{{ nameOf(mic.castMemberId) || "No one" }}</span>
+          </template>
+          <!-- Their roles in the item, from the casting: shown, never chosen (FR3). -->
+          <span class="mic-roles" data-test="mic-roles">{{
+            micRolesText(place.item.id, mic.castMemberId, roles)
+          }}</span>
+        </div>
       </li>
     </ol>
     <p class="visually-hidden" role="status" data-test="mic-status">{{ announcement }}</p>

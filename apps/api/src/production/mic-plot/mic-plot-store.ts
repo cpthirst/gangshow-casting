@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { type ItemMicPlot, MicPlotList, ProductionId } from "@app/shared";
+import { type ItemMicPlot, type MicPlotList, ProductionId, StoredMicPlotList } from "@app/shared";
 import { parseJson } from "#/http/json.ts";
 import { ifExists } from "#/storage/files.ts";
 import { oneAtATime, writePrivateFile } from "#/storage/private-file.ts";
@@ -93,7 +93,7 @@ export function fileMicPlotStore(dataDir: string): MicPlotStore {
   async function read(productionId: string) {
     const text = await ifExists(() => readFile(fileFor(productionId), "utf8"));
     if (text === undefined) return empty(productionId);
-    const parsed = MicPlotList.safeParse(parseJson(text));
+    const parsed = StoredMicPlotList.safeParse(parseJson(text));
     if (!parsed.success || parsed.data.productionId !== productionId) {
       throw new Error(`Mic plot file for production ${productionId} is invalid`);
     }
