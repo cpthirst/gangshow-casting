@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.39.0](https://github.com/cpthirst/gangshow-casting/compare/v1.38.0...v1.39.0) (2026-11-03)
+
+
+### Features
+
+* **web:** show the role for each mic (production-mics.E1.S2) ([#177](https://github.com/cpthirst/gangshow-casting/issues/177)) ([1f058bd](https://github.com/cpthirst/gangshow-casting/commit/1f058bddf2b29893374c1f8566220af7908c4102))
+
 ## [1.38.0](https://github.com/cpthirst/gangshow-casting/compare/v1.37.1...v1.38.0) (2026-11-02)
 
 
