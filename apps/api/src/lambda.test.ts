@@ -146,6 +146,7 @@ describe("Lambda entry point", () => {
             sceneryNotes: inMemoryItemNoteStore(),
             sfxNotes: inMemoryItemNoteStore(),
             wardrobeNotes: inMemoryItemNoteStore(),
+            micPlotNotes: inMemoryItemNoteStore(),
             micPlots: inMemoryMicPlotStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
@@ -251,6 +252,7 @@ describe("Lambda entry point", () => {
             sceneryNotes: inMemoryItemNoteStore(),
             sfxNotes: inMemoryItemNoteStore(),
             wardrobeNotes: inMemoryItemNoteStore(),
+            micPlotNotes: inMemoryItemNoteStore(),
             micPlots: inMemoryMicPlotStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
@@ -406,6 +408,7 @@ describe("Lambda entry point", () => {
             sceneryNotes: inMemoryItemNoteStore(),
             sfxNotes: inMemoryItemNoteStore(),
             wardrobeNotes: inMemoryItemNoteStore(),
+            micPlotNotes: inMemoryItemNoteStore(),
             micPlots: inMemoryMicPlotStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
@@ -623,6 +626,7 @@ describe("Lambda entry point", () => {
             sceneryNotes: inMemoryItemNoteStore(),
             sfxNotes: inMemoryItemNoteStore(),
             wardrobeNotes: inMemoryItemNoteStore(),
+            micPlotNotes: inMemoryItemNoteStore(),
             micPlots: inMemoryMicPlotStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
@@ -952,6 +956,7 @@ describe("Lambda entry point", () => {
               sceneryNotes: inMemoryItemNoteStore(),
               sfxNotes: inMemoryItemNoteStore(),
               wardrobeNotes: inMemoryItemNoteStore(),
+              micPlotNotes: inMemoryItemNoteStore(),
               micPlots: inMemoryMicPlotStore(),
               removeCastMember: uncastThenRemove(cast, roles),
             },
@@ -1065,6 +1070,7 @@ describe("Lambda entry point", () => {
               sceneryNotes: inMemoryItemNoteStore(),
               sfxNotes: inMemoryItemNoteStore(),
               wardrobeNotes: inMemoryItemNoteStore(),
+              micPlotNotes: inMemoryItemNoteStore(),
               micPlots: inMemoryMicPlotStore(),
               removeCastMember: uncastThenRemove(cast, roles),
             },
@@ -1143,6 +1149,7 @@ describe("Lambda entry point", () => {
               sceneryNotes: inMemoryItemNoteStore(),
               sfxNotes: inMemoryItemNoteStore(),
               wardrobeNotes: inMemoryItemNoteStore(),
+              micPlotNotes: inMemoryItemNoteStore(),
               micPlots: inMemoryMicPlotStore(),
               removeCastMember: uncastThenRemove(cast, roles),
             },
@@ -1240,6 +1247,7 @@ describe("Lambda entry point", () => {
               sceneryNotes: inMemoryItemNoteStore(),
               sfxNotes: inMemoryItemNoteStore(),
               wardrobeNotes: inMemoryItemNoteStore(),
+              micPlotNotes: inMemoryItemNoteStore(),
               micPlots: inMemoryMicPlotStore(),
               removeCastMember: uncastThenRemove(cast, roles),
             },
@@ -1391,6 +1399,7 @@ describe("Lambda entry point", () => {
             sceneryNotes,
             sfxNotes: inMemoryItemNoteStore(),
             wardrobeNotes: inMemoryItemNoteStore(),
+            micPlotNotes: inMemoryItemNoteStore(),
             micPlots: inMemoryMicPlotStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
@@ -1567,6 +1576,7 @@ describe("Lambda entry point", () => {
             sceneryNotes,
             sfxNotes,
             wardrobeNotes: inMemoryItemNoteStore(),
+            micPlotNotes: inMemoryItemNoteStore(),
             micPlots: inMemoryMicPlotStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
@@ -1749,6 +1759,7 @@ describe("Lambda entry point", () => {
             sceneryNotes: inMemoryItemNoteStore(),
             sfxNotes: inMemoryItemNoteStore(),
             wardrobeNotes: inMemoryItemNoteStore(),
+            micPlotNotes: inMemoryItemNoteStore(),
             micPlots: inMemoryMicPlotStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
@@ -1827,6 +1838,64 @@ describe("Lambda entry point", () => {
       expect((await api(give("[tech]", channel, who))).statusCode).toBe(status);
       expect(await micsAt(api)).toEqual(before);
     });
+
+    describe("Mic plot notes (production-mics E1.S3)", () => {
+      const saveNotes = (groups: string, text: string) =>
+        request(
+          "PUT",
+          `/api/productions/2027/items/${opening}/mic-plot-notes`,
+          { body: JSON.stringify({ revision: 0, text }) },
+          groups,
+        );
+      const notesAt = async (api: ReturnType<typeof setUpMics>, list: string) =>
+        ItemNoteList.parse(
+          JSON.parse(
+            (await api(request("GET", `/api/productions/2027/${list}`, {}, "[]"))).body ?? "",
+          ),
+        ).notes;
+
+      it.each([
+        ["lee, with Tech", "[tech]"],
+        ["dee, with Director only", "[director]"],
+        ["alex, an admin", "[admin]"],
+      ])(
+        "saves the notes when %s writes them, which anyone signed in then reads",
+        async (_who, groups) => {
+          const api = setUpMics();
+
+          const saved = await api(saveNotes(groups, "Mics 19–24 on for songs only"));
+
+          expect(saved.statusCode).toBe(200);
+          expect(await notesAt(api, "mic-plot-notes")).toEqual([
+            { itemId: opening, text: "Mics 19–24 on for songs only", revision: 1 },
+          ]);
+        },
+      );
+
+      it.each([
+        ["kim, with Casting, Stage and Wardrobe", "[casting stage wardrobe]"],
+        ["someone with no permissions", "[]"],
+      ])(
+        "refuses %s a change to the notes, saying the mic plot is view-only",
+        async (_who, groups) => {
+          const api = setUpMics();
+
+          const res = await api(saveNotes(groups, "Mics off"));
+
+          expect(res.statusCode).toBe(403);
+          expect(JSON.parse(res.body ?? "")).toEqual(MIC_PLOT_READ_ONLY);
+          expect(await notesAt(api, "mic-plot-notes")).toEqual([]);
+        },
+      );
+
+      it("keeps Mic plot notes apart from the SFX notes", async () => {
+        const api = setUpMics();
+
+        await api(saveNotes("[tech]", "Mics 19–24 on for songs only"));
+
+        expect(await notesAt(api, "sfx-notes")).toEqual([]);
+      });
+    });
   });
 
   describe("usage (ADR 0023)", () => {
@@ -1845,6 +1914,7 @@ describe("Lambda entry point", () => {
             sceneryNotes: inMemoryItemNoteStore(),
             sfxNotes: inMemoryItemNoteStore(),
             wardrobeNotes: inMemoryItemNoteStore(),
+            micPlotNotes: inMemoryItemNoteStore(),
             micPlots: inMemoryMicPlotStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },

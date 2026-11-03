@@ -12,6 +12,13 @@ export const MIC_PLOT_PATH = `/api/productions/${PRODUCTION_ID}/mic-plot`;
 export const allocateMicPath = (itemId: string) =>
   `/api/productions/${PRODUCTION_ID}/items/${encodeURIComponent(itemId)}/mic-plot`;
 
+/** Every item's Mic plot notes, apart from its other notes (production-mics FR8). */
+export const MIC_PLOT_NOTES_PATH = `/api/productions/${PRODUCTION_ID}/mic-plot-notes`;
+
+/** Where an item's Mic plot notes are saved. */
+export const saveMicPlotNotesPath = (itemId: string) =>
+  `/api/productions/${PRODUCTION_ID}/items/${encodeURIComponent(itemId)}/mic-plot-notes`;
+
 export interface ChannelRow {
   channel: number;
   /** Who is on it; null while it's free. */

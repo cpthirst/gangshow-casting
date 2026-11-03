@@ -209,8 +209,10 @@ describe("routeNeeds", () => {
     expect(needOf(key)).toBeUndefined();
   });
 
-  it("has giving out a mic need Tech or Director, and refuse others naming the mic plot", () => {
-    const key = "PUT /api/productions/{productionId}/items/{itemId}/mic-plot";
+  it.each([
+    "PUT /api/productions/{productionId}/items/{itemId}/mic-plot",
+    "PUT /api/productions/{productionId}/items/{itemId}/mic-plot-notes",
+  ] as const)("has %s need Tech or Director, and refuse others naming the mic plot", (key) => {
     expect(needOf(key)).toEqual(MIC_PLOT_PERMISSIONS);
     expect(MIC_PLOT_PERMISSIONS).toEqual(["tech", "director"]);
     expect(refusalOn(key, MIC_PLOT_PERMISSIONS)).toBe(
@@ -219,8 +221,10 @@ describe("routeNeeds", () => {
     expect(isRefusalAsReadOnly(refusalOn(key, MIC_PLOT_PERMISSIONS))).toBe(true);
   });
 
-  it("leaves the mic plot open to everyone signed in to read", () => {
-    const key = "GET /api/productions/{productionId}/mic-plot";
+  it.each([
+    "GET /api/productions/{productionId}/mic-plot",
+    "GET /api/productions/{productionId}/mic-plot-notes",
+  ] as const)("leaves %s open to everyone signed in to read", (key) => {
     expect(routeKeys).toContain(key);
     expect(needOf(key)).toBeUndefined();
   });

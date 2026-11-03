@@ -2,8 +2,10 @@ import {
   AllocateMicRequest,
   type CastMember,
   type ItemMicPlot,
+  type ItemNote,
   type Role,
   type RunningOrder,
+  SaveItemNoteRequest,
 } from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -13,7 +15,7 @@ import { createAppRouter } from "@/router/index.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
 import { CAST_PATH } from "@/utils/cast.ts";
-import { MIC_PLOT_PATH } from "@/utils/mic-plot.ts";
+import { MIC_PLOT_NOTES_PATH, MIC_PLOT_PATH } from "@/utils/mic-plot.ts";
 import { PROPS_PATH } from "@/utils/props.ts";
 import { PROPS_NOTES_PATH } from "@/utils/props-notes.ts";
 import { ROLES_PATH } from "@/utils/roles.ts";
@@ -68,9 +70,15 @@ const SPACE_SKETCH = "/production/items/space-sketch/mic-plot";
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 
-/** A stand-in API holding one saved running order (none if undefined), the made-up casting
- *  and the mic plots given, changed as the API would, with no props, scenery, SFX or Wardrobe
- *  files. `answer` replaces the reply to giving out a mic. */
+/** Every item's Mic plot notes the stand-in API holds, saved as the API would. */
+const micPlotNotes: ItemNote[] = [];
+beforeEach(() => {
+  micPlotNotes.length = 0;
+});
+
+/** A stand-in API holding one saved running order (none if undefined), the made-up casting,
+ *  the mic plots given and the Mic plot notes, changed as the API would, with no props,
+ *  scenery, SFX or Wardrobe files. `answer` replaces the reply to giving out a mic. */
 function apiHolds(
   order: RunningOrder | undefined,
   plots: ItemMicPlot[] = [],
@@ -94,6 +102,16 @@ function apiHolds(
         const mics = castMemberId === null ? others : [...others, { channel, castMemberId }];
         const saved = { itemId, mics: mics.sort((a, b) => a.channel - b.channel) };
         plots.splice(0, plots.length, ...plots.filter((p) => p.itemId !== itemId), saved);
+        return json(saved);
+      }
+      if (url === MIC_PLOT_NOTES_PATH) return json({ productionId: "2027", notes: micPlotNotes });
+      const savingNotes = /^\/api\/productions\/2027\/items\/([^/]+)\/mic-plot-notes$/.exec(url);
+      if (savingNotes && init?.method === "PUT") {
+        const itemId = savingNotes[1] ?? "";
+        const { text, revision } = SaveItemNoteRequest.parse(JSON.parse(String(init.body)));
+        const saved = { itemId, text, revision: revision + 1 };
+        const others = micPlotNotes.filter((note) => note.itemId !== itemId);
+        micPlotNotes.splice(0, micPlotNotes.length, ...others, saved);
         return json(saved);
       }
       if (url === ROLES_PATH) return json({ productionId: "2027", roles });
@@ -174,6 +192,9 @@ async function clear(wrapper: VueWrapper, mic: number) {
   await flushPromises();
 }
 
+const notesSection = (wrapper: VueWrapper) =>
+  wrapper.get("main section[aria-labelledby=notes-heading]");
+
 const puts = () =>
   vi
     .mocked(fetch)
@@ -195,6 +216,24 @@ describe("An item's Mic plot page", () => {
       Array.from({ length: 24 }, (_, i) => ({ mic: `Mic ${i + 1}`, who: "" })),
     );
     expect(wrapper.get("main").text()).not.toContain("Coming soon");
+  });
+
+  it("has a help button beside the item's name, which opens the Mic plot page's help", async () => {
+    apiHolds(show);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    const row = wrapper.get("main .page-title-row");
+    expect(row.get("h1").text()).toBe("Mic plot: Opening Number");
+    await row.get("button[aria-label='Help for this item']").trigger("click");
+
+    const names = wrapper.findAll("dialog [data-test=help-name]").map((name) => name.text());
+    expect(names).toEqual([
+      "All items",
+      "Previous and Next",
+      "Mic 1 to Mic 24",
+      "Clear",
+      "Mic plot notes",
+    ]);
   });
 
   it("goes back to the Overview, and steps to the previous and next items' Mic plot pages", async () => {
@@ -448,6 +487,69 @@ describe("An item's Mic plot page", () => {
       expect(row?.findAll("input, select, textarea")).toHaveLength(groups.includes("tech") ? 1 : 0);
     },
   );
+
+  it("saves lee's Mic plot notes under the channels, which everyone then sees, apart from other items'", async () => {
+    await signInAs(["tech"], "lee");
+    micPlotNotes.push({ itemId: "finale", text: "Radio mics only", revision: 1 });
+    apiHolds(show);
+    const first = await openAppAt(OPENING_NUMBER);
+    expect(notesSection(first.wrapper).get("h2").text()).toBe("Mic plot notes");
+    expect(
+      first.wrapper
+        .get("main .mic-channels")
+        .element.compareDocumentPosition(notesSection(first.wrapper).element) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    await notesSection(first.wrapper).get("textarea").setValue("Mics 19–24 on for songs only");
+    await notesSection(first.wrapper).get("form").trigger("submit");
+    await flushPromises();
+    first.wrapper.unmount();
+    await signInAs([], "jo");
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    expect(puts().map((put) => put.url)).toEqual([
+      "/api/productions/2027/items/opening-number/mic-plot-notes",
+    ]);
+    expect(notesSection(wrapper).get("[data-test=notes-text]").text()).toBe(
+      "Mics 19–24 on for songs only",
+    );
+    expect(micPlotNotes).toContainEqual({ itemId: "finale", text: "Radio mics only", revision: 1 });
+  });
+
+  it.each([
+    ["dee, with Director only", ["director"], "dee"],
+    ["ash, an admin", ["admin"], "ash"],
+  ])("lets %s change the Mic plot notes", async (_who, groups, name) => {
+    await signInAs(groups, name);
+    apiHolds(show);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    await notesSection(wrapper).get("textarea").setValue("Mics 19–24 on for songs only");
+    await notesSection(wrapper).get("form").trigger("submit");
+    await flushPromises();
+
+    expect(micPlotNotes).toEqual([
+      { itemId: "opening-number", text: "Mics 19–24 on for songs only", revision: 1 },
+    ]);
+  });
+
+  it("shows kim, with Casting, Stage and Wardrobe, the Mic plot notes with nothing to change them", async () => {
+    await signInAs(["casting", "stage", "wardrobe"], "kim");
+    micPlotNotes.push({
+      itemId: "opening-number",
+      text: "Mics 19–24 on for songs only",
+      revision: 1,
+    });
+    apiHolds(show);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    expect(notesSection(wrapper).get("[data-test=notes-text]").text()).toBe(
+      "Mics 19–24 on for songs only",
+    );
+    expect(notesSection(wrapper).find("textarea").exists()).toBe(false);
+    expect(notesSection(wrapper).find("button").exists()).toBe(false);
+  });
 
   it("says an item that isn't in the running order wasn't found, with a link back to the Overview", async () => {
     apiHolds(show);

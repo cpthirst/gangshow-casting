@@ -2,7 +2,7 @@
 id: production-mics.E1.S3
 title: Keep Mic plot notes for each item
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story
@@ -38,3 +38,4 @@ Then its notes are deleted
 - Depends on: production-mics.E1.S1
 - Works as Scenery, SFX and Wardrobe notes do.
 - Out of scope: showing the notes on the Overview (E3.S1) and in the workbook (E3.S2).
+- Review follow-up, agreed with the user: the page gained its "Item help" button and a `mic-plot-item` Help topic covering what it has so far, and Help no longer calls the Mic plot "Coming soon". The rest of the Help and Welcome wording stays with E3.S3.

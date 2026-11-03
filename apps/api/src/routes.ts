@@ -47,6 +47,7 @@ export function createRoutes(
     sfxNotes,
     wardrobeNotes,
     micPlots,
+    micPlotNotes,
   }: Stores,
   usage: UsageStore,
   files: ItemFileStores,
@@ -66,6 +67,7 @@ export function createRoutes(
         wardrobeFiles,
         wardrobeNotes,
         micPlots,
+        micPlotNotes,
       },
     ),
     "GET /api/productions/{productionId}/cast": createGetCast(cast),
@@ -147,6 +149,11 @@ export function createRoutes(
       micPlots,
       runningOrders,
       roles,
+    ),
+    "GET /api/productions/{productionId}/mic-plot-notes": createGetItemNotes(micPlotNotes),
+    "PUT /api/productions/{productionId}/items/{itemId}/mic-plot-notes": createSaveItemNote(
+      micPlotNotes,
+      runningOrders,
     ),
     "POST /api/productions/{productionId}/casting-grid/export": exportCastingGrid,
     "POST /api/productions/{productionId}/items/{itemId}/roles": createAddRole(

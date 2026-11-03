@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { RunningOrder, type RunningOrderItem, type SaveRunningOrderRequest } from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { inMemoryRoleStore } from "#/casting/roles/role-store.ts";
-import { inMemoryItemNoteStore } from "#/item-notes/item-note-store.ts";
+import { type ItemNoteStore, inMemoryItemNoteStore } from "#/item-notes/item-note-store.ts";
 import {
   folderItemFileStore,
   type ItemFileStore,
@@ -65,6 +65,7 @@ function setUp() {
       sfxNotes: noCleanup,
       wardrobeFiles: noCleanup,
       wardrobeNotes: noCleanup,
+      micPlotNotes: noCleanup,
       micPlots: noCleanup,
     },
     () => NOW,
@@ -264,6 +265,7 @@ describe("save running order handler", () => {
         sfxNotes: { keepOnlyItems: failing },
         wardrobeFiles: { keepOnlyItems: failing },
         wardrobeNotes: { keepOnlyItems: failing },
+        micPlotNotes: { keepOnlyItems: failing },
         micPlots: { keepOnlyItems: failing },
       },
       () => NOW,
@@ -291,6 +293,7 @@ describe("save running order handler", () => {
       sfxNotes: noCleanup,
       wardrobeFiles: noCleanup,
       wardrobeNotes: noCleanup,
+      micPlotNotes: noCleanup,
       micPlots: noCleanup,
     };
     // Someone else saves version 8, with a new item, just after this save writes 7.
@@ -370,6 +373,7 @@ describe("save running order handler, with scenery files", () => {
       sfxNotes: noCleanup,
       wardrobeFiles: noCleanup,
       wardrobeNotes: noCleanup,
+      micPlotNotes: noCleanup,
       micPlots: noCleanup,
     };
     return createSaveRunningOrder(store, cleanup, () => NOW);
@@ -491,6 +495,7 @@ describe("save running order handler, with SFX files and notes", () => {
         sfxNotes,
         wardrobeFiles: noCleanup,
         wardrobeNotes: noCleanup,
+        micPlotNotes: noCleanup,
         micPlots: noCleanup,
       },
       () => NOW,
@@ -563,6 +568,7 @@ describe("save running order handler, with Wardrobe files and notes", () => {
         sfxNotes: noCleanup,
         wardrobeFiles: folderItemFileStore(folder, "wardrobe"),
         wardrobeNotes,
+        micPlotNotes: noCleanup,
         micPlots: noCleanup,
       },
       () => NOW,
@@ -621,6 +627,7 @@ describe("save running order handler, with mic plots", () => {
     const store = inMemoryRunningOrderStore([
       aRunningOrder(6, { first: ["Opening Number", "Old Sketch"] }),
     ]);
+    const micPlotNotes = inMemoryItemNoteStore();
     const cleanup = {
       roles: inMemoryRoleStore(),
       itemNotes: inMemoryItemNoteStore(),
@@ -629,12 +636,15 @@ describe("save running order handler, with mic plots", () => {
       sfxNotes: noCleanup,
       wardrobeFiles: noCleanup,
       wardrobeNotes: noCleanup,
+      micPlotNotes,
       micPlots,
     };
-    return { micPlots, handler: createSaveRunningOrder(store, cleanup, () => NOW) };
+    return { micPlots, micPlotNotes, handler: createSaveRunningOrder(store, cleanup, () => NOW) };
   }
   const itemsWithMics = async (micPlots: MicPlotStore) =>
     (await micPlots.list("2027")).items.map((plot) => plot.itemId);
+  const itemsWithNotes = async (notes: ItemNoteStore) =>
+    (await notes.list("2027")).notes.map((note) => note.itemId);
 
   it("deletes a removed item's mic plot once the version is saved, keeping the others'", async () => {
     const { micPlots, handler } = setUpMics();
@@ -645,6 +655,27 @@ describe("save running order handler, with mic plots", () => {
 
     expect(res.statusCode).toBe(201);
     expect(await itemsWithMics(micPlots)).toEqual([opening]);
+  });
+
+  it("deletes a removed item's Mic plot notes once the version is saved, keeping the others'", async () => {
+    const { micPlotNotes, handler } = setUpMics();
+    await micPlotNotes.save("2027", old, 0, "Radio mics only");
+    await micPlotNotes.save("2027", opening, 0, "Mics 19–24 on for songs only");
+
+    const res = await handler(request(update(6, ["Opening Number"])));
+
+    expect(res.statusCode).toBe(201);
+    expect(await itemsWithNotes(micPlotNotes)).toEqual([opening]);
+  });
+
+  it("deletes no Mic plot notes when the save is refused", async () => {
+    const { micPlotNotes, handler } = setUpMics();
+    await micPlotNotes.save("2027", old, 0, "Radio mics only");
+
+    const stale = await handler(request(update(5, ["Opening Number"])));
+
+    expect(stale.statusCode).toBe(409);
+    expect(await itemsWithNotes(micPlotNotes)).toEqual([old]);
   });
 
   it("deletes no mic plot when the save is refused", async () => {

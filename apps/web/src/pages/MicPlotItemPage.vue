@@ -12,6 +12,8 @@ import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, onMounted, ref, useId, watch, watchEffect } from "vue";
 import { useRoute } from "vue-router";
 import CastMemberPicker from "@/components/casting/CastMemberPicker.vue";
+import HelpButton from "@/components/common/HelpButton.vue";
+import ItemNotes from "@/components/common/ItemNotes.vue";
 import ItemStepNav from "@/components/common/ItemStepNav.vue";
 import ReadOnlyNotice from "@/components/common/ReadOnlyNotice.vue";
 import { showPageTitle } from "@/router/index.ts";
@@ -23,15 +25,17 @@ import {
   castInItem,
   channelsOf,
   choicesFor,
+  MIC_PLOT_NOTES_PATH,
   MIC_PLOT_PATH,
   micRolesText,
+  saveMicPlotNotesPath,
 } from "@/utils/mic-plot.ts";
 import { type CastMemberChoice, fullName, ROLES_PATH } from "@/utils/roles.ts";
 import { neighboursOf, placeOf, positionOf, RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
 
 // One item's mic plot: Mic 1 to Mic 24, each given to a cast member in the item or free, with
-// the roles they play there (production-mics FR2, FR3, FR4), laid out as the other department
-// item pages.
+// the roles they play there (production-mics FR2, FR3, FR4), and the item's Mic plot notes
+// under them (FR8), laid out as the other department item pages.
 
 const route = useRoute();
 const order = ref<RunningOrder>();
@@ -183,7 +187,10 @@ async function allocate(channel: number, castMemberId: number | null) {
   />
   <p v-if="status === 'error'" role="alert">Couldn't load the item.</p>
   <template v-else-if="place">
-    <h1>{{ title }}</h1>
+    <div class="page-title-row">
+      <h1>{{ title }}</h1>
+      <HelpButton page="mic-plot-item" label="Help for this item" title="Item help" />
+    </div>
     <p class="item-position" data-test="position">{{ positionOf(place) }}</p>
     <!-- Those who can't change it see every channel and who is on it, nothing to change. -->
     <ReadOnlyNotice about="mic-plot" />
@@ -244,6 +251,16 @@ async function allocate(channel: number, castMemberId: number | null) {
       </li>
     </ol>
     <p class="visually-hidden" role="status" data-test="mic-status">{{ announcement }}</p>
+    <!-- Apart from the item's other notes. A fresh instance per item, so stepping to another
+         never mixes their notes. -->
+    <ItemNotes
+      :key="place.item.id"
+      :item-id="place.item.id"
+      heading="Mic plot notes"
+      :list-path="MIC_PLOT_NOTES_PATH"
+      :save-path="saveMicPlotNotesPath(place.item.id)"
+      :can-change="canChangeMicPlot"
+    />
   </template>
   <template v-else-if="notFound">
     <h1>Item not found</h1>

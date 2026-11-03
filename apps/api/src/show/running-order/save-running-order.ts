@@ -11,7 +11,7 @@ import { applyChange } from "./running-order-changes.ts";
 import type { RunningOrderStore } from "./running-order-store.ts";
 
 /** Where what's kept about each item lives, its casting, its scenery files, its SFX and
- *  Wardrobe files and notes, and its mic plot: it goes when the item leaves the show. */
+ *  Wardrobe files and notes, and its mic plot and notes: it goes when the item leaves the show. */
 export interface ItemCleanup {
   roles: Pick<RoleStore, "keepOnlyItems">;
   itemNotes: Pick<ItemNoteStore, "keepOnlyItems">;
@@ -21,6 +21,7 @@ export interface ItemCleanup {
   wardrobeFiles: Pick<ItemFileStore, "keepOnlyItems">;
   wardrobeNotes: Pick<ItemNoteStore, "keepOnlyItems">;
   micPlots: Pick<MicPlotStore, "keepOnlyItems">;
+  micPlotNotes: Pick<ItemNoteStore, "keepOnlyItems">;
 }
 
 // POST /api/productions/{productionId}/running-order/versions: apply one change to the
@@ -78,6 +79,7 @@ async function removeWhatDroppedItemsKept(
     await cleanup.wardrobeFiles.keepOnlyItems(productionId, itemIds);
     await cleanup.wardrobeNotes.keepOnlyItems(productionId, itemIds);
     await cleanup.micPlots.keepOnlyItems(productionId, itemIds);
+    await cleanup.micPlotNotes.keepOnlyItems(productionId, itemIds);
     // A dropped item's props and props notes are kept, for now: whether they go too is an open
     // question in docs/product/production/props/prd.md, to settle before item removal is built.
   } catch (error) {

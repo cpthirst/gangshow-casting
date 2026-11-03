@@ -1,9 +1,11 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { dynamoMicPlotStore } from "#/production/mic-plot/dynamo-mic-plot-store.ts";
 import { aTestTable, type TestTable } from "#/storage/dynamo.fixture.ts";
 import { documentClient } from "#/storage/dynamo-table.ts";
 import {
   dynamoItemNoteStore,
+  MIC_PLOT_NOTE,
   PROPS_NOTE,
   SCENERY_NOTE,
   SFX_NOTE,
@@ -79,6 +81,28 @@ describe("DynamoDB item note store", () => {
 
       expect((await sfx.list("2027")).notes.map((note) => note.text)).toEqual(["Thunder"]);
       expect((await wardrobe.list("2027")).notes.map((note) => note.text)).toEqual(["Eye patches"]);
+    });
+  });
+
+  describe("for Mic plot notes", () => {
+    behavesAsAnItemNoteStore(() => dynamoItemNoteStore(table.db, table.tableName, MIC_PLOT_NOTE));
+
+    it("keeps Mic plot notes apart from the mic plot and the Wardrobe notes", async () => {
+      const micPlots = dynamoMicPlotStore(table.db, table.tableName);
+      const wardrobe = dynamoItemNoteStore(table.db, table.tableName, WARDROBE_NOTE);
+      const micPlotNotes = dynamoItemNoteStore(table.db, table.tableName, MIC_PLOT_NOTE);
+      await micPlots.allocate("2027", "pirate-sketch", 3, 1);
+      await wardrobe.save("2027", "pirate-sketch", 0, "Eye patches");
+
+      await micPlotNotes.save("2027", "pirate-sketch", 0, "Mics 19–24 on for songs only");
+
+      expect((await micPlots.list("2027")).items).toEqual([
+        { itemId: "pirate-sketch", mics: [{ channel: 3, castMemberId: 1 }] },
+      ]);
+      expect((await wardrobe.list("2027")).notes.map((note) => note.text)).toEqual(["Eye patches"]);
+      expect((await micPlotNotes.list("2027")).notes.map((note) => note.text)).toEqual([
+        "Mics 19–24 on for songs only",
+      ]);
     });
   });
 
