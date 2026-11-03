@@ -1551,7 +1551,6 @@ main a {
 
 /* Its card is .role-card's; the channel's name keeps one width, so the pickers line up. */
 .mic-channel {
-  flex-wrap: nowrap;
   min-width: 0;
 }
 
@@ -1561,10 +1560,23 @@ main a {
   font-weight: 700;
 }
 
-/* A long name wraps rather than push the page sideways. */
-.mic-channel [data-test="on-mic"] {
+/* A long name or role wraps rather than push the page sideways. */
+.mic-channel [data-test="on-mic"],
+.mic-roles {
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+/* The mic's roles, on their own line under the cast member, from the card's edge as a prop
+   card's roles are. */
+.mic-roles {
+  flex-basis: 100%;
+  font-weight: 700;
+}
+
+/* A free mic has no roles, and no empty line for them. */
+.mic-roles:empty {
+  display: none;
 }
 
 /* Every card's surface, so roles, props and files look alike. */

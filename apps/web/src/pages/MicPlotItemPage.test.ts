@@ -52,11 +52,19 @@ const aRole = (id: number, itemId: string, name: string, castMemberIds: number[]
   castMemberIds,
   revision: 1,
 });
-const casting = [
+const casting: Role[] = [
   aRole(1, "opening-number", "Chorus", [alex.id]),
   aRole(2, "opening-number", "Soloist", [sam.id]),
   aRole(3, "finale", "Chorus", [jo.id]),
+  // In Space Sketch, Alex plays two parts, Sam one, and Jo is only in the chorus.
+  { ...aRole(4, "space-sketch", "Alien 1", [alex.id]), size: "support" },
+  { ...aRole(5, "space-sketch", "Narrator", [alex.id]), size: "lead" },
+  { ...aRole(6, "space-sketch", "Captain", [sam.id]), size: "lead" },
+  aRole(7, "space-sketch", "Chorus", [jo.id]),
 ];
+// A show of one made-up item, for the roles each mic shows.
+const spaceShow = aRunningOrder([anItem("Space Sketch")]);
+const SPACE_SKETCH = "/production/items/space-sketch/mic-plot";
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 
@@ -67,6 +75,7 @@ function apiHolds(
   order: RunningOrder | undefined,
   plots: ItemMicPlot[] = [],
   answer?: () => Response,
+  roles: Role[] = casting,
 ) {
   vi.stubGlobal(
     "fetch",
@@ -87,7 +96,7 @@ function apiHolds(
         plots.splice(0, plots.length, ...plots.filter((p) => p.itemId !== itemId), saved);
         return json(saved);
       }
-      if (url === ROLES_PATH) return json({ productionId: "2027", roles: casting });
+      if (url === ROLES_PATH) return json({ productionId: "2027", roles });
       if (url === CAST_PATH) return json({ productionId: "2027", members: [alex, sam, jo] });
       if (url === PROPS_PATH) return json({ productionId: "2027", props: [] });
       if (url === PROPS_NOTES_PATH) return json({ productionId: "2027", notes: [] });
@@ -155,6 +164,10 @@ async function give(wrapper: VueWrapper, mic: number, name: string) {
   await option.trigger("mousedown");
   await flushPromises();
 }
+
+/** The roles a channel shows for its cast member, as plain text. */
+const rolesOn = (wrapper: VueWrapper, mic: number) =>
+  wrapper.findAll("main [data-test=mic]")[mic - 1]?.get("[data-test=mic-roles]").text();
 
 async function clear(wrapper: VueWrapper, mic: number) {
   await wrapper.get(`main button[aria-label='Clear Mic ${mic}']`).trigger("click");
@@ -365,6 +378,76 @@ describe("An item's Mic plot page", () => {
       "Alex Morgan is already on another mic in this item. Here are the mics as they are now.",
     );
   });
+
+  it("shows every role a mic's cast member plays in the item, biggest first, to anyone signed in", async () => {
+    await signInAs([], "jo");
+    apiHolds(spaceShow, [
+      { itemId: "space-sketch", mics: [{ channel: 3, castMemberId: alex.id }] },
+    ]);
+    const { wrapper } = await openAppAt(SPACE_SKETCH);
+
+    expect([whoIsOn(wrapper, 3), rolesOn(wrapper, 3)]).toEqual([
+      "Alex Morgan",
+      "Narrator, Alien 1",
+    ]);
+    expect(rolesOn(wrapper, 4)).toBe("");
+  });
+
+  it("shows the chorus for Jo Reed, only in the chorus, once lee gives them a mic", async () => {
+    await signInAs(["tech"], "lee");
+    apiHolds(spaceShow);
+    const { wrapper } = await openAppAt(SPACE_SKETCH);
+
+    await give(wrapper, 4, "Jo Reed");
+
+    expect(rolesOn(wrapper, 4)).toBe("Chorus");
+  });
+
+  it("shows the new cast member's roles when lee gives Mic 3 to someone else", async () => {
+    await signInAs(["tech"], "lee");
+    apiHolds(spaceShow, [
+      { itemId: "space-sketch", mics: [{ channel: 3, castMemberId: alex.id }] },
+    ]);
+    const { wrapper } = await openAppAt(SPACE_SKETCH);
+
+    await give(wrapper, 3, "Sam Patel");
+
+    expect(rolesOn(wrapper, 3)).toBe("Captain");
+  });
+
+  it("shows the roles from the casting as it is when the page opens", async () => {
+    const plots = [{ itemId: "space-sketch", mics: [{ channel: 3, castMemberId: alex.id }] }];
+    // Since the mic was given out, Alex is also cast as Robot, and Alien 1 is renamed.
+    const recast: Role[] = [
+      ...casting.map((role) =>
+        role.name === "Alien 1" ? { ...role, name: "Alien Leader" } : role,
+      ),
+      { ...aRole(8, "space-sketch", "Robot", [alex.id]), size: "cameo" },
+    ];
+    apiHolds(spaceShow, plots, undefined, recast);
+    const { wrapper } = await openAppAt(SPACE_SKETCH);
+
+    expect(rolesOn(wrapper, 3)).toBe("Narrator, Alien Leader, Robot");
+  });
+
+  it.each([
+    ["lee, with Tech", ["tech"]],
+    ["kim, without Tech or Director", ["casting", "stage", "wardrobe"]],
+  ])(
+    "shows %s each mic's roles as plain text, with nothing to change them",
+    async (_who, groups) => {
+      await signInAs(groups);
+      apiHolds(spaceShow, [
+        { itemId: "space-sketch", mics: [{ channel: 3, castMemberId: alex.id }] },
+      ]);
+      const { wrapper } = await openAppAt(SPACE_SKETCH);
+
+      const row = wrapper.findAll("main [data-test=mic]")[2];
+      expect(row?.get("[data-test=mic-roles]").element.tagName).toBe("SPAN");
+      // Only the cast member picker, for those who can change it: nothing for the role.
+      expect(row?.findAll("input, select, textarea")).toHaveLength(groups.includes("tech") ? 1 : 0);
+    },
+  );
 
   it("says an item that isn't in the running order wasn't found, with a link back to the Overview", async () => {
     apiHolds(show);

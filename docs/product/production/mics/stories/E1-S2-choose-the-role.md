@@ -1,8 +1,8 @@
 ---
 id: production-mics.E1.S2
-title: Choose the role for each mic
+title: Show the role for each mic
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story
@@ -11,35 +11,37 @@ As someone in the Tech team, I want each mic to show the role its cast member pl
 
 ## Acceptance criteria
 
-### AC1: The role comes from the cast member's casting roles in the item
+### AC1: A mic shows every role its cast member plays in the item
 Given Alex Morgan is on Mic 3 in "Space Sketch", where Alex is cast as "Alien 1" and "Narrator", and "Captain" is cast to Sam Patel
-When someone with Tech chooses the role for Mic 3
-Then they can choose "Alien 1" or "Narrator", but not "Captain"
-And after choosing "Alien 1", Mic 3 shows "Alex Morgan" and "Alien 1" for everyone
+When anyone signed in opens its Mic plot page
+Then Mic 3 shows "Alex Morgan" and "Narrator, Alien 1", biggest part first, as plain text
+And not "Captain"
 
-### AC2: A cast member without a named part has the role left blank
-Given Jo Reed is cast in "Space Sketch" without a named role
+### AC2: A cast member only in an ensemble shows the ensemble
+Given Jo Reed is cast in "Space Sketch" only in the "Chorus" ensemble
 When someone with Tech gives Mic 4 to Jo Reed
-Then Mic 4 shows "Jo Reed" with the role blank, and no roles are offered
+Then Mic 4 shows "Jo Reed" and "Chorus"
 
-### AC3: Changing the cast member clears the role
-Given Mic 3 in "Space Sketch" is Alex Morgan as "Alien 1"
+### AC3: Changing the cast member changes the role
+Given Mic 3 in "Space Sketch" is Alex Morgan, shown as "Narrator, Alien 1"
 When someone with Tech changes Mic 3 to Sam Patel
-Then the role is blank until a role of Sam's is chosen
+Then Mic 3 shows "Captain"
 
-### AC4: The API refuses a role the cast member doesn't have
-Given Alex Morgan is on Mic 3 in "Space Sketch"
-When a request gives Mic 3 the role "Captain", or a role from another item
-Then it is refused and nothing changes
+### AC4: The role follows the casting
+Given Mic 3 in "Space Sketch" is Alex Morgan, shown as "Narrator, Alien 1"
+When Alex is also cast in "Space Sketch" as "Robot", or "Alien 1" is renamed "Alien Leader"
+Then the next time the page is opened Mic 3 shows the roles Alex plays now
 
-### AC5: Read-only accounts see the role but can't change it
-Given an account without Tech or Director
+### AC5: Nobody types or chooses a role
+Given any account, with or without Tech or Director
 When they open the Mic plot page for "Space Sketch"
-Then they see each channel's role, with no way to change it
+Then each channel's role is plain text, with no field to change it
+And the mic plot saves no role: a request that gives a mic a role is refused
 
 ## Notes
 
 - FRs: FR3
 - Depends on: production-mics.E1.S1
-- Role pickers are labelled "Mic 3 role".
-- Out of scope: what happens when casting changes afterwards (E2.S3).
+- Decided 2026-11-03: the role is not chosen. A mic shows every role its cast member plays in the item, ensembles included, biggest part first, worked out from the casting each time the page is shown. Nothing about the role is saved with the mic, so it always matches the casting. This replaces the earlier role picker.
+- The role is written after the cast member in the channel's card, for everyone, so it reads the same with or without Tech.
+- Out of scope: freeing a channel when casting takes someone out of the item (E2.S3).

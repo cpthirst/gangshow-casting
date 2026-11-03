@@ -19,7 +19,7 @@ prd: ./prd.md
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
 | [production-mics.E1.S1](stories/E1-S1-give-a-channel-to-a-cast-member.md) | Walking skeleton: the Mic plot page replaces "Coming soon" with Mic 1 to Mic 24. Tech, Director and Admins can give a channel to a cast member cast in the item, or clear it; everyone else sees it read-only, with the read-only line. Someone already on a channel in the item isn't offered for another. The API enforces all of it. An item's mic plot is deleted with the item | FR1, FR2, FR3, FR4, FR11 | (none) | done |
-| [production-mics.E1.S2](stories/E1-S2-choose-the-role.md) | Each channel has a role, chosen from the item's casting roles that cast member is cast in, or left blank for someone in the item without a named part. The API refuses a role the cast member doesn't have in the item | FR3 | E1.S1 | ready |
+| [production-mics.E1.S2](stories/E1-S2-choose-the-role.md) | Each channel shows its cast member's roles in the item as plain text, ensembles included, biggest part first, worked out from the casting; nothing about the role is chosen or saved | FR3 | E1.S1 | done |
 | [production-mics.E1.S3](stories/E1-S3-mic-plot-notes.md) | Mic plot notes under the channels, changed by Tech, Director and Admins, deleted with the item | FR8, FR11 | E1.S1 | ready |
 
 ## E2: The item-before rule and keeping in step
@@ -28,7 +28,7 @@ prd: ./prd.md
 |---|---|---|---|---|
 | [production-mics.E2.S1](stories/E2-S1-channel-used-in-the-item-before.md) | A channel used in the item directly before by a different cast member is greyed out and disabled, reading "Used in previous item", and the API refuses it. The cast member who had it can keep it. The rule resets at the first item and after the interval. Non-adjacent items need nothing extra | FR5, FR6, FR7 | E1.S1 | ready |
 | [production-mics.E2.S2](stories/E2-S2-a-reorder-breaks-the-rule.md) | When the running order changes so a saved allocation breaks the rule, it stays shown, and the channel can only be cleared until it is | FR10 | E2.S1 | ready |
-| [production-mics.E2.S3](stories/E2-S3-casting-changes-free-or-blank.md) | Taking a cast member out of an item or the cast frees their channel there. Removing a casting role, or recasting it, leaves the channel's cast member (if still in the item) with the role blank | FR9 | E1.S2 | ready |
+| [production-mics.E2.S3](stories/E2-S3-casting-changes-free-or-blank.md) | Taking a cast member out of an item or the cast frees their channel there. The roles shown already follow the casting (E1.S2) | FR9 | E1.S2 | ready |
 
 ## E3: Overview, export, Usage and Help
 

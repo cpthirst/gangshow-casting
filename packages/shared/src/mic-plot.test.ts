@@ -41,6 +41,12 @@ describe("AllocateMicRequest", () => {
     expect(AllocateMicRequest.parse({ channel: 3, castMemberId: null }).castMemberId).toBeNull();
   });
 
+  it("refuses a role: a mic's roles come from the casting, never the request", () => {
+    expect(AllocateMicRequest.safeParse({ channel: 3, castMemberId: 1, roleId: 4 }).success).toBe(
+      false,
+    );
+  });
+
   it("knows only Mic 1 to Mic 24", () => {
     expect(MIC_CHANNELS).toBe(24);
     for (const channel of [0, 25, 2.5]) {

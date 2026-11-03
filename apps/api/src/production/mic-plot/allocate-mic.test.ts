@@ -92,6 +92,7 @@ describe("allocate mic handler", () => {
     ["no channel", { castMemberId: alex }],
     ["no cast member", { channel: 3 }],
     ["a body that isn't JSON", "{"],
+    ["a role, which the mic plot never saves", { channel: 3, castMemberId: alex, roleId: 1 }],
   ])("refuses %s with 400, changing nothing", async (_what, body) => {
     const { micPlots, handler } = setUp();
 

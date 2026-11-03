@@ -1,6 +1,6 @@
 import type { CastMember, Role } from "@app/shared";
 import { describe, expect, it } from "vitest";
-import { castInItem, channelsOf, choicesFor } from "./mic-plot.ts";
+import { castInItem, channelsOf, choicesFor, micRolesText } from "./mic-plot.ts";
 
 // Made-up cast: Alex Morgan and Sam Patel are in Opening Number; Jo Reed only in the Finale.
 const aMember = (id: number, firstName: string, lastName: string): CastMember => ({
@@ -63,5 +63,30 @@ describe("choicesFor", () => {
 
   it("keeps whoever is on this channel", () => {
     expect(choicesFor(3, [alex, sam], plot)).toEqual([alex, sam]);
+  });
+});
+
+describe("micRolesText", () => {
+  it("is every role the cast member plays in the item, ensembles too, biggest first", () => {
+    const chorus = aRole(1, "space-sketch", [jo.id, alex.id]);
+    const narrator: Role = {
+      ...aRole(2, "space-sketch", [alex.id]),
+      name: "Narrator",
+      size: "lead",
+    };
+    const alien: Role = {
+      ...aRole(3, "space-sketch", [alex.id]),
+      name: "Alien 1",
+      size: "support",
+    };
+    const captain: Role = { ...aRole(4, "space-sketch", [sam.id]), size: "lead" };
+    const elsewhere = aRole(5, "finale", [alex.id]);
+    const roles = [{ ...chorus, name: "Chorus" }, alien, narrator, captain, elsewhere];
+
+    expect(micRolesText("space-sketch", alex.id, roles)).toBe("Narrator, Alien 1, Chorus");
+  });
+
+  it("is nothing for a free mic", () => {
+    expect(micRolesText("space-sketch", null, [aRole(1, "space-sketch", [alex.id])])).toBe("");
   });
 });
