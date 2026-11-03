@@ -293,10 +293,11 @@ describe("Help page", () => {
         "An item's scenery",
         "An item's props",
         "An item's SFX",
+        "An item's mic plot",
         "An item's wardrobe",
         "Permissions",
       ]);
-      for (const page of ["scenery-item", "sfx-item", "wardrobe-item"]) {
+      for (const page of ["scenery-item", "sfx-item", "mic-plot-item", "wardrobe-item"]) {
         await router.push("/help");
         expect(await followLink(wrapper, router, page)).toBe("production-overview");
       }
@@ -446,6 +447,35 @@ describe("Help page", () => {
       },
     );
 
+    it("say how to reach an item's mic plot, then explain its links, channels and notes, and who changes it", async () => {
+      const { wrapper } = await openHelp();
+      const page = "mic-plot-item";
+
+      expect(summaryOf(wrapper, page)).toContain("One item's mics and Mic plot notes.");
+      expect(summaryOf(wrapper, page)).toContain("Production → Overview");
+      expect(names(wrapper, page)).toEqual([
+        "All items",
+        "Previous and Next",
+        "Mic 1 to Mic 24",
+        "Clear",
+        "Mic plot notes",
+      ]);
+      for (const action of ["All items", "Previous and Next"]) {
+        expect(accessOf(wrapper, action, page)).toBe("Everyone");
+      }
+      expect(accessOf(wrapper, "Clear", page)).toBe("Accounts with Tech or Director, and admins");
+      for (const line of ["Mic 1 to Mic 24", "Mic plot notes"]) {
+        expect(
+          lineNamed(wrapper, line, page)
+            .findAll("[data-test=help-access]")
+            .map((label) => label.text()),
+        ).toEqual(["Reading: Everyone", "Changing: Accounts with Tech or Director, and admins"]);
+      }
+      expect(
+        lineNamed(wrapper, "Mic 1 to Mic 24", page).get("[data-test=help-does]").text(),
+      ).toContain("only someone cast in the item");
+    });
+
     it("say an SFX file that's MP3, WAV, M4A, AAC or OGG plays in a new tab", async () => {
       const { wrapper } = await openHelp();
 
@@ -465,7 +495,7 @@ describe("Help page", () => {
       expect(addAFile("sfx-item")).not.toContain("photos");
     });
 
-    it("name the Overview's five buttons in row order, each with its icon, its page and whether it's coming soon", async () => {
+    it("name the Overview's five buttons in row order, each with its icon and its page, none coming soon", async () => {
       const { wrapper } = await openHelp();
 
       expect(summaryOf(wrapper, "production-overview")).toContain("in running order");
@@ -487,7 +517,7 @@ describe("Help page", () => {
         expect.stringContaining("the item's mic plot page"),
         expect.stringContaining("the item's wardrobe page"),
       ]);
-      expect(buttons.filter((name) => doesOf(name).includes("Coming soon"))).toEqual(["Mic plot"]);
+      expect(buttons.filter((name) => doesOf(name).includes("Coming soon"))).toEqual([]);
     });
 
     it("label each button with the department that changes its page, as do Directors and admins, and that everyone can view it", async () => {
@@ -533,24 +563,24 @@ describe("Help page", () => {
     });
   });
 
-  it("says SFX and Wardrobe are here, and only the Mic plot is still to come", async () => {
+  it("says SFX, the Mic plot and Wardrobe are here, with nothing still to come", async () => {
     const { wrapper } = await openHelp();
 
     const stillToCome = /\b(to come|coming|comes?)\b/i;
     const lineTexts = wrapper
       .findAll("[data-test=help-line], [data-test=permission]")
       .map((line) => line.text().replace(/\s+/g, " ").trim());
-    // A line about SFX or Wardrobe, or any part of a line that names them, says nothing is to come.
+    // A line about SFX, the Mic plot or Wardrobe, or any part of a line that names them, says
+    // nothing is to come.
     for (const text of lineTexts) {
-      if (/^(SFX|Wardrobe)\b/.test(text)) expect(text).not.toMatch(stillToCome);
+      if (/^(SFX|Mic plot|Wardrobe)\b/.test(text)) expect(text).not.toMatch(stillToCome);
       for (const clause of text.split(/[.,;:]/)) {
-        if (/SFX|wardrobe/i.test(clause)) expect(clause).not.toMatch(stillToCome);
+        if (/SFX|mic plot|wardrobe/i.test(clause)) expect(clause).not.toMatch(stillToCome);
       }
     }
-    for (const page of ["sfx-item", "wardrobe-item"]) {
+    for (const page of ["sfx-item", "mic-plot-item", "wardrobe-item"]) {
       expect(sectionFor(wrapper, page).text()).not.toMatch(stillToCome);
     }
-    expect(lineTexts.find((text) => text.startsWith("Mic plot"))).toContain("Coming soon");
   });
 
   describe("the Permissions section", () => {
@@ -579,7 +609,7 @@ describe("Help page", () => {
 
       const director = permissionLines(wrapper).find((line) => line.startsWith("Director:"));
       expect(director).toBe(
-        "Director: Changes every production department's pages, now and as they come: Scenery, Props, SFX and Wardrobe today. Not the cast, roles, casting or running order, and nothing only admins can do.",
+        "Director: Changes every production department's pages, now and as they come: Scenery, Props, SFX, Mic plot and Wardrobe today. Not the cast, roles, casting or running order, and nothing only admins can do.",
       );
     });
   });

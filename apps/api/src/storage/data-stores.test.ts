@@ -114,6 +114,18 @@ describe("data stores", () => {
     expect((await stores.sfxNotes.list("2027")).notes).toEqual([]);
   });
 
+  it("keeps Mic plot notes in their own local file, apart from the others", async () => {
+    const stores = dataStores({ DATA_DIR: dataDir });
+
+    await stores.micPlotNotes.save("2027", "finale", 0, "Mics 19–24 on for songs only");
+
+    const file = JSON.parse(await readFile(join(dataDir, "2027", "mic-plot-notes.json"), "utf8"));
+    expect(file.notes).toEqual([
+      { itemId: "finale", text: "Mics 19–24 on for songs only", revision: 1 },
+    ]);
+    expect((await stores.sfxNotes.list("2027")).notes).toEqual([]);
+  });
+
   it("says where item notes are kept when a remote table is configured", () => {
     const stores = dataStores({
       DATA_DIR: dataDir,

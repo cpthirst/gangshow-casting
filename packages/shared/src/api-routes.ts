@@ -47,6 +47,8 @@ export const routeKeys = [
   "PUT /api/productions/{productionId}/items/{itemId}/wardrobe-notes",
   "GET /api/productions/{productionId}/mic-plot",
   "PUT /api/productions/{productionId}/items/{itemId}/mic-plot",
+  "GET /api/productions/{productionId}/mic-plot-notes",
+  "PUT /api/productions/{productionId}/items/{itemId}/mic-plot-notes",
   "POST /api/productions/{productionId}/casting-grid/export",
   "PUT /api/productions/{productionId}/items/{itemId}/notes",
   "POST /api/productions/{productionId}/items/{itemId}/roles",
@@ -129,10 +131,10 @@ const routeRefusals = new Map<string, string>([
     "POST /api/productions/{productionId}/items/{itemId}/sfx-uploads",
     "PUT /api/productions/{productionId}/items/{itemId}/sfx-notes",
   ].map((key): [string, string] => [key, "You can view the SFX, but not change them."]),
-  [
+  ...[
     "PUT /api/productions/{productionId}/items/{itemId}/mic-plot",
-    "You can view the mic plot, but not change it.",
-  ],
+    "PUT /api/productions/{productionId}/items/{itemId}/mic-plot-notes",
+  ].map((key): [string, string] => [key, "You can view the mic plot, but not change it."]),
 ]);
 
 /** The API's answer to a change on the route from someone without the permission it needs. */
@@ -224,7 +226,7 @@ export const PROPS_PERMISSIONS: AnyOf = [STAGE_GROUP, DIRECTOR_GROUP];
 export const SCENERY_PERMISSIONS: AnyOf = [TECH_GROUP, STAGE_GROUP, DIRECTOR_GROUP];
 /** Who may change the SFX files and notes: Tech, or a Director (production-sfx-wardrobe FR1). */
 export const SFX_PERMISSIONS: AnyOf = [TECH_GROUP, DIRECTOR_GROUP];
-/** Who may change the mic plot: Tech, or a Director (production-mics FR1). */
+/** Who may change the mic plot and its notes: Tech, or a Director (production-mics FR1, FR8). */
 export const MIC_PLOT_PERMISSIONS: AnyOf = [TECH_GROUP, DIRECTOR_GROUP];
 /** Who may change the Wardrobe files and notes: Wardrobe, or a Director (production-sfx-wardrobe FR1). */
 export const WARDROBE_PERMISSIONS: AnyOf = [WARDROBE_GROUP, DIRECTOR_GROUP];
@@ -264,6 +266,7 @@ export const routeNeeds: RouteNeeds = {
   "POST /api/productions/{productionId}/items/{itemId}/wardrobe-uploads": WARDROBE_PERMISSIONS,
   "PUT /api/productions/{productionId}/items/{itemId}/wardrobe-notes": WARDROBE_PERMISSIONS,
   "PUT /api/productions/{productionId}/items/{itemId}/mic-plot": MIC_PLOT_PERMISSIONS,
+  "PUT /api/productions/{productionId}/items/{itemId}/mic-plot-notes": MIC_PLOT_PERMISSIONS,
   // Usage is about the team, so only admins read it (usage-tracking FR4).
   "GET /api/usage": "admin",
 };

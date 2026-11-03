@@ -8,6 +8,7 @@ import { dynamoRoleStore } from "#/casting/roles/dynamo-role-store.ts";
 import { fileRoleStore } from "#/casting/roles/role-store.ts";
 import {
   dynamoItemNoteStore,
+  MIC_PLOT_NOTE,
   PROPS_NOTE,
   SCENERY_NOTE,
   SFX_NOTE,
@@ -15,6 +16,7 @@ import {
 } from "#/item-notes/dynamo-item-note-store.ts";
 import {
   fileItemNoteStore,
+  MIC_PLOT_NOTES_FILE,
   PROPS_NOTES_FILE,
   SCENERY_NOTES_FILE,
   SFX_NOTES_FILE,
@@ -80,6 +82,7 @@ export function fileStores(dataDir: string) {
     sceneryNotes: fileItemNoteStore(dataDir, SCENERY_NOTES_FILE),
     sfxNotes: fileItemNoteStore(dataDir, SFX_NOTES_FILE),
     wardrobeNotes: fileItemNoteStore(dataDir, WARDROBE_NOTES_FILE),
+    micPlotNotes: fileItemNoteStore(dataDir, MIC_PLOT_NOTES_FILE),
     micPlots: fileMicPlotStore(dataDir),
   };
 }
@@ -100,6 +103,7 @@ export function remoteStores(db: DynamoDBDocumentClient, table: string): Stores 
     sceneryNotes: dynamoItemNoteStore(db, table, SCENERY_NOTE),
     sfxNotes: dynamoItemNoteStore(db, table, SFX_NOTE),
     wardrobeNotes: dynamoItemNoteStore(db, table, WARDROBE_NOTE),
+    micPlotNotes: dynamoItemNoteStore(db, table, MIC_PLOT_NOTE),
     micPlots: dynamoMicPlotStore(db, table),
   };
 }

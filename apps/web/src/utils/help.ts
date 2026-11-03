@@ -268,7 +268,7 @@ export const pageHelp: PageHelp[] = [
       {
         icons: [icons.micPlot],
         name: "Mic plot",
-        does: "Opens the item's mic plot page, for who wears which microphone. Coming soon.",
+        does: "Opens the item's mic plot page, for who wears which microphone and its notes.",
         access: "everyone",
         changeAccess: "tech",
       },
@@ -433,6 +433,45 @@ export const pageHelp: PageHelp[] = [
     ],
   },
   {
+    page: "mic-plot-item",
+    title: "An item's mic plot",
+    summary:
+      "One item's mics and Mic plot notes. Open an item's mic plot from Production → Overview.",
+    reachedFrom: { page: "production-overview", title: "Production overview" },
+    lines: [
+      {
+        icons: [icons.allItems],
+        name: "All items",
+        does: "Goes back to the Production overview.",
+        access: "everyone",
+      },
+      {
+        icons: [icons.back, icons.forward],
+        name: "Previous and Next",
+        does: "Steps to the item before or after this one in the show.",
+        access: "everyone",
+      },
+      {
+        name: "Mic 1 to Mic 24",
+        does: "Who wears each mic in the item, with the roles they play in it. Type a name to give a mic to only someone cast in the item, one mic each. It saves straight away.",
+        access: "everyone",
+        changeAccess: "tech",
+      },
+      {
+        icons: [icons.remove],
+        name: "Clear",
+        does: "Frees the mic, so no one wears it in the item.",
+        access: "tech",
+      },
+      {
+        name: "Mic plot notes",
+        does: "Anything the tech team needs to know about the item's mics, such as which are on only for songs.",
+        access: "everyone",
+        changeAccess: "tech",
+      },
+    ],
+  },
+  {
     page: "wardrobe-item",
     title: "An item's wardrobe",
     summary:
@@ -494,12 +533,12 @@ export const permissionHelp = [
   { name: "Stage", does: "Changes the Scenery and Props pages." },
   {
     name: "Tech",
-    does: "Changes the Scenery and SFX pages, and the Mic plot page when it comes.",
+    does: "Changes the Scenery, SFX and Mic plot pages.",
   },
   { name: "Wardrobe", does: "Changes what the cast wear in each item: its files and notes." },
   {
     name: "Director",
-    does: "Changes every production department's pages, now and as they come: Scenery, Props, SFX and Wardrobe today. Not the cast, roles, casting or running order, and nothing only admins can do.",
+    does: "Changes every production department's pages, now and as they come: Scenery, Props, SFX, Mic plot and Wardrobe today. Not the cast, roles, casting or running order, and nothing only admins can do.",
   },
   {
     name: "Admins",

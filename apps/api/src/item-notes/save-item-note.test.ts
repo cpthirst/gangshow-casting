@@ -92,6 +92,7 @@ describe("item notes across running-order versions", () => {
       sfxNotes: { keepOnlyItems: async () => {} },
       wardrobeFiles: { keepOnlyItems: async () => {} },
       wardrobeNotes: { keepOnlyItems: async () => {} },
+      micPlotNotes: { keepOnlyItems: async () => {} },
       micPlots: { keepOnlyItems: async () => {} },
     });
     await save(put({ text: "Hat change", revision: 0 }));

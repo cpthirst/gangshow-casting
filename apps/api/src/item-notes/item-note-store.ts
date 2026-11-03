@@ -72,6 +72,8 @@ export const SCENERY_NOTES_FILE = "scenery-notes.json";
 export const SFX_NOTES_FILE = "sfx-notes.json";
 /** The file Wardrobe notes are kept in, apart from the others (production-sfx-wardrobe FR8). */
 export const WARDROBE_NOTES_FILE = "wardrobe-notes.json";
+/** The file Mic plot notes are kept in, apart from the others (production-mics FR8). */
+export const MIC_PLOT_NOTES_FILE = "mic-plot-notes.json";
 
 /** Local file: `<dataDir>/<productionId>/item-notes.json` (git-ignored), or the file named,
  *  created with the first notes. Free text about a production of young people, so kept
