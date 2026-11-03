@@ -213,6 +213,11 @@ async function allocate(channel: number, castMemberId: number | null) {
               <FontAwesomeIcon :icon="icons.remove" />
             </button>
           </span>
+        </template>
+        <!-- The channel's name, then who is on it and their roles under them, in one column,
+             so the roles start where the cast member picker does. -->
+        <div class="mic-body">
+          <template v-if="canChangeMicPlot">
           <label :for="pickerId(mic.channel)" class="mic-name"
             ><span data-test="channel">Mic {{ mic.channel }}</span
             ><span class="visually-hidden"> cast member</span></label
@@ -226,15 +231,16 @@ async function allocate(channel: number, castMemberId: number | null) {
             no-match="No one in this item matches"
             @update:model-value="pick(mic.channel, $event)"
           />
-        </template>
-        <template v-else>
-          <span class="mic-name" data-test="channel">Mic {{ mic.channel }}</span>
-          <span data-test="on-mic">{{ nameOf(mic.castMemberId) || "No one" }}</span>
-        </template>
-        <!-- Their roles in the item, from the casting: shown, never chosen (FR3). -->
-        <span class="mic-roles" data-test="mic-roles">{{
-          micRolesText(place.item.id, mic.castMemberId, roles)
-        }}</span>
+          </template>
+          <template v-else>
+            <span class="mic-name" data-test="channel">Mic {{ mic.channel }}</span>
+            <span data-test="on-mic">{{ nameOf(mic.castMemberId) || "No one" }}</span>
+          </template>
+          <!-- Their roles in the item, from the casting: shown, never chosen (FR3). -->
+          <span class="mic-roles" data-test="mic-roles">{{
+            micRolesText(place.item.id, mic.castMemberId, roles)
+          }}</span>
+        </div>
       </li>
     </ol>
     <p class="visually-hidden" role="status" data-test="mic-status">{{ announcement }}</p>
