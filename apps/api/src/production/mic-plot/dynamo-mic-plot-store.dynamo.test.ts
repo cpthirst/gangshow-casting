@@ -27,6 +27,26 @@ describe("DynamoDB mic plot store", () => {
     await expect(dynamoMicPlotStore(table.db, table.tableName).list("../etc")).rejects.toThrow();
   });
 
+  it("reads a mic saved with a role, which the mic plot doesn't keep, and drops it on the next save", async () => {
+    // As an unreleased build of production-mics E1.S2 saved them.
+    await put({
+      ...micPlotRow("2027", { itemId: "finale", mics: [] }),
+      mics: [{ channel: 3, castMemberId: 1, roleId: 7 }],
+    });
+    const store = dynamoMicPlotStore(table.db, table.tableName);
+
+    expect((await store.list("2027")).items).toEqual([
+      { itemId: "finale", mics: [{ channel: 3, castMemberId: 1 }] },
+    ]);
+    expect(await store.allocate("2027", "finale", 4, 2)).toEqual({
+      itemId: "finale",
+      mics: [
+        { channel: 3, castMemberId: 1 },
+        { channel: 4, castMemberId: 2 },
+      ],
+    });
+  });
+
   it("refuses a stored mic plot that isn't valid", async () => {
     await put({
       ...micPlotRow("2027", { itemId: "finale", mics: [] }),

@@ -1,4 +1,4 @@
-import { ItemMicPlot, MicPlotList } from "@app/shared";
+import { type ItemMicPlot, StoredItemMicPlot, StoredMicPlotList } from "@app/shared";
 import {
   DeleteCommand,
   type DynamoDBDocumentClient,
@@ -50,7 +50,7 @@ export function dynamoMicPlotStore(db: DynamoDBDocumentClient, tableName: string
       }),
     );
     if (!Item) return { plot: { itemId, mics: [] }, revision: 0 };
-    const plot = ItemMicPlot.safeParse({ itemId: Item.itemId, mics: Item.mics });
+    const plot = StoredItemMicPlot.safeParse({ itemId: Item.itemId, mics: Item.mics });
     if (!plot.success) throw new Error(`Mic plot for production ${productionId} is invalid`);
     return { plot: plot.data, revision: Number(Item.revision) };
   }
@@ -80,7 +80,7 @@ export function dynamoMicPlotStore(db: DynamoDBDocumentClient, tableName: string
     async list(productionId) {
       const rows = await queryAll(db, tableName, productionId, MIC_PLOT);
       const items = rows.map(({ itemId, mics }) => ({ itemId, mics }));
-      const parsed = MicPlotList.safeParse({ productionId, items });
+      const parsed = StoredMicPlotList.safeParse({ productionId, items });
       if (!parsed.success) throw new Error(`Mic plot for production ${productionId} is invalid`);
       return parsed.data;
     },

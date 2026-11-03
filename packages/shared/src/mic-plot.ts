@@ -41,6 +41,24 @@ export const MicPlotList = z.strictObject({
 });
 
 /**
+ * An item's mic plot as a store reads it back: any field it doesn't keep is dropped rather
+ * than refused, such as a role on a mic saved by an unreleased build (production-mics E1.S2),
+ * then held to every rule ItemMicPlot keeps. The next save writes it without them. Once no
+ * stored mic plot has such a field, stores can read with ItemMicPlot again.
+ */
+export const StoredItemMicPlot = z
+  .object({
+    itemId: RunningOrderItem.shape.id,
+    mics: z.array(z.object(MicAllocation.shape)).max(MIC_CHANNELS),
+  })
+  .pipe(ItemMicPlot);
+
+/** Every item's mic plot as a store reads it back (see StoredItemMicPlot). */
+export const StoredMicPlotList = MicPlotList.extend({
+  items: z.array(StoredItemMicPlot).max(1000),
+});
+
+/**
  * PUT /api/productions/{productionId}/items/{itemId}/mic-plot: give the channel to a cast
  * member cast in the item, or free it with null. 200 returns the item's ItemMicPlot; 400 for
  * a channel outside 1 to 24 or someone not cast in the item; 409, with the item's plot as it
