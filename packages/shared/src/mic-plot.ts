@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { CastMember } from "./cast.ts";
-import { ProductionId, RunningOrderItem } from "./running-order.ts";
+import { ProductionId, type RunningOrder, RunningOrderItem } from "./running-order.ts";
 
 /** The show's radio mic channels, Mic 1 to Mic 24: always this many (production-mics FR2). */
 export const MIC_CHANNELS = 24;
@@ -59,11 +59,28 @@ export const StoredMicPlotList = MicPlotList.extend({
 });
 
 /**
+ * Who had each channel in the item directly before this one, in the same half, by channel.
+ * No one else can have that channel in this item, however short it is; the one who had it
+ * can keep it (production-mics FR5). The first item of each half has nothing held, as the
+ * rule resets at the interval (FR6).
+ */
+export function channelsHeldBefore(
+  order: RunningOrder,
+  plots: ItemMicPlot[],
+  itemId: string,
+): Map<number, number> {
+  const items = order.halves.find((half) => half.items.some((item) => item.id === itemId))?.items;
+  const before = items?.[items.findIndex((item) => item.id === itemId) - 1];
+  const plot = plots.find((p) => p.itemId === before?.id);
+  return new Map(plot?.mics.map((mic) => [mic.channel, mic.castMemberId]));
+}
+
+/**
  * PUT /api/productions/{productionId}/items/{itemId}/mic-plot: give the channel to a cast
  * member cast in the item, or free it with null. 200 returns the item's ItemMicPlot; 400 for
- * a channel outside 1 to 24 or someone not cast in the item; 409, with the item's plot as it
- * is now, if they're already on another of its channels; 404 if the item isn't in the latest
- * saved running order.
+ * a channel outside 1 to 24, someone not cast in the item, or a channel someone else had in
+ * the item before (channelsHeldBefore); 409, with the item's plot as it is now, if they're
+ * already on another of its channels; 404 if the item isn't in the latest saved running order.
  */
 export const AllocateMicRequest = z.strictObject({
   channel: MicChannel,

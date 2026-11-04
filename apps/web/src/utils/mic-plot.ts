@@ -42,12 +42,20 @@ export function castInItem(itemId: string, roles: Role[], cast: CastMember[]) {
 }
 
 /** Who can be chosen for the channel: the item's cast, but for anyone on another of its
- *  channels (production-mics FR4). */
-export function choicesFor(channel: number, itemCast: CastMember[], plot: ItemMicPlot | undefined) {
+ *  channels (production-mics FR4), and only whoever had it in the item before, if anyone did
+ *  (FR5; see channelsHeldBefore). */
+export function choicesFor(
+  channel: number,
+  itemCast: CastMember[],
+  plot: ItemMicPlot | undefined,
+  heldBy?: number,
+) {
   const elsewhere = new Set(
     plot?.mics.filter((mic) => mic.channel !== channel).map((mic) => mic.castMemberId),
   );
-  return itemCast.filter((member) => !elsewhere.has(member.id));
+  return itemCast.filter(
+    (member) => !elsewhere.has(member.id) && (heldBy === undefined || member.id === heldBy),
+  );
 }
 
 /** A mic's role, as plain text: every role its cast member plays in the item, ensembles too,

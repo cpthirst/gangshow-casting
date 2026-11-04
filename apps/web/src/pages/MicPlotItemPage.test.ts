@@ -488,6 +488,130 @@ describe("An item's Mic plot page", () => {
     },
   );
 
+  describe("with a channel used in the item before", () => {
+    // Made-up items: Opening Number, Space Sketch, a 1-minute Link and Act 1 Finale, then
+    // Entr'acte after the interval. Space Sketch's and Link's cast are in `casting`'s mould.
+    const actsShow = aRunningOrder(
+      [
+        anItem("Opening Number"),
+        anItem("Space Sketch"),
+        anItem("Link", { minutes: 1 }),
+        anItem("Act 1 Finale"),
+      ],
+      [anItem("Entr'acte", { id: "entracte" })],
+    );
+    const LINK = "/production/items/link/mic-plot";
+    const ENTRACTE = "/production/items/entracte/mic-plot";
+    // Alex isn't in Space Sketch here: only Sam and Jo are.
+    const withoutAlexInSpace = casting.filter(
+      (role) => !(role.itemId === "space-sketch" && role.castMemberIds.includes(alex.id)),
+    );
+    const everyoneIn = (itemId: string, id: number) =>
+      aRole(id, itemId, "Chorus", [alex.id, sam.id, jo.id]);
+    const alexOnMic1In = (itemId: string) => ({
+      itemId,
+      mics: [{ channel: 1, castMemberId: alex.id }],
+    });
+
+    const row = (wrapper: VueWrapper, mic: number) =>
+      wrapper.findAll("main [data-test=mic]")[mic - 1];
+    /** Greyed out and disabled, saying why in words and in the picker's accessible name. */
+    function isHeld(wrapper: VueWrapper, mic: number) {
+      const picker = pickerFor(wrapper, mic);
+      const label = wrapper.get(`label[for='${picker.attributes("id")}']`).text();
+      return (
+        picker.element.disabled &&
+        label === `Mic ${mic} cast member, used in previous item` &&
+        row(wrapper, mic)?.classes().includes("mic-held") === true &&
+        row(wrapper, mic)?.get("[data-test=mic-held]").text() === "Used in previous item"
+      );
+    }
+
+    it("greys out and disables a channel someone not in the item had in the item before", async () => {
+      await signInAs(["tech"], "lee");
+      apiHolds(actsShow, [alexOnMic1In("opening-number")], undefined, withoutAlexInSpace);
+      const { wrapper } = await openAppAt(SPACE_SKETCH);
+
+      expect(isHeld(wrapper, 1)).toBe(true);
+      expect(isHeld(wrapper, 2)).toBe(false);
+      expect(await offered(wrapper, 2, "e")).toEqual(["Sam Patel", "Jo Reed"]);
+    });
+
+    it("lets lee give the channel back to the cast member who had it, offering no one else", async () => {
+      await signInAs(["tech"], "lee");
+      apiHolds(actsShow, [alexOnMic1In("opening-number")]);
+      const { wrapper } = await openAppAt(SPACE_SKETCH);
+
+      expect(await offered(wrapper, 1, "e")).toEqual(["Alex Morgan"]);
+      await give(wrapper, 1, "Alex Morgan");
+
+      expect(puts().map((put) => put.body)).toEqual([{ channel: 1, castMemberId: alex.id }]);
+      expect(whoIsOn(wrapper, 1)).toBe("Alex Morgan");
+      expect(isHeld(wrapper, 1)).toBe(false);
+    });
+
+    it("holds the channel in a 1-minute item too, for anyone but who had it", async () => {
+      await signInAs(["tech"], "lee");
+      const roles = [...casting, everyoneIn("link", 9)];
+      apiHolds(
+        actsShow,
+        [{ itemId: "space-sketch", mics: [{ channel: 2, castMemberId: sam.id }] }],
+        undefined,
+        roles,
+      );
+      const { wrapper } = await openAppAt(LINK);
+
+      expect(await offered(wrapper, 2, "e")).toEqual(["Sam Patel"]);
+    });
+
+    it("holds no channel in the first item of the show", async () => {
+      await signInAs(["tech"], "lee");
+      apiHolds(actsShow, [alexOnMic1In("act-1-finale"), alexOnMic1In("entracte")]);
+      const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+      for (let mic = 1; mic <= 24; mic++) expect(isHeld(wrapper, mic)).toBe(false);
+      expect(await offered(wrapper, 1, "e")).toEqual(["Alex Morgan", "Sam Patel"]);
+    });
+
+    it("holds no channel in the first item after the interval", async () => {
+      await signInAs(["tech"], "lee");
+      const roles = [...casting, everyoneIn("entracte", 9)];
+      apiHolds(actsShow, [alexOnMic1In("act-1-finale")], undefined, roles);
+      const { wrapper } = await openAppAt(ENTRACTE);
+
+      expect(isHeld(wrapper, 1)).toBe(false);
+      await give(wrapper, 1, "Jo Reed");
+      expect(whoIsOn(wrapper, 1)).toBe("Jo Reed");
+    });
+
+    it("lets lee give Jo Reed a mic they had two items back, with nothing else to do", async () => {
+      await signInAs(["tech"], "lee");
+      const roles = [...casting, everyoneIn("link", 9)];
+      apiHolds(
+        actsShow,
+        [{ itemId: "opening-number", mics: [{ channel: 5, castMemberId: jo.id }] }],
+        undefined,
+        roles,
+      );
+      const { wrapper } = await openAppAt(LINK);
+
+      await give(wrapper, 5, "Jo Reed");
+
+      expect(puts().map((put) => put.body)).toEqual([{ channel: 5, castMemberId: jo.id }]);
+      expect(whoIsOn(wrapper, 5)).toBe("Jo Reed");
+    });
+
+    it("shows kim, without Tech or Director, that the channel was used in the item before", async () => {
+      await signInAs(["casting", "stage", "wardrobe"], "kim");
+      apiHolds(actsShow, [alexOnMic1In("opening-number")], undefined, withoutAlexInSpace);
+      const { wrapper } = await openAppAt(SPACE_SKETCH);
+
+      expect(row(wrapper, 1)?.get("[data-test=on-mic]").text()).toBe("Used in previous item");
+      expect(row(wrapper, 1)?.classes()).toContain("mic-held");
+      expect(row(wrapper, 2)?.get("[data-test=on-mic]").text()).toBe("No one");
+    });
+  });
+
   it("saves lee's Mic plot notes under the channels, which everyone then sees, apart from other items'", async () => {
     await signInAs(["tech"], "lee");
     micPlotNotes.push({ itemId: "finale", text: "Radio mics only", revision: 1 });

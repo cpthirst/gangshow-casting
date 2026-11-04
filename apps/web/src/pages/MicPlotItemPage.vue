@@ -2,6 +2,7 @@
 import {
   CastList,
   type CastMember,
+  channelsHeldBefore,
   ItemMicPlot,
   MicPlotList,
   type Role,
@@ -34,8 +35,9 @@ import { type CastMemberChoice, fullName, ROLES_PATH } from "@/utils/roles.ts";
 import { neighboursOf, placeOf, positionOf, RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
 
 // One item's mic plot: Mic 1 to Mic 24, each given to a cast member in the item or free, with
-// the roles they play there (production-mics FR2, FR3, FR4), and the item's Mic plot notes
-// under them (FR8), laid out as the other department item pages.
+// the roles they play there (production-mics FR2, FR3, FR4), a channel someone had in the item
+// before held for them (FR5, FR6), and the item's Mic plot notes under them (FR8), laid out as
+// the other department item pages.
 
 const route = useRoute();
 const order = ref<RunningOrder>();
@@ -74,9 +76,25 @@ const channels = computed(() =>
       : mic,
   ),
 );
+/** Who had each channel in the item before: no one else can have it here. */
+const heldBefore = computed(() =>
+  order.value && place.value
+    ? channelsHeldBefore(order.value, plots.value, place.value.item.id)
+    : new Map<number, number>(),
+);
 const itemCast = computed(() =>
   place.value ? castInItem(place.value.item.id, roles.value, cast.value) : [],
 );
+/** Who can be given the channel here. */
+const choicesOn = (channel: number) =>
+  choicesFor(channel, itemCast.value, plot.value, heldBefore.value.get(channel));
+/** A free channel no one can have, as someone else had it in the item before: greyed out.
+ *  Those who can't change the plot see any held channel this way, even one its holder could
+ *  keep: there's nothing for them to choose. */
+const isHeld = (mic: { channel: number; castMemberId: number | null }) =>
+  mic.castMemberId === null &&
+  heldBefore.value.has(mic.channel) &&
+  (!canChangeMicPlot.value || choicesOn(mic.channel).length === 0);
 const nameOf = (castMemberId: number | null) => {
   const member = cast.value.find((m) => m.id === castMemberId);
   return member ? fullName(member) : "";
@@ -203,6 +221,7 @@ async function allocate(channel: number, castMemberId: number | null) {
         v-for="mic in channels"
         :key="mic.channel"
         class="role-card mic-channel"
+        :class="{ 'mic-held': isHeld(mic) }"
         data-test="mic"
         @focusout="leave(mic.channel)"
       >
@@ -225,23 +244,31 @@ async function allocate(channel: number, castMemberId: number | null) {
              so the roles start where the cast member picker does. -->
         <div class="mic-body">
           <template v-if="canChangeMicPlot">
+          <!-- Why a held channel is disabled is in its name, as well as shown under it. -->
           <label :for="pickerId(mic.channel)" class="mic-name"
             ><span data-test="channel">Mic {{ mic.channel }}</span
-            ><span class="visually-hidden"> cast member</span></label
+            ><span class="visually-hidden"
+              > cast member{{ isHeld(mic) ? ", used in previous item" : "" }}</span
+            ></label
           >
           <CastMemberPicker
             :model-value="choiceFor(mic.channel, mic.castMemberId)"
-            :cast="choicesFor(mic.channel, itemCast, plot)"
+            :cast="choicesOn(mic.channel)"
             :name="`mic-${mic.channel}`"
             :input-id="pickerId(mic.channel)"
-            :disabled="saving !== undefined"
+            :disabled="saving !== undefined || isHeld(mic)"
             no-match="No one in this item matches"
             @update:model-value="pick(mic.channel, $event)"
           />
+          <span v-if="isHeld(mic)" class="mic-held-reason" aria-hidden="true" data-test="mic-held"
+            >Used in previous item</span
+          >
           </template>
           <template v-else>
             <span class="mic-name" data-test="channel">Mic {{ mic.channel }}</span>
-            <span data-test="on-mic">{{ nameOf(mic.castMemberId) || "No one" }}</span>
+            <span data-test="on-mic">{{
+              isHeld(mic) ? "Used in previous item" : nameOf(mic.castMemberId) || "No one"
+            }}</span>
           </template>
           <!-- Their roles in the item, from the casting: shown, never chosen (FR3). -->
           <span class="mic-roles" data-test="mic-roles">{{
