@@ -1,5 +1,6 @@
-import { CastList, ItemNoteList, PropList, RoleList, RunningOrder } from "@app/shared";
+import { CastList, ItemNoteList, MicPlotList, PropList, RoleList, RunningOrder } from "@app/shared";
 import { CAST_PATH } from "@/utils/cast.ts";
+import { MIC_PLOT_NOTES_PATH, MIC_PLOT_PATH, micPlotListOf } from "@/utils/mic-plot.ts";
 import { PROPS_PATH, propsListOf } from "@/utils/props.ts";
 import { PROPS_NOTES_PATH } from "@/utils/props-notes.ts";
 import { ROLES_PATH } from "@/utils/roles.ts";
@@ -41,6 +42,25 @@ export async function latestPropsList() {
     halves: propsListOf({
       ...show,
       props: PropList.parse(props).props,
+      notes: ItemNoteList.parse(notes).notes,
+    }),
+  };
+}
+
+/** The production and its mic plot as saved right now, with the casting as it is at that
+ *  moment (production-mics FR14). Throws if anything it needs can't be loaded. */
+export async function latestMicPlot() {
+  const [show, plots, notes] = await Promise.all([
+    latestShow(),
+    getJson(MIC_PLOT_PATH),
+    getJson(MIC_PLOT_NOTES_PATH),
+  ]);
+  return {
+    title: show.order.title,
+    productionId: show.order.productionId,
+    halves: micPlotListOf({
+      ...show,
+      plots: MicPlotList.parse(plots).items,
       notes: ItemNoteList.parse(notes).notes,
     }),
   };

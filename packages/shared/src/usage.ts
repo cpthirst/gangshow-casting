@@ -45,6 +45,7 @@ export const UsageExport = z.enum([
   "word-casting-sheets",
   "word-item-overview",
   "word-props-list",
+  "excel-mic-plot",
 ]);
 
 const itemOnly = {
@@ -90,6 +91,7 @@ export const UsageFeature = z.enum([
   "export-word-casting-sheets",
   "export-word-item-overview",
   "export-word-props-list",
+  "export-excel-mic-plot",
 ]);
 
 /** What a use is a use of; a session isn't a use of anything. */

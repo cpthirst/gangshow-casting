@@ -36,6 +36,7 @@ prd: ./prd.md
 | [casting-overview-grid.E3.S2](stories/E3-S2-admin-export.md) | An admin sees "Export to Excel" on the grid and downloads a file named for the production and date, with first name, last name, section and a role-size letter per filled cell; other users see no button and the server refuses them | FR12, FR13, FR14 | E2.S1, E3.S1 | done |
 | [casting-overview-grid.E3.S3](stories/E3-S3-export-colours.md) | Each filled cell in the exported file also carries the colour fill matching the grid | FR13 | E3.S2 | done |
 | [casting-overview-grid.E3.S4](stories/E3-S4-export-for-everyone.md) | Every team role can export, from an "Export to Excel" button with an icon beside the By person / Grid switch (ADR 0021) | FR12 | E3.S2, team-roles.E5.S2 | done |
+| [casting-overview-grid.E3.S5](stories/E3-S5-grid-export-in-the-browser.md) | Export to Excel builds the same file in the browser, as the Mic Plot workbook is (ADR 0033), and the API's export route and its read-only exception go | FR12, FR13, FR14 | E3.S4 | draft |
 
 ## FR coverage
 

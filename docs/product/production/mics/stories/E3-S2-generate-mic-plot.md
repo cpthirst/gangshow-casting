@@ -2,7 +2,7 @@
 id: production-mics.E3.S2
 title: Generate the Mic Plot workbook from the Overview
 epic: E3
-status: ready
+status: done
 ---
 
 ## Story
@@ -67,3 +67,6 @@ Then Generate Mic Plot isn't offered, as Generate Props List isn't
 - May need a spreadsheet library. Choosing it belongs to this story, with an ADR if it's a runtime dependency, and the security review for the new dependency.
 - The 2026 Mic Plot is the layout reference only. It holds real names and is never committed; tests use made-up names (PRD security).
 - Out of scope: Help text about the workbook (E3.S3).
+- Decision: [ADR 0033](../../../../adr/0033-mic-plot-workbook-built-in-the-browser.md): built in the browser with `write-excel-file`, loaded only when used, as the Word exports are.
+- AC8: at the maintainer's choice (2026-11-05), the Usage page names the feature "Generate Mic Plot", after its button, and the activity reads "generated the Mic Plot".
+- Follow-up: [casting-overview-grid.E3.S5](../../../casting/overview/grid/stories/E3-S5-grid-export-in-the-browser.md) moves the casting grid's Excel export to the browser too, at the maintainer's request.

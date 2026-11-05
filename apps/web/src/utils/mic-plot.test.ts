@@ -1,6 +1,7 @@
 import type { CastMember, Role } from "@app/shared";
 import { describe, expect, it } from "vitest";
-import { castInItem, channelsOf, choicesFor, micRolesText } from "./mic-plot.ts";
+import { castInItem, channelsOf, choicesFor, micPlotListOf, micRolesText } from "./mic-plot.ts";
+import { anItem, aRunningOrder } from "./running-order.fixture.ts";
 
 // Made-up cast: Alex Morgan and Sam Patel are in Opening Number; Jo Reed only in the Finale.
 const aMember = (id: number, firstName: string, lastName: string): CastMember => ({
@@ -93,5 +94,51 @@ describe("micRolesText", () => {
 
   it("is nothing for a free mic", () => {
     expect(micRolesText("space-sketch", null, [aRole(1, "space-sketch", [alex.id])])).toBe("");
+  });
+});
+
+describe("micPlotListOf", () => {
+  const order = aRunningOrder(
+    [anItem("Opening Number"), anItem("Space Sketch")],
+    [anItem("Finale")],
+  );
+  const alien: Role = { ...aRole(1, "space-sketch", [alex.id]), name: "Alien 1", size: "lead" };
+  const show = {
+    order,
+    cast: [alex, sam, jo],
+    roles: [alien, aRole(2, "space-sketch", [jo.id])],
+    plots: [
+      {
+        itemId: "space-sketch",
+        mics: [
+          { channel: 1, castMemberId: alex.id },
+          { channel: 20, castMemberId: jo.id },
+        ],
+      },
+    ],
+    notes: [{ itemId: "space-sketch", text: "Mics 19–24 on for songs only", revision: 1 }],
+  };
+
+  it("lists each half's items in running order", () => {
+    expect(micPlotListOf(show).map((half) => half.map((item) => item.title))).toEqual([
+      ["Opening Number", "Space Sketch"],
+      ["Finale"],
+    ]);
+  });
+
+  it("gives every item all 24 channels, each with who is on it and their roles, blank when free", () => {
+    const [, sketch] = micPlotListOf(show)[0] ?? [];
+
+    expect(sketch?.mics).toHaveLength(24);
+    expect(sketch?.mics[0]).toEqual({ name: "Alex Morgan", role: "Alien 1" });
+    expect(sketch?.mics[19]).toEqual({ name: "Jo Reed", role: "Role 2" });
+    expect(sketch?.mics[1]).toEqual({ name: "", role: "" });
+  });
+
+  it("holds each item's Mic plot notes, and none for an item without", () => {
+    const [opening, sketch] = micPlotListOf(show)[0] ?? [];
+
+    expect(sketch?.notes).toBe("Mics 19–24 on for songs only");
+    expect(opening?.notes).toBe("");
   });
 });

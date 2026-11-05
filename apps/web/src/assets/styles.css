@@ -1897,6 +1897,11 @@ main a {
   color: #1d3d6b;
 }
 
+/* Side by side at the end of the row, as on the Overview. */
+.word-export-button + .grid-export-button {
+  margin-left: 0;
+}
+
 .grid-export-button:hover:not(:disabled) {
   border-color: #1b5e20;
   color: #1b5e20;

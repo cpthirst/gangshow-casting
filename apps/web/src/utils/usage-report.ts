@@ -40,11 +40,14 @@ const viewNames: Record<PageView, [page: string, view: string]> = {
   grid: ["the Overview", "Grid"],
 };
 
-const exportNames: Record<UsageExport, string> = {
-  "excel-grid": "the Excel grid",
-  "word-casting-sheets": "the Word casting sheets",
-  "word-item-overview": "the Word item overview",
-  "word-props-list": "the Word props list",
+/** Each export, as the activity says it was made. */
+const exportActivity: Record<UsageExport, string> = {
+  "excel-grid": "exported the Excel grid",
+  "word-casting-sheets": "exported the Word casting sheets",
+  "word-item-overview": "exported the Word item overview",
+  "word-props-list": "exported the Word props list",
+  // Said as its button and feature are.
+  "excel-mic-plot": "generated the Mic Plot",
 };
 
 /** Each department's item page, as the activity names it, with its article for "opened a…". */
@@ -92,7 +95,7 @@ export function whatHappened(entry: RecordUsageRequest, titles: Titles) {
         : `opened ${aPage} of an item no longer in the running order`;
     }
     case "export":
-      return `exported ${exportNames[entry.export]}`;
+      return exportActivity[entry.export];
   }
 }
 
@@ -112,6 +115,8 @@ const otherNames: Record<OtherFeature, string> = {
   "export-word-casting-sheets": "Export: Word casting sheets",
   "export-word-item-overview": "Export: Word item overview",
   "export-word-props-list": "Export: Word props list",
+  // Named for its button, at the maintainer's choice (production-mics E3.S2).
+  "export-excel-mic-plot": "Generate Mic Plot",
 };
 
 const isOtherFeature = (feature: UsageFeature): feature is OtherFeature =>
