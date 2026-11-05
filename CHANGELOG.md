@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.42.0](https://github.com/cpthirst/gangshow-casting/compare/v1.41.0...v1.42.0) (2026-11-05)
+
+
+### Features
+
+* **web:** flag a mic kept against the rule after a reorder, clearable only (production-mics.E2.S2) ([#183](https://github.com/cpthirst/gangshow-casting/issues/183)) ([c1167e7](https://github.com/cpthirst/gangshow-casting/commit/c1167e765fd7b7eb16a66ab445776a5c126df9f0))
+
 ## [1.41.0](https://github.com/cpthirst/gangshow-casting/compare/v1.40.0...v1.41.0) (2026-11-05)
 
 
