@@ -21,6 +21,7 @@ import ItemStepNav from "@/components/common/ItemStepNav.vue";
 import ReadOnlyNotice from "@/components/common/ReadOnlyNotice.vue";
 import { showPageTitle } from "@/router/index.ts";
 import { apiFetch, canChangeMicPlot } from "@/services/sign-in.ts";
+import { recordDepartmentPageUse } from "@/services/usage.ts";
 import { CAST_PATH } from "@/utils/cast.ts";
 import { icons } from "@/utils/icons.ts";
 import {
@@ -122,6 +123,14 @@ const nameOf = (castMemberId: number | null) => {
   const member = cast.value.find((m) => m.id === castMemberId);
   return member ? fullName(member) : "";
 };
+
+// Each visit is a use, once the item is found; what's done with its mics isn't (FR16).
+watch(
+  () => place.value?.item.id,
+  (id) => {
+    if (order.value && id) recordDepartmentPageUse("mic-plot", order.value.productionId, id);
+  },
+);
 
 // Follows the item even if the page is reused for another one (Previous and Next).
 watchEffect(() => {

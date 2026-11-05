@@ -7,6 +7,7 @@ import {
 } from "@app/shared";
 import { sortCast } from "./cast.ts";
 import type { ClashLine } from "./clashes.ts";
+import { countInWords } from "./departments.ts";
 import { sortRoles } from "./roles.ts";
 
 // Only one production for now (see docs/product/running-order/prd.md).
@@ -90,4 +91,22 @@ export function keptMicError(
     severity: "error",
     text: `Error: back-to-back mic. Mic ${channel} is ${nameOf(heldBy)}'s in '${items.before}', then ${nameOf(castMemberId)}'s in '${items.current}'`,
   };
+}
+
+/** An item's mic count on the Overview: its channels given out, "6" over "mics", read as
+ *  "6 mics" (production-mics FR12). A channel kept against the rule still counts. */
+export const micsCount = (mics: number) =>
+  countInWords(mics, "mic", "mics", (word) => `${mics} ${word}`);
+
+/** An item's channels kept against the rule, summed up for its Error icon on the Overview as
+ *  a casting clash is on the Items list, with the channels in place of people: "1 error:
+ *  Mic 1" (production-mics FR10). None when there are none. */
+export function keptMicsSummary(kept: KeptAgainstTheRule[]): ClashLine[] {
+  if (kept.length === 0) return [];
+  const errors = `${kept.length} ${kept.length === 1 ? "error" : "errors"}`;
+  const channels = kept
+    .map((mic) => mic.channel)
+    .sort((a, b) => a - b)
+    .map((channel) => `Mic ${channel}`);
+  return [{ severity: "error", text: `${errors}: ${channels.join(", ")}` }];
 }

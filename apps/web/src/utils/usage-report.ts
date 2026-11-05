@@ -48,9 +48,10 @@ const exportNames: Record<UsageExport, string> = {
 };
 
 /** Each department's item page, as the activity names it, with its article for "opened a…". */
-const departmentPageNames: Record<FileDepartment, { name: string; aPage: string }> = {
+const departmentPageNames: Record<FileDepartment | "mic-plot", { name: string; aPage: string }> = {
   scenery: { name: "Scenery", aPage: "a Scenery page" },
   sfx: { name: "SFX", aPage: "an SFX page" },
+  "mic-plot": { name: "Mic plot", aPage: "a Mic plot page" },
   wardrobe: { name: "Wardrobe", aPage: "a Wardrobe page" },
 };
 
@@ -81,6 +82,7 @@ export function whatHappened(entry: RecordUsageRequest, titles: Titles) {
     }
     case "scenery":
     case "sfx":
+    case "mic-plot":
     case "wardrobe": {
       const { name, aPage } = departmentPageNames[entry.event];
       const title = titles.item(entry.productionId, entry.itemId);
@@ -104,6 +106,7 @@ const otherNames: Record<OtherFeature, string> = {
   "item-page": "Item pages",
   "scenery-page": "Scenery pages",
   "sfx-page": "SFX pages",
+  "mic-plot-page": "Mic plot pages",
   "wardrobe-page": "Wardrobe pages",
   "export-excel-grid": "Export: Excel grid",
   "export-word-casting-sheets": "Export: Word casting sheets",

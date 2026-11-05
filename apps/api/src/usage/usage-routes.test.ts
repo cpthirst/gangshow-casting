@@ -104,7 +104,7 @@ describe("recording usage", () => {
     ]);
   });
 
-  it.each(["sfx", "wardrobe"] as const)(
+  it.each(["sfx", "mic-plot", "wardrobe"] as const)(
     "records an item's %s page apart from its other pages, naming only the item",
     async (event) => {
       const { store, record } = setUp();
@@ -266,20 +266,21 @@ describe("reading usage", () => {
     expect(features).toContainEqual({ feature: "item-page", uses: 0, people: 0 });
   });
 
-  it("counts SFX and Wardrobe page visits each as their own, apart from Scenery and Item pages", async () => {
-    const visit = (event: "sfx" | "wardrobe") => ({
+  it("counts SFX, Mic plot and Wardrobe page visits each as their own, apart from Scenery and Item pages", async () => {
+    const visit = (event: "sfx" | "mic-plot" | "wardrobe") => ({
       username: "lee",
       event,
       productionId: "2027",
       itemId: "opening-number",
       at: daysAgo(1),
     });
-    const { summary } = setUp([visit("sfx"), visit("wardrobe")]);
+    const { summary } = setUp([visit("sfx"), visit("mic-plot"), visit("wardrobe")]);
 
     const { people, features } = await summary();
 
-    expect(people[0]?.uses).toEqual({ "sfx-page": 1, "wardrobe-page": 1 });
+    expect(people[0]?.uses).toEqual({ "sfx-page": 1, "mic-plot-page": 1, "wardrobe-page": 1 });
     expect(features).toContainEqual({ feature: "sfx-page", uses: 1, people: 1 });
+    expect(features).toContainEqual({ feature: "mic-plot-page", uses: 1, people: 1 });
     expect(features).toContainEqual({ feature: "wardrobe-page", uses: 1, people: 1 });
     expect(features).toContainEqual({ feature: "scenery-page", uses: 0, people: 0 });
     expect(features).toContainEqual({ feature: "item-page", uses: 0, people: 0 });
@@ -362,6 +363,7 @@ describe("reading usage", () => {
       "item-page",
       "scenery-page",
       "sfx-page",
+      "mic-plot-page",
       "wardrobe-page",
       "export-excel-grid",
       "export-word-casting-sheets",

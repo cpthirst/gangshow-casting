@@ -249,13 +249,14 @@ describe("Usage page", () => {
     ]);
   });
 
-  it("shows SFX and Wardrobe pages apart from Scenery and Item pages, per person and in the totals", async () => {
+  it("shows SFX, Mic plot and Wardrobe pages apart from Scenery and Item pages, per person and in the totals", async () => {
     serve({
       recordedSince: "2026-10-01T18:00:00.000Z",
       features: [
         { feature: "item-page", uses: 0, people: 0 },
         { feature: "scenery-page", uses: 0, people: 0 },
         { feature: "sfx-page", uses: 1, people: 1 },
+        { feature: "mic-plot-page", uses: 1, people: 1 },
         { feature: "wardrobe-page", uses: 1, people: 1 },
       ],
       people: [
@@ -263,7 +264,7 @@ describe("Usage page", () => {
           username: "robin",
           sessions: 1,
           lastSession: "2026-10-20T18:00:00.000Z",
-          uses: { "sfx-page": 1, "wardrobe-page": 1 },
+          uses: { "sfx-page": 1, "mic-plot-page": 1, "wardrobe-page": 1 },
         },
       ],
     });
@@ -274,12 +275,13 @@ describe("Usage page", () => {
       "robin",
       "1",
       "20 October 2026",
-      ["SFX pages 1", "Wardrobe pages 1"],
+      ["SFX pages 1", "Mic plot pages 1", "Wardrobe pages 1"],
     ]);
     expect(totals(wrapper)).toEqual([
       ["Item pages", "0", "0"],
       ["Scenery pages", "0", "0"],
       ["SFX pages", "1", "1"],
+      ["Mic plot pages", "1", "1"],
       ["Wardrobe pages", "1", "1"],
     ]);
   });
@@ -529,6 +531,7 @@ describe("Usage page", () => {
 
     it.each([
       ["sfx", "SFX"],
+      ["mic-plot", "Mic plot"],
       ["wardrobe", "Wardrobe"],
     ] as const)("names an item's %s page by the item's title", async (event, page) => {
       const order = aRunningOrder([anItem("Opening Number")]);
@@ -546,6 +549,7 @@ describe("Usage page", () => {
 
     it.each([
       ["sfx", "an SFX page"],
+      ["mic-plot", "a Mic plot page"],
       ["wardrobe", "a Wardrobe page"],
     ] as const)(
       "says the item of %s's page is no longer in the running order",
@@ -568,6 +572,7 @@ describe("Usage page", () => {
 
     it.each([
       ["sfx", "SFX"],
+      ["mic-plot", "Mic plot"],
       ["wardrobe", "Wardrobe"],
     ] as const)(
       "still lists %s page use when the running order can't be loaded",
