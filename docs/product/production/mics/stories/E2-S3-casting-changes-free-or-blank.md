@@ -2,7 +2,7 @@
 id: production-mics.E2.S3
 title: Keep the mic plot in step with casting
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story

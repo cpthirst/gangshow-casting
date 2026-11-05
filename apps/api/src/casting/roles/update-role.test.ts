@@ -1,5 +1,6 @@
 import { AddRoleRefusal, Role, type RoleList } from "@app/shared";
 import { describe, expect, it } from "vitest";
+import { inMemoryMicPlotStore } from "#/production/mic-plot/mic-plot-store.ts";
 import { inMemoryPropStore } from "#/production/props/prop-store.ts";
 import { aCastList, aCastMember } from "#/show/cast/cast.fixture.ts";
 import { inMemoryCastStore } from "#/show/cast/cast-store.ts";
@@ -27,8 +28,10 @@ function setUp() {
   };
   const roles = inMemoryRoleStore([initial]);
   const cast = inMemoryCastStore([aCastList([aCastMember(12), aCastMember(13)])]);
-  return { roles, initial, handler: createUpdateRole(roles, cast, inMemoryPropStore()) };
+  return { roles, initial, handler: createUpdateRole(roles, cast, noFollowers()) };
 }
+
+const noFollowers = () => ({ props: inMemoryPropStore(), micPlots: inMemoryMicPlotStore() });
 
 const mrSmee = { name: "Mr Smee", size: "lead", castMemberIds: [12], revision: 2 };
 
@@ -99,7 +102,7 @@ describe("update role handler for ensembles", () => {
   const handlerFor = (initial: RoleList) => {
     const roles = inMemoryRoleStore([initial]);
     const cast = inMemoryCastStore([aCastList([aCastMember(12), aCastMember(13)])]);
-    return { roles, handler: createUpdateRole(roles, cast, inMemoryPropStore()) };
+    return { roles, handler: createUpdateRole(roles, cast, noFollowers()) };
   };
 
   it("refuses the same member twice, changing nothing", async () => {
@@ -134,7 +137,10 @@ describe("update role handler with props", () => {
     const roles = inMemoryRoleStore([{ productionId: "2027", roles: [villagers] }]);
     const cast = inMemoryCastStore([aCastList([aCastMember(12), aCastMember(13)])]);
     const props = inMemoryPropStore([{ productionId: "2027", props: [basket] }]);
-    return { props, handler: createUpdateRole(roles, cast, props) };
+    return {
+      props,
+      handler: createUpdateRole(roles, cast, { props, micPlots: inMemoryMicPlotStore() }),
+    };
   }
   const recast = (castMemberIds: number[], revision: number) =>
     request("9", { name: "Villagers", size: "ensemble", castMemberIds, revision });
@@ -172,5 +178,61 @@ describe("update role handler with props", () => {
     expect((await handler(recast([12], 5))).statusCode).toBe(409);
 
     expect(await carriers(props)).toEqual([13]);
+  });
+});
+
+describe("update role handler with mics", () => {
+  // Made-up cast: Alex (12) is Alien 1 and in the Chorus in Space Sketch, on Mic 3 there and
+  // in the Finale; Sam (13) is in the Chorus.
+  const alien: Role = { ...role(9, "Alien 1"), itemId: "space-sketch", castMemberIds: [12] };
+  const chorus: Role = {
+    ...role(10, "Chorus"),
+    itemId: "space-sketch",
+    size: "ensemble",
+    castMemberIds: [12, 13],
+  };
+  const finale: Role = { ...role(11, "Finale"), itemId: "finale", castMemberIds: [12] };
+  const onMic3 = (itemId: string) => ({ itemId, mics: [{ channel: 3, castMemberId: 12 }] });
+  function setUpSpaceSketch(roleList: Role[]) {
+    const roles = inMemoryRoleStore([{ productionId: "2027", roles: roleList }]);
+    const cast = inMemoryCastStore([aCastList([aCastMember(12), aCastMember(13)])]);
+    const micPlots = inMemoryMicPlotStore([
+      { productionId: "2027", items: [onMic3("space-sketch"), onMic3("finale")] },
+    ]);
+    return {
+      micPlots,
+      handler: createUpdateRole(roles, cast, { props: inMemoryPropStore(), micPlots }),
+    };
+  }
+  const recast = (r: Role, castMemberIds: number[]) =>
+    request(String(r.id), { name: r.name, size: r.size, castMemberIds, revision: r.revision });
+  const micsIn = async (
+    micPlots: ReturnType<typeof setUpSpaceSketch>["micPlots"],
+    itemId: string,
+  ) => (await micPlots.list("2027")).items.find((plot) => plot.itemId === itemId)?.mics ?? [];
+
+  it("frees their channel in the item when they're taken out of it, keeping their others", async () => {
+    const { micPlots, handler } = setUpSpaceSketch([alien, finale]);
+
+    expect((await handler(recast(alien, []))).statusCode).toBe(200);
+
+    expect(await micsIn(micPlots, "space-sketch")).toEqual([]);
+    expect(await micsIn(micPlots, "finale")).toEqual([{ channel: 3, castMemberId: 12 }]);
+  });
+
+  it("leaves the mic with the old cast member when a role is recast and they stay in the item", async () => {
+    const { micPlots, handler } = setUpSpaceSketch([alien, chorus, finale]);
+
+    expect((await handler(recast(alien, [13]))).statusCode).toBe(200);
+
+    expect(await micsIn(micPlots, "space-sketch")).toEqual([{ channel: 3, castMemberId: 12 }]);
+  });
+
+  it("changes no mics when the recast is refused", async () => {
+    const { micPlots, handler } = setUpSpaceSketch([alien, finale]);
+
+    expect((await handler(recast({ ...alien, revision: 5 }, []))).statusCode).toBe(409);
+
+    expect(await micsIn(micPlots, "space-sketch")).toEqual([{ channel: 3, castMemberId: 12 }]);
   });
 });
