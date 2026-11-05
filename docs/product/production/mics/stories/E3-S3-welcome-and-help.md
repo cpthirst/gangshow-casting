@@ -18,7 +18,7 @@ Then it describes the Mic plot page: the 24 channels, choosing a cast member in 
 
 ### AC2: Help explains the greyed-out channels
 When anyone opens the Help page
-Then it says a channel used by someone else in the item before is greyed out ("Used in previous item"), that the same person can keep it, that it resets at the interval, and that an allocation a reorder makes impossible stays until it's cleared
+Then it says a channel used by someone else in the item before is greyed out ("Used in previous item"), that the same person can keep it, that it resets at the interval, and that an allocation a reorder makes impossible stays, flagged as an Error, until it's cleared
 
 ### AC3: Help says who can change it
 When anyone opens the Help page

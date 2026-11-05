@@ -612,6 +612,154 @@ describe("An item's Mic plot page", () => {
     });
   });
 
+  describe("with a channel kept after a reorder put its item straight after one using it", () => {
+    // Made-up show, reordered so the Finale follows Opening Number in Act 1. Before that, Sam
+    // Patel was given Mic 1 in the Finale; Alex Morgan has it in Opening Number.
+    const reordered = aRunningOrder([anItem("Opening Number"), anItem("Finale")]);
+    const FINALE = "/production/items/finale/mic-plot";
+    const samInFinale = aRole(9, "finale", "Soloist", [sam.id]);
+    const kept = (): ItemMicPlot[] => [
+      { itemId: "opening-number", mics: [{ channel: 1, castMemberId: alex.id }] },
+      { itemId: "finale", mics: [{ channel: 1, castMemberId: sam.id }] },
+    ];
+    const DESCRIPTION =
+      "Error: back-to-back mic. Mic 1 is Alex Morgan's in 'Opening Number', then Sam Patel's in 'Finale'";
+
+    const row = (wrapper: VueWrapper, mic: number) =>
+      wrapper.findAll("main [data-test=mic]")[mic - 1];
+    /** Each channel showing an icon, with its severity and what it reads out. */
+    const icons = (wrapper: VueWrapper) =>
+      wrapper.findAll("main [data-test=mic]").flatMap((r) => {
+        const icon = r.find("[data-test=clash]");
+        if (!icon.exists()) return [];
+        const mic = r.get("[data-test=channel]").text();
+        return [
+          {
+            mic,
+            severity: icon.attributes("data-severity"),
+            readOut: icon.get("[data-test=clash-icon]").attributes("aria-label"),
+            shown: icon.get("[data-test=clash-description]").text(),
+          },
+        ];
+      });
+    const labelOf = (wrapper: VueWrapper, mic: number) =>
+      wrapper.get(`label[for='${pickerFor(wrapper, mic).attributes("id")}']`).text();
+
+    it("still shows Sam Patel on Mic 1, which lee can only clear", async () => {
+      await signInAs(["tech"], "lee");
+      apiHolds(reordered, kept(), undefined, [...casting, samInFinale]);
+      const { wrapper } = await openAppAt(FINALE);
+
+      expect(whoIsOn(wrapper, 1)).toBe("Sam Patel");
+      expect(pickerFor(wrapper, 1).element.disabled).toBe(true);
+      expect(labelOf(wrapper, 1)).toBe("Mic 1 cast member, can only be cleared");
+      expect(wrapper.get("main button[aria-label='Clear Mic 1']").attributes()).not.toHaveProperty(
+        "disabled",
+      );
+      expect(row(wrapper, 1)?.classes()).not.toContain("mic-held");
+      expect(row(wrapper, 1)?.classes()).toContain("mic-kept");
+    });
+
+    it("says beside Sam Patel who has Mic 1 in the item before, in words as well as the icon", async () => {
+      await signInAs(["tech"], "lee");
+      apiHolds(reordered, kept(), undefined, [...casting, samInFinale]);
+      const { wrapper } = await openAppAt(FINALE);
+
+      const who = row(wrapper, 1)?.get("[data-test=mic-who]");
+      expect(who?.find("input[role=combobox]").exists()).toBe(true);
+      expect(who?.find("[data-test=clash]").exists()).toBe(true);
+      expect(row(wrapper, 1)?.get("[data-test=mic-kept]").text()).toBe(
+        "Used by Alex Morgan in previous item",
+      );
+    });
+
+    it("shows an Error icon on Mic 1 alone, saying which mic and both items, in words", async () => {
+      await signInAs(["tech"], "lee");
+      apiHolds(reordered, kept(), undefined, [...casting, samInFinale]);
+      const { wrapper } = await openAppAt(FINALE);
+
+      expect(icons(wrapper)).toEqual([
+        { mic: "Mic 1", severity: "error", readOut: DESCRIPTION, shown: DESCRIPTION },
+      ]);
+      expect(wrapper.get("main [data-test=clash-icon]").attributes("tabindex")).toBe("0");
+    });
+
+    it("shows no icon in the item before, where the channel is fine", async () => {
+      await signInAs(["tech"], "lee");
+      apiHolds(reordered, kept(), undefined, [...casting, samInFinale]);
+      const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+      expect(icons(wrapper)).toEqual([]);
+    });
+
+    it("shows kim, without Tech or Director, Sam Patel on Mic 1 with the Error icon", async () => {
+      await signInAs(["casting", "stage", "wardrobe"], "kim");
+      apiHolds(reordered, kept(), undefined, [...casting, samInFinale]);
+      const { wrapper } = await openAppAt(FINALE);
+
+      expect(whoIsOn(wrapper, 1)).toBe("Sam Patel");
+      expect(icons(wrapper)).toEqual([
+        { mic: "Mic 1", severity: "error", readOut: DESCRIPTION, shown: DESCRIPTION },
+      ]);
+      const who = row(wrapper, 1)?.get("[data-test=mic-who]");
+      expect(who?.find("[data-test=on-mic]").exists()).toBe(true);
+      expect(who?.find("[data-test=clash]").exists()).toBe(true);
+      expect(row(wrapper, 1)?.get("[data-test=mic-kept]").text()).toBe(
+        "Used by Alex Morgan in previous item",
+      );
+    });
+
+    it("greys Mic 1 out once lee clears it, like any channel used in the item before", async () => {
+      await signInAs(["tech"], "lee");
+      apiHolds(reordered, kept(), undefined, [...casting, samInFinale]);
+      const { wrapper } = await openAppAt(FINALE);
+
+      await clear(wrapper, 1);
+
+      expect(puts().map((put) => put.body)).toEqual([{ channel: 1, castMemberId: null }]);
+      expect(pickerFor(wrapper, 1).element.disabled).toBe(true);
+      expect(labelOf(wrapper, 1)).toBe("Mic 1 cast member, used in previous item");
+      expect(row(wrapper, 1)?.get("[data-test=mic-held]").text()).toBe("Used in previous item");
+      expect(icons(wrapper)).toEqual([]);
+      expect(row(wrapper, 1)?.find("[data-test=mic-kept]").exists()).toBe(false);
+    });
+
+    it("offers only Alex Morgan for Mic 1 once it's cleared, when Alex is in the Finale too", async () => {
+      await signInAs(["tech"], "lee");
+      const alexInFinale = aRole(10, "finale", "Chorus", [alex.id]);
+      apiHolds(reordered, kept(), undefined, [...casting, samInFinale, alexInFinale]);
+      const { wrapper } = await openAppAt(FINALE);
+
+      await clear(wrapper, 1);
+
+      expect(await offered(wrapper, 1, "e")).toEqual(["Alex Morgan"]);
+    });
+
+    it("shows no icon, and lets lee change Mic 1, once another item comes between them", async () => {
+      await signInAs(["tech"], "lee");
+      const apart = aRunningOrder([
+        anItem("Opening Number"),
+        anItem("Pirate Sketch"),
+        anItem("Finale"),
+      ]);
+      apiHolds(apart, kept(), undefined, [...casting, samInFinale]);
+      const { wrapper } = await openAppAt(FINALE);
+
+      expect(icons(wrapper)).toEqual([]);
+      expect(pickerFor(wrapper, 1).element.disabled).toBe(false);
+      expect(labelOf(wrapper, 1)).toBe("Mic 1 cast member");
+    });
+
+    it("changes nothing by itself when the page opens", async () => {
+      await signInAs(["tech"], "lee");
+      apiHolds(reordered, kept(), undefined, [...casting, samInFinale]);
+      const { wrapper } = await openAppAt(FINALE);
+
+      expect(puts()).toEqual([]);
+      expect(whoIsOn(wrapper, 1)).toBe("Sam Patel");
+    });
+  });
+
   it("saves lee's Mic plot notes under the channels, which everyone then sees, apart from other items'", async () => {
     await signInAs(["tech"], "lee");
     micPlotNotes.push({ itemId: "finale", text: "Radio mics only", revision: 1 });

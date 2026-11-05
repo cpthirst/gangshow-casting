@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   AllocateMicRequest,
   channelsHeldBefore,
+  channelsKeptAgainstTheRule,
   ItemMicPlot,
   MIC_CHANNELS,
   MicPlotList,
@@ -120,5 +121,30 @@ describe("channelsHeldBefore", () => {
 
   it("holds nothing for an item not in the running order", () => {
     expect(channelsHeldBefore(order, [aPlot("opening", [1, alex])], "gone")).toEqual(new Map());
+  });
+});
+
+describe("channelsKeptAgainstTheRule", () => {
+  const order = show(["opening", "finale"], ["entracte"]);
+
+  it("is each channel given to someone other than who had it in the item before, with who did", () => {
+    const plots = [aPlot("opening", [1, alex]), aPlot("finale", [1, sam], [3, alex])];
+
+    expect(channelsKeptAgainstTheRule(order, plots, "finale")).toEqual([
+      { channel: 1, castMemberId: sam, heldBy: alex },
+    ]);
+    expect(channelsKeptAgainstTheRule(order, plots, "opening")).toEqual([]);
+  });
+
+  it("doesn't count the cast member who had the channel keeping it", () => {
+    const plots = [aPlot("opening", [1, alex]), aPlot("finale", [1, alex])];
+
+    expect(channelsKeptAgainstTheRule(order, plots, "finale")).toEqual([]);
+  });
+
+  it("is nothing once the items aren't next to each other in the same half", () => {
+    const plots = [aPlot("finale", [1, alex]), aPlot("entracte", [1, sam])];
+
+    expect(channelsKeptAgainstTheRule(order, plots, "entracte")).toEqual([]);
   });
 });

@@ -1,5 +1,12 @@
-import { type CastMember, type ItemMicPlot, MIC_CHANNELS, type Role } from "@app/shared";
+import {
+  type CastMember,
+  type ItemMicPlot,
+  type KeptAgainstTheRule,
+  MIC_CHANNELS,
+  type Role,
+} from "@app/shared";
 import { sortCast } from "./cast.ts";
+import type { ClashLine } from "./clashes.ts";
 import { sortRoles } from "./roles.ts";
 
 // Only one production for now (see docs/product/running-order/prd.md).
@@ -69,4 +76,18 @@ export function micRolesText(itemId: string, castMemberId: number | null, roles:
   return sortRoles(theirs)
     .map((role) => role.name)
     .join(", ");
+}
+
+/** A channel kept after a reorder made it break the rule, as an error worded as a casting
+ *  clash is, naming both items (production-mics FR10). For example "Error: back-to-back mic.
+ *  Mic 1 is Alex Morgan's in 'Opening Number', then Sam Patel's in 'Finale'". */
+export function keptMicError(
+  { channel, castMemberId, heldBy }: KeptAgainstTheRule,
+  items: { before: string; current: string },
+  nameOf: (castMemberId: number) => string,
+): ClashLine {
+  return {
+    severity: "error",
+    text: `Error: back-to-back mic. Mic ${channel} is ${nameOf(heldBy)}'s in '${items.before}', then ${nameOf(castMemberId)}'s in '${items.current}'`,
+  };
 }

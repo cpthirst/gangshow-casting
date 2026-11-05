@@ -75,11 +75,36 @@ export function channelsHeldBefore(
   return new Map(plot?.mics.map((mic) => [mic.channel, mic.castMemberId]));
 }
 
+/** A channel given to someone other than who had it in the item before. */
+export interface KeptAgainstTheRule extends MicAllocation {
+  /** Who had the channel in the item before. */
+  heldBy: number;
+}
+
+/**
+ * The item's channels given to someone other than who had them in the item before: given out
+ * before a running order change put the items back to back, and kept rather than freed. They
+ * can only be cleared, and show as an error until they are (production-mics FR10).
+ */
+export function channelsKeptAgainstTheRule(
+  order: RunningOrder,
+  plots: ItemMicPlot[],
+  itemId: string,
+): KeptAgainstTheRule[] {
+  const held = channelsHeldBefore(order, plots, itemId);
+  const plot = plots.find((p) => p.itemId === itemId);
+  return (plot?.mics ?? []).flatMap((mic) => {
+    const heldBy = held.get(mic.channel);
+    return heldBy === undefined || heldBy === mic.castMemberId ? [] : [{ ...mic, heldBy }];
+  });
+}
+
 /**
  * PUT /api/productions/{productionId}/items/{itemId}/mic-plot: give the channel to a cast
  * member cast in the item, or free it with null. 200 returns the item's ItemMicPlot; 400 for
- * a channel outside 1 to 24, someone not cast in the item, or a channel someone else had in
- * the item before (channelsHeldBefore); 409, with the item's plot as it is now, if they're
+ * a channel outside 1 to 24, someone not cast in the item, a channel someone else had in the
+ * item before (channelsHeldBefore), or a channel kept against that rule, which can only be
+ * cleared (channelsKeptAgainstTheRule); 409, with the item's plot as it is now, if they're
  * already on another of its channels; 404 if the item isn't in the latest saved running order.
  */
 export const AllocateMicRequest = z.strictObject({
