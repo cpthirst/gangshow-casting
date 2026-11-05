@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.45.0](https://github.com/cpthirst/gangshow-casting/compare/v1.44.0...v1.45.0) (2026-11-05)
+
+
+### Features
+
+* **web:** generate the Mic Plot workbook from the Overview (production-mics.E3.S2) ([#189](https://github.com/cpthirst/gangshow-casting/issues/189)) ([a334bec](https://github.com/cpthirst/gangshow-casting/commit/a334bec8e80b84dbb29e573b5c7a8ca271b66625))
+
 ## [1.44.0](https://github.com/cpthirst/gangshow-casting/compare/v1.43.0...v1.44.0) (2026-11-05)
 
 
