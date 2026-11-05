@@ -359,6 +359,7 @@ describe("Usage page", () => {
         { feature: "running-order", uses: 5, people: 2 },
         { feature: "export-word-item-overview", uses: 0, people: 0 },
         { feature: "export-word-casting-sheets", uses: 0, people: 0 },
+        { feature: "export-excel-mic-plot", uses: 1, people: 1 },
       ],
     });
 
@@ -374,6 +375,7 @@ describe("Usage page", () => {
       ["Running order", "5", "2"],
       ["Export: Word item overview", "0", "0"],
       ["Export: Word casting sheets", "0", "0"],
+      ["Generate Mic Plot", "1", "1"],
     ]);
   });
 
@@ -456,6 +458,7 @@ describe("Usage page", () => {
           { username: "robin", at, event: "view", view: "grid" },
           { username: "robin", at, event: "page", page: "production-overview" },
           { username: "robin", at, event: "export", export: "word-casting-sheets" },
+          { username: "robin", at, event: "export", export: "excel-mic-plot" },
         ],
       });
 
@@ -465,6 +468,7 @@ describe("Usage page", () => {
         "switched the Overview to Grid",
         "opened Production overview",
         "exported the Word casting sheets",
+        "generated the Mic Plot",
       ]);
     });
 

@@ -1,14 +1,16 @@
 import {
   type CastMember,
   type ItemMicPlot,
+  type ItemNote,
   type KeptAgainstTheRule,
   MIC_CHANNELS,
   type Role,
+  type RunningOrder,
 } from "@app/shared";
 import { sortCast } from "./cast.ts";
 import type { ClashLine } from "./clashes.ts";
 import { countInWords } from "./departments.ts";
-import { sortRoles } from "./roles.ts";
+import { fullName, sortRoles } from "./roles.ts";
 
 // Only one production for now (see docs/product/running-order/prd.md).
 const PRODUCTION_ID = "2027";
@@ -109,4 +111,40 @@ export function keptMicsSummary(kept: KeptAgainstTheRule[]): ClashLine[] {
     .sort((a, b) => a - b)
     .map((channel) => `Mic ${channel}`);
   return [{ severity: "error", text: `${errors}: ${channels.join(", ")}` }];
+}
+
+/** One item in the Mic Plot workbook: Mic 1 to Mic 24, each with who is on it and their
+ *  roles ("" while free), and its Mic plot notes ("" for none). */
+export interface MicPlotItem {
+  title: string;
+  mics: { name: string; role: string }[];
+  notes: string;
+}
+
+/** The whole show's mic plot, half by half in running order, for the workbook (production-mics
+ *  FR14). Kept channels show as they do on the item's page. Only names: nothing else about the
+ *  cast. */
+export function micPlotListOf(show: {
+  order: RunningOrder;
+  cast: CastMember[];
+  roles: Role[];
+  plots: ItemMicPlot[];
+  notes: ItemNote[];
+}): MicPlotItem[][] {
+  const nameOf = (id: number | null) => {
+    const member = show.cast.find((m) => m.id === id);
+    return member ? fullName(member) : "";
+  };
+  return show.order.halves.map((half) =>
+    half.items.map((item) => ({
+      title: item.title,
+      mics: channelsOf(show.plots.find((plot) => plot.itemId === item.id)).map(
+        ({ castMemberId }) => ({
+          name: nameOf(castMemberId),
+          role: micRolesText(item.id, castMemberId, show.roles),
+        }),
+      ),
+      notes: show.notes.find((note) => note.itemId === item.id)?.text ?? "",
+    })),
+  );
 }

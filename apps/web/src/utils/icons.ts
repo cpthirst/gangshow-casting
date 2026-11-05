@@ -58,7 +58,7 @@ export const icons = {
   disable: faUserSlash,
   enable: faUserCheck,
   cast: faUsers,
-  // Admins export the casting grid as an Excel file.
+  // The Excel files: the casting grid and the mic plot.
   exportFile: faFileExcel,
   // Every role exports Word documents from the Overview.
   exportWord: faFileWord,

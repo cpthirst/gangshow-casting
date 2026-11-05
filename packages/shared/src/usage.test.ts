@@ -62,13 +62,16 @@ describe("RecordUsageRequest", () => {
     },
   );
 
-  it.each(["excel-grid", "word-casting-sheets", "word-item-overview", "word-props-list"])(
-    "accepts the export %s",
-    (exported) => {
-      const use = { event: "export", export: exported };
-      expect(RecordUsageRequest.parse(use)).toEqual(use);
-    },
-  );
+  it.each([
+    "excel-grid",
+    "word-casting-sheets",
+    "word-item-overview",
+    "word-props-list",
+    "excel-mic-plot",
+  ])("accepts the export %s", (exported) => {
+    const use = { event: "export", export: exported };
+    expect(RecordUsageRequest.parse(use)).toEqual(use);
+  });
 
   it.each([
     [{}],

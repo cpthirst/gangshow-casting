@@ -15,7 +15,8 @@ import { computed, nextTick, onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
 import ClashIcon from "@/components/common/ClashIcon.vue";
 import HelpButton from "@/components/common/HelpButton.vue";
-import { latestPropsList } from "@/services/latest-show.ts";
+import { downloadMicPlot } from "@/services/excel-export.ts";
+import { latestMicPlot, latestPropsList } from "@/services/latest-show.ts";
 import { apiFetch, canChange } from "@/services/sign-in.ts";
 import { recordExport } from "@/services/usage.ts";
 import { downloadPropsList } from "@/services/word-export.ts";
@@ -124,35 +125,55 @@ const shownCount = (
   itemId: string,
 ) => (typeof counts === "function" ? inWords(counts(itemId)) : undefined);
 
-// The props list in Word, for every role, built in the browser with everything as saved at
-// that moment (production-props FR22, FR23; ADR 0022).
-const generating = ref(false);
-const generateFailed = ref(false);
-/** Screen-reader announcement of a finished list. */
-const announcement = ref("");
-// A disabled button drops keyboard focus, so it is put back once the list is made.
-const generateButton = ref<HTMLButtonElement>();
+// The props list in Word and the mic plot in Excel, for every role, built in the browser with
+// everything as saved at that moment (production-props FR22, FR23, production-mics FR14;
+// ADR 0022, ADR 0033).
+const generators = {
+  props: {
+    make: async () => {
+      const { title, halves } = await latestPropsList();
+      return downloadPropsList(title, halves);
+    },
+    generated: "Props list generated.",
+    use: "word-props-list",
+  },
+  mics: {
+    make: async () => downloadMicPlot(await latestMicPlot()),
+    generated: "Mic plot generated.",
+    use: "excel-mic-plot",
+  },
+} as const;
+type Generated = keyof typeof generators;
 
-async function generatePropsList() {
+/** The file being made, if any: one at a time. */
+const generating = ref<Generated>();
+const generateFailed = ref<Partial<Record<Generated, boolean>>>({});
+/** Screen-reader announcement of a finished file. */
+const announcement = ref("");
+// A disabled button drops keyboard focus, so it is put back once the file is made.
+const propsButton = ref<HTMLButtonElement>();
+const micsButton = ref<HTMLButtonElement>();
+
+async function generate(file: Generated) {
   if (generating.value) return;
-  generating.value = true;
+  const { make, generated, use } = generators[file];
+  generating.value = file;
   announcement.value = "";
-  generateFailed.value = false;
+  generateFailed.value = { ...generateFailed.value, [file]: false };
   let saved = false;
   try {
-    const { title, halves } = await latestPropsList();
-    saved = await downloadPropsList(title, halves);
+    saved = await make();
   } catch {
     // Something it needs couldn't be loaded: said below, as for a file that couldn't be made.
   }
-  generateFailed.value = !saved;
+  generateFailed.value = { ...generateFailed.value, [file]: !saved };
   if (saved) {
-    announcement.value = "Props list generated.";
-    recordExport("word-props-list");
+    announcement.value = generated;
+    recordExport(use);
   }
-  generating.value = false;
+  generating.value = undefined;
   await nextTick();
-  generateButton.value?.focus();
+  (file === "props" ? propsButton : micsButton).value?.focus();
 }
 
 onMounted(() => {
@@ -248,17 +269,29 @@ async function loadRunningOrder() {
     <p class="based-on" data-test="version">Based on Draft {{ state.order.version }}</p>
     <div class="view-bar">
       <button
-        ref="generateButton"
+        ref="propsButton"
         type="button"
         class="word-export-button"
-        :disabled="generating"
-        @click="generatePropsList">
+        :disabled="generating !== undefined"
+        @click="generate('props')">
         <FontAwesomeIcon :icon="icons.exportWord" />
         Generate Props List
       </button>
+      <button
+        ref="micsButton"
+        type="button"
+        class="grid-export-button"
+        :disabled="generating !== undefined"
+        @click="generate('mics')">
+        <FontAwesomeIcon :icon="icons.exportFile" />
+        Generate Mic Plot
+      </button>
     </div>
-    <p v-if="generateFailed" class="notice word-export-error" role="alert">
+    <p v-if="generateFailed.props" class="notice word-export-error" role="alert">
       Couldn't generate the props list. Try again.
+    </p>
+    <p v-if="generateFailed.mics" class="notice mic-plot-export-error" role="alert">
+      Couldn't generate the mic plot. Try again.
     </p>
     <p v-if="propsCountOf === 'error'" class="notice" role="alert">
       Couldn't load the props counts.
