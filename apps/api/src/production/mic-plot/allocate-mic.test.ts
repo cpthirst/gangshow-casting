@@ -141,6 +141,66 @@ describe("allocate mic handler", () => {
     });
   });
 
+  describe("with a channel kept after a reorder put its item straight after one using it", () => {
+    // Made-up items in one half: Opening Number, then Finale, where Mic 1 was Sam's before the
+    // reorder. Alex had Mic 1 in Opening Number; both are cast in both items.
+    function setUpKept() {
+      const micPlots = inMemoryMicPlotStore([
+        {
+          productionId: "2027",
+          items: [
+            { itemId: opening, mics: [{ channel: 1, castMemberId: alex }] },
+            { itemId: finale, mics: [{ channel: 1, castMemberId: sam }] },
+          ],
+        },
+      ]);
+      const runningOrders = inMemoryRunningOrderStore([
+        aRunningOrder(3, { first: ["Opening Number", "Finale"] }),
+      ]);
+      const roles = inMemoryRoleStore([
+        {
+          productionId: "2027",
+          roles: [aRole(1, opening, [alex, sam]), aRole(2, finale, [alex, sam])],
+        },
+      ]);
+      return { micPlots, handler: createAllocateMic(micPlots, runningOrders, roles) };
+    }
+
+    it.each([
+      ["to the cast member who had it in the item before", { channel: 1, castMemberId: alex }],
+      ["to the cast member it's kept for", { channel: 1, castMemberId: sam }],
+      ["with a role", { channel: 1, castMemberId: sam, roleId: 1 }],
+    ])("refuses giving it %s, changing nothing", async (_what, body) => {
+      const { micPlots, handler } = setUpKept();
+      const before = await micsIn(micPlots);
+
+      expect((await handler(request(body, finale))).statusCode).toBe(400);
+      expect(await micsIn(micPlots)).toEqual(before);
+    });
+
+    it("clears it", async () => {
+      const { handler } = setUpKept();
+
+      const res = await handler(request({ channel: 1, castMemberId: null }, finale));
+
+      expect(res.statusCode).toBe(200);
+      expect(ItemMicPlot.parse(JSON.parse(res.body ?? ""))).toEqual({ itemId: finale, mics: [] });
+    });
+
+    it("gives it to the cast member who had it in the item before, once it's cleared", async () => {
+      const { handler } = setUpKept();
+      await handler(request({ channel: 1, castMemberId: null }, finale));
+
+      const res = await handler(request({ channel: 1, castMemberId: alex }, finale));
+
+      expect(res.statusCode).toBe(200);
+      expect(ItemMicPlot.parse(JSON.parse(res.body ?? ""))).toEqual({
+        itemId: finale,
+        mics: [{ channel: 1, castMemberId: alex }],
+      });
+    });
+  });
+
   it("gives a channel used at the end of the first half to anyone in the first item after the interval", async () => {
     const { handler } = setUp();
     await handler(request({ channel: 1, castMemberId: alex }));

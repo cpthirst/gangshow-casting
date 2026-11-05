@@ -3,6 +3,7 @@ import {
   CastList,
   type CastMember,
   channelsHeldBefore,
+  channelsKeptAgainstTheRule,
   ItemMicPlot,
   MicPlotList,
   type Role,
@@ -13,6 +14,7 @@ import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, onMounted, ref, useId, watch, watchEffect } from "vue";
 import { useRoute } from "vue-router";
 import CastMemberPicker from "@/components/casting/CastMemberPicker.vue";
+import ClashIcon from "@/components/common/ClashIcon.vue";
 import HelpButton from "@/components/common/HelpButton.vue";
 import ItemNotes from "@/components/common/ItemNotes.vue";
 import ItemStepNav from "@/components/common/ItemStepNav.vue";
@@ -26,6 +28,7 @@ import {
   castInItem,
   channelsOf,
   choicesFor,
+  keptMicError,
   MIC_PLOT_NOTES_PATH,
   MIC_PLOT_PATH,
   micRolesText,
@@ -36,7 +39,8 @@ import { neighboursOf, placeOf, positionOf, RUNNING_ORDER_PATH } from "@/utils/r
 
 // One item's mic plot: Mic 1 to Mic 24, each given to a cast member in the item or free, with
 // the roles they play there (production-mics FR2, FR3, FR4), a channel someone had in the item
-// before held for them (FR5, FR6), and the item's Mic plot notes under them (FR8), laid out as
+// before held for them (FR5, FR6), one kept against that rule after a reorder shown as an
+// error until it's cleared (FR10), and the item's Mic plot notes under them (FR8), laid out as
 // the other department item pages.
 
 const route = useRoute();
@@ -82,6 +86,25 @@ const heldBefore = computed(() =>
     ? channelsHeldBefore(order.value, plots.value, place.value.item.id)
     : new Map<number, number>(),
 );
+/** Channels given out before a reorder put this item straight after one where someone else
+ *  has them: kept, as an error, and they can only be cleared (FR10). */
+const kept = computed(() =>
+  order.value && place.value
+    ? channelsKeptAgainstTheRule(order.value, plots.value, place.value.item.id)
+    : [],
+);
+/** The channel, if it's kept; not while it's being cleared. */
+const keptOn = (mic: { channel: number; castMemberId: number | null }) =>
+  mic.castMemberId === null ? undefined : kept.value.find((k) => k.channel === mic.channel);
+/** A kept channel: it can only be cleared. */
+const isKept = (mic: { channel: number; castMemberId: number | null }) => keptOn(mic) !== undefined;
+/** The error on a kept channel; none on any other. */
+function keptErrorOn(mic: { channel: number; castMemberId: number | null }) {
+  const keptMic = keptOn(mic);
+  const before = neighbours.value.previous?.title;
+  if (!keptMic || !before || !place.value) return [];
+  return [keptMicError(keptMic, { before, current: place.value.item.title }, nameOf)];
+}
 const itemCast = computed(() =>
   place.value ? castInItem(place.value.item.id, roles.value, cast.value) : [],
 );
@@ -221,7 +244,7 @@ async function allocate(channel: number, castMemberId: number | null) {
         v-for="mic in channels"
         :key="mic.channel"
         class="role-card mic-channel"
-        :class="{ 'mic-held': isHeld(mic) }"
+        :class="{ 'mic-held': isHeld(mic), 'mic-kept': isKept(mic) }"
         data-test="mic"
         @focusout="leave(mic.channel)"
       >
@@ -248,28 +271,42 @@ async function allocate(channel: number, castMemberId: number | null) {
           <label :for="pickerId(mic.channel)" class="mic-name"
             ><span data-test="channel">Mic {{ mic.channel }}</span
             ><span class="visually-hidden"
-              > cast member{{ isHeld(mic) ? ", used in previous item" : "" }}</span
+              > cast member{{ isHeld(mic) ? ", used in previous item" : ""
+              }}{{ isKept(mic) ? ", can only be cleared" : "" }}</span
             ></label
           >
-          <CastMemberPicker
-            :model-value="choiceFor(mic.channel, mic.castMemberId)"
-            :cast="choicesOn(mic.channel)"
-            :name="`mic-${mic.channel}`"
-            :input-id="pickerId(mic.channel)"
-            :disabled="saving !== undefined || isHeld(mic)"
-            no-match="No one in this item matches"
-            @update:model-value="pick(mic.channel, $event)"
-          />
+          <!-- A kept channel's Error icon beside who is on it, as casting puts a clash's by
+               the name (FR10). -->
+          <span class="mic-who" data-test="mic-who">
+            <CastMemberPicker
+              :model-value="choiceFor(mic.channel, mic.castMemberId)"
+              :cast="choicesOn(mic.channel)"
+              :name="`mic-${mic.channel}`"
+              :input-id="pickerId(mic.channel)"
+              :disabled="saving !== undefined || isHeld(mic) || isKept(mic)"
+              no-match="No one in this item matches"
+              @update:model-value="pick(mic.channel, $event)"
+            />
+            <ClashIcon :lines="keptErrorOn(mic)" />
+          </span>
           <span v-if="isHeld(mic)" class="mic-held-reason" aria-hidden="true" data-test="mic-held"
             >Used in previous item</span
           >
           </template>
           <template v-else>
             <span class="mic-name" data-test="channel">Mic {{ mic.channel }}</span>
-            <span data-test="on-mic">{{
-              isHeld(mic) ? "Used in previous item" : nameOf(mic.castMemberId) || "No one"
-            }}</span>
+            <span class="mic-who" data-test="mic-who"
+              ><span data-test="on-mic">{{
+                isHeld(mic) ? "Used in previous item" : nameOf(mic.castMemberId) || "No one"
+              }}</span
+              ><ClashIcon :lines="keptErrorOn(mic)"
+            /></span>
           </template>
+          <!-- Why a kept channel is an error, in words for everyone, as a held one says why;
+               the icon reads it out in full. -->
+          <span v-if="keptOn(mic)" class="mic-held-reason" aria-hidden="true" data-test="mic-kept"
+            >Used by {{ nameOf(keptOn(mic)?.heldBy ?? null) }} in previous item</span
+          >
           <!-- Their roles in the item, from the casting: shown, never chosen (FR3). -->
           <span class="mic-roles" data-test="mic-roles">{{
             micRolesText(place.item.id, mic.castMemberId, roles)

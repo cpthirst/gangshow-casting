@@ -1756,6 +1756,29 @@ main a {
   }
 }
 
+/* Who is on a channel, with the Error icon of one kept against the item-before rule after a
+   reorder beside them, as a casting clash's is by the name (production-mics FR10). The icon's
+   parts take their own places in the row, so on phones its written-out description wraps onto
+   a full-width line of its own, under the picker, rather than squeezing beside it. */
+.mic-who {
+  display: flex;
+  position: relative;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.mic-who > .clash {
+  display: contents;
+}
+
+@media (max-width: 767px), (hover: none) {
+  .mic-who .clash-description {
+    flex-basis: 100%;
+  }
+}
+
 /* A person's timeline on the Overview: their own row at the bottom of the card, centred, with
    a dot per item and a wider gap where the interval falls. */
 .timeline-wrap {
@@ -2164,8 +2187,10 @@ main a {
   font: inherit;
 }
 
-/* A held channel's disabled picker is grey too (see .mic-held). */
-.mic-channel.mic-held .combobox input {
+/* A held or kept channel's disabled picker is grey too (see .mic-held), so it never looks
+   like it takes typing. */
+.mic-channel.mic-held .combobox input,
+.mic-channel.mic-kept .combobox input {
   background: var(--surface);
   cursor: not-allowed;
 }

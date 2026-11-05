@@ -36,7 +36,7 @@ Each item's Mic plot page in the app only says "Coming soon" (production-overvie
 
 ## Non-goals
 
-- **Warnings or info icons.** A channel that can't be used is simply greyed out; there are no warning badges, pop-ups or clash reports.
+- **Warnings or info icons.** A channel that can't be used is simply greyed out; there are no warning badges, pop-ups or clash reports. The one exception is an allocation kept after a reorder (FR10), flagged as an Error.
 - **Automatic allocation** or suggestions for which mic someone should have.
 - **Hand-held or other mics, packs, frequencies, batteries or spares.** Only the 24 radio mic channels, numbered 1 to 24.
 - **More or fewer than 24 channels**, or naming channels. The number is fixed.
@@ -65,7 +65,7 @@ Each item's Mic plot page in the app only says "Coming soon" (production-overvie
 ### When casting or the running order changes
 
 - **FR9**: When a cast member is taken out of an item or out of the cast, their channel in that item is freed. When a casting role is removed, or its cast member changes, any channel with that role keeps its cast member, if they're still in the item, with the role left blank.
-- **FR10**: When the running order changes so that an existing allocation now breaks FR5, the allocation is kept and shown, but that channel can only be cleared, not changed, until it's cleared. Nothing is removed without someone choosing to.
+- **FR10**: When the running order changes so that an existing allocation now breaks FR5, the allocation is kept and shown, but that channel can only be cleared, not changed, until it's cleared. Nothing is removed without someone choosing to. Until then it is flagged as an **Error**, as a casting clash is (casting-rules FR7–FR11): an Error icon on that channel on the item's Mic plot page, describing the channel and both items, and on that item's Mic plot count on the Overview.
 - **FR11**: Each item's mic plot belongs to that item in the current production and goes with it when it moves in the running order. When an item is removed from the running order, its mic plot and notes are deleted in the same removal clean-up as its other department data (production-scenery FR12, FR13).
 
 ### The Overview
@@ -123,5 +123,6 @@ None open.
 ### Resolved
 
 - FR10: an allocation that a reorder makes break the rule is kept, and can only be cleared, never freed automatically. Decided 2026-11-02.
+- FR10: that kept allocation is flagged as an Error on the item's Mic plot page and on the Overview, following the casting clash pattern; the only exception to the no-icons non-goal. Decided 2026-11-05.
 - FR3: a cast member in the item without a named role can have a mic with the role left blank. Decided 2026-11-02.
 - FR14: the export shades each item's block in its own colour, with the colours repeating in each half. Decided 2026-11-02.

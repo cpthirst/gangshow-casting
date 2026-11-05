@@ -27,14 +27,14 @@ prd: ./prd.md
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
 | [production-mics.E2.S1](stories/E2-S1-channel-used-in-the-item-before.md) | A channel used in the item directly before by a different cast member is greyed out and disabled, reading "Used in previous item", and the API refuses it. The cast member who had it can keep it. The rule resets at the first item and after the interval. Non-adjacent items need nothing extra | FR5, FR6, FR7 | E1.S1 | done |
-| [production-mics.E2.S2](stories/E2-S2-a-reorder-breaks-the-rule.md) | When the running order changes so a saved allocation breaks the rule, it stays shown, and the channel can only be cleared until it is | FR10 | E2.S1 | ready |
+| [production-mics.E2.S2](stories/E2-S2-a-reorder-breaks-the-rule.md) | When the running order changes so a saved allocation breaks the rule, it stays shown, flagged with an Error icon, and the channel can only be cleared until it is | FR10 | E2.S1 | done |
 | [production-mics.E2.S3](stories/E2-S3-casting-changes-free-or-blank.md) | Taking a cast member out of an item or the cast frees their channel there. The roles shown already follow the casting (E1.S2) | FR9 | E1.S2 | ready |
 
 ## E3: Overview, export, Usage and Help
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [production-mics.E3.S1](stories/E3-S1-overview-count-notes-and-usage.md) | The Overview's Mic plot column counts allocated channels instead of a dash, Mic plot notes appear under each row after SFX notes, and the Usage page records visits to the Mic plot page | FR12, FR13, FR16 | E1.S3 | ready |
+| [production-mics.E3.S1](stories/E3-S1-overview-count-notes-and-usage.md) | The Overview's Mic plot column counts allocated channels instead of a dash, an item with a kept allocation that breaks the rule shows an Error icon, Mic plot notes appear under each row after SFX notes, and the Usage page records visits to the Mic plot page | FR10, FR12, FR13, FR16 | E1.S3, E2.S2 | ready |
 | [production-mics.E3.S2](stories/E3-S2-generate-mic-plot.md) | Generate Mic Plot beside Generate Props List downloads the Excel workbook in the 2026 layout: title, ACT 1 and ACT 2, a block per item with Mic 1–9, 10–18 and 19–24 rows of name and role, notes beside it, each item shaded in its own colour repeating per half, A4 portrait. Names stay text. Usage records each use. Includes the ADR if a new library is needed | FR14, FR16 | E1.S3 | ready |
 | [production-mics.E3.S3](stories/E3-S3-welcome-and-help.md) | Welcome and Help describe the Mic plot page, the greyed-out rule and the interval, notes, who can change it, Generate Mic Plot, and that the workbook holds under-18s' names | FR15 | E2.S1, E3.S2 | ready |
 
@@ -60,7 +60,7 @@ E1.S1 → E1.S2 → E1.S3 → E2.S1 → E2.S2 → E2.S3 → E3.S1 → E3.S2 → 
 | FR7 | E2.S1 |
 | FR8 | E1.S3 |
 | FR9 | E2.S3 |
-| FR10 | E2.S2 |
+| FR10 | E2.S2, E3.S1 |
 | FR11 | E1.S1, E1.S3 |
 | FR12 | E3.S1 |
 | FR13 | E3.S1 |

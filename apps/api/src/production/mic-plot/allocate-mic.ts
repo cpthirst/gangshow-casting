@@ -1,4 +1,9 @@
-import { AllocateMicRequest, channelsHeldBefore, RunningOrderItem } from "@app/shared";
+import {
+  AllocateMicRequest,
+  channelsHeldBefore,
+  channelsKeptAgainstTheRule,
+  RunningOrderItem,
+} from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import type { RoleStore } from "#/casting/roles/role-store.ts";
 import type { ApiEvent } from "#/http/handler.ts";
@@ -9,9 +14,10 @@ import type { MicPlotStore } from "./mic-plot-store.ts";
 
 // PUT /api/productions/{productionId}/items/{itemId}/mic-plot: give one of the item's channels
 // to a cast member cast in it, or free it (production-mics FR3, FR4), unless someone else had
-// that channel in the item before (FR5, FR6). Only Tech, a Director or an admin get here
+// that channel in the item before (FR5, FR6). A channel kept after a reorder made it break
+// that rule can only be cleared (FR10). Only Tech, a Director or an admin get here
 // (routeNeeds in @app/shared). The item-before check and the save aren't one step, so two
-// saves at once could slip past it; E2.S2 shows such an allocation for clearing.
+// saves at once could slip past it; such an allocation is then kept, as after a reorder.
 export function createAllocateMic(
   micPlots: MicPlotStore,
   runningOrders: RunningOrderStore,
@@ -38,6 +44,8 @@ export function createAllocateMic(
       const castInItem = itemRoles.some((role) => role.castMemberIds.includes(castMemberId));
       if (!castInItem) return { statusCode: 400 };
       const plots = (await micPlots.list(productionId)).items;
+      const kept = channelsKeptAgainstTheRule(order, plots, itemId.data);
+      if (kept.some((mic) => mic.channel === channel)) return { statusCode: 400 };
       const heldBy = channelsHeldBefore(order, plots, itemId.data).get(channel);
       if (heldBy !== undefined && heldBy !== castMemberId) return { statusCode: 400 };
     }

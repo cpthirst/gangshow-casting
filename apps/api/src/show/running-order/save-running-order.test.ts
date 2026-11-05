@@ -657,6 +657,24 @@ describe("save running order handler, with mic plots", () => {
     expect(await itemsWithMics(micPlots)).toEqual([opening]);
   });
 
+  it("keeps a channel that a reorder puts straight after someone else's, and again on an unchanged save", async () => {
+    const { micPlots, handler } = setUpMics();
+    // Made-up cast member id: Sam, on Mic 1 in Old Sketch.
+    const sam = 2;
+    await micPlots.allocate("2027", opening, 1, alex);
+    await micPlots.allocate("2027", old, 1, sam);
+    const before = (await micPlots.list("2027")).items;
+
+    expect((await handler(request(update(6, ["Old Sketch", "Opening Number"])))).statusCode).toBe(
+      201,
+    );
+    expect((await handler(request(update(7, ["Old Sketch", "Opening Number"])))).statusCode).toBe(
+      201,
+    );
+
+    expect((await micPlots.list("2027")).items).toEqual(before);
+  });
+
   it("deletes a removed item's Mic plot notes once the version is saved, keeping the others'", async () => {
     const { micPlotNotes, handler } = setUpMics();
     await micPlotNotes.save("2027", old, 0, "Radio mics only");
