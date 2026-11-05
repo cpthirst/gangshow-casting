@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.41.0](https://github.com/cpthirst/gangshow-casting/compare/v1.40.0...v1.41.0) (2026-11-05)
+
+
+### Features
+
+* **web:** grey out a channel used by someone else in the item before (production-mics.E2.S1) ([#181](https://github.com/cpthirst/gangshow-casting/issues/181)) ([5078223](https://github.com/cpthirst/gangshow-casting/commit/507822340c915c93289fd5d6d31e91ccf0eca8cc))
+
 ## [1.40.0](https://github.com/cpthirst/gangshow-casting/compare/v1.39.0...v1.40.0) (2026-11-03)
 
 
