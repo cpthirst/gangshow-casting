@@ -86,6 +86,68 @@ describe("allocate mic handler", () => {
     expect(await micsIn(micPlots)).toEqual(before);
   });
 
+  describe("with the item before using the channel", () => {
+    // Made-up items in one half: Opening Number, Space Sketch, Link. Alex and Sam are cast in
+    // all three; Alex has Mic 1 in Opening Number.
+    const [space, link] = [itemId("Space Sketch"), itemId("Link")];
+
+    function setUpInOneHalf() {
+      const micPlots = inMemoryMicPlotStore([
+        {
+          productionId: "2027",
+          items: [{ itemId: opening, mics: [{ channel: 1, castMemberId: alex }] }],
+        },
+      ]);
+      const runningOrders = inMemoryRunningOrderStore([
+        aRunningOrder(3, { first: ["Opening Number", "Space Sketch", "Link"] }),
+      ]);
+      const roles = inMemoryRoleStore([
+        {
+          productionId: "2027",
+          roles: [opening, space, link].map((item, i) => aRole(i + 1, item, [alex, sam])),
+        },
+      ]);
+      return { micPlots, handler: createAllocateMic(micPlots, runningOrders, roles) };
+    }
+
+    it("refuses the channel to someone else in the next item, changing nothing", async () => {
+      const { micPlots, handler } = setUpInOneHalf();
+      const before = await micsIn(micPlots);
+
+      const res = await handler(request({ channel: 1, castMemberId: sam }, space));
+
+      expect(res.statusCode).toBe(400);
+      expect(await micsIn(micPlots)).toEqual(before);
+    });
+
+    it("lets the cast member who had it keep it in the next item", async () => {
+      const { handler } = setUpInOneHalf();
+
+      const res = await handler(request({ channel: 1, castMemberId: alex }, space));
+
+      expect(res.statusCode).toBe(200);
+      expect(ItemMicPlot.parse(JSON.parse(res.body ?? ""))).toEqual({
+        itemId: space,
+        mics: [{ channel: 1, castMemberId: alex }],
+      });
+    });
+
+    it("gives the channel to anyone in an item that isn't straight after", async () => {
+      const { handler } = setUpInOneHalf();
+
+      expect((await handler(request({ channel: 1, castMemberId: sam }, link))).statusCode).toBe(
+        200,
+      );
+    });
+  });
+
+  it("gives a channel used at the end of the first half to anyone in the first item after the interval", async () => {
+    const { handler } = setUp();
+    await handler(request({ channel: 1, castMemberId: alex }));
+
+    expect((await handler(request({ channel: 1, castMemberId: jo }, finale))).statusCode).toBe(200);
+  });
+
   it.each([
     ["Mic 0", { channel: 0, castMemberId: alex }],
     ["Mic 25", { channel: 25, castMemberId: alex }],

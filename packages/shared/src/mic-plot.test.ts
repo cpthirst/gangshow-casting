@@ -1,5 +1,41 @@
 import { describe, expect, it } from "vitest";
-import { AllocateMicRequest, ItemMicPlot, MIC_CHANNELS, MicPlotList } from "./mic-plot.ts";
+import {
+  AllocateMicRequest,
+  channelsHeldBefore,
+  ItemMicPlot,
+  MIC_CHANNELS,
+  MicPlotList,
+} from "./mic-plot.ts";
+import type { RunningOrder } from "./running-order.ts";
+
+// Made-up items and cast member ids: Alex is 1, Sam 2.
+const [alex, sam] = [1, 2];
+const anItem = (id: string) => ({
+  id,
+  title: id,
+  cast: "",
+  stage: [],
+  leads: "",
+  comments: "",
+  minutes: 5,
+  printed: true,
+});
+const show = (first: string[], second: string[]): RunningOrder => ({
+  productionId: "2027",
+  title: "Gang Show 2027",
+  version: 1,
+  savedAt: "2026-10-04T00:00:00.000Z",
+  startTime: "19:15",
+  intervalMinutes: 20,
+  halves: [
+    { id: "first-half", name: "Act 1", items: first.map(anItem) },
+    { id: "second-half", name: "Act 2", items: second.map(anItem) },
+  ],
+});
+const aPlot = (itemId: string, ...pairs: [number, number][]): ItemMicPlot => ({
+  itemId,
+  mics: pairs.map(([channel, castMemberId]) => ({ channel, castMemberId })),
+});
 
 describe("ItemMicPlot", () => {
   it("is an item's channels, each given to one cast member", () => {
@@ -53,5 +89,36 @@ describe("AllocateMicRequest", () => {
       expect(AllocateMicRequest.safeParse({ channel, castMemberId: 1 }).success).toBe(false);
     }
     expect(AllocateMicRequest.safeParse({ channel: 24, castMemberId: 1 }).success).toBe(true);
+  });
+});
+
+describe("channelsHeldBefore", () => {
+  const order = show(["opening", "link", "space"], ["entracte"]);
+
+  it("is who had each channel in the item directly before", () => {
+    const plots = [aPlot("opening", [1, alex], [2, sam]), aPlot("space", [3, sam])];
+
+    expect(channelsHeldBefore(order, plots, "link")).toEqual(
+      new Map([
+        [1, alex],
+        [2, sam],
+      ]),
+    );
+  });
+
+  it("looks only at the item directly before, not further back", () => {
+    expect(channelsHeldBefore(order, [aPlot("opening", [5, alex])], "space")).toEqual(new Map());
+  });
+
+  it("holds nothing for the first item of the show", () => {
+    expect(channelsHeldBefore(order, [aPlot("space", [1, alex])], "opening")).toEqual(new Map());
+  });
+
+  it("holds nothing for the first item after the interval", () => {
+    expect(channelsHeldBefore(order, [aPlot("space", [1, alex])], "entracte")).toEqual(new Map());
+  });
+
+  it("holds nothing for an item not in the running order", () => {
+    expect(channelsHeldBefore(order, [aPlot("opening", [1, alex])], "gone")).toEqual(new Map());
   });
 });

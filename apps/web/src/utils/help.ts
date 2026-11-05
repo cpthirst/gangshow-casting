@@ -453,7 +453,7 @@ export const pageHelp: PageHelp[] = [
       },
       {
         name: "Mic 1 to Mic 24",
-        does: "Who wears each mic in the item, with the roles they play in it. Type a name to give a mic to only someone cast in the item, one mic each. It saves straight away.",
+        does: "Who wears each mic in the item, with the roles they play in it. Type a name to give a mic to only someone cast in the item, one mic each. A mic someone else had in the item just before is greyed out, and only they can keep it. It saves straight away.",
         access: "everyone",
         changeAccess: "tech",
       },

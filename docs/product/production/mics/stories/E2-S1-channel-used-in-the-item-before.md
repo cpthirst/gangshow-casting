@@ -2,7 +2,7 @@
 id: production-mics.E2.S1
 title: Grey out a channel used by someone else in the item before
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story

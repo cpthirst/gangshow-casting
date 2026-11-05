@@ -1597,6 +1597,20 @@ main a {
   display: none;
 }
 
+/* A channel someone else had in the item before: greyed out, the card the page's grey with a
+   dashed edge rather than white, its text still the full text colour (9.2:1 on the grey), so
+   it reads as unavailable without fading below contrast (production-mics FR5). Selectors
+   specific enough to beat .role-card's white, which comes later. */
+.role-card.mic-held {
+  border: 1px dashed var(--not-in-item);
+  background: var(--surface);
+}
+
+.mic-held-reason {
+  grid-column: 2;
+  font-style: italic;
+}
+
 /* Every card's surface, so roles, props and files look alike. */
 .role-card {
   display: flex;
@@ -2148,6 +2162,12 @@ main a {
   background: var(--white);
   color: var(--text);
   font: inherit;
+}
+
+/* A held channel's disabled picker is grey too (see .mic-held). */
+.mic-channel.mic-held .combobox input {
+  background: var(--surface);
+  cursor: not-allowed;
 }
 
 .combobox [role="listbox"] {

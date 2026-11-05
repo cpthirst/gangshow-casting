@@ -64,6 +64,11 @@ describe("choicesFor", () => {
   it("keeps whoever is on this channel", () => {
     expect(choicesFor(3, [alex, sam], plot)).toEqual([alex, sam]);
   });
+
+  it("is only whoever had the channel in the item before, if anyone did", () => {
+    expect(choicesFor(5, [alex, sam], plot, sam.id)).toEqual([sam]);
+    expect(choicesFor(5, [alex, sam], plot, jo.id)).toEqual([]);
+  });
 });
 
 describe("micRolesText", () => {
