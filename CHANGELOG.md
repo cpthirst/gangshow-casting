@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.43.0](https://github.com/cpthirst/gangshow-casting/compare/v1.42.0...v1.43.0) (2026-11-05)
+
+
+### Features
+
+* **api:** free a cast member's mic when casting takes them out of the item (production-mics.E2.S3) ([#185](https://github.com/cpthirst/gangshow-casting/issues/185)) ([33fd077](https://github.com/cpthirst/gangshow-casting/commit/33fd077a14892e1e1ee31a918cd77c0005db7fec))
+
 ## [1.42.0](https://github.com/cpthirst/gangshow-casting/compare/v1.41.0...v1.42.0) (2026-11-05)
 
 
