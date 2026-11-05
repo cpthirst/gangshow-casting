@@ -1713,9 +1713,11 @@ main a {
 }
 
 /* A table's box scrolls sideways when it has to, which also cuts off anything hanging below
-   it, so on its last row the description opens upwards. (A one-row table opens it over the
-   header row, which fits a line or two.) */
-.table-scroll tr:last-child .clash-description {
+   it, so on its last row the description opens upwards. In a list of items that's the last
+   item's row, even with its notes rows under it. (A one-row table opens it over the header
+   row, which fits a line or two.) */
+.table-scroll tr:last-child .clash-description,
+.table-scroll tr[data-item-id]:not(:has(~ tr[data-item-id])) .clash-description {
   top: auto;
   bottom: calc(100% + 0.375rem);
 }
@@ -1778,7 +1780,6 @@ main a {
     flex-basis: 100%;
   }
 }
-
 /* A person's timeline on the Overview: their own row at the bottom of the card, centred, with
    a dot per item and a wider gap where the interval falls. */
 .timeline-wrap {

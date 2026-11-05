@@ -1,4 +1,4 @@
-import type { Prop, RunningOrder } from "@app/shared";
+import type { ItemMicPlot, Prop, RunningOrder } from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory } from "vue-router";
@@ -7,6 +7,7 @@ import { createAppRouter } from "@/router/index.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
 import { departmentNotesPath, fileCountsPath } from "@/utils/item-files.ts";
+import { MIC_PLOT_NOTES_PATH, MIC_PLOT_PATH } from "@/utils/mic-plot.ts";
 import { PROPS_PATH } from "@/utils/props.ts";
 import { PROPS_NOTES_PATH } from "@/utils/props-notes.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
@@ -28,8 +29,8 @@ const SCENERY_NOTES_PATH = departmentNotesPath("scenery");
 const SFX_NOTES_PATH = departmentNotesPath("sfx");
 const WARDROBE_NOTES_PATH = departmentNotesPath("wardrobe");
 
-/** A stand-in API answering the running order, props, notes and file counts paths as given
- *  (no notes or files unless a test says). */
+/** A stand-in API answering the running order, props, notes, file counts and mic plot paths
+ *  as given (no notes, files or mics unless a test says). */
 function apiAnswers(answers: {
   order: () => Response;
   props: () => Response;
@@ -37,6 +38,8 @@ function apiAnswers(answers: {
   sceneryNotes?: () => Response;
   sfxNotes?: () => Response;
   wardrobeNotes?: () => Response;
+  micPlotNotes?: () => Response;
+  micPlot?: () => Response;
   scenery?: () => Response;
   sfx?: () => Response;
   wardrobe?: () => Response;
@@ -53,6 +56,10 @@ function apiAnswers(answers: {
       if (url === WARDROBE_FILE_COUNTS_PATH) return (answers.wardrobe ?? noFiles)();
       if (url === SFX_NOTES_PATH) return (answers.sfxNotes ?? noNotes)();
       if (url === WARDROBE_NOTES_PATH) return (answers.wardrobeNotes ?? noNotes)();
+      if (url === MIC_PLOT_NOTES_PATH) return (answers.micPlotNotes ?? noNotes)();
+      if (url === MIC_PLOT_PATH) {
+        return (answers.micPlot ?? json({ productionId: "2027", items: [] }))();
+      }
       if (url === PROPS_NOTES_PATH) {
         return answers.notes?.() ?? json({ productionId: "2027", notes: [] })();
       }
@@ -680,20 +687,6 @@ describe("Scenery counts on the Production overview", () => {
     expect(props?.get("[data-test=count-word]").attributes("aria-hidden")).toBe("true");
   });
 
-  it("shows a dash in every item's mic-plot cell, read as Coming soon", async () => {
-    showWithFiles({});
-
-    const { wrapper } = await openOverview();
-
-    const cells = wrapper.findAll("[data-test=count][data-department=mic-plot]");
-    expect(cells).toHaveLength(show().halves.flatMap((half) => half.items).length);
-    for (const cell of cells) {
-      expect(cell.get("[aria-hidden=true]").text()).toBe("–");
-      expect(cell.get(".visually-hidden").text()).toBe("Coming soon");
-      expect(cell.attributes("data-label")).toBe("Mic plot");
-    }
-  });
-
   it("still shows the items and props counts when the scenery counts fail, with no scenery 0", async () => {
     apiAnswers({
       order: json(show()),
@@ -724,7 +717,7 @@ describe("SFX and Wardrobe on the Production overview (production-sfx-wardrobe F
       wardrobe: json({ counts: { [opening]: 1 } }),
     });
 
-  it("counts each item's SFX and Wardrobe files, 0 for none, leaving the Mic plot a dash", async () => {
+  it("counts each item's SFX and Wardrobe files, 0 for none", async () => {
     showWithFiles();
 
     const { wrapper } = await openOverview();
@@ -739,7 +732,6 @@ describe("SFX and Wardrobe on the Production overview (production-sfx-wardrobe F
     });
     expect(shown(countIn(wrapper, "Finale", "sfx"))).toEqual({ number: "0", word: "files" });
     expect(shown(countIn(wrapper, "Finale", "wardrobe"))).toEqual({ number: "0", word: "files" });
-    expect(countIn(wrapper, "Opening Number", "mic-plot")?.text()).toBe("–Coming soon");
   });
 
   it("reads each SFX and Wardrobe count to screen readers as one phrase", async () => {
@@ -791,7 +783,7 @@ describe("SFX and Wardrobe on the Production overview (production-sfx-wardrobe F
     return found;
   };
 
-  it("shows an item's scenery, props, SFX and Wardrobe notes in full, labelled, in that order", async () => {
+  it("shows an item's scenery, props, SFX, Mic plot and Wardrobe notes in full, labelled, in that order", async () => {
     const note = (text: string) => [{ itemId: opening, text, revision: 1 }];
     apiAnswers({
       order: json(show()),
@@ -799,6 +791,7 @@ describe("SFX and Wardrobe on the Production overview (production-sfx-wardrobe F
       sceneryNotes: notes(note("Fly the cloud in after the blackout")),
       notes: notes(note("Chest set stage left")),
       sfxNotes: notes(note("Thunder on the second chorus")),
+      micPlotNotes: notes(note("Mics 19–24 on for songs only")),
       wardrobeNotes: notes(note("Gold jackets for the chorus")),
     });
 
@@ -808,6 +801,7 @@ describe("SFX and Wardrobe on the Production overview (production-sfx-wardrobe F
       { label: "Scenery notes", text: "Fly the cloud in after the blackout" },
       { label: "Props notes", text: "Chest set stage left" },
       { label: "SFX notes", text: "Thunder on the second chorus" },
+      { label: "Mic plot notes", text: "Mics 19–24 on for songs only" },
       { label: "Wardrobe notes", text: "Gold jackets for the chorus" },
     ]);
     const cell = wrapper.get("[data-test=wardrobe-notes] td");
@@ -816,11 +810,12 @@ describe("SFX and Wardrobe on the Production overview (production-sfx-wardrobe F
     );
   });
 
-  it("shows nothing extra for an item with no notes, or cleared SFX and Wardrobe notes", async () => {
+  it("shows nothing extra for an item with no notes, or cleared SFX, Mic plot and Wardrobe notes", async () => {
     apiAnswers({
       order: json(show()),
       props: json({ productionId: "2027", props: [] }),
       sfxNotes: notes([{ itemId: opening, text: "", revision: 2 }]),
+      micPlotNotes: notes([{ itemId: opening, text: "", revision: 2 }]),
       wardrobeNotes: notes([{ itemId: opening, text: "", revision: 2 }]),
     });
 
@@ -845,5 +840,145 @@ describe("SFX and Wardrobe on the Production overview (production-sfx-wardrobe F
       { label: "Wardrobe notes", text: "Gold jackets" },
     ]);
     expect(wrapper.get("main [role=alert]").text()).toBe("Couldn't load the notes.");
+  });
+});
+
+describe("The Mic plot on the Production overview (production-mics FR10, FR12, FR13)", () => {
+  const mics = (count: number, from = 1) =>
+    Array.from({ length: count }, (_, i) => ({ channel: from + i, castMemberId: from + i }));
+  // Made-up items, with Link straight after the Opening Number and the Finale in the second half.
+  const micShow = () =>
+    aRunningOrder([anItem("Opening Number"), anItem("Link")], [anItem("Finale")]);
+  const micPlotIs = (items: ItemMicPlot[], order = micShow()) =>
+    apiAnswers({
+      order: json(order),
+      props: json({ productionId: "2027", props: [] }),
+      micPlot: json({ productionId: "2027", items }),
+    });
+  // Beside the item's title, as the Items list's icon is.
+  const clashIn = (wrapper: VueWrapper, title: string) =>
+    rowFor(wrapper, title)?.find("td.title [data-test=clash]");
+
+  it("counts each item's channels given out over the word mics, or mic for one, 0 for none", async () => {
+    micPlotIs([
+      { itemId: "opening-number", mics: mics(6) },
+      { itemId: "link", mics: mics(1, 7) },
+    ]);
+
+    const { wrapper } = await openOverview();
+
+    expect(shown(countIn(wrapper, "Opening Number", "mic-plot"))).toEqual({
+      number: "6",
+      word: "mics",
+    });
+    expect(shown(countIn(wrapper, "Link", "mic-plot"))).toEqual({ number: "1", word: "mic" });
+    expect(shown(countIn(wrapper, "Finale", "mic-plot"))).toEqual({ number: "0", word: "mics" });
+    expect(wrapper.get("main table").text()).not.toContain("Coming soon");
+  });
+
+  it("reads the count to screen readers as one phrase", async () => {
+    micPlotIs([{ itemId: "opening-number", mics: mics(6) }]);
+
+    const { wrapper } = await openOverview();
+
+    const cell = countIn(wrapper, "Opening Number", "mic-plot");
+    expect(cell?.get(".visually-hidden").text()).toBe("6 mics");
+    expect(cell?.get("[data-test=count-number]").attributes("aria-hidden")).toBe("true");
+    expect(cell?.get("[data-test=count-word]").attributes("aria-hidden")).toBe("true");
+  });
+
+  it("still shows the other counts when the mic plot can't be loaded, with no 0 for it", async () => {
+    apiAnswers({
+      order: json(micShow()),
+      props: json({ productionId: "2027", props: [] }),
+      micPlot: status(500),
+    });
+
+    const { wrapper } = await openOverview();
+
+    expect(shown(countIn(wrapper, "Opening Number", "props"))?.number).toBe("0");
+    expect(wrapper.get("main [role=alert]").text()).toBe("Couldn't load the mic plot counts.");
+    const cells = wrapper.findAll("[data-test=count][data-department=mic-plot]");
+    expect(cells.length).toBeGreaterThan(0);
+    for (const cell of cells) expect(cell.text()).toBe("");
+  });
+
+  describe("with a channel kept after a reorder put its item straight after one using it", () => {
+    // Mic 1 is Alex Morgan's (1) in the Opening Number and was kept as Sam Patel's (2) in the
+    // Finale, now straight after it.
+    const reordered = () =>
+      aRunningOrder([anItem("Opening Number"), anItem("Finale")], [anItem("Link")]);
+    const kept = () =>
+      micPlotIs(
+        [
+          { itemId: "opening-number", mics: [{ channel: 1, castMemberId: 1 }] },
+          { itemId: "finale", mics: [{ channel: 1, castMemberId: 2 }] },
+        ],
+        reordered(),
+      );
+
+    it("still counts the kept channel, with an Error icon beside the item's title", async () => {
+      kept();
+
+      const { wrapper } = await openOverview();
+
+      expect(shown(countIn(wrapper, "Finale", "mic-plot"))).toEqual({ number: "1", word: "mic" });
+      expect(clashIn(wrapper, "Finale")?.attributes("data-severity")).toBe("error");
+    });
+
+    it("says how many errors, and on which mics, in words a screen reader hears too", async () => {
+      kept();
+
+      const { wrapper } = await openOverview();
+
+      const clash = clashIn(wrapper, "Finale");
+      expect(clash?.get("[data-test=clash-description]").text()).toBe("1 error: Mic 1");
+      expect(clash?.get("[data-test=clash-icon]").attributes("aria-label")).toBe("1 error: Mic 1");
+      expect(clash?.get("[data-test=clash-icon]").attributes("tabindex")).toBe("0");
+    });
+
+    it("names every kept channel in the item", async () => {
+      micPlotIs(
+        [
+          { itemId: "opening-number", mics: [...mics(1), { channel: 3, castMemberId: 3 }] },
+          { itemId: "finale", mics: [...mics(1, 2), { channel: 3, castMemberId: 1 }] },
+        ],
+        reordered(),
+      );
+
+      const { wrapper } = await openOverview();
+
+      expect(clashIn(wrapper, "Finale")?.get("[data-test=clash-description]").text()).toBe(
+        "1 error: Mic 3",
+      );
+    });
+
+    it("shows no icon in the item before, or in items without one", async () => {
+      kept();
+
+      const { wrapper } = await openOverview();
+
+      expect(clashIn(wrapper, "Opening Number")?.exists()).toBe(false);
+      expect(clashIn(wrapper, "Link")?.exists()).toBe(false);
+    });
+  });
+
+  it("counts two kept channels as 2 errors", async () => {
+    micPlotIs([
+      { itemId: "opening-number", mics: mics(2) },
+      {
+        itemId: "link",
+        mics: [
+          { channel: 1, castMemberId: 5 },
+          { channel: 2, castMemberId: 6 },
+        ],
+      },
+    ]);
+
+    const { wrapper } = await openOverview();
+
+    expect(clashIn(wrapper, "Link")?.get("[data-test=clash-description]").text()).toBe(
+      "2 errors: Mic 1, Mic 2",
+    );
   });
 });

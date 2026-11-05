@@ -54,7 +54,7 @@ describe("RecordUsageRequest", () => {
     expect(RecordUsageRequest.parse({ ...use, title: "Night at the movies" })).toEqual(use);
   });
 
-  it.each(["sfx", "wardrobe"])(
+  it.each(["sfx", "mic-plot", "wardrobe"])(
     "accepts opening an item's %s page, keeping only which item",
     (event) => {
       const use = { event, productionId: "2027", itemId: "made-up-item" };
@@ -107,6 +107,7 @@ describe("featureOf", () => {
   it.each([
     ["scenery", "scenery-page"],
     ["sfx", "sfx-page"],
+    ["mic-plot", "mic-plot-page"],
     ["wardrobe", "wardrobe-page"],
   ] as const)(
     "counts every item's %s page as one feature, apart from item pages",

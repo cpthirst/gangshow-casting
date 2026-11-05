@@ -44,10 +44,11 @@ export const recordExport = (kind: UsageExport) => record({ event: "export", exp
 export const recordItemUse = (productionId: string, itemId: string) =>
   record({ event: "item", productionId, itemId });
 
-/** Records opening an item's Scenery, SFX or Wardrobe page: which item only, never its title
- *  or files (production-scenery FR15, production-sfx-wardrobe FR13). */
+/** Records opening an item's Scenery, SFX, Mic plot or Wardrobe page: which item only, never
+ *  its title, files or mics (production-scenery FR15, production-sfx-wardrobe FR13,
+ *  production-mics FR16). */
 export const recordDepartmentPageUse = (
-  department: FileDepartment,
+  department: FileDepartment | "mic-plot",
   productionId: string,
   itemId: string,
 ) => record({ event: department, productionId, itemId });

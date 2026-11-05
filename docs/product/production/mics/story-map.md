@@ -34,7 +34,7 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [production-mics.E3.S1](stories/E3-S1-overview-count-notes-and-usage.md) | The Overview's Mic plot column counts allocated channels instead of a dash, an item with a kept allocation that breaks the rule shows an Error icon, Mic plot notes appear under each row after SFX notes, and the Usage page records visits to the Mic plot page | FR10, FR12, FR13, FR16 | E1.S3, E2.S2 | ready |
+| [production-mics.E3.S1](stories/E3-S1-overview-count-notes-and-usage.md) | The Overview's Mic plot column counts allocated channels instead of a dash, an item with a kept allocation that breaks the rule shows an Error icon, Mic plot notes appear under each row after SFX notes, and the Usage page records visits to the Mic plot page | FR10, FR12, FR13, FR16 | E1.S3, E2.S2 | done |
 | [production-mics.E3.S2](stories/E3-S2-generate-mic-plot.md) | Generate Mic Plot beside Generate Props List downloads the Excel workbook in the 2026 layout: title, ACT 1 and ACT 2, a block per item with Mic 1–9, 10–18 and 19–24 rows of name and role, notes beside it, each item shaded in its own colour repeating per half, A4 portrait. Names stay text. Usage records each use. Includes the ADR if a new library is needed | FR14, FR16 | E1.S3 | ready |
 | [production-mics.E3.S3](stories/E3-S3-welcome-and-help.md) | Welcome and Help describe the Mic plot page, the greyed-out rule and the interval, notes, who can change it, Generate Mic Plot, and that the workbook holds under-18s' names | FR15 | E2.S1, E3.S2 | ready |
 

@@ -894,3 +894,57 @@ describe("An item's Mic plot page", () => {
     }
   });
 });
+
+describe("Recording a visit to an item's Mic plot page (production-mics FR16)", () => {
+  // Everything recorded but sessions, which are sign-ins, not uses of this page.
+  const recorded = () =>
+    vi
+      .mocked(fetch)
+      .mock.calls.filter(([url, init]) => url === "/api/usage" && init?.method === "POST")
+      .map(([, init]) => JSON.parse(String(init?.body)))
+      .filter((body) => body.event !== "session");
+  const visit = { event: "mic-plot", productionId: "2027", itemId: "opening-number" };
+
+  it("records lee opening an item's Mic plot page, naming only the item and its production", async () => {
+    await signInAs(["tech"], "lee");
+    apiHolds(show);
+
+    await openAppAt(OPENING_NUMBER);
+
+    expect(recorded()).toEqual([visit]);
+  });
+
+  it("records only the visit when lee gives out and clears channels and changes the notes", async () => {
+    await signInAs(["tech"], "lee");
+    apiHolds(show);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    await give(wrapper, 1, "Alex Morgan");
+    await clear(wrapper, 1);
+    await notesSection(wrapper).get("textarea").setValue("Mics 19–24 on for songs only");
+    await notesSection(wrapper).get("form").trigger("submit");
+    await flushPromises();
+
+    expect(puts()).toHaveLength(3);
+    expect(recorded()).toEqual([visit]);
+  });
+
+  it("records each item stepped to with Next", async () => {
+    apiHolds(show);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    await wrapper.get("main nav[aria-label='Item navigation'] a[rel=next]").trigger("click");
+    await flushPromises();
+
+    expect(recorded()).toEqual([visit, { ...visit, itemId: "pirate-sketch" }]);
+  });
+
+  it("records nothing for an item that isn't in the running order", async () => {
+    apiHolds(show);
+
+    const { wrapper } = await openAppAt("/production/items/no-such-item/mic-plot");
+
+    expect(wrapper.get("main h1").text()).toBe("Item not found");
+    expect(recorded()).toEqual([]);
+  });
+});
