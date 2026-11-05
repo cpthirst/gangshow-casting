@@ -469,6 +469,29 @@ describe("An item's Mic plot page", () => {
     expect(rolesOn(wrapper, 3)).toBe("Narrator, Alien Leader, Robot");
   });
 
+  it("shows the roles a mic's cast member still plays once one of theirs is removed", async () => {
+    const plots = [{ itemId: "space-sketch", mics: [{ channel: 3, castMemberId: alex.id }] }];
+    const withoutAlien = casting.filter((role) => role.name !== "Alien 1");
+    apiHolds(spaceShow, plots, undefined, withoutAlien);
+    const { wrapper } = await openAppAt(SPACE_SKETCH);
+
+    expect([whoIsOn(wrapper, 3), rolesOn(wrapper, 3)]).toEqual(["Alex Morgan", "Narrator"]);
+  });
+
+  it("leaves a recast role's old cast member on the mic with the roles they still play", async () => {
+    const plots = [{ itemId: "space-sketch", mics: [{ channel: 3, castMemberId: alex.id }] }];
+    // Alex was Alien 1 and in the chorus; Alien 1 is recast to Sam.
+    const recast: Role[] = [
+      { ...aRole(4, "space-sketch", "Alien 1", [sam.id]), size: "support" },
+      aRole(7, "space-sketch", "Chorus", [jo.id, alex.id]),
+    ];
+    apiHolds(spaceShow, plots, undefined, recast);
+    const { wrapper } = await openAppAt(SPACE_SKETCH);
+
+    expect([whoIsOn(wrapper, 3), rolesOn(wrapper, 3)]).toEqual(["Alex Morgan", "Chorus"]);
+    expect(channels(wrapper).filter((channel) => channel.who === "Sam Patel")).toEqual([]);
+  });
+
   it.each([
     ["lee, with Tech", ["tech"]],
     ["kim, without Tech or Director", ["casting", "stage", "wardrobe"]],

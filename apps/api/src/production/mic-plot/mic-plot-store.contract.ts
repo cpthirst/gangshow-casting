@@ -1,6 +1,15 @@
-import type { MicPlotList } from "@app/shared";
+import type { MicPlotList, Role } from "@app/shared";
 import { expect, it } from "vitest";
 import type { MicPlotStore } from "./mic-plot-store.ts";
+
+const aRole = (id: number, itemId: string, castMemberIds: number[]): Role => ({
+  id,
+  itemId,
+  name: `Role ${id}`,
+  size: "ensemble",
+  castMemberIds,
+  revision: 1,
+});
 
 const sorted = (list: MicPlotList) =>
   [...list.items].sort((a, b) => a.itemId.localeCompare(b.itemId));
@@ -108,6 +117,61 @@ export function behavesAsAMicPlotStore(make: (saved: MicPlotList[]) => Promise<M
     await store.allocate("2027", "finale", 3, 1);
 
     expect((await store.list("2028")).items).toEqual([]);
+  });
+
+  it("frees each channel held by someone no longer cast in its item, leaving the rest", async () => {
+    // Made-up cast: Alex (1) is on Mic 3 in both items but now only in the Finale; Sam (2)
+    // is still in the Space Sketch.
+    const store = await make([
+      {
+        productionId: "2027",
+        items: [
+          {
+            itemId: "space-sketch",
+            mics: [
+              { channel: 3, castMemberId: 1 },
+              { channel: 5, castMemberId: 2 },
+            ],
+          },
+          { itemId: "finale", mics: [{ channel: 3, castMemberId: 1 }] },
+        ],
+      },
+    ]);
+
+    await store.freeUncastChannels("2027", [
+      aRole(1, "space-sketch", [2]),
+      aRole(2, "finale", [1, 2]),
+    ]);
+
+    expect(sorted(await store.list("2027"))).toEqual([
+      { itemId: "finale", mics: [{ channel: 3, castMemberId: 1 }] },
+      { itemId: "space-sketch", mics: [{ channel: 5, castMemberId: 2 }] },
+    ]);
+  });
+
+  it("leaves out an item once casting has freed all its channels", async () => {
+    const store = await make([
+      {
+        productionId: "2027",
+        items: [{ itemId: "finale", mics: [{ channel: 3, castMemberId: 1 }] }],
+      },
+    ]);
+
+    await store.freeUncastChannels("2027", []);
+
+    expect((await store.list("2027")).items).toEqual([]);
+  });
+
+  it("frees uncast channels in that production only", async () => {
+    const finale = { itemId: "finale", mics: [{ channel: 3, castMemberId: 1 }] };
+    const store = await make([
+      { productionId: "2027", items: [finale] },
+      { productionId: "2028", items: [finale] },
+    ]);
+
+    await store.freeUncastChannels("2027", []);
+
+    expect((await store.list("2028")).items).toEqual([finale]);
   });
 
   it("deletes the mic plot of every item not kept, in that production only", async () => {

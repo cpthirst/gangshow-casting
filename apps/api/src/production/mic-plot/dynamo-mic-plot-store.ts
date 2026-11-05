@@ -1,4 +1,4 @@
-import { type ItemMicPlot, StoredItemMicPlot, StoredMicPlotList } from "@app/shared";
+import { type ItemMicPlot, type Role, StoredItemMicPlot, StoredMicPlotList } from "@app/shared";
 import {
   DeleteCommand,
   type DynamoDBDocumentClient,
@@ -6,7 +6,7 @@ import {
   PutCommand,
 } from "@aws-sdk/lib-dynamodb";
 import { partitionFor, queryAll, written } from "#/storage/dynamo-table.ts";
-import { type MicPlotStore, withAllocation } from "./mic-plot-store.ts";
+import { castMics, type MicPlotStore, withAllocation } from "./mic-plot-store.ts";
 
 const MIC_PLOT = "MICPLOT#";
 /** How many times to try again when someone else changes the item's channels meanwhile. */
@@ -76,6 +76,19 @@ export function dynamoMicPlotStore(db: DynamoDBDocumentClient, tableName: string
           ),
     );
 
+  /** Frees the item's channels held by anyone no longer cast in it. */
+  async function freeUncastIn(productionId: string, itemId: string, roles: Role[]) {
+    for (let attempt = 0; attempt < ATTEMPTS; attempt++) {
+      const { plot, revision } = await read(productionId, itemId);
+      const kept = castMics(plot, roles);
+      // castMics only frees channels, so the same count means unchanged.
+      if (kept.mics.length === plot.mics.length) return;
+      if (await save(productionId, kept, revision)) return;
+      // Someone else changed the item's channels since they were read: read them again.
+    }
+    throw new Error("Couldn't free the mics: the item's channels kept changing");
+  }
+
   return {
     async list(productionId) {
       const rows = await queryAll(db, tableName, productionId, MIC_PLOT);
@@ -96,6 +109,11 @@ export function dynamoMicPlotStore(db: DynamoDBDocumentClient, tableName: string
         // Someone else changed the item's channels since they were read: read them again.
       }
       throw new Error("Couldn't give out the mic: the item's channels kept changing");
+    },
+
+    async freeUncastChannels(productionId, roles) {
+      const rows = await queryAll(db, tableName, productionId, MIC_PLOT);
+      for (const { itemId } of rows) await freeUncastIn(productionId, String(itemId), roles);
     },
 
     async keepOnlyItems(productionId, itemIds) {

@@ -1,6 +1,12 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { type ItemMicPlot, type MicPlotList, ProductionId, StoredMicPlotList } from "@app/shared";
+import {
+  type ItemMicPlot,
+  type MicPlotList,
+  ProductionId,
+  type Role,
+  StoredMicPlotList,
+} from "@app/shared";
 import { parseJson } from "#/http/json.ts";
 import { ifExists } from "#/storage/files.ts";
 import { oneAtATime, writePrivateFile } from "#/storage/private-file.ts";
@@ -24,6 +30,9 @@ export interface MicPlotStore {
   ): Promise<ItemMicPlot | OnAnotherChannel>;
   /** Deletes the mic plot of every item not in `itemIds`, for good (FR11). */
   keepOnlyItems(productionId: string, itemIds: string[]): Promise<void>;
+  /** Frees every channel held by someone no longer cast in its item (FR9). roles: every role
+   *  in the production, as it is now. */
+  freeUncastChannels(productionId: string, roles: Role[]): Promise<void>;
 }
 
 const empty = (productionId: string): MicPlotList => ({ productionId, items: [] });
@@ -41,6 +50,14 @@ export function withAllocation(
   const others = plot.mics.filter((mic) => mic.channel !== channel);
   const mics = castMemberId === null ? others : [...others, { channel, castMemberId }];
   return { ...plot, mics: mics.sort((a, b) => a.channel - b.channel) };
+}
+
+/** The item's plot with only the channels of those still cast in one of its roles. */
+export function castMics(plot: ItemMicPlot, roles: Role[]): ItemMicPlot {
+  const cast = new Set(
+    roles.filter((role) => role.itemId === plot.itemId).flatMap((role) => role.castMemberIds),
+  );
+  return { ...plot, mics: plot.mics.filter((mic) => cast.has(mic.castMemberId)) };
 }
 
 const plotOf = (list: MicPlotList, itemId: string): ItemMicPlot =>
@@ -64,6 +81,12 @@ const onlyItems = (list: MicPlotList, itemIds: string[]): MicPlotList => ({
   items: list.items.filter((item) => itemIds.includes(item.itemId)),
 });
 
+/** The list with every uncast channel freed, dropping items left with none. */
+const withCastMics = (list: MicPlotList, roles: Role[]): MicPlotList => ({
+  ...list,
+  items: list.items.map((plot) => castMics(plot, roles)).filter((plot) => plot.mics.length > 0),
+});
+
 /** Mic plots held in memory, starting with those given: for tests. */
 export function inMemoryMicPlotStore(saved: MicPlotList[] = []): MicPlotStore {
   const lists = new Map<string, MicPlotList>(saved.map((list) => [list.productionId, list]));
@@ -77,6 +100,9 @@ export function inMemoryMicPlotStore(saved: MicPlotList[] = []): MicPlotStore {
     },
     async keepOnlyItems(productionId, itemIds) {
       lists.set(productionId, onlyItems(listOf(productionId), itemIds));
+    },
+    async freeUncastChannels(productionId, roles) {
+      lists.set(productionId, withCastMics(listOf(productionId), roles));
     },
   };
 }
@@ -124,6 +150,14 @@ export function fileMicPlotStore(dataDir: string): MicPlotStore {
         const kept = onlyItems(list, itemIds);
         // Nothing to write if every item stays (or there's no file yet).
         if (kept.items.length === list.items.length) return;
+        await write(kept);
+      }),
+    freeUncastChannels: (productionId, roles) =>
+      inTurn(async () => {
+        const list = await read(productionId);
+        const kept = withCastMics(list, roles);
+        // Nothing to write if no one lost a channel (or there's no file yet).
+        if (JSON.stringify(kept) === JSON.stringify(list)) return;
         await write(kept);
       }),
   };

@@ -1,5 +1,6 @@
 import type { Role, RoleList } from "@app/shared";
 import { describe, expect, it } from "vitest";
+import { inMemoryMicPlotStore } from "#/production/mic-plot/mic-plot-store.ts";
 import { inMemoryPropStore } from "#/production/props/prop-store.ts";
 import { createRemoveRole } from "./remove-role.ts";
 import { inMemoryRoleStore } from "./role-store.ts";
@@ -21,7 +22,14 @@ const role = (id: number, revision: number, castMemberIds: number[] = []): Role 
 function setUp() {
   const initial: RoleList = { productionId: "2027", roles: [role(6, 1), role(7, 2, [12])] };
   const roles = inMemoryRoleStore([initial]);
-  return { roles, initial, handler: createRemoveRole(roles, inMemoryPropStore()) };
+  return {
+    roles,
+    initial,
+    handler: createRemoveRole(roles, {
+      props: inMemoryPropStore(),
+      micPlots: inMemoryMicPlotStore(),
+    }),
+  };
 }
 
 describe("remove role handler", () => {
@@ -82,7 +90,7 @@ describe("remove role handler with props", () => {
       carrierIds: [3, 1],
     };
     const props = inMemoryPropStore([{ productionId: "2027", props: [lantern] }]);
-    return { props, handler: createRemoveRole(roles, props) };
+    return { props, handler: createRemoveRole(roles, { props, micPlots: inMemoryMicPlotStore() }) };
   }
   const carriers = async (props: ReturnType<typeof setUpLantern>["props"]) =>
     (await props.list("2027")).props[0]?.carrierIds;
@@ -101,5 +109,48 @@ describe("remove role handler with props", () => {
     expect((await handler(request("7", "5"))).statusCode).toBe(409);
 
     expect(await carriers(props)).toEqual([3, 1]);
+  });
+});
+
+describe("remove role handler with mics", () => {
+  // Made-up cast: Alex (1) is Alien 1 and the Narrator in Space Sketch, on Mic 3 there.
+  const spaceRole = (id: number, name: string): Role => ({
+    id,
+    itemId: "space-sketch",
+    name,
+    size: "support",
+    castMemberIds: [1],
+    revision: 1,
+  });
+  function setUpSpaceSketch(roleList: Role[]) {
+    const roles = inMemoryRoleStore([{ productionId: "2027", roles: roleList }]);
+    const micPlots = inMemoryMicPlotStore([
+      {
+        productionId: "2027",
+        items: [{ itemId: "space-sketch", mics: [{ channel: 3, castMemberId: 1 }] }],
+      },
+    ]);
+    return { micPlots, handler: createRemoveRole(roles, { props: inMemoryPropStore(), micPlots }) };
+  }
+  const mics = async (micPlots: ReturnType<typeof setUpSpaceSketch>["micPlots"]) =>
+    (await micPlots.list("2027")).items[0]?.mics ?? [];
+
+  it("keeps the mic of someone still cast in another of the item's roles", async () => {
+    const { micPlots, handler } = setUpSpaceSketch([
+      spaceRole(1, "Alien 1"),
+      spaceRole(2, "Narrator"),
+    ]);
+
+    expect((await handler(request("1", "1"))).statusCode).toBe(204);
+
+    expect(await mics(micPlots)).toEqual([{ channel: 3, castMemberId: 1 }]);
+  });
+
+  it("frees the mic of someone left in none of the item's roles", async () => {
+    const { micPlots, handler } = setUpSpaceSketch([spaceRole(1, "Alien 1")]);
+
+    expect((await handler(request("1", "1"))).statusCode).toBe(204);
+
+    expect(await mics(micPlots)).toEqual([]);
   });
 });

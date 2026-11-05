@@ -1,6 +1,7 @@
 import type { Role } from "@app/shared";
 import { describe, expect, it } from "vitest";
 import { inMemoryRoleStore, type RoleStore } from "#/casting/roles/role-store.ts";
+import { inMemoryMicPlotStore } from "#/production/mic-plot/mic-plot-store.ts";
 import { inMemoryPropStore, type PropStore } from "#/production/props/prop-store.ts";
 import { aCastList, aCastMember } from "./cast.fixture.ts";
 import { inMemoryCastStore } from "./cast-store.ts";
@@ -26,7 +27,10 @@ function setUp(roles: RoleStore = inMemoryRoleStore(), props: PropStore = inMemo
   return {
     store,
     roles,
-    handler: createDeleteCastMember(uncastThenRemove(store, roles), roles, props),
+    handler: createDeleteCastMember(uncastThenRemove(store, roles), roles, {
+      props,
+      micPlots: inMemoryMicPlotStore(),
+    }),
   };
 }
 
@@ -133,11 +137,10 @@ describe("delete cast member handler with roles", () => {
       },
     };
 
-    await createDeleteCastMember(
-      uncastThenRemove(racingCast, roles),
-      roles,
-      inMemoryPropStore(),
-    )(request("12", "4"));
+    await createDeleteCastMember(uncastThenRemove(racingCast, roles), roles, {
+      props: inMemoryPropStore(),
+      micPlots: inMemoryMicPlotStore(),
+    })(request("12", "4"));
 
     expect(JSON.stringify(await roles.list("2027"))).not.toMatch(/"castMemberIds":\[[^\]]*\b12\b/);
   });
@@ -187,5 +190,59 @@ describe("delete cast member handler with props", () => {
     expect((await handler(request("12", "3"))).statusCode).toBe(409);
 
     expect((await props.list("2027")).props[0]?.carrierIds).toEqual([12]);
+  });
+});
+
+describe("delete cast member handler with mics", () => {
+  // Made-up cast: member 12 is on Mic 3 in Space Sketch and Mic 5 in the Finale; member 1 is
+  // on Mic 4 in the Finale.
+  const setUpWithMics = () => {
+    const micPlots = inMemoryMicPlotStore([
+      {
+        productionId: "2027",
+        items: [
+          { itemId: "space-sketch", mics: [{ channel: 3, castMemberId: 12 }] },
+          {
+            itemId: "finale",
+            mics: [
+              { channel: 4, castMemberId: 1 },
+              { channel: 5, castMemberId: 12 },
+            ],
+          },
+        ],
+      },
+    ]);
+    const roles = inMemoryRoleStore([
+      {
+        productionId: "2027",
+        roles: [aRole(8, "space-sketch", [12]), aRole(9, "finale", [12, 1])],
+      },
+    ]);
+    const store = inMemoryCastStore([
+      aCastList([aCastMember(1), aCastMember(12, { revision: 4 })]),
+    ]);
+    const handler = createDeleteCastMember(uncastThenRemove(store, roles), roles, {
+      props: inMemoryPropStore(),
+      micPlots,
+    });
+    return { micPlots, handler };
+  };
+
+  it("frees their channels in every item, leaving everyone else's", async () => {
+    const { micPlots, handler } = setUpWithMics();
+
+    expect((await handler(request("12", "4"))).statusCode).toBe(204);
+
+    expect((await micPlots.list("2027")).items).toEqual([
+      { itemId: "finale", mics: [{ channel: 4, castMemberId: 1 }] },
+    ]);
+  });
+
+  it("changes no mics when the delete is refused", async () => {
+    const { micPlots, handler } = setUpWithMics();
+
+    expect((await handler(request("12", "3"))).statusCode).toBe(409);
+
+    expect((await micPlots.list("2027")).items).toHaveLength(2);
   });
 });
