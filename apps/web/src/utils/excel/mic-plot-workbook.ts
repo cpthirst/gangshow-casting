@@ -24,7 +24,7 @@ const banner = (value: string): Row => [
   ...nulls(COLUMNS - 1),
 ];
 
-/** Every cell of a block is bordered, even an empty one. */
+/** A cell boxed on every side: an item's title, its Notes heading and its notes. */
 const boxed = (value: string, style: Cell = {}): Cell => ({
   ...centred,
   borderStyle: "thin",
@@ -33,15 +33,30 @@ const boxed = (value: string, style: Cell = {}): Cell => ({
 });
 const BOLD = { fontWeight: "bold" } as const;
 
-/** The item's block: its title down the left, then its channels in rows of nine, a header
- *  row of channels with its names then roles under it, all in the item's colour; and beside
- *  them, its notes under a Notes heading. */
+// Each channel's Mic, name and role share one box, with no lines between them.
+const TOP = { topBorderStyle: "thin", leftBorderStyle: "thin", rightBorderStyle: "thin" } as const;
+const MIDDLE = { leftBorderStyle: "thin", rightBorderStyle: "thin" } as const;
+const BOTTOM = { ...MIDDLE, bottomBorderStyle: "thin" } as const;
+const MIC = { ...TOP, ...BOLD } as const;
+const ROLE = { ...BOTTOM, fontStyle: "italic" } as const;
+// A mic nobody is on, so only the mics in use stand out in black.
+const UNUSED = { textColor: "#808080" } as const;
+
+/** The item's block: its title down the left, then its channels in rows of nine, each a box
+ *  of its Mic, then its name, then its role, all in the item's colour; and beside them, its
+ *  notes under a Notes heading. */
 function itemBlock({ title, mics, notes }: MicPlotItem, fill: string): Row[] {
-  const shaded = (value: string, bold = false) =>
-    boxed(value, { backgroundColor: fill, ...(bold ? BOLD : {}) });
-  const rowOf = (cells: Cell[]) => [
+  // Not boxed: a channel's cells are bordered only on the outside of its box.
+  const shaded = (value: string, style: Cell = {}): Cell => ({
+    ...centred,
+    backgroundColor: fill,
+    ...style,
+    ...(value ? { value } : {}),
+  });
+  // The empty space after the last channel is boxed as a channel is, so the rows line up.
+  const rowOf = (cells: Cell[], style: Cell) => [
     ...cells,
-    ...Array.from({ length: CHANNELS_PER_ROW - cells.length }, () => shaded("")),
+    ...Array.from({ length: CHANNELS_PER_ROW - cells.length }, () => shaded("", style)),
   ];
   const channelRows = Array.from(
     { length: Math.ceil(mics.length / CHANNELS_PER_ROW) },
@@ -49,9 +64,20 @@ function itemBlock({ title, mics, notes }: MicPlotItem, fill: string): Row[] {
       const first = row * CHANNELS_PER_ROW;
       const group = mics.slice(first, first + CHANNELS_PER_ROW);
       return [
-        rowOf(group.map((_, i) => shaded(`Mic ${first + i + 1}`, true))),
-        rowOf(group.map((mic) => shaded(mic.name))),
-        rowOf(group.map((mic) => shaded(mic.role))),
+        rowOf(
+          group.map((mic, i) =>
+            shaded(`Mic ${first + i + 1}`, mic.name ? MIC : { ...MIC, ...UNUSED }),
+          ),
+          MIC,
+        ),
+        rowOf(
+          group.map((mic) => shaded(mic.name, MIDDLE)),
+          MIDDLE,
+        ),
+        rowOf(
+          group.map((mic) => shaded(mic.role, ROLE)),
+          ROLE,
+        ),
       ];
     },
   ).flat();
@@ -59,7 +85,7 @@ function itemBlock({ title, mics, notes }: MicPlotItem, fill: string): Row[] {
   return channelRows.map((channels, i) => {
     if (i === 0) {
       return [
-        { ...shaded(title, true), rowSpan },
+        { ...boxed(title, { backgroundColor: fill, ...BOLD }), rowSpan },
         ...channels,
         null,
         { ...boxed("Notes", BOLD), columnSpan: 2 },

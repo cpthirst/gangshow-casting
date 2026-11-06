@@ -37,10 +37,11 @@ prd: ./prd.md
 | [production-mics.E3.S1](stories/E3-S1-overview-count-notes-and-usage.md) | The Overview's Mic plot column counts allocated channels instead of a dash, an item with a kept allocation that breaks the rule shows an Error icon, Mic plot notes appear under each row after SFX notes, and the Usage page records visits to the Mic plot page | FR10, FR12, FR13, FR16 | E1.S3, E2.S2 | done |
 | [production-mics.E3.S2](stories/E3-S2-generate-mic-plot.md) | Generate Mic Plot beside Generate Props List downloads the Excel workbook in the 2026 layout: title, ACT 1 and ACT 2, a block per item with Mic 1–9, 10–18 and 19–24 rows of name and role, notes beside it, each item shaded in its own colour repeating per half, A4 portrait. Names stay text. Usage records each use. Includes the ADR if a new library is needed | FR14, FR16 | E1.S3 | done |
 | [production-mics.E3.S3](stories/E3-S3-welcome-and-help.md) | Welcome and Help describe the Mic plot page, the greyed-out rule and the interval, notes, who can change it, Generate Mic Plot, and that the workbook holds under-18s' names | FR15 | E2.S1, E3.S2 | ready |
+| [production-mics.E3.S4](stories/E3-S4-mic-plot-channel-boxes.md) | In the Mic Plot workbook, each channel's Mic, name and role rows sit in one box with no lines between them, the role is in italics, and an unused mic is in mid grey so only live mics are black | FR14 | E3.S2 | done |
 
 ## Order
 
-E1.S1 → E1.S2 → E1.S3 → E2.S1 → E2.S2 → E2.S3 → E3.S1 → E3.S2 → E3.S3
+E1.S1 → E1.S2 → E1.S3 → E2.S1 → E2.S2 → E2.S3 → E3.S1 → E3.S2 → E3.S3 → E3.S4
 
 - E1.S1 is the largest: a new store, its routes, the page and the removal clean-up. If it passes ~400 lines, the read-only view is the part to split out.
 - E2.S1 is the heart of the feature, so it comes straight after allocating works.
@@ -64,6 +65,6 @@ E1.S1 → E1.S2 → E1.S3 → E2.S1 → E2.S2 → E2.S3 → E3.S1 → E3.S2 → 
 | FR11 | E1.S1, E1.S3 |
 | FR12 | E3.S1 |
 | FR13 | E3.S1 |
-| FR14 | E3.S2 |
+| FR14 | E3.S2, E3.S4 |
 | FR15 | E3.S3 |
 | FR16 | E3.S1, E3.S2 |

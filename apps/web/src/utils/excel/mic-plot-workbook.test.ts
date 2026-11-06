@@ -151,7 +151,10 @@ describe("the Mic Plot workbook", () => {
     expect(cellAt(start + 1, 1)?.bold).toBe(false);
     for (let row = start; row < start + BLOCK_ROWS; row++) {
       for (const column of [...Array(SHADED_COLUMNS).keys(), NOTES, NOTES + 1]) {
-        expect(cellAt(row, column)).toMatchObject({ horizontal: "center", border: "thin" });
+        expect(cellAt(row, column)).toMatchObject({
+          horizontal: "center",
+          borders: { left: "thin" },
+        });
       }
     }
     const xml = sheetXml(file);
@@ -160,6 +163,63 @@ describe("the Mic Plot workbook", () => {
     // Fitted to one page wide, however long the show runs.
     expect(xml).toMatch(/<worksheet [^>]*><sheetPr><pageSetUpPr fitToPage="1"\/>/);
     expect(xml).toMatch(/<pageSetup [^>]*fitToWidth="1" fitToHeight="0"/);
+  });
+
+  it("boxes each channel's Mic, name and role together, with no lines between them", async () => {
+    const file = await workbook();
+    const cells = readCells(file);
+    const start = blockStart(readSheet(file), "Space Sketch");
+    const box = [
+      { top: "thin", right: "thin", bottom: undefined, left: "thin" },
+      { top: undefined, right: "thin", bottom: undefined, left: "thin" },
+      { top: undefined, right: "thin", bottom: "thin", left: "thin" },
+    ];
+    const bordersDown = (row: number, column: number) =>
+      [0, 1, 2].map((i) => cells[row + i]?.[column]?.borders);
+
+    // Mic 1, Mic 10, Mic 20 and the empty space after Mic 24.
+    for (const [row, column] of [
+      [start, 1],
+      [start + 3, 1],
+      [start + 6, 2],
+      [start + 6, 9],
+    ] as const) {
+      expect(bordersDown(row, column)).toEqual(box);
+    }
+  });
+
+  it("puts each role in italics, and nothing else in the channels", async () => {
+    const file = await workbook();
+    const cells = readCells(file);
+    const start = blockStart(readSheet(file), "Space Sketch");
+
+    expect(cells[start + 2]?.[1]).toMatchObject({ text: "Alien 1", italic: true });
+    // Only the third row of each box, the roles, is in italics.
+    for (let row = 0; row < BLOCK_ROWS; row++) {
+      for (let column = 0; column < SHADED_COLUMNS; column++) {
+        const role = row % 3 === 2 && column > 0;
+        expect(cells[start + row]?.[column]?.italic).toBe(role);
+      }
+    }
+  });
+
+  it("greys out a mic nobody is on, so only the mics in use are black", async () => {
+    const file = await workbook();
+    const cells = readCells(file);
+    const start = blockStart(readSheet(file), "Space Sketch");
+
+    expect(cells[start]?.[2]).toMatchObject({ text: "Mic 2", colour: "#808080" });
+    expect(cells[start + 3]?.[1]).toMatchObject({ text: "Mic 10", colour: "#808080" });
+    for (const [row, column] of [
+      [start, 1],
+      [start + 1, 1],
+      [start + 2, 1],
+      // Mic 20: Jo Reed, with no role.
+      [start + 6, 2],
+      [start + 7, 2],
+    ] as const) {
+      expect(cells[row]?.[column]?.colour).toBeUndefined();
+    }
   });
 
   it("keeps a name that looks like a formula as text", async () => {
