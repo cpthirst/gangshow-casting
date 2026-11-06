@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.46.0](https://github.com/cpthirst/gangshow-casting/compare/v1.45.0...v1.46.0) (2026-11-06)
+
+
+### Features
+
+* **web:** box each Mic Plot channel, italic roles, grey unused mics (production-mics.E3.S4) ([#192](https://github.com/cpthirst/gangshow-casting/issues/192)) ([733546f](https://github.com/cpthirst/gangshow-casting/commit/733546ff11f3ad497a80f33d49642d2ccbada3c0))
+
 ## [1.45.0](https://github.com/cpthirst/gangshow-casting/compare/v1.44.0...v1.45.0) (2026-11-05)
 
 
