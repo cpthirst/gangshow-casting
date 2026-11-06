@@ -18,6 +18,13 @@ const unescapeXml = (text: string) =>
     .replaceAll("&apos;", "'")
     .replaceAll("&amp;", "&");
 
+const colourOf = (rgb: RegExpExecArray | null) =>
+  rgb?.[1] ? `#${rgb[1].toLowerCase()}` : undefined;
+
+type BorderSide = "top" | "right" | "bottom" | "left";
+const sideOf = (border: string, side: BorderSide) =>
+  new RegExp(`<${side} style="(\\w+)"`).exec(border)?.[1];
+
 /** "A" → 0, "B" → 1, "AA" → 26. */
 const columnIndex = (letters: string) =>
   [...letters].reduce((total, letter) => total * 26 + letter.charCodeAt(0) - 64, 0) - 1;
@@ -36,10 +43,13 @@ export interface StyledCell {
   /** "#rrggbb", or undefined for none. */
   fill: string | undefined;
   bold: boolean;
+  italic: boolean;
+  /** Its text's colour as "#rrggbb", or undefined for Excel's default (black). */
+  colour: string | undefined;
   /** Where the text sits across its cell; undefined is Excel's default. */
   horizontal: string | undefined;
-  /** Its left border's style, such as "thin"; undefined for none. */
-  border: string | undefined;
+  /** Each side's border style, such as "thin"; undefined for none. */
+  borders: Record<BorderSide, string | undefined>;
 }
 
 /** Every cell of the first sheet, row by row and column by column from A1, with its style.
@@ -71,13 +81,21 @@ export function readCells(file: Uint8Array): (StyledCell | undefined)[][] {
     )) {
       const xf = formats[Number(/s="(\d+)"/.exec(attributes)?.[1] ?? 0)] ?? "";
       const fill = fills[idOf(xf, "fillId")] ?? "";
-      const rgb = /<fgColor rgb="FF([0-9A-F]{6})"/.exec(fill)?.[1];
+      const font = fonts[idOf(xf, "fontId")] ?? "";
+      const border = borders[idOf(xf, "borderId")] ?? "";
       cells[columnIndex(column)] = {
         text: value === undefined ? "" : (strings[Number(value)] ?? ""),
-        fill: rgb ? `#${rgb.toLowerCase()}` : undefined,
-        bold: (fonts[idOf(xf, "fontId")] ?? "").includes("<b/>"),
+        fill: colourOf(/<fgColor rgb="FF([0-9A-F]{6})"/.exec(fill)),
+        bold: font.includes("<b/>"),
+        italic: font.includes("<i/>"),
+        colour: colourOf(/<color rgb="FF([0-9A-F]{6})"/.exec(font)),
         horizontal: /<alignment [^>]*horizontal="(\w+)"/.exec(xf)?.[1],
-        border: /<left style="(\w+)"/.exec(borders[idOf(xf, "borderId")] ?? "")?.[1],
+        borders: {
+          top: sideOf(border, "top"),
+          right: sideOf(border, "right"),
+          bottom: sideOf(border, "bottom"),
+          left: sideOf(border, "left"),
+        },
       };
     }
     rows[Number(number) - 1] = cells;
