@@ -258,7 +258,7 @@ describe("Help page", () => {
         "Add role",
         "Edit",
         "Remove",
-        "Notes",
+        "Casting notes",
       ]);
       const iconOf = (name: string) =>
         lineNamed(wrapper, name, "casting-item").get("svg").attributes("data-icon");
@@ -273,7 +273,7 @@ describe("Help page", () => {
       for (const name of ["Add role", "Edit", "Remove"]) {
         expect(access(name)).toEqual(["Accounts with Casting, and admins"]);
       }
-      expect(access("Notes")).toEqual([
+      expect(access("Casting notes")).toEqual([
         "Reading: Everyone",
         "Changing: Accounts with Casting, and admins",
       ]);

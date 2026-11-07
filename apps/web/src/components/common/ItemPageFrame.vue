@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { type DepartmentId, departments, RunningOrder, type RunningOrderItem } from "@app/shared";
 import { computed, ref, watch, watchEffect } from "vue";
-import { useRoute } from "vue-router";
+import { type RouteLocationRaw, useRoute } from "vue-router";
 import { showPageTitle } from "@/router/index.ts";
 import { loadData } from "@/services/load-data.ts";
 import { canChange } from "@/services/sign-in.ts";
@@ -19,15 +19,20 @@ import ReadOnlyNotice from "./ReadOnlyNotice.vue";
 // between, the department's notes, and one not-found and one error state. A visit is
 // recorded once the item is found.
 
-const props = defineProps<{
-  department: DepartmentId;
-  /**
-   * Loads the page's own data for an item, alongside the running order, and returns how to
-   * show it, given the running order loaded with it. The frame shows it only if that item is
-   * still the one open, so stepping on while it loads never shows the last item's.
-   */
-  load: (itemId: string) => Promise<(order: RunningOrder) => void>;
-}>();
+const props = withDefaults(
+  defineProps<{
+    department: DepartmentId;
+    /** Where All items goes back to. */
+    list?: RouteLocationRaw;
+    /**
+     * Loads the page's own data for an item, alongside the running order, and returns how to
+     * show it, given the running order loaded with it. The frame shows it only if that item is
+     * still the one open, so stepping on while it loads never shows the last item's.
+     */
+    load: (itemId: string) => Promise<(order: RunningOrder) => void>;
+  }>(),
+  { list: () => ({ name: "production-overview" }) },
+);
 defineSlots<{ default(scope: { item: RunningOrderItem }): unknown }>();
 
 const route = useRoute();
@@ -98,7 +103,7 @@ watch(
 
 <template>
   <ItemStepNav
-    :list="{ name: 'production-overview' }"
+    :list="list"
     :item-route="itemRouteOf(department)"
     :previous="neighbours.previous"
     :next="neighbours.next"
