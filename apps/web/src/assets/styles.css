@@ -1319,10 +1319,6 @@ main a {
 }
 
 /* Casting items and item pages. The list itself reuses the Running order table. */
-.based-on {
-  font-size: 0.875rem;
-}
-
 .running-order td.counts {
   white-space: nowrap;
 }

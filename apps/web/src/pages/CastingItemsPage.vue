@@ -10,6 +10,7 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, onMounted, ref } from "vue";
 import ClashIcon from "@/components/common/ClashIcon.vue";
+import DraftNumber from "@/components/common/DraftNumber.vue";
 import PageTitle from "@/components/common/PageTitle.vue";
 import RefusalNotice from "@/components/common/RefusalNotice.vue";
 import { apiFetch, canChange } from "@/services/sign-in.ts";
@@ -132,7 +133,7 @@ async function loadRunningOrder() {
   </p>
   <p v-else-if="state.status === 'error'" role="alert">Couldn't load the items.</p>
   <template v-else-if="state.status === 'loaded'">
-    <p class="based-on" data-test="version">Based on Draft {{ state.order.version }}</p>
+    <DraftNumber :version="state.order.version" />
     <p v-if="roles === 'error'" class="notice" role="alert">Couldn't load the role counts.</p>
     <p v-else-if="cast === 'error'" class="notice" role="alert">
       Couldn't check the casting for clashes.

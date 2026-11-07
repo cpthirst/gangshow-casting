@@ -154,12 +154,13 @@ describe("Casting items page", () => {
     );
   });
 
-  it("shows which saved draft the list is based on", async () => {
-    savedRunningOrderIs(aRunningOrder([anItem("Opening Number")], [], 7));
+  it("shows the saved draft's number as the Running order page words it", async () => {
+    savedRunningOrderIs(aRunningOrder([anItem("Opening Number")], [], 3));
 
     const wrapper = await openItemsPage();
 
-    expect(wrapper.get("[data-test=version]").text()).toBe("Based on Draft 7");
+    expect(wrapper.get("[data-test=version]").text()).toBe("Draft 3");
+    expect(wrapper.text()).not.toContain("Based on");
   });
 
   it("shows a newly saved order when the page is opened again", async () => {
@@ -170,7 +171,7 @@ describe("Casting items page", () => {
     const wrapper = await openItemsPage();
 
     expect(titlesIn(wrapper, "First half")).toEqual(["Opening Number", "Campfire Song"]);
-    expect(wrapper.get("[data-test=version]").text()).toBe("Based on Draft 8");
+    expect(wrapper.get("[data-test=version]").text()).toBe("Draft 8");
   });
 
   // Unsaved moves live only in the Running order page; the API serves the last saved version.

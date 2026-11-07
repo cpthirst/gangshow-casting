@@ -175,11 +175,11 @@ describe("Running order page", () => {
   });
 
   it("shows the current version as a draft number", async () => {
-    serve(aRunningOrder([anItem("Curtain Up")], [], 6));
+    serve(aRunningOrder([anItem("Curtain Up")], [], 3));
 
     const wrapper = await openPage();
 
-    expect(wrapper.text()).toContain("Draft 6");
+    expect(wrapper.get("[data-test=version]").text()).toBe("Draft 3");
   });
 
   it("numbers only printed items and marks the rest", async () => {

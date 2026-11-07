@@ -127,6 +127,42 @@ const shown = (cell: ReturnType<typeof countIn>) =>
   };
 
 describe("Production overview", () => {
+  it("shows the saved draft's number as the Running order page words it", async () => {
+    savedShowIs(aRunningOrder([anItem("Opening Number")], [], 3));
+
+    const { wrapper } = await openOverview();
+
+    expect(wrapper.get("[data-test=version]").text()).toBe("Draft 3");
+    expect(wrapper.get("main").text()).not.toContain("Based on");
+  });
+
+  it("shows one alert naming every part that couldn't be loaded, above the items", async () => {
+    apiAnswers({
+      order: json(show()),
+      props: status(500),
+      micPlot: status(500),
+      notes: status(500),
+    });
+
+    const { wrapper } = await openOverview();
+
+    expect(wrapper.findAll("main [role=alert]").map((alert) => alert.text())).toEqual([
+      "Couldn't load the props counts, the mic plot counts and the notes.",
+    ]);
+    expect(titlesIn(wrapper, "First half")).toEqual(["Opening Number", "Pirate Sketch"]);
+    const alert = wrapper.get("main [role=alert]").element;
+    const items = wrapper.get("main section").element;
+    expect(alert.compareDocumentPosition(items) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("shows no alert when everything loads", async () => {
+    savedShowIs(show());
+
+    const { wrapper } = await openOverview();
+
+    expect(wrapper.find("main [role=alert]").exists()).toBe(false);
+  });
+
   it("is titled Overview, with a help button and no view switch", async () => {
     savedShowIs(show());
 
@@ -776,8 +812,7 @@ describe("SFX and Wardrobe on the Production overview (production-sfx-wardrobe F
 
     expect(shown(countIn(wrapper, "Opening Number", "scenery"))?.number).toBe("0");
     expect(wrapper.findAll("main [role=alert]").map((alert) => alert.text())).toEqual([
-      "Couldn't load the SFX counts.",
-      "Couldn't load the wardrobe counts.",
+      "Couldn't load the SFX counts and the wardrobe counts.",
     ]);
     for (const department of ["sfx", "wardrobe"]) {
       const cells = wrapper.findAll(`[data-test=count][data-department=${department}]`);

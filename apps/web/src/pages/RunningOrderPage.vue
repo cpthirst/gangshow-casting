@@ -3,6 +3,7 @@ import { ItemNoteList, RoleList, RunningOrder, type RunningOrderItem } from "@ap
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
 import { onBeforeRouteLeave } from "vue-router";
+import DraftNumber from "@/components/common/DraftNumber.vue";
 import PageTitle from "@/components/common/PageTitle.vue";
 import RefusalNotice from "@/components/common/RefusalNotice.vue";
 import ItemEditor from "@/components/show/ItemEditor.vue";
@@ -310,7 +311,7 @@ function refocus(itemId: string, direction: Move) {
   <p v-else-if="state.status === 'error'" role="alert">Couldn't load the running order.</p>
   <template v-else-if="loaded">
     <div class="draft-bar">
-      <p class="version">Draft {{ loaded.saved.version }}</p>
+      <DraftNumber :version="loaded.saved.version" />
       <p v-if="loaded.unsaved" class="unsaved" data-test="unsaved">Unsaved changes</p>
       <RefusalNotice />
       <template v-if="isAdmin">

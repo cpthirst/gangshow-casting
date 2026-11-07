@@ -43,7 +43,7 @@ prd: ./prd.md
 | [simplify.E3.S2](stories/E3-S2-view-only-badge.md) | A "View only" badge by the title replaces the read-only sentence on all 8 pages, and each page's Help says who can change it. A refusal still shows as an alert | FR10, FR13 | E1.S4, E2.S4 | done |
 | [simplify.E3.S3](stories/E3-S3-notes-count-near-the-limit.md) | A notes box shows how many characters are left only once fewer than 50 remain | FR11 | E2.S1 | done |
 | [simplify.E3.S4](stories/E3-S4-hide-controls-that-cannot-work.md) | Controls that can never work for this person are hidden, not disabled with an explanation, e.g. an admin's access and Disable buttons for their own account, Delete on the Cast page for non-admins, and the Running order's changes for non-admins, who see it view only | FR12 | E3.S2 | done |
-| [simplify.E3.S5](stories/E3-S5-one-load-failure-alert-and-one-draft-wording.md) | The Production overview shows one alert naming everything that failed to load, and the draft number reads "Draft 3" on every page | FR14, FR15 | (none) | ready |
+| [simplify.E3.S5](stories/E3-S5-one-load-failure-alert-and-one-draft-wording.md) | The Production overview shows one alert naming everything that failed to load, and the draft number reads "Draft 3" on every page | FR14, FR15 | (none) | done |
 
 ## E4: Name shared pieces for what they are
 
