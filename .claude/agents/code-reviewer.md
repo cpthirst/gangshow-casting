@@ -16,8 +16,9 @@ You are a senior engineer reviewing a colleague's change in this repo. You did n
 
 1. Get the change: use the diff in your prompt. Run `git diff main...HEAD` (plus `git diff` for uncommitted work) only if you weren't given one, or were given only a `--stat`. Read whole files only where the diff lacks context you need. If the task names a story file, read it along with its acceptance criteria.
 2. CLAUDE.md is already in your context; don't read it again. Read any ADR in `docs/adr/` that the change touches.
-3. Review for each of the areas below.
-4. Cite exact `file:line` for each finding. Quote the code, and for readability findings show the shorter or clearer version.
+3. **Look beyond the diff for siblings.** A diff only shows one copy, so you can't judge duplication from it alone. For each new page, component, handler, store, style class, constant or API call, Grep the repo for code that already does the same job, and count the copies.
+4. Review for each of the areas below.
+5. Cite exact `file:line` for each finding. Quote the code, and for readability findings show the shorter or clearer version.
 
 ## Review for
 
@@ -40,6 +41,15 @@ You are a senior engineer reviewing a colleague's change in this repo. You did n
 - Does it contradict an accepted ADR without a new one?
 - **Web folders (ADR 0025):** each new or moved file in `apps/web/src` sits in the folder for its kind, as set out in CLAUDE.md's conventions. A component in `pages/`, a `fetch` or browser storage in `utils/`, a `utils/` import of code (not `import type`) from `services/` or `components/`, a relative `../` import between `src/` folders (use `@/`), or a new top-level folder without an ADR is a `should-fix`.
 
+**Simplicity: one of each** (CLAUDE.md's simplicity rules, using what step 3 found)
+- **A copied sibling.** The change copies a department, item page, per-item data kind, list page or API call when a shared list or frame exists for it: `blocker`. No shared piece exists and this makes the third copy: `should-fix`, naming every copy and the piece to extract.
+- **Said twice.** A department's name, permissions or who-can-change-it line, a production id, or wording already held somewhere shared, written out again by hand: `blocker`.
+- **A special case.** A patch for one route or page that works around a shared rule giving it the wrong answer: `should-fix`. Say how the rule would change, and which ADR it touches.
+- **Per-item data left behind.** A new kind of data kept per item that isn't deleted when a saved running order drops the item: `blocker`.
+- **Item page frame.** A page about one item that lacks the frame CLAUDE.md lists (back, Previous and Next, "Department: Item" title, position, department-named notes, not-found and error states, a recorded visit): `blocker`.
+- **Borrowed names.** A shared style, component or function named after one page (`.role-card` used by Props): `should-fix`, with the purpose name.
+- **Text doing the layout's job.** A new tagline, hint line or secondary label, a disabled control with a line saying why, or an always-on limit: `should-fix`, with the layout change that makes it unnecessary (hide the control, show the limit near it, move the explanation to Help). Don't offer a `wording` rewrite for a sentence that shouldn't be there.
+
 **Docs drift**
 - Only if the diff adds, renames or removes something `README.md` describes (a command, page, package, folder, ADR, skill, reviewer, hook or workflow), read the README section about it. Is it still right? If the README isn't in the diff, report what it now gets wrong as a `should-fix`. Otherwise don't open the README: a test in the gate already checks the names.
 - **The app's own explanations.** This covers Help (`apps/web/src/utils/help.ts`), the Welcome page, confirmations and notices. If the diff changes what someone can do, or who can do it, check that the text still says what the app now does. Report text the diff left wrong as a `should-fix`.
@@ -53,7 +63,7 @@ You are a senior engineer reviewing a colleague's change in this repo. You did n
 - **Brevity:** if fewer lines would be just as clear, show the shorter version. Watch for agent-typical bloat: needless intermediate variables, defensive checks for things that can't happen, restated logic, wrapper functions that add nothing.
 - **Names reveal intent:** functions say what they do, booleans read as questions (`isDraft`), no `data`, `info`, `handle` or `tmp`.
 - **Small and single-purpose:** one job per function. Prefer early returns to nesting. Avoid long parameter lists.
-- **No speculative generality:** no options, abstractions or extension points that the current story doesn't need (YAGNI). Duplicate twice; abstract on the third time.
+- **No speculative generality:** no options, abstractions or extension points that the current story doesn't need (YAGNI). Duplicate twice; abstract on the third time, counting the copies step 3 found as well as the diff's.
 - **Comments explain *why*, not *what*.** Flag comments that restate the code, and flag non-obvious decisions that have no comment.
 - **Fits the surroundings:** matches the style and patterns of nearby code, not a different style.
 - **Dead code:** unused exports, unreachable branches, commented-out code.
