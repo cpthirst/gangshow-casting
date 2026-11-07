@@ -12,7 +12,6 @@ import {
 } from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, nextTick, onMounted, ref } from "vue";
-import { useRoute } from "vue-router";
 import ClashIcon from "@/components/common/ClashIcon.vue";
 import HelpButton from "@/components/common/HelpButton.vue";
 import { downloadMicPlot } from "@/services/excel-export.ts";
@@ -36,8 +35,6 @@ import { RUNNING_ORDER_PATH, runningClock } from "@/utils/running-order.ts";
 // Production's one page: the show's items, each with a button for every department's page
 // for it and a count for each department (production-overview FR4–FR8, FR10, FR14), laid out
 // as the casting Items list.
-
-const route = useRoute();
 
 type State =
   | { status: "loading" }
@@ -261,7 +258,6 @@ async function loadRunningOrder() {
     <h1>Overview</h1>
     <HelpButton page="production-overview" />
   </div>
-  <p>{{ route.meta.description }}</p>
   <p class="visually-hidden" role="status" data-test="announcement">{{ announcement }}</p>
   <p v-if="state.status === 'empty'">
     There's no saved running order yet. Set one up on the

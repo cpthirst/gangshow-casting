@@ -610,28 +610,24 @@ describe("App shell", () => {
     expect(router.currentRoute.value.fullPath).toBe("/cast");
   });
 
-  it("shows the Overview page with its description and URL when chosen", async () => {
+  it("shows the Overview page and its URL when chosen", async () => {
     const { wrapper, router } = await openAppAt("/");
 
     await wrapper.get("nav a[href='/casting/overview']").trigger("click");
     await flushPromises();
 
     expect(wrapper.get("main h1").text()).toBe("Overview");
-    expect(wrapper.get("main > p").text()).toBe("Everyone in the cast and how much they're cast.");
     expect(router.currentRoute.value.fullPath).toBe("/casting/overview");
     expect(document.title).toBe("Overview · iCUE");
   });
 
-  it("shows the Items page with its description and URL when chosen", async () => {
+  it("shows the Items page and its URL when chosen", async () => {
     const { wrapper, router } = await openAppAt("/");
 
     await wrapper.get("nav a[href='/casting/items']").trigger("click");
     await flushPromises();
 
     expect(wrapper.get("main h1").text()).toBe("Items");
-    expect(wrapper.get("main > p").text()).toBe(
-      "The show's items, with how far each one's casting has got.",
-    );
     expect(router.currentRoute.value.fullPath).toBe("/casting/items");
   });
 

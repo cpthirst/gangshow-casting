@@ -249,7 +249,6 @@ async function loadCast() {
     <HelpButton page="casting-overview" />
   </div>
   <ReadOnlyNotice />
-  <p>Everyone in the cast and how much they're cast.</p>
   <p class="visually-hidden" role="status" data-test="announcement">{{ exportAnnouncement }}</p>
   <p v-if="state.status === 'error'" role="alert">Couldn't load the cast.</p>
   <template v-else-if="state.status === 'loaded'">

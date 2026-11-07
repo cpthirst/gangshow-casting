@@ -150,6 +150,7 @@ describe("Production overview", () => {
 
     const dialog = wrapper.get("dialog.help-dialog");
     expect(dialog.get("h2").text()).toBe("Production overview help");
+    expect(dialog.get("p").text()).toContain("The show's items in running order");
     expect(dialog.findAll("[data-test=help-name]").map((name) => name.text())).toEqual([
       "Scenery",
       "Props",
@@ -159,6 +160,19 @@ describe("Production overview", () => {
       "Generate Props List",
       "Generate Mic Plot",
     ]);
+  });
+
+  it("goes straight from the title to the running order, with no description line", async () => {
+    savedShowIs(show());
+
+    const { wrapper } = await openOverview();
+
+    // The announcement is for screen readers only, so it shows nothing between them.
+    const shown = wrapper
+      .findAll("main > *")
+      .filter((element) => !element.classes("visually-hidden"));
+    expect(shown[0]?.classes()).toContain("page-title-row");
+    expect(shown[1]?.attributes("data-test")).toBe("version");
   });
 
   it("records each visit as a use of the Production overview", async () => {

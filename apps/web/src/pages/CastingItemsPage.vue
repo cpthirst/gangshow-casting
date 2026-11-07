@@ -129,7 +129,6 @@ async function loadRunningOrder() {
     <HelpButton page="casting-items" />
   </div>
   <ReadOnlyNotice />
-  <p>The show's items, with how far each one's casting has got.</p>
   <p v-if="state.status === 'empty'">
     There's no saved running order yet. Set one up on the
     <RouterLink :to="{ name: 'running-order' }">Running order page</RouterLink>.

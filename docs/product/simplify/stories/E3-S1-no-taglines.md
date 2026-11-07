@@ -2,7 +2,7 @@
 id: simplify.E3.S1
 title: Remove the page taglines that repeat Help
 epic: E3
-status: ready
+status: done
 ---
 
 ## Story

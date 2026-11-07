@@ -20,7 +20,6 @@ import WelcomePage from "@/pages/WelcomePage.vue";
 declare module "vue-router" {
   interface RouteMeta {
     title: string;
-    description?: string;
     /** The menu page to mark as current, for a page that isn't in the menu itself. */
     menuPage?: string;
     /** What the Usage page calls a menu page whose title alone is ambiguous there. */
@@ -39,7 +38,7 @@ interface MenuPage {
   path: string;
   name: string;
   component: Component;
-  meta: { title: string; description: string; usageTitle?: string };
+  meta: { title: string; usageTitle?: string };
   /** Left out of non-admins' menus. The API refuses them anyway: this only tidies the menu. */
   adminOnly?: boolean;
 }
@@ -61,7 +60,6 @@ export const menuPages: (MenuPage | MenuGroup)[] = [
     component: WelcomePage,
     meta: {
       title: "Welcome",
-      description: "Where iCUE starts, and what is in each area of the menu.",
     },
   },
   {
@@ -74,14 +72,13 @@ export const menuPages: (MenuPage | MenuGroup)[] = [
         component: RunningOrderPage,
         meta: {
           title: "Running order",
-          description: "The show's items in the order they're performed.",
         },
       },
       {
         path: "/cast",
         name: "cast",
         component: CastPage,
-        meta: { title: "Cast", description: "The Scouts and Explorers in this production." },
+        meta: { title: "Cast" },
       },
     ],
   },
@@ -95,7 +92,6 @@ export const menuPages: (MenuPage | MenuGroup)[] = [
         component: CastingOverviewPage,
         meta: {
           title: "Overview",
-          description: "Everyone in the cast, by section, and how much they're cast.",
         },
       },
       {
@@ -104,7 +100,6 @@ export const menuPages: (MenuPage | MenuGroup)[] = [
         component: CastingItemsPage,
         meta: {
           title: "Items",
-          description: "The show's items, with how far each one's casting has got.",
         },
       },
     ],
@@ -119,7 +114,6 @@ export const menuPages: (MenuPage | MenuGroup)[] = [
         component: ProductionOverviewPage,
         meta: {
           title: "Overview",
-          description: "The show's items, with what each department needs for them.",
           // Casting has an Overview too.
           usageTitle: "Production overview",
         },
@@ -130,21 +124,21 @@ export const menuPages: (MenuPage | MenuGroup)[] = [
     path: "/accounts",
     name: "accounts",
     component: AccountsPage,
-    meta: { title: "Accounts", description: "The production team's sign-in accounts." },
+    meta: { title: "Accounts" },
     adminOnly: true,
   },
   {
     path: "/usage",
     name: "usage",
     component: UsagePage,
-    meta: { title: "Usage", description: "Who on the team uses the app, and how often." },
+    meta: { title: "Usage" },
     adminOnly: true,
   },
   {
     path: "/help",
     name: "help",
     component: HelpPage,
-    meta: { title: "Help", description: "What each page is for, and what its buttons do." },
+    meta: { title: "Help" },
   },
 ];
 

@@ -136,8 +136,21 @@ describe("Casting items page", () => {
     await wrapper.get(".page-title-row button[aria-label='Help for Items']").trigger("click");
 
     expect(wrapper.get("dialog h2").text()).toBe("Items help");
+    expect(wrapper.get("dialog p").text()).toBe(
+      "The show's items in running order, with how far each one's casting has got.",
+    );
     expect(wrapper.findAll("dialog [data-test=help-name]").map((name) => name.text())).toContain(
       "Not in printed programme",
+    );
+  });
+
+  it("starts with the items, with no line restating what the page is for", async () => {
+    savedRunningOrderIs(aRunningOrder([anItem("Opening Number")]));
+    const wrapper = await openItemsPage();
+
+    const pageLines = wrapper.findAll("p").filter((line) => !line.element.closest("dialog"));
+    expect(pageLines.map((line) => line.text())).not.toContain(
+      "The show's items, with how far each one's casting has got.",
     );
   });
 

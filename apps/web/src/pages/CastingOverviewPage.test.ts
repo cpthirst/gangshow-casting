@@ -1258,14 +1258,23 @@ describe("Casting grid on the Overview", () => {
     expect(box.find("table").exists()).toBe(true);
   });
 
-  it("names the switch for what it changes, and the page for both views", async () => {
+  it("names the switch for what it changes", async () => {
     theShowIs(cast);
 
     const wrapper = await openOverview();
 
     expect(wrapper.get(".view-switch").attributes("aria-label")).toBe("Choose how to see the cast");
-    expect(wrapper.get("main").text()).toContain("Everyone in the cast and how much they're cast.");
-    expect(wrapper.get("main").text()).not.toContain("by section");
+  });
+
+  it("starts with the cast, with no line restating what the page is for", async () => {
+    theShowIs(cast);
+
+    const wrapper = await openOverview();
+
+    const pageLines = wrapper.findAll("main p").filter((line) => !line.element.closest("dialog"));
+    expect(pageLines.map((line) => line.text())).not.toContain(
+      "Everyone in the cast and how much they're cast.",
+    );
   });
 
   it("flags a clash beside the name of someone who has one", async () => {
@@ -1922,6 +1931,9 @@ describe("Casting overview help (in-app-help E2.S2)", () => {
     await wrapper.get(".page-title-row button[aria-label='Help for Overview']").trigger("click");
     const dialog = wrapper.get("main dialog");
     expect(dialog.get("h2").text()).toBe("Overview help");
+    expect(dialog.get("p").text()).toBe(
+      "Everyone in the cast and how much they're cast, three ways.",
+    );
     expect(dialog.findAll("[data-test=help-name]").map((name) => name.text())).toContain("Clash");
     await dialog.get("button").trigger("click");
 
