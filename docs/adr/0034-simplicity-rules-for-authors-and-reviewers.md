@@ -1,6 +1,6 @@
 # 0034. Simplicity rules for authors and reviewers
 
-- **Status**: Proposed
+- **Status**: Accepted
 - **Date**: 2026-11-07
 - **Deciders**: Nick Hirst
 
