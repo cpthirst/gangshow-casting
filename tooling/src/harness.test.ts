@@ -103,3 +103,9 @@ describe("harness: batch-stories", () => {
     expect(read("skills/batch-stories/SKILL.md")["disable-model-invocation"]).toBe("true");
   });
 });
+
+describe("harness: consult", () => {
+  it("can only be started by the user, never by the model on its own", () => {
+    expect(read("skills/consult/SKILL.md")["disable-model-invocation"]).toBe("true");
+  });
+});

@@ -158,7 +158,7 @@ CI runs both of these as separate jobs.
 ├── .claude/
 │   ├── settings.json        Permissions (allow / ask / deny) + hook registration
 │   ├── hooks/               guard, post-edit and stop-gate hooks (TypeScript; logic unit-tested)
-│   ├── skills/              Delivery workflows: write-prd … open-pr, adr, batch-stories
+│   ├── skills/              Delivery workflows: write-prd … open-pr, adr, batch-stories, consult
 │   └── agents/              Reviewer subagents (code, test, security, infra, UX) + screenshot-checker
 ├── .github/
 │   ├── workflows/           ci.yml, pr-title.yml, release-please.yml
@@ -221,6 +221,7 @@ write-prd ──► story-map ──► write-story ──► implement-story �
 | `open-pr` | Conventional PR title, filled template, push | One yes covers the push and the PR (ADR 0031); never merges |
 | `adr` | `docs/adr/NNNN-*.md` | Proposed → Accepted by the user |
 | `batch-stories` | One feature's stories on one branch, each built by a fresh subagent so the session's context stays small, with a single PR at the end | Only the user can switch it on; their yes covers the feature's pushes and its PR |
+| `consult` | A read-only consultant's 3–4 recommended epics for simplifying the app's UX, DX and AX, respecting the ADRs, then the user's picks as questions for the next PRD | Only the user can start it; the user picks the epics before `write-prd` |
 
 ### 3. Reviewer subagents (`.claude/agents/`)
 Subagents run in their own context and report back. Fresh context matters: the agent that wrote the code is a poor judge of it. The reviewers have **no Edit or Write tools**, so they can report problems but can't "fix" them by weakening a test, and a harness test enforces that. They run on smaller models to keep cost down.
