@@ -1,11 +1,12 @@
-import type { FileDepartment, RunningOrderItem } from "@app/shared";
+import type { DepartmentId, RunningOrderItem } from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { h } from "vue";
 import { createMemoryHistory } from "vue-router";
 import { createAppRouter } from "@/router/index.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
-import { departmentNotesPath } from "@/utils/item-files.ts";
+import { itemRouteOf } from "@/utils/departments.ts";
+import { departmentNotesPath } from "@/utils/item-notes.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
 import { placeOf, positionOf, RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
 import ItemPageFrame from "./ItemPageFrame.vue";
@@ -44,12 +45,12 @@ const loadsAt = (id: string) => async () => () => {
 
 /** The frame for a department's page at an item, with a stand-in page in it. */
 async function openFrame(
-  department: FileDepartment,
+  department: DepartmentId,
   itemId: string,
   load: (itemId: string) => Promise<() => void> = (id) => loadsAt(id)(),
 ) {
   const router = createAppRouter(createMemoryHistory());
-  await router.push(`/production/items/${itemId}/${department}`);
+  await router.push({ name: itemRouteOf(department), params: { itemId } });
   await router.isReady();
   const wrapper = mount(ItemPageFrame, {
     props: { department, load },
@@ -152,16 +153,24 @@ describe("The item page frame", () => {
     expect(wrapper.get("a.back-link").attributes("href")).toBe("/production/overview");
   });
 
-  it("records a visit to the department's page for the item found, and none for one not found", async () => {
-    const fetch = apiHolds(show);
-    await openFrame("scenery", "opening-number");
-    await openFrame("scenery", "no-such-item");
+  it.each([
+    ["scenery", [{ event: "scenery", productionId: "2027", itemId: "opening-number" }]],
+    ["mic-plot", [{ event: "mic-plot", productionId: "2027", itemId: "opening-number" }]],
+    ["casting", [{ event: "item", productionId: "2027", itemId: "opening-number" }]],
+    ["props", []],
+  ] as const)(
+    "records a visit to the %s page for the item found, and none for one not found",
+    async (department, expected) => {
+      const fetch = apiHolds(show);
+      await openFrame(department, "opening-number");
+      await openFrame(department, "no-such-item");
 
-    const visits = fetch.mock.calls
-      .filter(([url]) => url === "/api/usage")
-      .map(([, init]) => JSON.parse(String(init?.body)));
-    expect(visits).toEqual([{ event: "scenery", productionId: "2027", itemId: "opening-number" }]);
-  });
+      const visits = fetch.mock.calls
+        .filter(([url]) => url === "/api/usage")
+        .map(([, init]) => JSON.parse(String(init?.body)));
+      expect(visits).toEqual(expected);
+    },
+  );
 
   it("shows the next item's page, never the last one's, when Next is chosen while it loads", async () => {
     apiHolds(show);

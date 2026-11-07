@@ -31,7 +31,7 @@ prd: ./prd.md
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
 | [simplify.E2.S1](stories/E2-S1-file-pages-share-the-item-frame.md) | One item page frame: back link, Previous and Next, "Department: Item" title, position, notes headed by department, and the not-found and error states. The Scenery, SFX and Wardrobe pages move onto it unchanged | FR6, FR8, FR17 | E4.S1 | done |
-| [simplify.E2.S2](stories/E2-S2-mic-plot-shares-the-item-frame.md) | The Mic plot item page moves onto the frame, keeping its channels and export | FR6, FR8, FR17 | E2.S1 | draft |
+| [simplify.E2.S2](stories/E2-S2-mic-plot-shares-the-item-frame.md) | The Mic plot item page moves onto the frame, keeping its channels and export | FR6, FR8, FR17 | E2.S1 | done |
 | [simplify.E2.S3](stories/E2-S3-props-shares-the-item-frame.md) | The Props item page moves onto the frame, and its visits are recorded and shown on the Usage page | FR6, FR7, FR8, FR17 | E2.S1 | draft |
 | [simplify.E2.S4](stories/E2-S4-casting-shares-the-item-frame.md) | The Casting item page moves onto the frame: titled "Casting: Pirate Sketch", with its notes headed "Casting notes" | FR6, FR8, FR17 | E2.S1 | draft |
 

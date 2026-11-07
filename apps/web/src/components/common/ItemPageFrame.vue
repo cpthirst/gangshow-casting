@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { departments, type FileDepartment, RunningOrder, type RunningOrderItem } from "@app/shared";
+import { type DepartmentId, departments, RunningOrder, type RunningOrderItem } from "@app/shared";
 import { computed, ref, watch, watchEffect } from "vue";
 import { useRoute } from "vue-router";
 import { showPageTitle } from "@/router/index.ts";
@@ -7,7 +7,7 @@ import { loadData } from "@/services/load-data.ts";
 import { canChange } from "@/services/sign-in.ts";
 import { recordDepartmentPageUse } from "@/services/usage.ts";
 import { itemRouteOf } from "@/utils/departments.ts";
-import { departmentNotesPath, saveDepartmentNotesPath } from "@/utils/item-files.ts";
+import { departmentNotesPath, saveDepartmentNotesPath } from "@/utils/item-notes.ts";
 import { neighboursOf, placeOf, positionOf, RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
 import HelpButton from "./HelpButton.vue";
 import ItemNotes from "./ItemNotes.vue";
@@ -20,13 +20,13 @@ import ReadOnlyNotice from "./ReadOnlyNotice.vue";
 // recorded once the item is found.
 
 const props = defineProps<{
-  department: FileDepartment;
+  department: DepartmentId;
   /**
    * Loads the page's own data for an item, alongside the running order, and returns how to
-   * show it. The frame shows it only if that item is still the one open, so stepping on
-   * while it loads never shows the last item's.
+   * show it, given the running order loaded with it. The frame shows it only if that item is
+   * still the one open, so stepping on while it loads never shows the last item's.
    */
-  load: (itemId: string) => Promise<() => void>;
+  load: (itemId: string) => Promise<(order: RunningOrder) => void>;
 }>();
 defineSlots<{ default(scope: { item: RunningOrderItem }): unknown }>();
 
@@ -73,7 +73,7 @@ async function open(id: string) {
     // Stepped on to another item while this one loaded: that load shows instead.
     if (id !== itemId.value) return;
     order.value = loadedOrder;
-    showData();
+    if (loadedOrder) showData(loadedOrder);
     status.value = "loaded";
   } catch {
     // A failed load must never look like "not found" or an empty page.

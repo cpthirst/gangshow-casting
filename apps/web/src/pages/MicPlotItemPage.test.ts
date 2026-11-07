@@ -125,6 +125,17 @@ function apiHolds(
   );
 }
 
+/** The stand-in API answers the mic plot with only this status, and all else as it held. */
+function micPlotAnswers(status: number) {
+  const holds = vi.mocked(fetch).getMockImplementation();
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string, init?: RequestInit) =>
+      url === MIC_PLOT_PATH ? new Response(null, { status }) : holds?.(url, init),
+    ),
+  );
+}
+
 // The whole app, so routing, the menu and the tab title are real.
 async function openAppAt(path: string) {
   const router = createAppRouter(createMemoryHistory());
@@ -876,6 +887,30 @@ describe("An item's Mic plot page", () => {
 
     expect(wrapper.get("main [role=alert]").text()).toBe("Couldn't load the item.");
     expect(wrapper.get("main").text()).not.toContain("Item not found");
+  });
+
+  it("shows only the error when the mic plot fails to load", async () => {
+    apiHolds(show);
+    micPlotAnswers(500);
+
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    expect(wrapper.get("main [role=alert]").text()).toBe("Couldn't load the item.");
+    expect(wrapper.find("main h1").exists()).toBe(false);
+    expect(wrapper.findAll("main [data-test=mic]")).toEqual([]);
+    expect(wrapper.find("main section[aria-labelledby=notes-heading]").exists()).toBe(false);
+  });
+
+  it("shows every channel free when there's no mic plot yet", async () => {
+    apiHolds(show);
+    micPlotAnswers(404);
+
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    expect(wrapper.find("main [role=alert]").exists()).toBe(false);
+    expect(channels(wrapper)).toEqual(
+      Array.from({ length: 24 }, (_, i) => ({ mic: `Mic ${i + 1}`, who: "" })),
+    );
   });
 
   it("opens every department's page for someone with no permissions", async () => {
