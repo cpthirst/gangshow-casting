@@ -285,6 +285,12 @@ export const pageHelp: PageHelp[] = [
         does: "Saves every item's props, characters and cast as a Word document.",
         access: "everyone",
       },
+      {
+        icons: [icons.exportFile],
+        name: "Generate Mic Plot",
+        does: "Saves every item's mics, with who wears each, their roles and the item's Mic plot notes, as an Excel file. It holds under-18s' names, so it is for the production team only.",
+        access: "everyone",
+      },
     ],
   },
   {
@@ -453,9 +459,20 @@ export const pageHelp: PageHelp[] = [
       },
       {
         name: "Mic 1 to Mic 24",
-        does: "Who wears each mic in the item, with the roles they play in it. Type a name to give a mic to only someone cast in the item, one mic each. A mic someone else had in the item just before is greyed out, and only they can keep it. It saves straight away.",
+        does: "All 24 mics, in order, used or not. Type a name to give a mic to only someone cast in the item, one mic each. The roles they play in it show under them, from the casting: you don't choose them. Someone without a named part shows their ensemble. It saves straight away.",
         access: "everyone",
         changeAccess: "tech",
+      },
+      {
+        name: "Used in previous item",
+        does: "A mic someone else had in the item just before is greyed out. The person who had it can keep it. It resets at the interval: the first item of each half can use any mic.",
+        access: "everyone",
+      },
+      {
+        icons: [icons.error],
+        name: "Error",
+        does: 'A mic given out before the running order changed, which now breaks the "Used in previous item" rule, stays, flagged as an Error, until it\'s cleared. It can only be cleared.',
+        access: "everyone",
       },
       {
         icons: [icons.remove],

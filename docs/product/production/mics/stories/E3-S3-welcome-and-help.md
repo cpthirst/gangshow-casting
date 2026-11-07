@@ -2,7 +2,7 @@
 id: production-mics.E3.S3
 title: Describe the Mic plot on the Welcome and Help pages
 epic: E3
-status: ready
+status: done
 ---
 
 ## Story
@@ -14,7 +14,7 @@ As a volunteer new to the Mic plot, I want the Welcome and Help pages to explain
 ### AC1: Help describes the Mic plot page
 Given anyone signed in
 When they open the Help page
-Then it describes the Mic plot page: the 24 channels, choosing a cast member in the item and their role, a blank role for someone without a named part, and Mic plot notes
+Then it describes the Mic plot page: the 24 channels, choosing a cast member in the item, their roles shown from the casting rather than chosen (someone without a named part shows their ensemble), and Mic plot notes
 
 ### AC2: Help explains the greyed-out channels
 When anyone opens the Help page
@@ -38,3 +38,4 @@ Then it mentions the Mic plot page alongside the other Production department pag
 - Depends on: production-mics.E2.S1, production-mics.E3.S2 (and everything else it describes)
 - Changes the Help and Welcome pages' code, so it is test-first, as production-sfx-wardrobe.E2.S2 was.
 - production-mics.E1.S3 already gave the Mic plot item page its "Item help" button and a Help topic (All items, Previous and Next, Mic 1 to Mic 24, Clear, Mic plot notes, Tech changes it), and took "Coming soon" out of Help. This story extends that topic; Welcome still says "Coming soon" (AC5).
+- AC1 reworded 2026-11-07, with the user's agreement: PRD FR3 (decided 2026-11-03) shows each cast member's roles from the casting and never lets anyone choose one, so Help describes it as built rather than "choosing a role" or "a blank role".

@@ -9,7 +9,7 @@ import logo from "@/assets/logo.jpg";
     <p data-test="intro">
       This is iCUE, the Chester Gang Show's app for managing the show, so every department works
       from the same information. Today it covers casting, showing who is in which item and when,
-      and what each department needs for each item; mic plots are to come.
+      and what each department needs for each item.
     </p>
     <p data-test="help-note">
       New here? Check out <RouterLink :to="{ name: 'help' }">Help</RouterLink> first: it explains
@@ -54,8 +54,10 @@ import logo from "@/assets/logo.jpg";
         items in running order and a button to open each department's page for them. Each item's
         Scenery page holds its set plans, designs and photos, for everyone to download. The
         Overview's SFX and Wardrobe buttons open each item's sound effects files and costume
-        designs, with notes for each. Stage, Tech or Wardrobe lets someone change that
-        department's pages, and Director lets them change every department's.
+        designs, with notes for each. Its Mic plot button opens each item's 24 mics, with who
+        wears each, and Generate Mic Plot saves them all as an Excel file. Stage, Tech or
+        Wardrobe lets someone change that department's pages, and Director lets them change
+        every department's.
       </dd>
     </dl>
   </section>

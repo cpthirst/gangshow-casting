@@ -231,6 +231,8 @@ describe("An item's Mic plot page", () => {
       "All items",
       "Previous and Next",
       "Mic 1 to Mic 24",
+      "Used in previous item",
+      "Error",
       "Clear",
       "Mic plot notes",
     ]);
