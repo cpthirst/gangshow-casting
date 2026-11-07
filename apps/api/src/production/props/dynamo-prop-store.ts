@@ -145,5 +145,19 @@ export function dynamoPropStore(db: DynamoDBDocumentClient, tableName: string): 
       }
       throw new Error("Couldn't drop stray carriers: props kept changing");
     },
+
+    async keepOnlyItems(productionId, itemIds) {
+      // The META row's lastPropId is left alone, so the deleted ids are never reused.
+      const { props } = await list(productionId);
+      for (const prop of props) {
+        if (itemIds.includes(prop.itemId)) continue;
+        await db.send(
+          new DeleteCommand({
+            TableName: tableName,
+            Key: { pk: partitionFor(productionId), sk: propKey(prop.id) },
+          }),
+        );
+      }
+    },
   };
 }

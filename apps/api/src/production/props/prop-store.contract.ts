@@ -275,6 +275,37 @@ export function behavesAsAPropStore(make: (saved: PropList[]) => Promise<PropSto
     expect((await store.list("2028")).props[0]?.carrierIds).toEqual([4]);
   });
 
+  it("deletes the props of every item not kept, in that production only", async () => {
+    // Made-up id: Alex (1) carries the cutlass.
+    const cutlass = { ...aProp(1, "Cutlass", [], [1]), itemId: "pirate-sketch" };
+    const confetti = { ...aProp(2, "Confetti", [], [2]), itemId: "finale" };
+    const store = await make([
+      { productionId: "2027", props: [cutlass, confetti] },
+      { productionId: "2028", props: [cutlass] },
+    ]);
+
+    await store.keepOnlyItems("2027", ["finale"]);
+
+    expect((await store.list("2027")).props).toEqual([confetti]);
+    expect((await store.list("2028")).props).toEqual([cutlass]);
+  });
+
+  it("never reuses the id of a prop deleted with its item", async () => {
+    const store = await make([
+      { productionId: "2027", props: [{ ...aProp(1, "Cutlass", [], [1]), itemId: "cut" }] },
+    ]);
+
+    await store.keepOnlyItems("2027", []);
+    const added = await store.add("2027", "finale", {
+      name: "Confetti",
+      quantity: 1,
+      roleIds: [],
+      carrierIds: [],
+    });
+
+    expect(added.id).not.toBe(1);
+  });
+
   it("refuses to update a prop that isn't there, adding nothing", async () => {
     const store = await make([]);
 

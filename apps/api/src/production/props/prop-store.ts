@@ -27,6 +27,9 @@ export interface PropStore {
   /** Takes off every prop's carriers who no longer play one of its roles (production-props
    *  FR28). roles: every role in the production, as it is now. */
   dropStrayCarriers(productionId: string, roles: Role[]): Promise<void>;
+  /** Deletes the props of every item not in `itemIds`, for good: nothing about an item that
+   *  has left the show is kept, not even who carried its props. Their ids are never reused. */
+  keepOnlyItems(productionId: string, itemIds: string[]): Promise<void>;
 }
 
 // The stored file also remembers the next id, so a removed prop's id is never reused.
@@ -71,6 +74,13 @@ const withCastCarriers = (file: PropFile, roles: Role[]): PropFile => ({
   props: file.props.map((prop) => ({ ...prop, carrierIds: castCarriers(prop, roles) })),
 });
 
+/** The file with only the props of the given items. Keeps nextId, so their ids stay taken. */
+const withOnlyItems = (file: PropFile, itemIds: string[]): PropFile => ({
+  ...file,
+  props: file.props.filter((prop) => itemIds.includes(prop.itemId)),
+  nextId: nextIdOf(file),
+});
+
 /** Props held in memory, starting with those given: for tests. */
 export function inMemoryPropStore(saved: PropList[] = []): PropStore {
   const files = new Map<string, PropFile>(saved.map((list) => [list.productionId, list]));
@@ -96,6 +106,9 @@ export function inMemoryPropStore(saved: PropList[] = []): PropStore {
     },
     async dropStrayCarriers(productionId, roles) {
       files.set(productionId, withCastCarriers(fileOf(productionId), roles));
+    },
+    async keepOnlyItems(productionId, itemIds) {
+      files.set(productionId, withOnlyItems(fileOf(productionId), itemIds));
     },
   };
 }
@@ -153,6 +166,14 @@ export function filePropStore(dataDir: string): PropStore {
         // No props, no carriers: nothing to save, and no file made.
         if (file.props.length === 0) return;
         await write(withCastCarriers(file, roles));
+      }),
+    keepOnlyItems: (productionId, itemIds) =>
+      inTurn(async () => {
+        const file = await read(productionId);
+        const kept = withOnlyItems(file, itemIds);
+        // Nothing to write if every item stays (or there's no file yet).
+        if (kept.props.length === file.props.length) return;
+        await write(kept);
       }),
   };
 }
