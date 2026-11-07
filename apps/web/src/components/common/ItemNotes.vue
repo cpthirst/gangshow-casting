@@ -2,6 +2,7 @@
 import { ItemNote, ItemNoteList, MAX_NOTE_LENGTH } from "@app/shared";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { onBeforeRouteLeave, onBeforeRouteUpdate } from "vue-router";
+import { loadData } from "@/services/load-data.ts";
 import { apiFetch } from "@/services/sign-in.ts";
 
 // An item's notes: one free-text field, saved on its own, apart from the running order
@@ -36,9 +37,8 @@ const readOnlyText = computed(() =>
 );
 
 async function currentNote(): Promise<ItemNote | undefined> {
-  const res = await apiFetch(props.listPath);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return ItemNoteList.parse(await res.json()).notes.find((n) => n.itemId === props.itemId);
+  const list = await loadData(props.listPath, ItemNoteList);
+  return list?.notes.find((n) => n.itemId === props.itemId);
 }
 
 function show(note: ItemNote | undefined) {

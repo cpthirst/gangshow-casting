@@ -478,3 +478,18 @@ describe("Recording a visit to an item's Wardrobe page (production-sfx-wardrobe 
     expect(recorded()).toEqual([]);
   });
 });
+
+describe("Loading the Wardrobe page's data", () => {
+  it("says it couldn't load the item when the API fails to give its files", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) =>
+        url === RUNNING_ORDER_PATH ? json(show) : new Response(null, { status: 500 }),
+      ),
+    );
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    expect(wrapper.get("main [role=alert]").text()).toBe("Couldn't load the item.");
+    expect(wrapper.find("[data-test=no-files]").exists()).toBe(false);
+  });
+});

@@ -583,3 +583,24 @@ describe("Recording a visit to an item's SFX page (production-sfx-wardrobe FR13)
     expect(recorded()).toEqual([]);
   });
 });
+
+describe("Loading the SFX page's data", () => {
+  it("shows no files and an empty notes box, with no error, when the API has nothing there yet", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (url === RUNNING_ORDER_PATH) return json(show);
+        if (url === "/api/usage") return new Response(null, { status: 204 });
+        // Neither the item's files nor the SFX notes are there yet.
+        return new Response(null, { status: 404 });
+      }),
+    );
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    expect(wrapper.get("main h1").text()).toBe("SFX: Opening Number");
+    expect(wrapper.findAll("main [data-test=file]")).toEqual([]);
+    expect(wrapper.get("[data-test=no-files]").text()).toBe("No SFX files for this item yet.");
+    expect(notesSection(wrapper).get<HTMLTextAreaElement>("textarea").element.value).toBe("");
+    expect(wrapper.find("main [role=alert]").exists()).toBe(false);
+  });
+});

@@ -1331,3 +1331,40 @@ describe("Recording a visit to an item's Scenery page (production-scenery FR15)"
     expect(recorded()).toEqual([]);
   });
 });
+
+describe("Loading the Scenery page's data", () => {
+  it("shows the item's files and scenery notes", async () => {
+    apiHolds(
+      show,
+      {
+        "opening-number": [
+          { name: "set-plan.pdf", size: 2_400_000 },
+          { name: "Backdrop.png", size: 800_000 },
+        ],
+      },
+      [{ itemId: "opening-number", text: "Cloud flies in", revision: 1 }],
+    );
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    expect(rows(wrapper)).toEqual([
+      { name: "Backdrop.png", size: "800 KB" },
+      { name: "set-plan.pdf", size: "2.4 MB" },
+    ]);
+    expect(wrapper.get<HTMLTextAreaElement>("main textarea").element.value).toBe("Cloud flies in");
+    expect(wrapper.find("main [role=alert]").exists()).toBe(false);
+  });
+
+  it("asks someone whose sign-in has expired to sign in, rather than saying it couldn't load", async () => {
+    await signInAs(["tech"], "lee");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(null, { status: 401 })),
+    );
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    expect(wrapper.get("main h1").text()).toBe("You need to sign in");
+    expect(wrapper.text()).not.toContain("Couldn't load");
+    // Before the next test signs everyone back in, which would show the page again.
+    wrapper.unmount();
+  });
+});

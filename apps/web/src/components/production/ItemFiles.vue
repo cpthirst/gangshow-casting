@@ -15,6 +15,7 @@ import ItemStepNav from "@/components/common/ItemStepNav.vue";
 import ReadOnlyNotice from "@/components/common/ReadOnlyNotice.vue";
 import { showPageTitle } from "@/router/index.ts";
 import { downloadFrom, openFileTab } from "@/services/file-link.ts";
+import { loadData } from "@/services/load-data.ts";
 import { apiFetch, canChange } from "@/services/sign-in.ts";
 import { recordDepartmentPageUse } from "@/services/usage.ts";
 import { itemRouteOf } from "@/utils/departments.ts";
@@ -80,28 +81,20 @@ watchEffect(() => {
 async function load(id: string) {
   status.value = "loading";
   try {
-    const [orderRes, filesRes] = await Promise.all([
-      apiFetch(RUNNING_ORDER_PATH),
-      apiFetch(itemFilesPath(key.value, id)),
-    ]);
     // No saved running order at all: no item can be in it.
-    const loadedOrder =
-      orderRes.status === 404 ? undefined : RunningOrder.parse(await okJson(orderRes));
-    const loadedFiles = SceneryFileList.parse(await okJson(filesRes)).files;
+    const [loadedOrder, loadedFiles] = await Promise.all([
+      loadData(RUNNING_ORDER_PATH, RunningOrder),
+      loadData(itemFilesPath(key.value, id), SceneryFileList),
+    ]);
     // Stepped on to another item while this one loaded: that load shows instead.
     if (id !== itemId.value) return;
     order.value = loadedOrder;
-    files.value = sortFiles(loadedFiles);
+    files.value = sortFiles(loadedFiles?.files ?? []);
     status.value = "loaded";
   } catch {
     // A failed load must never look like "not found" or "no files".
     if (id === itemId.value) status.value = "error";
   }
-}
-
-async function okJson(res: Response): Promise<unknown> {
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
 }
 
 // A file opens in a new tab or downloads through a short-lived link (FR10). A file deleted
@@ -112,14 +105,14 @@ async function choose({ name }: SceneryFile) {
   fileProblem.value = undefined;
   const tab = opensInBrowser(name, key.value) ? openFileTab() : undefined;
   try {
-    const res = await apiFetch(itemFileLinkPath(key.value, id, name));
-    if (res.status === 404) {
+    const link = await loadData(itemFileLinkPath(key.value, id, name), SceneryFileLink);
+    if (!link) {
       tab?.close();
       fileProblem.value = `${name} isn't there any more.`;
       await load(id);
       return;
     }
-    const { url } = SceneryFileLink.parse(await okJson(res));
+    const { url } = link;
     if (tab) tab.show(url);
     else downloadFrom(url);
   } catch {
