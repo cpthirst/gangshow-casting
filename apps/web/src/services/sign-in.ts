@@ -1,17 +1,12 @@
 import {
   type Access,
-  type AnyOf,
   accessFrom,
+  type DepartmentId,
   isRefusalAsReadOnly,
   LOCAL_ACCESS_HEADER,
   localAccessHeader,
-  MIC_PLOT_PERMISSIONS,
-  mayChange,
-  PROPS_PERMISSIONS,
-  SCENERY_PERMISSIONS,
-  SFX_PERMISSIONS,
+  mayChangeDepartment,
   type SignInConfig,
-  WARDROBE_PERMISSIONS,
 } from "@app/shared";
 import { computed, ref, shallowRef } from "vue";
 
@@ -110,22 +105,11 @@ export const localAccess = computed<Access | undefined>(() =>
 );
 export const isAdmin = computed(() => access.value === "admin");
 /**
- * The casting pages and Running order show their change controls only to those who may
- * change Casting; everyone else sees them read-only (team-roles FR6, production-props FR3).
+ * Whether a department's pages show their change controls; everyone else sees them read-only
+ * (team-roles FR6, production-props FR3). The casting pages and Running order are Casting's.
  */
-export const canChangeCasting = computed(() => mayChange(access.value, "casting"));
-/** The props pages show their change controls only to those with Stage or Director. */
-export const canChangeProps = computed(() => mayChange(access.value, PROPS_PERMISSIONS));
-/** The Scenery pages show their change controls only to those with Stage, Tech or Director. */
-export const canChangeScenery = computed(() => mayChange(access.value, SCENERY_PERMISSIONS));
-/** The SFX pages show their change controls only to those with Tech or Director. */
-export const canChangeSfx = computed(() => mayChange(access.value, SFX_PERMISSIONS));
-/** The Mic plot pages show their change controls only to those with Tech or Director. */
-export const canChangeMicPlot = computed(() => mayChange(access.value, MIC_PLOT_PERMISSIONS));
-/** The Wardrobe pages show their change controls only to those with Wardrobe or Director. */
-export const canChangeWardrobe = computed(() => mayChange(access.value, WARDROBE_PERMISSIONS));
-/** Whether the pages for a department's data show their change controls: any one permission will do. */
-export const canChange = (needed: AnyOf) => mayChange(access.value, needed);
+export const canChange = (department: DepartmentId) =>
+  mayChangeDepartment(access.value, department);
 /** A change was refused because the person may only read: pages say it wasn't saved. */
 export const changeRefusedAsReadOnly = computed(() => refusedAsReadOnly.value);
 

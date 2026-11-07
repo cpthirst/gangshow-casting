@@ -18,11 +18,11 @@ import {
   accessWarning,
   accountPath,
   disableWarning,
-  inOrder,
   resetWarning,
   sameAccess,
   sortAccounts,
 } from "@/utils/accounts.ts";
+import { inOrder } from "@/utils/departments.ts";
 import { icons } from "@/utils/icons.ts";
 
 type State =

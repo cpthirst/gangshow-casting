@@ -1,10 +1,4 @@
-import {
-  type AnyOf,
-  type FileDepartment,
-  SCENERY_PERMISSIONS,
-  SFX_PERMISSIONS,
-  WARDROBE_PERMISSIONS,
-} from "@app/shared";
+import type { FileDepartment } from "@app/shared";
 
 // Each item's files and notes for a Production department, Scenery's, SFX's or Wardrobe's,
 // which share one page layout (production-sfx-wardrobe FR2) and the API's routes, each named
@@ -13,51 +7,29 @@ import {
 // Only one production for now (see docs/product/running-order/prd.md).
 const PRODUCTION_ID = "2027";
 
-/** A department whose item page keeps the item's files and notes. */
+/** A department whose item page keeps the item's files and notes; its name and route come
+ *  from the shared list. */
 export interface FilesDepartment {
   /** Its word in the API's routes: …/items/{itemId}/<key>-files, …/<key>-notes. */
   key: FileDepartment;
-  /** As the page's title says it: "Scenery: Opening Number". */
-  name: string;
-  /** Mid-sentence, as in "No scenery files for this item yet." */
-  noun: string;
-  /** The item page's route name. */
-  route: string;
-  /** Who may change it, any one of these, or an admin. */
-  permissions: AnyOf;
   /** What the upload area says the files must be, if anything. */
   uploadRule?: string;
-  /** The page's help, if it has any yet. */
-  help?: string;
+  /** The page's help. */
+  help: string;
 }
 
 export const sceneryDepartment: FilesDepartment = {
   key: "scenery",
-  name: "Scenery",
-  noun: "scenery",
-  route: "scenery-item",
-  permissions: SCENERY_PERMISSIONS,
   uploadRule: "Scenery and set images only: no photos of cast members.",
   help: "scenery-item",
 };
 
-export const sfxDepartment: FilesDepartment = {
-  key: "sfx",
-  name: "SFX",
-  noun: "SFX",
-  route: "sfx-item",
-  permissions: SFX_PERMISSIONS,
-  help: "sfx-item",
-};
+export const sfxDepartment: FilesDepartment = { key: "sfx", help: "sfx-item" };
 
 // Its rule stands in for checking each file, as Scenery's does (production-sfx-wardrobe FR4,
 // ADR 0010).
 export const wardrobeDepartment: FilesDepartment = {
   key: "wardrobe",
-  name: "Wardrobe",
-  noun: "Wardrobe",
-  route: "wardrobe-item",
-  permissions: WARDROBE_PERMISSIONS,
   uploadRule: "Costume designs and images only: no photos of cast members.",
   help: "wardrobe-item",
 };

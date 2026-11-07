@@ -7,7 +7,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   apiFetch,
-  canChangeCasting,
+  canChange,
   changeRefusedAsReadOnly,
   chooseLocalAccess,
   isAdmin,
@@ -245,14 +245,14 @@ describe("signing in", () => {
 
   it("treats someone as read-only once the API refuses a change as read-only, saying so", async () => {
     await useHostedSignIn(config, managerWith(sam({ groups: ["casting"] })), browserAt("/"));
-    expect(canChangeCasting.value).toBe(true);
+    expect(canChange("casting")).toBe(true);
     fetchMock.mockResolvedValue(
       new Response(JSON.stringify(readOnlyRefusal("casting")), { status: 403 }),
     );
 
     const res = await apiFetch("/api/productions/p/items/i/notes", { method: "PUT" });
 
-    expect(canChangeCasting.value).toBe(false);
+    expect(canChange("casting")).toBe(false);
     expect(changeRefusedAsReadOnly.value).toBe(true);
     // The page can still read the refusal for itself.
     expect(await res.json()).toEqual(readOnlyRefusal("casting"));
@@ -306,7 +306,7 @@ describe("signing in", () => {
 
     await apiFetch("/api/productions/p/cast/c", { method: "DELETE" });
 
-    expect(canChangeCasting.value).toBe(true);
+    expect(canChange("casting")).toBe(true);
     expect(changeRefusedAsReadOnly.value).toBe(false);
   });
 
@@ -348,10 +348,19 @@ describe("signing in", () => {
     [["stage"], false],
     [[], false],
     [["read-only", "casting"], false],
-  ])("canChangeCasting for groups %j is %s", async (groups, allowed) => {
+  ])("canChange casting for groups %j is %s", async (groups, allowed) => {
     await useHostedSignIn(config, managerWith(sam({ groups })), browserAt("/"));
 
-    expect(canChangeCasting.value).toBe(allowed);
+    expect(canChange("casting")).toBe(allowed);
+  });
+
+  it.each([
+    [["director"], ["props", "scenery", "sfx", "mic-plot", "wardrobe"]],
+    [["tech"], ["scenery", "sfx", "mic-plot"]],
+  ])("shows %j the change controls of %j alone", async (groups, changeable) => {
+    await useHostedSignIn(config, managerWith(sam({ groups })), browserAt("/"));
+
+    expect(departmentIds.filter((id) => canChange(id))).toEqual(changeable);
   });
 
   it("counts only members of the admin group as admins", async () => {
@@ -427,12 +436,12 @@ describe("signing in", () => {
       useLocalSignIn();
 
       chooseLocalAccess(["casting"]);
-      const casting = [isAdmin.value, canChangeCasting.value];
+      const casting = [isAdmin.value, canChange("casting")];
       chooseLocalAccess(["stage", "tech"]);
-      const stageAndTech = [isAdmin.value, canChangeCasting.value];
+      const stageAndTech = [isAdmin.value, canChange("casting")];
       chooseLocalAccess([]);
 
-      expect([casting, stageAndTech, localAccess.value, canChangeCasting.value]).toEqual([
+      expect([casting, stageAndTech, localAccess.value, canChange("casting")]).toEqual([
         [false, true],
         [false, false],
         [],
@@ -457,7 +466,7 @@ describe("signing in", () => {
     await apiFetch("/api/health");
 
     expect(isAdmin.value).toBe(false);
-    expect(canChangeCasting.value).toBe(false);
+    expect(canChange("casting")).toBe(false);
     expect(localAccess.value).toBeUndefined();
     expect(new Headers(fetchMock.mock.calls.at(-1)?.[1]?.headers).has(LOCAL_ACCESS_HEADER)).toBe(
       false,

@@ -1,4 +1,4 @@
-import { type Access, departments, mayChange, needOf, readOnlyRefusal } from "@app/shared";
+import { type Access, mayChangeDepartment, needOf, readOnlyRefusal } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import { jsonResponse, messageResponse } from "./json.ts";
 
@@ -29,7 +29,5 @@ export function accessRefusal(
   const need = needOf(routeKey);
   if (need === undefined) return undefined;
   if (need === "admin") return messageResponse(403, "Only admins can do this.");
-  return mayChange(access, departments[need].permissions)
-    ? undefined
-    : jsonResponse(403, readOnlyRefusal(need));
+  return mayChangeDepartment(access, need) ? undefined : jsonResponse(403, readOnlyRefusal(need));
 }

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { type Permission, permissions } from "@app/shared";
 import { computed, useId } from "vue";
-import { PERMISSION_NAMES } from "@/utils/accounts.ts";
+import { PERMISSION_NAMES } from "@/utils/departments.ts";
 
 /**
  * An account's access as a labelled group of tick boxes: Admin, or any mix of the department

@@ -4,9 +4,8 @@ import {
   CASTING_GROUP,
   DIRECTOR_GROUP,
   type Permission,
-  permissions,
 } from "@app/shared";
-import { departmentPages } from "./departments.ts";
+import { departmentPages, inOrder, listed, PERMISSION_NAMES } from "./departments.ts";
 
 export const ACCOUNTS_PATH = "/api/accounts";
 
@@ -27,15 +26,6 @@ export const resetWarning = (username: string) =>
 export const disableWarning = (username: string) =>
   `Disable ${username}? They'll be signed out on every device within 5 minutes, and can't sign in until an admin enables them again.`;
 
-/** Each department's permission by the name the team knows it by (production-props FR7). */
-export const PERMISSION_NAMES: Record<Permission, string> = {
-  casting: "Casting",
-  stage: "Stage",
-  tech: "Tech",
-  wardrobe: "Wardrobe",
-  director: "Director",
-};
-
 /** What an account may do, at a glance: "Admin", its permissions, or "Read-only". */
 export function accessLabel(access: AccountAccess) {
   if (access === "admin") return "Admin";
@@ -44,14 +34,6 @@ export function accessLabel(access: AccountAccess) {
     .map((permission) => PERMISSION_NAMES[permission])
     .join(", ");
 }
-
-/** Permissions in the order the page offers them, whatever order they were given in. */
-export const inOrder = (access: readonly Permission[]) =>
-  permissions.filter((permission) => access.includes(permission));
-
-/** "A", "A and B", "A, B and C". */
-const listed = (names: string[]) =>
-  names.length < 2 ? names.join("") : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
 
 /** What the permissions let someone change: casting, and each other department's page. */
 function whatTheyCanChange(access: readonly Permission[]) {

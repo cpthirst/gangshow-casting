@@ -115,43 +115,45 @@ export const departmentIds = [
 
 export type DepartmentId = (typeof departmentIds)[number];
 
-/** A department: who may change it, and what the API says when it refuses anyone else. */
+/** A department: what it's called, who may change it, and how the app and API word it. */
 export interface Department {
+  /** On its own, as a page title or column heading says it: "Mic plot". */
+  name: string;
+  /** Mid-sentence, as in "Edit mic plot for Opening Number". */
+  noun: string;
+  /** What stands for the noun later in a sentence: "it" (the scenery) or "them" (the props). */
+  it: "it" | "them";
   /** Any one of these allows a change; their order doesn't matter. */
   permissions: AnyOf;
   /** The refusal's message, naming what can only be viewed. */
   refusal: string;
 }
 
+/** A department as one statement: its refusal is worded from its noun (ADR 0035). */
+const department = (
+  name: string,
+  noun: string,
+  it: Department["it"],
+  permissions: AnyOf,
+): Department => ({
+  name,
+  noun,
+  it,
+  permissions,
+  refusal: `You can view the ${noun}, but not change ${it}.`,
+});
+
 /**
  * Each department, stated once (ADR 0035). Casting is Casting's alone, never a Director's;
  * Stage and Tech share the scenery (production-scenery FR2, FR5).
  */
 export const departments: Readonly<Record<DepartmentId, Department>> = {
-  casting: {
-    permissions: [CASTING_GROUP],
-    refusal: "You can view the casting, but not change it.",
-  },
-  props: {
-    permissions: [STAGE_GROUP, DIRECTOR_GROUP],
-    refusal: "You can view the props, but not change them.",
-  },
-  scenery: {
-    permissions: [STAGE_GROUP, TECH_GROUP, DIRECTOR_GROUP],
-    refusal: "You can view the scenery, but not change it.",
-  },
-  sfx: {
-    permissions: [TECH_GROUP, DIRECTOR_GROUP],
-    refusal: "You can view the SFX, but not change them.",
-  },
-  "mic-plot": {
-    permissions: [TECH_GROUP, DIRECTOR_GROUP],
-    refusal: "You can view the mic plot, but not change it.",
-  },
-  wardrobe: {
-    permissions: [WARDROBE_GROUP, DIRECTOR_GROUP],
-    refusal: "You can view the wardrobe, but not change it.",
-  },
+  casting: department("Casting", "casting", "it", [CASTING_GROUP]),
+  props: department("Props", "props", "them", [STAGE_GROUP, DIRECTOR_GROUP]),
+  scenery: department("Scenery", "scenery", "it", [STAGE_GROUP, TECH_GROUP, DIRECTOR_GROUP]),
+  sfx: department("SFX", "SFX", "them", [TECH_GROUP, DIRECTOR_GROUP]),
+  "mic-plot": department("Mic plot", "mic plot", "it", [TECH_GROUP, DIRECTOR_GROUP]),
+  wardrobe: department("Wardrobe", "wardrobe", "it", [WARDROBE_GROUP, DIRECTOR_GROUP]),
 };
 
 /** A refused change to a department: its line, and which department, so pages needn't read the line. */
@@ -210,6 +212,10 @@ export const mayChange = (access: Access, needed: Permission | AnyOf) =>
     access.includes(permission),
   );
 
+/** Whether access allows changing a department's data: any one of its permissions will do. */
+export const mayChangeDepartment = (access: Access, id: DepartmentId) =>
+  mayChange(access, departments[id].permissions);
+
 /**
  * Routes that aren't a GET but change nothing stored. The export only turns the grid the page
  * sends into a file, so every role may use it (ADR 0021). Add one only for the same reason.
@@ -245,14 +251,6 @@ export type Need = DepartmentId | "admin";
 export type RouteNeeds = Readonly<
   Record<Exclude<RouteKey, OpenRouteKey>, Need> & Partial<Record<OpenRouteKey, "admin">>
 >;
-
-// Each department's permissions under the names the pages use, until they read the list (simplify E1.S3).
-export const PROPS_PERMISSIONS = departments.props.permissions;
-export const SCENERY_PERMISSIONS = departments.scenery.permissions;
-export const SFX_PERMISSIONS = departments.sfx.permissions;
-export const MIC_PLOT_PERMISSIONS = departments["mic-plot"].permissions;
-export const WARDROBE_PERMISSIONS = departments.wardrobe.permissions;
-export const CASTING_PERMISSIONS = departments.casting.permissions;
 
 /**
  * What each route needs: an admin, or a permission that may change its department (ADR 0026,

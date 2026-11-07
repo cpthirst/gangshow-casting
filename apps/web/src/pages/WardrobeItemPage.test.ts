@@ -191,7 +191,7 @@ describe("An item's Wardrobe page", () => {
     const { wrapper } = await openAppAt("/production/items/finale/wardrobe");
 
     expect(wrapper.findAll("main [data-test=file]")).toEqual([]);
-    expect(wrapper.get("[data-test=no-files]").text()).toBe("No Wardrobe files for this item yet.");
+    expect(wrapper.get("[data-test=no-files]").text()).toBe("No wardrobe files for this item yet.");
     expect(wrapper.get("[data-test=how-to-add]").text()).toBe(
       "Add one with Add a file above, or drag one there.",
     );
