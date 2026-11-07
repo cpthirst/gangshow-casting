@@ -4,6 +4,8 @@ import {
   accountRouteKeys,
   adminOnlyRouteKeys,
   CASTING_PERMISSIONS,
+  departmentIds,
+  departments,
   isAccountRoute,
   isReadRoute,
   isRefusalAsReadOnly,
@@ -16,8 +18,7 @@ import {
   permissions,
   type RouteNeeds,
   readOnlyMayUse,
-  refusalFor,
-  refusalOn,
+  readOnlyRefusal,
   routeKeys,
   routeNeeds,
   SCENERY_PERMISSIONS,
@@ -102,20 +103,18 @@ describe("accessFrom", () => {
 });
 
 describe("routeNeeds", () => {
-  it("names one or more permissions, any of which allows it, or admin, for every route that isn't open to everyone", () => {
+  it("names a department, or admin, for every route that isn't open to everyone", () => {
     for (const key of routeKeys.filter((key) => !readOnlyMayUse(key))) {
       const need = routeNeeds[key];
-      if (need === "admin") continue;
-      expect(need, key).not.toHaveLength(0);
-      for (const permission of need ?? []) expect(permissions, key).toContain(permission);
+      expect([...departmentIds, "admin"], key).toContain(need);
     }
   });
 
   it("lets a Director use every department's change route, but none of Casting's (production-scenery FR2)", () => {
     for (const key of routeKeys) {
       const need = needOf(key);
-      if (need === undefined || need === "admin" || need === CASTING_PERMISSIONS) continue;
-      expect(need, key).toContain("director");
+      if (need === undefined || need === "admin" || need === "casting") continue;
+      expect(departments[need].permissions, key).toContain("director");
     }
     expect(CASTING_PERMISSIONS).not.toContain("director");
   });
@@ -126,7 +125,8 @@ describe("routeNeeds", () => {
     "DELETE /api/productions/{productionId}/props/{propId}",
     "PUT /api/productions/{productionId}/items/{itemId}/props-notes",
   ])("has %s need Stage or Director", (key) => {
-    expect(needOf(key)).toEqual(["stage", "director"]);
+    expect(needOf(key)).toBe("props");
+    expect(PROPS_PERMISSIONS).toEqual(["stage", "director"]);
   });
 
   it("leaves reading props notes open to everyone", () => {
@@ -135,27 +135,23 @@ describe("routeNeeds", () => {
   });
 
   it("has saving scenery notes need Stage, Tech or Director, and reading them need nothing", () => {
-    expect(needOf("PUT /api/productions/{productionId}/items/{itemId}/scenery-notes")).toEqual(
-      SCENERY_PERMISSIONS,
+    expect(needOf("PUT /api/productions/{productionId}/items/{itemId}/scenery-notes")).toBe(
+      "scenery",
     );
     expect(SCENERY_PERMISSIONS).toEqual(expect.arrayContaining(["stage", "tech", "director"]));
     expect(needOf("GET /api/productions/{productionId}/scenery-notes")).toBeUndefined();
   });
 
   it("has deleting a scenery file need Stage, Tech or Director", () => {
-    expect(needOf("DELETE /api/productions/{productionId}/items/{itemId}/scenery-files")).toEqual(
-      SCENERY_PERMISSIONS,
+    expect(needOf("DELETE /api/productions/{productionId}/items/{itemId}/scenery-files")).toBe(
+      "scenery",
     );
   });
 
   it("has uploading a scenery file need Stage, Tech or Director", () => {
-    expect(needOf("POST /api/productions/{productionId}/items/{itemId}/scenery-uploads")).toEqual(
-      SCENERY_PERMISSIONS,
+    expect(needOf("POST /api/productions/{productionId}/items/{itemId}/scenery-uploads")).toBe(
+      "scenery",
     );
-  });
-
-  it("refuses a scenery change saying the scenery can be viewed, never the props", () => {
-    expect(refusalFor(SCENERY_PERMISSIONS)).toBe("You can view the scenery, but not change it.");
   });
 
   it.each([
@@ -172,9 +168,8 @@ describe("routeNeeds", () => {
     "POST /api/productions/{productionId}/items/{itemId}/sfx-uploads",
     "PUT /api/productions/{productionId}/items/{itemId}/sfx-notes",
   ] as const)("has %s need Tech or Director, and refuse others naming the SFX", (key) => {
-    expect(needOf(key)).toEqual(SFX_PERMISSIONS);
+    expect(needOf(key)).toBe("sfx");
     expect(SFX_PERMISSIONS).toEqual(["tech", "director"]);
-    expect(refusalOn(key, SFX_PERMISSIONS)).toBe("You can view the SFX, but not change them.");
   });
 
   it.each([
@@ -192,11 +187,8 @@ describe("routeNeeds", () => {
     "POST /api/productions/{productionId}/items/{itemId}/wardrobe-uploads",
     "PUT /api/productions/{productionId}/items/{itemId}/wardrobe-notes",
   ] as const)("has %s need Wardrobe or Director, and refuse others naming the wardrobe", (key) => {
-    expect(needOf(key)).toEqual(WARDROBE_PERMISSIONS);
+    expect(needOf(key)).toBe("wardrobe");
     expect(WARDROBE_PERMISSIONS).toEqual(["wardrobe", "director"]);
-    expect(refusalOn(key, WARDROBE_PERMISSIONS)).toBe(
-      "You can view the wardrobe, but not change it.",
-    );
   });
 
   it.each([
@@ -213,12 +205,8 @@ describe("routeNeeds", () => {
     "PUT /api/productions/{productionId}/items/{itemId}/mic-plot",
     "PUT /api/productions/{productionId}/items/{itemId}/mic-plot-notes",
   ] as const)("has %s need Tech or Director, and refuse others naming the mic plot", (key) => {
-    expect(needOf(key)).toEqual(MIC_PLOT_PERMISSIONS);
+    expect(needOf(key)).toBe("mic-plot");
     expect(MIC_PLOT_PERMISSIONS).toEqual(["tech", "director"]);
-    expect(refusalOn(key, MIC_PLOT_PERMISSIONS)).toBe(
-      "You can view the mic plot, but not change it.",
-    );
-    expect(isRefusalAsReadOnly(refusalOn(key, MIC_PLOT_PERMISSIONS))).toBe(true);
   });
 
   it.each([
@@ -229,24 +217,13 @@ describe("routeNeeds", () => {
     expect(needOf(key)).toBeUndefined();
   });
 
-  it("refuses a scenery change still saying the scenery can be viewed", () => {
-    const key = "PUT /api/productions/{productionId}/items/{itemId}/scenery-notes";
-    expect(refusalOn(key, SCENERY_PERMISSIONS)).toBe(
-      "You can view the scenery, but not change it.",
-    );
-  });
-
   it("has every other change route today need Casting, or stay admin-only", () => {
     const changes = routeKeys.filter(
       (key) =>
         !readOnlyMayUse(key) &&
-        needOf(key) !== PROPS_PERMISSIONS &&
-        needOf(key) !== SCENERY_PERMISSIONS &&
-        needOf(key) !== SFX_PERMISSIONS &&
-        needOf(key) !== MIC_PLOT_PERMISSIONS &&
-        needOf(key) !== WARDROBE_PERMISSIONS,
+        !["props", "scenery", "sfx", "mic-plot", "wardrobe"].includes(needOf(key) ?? ""),
     );
-    const needsCasting = (key: string) => needOf(key) === CASTING_PERMISSIONS;
+    const needsCasting = (key: string) => needOf(key) === "casting";
     expect(changes.filter(needsCasting).sort()).toEqual([
       "DELETE /api/productions/{productionId}/roles/{roleId}",
       "POST /api/productions/{productionId}/cast",
@@ -348,39 +325,47 @@ describe("the local access header", () => {
   );
 });
 
-describe("refusalFor", () => {
-  it("says the casting can be viewed but not changed", () => {
-    expect(refusalFor("casting")).toBe("You can view the casting, but not change it.");
+describe("readOnlyRefusal", () => {
+  it.each([
+    ["casting", "You can view the casting, but not change it."],
+    ["props", "You can view the props, but not change them."],
+    ["scenery", "You can view the scenery, but not change it."],
+    ["sfx", "You can view the SFX, but not change them."],
+    ["mic-plot", "You can view the mic plot, but not change it."],
+    ["wardrobe", "You can view the wardrobe, but not change it."],
+  ] as const)("says the %s can be viewed but not changed, naming the department", (id, line) => {
+    expect(readOnlyRefusal(id)).toEqual({ message: line, department: id });
   });
 
-  it("says the props can be viewed but not changed, for Stage", () => {
-    expect(refusalFor("stage")).toBe("You can view the props, but not change them.");
-  });
+  it("names the scenery, not the props, though Stage, whose own department is the props, is listed first", () => {
+    expect(SCENERY_PERMISSIONS[0]).toBe("stage");
+    expect(PROPS_PERMISSIONS).toContain("stage");
+    const key = "PUT /api/productions/{productionId}/items/{itemId}/scenery-notes";
+    const need = needOf(key);
 
-  it("says the scenery can be viewed but not changed, for Tech", () => {
-    expect(refusalFor("tech")).toBe("You can view the scenery, but not change it.");
-  });
-
-  it("says the wardrobe can be viewed but not changed, for Wardrobe", () => {
-    expect(refusalFor("wardrobe")).toBe("You can view the wardrobe, but not change it.");
-  });
-
-  it("falls back to a general line for a department without its own", () => {
-    expect(refusalFor("director")).toBe("You can view this, but not change it.");
-  });
-
-  it("names the first permission a route lists, so props say the props are view-only", () => {
-    expect(refusalFor(["stage", "director"])).toBe("You can view the props, but not change them.");
+    expect(need).toBe("scenery");
+    expect(need !== undefined && need !== "admin" && readOnlyRefusal(need).message).toBe(
+      "You can view the scenery, but not change it.",
+    );
   });
 });
 
 describe("isRefusalAsReadOnly", () => {
-  it("recognises every department's refusal, and nothing else", () => {
-    expect(permissions.every((permission) => isRefusalAsReadOnly(refusalFor(permission)))).toBe(
-      true,
-    );
-    expect(isRefusalAsReadOnly("You can view the SFX, but not change them.")).toBe(true);
-    expect(isRefusalAsReadOnly("Only admins can do this.")).toBe(false);
-    expect(isRefusalAsReadOnly(undefined)).toBe(false);
+  it("recognises every department's refusal", () => {
+    expect(departmentIds.every((id) => isRefusalAsReadOnly(readOnlyRefusal(id)))).toBe(true);
+  });
+
+  it("recognises a refusal by its department, however it is worded", () => {
+    expect(isRefusalAsReadOnly({ message: "Reworded.", department: "sfx" })).toBe(true);
+  });
+
+  it.each([
+    [{ message: "You can view the SFX, but not change them." }],
+    [{ message: "Only admins can do this." }],
+    [{ message: "No.", department: "stage" }],
+    ["You can view the casting, but not change it."],
+    [undefined],
+  ])("doesn't take %j for a read-only refusal", (body) => {
+    expect(isRefusalAsReadOnly(body)).toBe(false);
   });
 });

@@ -8,21 +8,16 @@ import {
   HealthResponse,
   ItemNoteList,
   LOCAL_ACCESS_HEADER,
-  MIC_PLOT_PERMISSIONS,
   MicPlotList,
   needOf,
-  PROPS_PERMISSIONS,
   Role,
   readOnlyMayUse,
-  refusalOn,
+  readOnlyRefusal,
   routeKeys,
-  SCENERY_PERMISSIONS,
   SceneryFileCounts,
   SceneryFileLink,
   SceneryFileList,
-  SFX_PERMISSIONS,
   UsageSummary,
-  WARDROBE_PERMISSIONS,
 } from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { inMemoryRoleStore } from "#/casting/roles/role-store.ts";
@@ -388,7 +383,10 @@ describe("Lambda entry point", () => {
   });
 
   describe("read-only members (ADR 0020)", () => {
-    const READ_ONLY = { message: "You can view the casting, but not change it." };
+    const READ_ONLY = {
+      message: "You can view the casting, but not change it.",
+      department: "casting",
+    };
     const setUp = () => {
       const cast = inMemoryCastStore([aCastList([aCastMember(1)])]);
       const roles = inMemoryRoleStore();
@@ -604,7 +602,10 @@ describe("Lambda entry point", () => {
   });
 
   describe("department permissions (ADR 0026)", () => {
-    const READ_ONLY = { message: "You can view the casting, but not change it." };
+    const READ_ONLY = {
+      message: "You can view the casting, but not change it.",
+      department: "casting",
+    };
     const ONLY_ADMINS = { message: "Only admins can do this." };
     const pirate = itemId("Pirate Sketch");
     const setUp = () => {
@@ -766,6 +767,48 @@ describe("Lambda entry point", () => {
       expect(await stored()).toEqual(before);
     });
 
+    it.each([
+      [
+        "PUT /api/productions/{productionId}/items/{itemId}/notes",
+        "casting",
+        "You can view the casting, but not change it.",
+      ],
+      [
+        "PUT /api/productions/{productionId}/items/{itemId}/props-notes",
+        "props",
+        "You can view the props, but not change them.",
+      ],
+      [
+        "PUT /api/productions/{productionId}/items/{itemId}/scenery-notes",
+        "scenery",
+        "You can view the scenery, but not change it.",
+      ],
+      [
+        "PUT /api/productions/{productionId}/items/{itemId}/sfx-notes",
+        "sfx",
+        "You can view the SFX, but not change them.",
+      ],
+      [
+        "PUT /api/productions/{productionId}/items/{itemId}/mic-plot-notes",
+        "mic-plot",
+        "You can view the mic plot, but not change it.",
+      ],
+      [
+        "PUT /api/productions/{productionId}/items/{itemId}/wardrobe-notes",
+        "wardrobe",
+        "You can view the wardrobe, but not change it.",
+      ],
+    ] as const)(
+      "refuses pat's %s, with no permissions, naming the %s department in its own words",
+      async (key, department, message) => {
+        const { res, ran } = await everyRoute()(key, "[]");
+
+        expect(res.statusCode).toBe(403);
+        expect(JSON.parse(res.body ?? "")).toEqual({ message, department });
+        expect(ran).toBe(false);
+      },
+    );
+
     it("lets kim, with Casting and Stage, make casting changes as with Casting only, and Stage's as with Stage only", async () => {
       const { api } = setUp();
       const send = everyRoute();
@@ -778,7 +821,7 @@ describe("Lambda entry point", () => {
       expect(saved).toEqual([201, 201, 200]);
       for (const key of changeRoutes) {
         const kim = await send(key, "[casting stage]");
-        const stages = needOf(key) === PROPS_PERMISSIONS || needOf(key) === SCENERY_PERMISSIONS;
+        const stages = needOf(key) === "props" || needOf(key) === "scenery";
         const alone = await send(key, stages ? "[stage]" : "[casting]");
         expect(kim, key).toEqual(alone);
       }
@@ -793,11 +836,9 @@ describe("Lambda entry point", () => {
         const send = everyRoute();
         const techMay = (key: string) =>
           groups.includes("tech") &&
-          [SCENERY_PERMISSIONS, SFX_PERMISSIONS, MIC_PLOT_PERMISSIONS].some(
-            (need) => need === needOf(key),
-          );
+          ["scenery", "sfx", "mic-plot"].some((need) => need === needOf(key));
         const wardrobeMay = (key: string) =>
-          groups.includes("wardrobe") && needOf(key) === WARDROBE_PERMISSIONS;
+          groups.includes("wardrobe") && needOf(key) === "wardrobe";
 
         for (const key of changeRoutes.filter((key) => !techMay(key) && !wardrobeMay(key))) {
           const { res, ran } = await send(key, groups);
@@ -805,9 +846,7 @@ describe("Lambda entry point", () => {
           expect(res.statusCode, key).toBe(403);
           const need = needOf(key);
           expect(JSON.parse(res.body ?? ""), key).toEqual(
-            need === undefined || need === "admin"
-              ? ONLY_ADMINS
-              : { message: refusalOn(key, need) },
+            need === undefined || need === "admin" ? ONLY_ADMINS : readOnlyRefusal(need),
           );
           expect(ran, key).toBe(false);
         }
@@ -872,13 +911,7 @@ describe("Lambda entry point", () => {
 
         for (const key of changeRoutes) {
           const { ran } = await send(key, "[director]");
-          const production = [
-            PROPS_PERMISSIONS,
-            SCENERY_PERMISSIONS,
-            SFX_PERMISSIONS,
-            MIC_PLOT_PERMISSIONS,
-            WARDROBE_PERMISSIONS,
-          ];
+          const production = ["props", "scenery", "sfx", "mic-plot", "wardrobe"];
           expect(ran, key).toBe(production.some((need) => needOf(key) === need));
         }
       });
@@ -937,7 +970,10 @@ describe("Lambda entry point", () => {
     });
 
     describe("adding a prop, which needs Stage", () => {
-      const PROPS_READ_ONLY = { message: "You can view the props, but not change them." };
+      const PROPS_READ_ONLY = {
+        message: "You can view the props, but not change them.",
+        department: "props",
+      };
       const setUpProps = () => {
         const cast = inMemoryCastStore();
         const roles = inMemoryRoleStore();
@@ -1126,6 +1162,7 @@ describe("Lambda entry point", () => {
         expect(res.statusCode).toBe(403);
         expect(JSON.parse(res.body ?? "")).toEqual({
           message: "You can view the scenery, but not change it.",
+          department: "scenery",
         });
         expect(await sceneryNotes(api)).toEqual([]);
       });
@@ -1201,6 +1238,7 @@ describe("Lambda entry point", () => {
         expect(res.statusCode).toBe(403);
         expect(JSON.parse(res.body ?? "")).toEqual({
           message: "You can view the scenery, but not change it.",
+          department: "scenery",
         });
         expect(deleted).toEqual([]);
       });
@@ -1223,12 +1261,16 @@ describe("Lambda entry point", () => {
         expect(res.statusCode).toBe(403);
         expect(JSON.parse(res.body ?? "")).toEqual({
           message: "You can view the scenery, but not change it.",
+          department: "scenery",
         });
       });
     });
 
     describe("props notes, which need Stage", () => {
-      const PROPS_READ_ONLY = { message: "You can view the props, but not change them." };
+      const PROPS_READ_ONLY = {
+        message: "You can view the props, but not change them.",
+        department: "props",
+      };
       const setUpNotes = () => {
         const cast = inMemoryCastStore();
         const roles = inMemoryRoleStore();
@@ -1372,7 +1414,10 @@ describe("Lambda entry point", () => {
 
   describe("SFX files and notes (production-sfx-wardrobe E1.S1)", () => {
     const opening = itemId("Opening Number");
-    const SFX_READ_ONLY = { message: "You can view the SFX, but not change them." };
+    const SFX_READ_ONLY = {
+      message: "You can view the SFX, but not change them.",
+      department: "sfx",
+    };
     let folder: string;
     beforeEach(async () => {
       folder = await mkdtemp(join(tmpdir(), "lambda-sfx-"));
@@ -1548,7 +1593,10 @@ describe("Lambda entry point", () => {
 
   describe("Wardrobe files and notes (production-sfx-wardrobe E1.S2)", () => {
     const opening = itemId("Opening Number");
-    const WARDROBE_READ_ONLY = { message: "You can view the wardrobe, but not change it." };
+    const WARDROBE_READ_ONLY = {
+      message: "You can view the wardrobe, but not change it.",
+      department: "wardrobe",
+    };
     let folder: string;
     beforeEach(async () => {
       folder = await mkdtemp(join(tmpdir(), "lambda-wardrobe-"));
@@ -1715,7 +1763,10 @@ describe("Lambda entry point", () => {
 
   describe("mic plot (production-mics E1.S1)", () => {
     const opening = itemId("Opening Number");
-    const MIC_PLOT_READ_ONLY = { message: "You can view the mic plot, but not change it." };
+    const MIC_PLOT_READ_ONLY = {
+      message: "You can view the mic plot, but not change it.",
+      department: "mic-plot",
+    };
     // Made-up cast: Alex Morgan (1) and Sam Patel (2) are cast in Opening Number; Jo Reed (3)
     // only in the Finale.
     const [alex, sam, jo] = [1, 2, 3];

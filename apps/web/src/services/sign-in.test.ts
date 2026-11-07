@@ -1,4 +1,9 @@
-import { LOCAL_ACCESS_HEADER, type SignInConfig } from "@app/shared";
+import {
+  departmentIds,
+  LOCAL_ACCESS_HEADER,
+  readOnlyRefusal,
+  type SignInConfig,
+} from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   apiFetch,
@@ -242,9 +247,7 @@ describe("signing in", () => {
     await useHostedSignIn(config, managerWith(sam({ groups: ["casting"] })), browserAt("/"));
     expect(canChangeCasting.value).toBe(true);
     fetchMock.mockResolvedValue(
-      new Response(JSON.stringify({ message: "You can view the casting, but not change it." }), {
-        status: 403,
-      }),
+      new Response(JSON.stringify(readOnlyRefusal("casting")), { status: 403 }),
     );
 
     const res = await apiFetch("/api/productions/p/items/i/notes", { method: "PUT" });
@@ -252,20 +255,47 @@ describe("signing in", () => {
     expect(canChangeCasting.value).toBe(false);
     expect(changeRefusedAsReadOnly.value).toBe(true);
     // The page can still read the refusal for itself.
-    expect(await res.json()).toEqual({ message: "You can view the casting, but not change it." });
+    expect(await res.json()).toEqual(readOnlyRefusal("casting"));
   });
 
-  it("treats another department's refusal as read-only too", async () => {
+  it.each(departmentIds)("treats the %s department's refusal as read-only too", async (id) => {
     await useHostedSignIn(config, managerWith(sam({ groups: ["casting"] })), browserAt("/"));
-    fetchMock.mockResolvedValue(
-      new Response(JSON.stringify({ message: "You can view this, but not change it." }), {
-        status: 403,
-      }),
-    );
+    fetchMock.mockResolvedValue(new Response(JSON.stringify(readOnlyRefusal(id)), { status: 403 }));
 
     await apiFetch("/api/productions/p/props", { method: "POST" });
 
     expect(changeRefusedAsReadOnly.value).toBe(true);
+  });
+
+  it("recognises a read-only refusal by its department, however it is worded", async () => {
+    await useHostedSignIn(config, managerWith(sam({ groups: ["casting"] })), browserAt("/"));
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ message: "Reworded entirely.", department: "sfx" }), {
+        status: 403,
+      }),
+    );
+
+    await apiFetch("/api/productions/p/items/i/sfx-notes", { method: "PUT" });
+
+    expect(changeRefusedAsReadOnly.value).toBe(true);
+  });
+
+  it.each([
+    [
+      "a refusal's old wording without its department",
+      403,
+      { message: "You can view the SFX, but not change them." },
+    ],
+    ["a server error", 500, { message: "Internal Server Error" }],
+    ["a server error naming a department", 500, readOnlyRefusal("sfx")],
+    ["a refusal naming no known department", 403, { message: "No.", department: "stage" }],
+  ])("doesn't take %s for a read-only refusal", async (_what, status, body) => {
+    await useHostedSignIn(config, managerWith(sam({ groups: ["casting"] })), browserAt("/"));
+    fetchMock.mockResolvedValue(new Response(JSON.stringify(body), { status }));
+
+    await apiFetch("/api/productions/p/items/i/sfx-notes", { method: "PUT" });
+
+    expect(changeRefusedAsReadOnly.value).toBe(false);
   });
 
   it("keeps someone's role when the API refuses a change for another reason", async () => {
@@ -283,9 +313,7 @@ describe("signing in", () => {
   it("forgets a read-only refusal when someone else signs in", async () => {
     await useHostedSignIn(config, managerWith(sam({ groups: ["casting"] })), browserAt("/"));
     fetchMock.mockResolvedValue(
-      new Response(JSON.stringify({ message: "You can view the casting, but not change it." }), {
-        status: 403,
-      }),
+      new Response(JSON.stringify(readOnlyRefusal("casting")), { status: 403 }),
     );
     await apiFetch("/api/productions/p/cast", { method: "POST" });
 

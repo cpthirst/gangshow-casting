@@ -1,6 +1,6 @@
 # 0029. A Director permission, and change routes that name any of several permissions
 
-- **Status**: Accepted
+- **Status**: Accepted. Amended by [ADR 0035](0035-each-department-states-its-own-refusal.md): each department states its own refusal line, a route names its department, and a refusal says which department
 - **Date**: 2026-10-29
 - **Deciders**: Nick Hirst
 

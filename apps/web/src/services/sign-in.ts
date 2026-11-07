@@ -246,13 +246,12 @@ export async function apiFetch(...args: Parameters<typeof fetch>) {
   return res;
 }
 
-/** A refusal's message, read from a copy so the page can still read the reply. */
-async function refusalOf(res: Response) {
-  const body: unknown = await res
+/** A refusal's body, read from a copy so the page can still read the reply. */
+function refusalOf(res: Response): Promise<unknown> {
+  return res
     .clone()
     .json()
     .catch(() => undefined);
-  return typeof body === "object" && body !== null && "message" in body ? body.message : undefined;
 }
 
 /**

@@ -4,6 +4,7 @@ import {
   type ItemNote,
   type Role,
   type RunningOrder,
+  readOnlyRefusal,
   SaveItemNoteRequest,
   sameRoleName,
   UpdateRoleRequest,
@@ -2215,34 +2216,67 @@ describe("An item's page for other roles", () => {
     expect(wrapper.find("section[aria-labelledby=notes-heading] textarea").exists()).toBe(true);
     expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
   });
-  it("shows the read-only view, saying the notes weren't saved, when the API refuses them as read-only", async () => {
+  describe("when the API answers a notes save with a failure", () => {
     // Made read-only while editing: this sign-in still says casting, but the API knows better.
-    await signInAs(["casting"]);
-    savedRunningOrderIs(show);
-    const theApi = fetch;
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async (url: string, init?: RequestInit) =>
-        url.endsWith("/notes") && init?.method === "PUT"
-          ? new Response(
-              JSON.stringify({ message: "You can view the casting, but not change it." }),
-              { status: 403 },
-            )
-          : theApi(url, init),
-      ),
-    );
-    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
-    const notesSection = () => wrapper.get("section[aria-labelledby=notes-heading]");
+    const saveNotesAnswered = async (reply: { status: number; body: unknown }) => {
+      await signInAs(["casting"]);
+      savedRunningOrderIs(show);
+      const theApi = fetch;
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (url: string, init?: RequestInit) =>
+          url.endsWith("/notes") && init?.method === "PUT"
+            ? new Response(JSON.stringify(reply.body), { status: reply.status })
+            : theApi(url, init),
+        ),
+      );
+      const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+      const notesSection = () => wrapper.get("section[aria-labelledby=notes-heading]");
 
-    await notesSection().get("textarea").setValue("Hat change");
-    await notesSection().get("form").trigger("submit");
-    await flushPromises();
+      await notesSection().get("textarea").setValue("Hat change");
+      await notesSection().get("form").trigger("submit");
+      await flushPromises();
+      return { wrapper, notesSection };
+    };
 
-    const notice = wrapper.get("[data-test=read-only]");
-    expect(notice.text()).toBe("You can view the casting but not change it, so this wasn't saved.");
-    expect(notice.attributes("role")).toBe("alert");
-    expect(notesSection().find("textarea").exists()).toBe(false);
-    expect(wrapper.find("[data-test=add-role]").exists()).toBe(false);
+    it("shows the read-only view, saying the notes weren't saved, when the API refuses them as read-only", async () => {
+      const { wrapper, notesSection } = await saveNotesAnswered({
+        status: 403,
+        body: readOnlyRefusal("casting"),
+      });
+
+      const notice = wrapper.get("[data-test=read-only]");
+      expect(notice.text()).toBe(
+        "You can view the casting but not change it, so this wasn't saved.",
+      );
+      expect(notice.attributes("role")).toBe("alert");
+      expect(notesSection().find("textarea").exists()).toBe(false);
+      expect(wrapper.find("[data-test=add-role]").exists()).toBe(false);
+    });
+
+    it("still says the notes weren't saved when the refusal is worded differently", async () => {
+      const { wrapper } = await saveNotesAnswered({
+        status: 403,
+        body: { message: "Casting is look but don't touch for you.", department: "casting" },
+      });
+
+      expect(wrapper.get("[data-test=read-only]").text()).toBe(
+        "You can view the casting but not change it, so this wasn't saved.",
+      );
+    });
+
+    it("shows the usual failure, not the read-only alert, when the API has a server error", async () => {
+      const { wrapper, notesSection } = await saveNotesAnswered({
+        status: 500,
+        body: { message: "Internal Server Error" },
+      });
+
+      expect(notesSection().get("[data-test=notes-error]").text()).toBe(
+        "Couldn't save the notes. Try again.",
+      );
+      expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
+      expect(notesSection().find("textarea").exists()).toBe(true);
+    });
   });
 
   describe("its help (in-app-help E2.S3)", () => {
