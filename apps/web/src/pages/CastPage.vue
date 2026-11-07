@@ -2,8 +2,8 @@
 import { CastList, CastMember, type CastMemberDetails, RoleList } from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, nextTick, onMounted, ref, useId } from "vue";
-import HelpButton from "@/components/common/HelpButton.vue";
-import ReadOnlyNotice from "@/components/common/ReadOnlyNotice.vue";
+import PageTitle from "@/components/common/PageTitle.vue";
+import RefusalNotice from "@/components/common/RefusalNotice.vue";
 import CastMemberForm from "@/components/show/CastMemberForm.vue";
 import { apiFetch, canChange, isAdmin } from "@/services/sign-in.ts";
 import {
@@ -266,14 +266,10 @@ onMounted(load);
 </script>
 
 <template>
-  <div class="page-title-row">
-    <h1>Cast</h1>
-    <HelpButton page="cast" />
-  </div>
+  <PageTitle title="Cast" help="cast" />
   <!-- Outside the state switch: a conflict can leave the list empty, and it still needs explaining. -->
   <p v-if="notice" class="notice" role="alert">{{ notice }}</p>
-  <!-- Above the states, so it explains an empty cast too. -->
-  <ReadOnlyNotice />
+  <RefusalNotice />
   <p v-if="state.status === 'loading'">Loading…</p>
   <p v-else-if="state.status === 'empty'">No cast members yet.</p>
   <p v-else-if="state.status === 'error'" role="alert">Couldn't load the cast list.</p>

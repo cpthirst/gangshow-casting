@@ -403,9 +403,7 @@ describe("Who can change the wardrobe", () => {
     expect(wrapper.find("main [data-test=upload-area]").exists()).toBe(false);
     expect(wrapper.find("main [data-test=delete]").exists()).toBe(false);
     expect(notesSection(wrapper).find("textarea").exists()).toBe(false);
-    expect(wrapper.get("[data-test=read-only]").text()).toBe(
-      "You can view the wardrobe, but not change it: only Wardrobe, Director and admins can.",
-    );
+    expect(wrapper.get(".page-title-row [data-test=view-only]").text()).toBe("View only");
   });
 
   it.each([
@@ -419,7 +417,7 @@ describe("Who can change the wardrobe", () => {
     expect(wrapper.find("main [data-test=upload-area]").exists()).toBe(true);
     expect(wrapper.find("main [data-test=delete]").exists()).toBe(true);
     expect(notesSection(wrapper).find("textarea").exists()).toBe(true);
-    expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
+    expect(wrapper.find("[data-test=view-only]").exists()).toBe(false);
   });
 });
 

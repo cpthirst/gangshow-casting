@@ -1122,18 +1122,17 @@ describe("Cast page", () => {
       const wrapper = await openPage();
 
       expect(wrapper.text()).toContain("No cast members yet.");
-      expect(wrapper.get("[data-test=read-only]").text()).toBe(
-        "You can view the casting, but not change it: only Casting and admins can.",
-      );
+      expect(wrapper.get(".page-title-row [data-test=view-only]").text()).toBe("View only");
       expect(wrapper.find("[data-test=add-member]").exists()).toBe(false);
     });
 
-    it("says on the page that the access is read-only", async () => {
+    it("shows a View only badge beside the title, in place of the read-only sentence", async () => {
       serve(cast());
 
       const wrapper = await openPage();
 
-      expect(wrapper.get("[data-test=read-only]").text()).toBe(
+      expect(wrapper.get(".page-title-row [data-test=view-only]").text()).toBe("View only");
+      expect(wrapper.text()).not.toContain(
         "You can view the casting, but not change it: only Casting and admins can.",
       );
     });
@@ -1160,7 +1159,7 @@ describe("Cast page", () => {
       expect(wrapper.get(".access-note[data-test=admin-only]").text()).toBe(
         "Only admins can delete cast members",
       );
-      expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
+      expect(wrapper.find("[data-test=view-only]").exists()).toBe(false);
     });
 
     it("lets an account with Casting and Stage add and edit cast members", async () => {
@@ -1170,7 +1169,7 @@ describe("Cast page", () => {
 
       expect(wrapper.find("[data-test=add-member]").exists()).toBe(true);
       expect(wrapper.find('button[aria-label="Edit Kim Example"]').exists()).toBe(true);
-      expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
+      expect(wrapper.find("[data-test=view-only]").exists()).toBe(false);
     });
 
     it("keeps today's controls for an Admin, Delete included", async () => {
@@ -1182,7 +1181,7 @@ describe("Cast page", () => {
         wrapper.get('button[aria-label="Delete Ava Example"]').attributes("disabled"),
       ).toBeUndefined();
       expect(wrapper.find("[data-test=admin-only]").exists()).toBe(false);
-      expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
+      expect(wrapper.find("[data-test=view-only]").exists()).toBe(false);
     });
   });
 

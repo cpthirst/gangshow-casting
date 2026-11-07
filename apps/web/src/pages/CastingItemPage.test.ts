@@ -2206,9 +2206,7 @@ describe.each([
 
     const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
 
-    expect(wrapper.get("[data-test=read-only]").text()).toBe(
-      "You can view the casting, but not change it: only Casting and admins can.",
-    );
+    expect(wrapper.get(".page-title-row [data-test=view-only]").text()).toBe("View only");
   });
 });
 
@@ -2228,7 +2226,7 @@ describe("An item's page for other roles", () => {
     expect(wrapper.find("[data-test=add-role]").exists()).toBe(true);
     expect(wrapper.find('button[aria-label="Edit Captain Hook"]').exists()).toBe(true);
     expect(wrapper.find("section[aria-labelledby=notes-heading] textarea").exists()).toBe(true);
-    expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
+    expect(wrapper.find("[data-test=view-only]").exists()).toBe(false);
   });
   describe("when the API answers a notes save with a failure", () => {
     // Made read-only while editing: this sign-in still says casting, but the API knows better.
@@ -2259,7 +2257,7 @@ describe("An item's page for other roles", () => {
         body: readOnlyRefusal("casting"),
       });
 
-      const notice = wrapper.get("[data-test=read-only]");
+      const notice = wrapper.get("[data-test=refused]");
       expect(notice.text()).toBe(
         "You can view the casting but not change it, so this wasn't saved.",
       );
@@ -2274,7 +2272,7 @@ describe("An item's page for other roles", () => {
         body: { message: "Casting is look but don't touch for you.", department: "casting" },
       });
 
-      expect(wrapper.get("[data-test=read-only]").text()).toBe(
+      expect(wrapper.get("[data-test=refused]").text()).toBe(
         "You can view the casting but not change it, so this wasn't saved.",
       );
     });
@@ -2288,7 +2286,7 @@ describe("An item's page for other roles", () => {
       expect(notesSection().get("[data-test=notes-error]").text()).toBe(
         "Couldn't save the notes. Try again.",
       );
-      expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
+      expect(wrapper.find("[data-test=refused]").exists()).toBe(false);
       expect(notesSection().find("textarea").exists()).toBe(true);
     });
   });

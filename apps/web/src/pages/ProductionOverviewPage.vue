@@ -13,7 +13,7 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, nextTick, onMounted, ref } from "vue";
 import ClashIcon from "@/components/common/ClashIcon.vue";
-import HelpButton from "@/components/common/HelpButton.vue";
+import PageTitle from "@/components/common/PageTitle.vue";
 import { downloadMicPlot } from "@/services/excel-export.ts";
 import { latestMicPlot, latestPropsList } from "@/services/latest-show.ts";
 import { apiFetch, canChange } from "@/services/sign-in.ts";
@@ -254,10 +254,7 @@ async function loadRunningOrder() {
 </script>
 
 <template>
-  <div class="page-title-row">
-    <h1>Overview</h1>
-    <HelpButton page="production-overview" />
-  </div>
+  <PageTitle title="Overview" help="production-overview" />
   <p class="visually-hidden" role="status" data-test="announcement">{{ announcement }}</p>
   <p v-if="state.status === 'empty'">
     There's no saved running order yet. Set one up on the

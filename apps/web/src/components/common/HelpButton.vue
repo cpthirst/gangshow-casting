@@ -8,7 +8,11 @@ import PageHelp from "./PageHelp.vue";
 // A page's help, opened where you are (in-app-help FR6–FR8). A modal dialog, so the page
 // behind, and anything unsaved on it, waits untouched until the help closes.
 // label and title name the button and dialog for a page whose own title changes (an item's).
-const props = defineProps<{ page: string; label?: string; title?: string }>();
+const props = defineProps<{
+  page: string;
+  label?: string | undefined;
+  title?: string | undefined;
+}>();
 
 const help = computed(() => helpFor(props.page));
 const titleId = useId();

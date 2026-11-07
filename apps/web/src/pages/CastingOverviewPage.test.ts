@@ -1627,9 +1627,7 @@ describe.each([
 
     const wrapper = await openOverview();
 
-    expect(wrapper.get("[data-test=read-only]").text()).toBe(
-      "You can view the casting, but not change it: only Casting and admins can.",
-    );
+    expect(wrapper.get(".page-title-row [data-test=view-only]").text()).toBe("View only");
   });
 });
 
@@ -1649,7 +1647,7 @@ describe("The Overview for other roles", () => {
       const wrapper = await openOverview();
 
       expect(wrapper.text()).toContain("Ava Example");
-      expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
+      expect(wrapper.find("[data-test=view-only]").exists()).toBe(false);
     },
   );
 });

@@ -567,9 +567,7 @@ describe.each([
 
     const wrapper = await openItemsPage();
 
-    expect(wrapper.get("[data-test=read-only]").text()).toBe(
-      "You can view the casting, but not change it: only Casting and admins can.",
-    );
+    expect(wrapper.get(".page-title-row [data-test=view-only]").text()).toBe("View only");
   });
 });
 
@@ -588,7 +586,7 @@ describe("The Items list for other roles", () => {
       const wrapper = await openItemsPage();
 
       expect(wrapper.find('a[aria-label="Cast Pirate Panic"]').exists()).toBe(true);
-      expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
+      expect(wrapper.find("[data-test=view-only]").exists()).toBe(false);
     },
   );
 });

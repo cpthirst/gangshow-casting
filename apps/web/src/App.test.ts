@@ -299,16 +299,14 @@ describe("App shell", () => {
 
     it("shows the casting read-only once switched to Stage and Tech", async () => {
       const { wrapper } = await openAppAt("/cast");
-      expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
+      expect(wrapper.find("[data-test=view-only]").exists()).toBe(false);
 
       await tick(wrapper, "Admin", false);
       await tick(wrapper, "Stage", true);
       await tick(wrapper, "Tech", true);
 
       expect(tickedNames(wrapper)).toEqual(["Stage", "Tech"]);
-      expect(wrapper.get("[data-test=read-only]").text()).toBe(
-        "You can view the casting, but not change it: only Casting and admins can.",
-      );
+      expect(wrapper.get(".page-title-row [data-test=view-only]").text()).toBe("View only");
     });
 
     it("shows a Director the props controls and the casting read-only", async () => {
@@ -335,14 +333,12 @@ describe("App shell", () => {
 
       expect(tickedNames(wrapper)).toEqual(["Director"]);
       expect(wrapper.find("[data-test=add-prop]").exists()).toBe(true);
-      expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
+      expect(wrapper.find("[data-test=view-only]").exists()).toBe(false);
 
       await router.push("/cast");
       await flushPromises();
 
-      expect(wrapper.get("[data-test=read-only]").text()).toBe(
-        "You can view the casting, but not change it: only Casting and admins can.",
-      );
+      expect(wrapper.get(".page-title-row [data-test=view-only]").text()).toBe("View only");
     });
 
     it("lets Casting alone change casting, and leaves Accounts out of the menu", async () => {
@@ -351,7 +347,7 @@ describe("App shell", () => {
       await tick(wrapper, "Admin", false);
       await tick(wrapper, "Casting", true);
 
-      expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
+      expect(wrapper.find("[data-test=view-only]").exists()).toBe(false);
       const links = wrapper.get("nav[aria-label=Main]").findAll("a");
       expect(links.map((link) => link.text())).toEqual([
         "Welcome",
@@ -376,9 +372,7 @@ describe("App shell", () => {
         await tick(wrapper, "Admin", false);
 
         expect(tickedNames(wrapper)).toEqual([]);
-        expect(wrapper.get("[data-test=read-only]").text()).toBe(
-          "You can view the casting, but not change it: only Casting and admins can.",
-        );
+        expect(wrapper.get(".page-title-row [data-test=view-only]").text()).toBe("View only");
       },
     );
 

@@ -386,7 +386,7 @@ describe("An item's Mic plot page", () => {
     await give(wrapper, 5, "Sam Patel");
 
     expect(puts().map((put) => put.body)).toEqual([{ channel: 5, castMemberId: sam.id }]);
-    expect(wrapper.find("main [data-test=read-only]").exists()).toBe(false);
+    expect(wrapper.find("[data-test=view-only]").exists()).toBe(false);
   });
 
   it("shows kim, with Casting, Stage and Wardrobe, every channel and who is on it, with nothing to change them", async () => {
@@ -399,9 +399,7 @@ describe("An item's Mic plot page", () => {
     expect(channels(wrapper)).toHaveLength(24);
     expect(whoIsOn(wrapper, 3)).toBe("Alex Morgan");
     expect(whoIsOn(wrapper, 4)).toBe("");
-    expect(wrapper.get("main [data-test=read-only]").text()).toBe(
-      "You can view the mic plot, but not change it: only Tech, Director and admins can.",
-    );
+    expect(wrapper.get(".page-title-row [data-test=view-only]").text()).toBe("View only");
   });
 
   it("puts a channel back and says so when the save fails", async () => {

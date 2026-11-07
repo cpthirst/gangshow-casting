@@ -479,24 +479,26 @@ describe("Who can change the SFX", () => {
     expect(wrapper.find("main [data-test=upload-area]").exists()).toBe(false);
     expect(wrapper.find("main [data-test=delete]").exists()).toBe(false);
     expect(notesSection(wrapper).find("textarea").exists()).toBe(false);
-    expect(wrapper.get("[data-test=read-only]").text()).toBe(
-      "You can view the SFX, but not change them: only Tech, Director and admins can.",
-    );
+    expect(wrapper.get(".page-title-row [data-test=view-only]").text()).toBe("View only");
   });
 
   it.each([
+    [["tech"], "sam"],
     [["director"], "dee"],
     [["admin"], "ash"],
-  ])("lets %s upload, delete and change the notes", async (groups, name) => {
-    await signInAs(groups, name);
-    apiHolds(show, { sfx: { "opening-number": [{ name: "thunder.mp3", size: 10 }] } });
-    const { wrapper } = await openAppAt(OPENING_NUMBER);
+  ])(
+    "lets %s upload, delete and change the notes, with no View only badge",
+    async (groups, name) => {
+      await signInAs(groups, name);
+      apiHolds(show, { sfx: { "opening-number": [{ name: "thunder.mp3", size: 10 }] } });
+      const { wrapper } = await openAppAt(OPENING_NUMBER);
 
-    expect(wrapper.find("main [data-test=upload-area]").exists()).toBe(true);
-    expect(wrapper.find("main [data-test=delete]").exists()).toBe(true);
-    expect(notesSection(wrapper).find("textarea").exists()).toBe(true);
-    expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
-  });
+      expect(wrapper.find("main [data-test=upload-area]").exists()).toBe(true);
+      expect(wrapper.find("main [data-test=delete]").exists()).toBe(true);
+      expect(notesSection(wrapper).find("textarea").exists()).toBe(true);
+      expect(wrapper.find("[data-test=view-only]").exists()).toBe(false);
+    },
+  );
 });
 
 describe("Recording a visit to an item's SFX page (production-sfx-wardrobe FR13)", () => {

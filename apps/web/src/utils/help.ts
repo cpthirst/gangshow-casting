@@ -1,6 +1,6 @@
 import type { DepartmentId } from "@app/shared";
 import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
-import { listed, permissionNamesOf } from "./departments.ts";
+import { listed, permissionNamesOf, whoCanChangeLine } from "./departments.ts";
 import { icons } from "./icons.ts";
 
 // Who can use an action, said the same way on every page (in-app-help FR5): everyone, admins
@@ -30,6 +30,8 @@ export interface PageHelp {
   title: string;
   /** A line about the page as a whole, before its actions. */
   summary: string;
+  /** The department whose access lets someone change the page; the rest only view it. */
+  department?: DepartmentId;
   /** The page the Help page links to instead, for a page with no menu entry of its own. */
   reachedFrom?: { page: string; title: string };
   lines: HelpLine[];
@@ -40,6 +42,7 @@ export interface PageHelp {
 export const pageHelp: PageHelp[] = [
   {
     page: "running-order",
+    department: "casting",
     title: "Running order",
     summary:
       "The show's items in the order they're performed. Changes stay on your screen until an admin saves them.",
@@ -92,6 +95,7 @@ export const pageHelp: PageHelp[] = [
   },
   {
     page: "cast",
+    department: "casting",
     title: "Cast",
     summary: "Everyone in this production's cast, with their section, group and casting notes.",
     lines: [
@@ -126,6 +130,7 @@ export const pageHelp: PageHelp[] = [
   },
   {
     page: "casting-overview",
+    department: "casting",
     title: "Overview",
     summary: "Everyone in the cast and how much they're cast, three ways.",
     lines: [
@@ -166,6 +171,7 @@ export const pageHelp: PageHelp[] = [
   },
   {
     page: "casting-items",
+    department: "casting",
     title: "Items",
     summary: "The show's items in running order, with how far each one's casting has got.",
     lines: [
@@ -190,6 +196,7 @@ export const pageHelp: PageHelp[] = [
   },
   {
     page: "casting-item",
+    department: "casting",
     title: "An item",
     summary: "One item's roles and notes. Open an item from Casting → Items.",
     reachedFrom: { page: "casting-items", title: "Items" },
@@ -291,6 +298,7 @@ export const pageHelp: PageHelp[] = [
   },
   {
     page: "scenery-item",
+    department: "scenery",
     title: "An item's scenery",
     summary:
       "One item's scenery files and notes. Open an item's scenery from Production → Overview.",
@@ -342,6 +350,7 @@ export const pageHelp: PageHelp[] = [
   },
   {
     page: "props-item",
+    department: "props",
     title: "An item's props",
     summary: "One item's props and notes. Open an item's props from Production → Overview.",
     reachedFrom: { page: "production-overview", title: "Production overview" },
@@ -385,6 +394,7 @@ export const pageHelp: PageHelp[] = [
   },
   {
     page: "sfx-item",
+    department: "sfx",
     title: "An item's SFX",
     summary: "One item's SFX files and notes. Open an item's SFX from Production → Overview.",
     reachedFrom: { page: "production-overview", title: "Production overview" },
@@ -436,6 +446,7 @@ export const pageHelp: PageHelp[] = [
   },
   {
     page: "mic-plot-item",
+    department: "mic-plot",
     title: "An item's mic plot",
     summary:
       "One item's mics and Mic plot notes. Open an item's mic plot from Production → Overview.",
@@ -486,6 +497,7 @@ export const pageHelp: PageHelp[] = [
   },
   {
     page: "wardrobe-item",
+    department: "wardrobe",
     title: "An item's wardrobe",
     summary:
       "One item's Wardrobe files and notes. Open an item's Wardrobe from Production → Overview.",
@@ -558,6 +570,10 @@ export const permissionHelp = [
     does: "Change everything. Only admins can delete cast members, add and remove items, save the running order, and manage accounts.",
   },
 ];
+
+/** Who can change the page, for a page a department owns (simplify FR13). */
+export const whoCanChange = (help: PageHelp) =>
+  help.department ? whoCanChangeLine(help.department) : undefined;
 
 /** The named page's help. A page without any is a mistake in the code, so it fails loudly. */
 export function helpFor(page: string): PageHelp {

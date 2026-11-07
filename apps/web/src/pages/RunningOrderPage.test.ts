@@ -1440,12 +1440,8 @@ describe("Running order page", () => {
 
       const wrapper = await openPage();
 
-      // In the same place and style as the "Only admins …" line other members see.
-      const notice = wrapper.get(".draft-bar [data-test=read-only]");
-      expect(notice.text()).toBe(
-        "You can view the casting, but not change it: only Casting and admins can.",
-      );
-      expect(notice.classes()).toContain("access-note");
+      expect(wrapper.get(".page-title-row [data-test=view-only]").text()).toBe("View only");
+      expect(wrapper.text()).not.toContain("You can view the casting");
       expect(wrapper.find("[data-test=admin-only]").exists()).toBe(false);
     });
 
@@ -1481,7 +1477,7 @@ describe("Running order page", () => {
         expect(wrapper.find(".draft-bar .access-note[data-test=admin-only]").exists()).toBe(
           group === "casting",
         );
-        expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
+        expect(wrapper.find("[data-test=view-only]").exists()).toBe(false);
       },
     );
   });

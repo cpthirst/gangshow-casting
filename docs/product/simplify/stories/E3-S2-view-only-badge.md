@@ -2,7 +2,7 @@
 id: simplify.E3.S2
 title: Show a View only badge, with who can change the page in its Help
 epic: E3
-status: draft
+status: done
 ---
 
 ## Story
@@ -36,7 +36,8 @@ Then the badge is read out as "View only", not conveyed by colour alone
 ### AC5: Help says who can change the page
 Given someone on the Scenery page for "Opening Number"
 When they open its Help
-Then it says only Stage, Tech, Director and admins can change the scenery, from the shared list of departments
+Then it says "Only Stage, Tech, Director and admins can change the scenery."
+And the Props page's Help says "Only Stage, Director and admins can change the props.", each from the shared list of departments
 
 ### AC6: A refused change still shows its alert
 Given "pat" had the Props page open before losing Stage
@@ -55,3 +56,9 @@ Then the title, Help button and badge fit without the page scrolling sideways
 - Team-roles FR6 asks for "a short visible line, such as 'You have read-only access'". The badge is visible text, not a tooltip, so it meets FR6 (PRD FR10).
 - The existing browser layout walks cover the item pages. Ask the maintainer before adding a walk for a viewer with no permissions (CLAUDE.md).
 - Out of scope: the "Only admins can …" lines on Cast and Running order (E3.S4).
+- Assumptions (made while the maintainer was away):
+  - The badge is plain text in the page's title row, after the title and before Help, so a screen reader reads "View only" straight after the heading. It isn't part of the `<h1>`, so the page's title stays the title.
+  - One shared title row (title, badge, Help button) replaces the six copies on Cast, Casting overview, Casting Items, Running order, Production overview and the item frame. Which department a page belongs to is said once, in its Help entry, and the badge reads it from there; the Production overview has none, so it never shows the badge.
+  - Help's "who can change" line comes after the page's summary, on the Help page as well as behind each page's Help button. The Running order and every casting page name the Casting department, as today's sentence does: "Only Casting and admins can change the casting."
+  - After a refusal (AC6) the page shows both the alert and the badge, since the person is now view only.
+  - AC7 needs a layout walk as a viewer with no permissions, which the existing walks (all as an admin) don't do. Adding one needs the maintainer's yes, so until then AC7 rests on the title row wrapping and the badge never breaking mid-word.

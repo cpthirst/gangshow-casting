@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-import { accessLabel, type PageHelp } from "@/utils/help.ts";
+import { computed } from "vue";
+import { accessLabel, type PageHelp, whoCanChange } from "@/utils/help.ts";
 
 // One page's help: the same on the Help page and behind the page's help button (FR9).
-defineProps<{ help: PageHelp }>();
+const props = defineProps<{ help: PageHelp }>();
+const whoCanChangeIt = computed(() => whoCanChange(props.help));
 </script>
 
 <template>
   <p>{{ help.summary }}</p>
+  <p v-if="whoCanChangeIt" data-test="who-can-change">{{ whoCanChangeIt }}</p>
   <ul v-if="help.lines.length > 0" class="help-lines" role="list">
     <li v-for="line in help.lines" :key="line.name" class="help-line" data-test="help-line">
       <!-- Decorative: the action's name is written beside them. Kept, empty, on lines without

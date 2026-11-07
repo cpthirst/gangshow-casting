@@ -3,8 +3,8 @@ import { ItemNoteList, RoleList, RunningOrder, type RunningOrderItem } from "@ap
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
 import { onBeforeRouteLeave } from "vue-router";
-import HelpButton from "@/components/common/HelpButton.vue";
-import ReadOnlyNotice from "@/components/common/ReadOnlyNotice.vue";
+import PageTitle from "@/components/common/PageTitle.vue";
+import RefusalNotice from "@/components/common/RefusalNotice.vue";
 import ItemEditor from "@/components/show/ItemEditor.vue";
 import { type RowDrop, vSortableRows } from "@/directives/sortable-rows.ts";
 import { apiFetch, canChange, isAdmin } from "@/services/sign-in.ts";
@@ -310,10 +310,7 @@ function refocus(itemId: string, direction: Move) {
 </script>
 
 <template>
-  <div class="page-title-row">
-    <h1>Running order</h1>
-    <HelpButton page="running-order" />
-  </div>
+  <PageTitle title="Running order" help="running-order" />
   <p v-if="state.status === 'loading'">Loading…</p>
   <p v-else-if="state.status === 'empty'">No running order yet.</p>
   <p v-else-if="state.status === 'error'" role="alert">Couldn't load the running order.</p>
@@ -321,7 +318,7 @@ function refocus(itemId: string, direction: Move) {
     <div class="draft-bar">
       <p class="version">Draft {{ loaded.saved.version }}</p>
       <p v-if="loaded.unsaved" class="unsaved" data-test="unsaved">Unsaved changes</p>
-      <ReadOnlyNotice />
+      <RefusalNotice />
       <template v-if="canChange('casting')">
         <p v-if="!isAdmin" class="access-note" data-test="admin-only">{{ ONLY_ADMINS_CHANGE }}</p>
         <button

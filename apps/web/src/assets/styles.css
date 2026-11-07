@@ -321,7 +321,7 @@ main a {
   cursor: not-allowed;
 }
 
-/* Why someone can't do something here: "You can view the casting, but not change it", "Only admins can …".
+/* Why someone can't do something here: "Only admins can …", or that a refused change wasn't saved.
    The same look on every page, and visible text rather than a tooltip, so it shows on phones. */
 .access-note {
   margin: 0 0 1rem;
@@ -1838,8 +1838,12 @@ main a {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
   gap: 1rem;
+}
+
+/* Help keeps to the right, with the View only badge by the title rather than between them. */
+.page-title-row .help-button {
+  margin-left: auto;
 }
 
 /* Casting overview: the view switch (By person / By item / Grid), filled for the view showing, with Export to

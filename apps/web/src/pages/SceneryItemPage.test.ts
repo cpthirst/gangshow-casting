@@ -262,9 +262,7 @@ describe("An item's Scenery page", () => {
     apiHolds(show);
     const { wrapper } = await openAppAt(OPENING_NUMBER);
 
-    expect(wrapper.get("[data-test=read-only]").text()).toBe(
-      "You can view the scenery, but not change it: only Stage, Tech, Director and admins can.",
-    );
+    expect(wrapper.get(".page-title-row [data-test=view-only]").text()).toBe("View only");
   });
 
   it.each([
@@ -278,7 +276,18 @@ describe("An item's Scenery page", () => {
     const { wrapper } = await openAppAt(OPENING_NUMBER);
 
     expect(wrapper.get("main h1").text()).toBe("Scenery: Opening Number");
-    expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
+    expect(wrapper.find("[data-test=view-only]").exists()).toBe(false);
+  });
+
+  it("says in its Help who can change the scenery, from the shared list of departments", async () => {
+    apiHolds(show);
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    await wrapper.get("main button[aria-label='Help for this item']").trigger("click");
+
+    expect(wrapper.get("dialog [data-test=who-can-change]").text()).toBe(
+      "Only Stage, Tech, Director and admins can change the scenery.",
+    );
   });
 
   it("has a help button beside the item's name, which opens the Scenery page's help", async () => {

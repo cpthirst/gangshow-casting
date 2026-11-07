@@ -9,10 +9,10 @@ import { recordDepartmentPageUse } from "@/services/usage.ts";
 import { itemRouteOf } from "@/utils/departments.ts";
 import { departmentNotesPath, saveDepartmentNotesPath } from "@/utils/item-notes.ts";
 import { neighboursOf, placeOf, positionOf, RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
-import HelpButton from "./HelpButton.vue";
 import ItemNotes from "./ItemNotes.vue";
 import ItemStepNav from "./ItemStepNav.vue";
-import ReadOnlyNotice from "./ReadOnlyNotice.vue";
+import PageTitle from "./PageTitle.vue";
+import RefusalNotice from "./RefusalNotice.vue";
 
 // The frame every page about one item shares (CLAUDE.md domain rules, simplify FR6): All
 // items, Previous and Next, a "Department: Item" title, the item's position, the page in
@@ -110,13 +110,14 @@ watch(
   />
   <p v-if="status === 'error'" role="alert">Couldn't load the item.</p>
   <template v-else-if="place">
-    <div class="page-title-row">
-      <h1>{{ title }}</h1>
-      <HelpButton :page="itemRouteOf(department)" label="Help for this item" title="Item help" />
-    </div>
+    <PageTitle
+      :title="title"
+      :help="itemRouteOf(department)"
+      help-label="Help for this item"
+      help-title="Item help"
+    />
     <p class="item-position" data-test="position">{{ positionOf(place) }}</p>
-    <!-- Those who can't change the department see the page with nothing to change it. -->
-    <ReadOnlyNotice :about="department" />
+    <RefusalNotice :about="department" />
     <slot :item="place.item" />
     <!-- Apart from the item's other notes. A fresh instance per item, so stepping to another
          never mixes their notes. -->
