@@ -1,4 +1,4 @@
-import type { DepartmentId, RunningOrderItem } from "@app/shared";
+import { type DepartmentId, departmentIds, type RunningOrderItem } from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { h } from "vue";
@@ -121,6 +121,18 @@ describe("The item page frame", () => {
     expect(wrapper.get("#notes-heading").text()).toBe("Wardrobe notes");
     expect(fetch.mock.calls.map(([url]) => url)).toContain(departmentNotesPath("wardrobe"));
   });
+
+  it.each(departmentIds)(
+    "says how many characters the %s notes have left near the limit",
+    async (department) => {
+      apiHolds(show);
+      const { wrapper } = await openFrame(department, "opening-number");
+
+      await wrapper.get("textarea[name=notes]").setValue("x".repeat(460));
+
+      expect(wrapper.get("[data-test=notes-count]").text()).toBe("40 characters left");
+    },
+  );
 
   it.each([
     ["isn't in the running order", show],

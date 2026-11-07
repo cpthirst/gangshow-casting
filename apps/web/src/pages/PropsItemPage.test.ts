@@ -597,12 +597,21 @@ describe("Props notes", () => {
     expect(field(again.wrapper).element.value).toBe("Chest set stage left");
   });
 
-  it("says the 500-character limit up front, and refuses longer notes, saving nothing", async () => {
+  it("shows no count or limit line under notes far from the limit", async () => {
     notesAre({});
     const { wrapper } = await openAppAt(PIRATE_PROPS);
-    expect(notesSection(wrapper).get("[data-test=notes-hint]").text()).toBe("Up to 500 characters");
 
-    await saveNotes(wrapper, "x".repeat(501));
+    await field(wrapper).setValue("x".repeat(100));
+
+    expect(notesSection(wrapper).find("[data-test=notes-count]").exists()).toBe(false);
+    expect(notesSection(wrapper).text()).not.toMatch(/characters/);
+  });
+
+  it("refuses notes over 500 characters, saving nothing", async () => {
+    notesAre({});
+    const { wrapper } = await openAppAt(PIRATE_PROPS);
+
+    await saveNotes(wrapper, "x".repeat(520));
 
     expect(error(wrapper).text()).toBe("Notes can be up to 500 characters.");
     expect(notePuts()).toEqual([]);

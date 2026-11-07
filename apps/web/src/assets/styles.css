@@ -1433,7 +1433,7 @@ main a {
   max-width: 40rem;
 }
 
-.item-notes .hint {
+.item-notes .notes-count {
   margin: 0.25rem 0 0;
   font-size: 0.875rem;
 }

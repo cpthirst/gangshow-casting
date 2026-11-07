@@ -31,6 +31,23 @@ const error = ref("");
 const announcement = ref("");
 
 const unsaved = computed(() => status.value === "ready" && text.value !== saved.value.text);
+/**
+ * How many characters are left, said only near the limit: volunteers rarely get close, so the
+ * box carries no permanent hint line.
+ */
+const COUNT_FROM_REMAINING = 50;
+const countLeft = computed(() => {
+  const left = MAX_NOTE_LENGTH - text.value.length;
+  if (left >= COUNT_FROM_REMAINING) return "";
+  return left === 1 ? "1 character left" : `${left} characters left`;
+});
+/** The field's description: the count and any error, whichever show. */
+const describedBy = computed(() => {
+  const ids: string[] = [];
+  if (countLeft.value) ids.push("notes-count");
+  if (error.value) ids.push("notes-error");
+  return ids.join(" ") || undefined;
+});
 /** What someone who can't change them reads in place of the form. */
 const readOnlyText = computed(() =>
   status.value === "loading" ? "Loading…" : saved.value.text || "No notes yet.",
@@ -118,12 +135,12 @@ onUnmounted(() => window.removeEventListener("beforeunload", warnBeforeUnload));
         rows="4"
         :maxlength="MAX_NOTE_LENGTH"
         aria-labelledby="notes-heading"
-        :aria-describedby="error ? 'notes-hint notes-error' : 'notes-hint'"
+        :aria-describedby="describedBy"
         :aria-invalid="error ? true : undefined"
         :disabled="status === 'loading'"
       />
-      <p id="notes-hint" class="hint" data-test="notes-hint">
-        Up to {{ MAX_NOTE_LENGTH }} characters
+      <p v-if="countLeft" id="notes-count" class="notes-count" data-test="notes-count">
+        {{ countLeft }}
       </p>
       <p
         v-if="error"
