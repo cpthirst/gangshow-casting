@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.47.0](https://github.com/cpthirst/gangshow-casting/compare/v1.46.0...v1.47.0) (2026-11-07)
+
+
+### Features
+
+* **web:** describe the Mic plot on the Welcome and Help pages (production-mics.E3.S3) ([#194](https://github.com/cpthirst/gangshow-casting/issues/194)) ([fe52815](https://github.com/cpthirst/gangshow-casting/commit/fe52815d01489721120bd531746f1c37db826204))
+
 ## [1.46.0](https://github.com/cpthirst/gangshow-casting/compare/v1.45.0...v1.46.0) (2026-11-06)
 
 
