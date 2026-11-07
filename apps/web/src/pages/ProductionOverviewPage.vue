@@ -67,22 +67,32 @@ const isFileDepartment = (path: string): path is FileDepartment =>
   fileDepartments.some((department) => department === path);
 // The departments whose file counts couldn't be loaded, as their counts' alerts name them.
 const fileCountsFailed = computed(() =>
-  departmentPages.filter(
-    ({ path }) => isFileDepartment(path) && fileCountsOf.value[path] === "error",
-  ),
+  departmentPages.filter(({ id }) => isFileDepartment(id) && fileCountsOf.value[id] === "error"),
 );
 
 // Each item's notes for each department, by item id (production-props FR14,
 // production-sfx-wardrobe FR11, production-mics FR13); cleared notes are left out. Shown
-// under the item in this order: Scenery, Props, SFX, Mic plot, Wardrobe.
+// under the item in the departments' order.
 type Notes = Map<string, string> | "error";
-const noteKinds = [
-  { key: "scenery", label: "Scenery notes", path: departmentNotesPath("scenery") },
-  { key: "props", label: "Props notes", path: PROPS_NOTES_PATH },
-  { key: "sfx", label: "SFX notes", path: departmentNotesPath("sfx") },
-  { key: "mic-plot", label: "Mic plot notes", path: MIC_PLOT_NOTES_PATH },
-  { key: "wardrobe", label: "Wardrobe notes", path: departmentNotesPath("wardrobe") },
-];
+function notesPathOf(id: DepartmentPage["id"]) {
+  switch (id) {
+    case "scenery":
+    case "sfx":
+    case "wardrobe":
+      return departmentNotesPath(id);
+    case "props":
+      return PROPS_NOTES_PATH;
+    case "mic-plot":
+      return MIC_PLOT_NOTES_PATH;
+    default:
+      return unknownDepartment(id);
+  }
+}
+const noteKinds = departmentPages.map(({ id, name }) => ({
+  key: id,
+  label: `${name} notes`,
+  path: notesPathOf(id),
+}));
 const notesOf = ref<Record<string, Notes>>({});
 const notesFailed = computed(() => Object.values(notesOf.value).includes("error"));
 
@@ -102,12 +112,24 @@ const halves = computed(() =>
 /** A department's count for the item; none while its counts are loading or unavailable, so a
  *  count that couldn't be loaded never reads as 0. */
 function countFor(department: DepartmentPage, itemId: string): DepartmentCount | undefined {
-  const { path, noun } = department;
-  if (isFileDepartment(path)) {
-    return shownCount(fileCountsOf.value[path], (files) => filesCount(files, noun), itemId);
+  const { id, noun } = department;
+  switch (id) {
+    case "scenery":
+    case "sfx":
+    case "wardrobe":
+      return shownCount(fileCountsOf.value[id], (files) => filesCount(files, noun), itemId);
+    case "props":
+      return shownCount(propsCountOf.value, propsCount, itemId);
+    case "mic-plot":
+      return shownCount(micsCountOf.value, micsCount, itemId);
+    default:
+      return unknownDepartment(id);
   }
-  if (path === "props") return shownCount(propsCountOf.value, propsCount, itemId);
-  return shownCount(micsCountOf.value, micsCount, itemId);
+}
+
+/** A department added to the list but not here fails the typecheck, not silently at run time. */
+function unknownDepartment(id: never): never {
+  throw new Error(`No Overview column for the ${id} department`);
 }
 
 /** The Error icon's line for an item's channels kept against the rule after a reorder
@@ -299,7 +321,7 @@ async function loadRunningOrder() {
     <p v-if="micPlots === 'error'" class="notice" role="alert">
       Couldn't load the mic plot counts.
     </p>
-    <p v-for="{ path, noun } in fileCountsFailed" :key="path" class="notice" role="alert">
+    <p v-for="{ id, noun } in fileCountsFailed" :key="id" class="notice" role="alert">
       Couldn't load the {{ noun }} counts.
     </p>
     <p v-if="notesFailed" class="notice" role="alert">Couldn't load the notes.</p>
@@ -312,7 +334,7 @@ async function loadRunningOrder() {
             <col class="col-departments" />
             <col class="col-number narrow" />
             <col />
-            <col v-for="department in departmentPages" :key="department.path" class="col-count" />
+            <col v-for="department in departmentPages" :key="department.id" class="col-count" />
           </colgroup>
           <thead role="rowgroup">
             <tr role="row">
@@ -321,7 +343,7 @@ async function loadRunningOrder() {
               <th scope="col" role="columnheader">Item</th>
               <th
                 v-for="department in departmentPages"
-                :key="department.path"
+                :key="department.id"
                 class="count"
                 scope="col"
                 role="columnheader"
@@ -344,9 +366,9 @@ async function loadRunningOrder() {
                     v-for="department in departmentPages"
                     :key="department.route"
                     class="icon-button"
-                    :data-test="`open-${department.path}`"
+                    :data-test="`open-${department.id}`"
                     :to="{ name: department.route, params: { itemId: item.id } }"
-                    :aria-label="`${canChange(department.permissions) ? 'Edit' : 'View'} ${department.noun} for ${item.title}`"
+                    :aria-label="`${canChange(department.id) ? 'Edit' : 'View'} ${department.noun} for ${item.title}`"
                     :data-tooltip="department.name"
                   >
                     <FontAwesomeIcon :icon="department.icon" />
@@ -365,9 +387,9 @@ async function loadRunningOrder() {
                      as one phrase instead ("9 scenery files"). -->
                 <td
                   v-for="department in departmentPages"
-                  :key="department.path"
+                  :key="department.id"
                   data-test="count"
-                  :data-department="department.path"
+                  :data-department="department.id"
                   class="count"
                   :data-label="department.name"
                   role="cell"

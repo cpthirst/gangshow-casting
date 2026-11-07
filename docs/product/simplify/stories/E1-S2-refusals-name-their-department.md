@@ -2,7 +2,7 @@
 id: simplify.E1.S2
 title: Name each refusal after its route's department, not its first permission
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story
@@ -43,6 +43,7 @@ Then the page shows its usual failure message, not the "wasn't saved" read-only 
 
 ## Notes
 
+- ADR: [0035](../../../adr/0035-each-department-states-its-own-refusal.md), amending ADR 0029
 - FRs: FR2 (the shared list starts here, with each department's permissions and refusal line), FR3, FR4
 - Depends on: none
 - If FR4 needs the API to add a field to a refusal, adding one is allowed; every refusal's text stays the same (PRD non-goals).

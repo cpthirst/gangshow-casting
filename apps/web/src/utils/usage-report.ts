@@ -1,6 +1,7 @@
 import {
   type AccountSummary,
-  type FileDepartment,
+  type DepartmentId,
+  departments,
   type MenuPageName,
   type PageView,
   type PersonUsage,
@@ -50,14 +51,6 @@ const exportActivity: Record<UsageExport, string> = {
   "excel-mic-plot": "generated the Mic Plot",
 };
 
-/** Each department's item page, as the activity names it, with its article for "opened a…". */
-const departmentPageNames: Record<FileDepartment | "mic-plot", { name: string; aPage: string }> = {
-  scenery: { name: "Scenery", aPage: "a Scenery page" },
-  sfx: { name: "SFX", aPage: "an SFX page" },
-  "mic-plot": { name: "Mic plot", aPage: "a Mic plot page" },
-  wardrobe: { name: "Wardrobe", aPage: "a Wardrobe page" },
-};
-
 type Titles = {
   page: (page: MenuPageName) => string;
   /**
@@ -87,12 +80,12 @@ export function whatHappened(entry: RecordUsageRequest, titles: Titles) {
     case "sfx":
     case "mic-plot":
     case "wardrobe": {
-      const { name, aPage } = departmentPageNames[entry.event];
+      const { name, a } = departments[entry.event];
       const title = titles.item(entry.productionId, entry.itemId);
       if (title === null) return `opened an item's ${name} page`;
       return title
         ? `opened ${title}'s ${name} page`
-        : `opened ${aPage} of an item no longer in the running order`;
+        : `opened ${a} ${name} page of an item no longer in the running order`;
     }
     case "export":
       return exportActivity[entry.export];
@@ -101,16 +94,19 @@ export function whatHappened(entry: RecordUsageRequest, titles: Titles) {
 
 type OtherFeature = Exclude<UsageFeature, MenuPageName>;
 
+/** A department's item pages, as the shared list names it: "Mic plot pages". */
+const pagesOf = (id: DepartmentId) => `${departments[id].name} pages`;
+
 /** What the Usage page calls each feature that isn't a menu page. */
 const otherNames: Record<OtherFeature, string> = {
   "overview-by-person": "Overview: By person",
   "overview-by-item": "Overview: By item",
   "overview-grid": "Overview: Grid",
   "item-page": "Item pages",
-  "scenery-page": "Scenery pages",
-  "sfx-page": "SFX pages",
-  "mic-plot-page": "Mic plot pages",
-  "wardrobe-page": "Wardrobe pages",
+  "scenery-page": pagesOf("scenery"),
+  "sfx-page": pagesOf("sfx"),
+  "mic-plot-page": pagesOf("mic-plot"),
+  "wardrobe-page": pagesOf("wardrobe"),
   "export-excel-grid": "Export: Excel grid",
   "export-word-casting-sheets": "Export: Word casting sheets",
   "export-word-item-overview": "Export: Word item overview",

@@ -21,10 +21,10 @@ prd: ./prd.md
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
 | [simplify.E1.S1](stories/E1-S1-cut-item-takes-its-notes-and-props.md) | Saving a running order that cuts an item also deletes its scenery notes, props and props notes. Reset still undoes a cut before saving. The first save also removes leftovers from earlier cuts | FR1 | (none) | done |
-| [simplify.E1.S2](stories/E1-S2-refusals-name-their-department.md) | A shared list of departments, each with its permissions and refusal line. A refusal names its route's department, whatever order the permissions are listed in. The route patches go, and every refusal's wording stays exactly the same. The app spots a read-only refusal without matching its wording. Includes the ADR amending ADR 0029 | FR2, FR3, FR4 | (none) | ready |
-| [simplify.E1.S3](stories/E1-S3-pages-read-the-department-list.md) | The Overview's buttons and notes, the department item pages, the read-only line and the "can change" checks all take each department's name, permissions and wording from the shared list | FR2 | E1.S2 | draft |
-| [simplify.E1.S4](stories/E1-S4-help-and-usage-read-the-department-list.md) | Help's access details and the Usage page's department labels come from the shared list | FR2 | E1.S2 | draft |
-| [simplify.E1.S5](stories/E1-S5-every-kind-of-item-data-goes-with-a-cut.md) | Cutting an item removes every kind of data kept per item, taken from one list. A test fails if a new kind is added without it | FR5 | E1.S1 | draft |
+| [simplify.E1.S2](stories/E1-S2-refusals-name-their-department.md) | A shared list of departments, each with its permissions and refusal line. A refusal names its route's department, whatever order the permissions are listed in. The route patches go, and every refusal's wording stays exactly the same. The app spots a read-only refusal without matching its wording. Includes the ADR amending ADR 0029 | FR2, FR3, FR4 | (none) | done |
+| [simplify.E1.S3](stories/E1-S3-pages-read-the-department-list.md) | The Overview's buttons and notes, the department item pages, the read-only line and the "can change" checks all take each department's name, permissions and wording from the shared list | FR2 | E1.S2 | done |
+| [simplify.E1.S4](stories/E1-S4-help-and-usage-read-the-department-list.md) | Help's access details and the Usage page's department labels come from the shared list | FR2 | E1.S2 | done |
+| [simplify.E1.S5](stories/E1-S5-every-kind-of-item-data-goes-with-a-cut.md) | Cutting an item removes every kind of data kept per item, taken from one list. A test fails if a new kind is added without it | FR5 | E1.S1 | done |
 
 ## E2: One frame for every item page
 

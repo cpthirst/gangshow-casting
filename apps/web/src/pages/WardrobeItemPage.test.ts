@@ -155,8 +155,6 @@ const requests = (match: (url: string, init?: RequestInit) => boolean) =>
     .mock.calls.filter(([url, init]) => match(String(url), init))
     .map(([url]) => String(url));
 
-const problem = (wrapper: VueWrapper) => wrapper.get("main [data-test=file-problem]").text();
-
 /** Answers the page's confirm, as the person would. */
 function answerConfirm(confirmed: boolean) {
   const confirm = vi.fn(() => confirmed);
@@ -191,7 +189,7 @@ describe("An item's Wardrobe page", () => {
     const { wrapper } = await openAppAt("/production/items/finale/wardrobe");
 
     expect(wrapper.findAll("main [data-test=file]")).toEqual([]);
-    expect(wrapper.get("[data-test=no-files]").text()).toBe("No Wardrobe files for this item yet.");
+    expect(wrapper.get("[data-test=no-files]").text()).toBe("No wardrobe files for this item yet.");
     expect(wrapper.get("[data-test=how-to-add]").text()).toBe(
       "Add one with Add a file above, or drag one there.",
     );

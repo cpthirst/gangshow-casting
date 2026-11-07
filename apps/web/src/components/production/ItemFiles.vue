@@ -1,5 +1,11 @@
 <script setup lang="ts">
-import { RunningOrder, type SceneryFile, SceneryFileLink, SceneryFileList } from "@app/shared";
+import {
+  departments,
+  RunningOrder,
+  type SceneryFile,
+  SceneryFileLink,
+  SceneryFileList,
+} from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, ref, watch, watchEffect } from "vue";
 import { useRoute } from "vue-router";
@@ -11,6 +17,7 @@ import { showPageTitle } from "@/router/index.ts";
 import { downloadFrom, openFileTab } from "@/services/file-link.ts";
 import { apiFetch, canChange } from "@/services/sign-in.ts";
 import { recordDepartmentPageUse } from "@/services/usage.ts";
+import { itemRouteOf } from "@/utils/departments.ts";
 import { icons } from "@/utils/icons.ts";
 import {
   departmentNotesPath,
@@ -31,7 +38,9 @@ const props = defineProps<{ department: FilesDepartment }>();
 
 const route = useRoute();
 const key = computed(() => props.department.key);
-const mayChange = computed(() => canChange(props.department.permissions));
+// Named and routed as the shared list says (ADR 0035).
+const named = computed(() => departments[props.department.key]);
+const mayChange = computed(() => canChange(props.department.key));
 const order = ref<RunningOrder>();
 const files = ref<SceneryFile[]>([]);
 const status = ref<"loading" | "loaded" | "error">("loading");
@@ -51,9 +60,7 @@ const neighbours = computed(() =>
 );
 // Loaded, but the item isn't in the latest saved running order.
 const notFound = computed(() => status.value === "loaded" && !place.value);
-const title = computed(() =>
-  place.value ? `${props.department.name}: ${place.value.item.title}` : "",
-);
+const title = computed(() => (place.value ? `${named.value.name}: ${place.value.item.title}` : ""));
 
 // Each visit is a use, once the item is found; what's done with its files isn't (FR15).
 watch(
@@ -163,7 +170,7 @@ watch(
 <template>
   <ItemStepNav
     :list="{ name: 'production-overview' }"
-    :item-route="department.route"
+    :item-route="itemRouteOf(department.key)"
     :previous="neighbours.previous"
     :next="neighbours.next"
   />
@@ -198,7 +205,7 @@ watch(
       v-if="files.length > 0"
       class="role-cards"
       role="list"
-      :aria-label="`${department.name} files`"
+      :aria-label="`${named.name} files`"
     >
       <li v-for="file in files" :key="file.name" class="role-card" data-test="file">
         <span v-if="mayChange" class="row-icons">
@@ -227,7 +234,7 @@ watch(
       </li>
     </ul>
     <template v-else>
-      <p data-test="no-files">No {{ department.noun }} files for this item yet.</p>
+      <p data-test="no-files">No {{ named.noun }} files for this item yet.</p>
       <!-- The drag clause hides on a phone or tablet, which can't drag a file in. -->
       <p v-if="mayChange" data-test="how-to-add">
         Add one with Add a file above<span class="upload-drop-hint">, or drag one there</span>.
@@ -238,7 +245,7 @@ watch(
     <ItemNotes
       :key="place.item.id"
       :item-id="place.item.id"
-      :heading="`${department.name} notes`"
+      :heading="`${named.name} notes`"
       :list-path="departmentNotesPath(department.key)"
       :save-path="saveDepartmentNotesPath(department.key, place.item.id)"
       :can-change="mayChange"

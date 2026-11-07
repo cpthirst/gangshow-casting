@@ -100,54 +100,90 @@ export function accessFrom(groups: readonly string[]): Access {
   return permissions.filter((permission) => groups.includes(permission));
 }
 
-/** The API's answer to a change from someone without a department's permission, if it has none of its own. */
-const GENERAL_REFUSAL = "You can view this, but not change it.";
-
-/** What each department says when it refuses a change, naming what can only be viewed. */
-const departmentRefusals: Partial<Record<Permission, string>> = {
-  casting: "You can view the casting, but not change it.",
-  stage: "You can view the props, but not change them.",
-  tech: "You can view the scenery, but not change it.",
-  wardrobe: "You can view the wardrobe, but not change it.",
-};
-
-/** Permissions any one of which allows a change, the first saying what a refusal names. */
+/** Permissions any one of which allows a change. */
 export type AnyOf = readonly [Permission, ...Permission[]];
 
-/** The API's answer to a change that needs a permission the caller hasn't got (ADR 0029). */
-export const refusalFor = (needed: Permission | AnyOf) => {
-  const [named] = typeof needed === "string" ? [needed] : needed;
-  return departmentRefusals[named] ?? GENERAL_REFUSAL;
-};
+/** The departments whose data a permission may change, as change routes name them (ADR 0035). */
+export const departmentIds = [
+  "casting",
+  "props",
+  "scenery",
+  "sfx",
+  "mic-plot",
+  "wardrobe",
+] as const;
+
+export type DepartmentId = (typeof departmentIds)[number];
+
+/** A department: what it's called, who may change it, and how the app and API word it. */
+export interface Department {
+  /** On its own, as a page title or column heading says it: "Mic plot". */
+  name: string;
+  /** Mid-sentence, as in "Edit mic plot for Opening Number". */
+  noun: string;
+  /** What stands for the noun later in a sentence: "it" (the scenery) or "them" (the props). */
+  it: "it" | "them";
+  /** The article before its name: "a" Scenery page, "an" SFX page. */
+  a: "a" | "an";
+  /** Any one of these allows a change; their order doesn't matter. */
+  permissions: AnyOf;
+  /** The refusal's message, naming what can only be viewed. */
+  refusal: string;
+}
+
+/** A department as one statement: its refusal is worded from its noun (ADR 0035). */
+const department = (
+  name: string,
+  noun: string,
+  it: Department["it"],
+  a: Department["a"],
+  permissions: AnyOf,
+): Department => ({
+  name,
+  noun,
+  it,
+  a,
+  permissions,
+  refusal: `You can view the ${noun}, but not change ${it}.`,
+});
 
 /**
- * What a route says when it refuses a change, where its first permission's line would name
- * the wrong thing: Tech's line is about the scenery (production-sfx-wardrobe E1.S1,
- * production-mics FR1).
+ * Each department, stated once (ADR 0035). Casting is Casting's alone, never a Director's;
+ * Stage and Tech share the scenery (production-scenery FR2, FR5).
  */
-const routeRefusals = new Map<string, string>([
-  ...[
-    "DELETE /api/productions/{productionId}/items/{itemId}/sfx-files",
-    "POST /api/productions/{productionId}/items/{itemId}/sfx-uploads",
-    "PUT /api/productions/{productionId}/items/{itemId}/sfx-notes",
-  ].map((key): [string, string] => [key, "You can view the SFX, but not change them."]),
-  ...[
-    "PUT /api/productions/{productionId}/items/{itemId}/mic-plot",
-    "PUT /api/productions/{productionId}/items/{itemId}/mic-plot-notes",
-  ].map((key): [string, string] => [key, "You can view the mic plot, but not change it."]),
-]);
+export const departments: Readonly<Record<DepartmentId, Department>> = {
+  casting: department("Casting", "casting", "it", "a", [CASTING_GROUP]),
+  props: department("Props", "props", "them", "a", [STAGE_GROUP, DIRECTOR_GROUP]),
+  scenery: department("Scenery", "scenery", "it", "a", [STAGE_GROUP, TECH_GROUP, DIRECTOR_GROUP]),
+  sfx: department("SFX", "SFX", "them", "an", [TECH_GROUP, DIRECTOR_GROUP]),
+  "mic-plot": department("Mic plot", "mic plot", "it", "a", [TECH_GROUP, DIRECTOR_GROUP]),
+  wardrobe: department("Wardrobe", "wardrobe", "it", "a", [WARDROBE_GROUP, DIRECTOR_GROUP]),
+};
 
-/** The API's answer to a change on the route from someone without the permission it needs. */
-export const refusalOn = (key: string, needed: Permission | AnyOf) =>
-  routeRefusals.get(key) ?? refusalFor(needed);
+/** A refused change to a department: its line, and which department, so pages needn't read the line. */
+export interface ReadOnlyRefusal {
+  message: string;
+  department: DepartmentId;
+}
 
-const readOnlyRefusals = new Set<unknown>([
-  ...permissions.map(refusalFor),
-  ...routeRefusals.values(),
-]);
+/** The API's answer to a change to a department from someone without its permission (ADR 0035). */
+export const readOnlyRefusal = (department: DepartmentId): ReadOnlyRefusal => ({
+  message: departments[department].refusal,
+  department,
+});
 
-/** Whether a refusal says the change needed a permission, which pages recognise (team-roles FR12). */
-export const isRefusalAsReadOnly = (message: unknown) => readOnlyRefusals.has(message);
+const isDepartmentId = (value: unknown): value is DepartmentId =>
+  departmentIds.some((id) => id === value);
+
+/**
+ * Whether a refusal's body says the change needed a department's permission, which pages
+ * recognise (team-roles FR12) by the department it names, never by its wording.
+ */
+export const isRefusalAsReadOnly = (body: unknown) =>
+  typeof body === "object" &&
+  body !== null &&
+  "department" in body &&
+  isDepartmentId(body.department);
 
 /**
  * The access pnpm dev and pnpm demo act for, chosen with the local switch (production-props FR9):
@@ -180,6 +216,10 @@ export const mayChange = (access: Access, needed: Permission | AnyOf) =>
     access.includes(permission),
   );
 
+/** Whether access allows changing a department's data: any one of its permissions will do. */
+export const mayChangeDepartment = (access: Access, id: DepartmentId) =>
+  mayChange(access, departments[id].permissions);
+
 /**
  * Routes that aren't a GET but change nothing stored. The export only turns the grid the page
  * sends into a file, so every role may use it (ADR 0021). Add one only for the same reason.
@@ -205,8 +245,8 @@ type OpenRouteKey =
   | (typeof readsSentAsPost)[number]
   | (typeof recordsAboutTheCaller)[number];
 
-/** What a route needs: any one of some permissions, or an admin (ADR 0029). */
-export type Need = AnyOf | "admin";
+/** What a route needs: a permission that may change its department, or an admin (ADR 0035). */
+export type Need = DepartmentId | "admin";
 
 /**
  * Every route that isn't open to everyone names what it needs, so a new change route missing
@@ -216,25 +256,9 @@ export type RouteNeeds = Readonly<
   Record<Exclude<RouteKey, OpenRouteKey>, Need> & Partial<Record<OpenRouteKey, "admin">>
 >;
 
-/** Who may change the props and props notes: Stage, or a Director (production-scenery FR2). */
-export const PROPS_PERMISSIONS: AnyOf = [STAGE_GROUP, DIRECTOR_GROUP];
 /**
- * Who may change scenery: Stage and Tech share it, and a Director may too (production-scenery
- * FR5). Tech first, as a refusal names the first: Tech's line is about the scenery, Stage's
- * the props.
- */
-export const SCENERY_PERMISSIONS: AnyOf = [TECH_GROUP, STAGE_GROUP, DIRECTOR_GROUP];
-/** Who may change the SFX files and notes: Tech, or a Director (production-sfx-wardrobe FR1). */
-export const SFX_PERMISSIONS: AnyOf = [TECH_GROUP, DIRECTOR_GROUP];
-/** Who may change the mic plot and its notes: Tech, or a Director (production-mics FR1, FR8). */
-export const MIC_PLOT_PERMISSIONS: AnyOf = [TECH_GROUP, DIRECTOR_GROUP];
-/** Who may change the Wardrobe files and notes: Wardrobe, or a Director (production-sfx-wardrobe FR1). */
-export const WARDROBE_PERMISSIONS: AnyOf = [WARDROBE_GROUP, DIRECTOR_GROUP];
-/** Who may change the cast, roles, casting and casting notes: Casting alone, never a Director. */
-export const CASTING_PERMISSIONS: AnyOf = [CASTING_GROUP];
-
-/**
- * What each route needs (ADR 0026, ADR 0029). Admin-only routes are permanent or show-wide changes
+ * What each route needs: an admin, or a permission that may change its department (ADR 0026,
+ * ADR 0029, ADR 0035). Admin-only routes are permanent or show-wide changes
  * (hosting FR9), and managing the team. The API refuses a route its caller's access doesn't
  * allow before the handler runs, so a new one can't forget it.
  */
@@ -245,28 +269,28 @@ export const routeNeeds: RouteNeeds = {
   "PUT /api/accounts/{username}/enabled": "admin",
   "PUT /api/accounts/{username}/access": "admin",
   "POST /api/productions/{productionId}/running-order/versions": "admin",
-  "POST /api/productions/{productionId}/cast": CASTING_PERMISSIONS,
-  "PUT /api/productions/{productionId}/cast/{castId}": CASTING_PERMISSIONS,
+  "POST /api/productions/{productionId}/cast": "casting",
+  "PUT /api/productions/{productionId}/cast/{castId}": "casting",
   "DELETE /api/productions/{productionId}/cast/{castId}": "admin",
-  "PUT /api/productions/{productionId}/items/{itemId}/notes": CASTING_PERMISSIONS,
-  "POST /api/productions/{productionId}/items/{itemId}/roles": CASTING_PERMISSIONS,
-  "PUT /api/productions/{productionId}/roles/{roleId}": CASTING_PERMISSIONS,
-  "DELETE /api/productions/{productionId}/roles/{roleId}": CASTING_PERMISSIONS,
-  "POST /api/productions/{productionId}/items/{itemId}/props": PROPS_PERMISSIONS,
-  "PUT /api/productions/{productionId}/props/{propId}": PROPS_PERMISSIONS,
-  "DELETE /api/productions/{productionId}/props/{propId}": PROPS_PERMISSIONS,
-  "PUT /api/productions/{productionId}/items/{itemId}/props-notes": PROPS_PERMISSIONS,
-  "DELETE /api/productions/{productionId}/items/{itemId}/scenery-files": SCENERY_PERMISSIONS,
-  "POST /api/productions/{productionId}/items/{itemId}/scenery-uploads": SCENERY_PERMISSIONS,
-  "PUT /api/productions/{productionId}/items/{itemId}/scenery-notes": SCENERY_PERMISSIONS,
-  "DELETE /api/productions/{productionId}/items/{itemId}/sfx-files": SFX_PERMISSIONS,
-  "POST /api/productions/{productionId}/items/{itemId}/sfx-uploads": SFX_PERMISSIONS,
-  "PUT /api/productions/{productionId}/items/{itemId}/sfx-notes": SFX_PERMISSIONS,
-  "DELETE /api/productions/{productionId}/items/{itemId}/wardrobe-files": WARDROBE_PERMISSIONS,
-  "POST /api/productions/{productionId}/items/{itemId}/wardrobe-uploads": WARDROBE_PERMISSIONS,
-  "PUT /api/productions/{productionId}/items/{itemId}/wardrobe-notes": WARDROBE_PERMISSIONS,
-  "PUT /api/productions/{productionId}/items/{itemId}/mic-plot": MIC_PLOT_PERMISSIONS,
-  "PUT /api/productions/{productionId}/items/{itemId}/mic-plot-notes": MIC_PLOT_PERMISSIONS,
+  "PUT /api/productions/{productionId}/items/{itemId}/notes": "casting",
+  "POST /api/productions/{productionId}/items/{itemId}/roles": "casting",
+  "PUT /api/productions/{productionId}/roles/{roleId}": "casting",
+  "DELETE /api/productions/{productionId}/roles/{roleId}": "casting",
+  "POST /api/productions/{productionId}/items/{itemId}/props": "props",
+  "PUT /api/productions/{productionId}/props/{propId}": "props",
+  "DELETE /api/productions/{productionId}/props/{propId}": "props",
+  "PUT /api/productions/{productionId}/items/{itemId}/props-notes": "props",
+  "DELETE /api/productions/{productionId}/items/{itemId}/scenery-files": "scenery",
+  "POST /api/productions/{productionId}/items/{itemId}/scenery-uploads": "scenery",
+  "PUT /api/productions/{productionId}/items/{itemId}/scenery-notes": "scenery",
+  "DELETE /api/productions/{productionId}/items/{itemId}/sfx-files": "sfx",
+  "POST /api/productions/{productionId}/items/{itemId}/sfx-uploads": "sfx",
+  "PUT /api/productions/{productionId}/items/{itemId}/sfx-notes": "sfx",
+  "DELETE /api/productions/{productionId}/items/{itemId}/wardrobe-files": "wardrobe",
+  "POST /api/productions/{productionId}/items/{itemId}/wardrobe-uploads": "wardrobe",
+  "PUT /api/productions/{productionId}/items/{itemId}/wardrobe-notes": "wardrobe",
+  "PUT /api/productions/{productionId}/items/{itemId}/mic-plot": "mic-plot",
+  "PUT /api/productions/{productionId}/items/{itemId}/mic-plot-notes": "mic-plot",
   // Usage is about the team, so only admins read it (usage-tracking FR4).
   "GET /api/usage": "admin",
 };

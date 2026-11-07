@@ -1,59 +1,10 @@
 <script setup lang="ts">
-import { computed } from "vue";
-import {
-  canChangeCasting,
-  canChangeMicPlot,
-  canChangeProps,
-  canChangeScenery,
-  canChangeSfx,
-  canChangeWardrobe,
-  changeRefusedAsReadOnly,
-} from "@/services/sign-in.ts";
+import type { DepartmentId } from "@app/shared";
+import { canChange, changeRefusedAsReadOnly } from "@/services/sign-in.ts";
+import { refusedLine, viewOnlyLine } from "@/utils/departments.ts";
 
-// What the page is about, which says whose permission changes it: the casting pages and
-// Running order need Casting; the props pages need Stage or Director; the Scenery pages
-// Stage, Tech or Director; the SFX and Mic plot pages Tech or Director; the Wardrobe pages
-// Wardrobe or Director.
-const props = withDefaults(
-  defineProps<{ about?: "casting" | "props" | "scenery" | "sfx" | "mic-plot" | "wardrobe" }>(),
-  { about: "casting" },
-);
-
-const notices = {
-  casting: {
-    canChange: canChangeCasting,
-    viewOnly: "You can view the casting, but not change it: only Casting and admins can.",
-    refused: "You can view the casting but not change it, so this wasn't saved.",
-  },
-  props: {
-    canChange: canChangeProps,
-    viewOnly: "You can view the props, but not change them: only Stage, Director and admins can.",
-    refused: "You can view the props but not change them, so this wasn't saved.",
-  },
-  scenery: {
-    canChange: canChangeScenery,
-    viewOnly:
-      "You can view the scenery, but not change it: only Stage, Tech, Director and admins can.",
-    refused: "You can view the scenery but not change it, so this wasn't saved.",
-  },
-  sfx: {
-    canChange: canChangeSfx,
-    viewOnly: "You can view the SFX, but not change them: only Tech, Director and admins can.",
-    refused: "You can view the SFX but not change them, so this wasn't saved.",
-  },
-  "mic-plot": {
-    canChange: canChangeMicPlot,
-    viewOnly: "You can view the mic plot, but not change it: only Tech, Director and admins can.",
-    refused: "You can view the mic plot but not change it, so this wasn't saved.",
-  },
-  wardrobe: {
-    canChange: canChangeWardrobe,
-    viewOnly:
-      "You can view the wardrobe, but not change it: only Wardrobe, Director and admins can.",
-    refused: "You can view the wardrobe but not change it, so this wasn't saved.",
-  },
-};
-const notice = computed(() => notices[props.about]);
+// The department the page is about, which says who may change it.
+withDefaults(defineProps<{ about?: DepartmentId }>(), { about: "casting" });
 </script>
 
 <template>
@@ -66,7 +17,7 @@ const notice = computed(() => notices[props.about]);
     role="alert"
   >
     <!-- Lost the permission since the page opened: say so where they were editing (FR12). -->
-    {{ notice.refused }}
+    {{ refusedLine(about) }}
   </p>
-  <p v-else-if="!notice.canChange.value" class="access-note" data-test="read-only">{{ notice.viewOnly }}</p>
+  <p v-else-if="!canChange(about)" class="access-note" data-test="read-only">{{ viewOnlyLine(about) }}</p>
 </template>

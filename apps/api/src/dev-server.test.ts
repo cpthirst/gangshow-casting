@@ -616,7 +616,10 @@ describe("dev server local access (production-props FR9)", () => {
     const read = await send("GET", "/api/productions/2027/cast", "stage,tech");
 
     expect(add.status).toBe(403);
-    expect(await add.json()).toEqual({ message: "You can view the casting, but not change it." });
+    expect(await add.json()).toEqual({
+      message: "You can view the casting, but not change it.",
+      department: "casting",
+    });
     expect(read.status).toBe(200);
     expect(reached).toEqual(["read"]);
   });
@@ -629,7 +632,10 @@ describe("dev server local access (production-props FR9)", () => {
 
     expect(prop.status).toBe(201);
     expect(add.status).toBe(403);
-    expect(await add.json()).toEqual({ message: "You can view the casting, but not change it." });
+    expect(await add.json()).toEqual({
+      message: "You can view the casting, but not change it.",
+      department: "casting",
+    });
     expect(reached).toEqual(["add prop"]);
   });
 

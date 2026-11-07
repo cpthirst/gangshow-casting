@@ -3,6 +3,7 @@ import {
   type AddPropRequest,
   CastList,
   type CastMember,
+  departments,
   Prop,
   PropList,
   type Role,
@@ -18,8 +19,9 @@ import ReadOnlyNotice from "@/components/common/ReadOnlyNotice.vue";
 import PropCard from "@/components/production/PropCard.vue";
 import PropForm from "@/components/production/PropForm.vue";
 import { showPageTitle } from "@/router/index.ts";
-import { apiFetch, canChangeProps } from "@/services/sign-in.ts";
+import { apiFetch, canChange } from "@/services/sign-in.ts";
 import { CAST_PATH } from "@/utils/cast.ts";
+import { itemRouteOf } from "@/utils/departments.ts";
 import { addPropPath, PROPS_PATH, propPath, sortProps } from "@/utils/props.ts";
 import { PROPS_NOTES_PATH, savePropsNotesPath } from "@/utils/props-notes.ts";
 import { ROLES_PATH, sortRoles } from "@/utils/roles.ts";
@@ -58,7 +60,9 @@ const itemRoles = computed(() =>
 );
 
 // Named for the department too, as every Production overview button's page is.
-const title = computed(() => (place.value ? `Props: ${place.value.item.title}` : ""));
+const title = computed(() =>
+  place.value ? `${departments.props.name}: ${place.value.item.title}` : "",
+);
 
 // Follows the item even if the page is reused for another one (Previous and Next).
 watchEffect(() => {
@@ -257,7 +261,7 @@ async function postProp(itemId: string, details: AddPropRequest) {
 <template>
   <ItemStepNav
     :list="{ name: 'production-overview' }"
-    item-route="props-item"
+    :item-route="itemRouteOf('props')"
     :previous="neighbours.previous"
     :next="neighbours.next"
   />
@@ -265,12 +269,12 @@ async function postProp(itemId: string, details: AddPropRequest) {
   <template v-else-if="place">
     <div class="page-title-row">
       <h1>{{ title }}</h1>
-      <HelpButton page="props-item" label="Help for this item" title="Item help" />
+      <HelpButton :page="itemRouteOf('props')" label="Help for this item" title="Item help" />
     </div>
     <p class="item-position" data-test="position">{{ position }}</p>
     <!-- Those without Stage or Director see the props with nothing to change them. -->
     <ReadOnlyNotice about="props" />
-    <div v-if="canChangeProps" class="cast-actions">
+    <div v-if="canChange('props')" class="cast-actions">
       <button
         ref="addButton"
         type="button"
@@ -312,7 +316,7 @@ async function postProp(itemId: string, details: AddPropRequest) {
           :prop="prop"
           :roles="itemRoles"
           :cast="cast"
-          :can-change="canChangeProps"
+          :can-change="canChange('props')"
           :busy="busy"
           @edit="startEditing(prop)"
           @remove="removeProp(prop)"
@@ -325,10 +329,10 @@ async function postProp(itemId: string, details: AddPropRequest) {
     <ItemNotes
       :key="place.item.id"
       :item-id="place.item.id"
-      heading="Props notes"
+      :heading="`${departments['props'].name} notes`"
       :list-path="PROPS_NOTES_PATH"
       :save-path="savePropsNotesPath(place.item.id)"
-      :can-change="canChangeProps"
+      :can-change="canChange('props')"
     />
   </template>
   <template v-else-if="notFound">

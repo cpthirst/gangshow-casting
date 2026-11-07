@@ -38,6 +38,7 @@ import { dynamoRemoveCastMember } from "#/show/cast/dynamo-remove-cast-member.ts
 import { uncastThenRemove } from "#/show/cast/remove-cast-member.ts";
 import { dynamoRunningOrderStore } from "#/show/running-order/dynamo-running-order-store.ts";
 import { fileRunningOrderStore } from "#/show/running-order/running-order-store.ts";
+import type { ItemCleanup } from "#/show/running-order/save-running-order.ts";
 import { dynamoUsageStore } from "#/usage/dynamo-usage-store.ts";
 import { inMemoryUsageStore } from "#/usage/usage-store.ts";
 import { documentClient } from "./dynamo-table.ts";
@@ -106,6 +107,29 @@ export function remoteStores(db: DynamoDBDocumentClient, table: string): Stores 
     micPlotNotes: dynamoItemNoteStore(db, table, MIC_PLOT_NOTE),
     micPlots: dynamoMicPlotStore(db, table),
   };
+}
+
+/** The stores that hold the show's data rather than an item's: everything else is per item. */
+export const showWideStores = [
+  "runningOrders",
+  "cast",
+  "removeCastMember",
+] as const satisfies readonly (keyof Stores)[];
+
+/**
+ * Every kind of data kept per item, by name, which a cut removes (CLAUDE.md, "Cutting an item
+ * takes all its data with it"): every store but the show-wide ones, and each department's
+ * files. A new store joins by itself.
+ */
+export function itemCleanupOf(stores: Stores, files: ItemFileStores): ItemCleanup {
+  // Typed without the show-wide stores, so a per-item store that can't keep only the items
+  // still in the show fails the typecheck here.
+  const perItem: Omit<Stores, (typeof showWideStores)[number]> = stores;
+  const showWide = new Set<string>(showWideStores);
+  return Object.fromEntries([
+    ...Object.entries(perItem).filter(([kind]) => !showWide.has(kind)),
+    ...Object.entries(files).map(([department, store]) => [`${department}Files`, store] as const),
+  ]);
 }
 
 export function dataStores(env: Env = process.env) {

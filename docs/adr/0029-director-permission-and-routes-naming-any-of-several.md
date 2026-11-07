@@ -1,6 +1,6 @@
 # 0029. A Director permission, and change routes that name any of several permissions
 
-- **Status**: Accepted
+- **Status**: Accepted. Amended by [ADR 0035](0035-each-department-states-its-own-refusal.md): each department states its own refusal line, a route names its department, and a refusal says which department
 - **Date**: 2026-10-29
 - **Deciders**: Nick Hirst
 
@@ -31,7 +31,7 @@ We will use option 1.
   - Props and props notes name Stage and Director.
   - Casting routes still name Casting alone, and the running order stays admin-only, so Director can't change them.
   - Each later department route names its department and Director (SFX and Mic plot: Tech; Wardrobe: Wardrobe; Scenery: Stage and Tech).
-- **Refusals** use the line of the first permission a route names. Props say "You can view the props, but not change them." Director has no line of its own, so falls back to the general one, which pages still recognise as read-only.
+- **Refusals** ~~use the line of the first permission a route names.~~ *Superseded by [ADR 0035](0035-each-department-states-its-own-refusal.md): each department states its own refusal line.* Props say "You can view the props, but not change them." Director has no line of its own, so falls back to the general one, which pages still recognise as read-only.
 - **The fail-safe stands:** the table is typed against the routes, and a route missing from it needs an Admin.
 - **Pages** show a department's change controls to anyone with any of its permissions, so a Director sees the props controls and the Overview's "Edit" buttons.
 - Until production-scenery.E1.S2, Director has no tick box on the Accounts page or the local switch. An account can only be given it in the AWS console, for testing. Changing such an account's access on the Accounts page keeps Director.

@@ -5,7 +5,7 @@ import { useRoute, useRouter } from "vue-router";
 import AccessChoice from "@/components/common/AccessChoice.vue";
 import { isAdminOnlyPage } from "@/router/index.ts";
 import { chooseLocalAccess, isAdmin, localAccess } from "@/services/sign-in.ts";
-import { inOrder } from "@/utils/accounts.ts";
+import { inOrder } from "@/utils/departments.ts";
 
 const route = useRoute();
 const router = useRouter();

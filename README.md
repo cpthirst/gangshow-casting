@@ -358,6 +358,7 @@ These cover humans and agents alike, and `pnpm install` installs them.
 | [0032](docs/adr/0032-sfx-files-beside-scenery-files.md) | SFX files beside the scenery files, in the same bucket under each item's `sfx/` folder, and the API's access widened to them alone |
 | [0033](docs/adr/0033-mic-plot-workbook-built-in-the-browser.md) | The Mic Plot workbook: built in the browser with `write-excel-file`, loaded only when used |
 | [0034](docs/adr/0034-simplicity-rules-for-authors-and-reviewers.md) | Simplicity rules for authors and reviewers: one of each, a layout that explains itself, and a reviewer that searches beyond the diff for copies |
+| [0035](docs/adr/0035-each-department-states-its-own-refusal.md) | Each department states its permissions and refusal line once; a change route names its department, and a refusal says which department, so the app recognises it without matching wording |
 
 ---
 

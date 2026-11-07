@@ -1,8 +1,13 @@
-import { LOCAL_ACCESS_HEADER, type SignInConfig } from "@app/shared";
+import {
+  departmentIds,
+  LOCAL_ACCESS_HEADER,
+  readOnlyRefusal,
+  type SignInConfig,
+} from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   apiFetch,
-  canChangeCasting,
+  canChange,
   changeRefusedAsReadOnly,
   chooseLocalAccess,
   isAdmin,
@@ -240,32 +245,57 @@ describe("signing in", () => {
 
   it("treats someone as read-only once the API refuses a change as read-only, saying so", async () => {
     await useHostedSignIn(config, managerWith(sam({ groups: ["casting"] })), browserAt("/"));
-    expect(canChangeCasting.value).toBe(true);
+    expect(canChange("casting")).toBe(true);
     fetchMock.mockResolvedValue(
-      new Response(JSON.stringify({ message: "You can view the casting, but not change it." }), {
-        status: 403,
-      }),
+      new Response(JSON.stringify(readOnlyRefusal("casting")), { status: 403 }),
     );
 
     const res = await apiFetch("/api/productions/p/items/i/notes", { method: "PUT" });
 
-    expect(canChangeCasting.value).toBe(false);
+    expect(canChange("casting")).toBe(false);
     expect(changeRefusedAsReadOnly.value).toBe(true);
     // The page can still read the refusal for itself.
-    expect(await res.json()).toEqual({ message: "You can view the casting, but not change it." });
+    expect(await res.json()).toEqual(readOnlyRefusal("casting"));
   });
 
-  it("treats another department's refusal as read-only too", async () => {
+  it.each(departmentIds)("treats the %s department's refusal as read-only too", async (id) => {
     await useHostedSignIn(config, managerWith(sam({ groups: ["casting"] })), browserAt("/"));
-    fetchMock.mockResolvedValue(
-      new Response(JSON.stringify({ message: "You can view this, but not change it." }), {
-        status: 403,
-      }),
-    );
+    fetchMock.mockResolvedValue(new Response(JSON.stringify(readOnlyRefusal(id)), { status: 403 }));
 
     await apiFetch("/api/productions/p/props", { method: "POST" });
 
     expect(changeRefusedAsReadOnly.value).toBe(true);
+  });
+
+  it("recognises a read-only refusal by its department, however it is worded", async () => {
+    await useHostedSignIn(config, managerWith(sam({ groups: ["casting"] })), browserAt("/"));
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ message: "Reworded entirely.", department: "sfx" }), {
+        status: 403,
+      }),
+    );
+
+    await apiFetch("/api/productions/p/items/i/sfx-notes", { method: "PUT" });
+
+    expect(changeRefusedAsReadOnly.value).toBe(true);
+  });
+
+  it.each([
+    [
+      "a refusal's old wording without its department",
+      403,
+      { message: "You can view the SFX, but not change them." },
+    ],
+    ["a server error", 500, { message: "Internal Server Error" }],
+    ["a server error naming a department", 500, readOnlyRefusal("sfx")],
+    ["a refusal naming no known department", 403, { message: "No.", department: "stage" }],
+  ])("doesn't take %s for a read-only refusal", async (_what, status, body) => {
+    await useHostedSignIn(config, managerWith(sam({ groups: ["casting"] })), browserAt("/"));
+    fetchMock.mockResolvedValue(new Response(JSON.stringify(body), { status }));
+
+    await apiFetch("/api/productions/p/items/i/sfx-notes", { method: "PUT" });
+
+    expect(changeRefusedAsReadOnly.value).toBe(false);
   });
 
   it("keeps someone's role when the API refuses a change for another reason", async () => {
@@ -276,16 +306,14 @@ describe("signing in", () => {
 
     await apiFetch("/api/productions/p/cast/c", { method: "DELETE" });
 
-    expect(canChangeCasting.value).toBe(true);
+    expect(canChange("casting")).toBe(true);
     expect(changeRefusedAsReadOnly.value).toBe(false);
   });
 
   it("forgets a read-only refusal when someone else signs in", async () => {
     await useHostedSignIn(config, managerWith(sam({ groups: ["casting"] })), browserAt("/"));
     fetchMock.mockResolvedValue(
-      new Response(JSON.stringify({ message: "You can view the casting, but not change it." }), {
-        status: 403,
-      }),
+      new Response(JSON.stringify(readOnlyRefusal("casting")), { status: 403 }),
     );
     await apiFetch("/api/productions/p/cast", { method: "POST" });
 
@@ -320,10 +348,19 @@ describe("signing in", () => {
     [["stage"], false],
     [[], false],
     [["read-only", "casting"], false],
-  ])("canChangeCasting for groups %j is %s", async (groups, allowed) => {
+  ])("canChange casting for groups %j is %s", async (groups, allowed) => {
     await useHostedSignIn(config, managerWith(sam({ groups })), browserAt("/"));
 
-    expect(canChangeCasting.value).toBe(allowed);
+    expect(canChange("casting")).toBe(allowed);
+  });
+
+  it.each([
+    [["director"], ["props", "scenery", "sfx", "mic-plot", "wardrobe"]],
+    [["tech"], ["scenery", "sfx", "mic-plot"]],
+  ])("shows %j the change controls of %j alone", async (groups, changeable) => {
+    await useHostedSignIn(config, managerWith(sam({ groups })), browserAt("/"));
+
+    expect(departmentIds.filter((id) => canChange(id))).toEqual(changeable);
   });
 
   it("counts only members of the admin group as admins", async () => {
@@ -399,12 +436,12 @@ describe("signing in", () => {
       useLocalSignIn();
 
       chooseLocalAccess(["casting"]);
-      const casting = [isAdmin.value, canChangeCasting.value];
+      const casting = [isAdmin.value, canChange("casting")];
       chooseLocalAccess(["stage", "tech"]);
-      const stageAndTech = [isAdmin.value, canChangeCasting.value];
+      const stageAndTech = [isAdmin.value, canChange("casting")];
       chooseLocalAccess([]);
 
-      expect([casting, stageAndTech, localAccess.value, canChangeCasting.value]).toEqual([
+      expect([casting, stageAndTech, localAccess.value, canChange("casting")]).toEqual([
         [false, true],
         [false, false],
         [],
@@ -429,7 +466,7 @@ describe("signing in", () => {
     await apiFetch("/api/health");
 
     expect(isAdmin.value).toBe(false);
-    expect(canChangeCasting.value).toBe(false);
+    expect(canChange("casting")).toBe(false);
     expect(localAccess.value).toBeUndefined();
     expect(new Headers(fetchMock.mock.calls.at(-1)?.[1]?.headers).has(LOCAL_ACCESS_HEADER)).toBe(
       false,

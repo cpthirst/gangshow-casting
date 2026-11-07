@@ -1,21 +1,17 @@
+import type { DepartmentId } from "@app/shared";
 import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
+import { listed, permissionNamesOf } from "./departments.ts";
 import { icons } from "./icons.ts";
 
-// Who can use an action, said the same way on every page (in-app-help FR5). A Director may
-// change every department's pages, but not the casting (production-scenery FR1).
-const accessLabels = {
-  everyone: "Everyone",
-  casting: "Accounts with Casting, and admins",
-  stage: "Accounts with Stage or Director, and admins",
-  scenery: "Accounts with Stage, Tech or Director, and admins",
-  tech: "Accounts with Tech or Director, and admins",
-  wardrobe: "Accounts with Wardrobe or Director, and admins",
-  admins: "Admins only",
-} as const;
+// Who can use an action, said the same way on every page (in-app-help FR5): everyone, admins
+// alone, or whoever the shared list says may change a department's pages.
+export type Access = "everyone" | "admins" | DepartmentId;
 
-export type Access = keyof typeof accessLabels;
-
-export const accessLabel = (access: Access) => accessLabels[access];
+export function accessLabel(access: Access) {
+  if (access === "everyone") return "Everyone";
+  if (access === "admins") return "Admins only";
+  return `Accounts with ${listed(permissionNamesOf(access), "or")}, and admins`;
+}
 
 export interface HelpLine {
   /** The page's own icons for this action, if it has any. */
@@ -256,21 +252,21 @@ export const pageHelp: PageHelp[] = [
         name: "Props",
         does: "Opens the item's props page, for its props, the roles that use them and its notes.",
         access: "everyone",
-        changeAccess: "stage",
+        changeAccess: "props",
       },
       {
         icons: [icons.sfx],
         name: "SFX",
         does: "Opens the item's SFX page, with the files for its sound effects.",
         access: "everyone",
-        changeAccess: "tech",
+        changeAccess: "sfx",
       },
       {
         icons: [icons.micPlot],
         name: "Mic plot",
         does: "Opens the item's mic plot page, for who wears which microphone and its notes.",
         access: "everyone",
-        changeAccess: "tech",
+        changeAccess: "mic-plot",
       },
       {
         icons: [icons.wardrobe],
@@ -365,25 +361,25 @@ export const pageHelp: PageHelp[] = [
       {
         name: "Add prop",
         does: "Adds a prop by name, quantity and roles. When there are more people than the quantity, also choose who carries it.",
-        access: "stage",
+        access: "props",
       },
       {
         icons: [icons.edit],
         name: "Edit",
         does: "Changes a prop's name, quantity, the roles that use it or who carries it.",
-        access: "stage",
+        access: "props",
       },
       {
         icons: [icons.remove],
         name: "Remove",
         does: "Takes a prop off the item.",
-        access: "stage",
+        access: "props",
       },
       {
         name: "Props notes",
         does: "Anything the props team needs to know about the item's props.",
         access: "everyone",
-        changeAccess: "stage",
+        changeAccess: "props",
       },
     ],
   },
@@ -423,18 +419,18 @@ export const pageHelp: PageHelp[] = [
         icons: [icons.remove],
         name: "Remove",
         does: "Takes a file off the item, once you confirm. It can't be brought back.",
-        access: "tech",
+        access: "sfx",
       },
       {
         name: "Add a file",
         does: "Adds one file of up to 100 MB to the item, chosen with the button or dragged onto it, showing how much has uploaded. A file with the same name as one already there replaces it, once you confirm. The old copy can't be brought back.",
-        access: "tech",
+        access: "sfx",
       },
       {
         name: "SFX notes",
         does: "Anything the tech team needs to know about the item's sound effects.",
         access: "everyone",
-        changeAccess: "tech",
+        changeAccess: "sfx",
       },
     ],
   },
@@ -461,7 +457,7 @@ export const pageHelp: PageHelp[] = [
         name: "Mic 1 to Mic 24",
         does: "All 24 mics, in order, used or not. Type a name to give a mic to only someone cast in the item, one mic each. The roles they play in it show under them, from the casting: you don't choose them. Someone without a named part shows their ensemble. It saves straight away.",
         access: "everyone",
-        changeAccess: "tech",
+        changeAccess: "mic-plot",
       },
       {
         name: "Used in previous item",
@@ -478,13 +474,13 @@ export const pageHelp: PageHelp[] = [
         icons: [icons.remove],
         name: "Clear",
         does: "Frees the mic, so no one wears it in the item.",
-        access: "tech",
+        access: "mic-plot",
       },
       {
         name: "Mic plot notes",
         does: "Anything the tech team needs to know about the item's mics, such as which are on only for songs.",
         access: "everyone",
-        changeAccess: "tech",
+        changeAccess: "mic-plot",
       },
     ],
   },

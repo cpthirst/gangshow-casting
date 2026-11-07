@@ -4,6 +4,7 @@ import {
   type CastMember,
   channelsHeldBefore,
   channelsKeptAgainstTheRule,
+  departments,
   ItemMicPlot,
   MicPlotList,
   type Role,
@@ -20,9 +21,10 @@ import ItemNotes from "@/components/common/ItemNotes.vue";
 import ItemStepNav from "@/components/common/ItemStepNav.vue";
 import ReadOnlyNotice from "@/components/common/ReadOnlyNotice.vue";
 import { showPageTitle } from "@/router/index.ts";
-import { apiFetch, canChangeMicPlot } from "@/services/sign-in.ts";
+import { apiFetch, canChange } from "@/services/sign-in.ts";
 import { recordDepartmentPageUse } from "@/services/usage.ts";
 import { CAST_PATH } from "@/utils/cast.ts";
+import { itemRouteOf } from "@/utils/departments.ts";
 import { icons } from "@/utils/icons.ts";
 import {
   allocateMicPath,
@@ -71,7 +73,9 @@ const neighbours = computed(() =>
 );
 // Loaded, but the item isn't in the latest saved running order.
 const notFound = computed(() => status.value === "loaded" && !place.value);
-const title = computed(() => (place.value ? `Mic plot: ${place.value.item.title}` : ""));
+const title = computed(() =>
+  place.value ? `${departments["mic-plot"].name}: ${place.value.item.title}` : "",
+);
 
 const plot = computed(() => plots.value.find((p) => p.itemId === place.value?.item.id));
 const channels = computed(() =>
@@ -118,7 +122,7 @@ const choicesOn = (channel: number) =>
 const isHeld = (mic: { channel: number; castMemberId: number | null }) =>
   mic.castMemberId === null &&
   heldBefore.value.has(mic.channel) &&
-  (!canChangeMicPlot.value || choicesOn(mic.channel).length === 0);
+  (!canChange("mic-plot") || choicesOn(mic.channel).length === 0);
 const nameOf = (castMemberId: number | null) => {
   const member = cast.value.find((m) => m.id === castMemberId);
   return member ? fullName(member) : "";
@@ -231,7 +235,7 @@ async function allocate(channel: number, castMemberId: number | null) {
 <template>
   <ItemStepNav
     :list="{ name: 'production-overview' }"
-    item-route="mic-plot-item"
+    :item-route="itemRouteOf('mic-plot')"
     :previous="neighbours.previous"
     :next="neighbours.next"
   />
@@ -239,7 +243,7 @@ async function allocate(channel: number, castMemberId: number | null) {
   <template v-else-if="place">
     <div class="page-title-row">
       <h1>{{ title }}</h1>
-      <HelpButton page="mic-plot-item" label="Help for this item" title="Item help" />
+      <HelpButton :page="itemRouteOf('mic-plot')" label="Help for this item" title="Item help" />
     </div>
     <p class="item-position" data-test="position">{{ positionOf(place) }}</p>
     <!-- Those who can't change it see every channel and who is on it, nothing to change. -->
@@ -257,7 +261,7 @@ async function allocate(channel: number, castMemberId: number | null) {
         data-test="mic"
         @focusout="leave(mic.channel)"
       >
-        <template v-if="canChangeMicPlot">
+        <template v-if="canChange('mic-plot')">
           <!-- role-actions: on phones the icon gets its own line, as on role and prop cards. -->
           <span class="role-actions row-icons">
             <button
@@ -275,7 +279,7 @@ async function allocate(channel: number, castMemberId: number | null) {
         <!-- The channel's name, then who is on it and their roles under them, in one column,
              so the roles start where the cast member picker does. -->
         <div class="mic-body">
-          <template v-if="canChangeMicPlot">
+          <template v-if="canChange('mic-plot')">
           <!-- Why a held channel is disabled is in its name, as well as shown under it. -->
           <label :for="pickerId(mic.channel)" class="mic-name"
             ><span data-test="channel">Mic {{ mic.channel }}</span
@@ -329,10 +333,10 @@ async function allocate(channel: number, castMemberId: number | null) {
     <ItemNotes
       :key="place.item.id"
       :item-id="place.item.id"
-      heading="Mic plot notes"
+      :heading="`${departments['mic-plot'].name} notes`"
       :list-path="MIC_PLOT_NOTES_PATH"
       :save-path="saveMicPlotNotesPath(place.item.id)"
-      :can-change="canChangeMicPlot"
+      :can-change="canChange('mic-plot')"
     />
   </template>
   <template v-else-if="notFound">
