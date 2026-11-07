@@ -30,10 +30,10 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [simplify.E2.S1](stories/E2-S1-file-pages-share-the-item-frame.md) | One item page frame: back link, Previous and Next, "Department: Item" title, position, notes headed by department, and the not-found and error states. The Scenery, SFX and Wardrobe pages move onto it unchanged | FR6, FR8, FR17 | E4.S1 | draft |
-| [simplify.E2.S2](stories/E2-S2-mic-plot-shares-the-item-frame.md) | The Mic plot item page moves onto the frame, keeping its channels and export | FR6, FR8, FR17 | E2.S1 | draft |
-| [simplify.E2.S3](stories/E2-S3-props-shares-the-item-frame.md) | The Props item page moves onto the frame, and its visits are recorded and shown on the Usage page | FR6, FR7, FR8, FR17 | E2.S1 | draft |
-| [simplify.E2.S4](stories/E2-S4-casting-shares-the-item-frame.md) | The Casting item page moves onto the frame: titled "Casting: Pirate Sketch", with its notes headed "Casting notes" | FR6, FR8, FR17 | E2.S1 | draft |
+| [simplify.E2.S1](stories/E2-S1-file-pages-share-the-item-frame.md) | One item page frame: back link, Previous and Next, "Department: Item" title, position, notes headed by department, and the not-found and error states. The Scenery, SFX and Wardrobe pages move onto it unchanged | FR6, FR8, FR17 | E4.S1 | done |
+| [simplify.E2.S2](stories/E2-S2-mic-plot-shares-the-item-frame.md) | The Mic plot item page moves onto the frame, keeping its channels and export | FR6, FR8, FR17 | E2.S1 | done |
+| [simplify.E2.S3](stories/E2-S3-props-shares-the-item-frame.md) | The Props item page moves onto the frame, and its visits are recorded and shown on the Usage page | FR6, FR7, FR8, FR17 | E2.S1 | done |
+| [simplify.E2.S4](stories/E2-S4-casting-shares-the-item-frame.md) | The Casting item page moves onto the frame: titled "Casting: Pirate Sketch", with its notes headed "Casting notes" | FR6, FR8, FR17 | E2.S1 | done |
 
 ## E3: Let the layout do the explaining
 
@@ -49,7 +49,7 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [simplify.E4.S1](stories/E4-S1-one-way-to-load-data.md) | One shared way to load data from the API, with one rule for failures and one for "nothing there yet". The file department pages move onto it first | FR17 | (none) | ready |
+| [simplify.E4.S1](stories/E4-S1-one-way-to-load-data.md) | One shared way to load data from the API, with one rule for failures and one for "nothing there yet". The file department pages move onto it first | FR17 | (none) | done |
 | [simplify.E4.S2](stories/E4-S2-list-pages-load-data-one-way.md) | The list pages (Cast, Running order, Casting, the Overviews, Accounts, Usage) load data the shared way | FR17 | E4.S1 | draft |
 | [simplify.E4.S3](stories/E4-S3-purpose-named-styles.md) | Cards, button rows, forms, tables and the Open column get names that say what they are. The UX reviewer's brief uses the new names | FR16 | E2.S4 | draft |
 | [simplify.E4.S4](stories/E4-S4-one-production-id.md) | The web app takes its production from one place. The 7 hard-coded ids go | FR18 | E4.S2 | draft |

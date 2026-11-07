@@ -195,23 +195,6 @@ describe("An item's Wardrobe page", () => {
     );
   });
 
-  it("goes back to the Overview, and steps to the previous and next items' Wardrobe pages", async () => {
-    apiHolds(show);
-    const { wrapper, router } = await openAppAt("/production/items/campfire-song/wardrobe");
-
-    const steps = wrapper
-      .findAll("main nav[aria-label='Item navigation'] a[rel]")
-      .map((link) => [link.attributes("rel"), link.attributes("href")]);
-    expect(steps).toEqual([
-      ["prev", "/production/items/opening-number/wardrobe"],
-      ["next", "/production/items/finale/wardrobe"],
-    ]);
-
-    await wrapper.get("main a.back-link").trigger("click");
-    await flushPromises();
-    expect(router.currentRoute.value.fullPath).toBe("/production/overview");
-  });
-
   it("has a help button beside the item's name, which opens the Wardrobe page's help", async () => {
     apiHolds(show);
     const { wrapper } = await openAppAt(OPENING_NUMBER);
@@ -229,15 +212,6 @@ describe("An item's Wardrobe page", () => {
       "Add a file",
       "Wardrobe notes",
     ]);
-  });
-
-  it("says an item that isn't in the running order wasn't found, with a link back", async () => {
-    apiHolds(show);
-    const { wrapper } = await openAppAt("/production/items/no-such-item/wardrobe");
-
-    expect(wrapper.get("main h1").text()).toBe("Item not found");
-    expect(wrapper.find("[data-test=no-files]").exists()).toBe(false);
-    expect(wrapper.get("main a.back-link").attributes("href")).toBe("/production/overview");
   });
 
   it("lists only the Wardrobe files, not the scenery or SFX files", async () => {
@@ -476,5 +450,20 @@ describe("Recording a visit to an item's Wardrobe page (production-sfx-wardrobe 
 
     expect(wrapper.get("main h1").text()).toBe("Item not found");
     expect(recorded()).toEqual([]);
+  });
+});
+
+describe("Loading the Wardrobe page's data", () => {
+  it("says it couldn't load the item when the API fails to give its files", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) =>
+        url === RUNNING_ORDER_PATH ? json(show) : new Response(null, { status: 500 }),
+      ),
+    );
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    expect(wrapper.get("main [role=alert]").text()).toBe("Couldn't load the item.");
+    expect(wrapper.find("[data-test=no-files]").exists()).toBe(false);
   });
 });

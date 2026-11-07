@@ -65,6 +65,8 @@ export const RecordUsageRequest = z.discriminatedUnion("event", [
   z.object({ event: z.literal("view"), view: PageView }),
   // Which item, never its title, cast or files: the Usage page looks the title up (FR2).
   z.object({ event: z.literal("item"), ...itemOnly }),
+  // An item's Props page, counted apart from its casting page as the others are.
+  z.object({ event: z.literal("props"), ...itemOnly }),
   // An item's Scenery page, counted apart from its casting page (production-scenery FR15).
   z.object({ event: z.literal("scenery"), ...itemOnly }),
   // Its SFX and Wardrobe pages, each counted apart as Scenery's are (production-sfx-wardrobe FR13).
@@ -83,6 +85,7 @@ export const UsageFeature = z.enum([
   "overview-grid",
   // Every item's page together: the summary doesn't count items one by one.
   "item-page",
+  "props-page",
   "scenery-page",
   "sfx-page",
   "mic-plot-page",
@@ -103,6 +106,7 @@ export function featureOf(request: RecordUsageRequest): UsageFeature | undefined
       return VIEW_FEATURES[request.view];
     case "item":
       return "item-page";
+    case "props":
     case "scenery":
     case "sfx":
     case "mic-plot":

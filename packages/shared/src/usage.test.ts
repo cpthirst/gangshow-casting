@@ -54,7 +54,7 @@ describe("RecordUsageRequest", () => {
     expect(RecordUsageRequest.parse({ ...use, title: "Night at the movies" })).toEqual(use);
   });
 
-  it.each(["sfx", "mic-plot", "wardrobe"])(
+  it.each(["props", "sfx", "mic-plot", "wardrobe"])(
     "accepts opening an item's %s page, keeping only which item",
     (event) => {
       const use = { event, productionId: "2027", itemId: "made-up-item" };
@@ -108,6 +108,7 @@ describe("featureOf", () => {
   });
 
   it.each([
+    ["props", "props-page"],
     ["scenery", "scenery-page"],
     ["sfx", "sfx-page"],
     ["mic-plot", "mic-plot-page"],

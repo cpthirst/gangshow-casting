@@ -6,25 +6,19 @@ import {
   type CastMember,
   Role,
   RoleList,
-  RunningOrder,
+  type RunningOrder,
 } from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-import { computed, nextTick, onMounted, ref, watch, watchEffect } from "vue";
+import { computed, nextTick, ref } from "vue";
 import { useRoute } from "vue-router";
 import RoleForm from "@/components/casting/RoleForm.vue";
 import ClashIcon from "@/components/common/ClashIcon.vue";
-import HelpButton from "@/components/common/HelpButton.vue";
-import ItemNotes from "@/components/common/ItemNotes.vue";
-import ItemStepNav from "@/components/common/ItemStepNav.vue";
-import ReadOnlyNotice from "@/components/common/ReadOnlyNotice.vue";
-import { showPageTitle } from "@/router/index.ts";
+import ItemPageFrame from "@/components/common/ItemPageFrame.vue";
+import { loadData } from "@/services/load-data.ts";
 import { apiFetch, canChange } from "@/services/sign-in.ts";
-import { recordItemUse } from "@/services/usage.ts";
 import { CAST_PATH } from "@/utils/cast.ts";
 import { clashesOf, describeEach, findClashes } from "@/utils/clashes.ts";
-import { itemRouteOf } from "@/utils/departments.ts";
 import { icons } from "@/utils/icons.ts";
-import { ITEM_NOTES_PATH, saveNotesPath } from "@/utils/item-notes.ts";
 import {
   addRolePath,
   castNames,
@@ -37,13 +31,15 @@ import {
   sortRoles,
   updateRolePath,
 } from "@/utils/roles.ts";
-import { neighboursOf, placeOf, positionOf, RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
+import { placeOf } from "@/utils/running-order.ts";
+
+// One item's roles and who plays them, in the frame every item page shares, with the item's
+// Casting notes under them.
 
 const route = useRoute();
 const order = ref<RunningOrder>();
 const roles = ref<Role[]>([]);
 const cast = ref<CastMember[]>([]);
-const status = ref<"loading" | "loaded" | "error">("loading");
 
 const place = computed(() => {
   const itemId = route.params.itemId;
@@ -72,56 +68,19 @@ const takenNames = computed(() => ({
   names: itemRoles.value.filter((role) => role.id !== editing.value?.id).map((role) => role.name),
 }));
 
-// Step through the items in show order without going back to the list.
-const neighbours = computed(() =>
-  order.value && place.value ? neighboursOf(order.value, place.value.item.id) : {},
-);
-
-// Loaded, but the item isn't in the latest saved running order (PRD FR6).
-const notFound = computed(() => status.value === "loaded" && !place.value);
-
-const position = computed(() => (place.value ? positionOf(place.value) : ""));
-
-// Each item opened is a use, once it's found in the running order (usage-tracking FR2).
-watch(
-  () => place.value?.item.id,
-  (itemId) => {
-    if (order.value && itemId) recordItemUse(order.value.productionId, itemId);
-  },
-);
-
-// Follows the item even if the page is reused for another one (back/forward between items).
-watchEffect(() => {
-  if (place.value) showPageTitle(place.value.item.title);
-  else if (notFound.value) showPageTitle("Item not found");
-});
-
-onMounted(async () => {
-  try {
-    // Name and position come from the latest saved running order, like the Items list.
-    const [orderRes, rolesRes, castRes] = await Promise.all([
-      apiFetch(RUNNING_ORDER_PATH),
-      apiFetch(ROLES_PATH),
-      apiFetch(CAST_PATH),
-    ]);
-    // No saved running order at all: no item can be in it.
-    if (orderRes.status !== 404) {
-      if (!orderRes.ok) throw new Error(`HTTP ${orderRes.status}`);
-      order.value = RunningOrder.parse(await orderRes.json());
-    }
-    if (!rolesRes.ok) throw new Error(`HTTP ${rolesRes.status}`);
-    roles.value = RoleList.parse(await rolesRes.json()).roles;
-    // No cast list yet just means nobody can be cast.
-    if (castRes.status !== 404) {
-      if (!castRes.ok) throw new Error(`HTTP ${castRes.status}`);
-      cast.value = CastList.parse(await castRes.json()).members;
-    }
-    status.value = "loaded";
-  } catch {
-    // A failed load must never look like "not found".
-    status.value = "error";
-  }
-});
+// Every role and the cast, loaded with the running order the frame shows; no roles or cast
+// list yet just means there are none.
+async function loadCasting() {
+  const [loadedRoles, loadedCast] = await Promise.all([
+    loadData(ROLES_PATH, RoleList),
+    loadData(CAST_PATH, CastList),
+  ]);
+  return (loadedOrder: RunningOrder) => {
+    order.value = loadedOrder;
+    roles.value = loadedRoles?.roles ?? [];
+    cast.value = loadedCast?.members ?? [];
+  };
+}
 
 const adding = ref(false);
 /** The role whose edit form is open, if any. One form at a time. */
@@ -283,21 +242,12 @@ async function postRole(itemId: string, details: AddRoleRequest) {
 </script>
 
 <template>
-  <ItemStepNav
+  <ItemPageFrame
+    v-slot="{ item }"
+    department="casting"
     :list="{ name: 'casting-items' }"
-    :item-route="itemRouteOf('casting')"
-    :previous="neighbours.previous"
-    :next="neighbours.next"
-  />
-  <p v-if="status === 'error'" role="alert">Couldn't load the item.</p>
-  <template v-else-if="place">
-    <div class="page-title-row">
-      <h1>{{ place.item.title }}</h1>
-      <HelpButton :page="itemRouteOf('casting')" label="Help for this item" title="Item help" />
-    </div>
-    <p class="item-position" data-test="position">{{ position }}</p>
-    <!-- Those who can't change casting see the roles and notes with nothing to change them (team-roles FR6). -->
-    <ReadOnlyNotice />
+    :load="loadCasting"
+  >
     <div v-if="canChange('casting')" class="cast-actions">
       <button
         ref="addButton"
@@ -384,7 +334,7 @@ async function postRole(itemId: string, details: AddRoleRequest) {
                 ><span class="cast-name" data-test="cast-name"
                   >{{ fullName(member)
                   }}<ClashIcon
-                    :lines="clashesHere(member, place.item.id)" /></span
+                    :lines="clashesHere(member, item.id)" /></span
               ></template>
             </span>
           </template>
@@ -396,18 +346,5 @@ async function postRole(itemId: string, details: AddRoleRequest) {
       </li>
     </ul>
     <p v-else>No roles have been added yet.</p>
-    <!-- A fresh instance per item, so stepping to another never mixes their notes. -->
-    <ItemNotes
-      :key="place.item.id"
-      :item-id="place.item.id"
-      heading="Notes"
-      :list-path="ITEM_NOTES_PATH"
-      :save-path="saveNotesPath(place.item.id)"
-      :can-change="canChange('casting')"
-    />
-  </template>
-  <template v-else-if="notFound">
-    <h1>Item not found</h1>
-    <p>It isn't in the latest saved running order. Choose an item from All items.</p>
-  </template>
+  </ItemPageFrame>
 </template>

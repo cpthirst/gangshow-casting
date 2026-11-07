@@ -27,15 +27,10 @@ import {
   filesCount,
 } from "@/utils/departments.ts";
 import { icons } from "@/utils/icons.ts";
-import { departmentNotesPath, fileCountsPath } from "@/utils/item-files.ts";
-import {
-  keptMicsSummary,
-  MIC_PLOT_NOTES_PATH,
-  MIC_PLOT_PATH,
-  micsCount,
-} from "@/utils/mic-plot.ts";
+import { fileCountsPath } from "@/utils/item-files.ts";
+import { departmentNotesPath } from "@/utils/item-notes.ts";
+import { keptMicsSummary, MIC_PLOT_PATH, micsCount } from "@/utils/mic-plot.ts";
 import { PROPS_PATH, propCounts, propsCount } from "@/utils/props.ts";
-import { PROPS_NOTES_PATH } from "@/utils/props-notes.ts";
 import { RUNNING_ORDER_PATH, runningClock } from "@/utils/running-order.ts";
 
 // Production's one page: the show's items, each with a button for every department's page
@@ -74,24 +69,10 @@ const fileCountsFailed = computed(() =>
 // production-sfx-wardrobe FR11, production-mics FR13); cleared notes are left out. Shown
 // under the item in the departments' order.
 type Notes = Map<string, string> | "error";
-function notesPathOf(id: DepartmentPage["id"]) {
-  switch (id) {
-    case "scenery":
-    case "sfx":
-    case "wardrobe":
-      return departmentNotesPath(id);
-    case "props":
-      return PROPS_NOTES_PATH;
-    case "mic-plot":
-      return MIC_PLOT_NOTES_PATH;
-    default:
-      return unknownDepartment(id);
-  }
-}
 const noteKinds = departmentPages.map(({ id, name }) => ({
   key: id,
   label: `${name} notes`,
-  path: notesPathOf(id),
+  path: departmentNotesPath(id),
 }));
 const notesOf = ref<Record<string, Notes>>({});
 const notesFailed = computed(() => Object.values(notesOf.value).includes("error"));

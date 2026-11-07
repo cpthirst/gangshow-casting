@@ -6,14 +6,8 @@ import {
   type SceneryFile,
 } from "@app/shared";
 import { icons } from "./icons.ts";
-import {
-  departmentNotesPath,
-  itemFileLinkPath,
-  itemFilePath,
-  itemFilesPath,
-  itemUploadsPath,
-  saveDepartmentNotesPath,
-} from "./item-files.ts";
+import { itemFileLinkPath, itemFilePath, itemFilesPath, itemUploadsPath } from "./item-files.ts";
+import { departmentNotesPath, saveDepartmentNotesPath } from "./item-notes.ts";
 
 /** The item's scenery files, as file storage holds them now (production-scenery FR6). */
 export const sceneryFilesPath = (itemId: string) => itemFilesPath("scenery", itemId);

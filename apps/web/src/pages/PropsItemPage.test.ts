@@ -16,9 +16,8 @@ import { createAppRouter } from "@/router/index.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
 import { CAST_PATH } from "@/utils/cast.ts";
-import { ITEM_NOTES_PATH } from "@/utils/item-notes.ts";
+import { departmentNotesPath, ITEM_NOTES_PATH } from "@/utils/item-notes.ts";
 import { PROPS_PATH } from "@/utils/props.ts";
-import { PROPS_NOTES_PATH } from "@/utils/props-notes.ts";
 import { ROLES_PATH } from "@/utils/roles.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
 import { RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
@@ -77,7 +76,7 @@ function savedShowIs(
         return order ? json(order) : new Response(null, { status: 404 });
       }
       if (url === PROPS_PATH) return json({ productionId: "2027", props: stored });
-      if (url === PROPS_NOTES_PATH) return json({ productionId: "2027", notes: [] });
+      if (url === departmentNotesPath("props")) return json({ productionId: "2027", notes: [] });
       if (url === ROLES_PATH) return json({ productionId: "2027", roles: casting.roles });
       if (url === CAST_PATH) return json({ productionId: "2027", members: casting.cast });
       const addTo = /\/items\/([^/]+)\/props$/.exec(url)?.[1];
@@ -297,6 +296,43 @@ describe("An item's props page", () => {
   });
 });
 
+describe("Recording a visit to an item's Props page", () => {
+  // Everything recorded but sessions, which are sign-ins, not uses of this page.
+  const recorded = () =>
+    vi
+      .mocked(fetch)
+      .mock.calls.filter(([url, init]) => url === "/api/usage" && init?.method === "POST")
+      .map(([, init]) => JSON.parse(String(init?.body)))
+      .filter((body) => body.event !== "session");
+
+  it("records jo opening an item's Props page, naming only the item and its production", async () => {
+    await signInAs(["stage"], "jo");
+    savedShowIs(show);
+
+    await openAppAt(PIRATE_PROPS);
+
+    expect(recorded()).toEqual([{ event: "props", productionId: "2027", itemId: "pirate-sketch" }]);
+  });
+
+  it("shows the props and no error when the visit can't be recorded", async () => {
+    await signInAs(["stage"], "jo");
+    savedShowIs(show, [aProp(1, "pirate-sketch", "Cutlass")]);
+    const fetch = vi.mocked(globalThis.fetch);
+    const answer = fetch.getMockImplementation();
+    fetch.mockImplementation(async (url, init) =>
+      url === "/api/usage"
+        ? Promise.reject(new TypeError("offline"))
+        : (answer?.(url, init) ?? json({})),
+    );
+
+    const { wrapper } = await openAppAt(PIRATE_PROPS);
+
+    expect(wrapper.get("main h1").text()).toBe("Props: Pirate Sketch");
+    expect(propsShown(wrapper)).toEqual(["Cutlass"]);
+    expect(wrapper.find("main [role=alert]").exists()).toBe(false);
+  });
+});
+
 describe("Adding a prop", () => {
   it("adds a prop by name as a card, kept on reload and counted on the Overview, for Stage", async () => {
     await signInAs(["stage"], "pat");
@@ -444,7 +480,7 @@ describe("Props notes", () => {
     const fetch = vi.mocked(globalThis.fetch);
     const answer = fetch.getMockImplementation();
     fetch.mockImplementation(async (url, init) => {
-      if (url === PROPS_NOTES_PATH) return json({ productionId: "2027", notes: props });
+      if (url === departmentNotesPath("props")) return json({ productionId: "2027", notes: props });
       if (url === ITEM_NOTES_PATH) return json({ productionId: "2027", notes: casting });
       const notesOf = /\/items\/([^/]+)\/props-notes$/.exec(String(url))?.[1];
       if (notesOf && init?.method === "PUT") {

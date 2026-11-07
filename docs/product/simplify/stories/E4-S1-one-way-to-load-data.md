@@ -2,7 +2,7 @@
 id: simplify.E4.S1
 title: Load the file department pages' data one shared way
 epic: E4
-status: ready
+status: done
 ---
 
 ## Story

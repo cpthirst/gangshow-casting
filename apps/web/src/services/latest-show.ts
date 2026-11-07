@@ -1,8 +1,8 @@
 import { CastList, ItemNoteList, MicPlotList, PropList, RoleList, RunningOrder } from "@app/shared";
 import { CAST_PATH } from "@/utils/cast.ts";
-import { MIC_PLOT_NOTES_PATH, MIC_PLOT_PATH, micPlotListOf } from "@/utils/mic-plot.ts";
+import { departmentNotesPath } from "@/utils/item-notes.ts";
+import { MIC_PLOT_PATH, micPlotListOf } from "@/utils/mic-plot.ts";
 import { PROPS_PATH, propsListOf } from "@/utils/props.ts";
-import { PROPS_NOTES_PATH } from "@/utils/props-notes.ts";
 import { ROLES_PATH } from "@/utils/roles.ts";
 import { RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
 import { apiFetch } from "./sign-in.ts";
@@ -35,7 +35,7 @@ export async function latestPropsList() {
   const [show, props, notes] = await Promise.all([
     latestShow(),
     getJson(PROPS_PATH),
-    getJson(PROPS_NOTES_PATH),
+    getJson(departmentNotesPath("props")),
   ]);
   return {
     title: show.order.title,
@@ -53,7 +53,7 @@ export async function latestMicPlot() {
   const [show, plots, notes] = await Promise.all([
     latestShow(),
     getJson(MIC_PLOT_PATH),
-    getJson(MIC_PLOT_NOTES_PATH),
+    getJson(departmentNotesPath("mic-plot")),
   ]);
   return {
     title: show.order.title,

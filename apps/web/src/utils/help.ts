@@ -224,7 +224,7 @@ export const pageHelp: PageHelp[] = [
         access: "casting",
       },
       {
-        name: "Notes",
+        name: "Casting notes",
         does: "Anything the team needs to know about the item.",
         access: "everyone",
         changeAccess: "casting",

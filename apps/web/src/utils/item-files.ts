@@ -1,6 +1,6 @@
 import type { FileDepartment } from "@app/shared";
 
-// Each item's files and notes for a Production department, Scenery's, SFX's or Wardrobe's,
+// Each item's files for a Production department, Scenery's, SFX's or Wardrobe's,
 // which share one page layout (production-sfx-wardrobe FR2) and the API's routes, each named
 // after it.
 
@@ -14,24 +14,20 @@ export interface FilesDepartment {
   key: FileDepartment;
   /** What the upload area says the files must be, if anything. */
   uploadRule?: string;
-  /** The page's help. */
-  help: string;
 }
 
 export const sceneryDepartment: FilesDepartment = {
   key: "scenery",
   uploadRule: "Scenery and set images only: no photos of cast members.",
-  help: "scenery-item",
 };
 
-export const sfxDepartment: FilesDepartment = { key: "sfx", help: "sfx-item" };
+export const sfxDepartment: FilesDepartment = { key: "sfx" };
 
 // Its rule stands in for checking each file, as Scenery's does (production-sfx-wardrobe FR4,
 // ADR 0010).
 export const wardrobeDepartment: FilesDepartment = {
   key: "wardrobe",
   uploadRule: "Costume designs and images only: no photos of cast members.",
-  help: "wardrobe-item",
 };
 
 const itemPath = (itemId: string) =>
@@ -57,11 +53,3 @@ export const itemFileLinkPath = (department: FileDepartment, itemId: string, nam
  *  (production-overview FR14, production-sfx-wardrobe FR10). */
 export const fileCountsPath = (department: FileDepartment) =>
   `/api/productions/${PRODUCTION_ID}/${department}-file-counts`;
-
-/** Every item's notes for the department, apart from its other notes. */
-export const departmentNotesPath = (department: FileDepartment) =>
-  `/api/productions/${PRODUCTION_ID}/${department}-notes`;
-
-/** Where an item's notes for the department are saved. */
-export const saveDepartmentNotesPath = (department: FileDepartment, itemId: string) =>
-  `${itemPath(itemId)}/${department}-notes`;

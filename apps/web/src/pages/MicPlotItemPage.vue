@@ -4,27 +4,21 @@ import {
   type CastMember,
   channelsHeldBefore,
   channelsKeptAgainstTheRule,
-  departments,
   ItemMicPlot,
   MicPlotList,
   type Role,
   RoleList,
-  RunningOrder,
+  type RunningOrder,
 } from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-import { computed, onMounted, ref, useId, watch, watchEffect } from "vue";
+import { computed, ref, useId, watch } from "vue";
 import { useRoute } from "vue-router";
 import CastMemberPicker from "@/components/casting/CastMemberPicker.vue";
 import ClashIcon from "@/components/common/ClashIcon.vue";
-import HelpButton from "@/components/common/HelpButton.vue";
-import ItemNotes from "@/components/common/ItemNotes.vue";
-import ItemStepNav from "@/components/common/ItemStepNav.vue";
-import ReadOnlyNotice from "@/components/common/ReadOnlyNotice.vue";
-import { showPageTitle } from "@/router/index.ts";
+import ItemPageFrame from "@/components/common/ItemPageFrame.vue";
+import { loadData } from "@/services/load-data.ts";
 import { apiFetch, canChange } from "@/services/sign-in.ts";
-import { recordDepartmentPageUse } from "@/services/usage.ts";
 import { CAST_PATH } from "@/utils/cast.ts";
-import { itemRouteOf } from "@/utils/departments.ts";
 import { icons } from "@/utils/icons.ts";
 import {
   allocateMicPath,
@@ -32,19 +26,17 @@ import {
   channelsOf,
   choicesFor,
   keptMicError,
-  MIC_PLOT_NOTES_PATH,
   MIC_PLOT_PATH,
   micRolesText,
-  saveMicPlotNotesPath,
 } from "@/utils/mic-plot.ts";
 import { type CastMemberChoice, fullName, ROLES_PATH } from "@/utils/roles.ts";
-import { neighboursOf, placeOf, positionOf, RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
+import { neighboursOf, placeOf } from "@/utils/running-order.ts";
 
 // One item's mic plot: Mic 1 to Mic 24, each given to a cast member in the item or free, with
 // the roles they play there (production-mics FR2, FR3, FR4), a channel someone had in the item
 // before held for them (FR5, FR6), one kept against that rule after a reorder shown as an
-// error until it's cleared (FR10), and the item's Mic plot notes under them (FR8), laid out as
-// the other department item pages.
+// error until it's cleared (FR10), in the frame every item page shares, with the item's Mic
+// plot notes under them (FR8).
 
 const route = useRoute();
 const order = ref<RunningOrder>();
@@ -52,7 +44,6 @@ const plots = ref<ItemMicPlot[]>([]);
 // The casting, for who can be given a mic (FR3), and everyone's names.
 const roles = ref<Role[]>([]);
 const cast = ref<CastMember[]>([]);
-const status = ref<"loading" | "loaded" | "error">("loading");
 /** The channel being saved, which shows the choice made until the API answers. */
 const saving = ref<{ channel: number; castMemberId: number | null }>();
 /** What's typed in a channel's picker before anyone is chosen from it, by channel. */
@@ -70,11 +61,6 @@ const place = computed(() => {
 });
 const neighbours = computed(() =>
   order.value && place.value ? neighboursOf(order.value, place.value.item.id) : {},
-);
-// Loaded, but the item isn't in the latest saved running order.
-const notFound = computed(() => status.value === "loaded" && !place.value);
-const title = computed(() =>
-  place.value ? `${departments["mic-plot"].name}: ${place.value.item.title}` : "",
 );
 
 const plot = computed(() => plots.value.find((p) => p.itemId === place.value?.item.id));
@@ -128,20 +114,6 @@ const nameOf = (castMemberId: number | null) => {
   return member ? fullName(member) : "";
 };
 
-// Each visit is a use, once the item is found; what's done with its mics isn't (FR16).
-watch(
-  () => place.value?.item.id,
-  (id) => {
-    if (order.value && id) recordDepartmentPageUse("mic-plot", order.value.productionId, id);
-  },
-);
-
-// Follows the item even if the page is reused for another one (Previous and Next).
-watchEffect(() => {
-  if (place.value) showPageTitle(title.value);
-  else if (notFound.value) showPageTitle("Item not found");
-});
-
 // A message or half-typed name on one item's mics never carries over to the next.
 watch(
   () => route.params.itemId,
@@ -152,31 +124,21 @@ watch(
   },
 );
 
-async function okJson(res: Response): Promise<unknown> {
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
+// Every item's mics and the casting, loaded with the running order the frame shows; no mic
+// plot, casting or cast list yet just means nobody is on a mic or cast.
+async function loadMics() {
+  const [loadedPlots, loadedRoles, loadedCast] = await Promise.all([
+    loadData(MIC_PLOT_PATH, MicPlotList),
+    loadData(ROLES_PATH, RoleList),
+    loadData(CAST_PATH, CastList),
+  ]);
+  return (loadedOrder: RunningOrder) => {
+    order.value = loadedOrder;
+    plots.value = loadedPlots?.items ?? [];
+    roles.value = loadedRoles?.roles ?? [];
+    cast.value = loadedCast?.members ?? [];
+  };
 }
-
-onMounted(async () => {
-  try {
-    const [orderRes, plotsRes, rolesRes, castRes] = await Promise.all([
-      apiFetch(RUNNING_ORDER_PATH),
-      apiFetch(MIC_PLOT_PATH),
-      apiFetch(ROLES_PATH),
-      apiFetch(CAST_PATH),
-    ]);
-    // No saved running order at all: no item can be in it.
-    if (orderRes.status !== 404) order.value = RunningOrder.parse(await okJson(orderRes));
-    plots.value = MicPlotList.parse(await okJson(plotsRes)).items;
-    roles.value = RoleList.parse(await okJson(rolesRes)).roles;
-    // No cast list yet just means nobody is cast.
-    if (castRes.status !== 404) cast.value = CastList.parse(await okJson(castRes)).members;
-    status.value = "loaded";
-  } catch {
-    // A failed load must never look like "not found".
-    status.value = "error";
-  }
-});
 
 /** What a channel's picker shows: what's being typed, otherwise who is on it. */
 const choiceFor = (channel: number, castMemberId: number | null): CastMemberChoice =>
@@ -219,7 +181,8 @@ async function allocate(channel: number, castMemberId: number | null) {
       problem.value = `${nameOf(castMemberId)} is already on another mic in this item. Here are the mics as they are now.`;
       return;
     }
-    show(ItemMicPlot.parse(await okJson(res)));
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    show(ItemMicPlot.parse(await res.json()));
     announcement.value =
       castMemberId === null
         ? `Mic ${channel} is free.`
@@ -233,21 +196,7 @@ async function allocate(channel: number, castMemberId: number | null) {
 </script>
 
 <template>
-  <ItemStepNav
-    :list="{ name: 'production-overview' }"
-    :item-route="itemRouteOf('mic-plot')"
-    :previous="neighbours.previous"
-    :next="neighbours.next"
-  />
-  <p v-if="status === 'error'" role="alert">Couldn't load the item.</p>
-  <template v-else-if="place">
-    <div class="page-title-row">
-      <h1>{{ title }}</h1>
-      <HelpButton :page="itemRouteOf('mic-plot')" label="Help for this item" title="Item help" />
-    </div>
-    <p class="item-position" data-test="position">{{ positionOf(place) }}</p>
-    <!-- Those who can't change it see every channel and who is on it, nothing to change. -->
-    <ReadOnlyNotice about="mic-plot" />
+  <ItemPageFrame v-slot="{ item }" department="mic-plot" :load="loadMics">
     <p v-if="problem" class="notice" role="alert" data-test="mic-problem">{{ problem }}</p>
     <!-- An explicit list role: Safari drops list semantics once bullets are styled away. -->
     <ol class="mic-channels" role="list" aria-label="Mics">
@@ -322,25 +271,11 @@ async function allocate(channel: number, castMemberId: number | null) {
           >
           <!-- Their roles in the item, from the casting: shown, never chosen (FR3). -->
           <span class="mic-roles" data-test="mic-roles">{{
-            micRolesText(place.item.id, mic.castMemberId, roles)
+            micRolesText(item.id, mic.castMemberId, roles)
           }}</span>
         </div>
       </li>
     </ol>
     <p class="visually-hidden" role="status" data-test="mic-status">{{ announcement }}</p>
-    <!-- Apart from the item's other notes. A fresh instance per item, so stepping to another
-         never mixes their notes. -->
-    <ItemNotes
-      :key="place.item.id"
-      :item-id="place.item.id"
-      :heading="`${departments['mic-plot'].name} notes`"
-      :list-path="MIC_PLOT_NOTES_PATH"
-      :save-path="saveMicPlotNotesPath(place.item.id)"
-      :can-change="canChange('mic-plot')"
-    />
-  </template>
-  <template v-else-if="notFound">
-    <h1>Item not found</h1>
-    <p>It isn't in the latest saved running order. Choose an item from All items.</p>
-  </template>
+  </ItemPageFrame>
 </template>

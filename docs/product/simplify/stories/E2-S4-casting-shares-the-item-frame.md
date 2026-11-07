@@ -2,7 +2,7 @@
 id: simplify.E2.S4
 title: Move the Casting item page onto the shared frame
 epic: E2
-status: draft
+status: done
 ---
 
 ## Story
@@ -24,18 +24,19 @@ Then they're headed "Casting notes"
 ### AC3: Back goes to Casting Items
 Given someone on the Casting page for item 2 of 3
 When they use the frame's links
-Then one goes back to Casting Items
+Then All items goes back to Casting Items, not the Production overview
 And Previous and Next go to the Casting pages for items 1 and 3
 
 ### AC4: Roles and casting work as today
 Given "pat" has Casting
 When pat adds a role "Captain", casts "Alex Smith" in it, edits it and deletes it
-Then each works as it does today, including back-to-back clashes
+Then each works as it does today
+And a back-to-back clash still shows its icon by the cast member's name
 
 ### AC5: A visit is recorded as today
 Given "jo" opens the Casting page for "Pirate Sketch"
 When an admin opens the Usage page
-Then the visit counts as an item page, as it does today
+Then the visit is counted as an item page, as it is today
 
 ### AC6: Not found and errors come from the frame
 Given an address for the Casting page of an item that isn't in the latest saved running order
@@ -48,3 +49,4 @@ Then it shows the frame's "Item not found" message
 - Depends on: simplify.E2.S1
 - The existing browser layout walks "an item's add-role and edit-role forms" and "Previous and Next share a row" must still pass.
 - Check whether Help or Welcome quotes the old title or the "Notes" heading, and update them if so.
+- Casting loads its roles and cast the shared way (FR17): no roles saved yet shows none, rather than an error.

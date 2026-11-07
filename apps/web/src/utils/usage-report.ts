@@ -76,6 +76,7 @@ export function whatHappened(entry: RecordUsageRequest, titles: Titles) {
       if (title === null) return "opened an item";
       return title ? `opened ${title}` : "opened an item no longer in the running order";
     }
+    case "props":
     case "scenery":
     case "sfx":
     case "mic-plot":
@@ -103,6 +104,7 @@ const otherNames: Record<OtherFeature, string> = {
   "overview-by-item": "Overview: By item",
   "overview-grid": "Overview: Grid",
   "item-page": "Item pages",
+  "props-page": pagesOf("props"),
   "scenery-page": pagesOf("scenery"),
   "sfx-page": pagesOf("sfx"),
   "mic-plot-page": pagesOf("mic-plot"),

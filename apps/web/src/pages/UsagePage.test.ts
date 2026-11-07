@@ -249,11 +249,12 @@ describe("Usage page", () => {
     ]);
   });
 
-  it("shows SFX, Mic plot and Wardrobe pages apart from Scenery and Item pages, per person and in the totals", async () => {
+  it("shows Props, SFX, Mic plot and Wardrobe pages apart from Scenery and Item pages, per person and in the totals", async () => {
     serve({
       recordedSince: "2026-10-01T18:00:00.000Z",
       features: [
         { feature: "item-page", uses: 0, people: 0 },
+        { feature: "props-page", uses: 1, people: 1 },
         { feature: "scenery-page", uses: 0, people: 0 },
         { feature: "sfx-page", uses: 1, people: 1 },
         { feature: "mic-plot-page", uses: 1, people: 1 },
@@ -264,7 +265,7 @@ describe("Usage page", () => {
           username: "robin",
           sessions: 1,
           lastSession: "2026-10-20T18:00:00.000Z",
-          uses: { "sfx-page": 1, "mic-plot-page": 1, "wardrobe-page": 1 },
+          uses: { "props-page": 1, "sfx-page": 1, "mic-plot-page": 1, "wardrobe-page": 1 },
         },
       ],
     });
@@ -275,10 +276,11 @@ describe("Usage page", () => {
       "robin",
       "1",
       "20 October 2026",
-      ["SFX pages 1", "Mic plot pages 1", "Wardrobe pages 1"],
+      ["Props pages 1", "SFX pages 1", "Mic plot pages 1", "Wardrobe pages 1"],
     ]);
     expect(totals(wrapper)).toEqual([
       ["Item pages", "0", "0"],
+      ["Props pages", "1", "1"],
       ["Scenery pages", "0", "0"],
       ["SFX pages", "1", "1"],
       ["Mic plot pages", "1", "1"],
@@ -534,6 +536,7 @@ describe("Usage page", () => {
     });
 
     it.each([
+      ["props", "Props"],
       ["sfx", "SFX"],
       ["mic-plot", "Mic plot"],
       ["wardrobe", "Wardrobe"],
@@ -552,6 +555,7 @@ describe("Usage page", () => {
     });
 
     it.each([
+      ["props", "a Props page"],
       ["sfx", "an SFX page"],
       ["mic-plot", "a Mic plot page"],
       ["wardrobe", "a Wardrobe page"],
@@ -575,6 +579,7 @@ describe("Usage page", () => {
     );
 
     it.each([
+      ["props", "Props"],
       ["sfx", "SFX"],
       ["mic-plot", "Mic plot"],
       ["wardrobe", "Wardrobe"],

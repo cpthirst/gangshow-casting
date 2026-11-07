@@ -1,5 +1,5 @@
 import {
-  type FileDepartment,
+  type DepartmentId,
   MenuPageName,
   type PageView,
   type RecordUsageRequest,
@@ -44,11 +44,14 @@ export const recordExport = (kind: UsageExport) => record({ event: "export", exp
 export const recordItemUse = (productionId: string, itemId: string) =>
   record({ event: "item", productionId, itemId });
 
-/** Records opening an item's Scenery, SFX, Mic plot or Wardrobe page: which item only, never
- *  its title, files or mics (production-scenery FR15, production-sfx-wardrobe FR13,
- *  production-mics FR16). */
-export const recordDepartmentPageUse = (
-  department: FileDepartment | "mic-plot",
+/** Records opening a department's page for an item: which item only, never its title, props,
+ *  files or mics (production-scenery FR15, production-sfx-wardrobe FR13, production-mics FR16,
+ *  simplify FR7). Casting's is the item's own page. */
+export function recordDepartmentPageUse(
+  department: DepartmentId,
   productionId: string,
   itemId: string,
-) => record({ event: department, productionId, itemId });
+) {
+  if (department === "casting") recordItemUse(productionId, itemId);
+  else record({ event: department, productionId, itemId });
+}

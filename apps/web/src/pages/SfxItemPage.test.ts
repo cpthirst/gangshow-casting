@@ -199,23 +199,6 @@ describe("An item's SFX page", () => {
     );
   });
 
-  it("goes back to the Overview, and steps to the previous and next items' SFX pages", async () => {
-    apiHolds(show);
-    const { wrapper, router } = await openAppAt("/production/items/campfire-song/sfx");
-
-    const steps = wrapper
-      .findAll("main nav[aria-label='Item navigation'] a[rel]")
-      .map((link) => [link.attributes("rel"), link.attributes("href")]);
-    expect(steps).toEqual([
-      ["prev", "/production/items/opening-number/sfx"],
-      ["next", "/production/items/finale/sfx"],
-    ]);
-
-    await wrapper.get("main a.back-link").trigger("click");
-    await flushPromises();
-    expect(router.currentRoute.value.fullPath).toBe("/production/overview");
-  });
-
   it("has a help button beside the item's name, which opens the SFX page's help", async () => {
     apiHolds(show);
     const { wrapper } = await openAppAt(OPENING_NUMBER);
@@ -233,15 +216,6 @@ describe("An item's SFX page", () => {
       "Add a file",
       "SFX notes",
     ]);
-  });
-
-  it("says an item that isn't in the running order wasn't found, with a link back", async () => {
-    apiHolds(show);
-    const { wrapper } = await openAppAt("/production/items/no-such-item/sfx");
-
-    expect(wrapper.get("main h1").text()).toBe("Item not found");
-    expect(wrapper.find("[data-test=no-files]").exists()).toBe(false);
-    expect(wrapper.get("main a.back-link").attributes("href")).toBe("/production/overview");
   });
 
   it("lists only the SFX files, and the Scenery page only the scenery files", async () => {
@@ -581,5 +555,26 @@ describe("Recording a visit to an item's SFX page (production-sfx-wardrobe FR13)
 
     expect(wrapper.get("main h1").text()).toBe("Item not found");
     expect(recorded()).toEqual([]);
+  });
+});
+
+describe("Loading the SFX page's data", () => {
+  it("shows no files and an empty notes box, with no error, when the API has nothing there yet", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (url === RUNNING_ORDER_PATH) return json(show);
+        if (url === "/api/usage") return new Response(null, { status: 204 });
+        // Neither the item's files nor the SFX notes are there yet.
+        return new Response(null, { status: 404 });
+      }),
+    );
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    expect(wrapper.get("main h1").text()).toBe("SFX: Opening Number");
+    expect(wrapper.findAll("main [data-test=file]")).toEqual([]);
+    expect(wrapper.get("[data-test=no-files]").text()).toBe("No SFX files for this item yet.");
+    expect(notesSection(wrapper).get<HTMLTextAreaElement>("textarea").element.value).toBe("");
+    expect(wrapper.find("main [role=alert]").exists()).toBe(false);
   });
 });

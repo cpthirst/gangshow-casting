@@ -244,32 +244,6 @@ describe("An item's Scenery page", () => {
     ]);
   });
 
-  it("goes back to the Overview, and steps to the previous and next items' Scenery pages", async () => {
-    apiHolds(show);
-    const { wrapper, router } = await openAppAt("/production/items/pirate-sketch/scenery");
-
-    const steps = wrapper
-      .findAll("main nav[aria-label='Item navigation'] a[rel]")
-      .map((link) => [link.attributes("rel"), link.attributes("href")]);
-    expect(steps).toEqual([
-      ["prev", "/production/items/opening-number/scenery"],
-      ["next", "/production/items/finale/scenery"],
-    ]);
-
-    await wrapper.get("main a.back-link").trigger("click");
-    await flushPromises();
-    expect(router.currentRoute.value.fullPath).toBe("/production/overview");
-  });
-
-  it("says an item that isn't in the running order wasn't found, with a link back", async () => {
-    apiHolds(show);
-    const { wrapper } = await openAppAt("/production/items/no-such-item/scenery");
-
-    expect(wrapper.get("main h1").text()).toBe("Item not found");
-    expect(wrapper.find("[data-test=no-files]").exists()).toBe(false);
-    expect(wrapper.get("main a.back-link").attributes("href")).toBe("/production/overview");
-  });
-
   it("reports a failed load of the files rather than no files", async () => {
     vi.stubGlobal(
       "fetch",
@@ -1329,5 +1303,42 @@ describe("Recording a visit to an item's Scenery page (production-scenery FR15)"
 
     expect(wrapper.get("main h1").text()).toBe("Item not found");
     expect(recorded()).toEqual([]);
+  });
+});
+
+describe("Loading the Scenery page's data", () => {
+  it("shows the item's files and scenery notes", async () => {
+    apiHolds(
+      show,
+      {
+        "opening-number": [
+          { name: "set-plan.pdf", size: 2_400_000 },
+          { name: "Backdrop.png", size: 800_000 },
+        ],
+      },
+      [{ itemId: "opening-number", text: "Cloud flies in", revision: 1 }],
+    );
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    expect(rows(wrapper)).toEqual([
+      { name: "Backdrop.png", size: "800 KB" },
+      { name: "set-plan.pdf", size: "2.4 MB" },
+    ]);
+    expect(wrapper.get<HTMLTextAreaElement>("main textarea").element.value).toBe("Cloud flies in");
+    expect(wrapper.find("main [role=alert]").exists()).toBe(false);
+  });
+
+  it("asks someone whose sign-in has expired to sign in, rather than saying it couldn't load", async () => {
+    await signInAs(["tech"], "lee");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(null, { status: 401 })),
+    );
+    const { wrapper } = await openAppAt(OPENING_NUMBER);
+
+    expect(wrapper.get("main h1").text()).toBe("You need to sign in");
+    expect(wrapper.text()).not.toContain("Couldn't load");
+    // Before the next test signs everyone back in, which would show the page again.
+    wrapper.unmount();
   });
 });

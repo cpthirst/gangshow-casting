@@ -136,10 +136,10 @@ describe("Casting item page", () => {
     await wrapper.get("main a[href='/casting/items/pirate-sketch']").trigger("click");
     await flushPromises();
 
-    expect(wrapper.get("main h1").text()).toBe("Pirate Sketch");
+    expect(wrapper.get("main h1").text()).toBe("Casting: Pirate Sketch");
     expect(wrapper.get("[data-test=position]").text()).toBe("Item 2 · First half");
     expect(router.currentRoute.value.fullPath).toBe("/casting/items/pirate-sketch");
-    expect(document.title).toBe("Pirate Sketch · iCUE");
+    expect(document.title).toBe("Casting: Pirate Sketch · iCUE");
   });
 
   it("shows only the half for an item not in the printed programme", async () => {
@@ -162,14 +162,14 @@ describe("Casting item page", () => {
     savedRunningOrderIs(show);
     await openAppAt("/casting/items/pirate-sketch");
 
-    expect(document.title).toBe("Pirate Sketch · iCUE");
+    expect(document.title).toBe("Casting: Pirate Sketch · iCUE");
   });
 
   it("loads directly from its URL", async () => {
     savedRunningOrderIs(show);
     const { wrapper } = await openAppAt("/casting/items/campfire-song");
 
-    expect(wrapper.get("main h1").text()).toBe("Campfire Song");
+    expect(wrapper.get("main h1").text()).toBe("Casting: Campfire Song");
     expect(wrapper.get("[data-test=position]").text()).toBe("Item 1 · Second half");
   });
 
@@ -260,13 +260,13 @@ describe("Casting item page", () => {
     await flushPromises();
 
     expect(router.currentRoute.value.fullPath).toBe("/casting/items/campfire-song");
-    expect(wrapper.get("main h1").text()).toBe("Campfire Song");
+    expect(wrapper.get("main h1").text()).toBe("Casting: Campfire Song");
     expect(wrapper.text()).toContain("Song Leader");
     expect(stepLinks(wrapper).map((link) => link.text)).toEqual([
       "Previous Pirate Sketch",
       "Next Mystery Act",
     ]);
-    expect(document.title).toBe("Campfire Song · iCUE");
+    expect(document.title).toBe("Casting: Campfire Song · iCUE");
   });
 
   it("goes back to the Items list from All items", async () => {
@@ -475,6 +475,20 @@ describe("Adding roles to an item", () => {
 
     expect(wrapper.get("main [role=alert]").text()).toBe("Couldn't load the item.");
     expect(wrapper.text()).not.toContain("No roles have been added yet.");
+  });
+
+  it("shows no roles, not an error, when none have been saved yet", async () => {
+    savedRunningOrderIs(show);
+    const answer = vi.mocked(fetch).getMockImplementation();
+    vi.mocked(fetch).mockImplementation(async (url, init) =>
+      url === ROLES_PATH
+        ? new Response(null, { status: 404 })
+        : (answer?.(url, init) ?? json(show)),
+    );
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    expect(wrapper.text()).toContain("No roles have been added yet.");
+    expect(wrapper.find("main [role=alert]").exists()).toBe(false);
   });
 
   it("says when a role couldn't be added, keeping what was typed", async () => {
@@ -1955,11 +1969,11 @@ describe("Item notes", () => {
       .mocked(fetch)
       .mock.calls.filter(([url, init]) => String(url).endsWith("/notes") && init?.method === "PUT");
 
-  it("has a Notes section with a text field and a Save button", async () => {
+  it("has a Casting notes section with a text field and a Save button", async () => {
     savedRunningOrderIs(show);
     const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
 
-    expect(notesSection(wrapper).get("h2").text()).toBe("Notes");
+    expect(notesSection(wrapper).get("h2").text()).toBe("Casting notes");
     expect(field(wrapper).element.value).toBe("");
     expect(notesSection(wrapper).get("button[type=submit]").text()).toBe("Save notes");
   });

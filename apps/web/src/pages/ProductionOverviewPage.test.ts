@@ -6,10 +6,10 @@ import App from "@/App.vue";
 import { createAppRouter } from "@/router/index.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
-import { departmentNotesPath, fileCountsPath } from "@/utils/item-files.ts";
-import { MIC_PLOT_NOTES_PATH, MIC_PLOT_PATH } from "@/utils/mic-plot.ts";
+import { fileCountsPath } from "@/utils/item-files.ts";
+import { departmentNotesPath } from "@/utils/item-notes.ts";
+import { MIC_PLOT_PATH } from "@/utils/mic-plot.ts";
 import { PROPS_PATH } from "@/utils/props.ts";
-import { PROPS_NOTES_PATH } from "@/utils/props-notes.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
 import { RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
 
@@ -56,11 +56,11 @@ function apiAnswers(answers: {
       if (url === WARDROBE_FILE_COUNTS_PATH) return (answers.wardrobe ?? noFiles)();
       if (url === SFX_NOTES_PATH) return (answers.sfxNotes ?? noNotes)();
       if (url === WARDROBE_NOTES_PATH) return (answers.wardrobeNotes ?? noNotes)();
-      if (url === MIC_PLOT_NOTES_PATH) return (answers.micPlotNotes ?? noNotes)();
+      if (url === departmentNotesPath("mic-plot")) return (answers.micPlotNotes ?? noNotes)();
       if (url === MIC_PLOT_PATH) {
         return (answers.micPlot ?? json({ productionId: "2027", items: [] }))();
       }
-      if (url === PROPS_NOTES_PATH) {
+      if (url === departmentNotesPath("props")) {
         return answers.notes?.() ?? json({ productionId: "2027", notes: [] })();
       }
       if (url === SCENERY_NOTES_PATH) {
