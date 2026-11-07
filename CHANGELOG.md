@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.48.0](https://github.com/cpthirst/gangshow-casting/compare/v1.47.0...v1.48.0) (2026-11-07)
+
+
+### Features
+
+* **api:** delete a cut item's scenery notes, props and props notes (simplify.E1.S1) ([#199](https://github.com/cpthirst/gangshow-casting/issues/199)) ([dbdc81d](https://github.com/cpthirst/gangshow-casting/commit/dbdc81d11af1c0cbb582488db1c5f3d1e23785e8))
+
 ## [1.47.0](https://github.com/cpthirst/gangshow-casting/compare/v1.46.0...v1.47.0) (2026-11-07)
 
 
