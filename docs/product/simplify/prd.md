@@ -55,7 +55,7 @@ There is also a new need. **Another production is coming soon**, and the app can
 - **A general-purpose "department" handler on the API.** Item notes and item files are already shared, and plain handlers stay (ADR 0006).
 - **Carrying anything over between productions.** No cast, items, running order or casting is copied. A new production starts empty.
 - **Looking across productions.** One production is shown at a time, and nothing compares or reports across them.
-- **Changing past productions.** Once a newer one exists, an older one can be viewed but not changed.
+- **Changing past productions.** Once a newer one exists, an older one can be viewed but not changed, and no one can reopen it.
 - **Changing the Help or Welcome pages' purpose.** They gain the access details the pages lose (FR13), and nothing else is removed.
 
 ## Functional requirements
@@ -92,10 +92,10 @@ There is also a new need. **Another production is coming soon**, and the app can
 - **FR18**: The web app takes the production it's showing from one place, never from a hard-coded id.
 
 ### Epic 5: More than one production
-- **FR19**: An admin can start a new production, named by its year (e.g. "2028"). It starts empty: no cast, items, running order, casting, props, files, mics or notes.
-- **FR20**: Everyone opens the newest production by default, and can switch to an older one. The page always shows which production is open.
-- **FR21**: A production older than the newest can be viewed but not changed by anyone, admins included. Its pages show "View only" (FR10), and its exports still work.
-- **FR22**: An admin can delete a past production for good, after a confirmation that names it. Everything held for it goes: cast, running orders, casting, props, files, mics, notes and its usage records. The newest production can't be deleted.
+- **FR19**: An admin can start a new production, named by its year alone (e.g. "2028"), which must not already exist. It starts empty: no cast, items, running order, casting, props, files, mics or notes.
+- **FR20**: Everyone opens the newest production by default, and can switch to an older one. The page always shows which production is open, by its year.
+- **FR21**: A production older than the newest can be viewed but not changed by anyone, admins included. Nobody can make it changeable again. Its pages show "View only" (FR10), and its exports still work.
+- **FR22**: An admin can delete a past production for good, after a confirmation that names it. Everything held for it goes: cast, running orders, casting, props, files, mics and notes. Its usage records stay until their own 90-day expiry (ADR 0023), since they record the adult team's use of the app, not the cast. The newest production can't be deleted.
 - **FR23**: Team accounts and their permissions apply to every production. Starting, switching or deleting a production changes nobody's access.
 
 ## Non-functional requirements
@@ -134,6 +134,4 @@ There is also a new need. **Another production is coming soon**, and the app can
 
 ## Open questions
 
-- Should an admin be able to make a past production changeable again, for example to fix a mistake found after the show? Owner: maintainer.
-- Should deleting a production remove its usage records, or keep them until their own 90-day expiry (ADR 0023)? This PRD assumes they're removed. Owner: maintainer.
-- How should a production be named in the switch: by year alone, or by year and title (e.g. "2028: Gang Show")? Owner: maintainer.
+None. The maintainer answered the last three on 2026-11-07: a past production can't be reopened (FR21), its usage records stay until they expire (FR22), and productions are named by year alone (FR19).
