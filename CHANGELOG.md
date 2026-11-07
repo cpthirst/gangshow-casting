@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.49.0](https://github.com/cpthirst/gangshow-casting/compare/v1.48.0...v1.49.0) (2026-11-07)
+
+
+### Features
+
+* one list of departments, and a cut takes every kind of item data (simplify.E1) ([#201](https://github.com/cpthirst/gangshow-casting/issues/201)) ([f35e483](https://github.com/cpthirst/gangshow-casting/commit/f35e483a34543ff5456fc70670aafe4124397cf3))
+
 ## [1.48.0](https://github.com/cpthirst/gangshow-casting/compare/v1.47.0...v1.48.0) (2026-11-07)
 
 
