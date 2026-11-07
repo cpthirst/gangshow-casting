@@ -123,6 +123,8 @@ export interface Department {
   noun: string;
   /** What stands for the noun later in a sentence: "it" (the scenery) or "them" (the props). */
   it: "it" | "them";
+  /** The article before its name: "a" Scenery page, "an" SFX page. */
+  a: "a" | "an";
   /** Any one of these allows a change; their order doesn't matter. */
   permissions: AnyOf;
   /** The refusal's message, naming what can only be viewed. */
@@ -134,11 +136,13 @@ const department = (
   name: string,
   noun: string,
   it: Department["it"],
+  a: Department["a"],
   permissions: AnyOf,
 ): Department => ({
   name,
   noun,
   it,
+  a,
   permissions,
   refusal: `You can view the ${noun}, but not change ${it}.`,
 });
@@ -148,12 +152,12 @@ const department = (
  * Stage and Tech share the scenery (production-scenery FR2, FR5).
  */
 export const departments: Readonly<Record<DepartmentId, Department>> = {
-  casting: department("Casting", "casting", "it", [CASTING_GROUP]),
-  props: department("Props", "props", "them", [STAGE_GROUP, DIRECTOR_GROUP]),
-  scenery: department("Scenery", "scenery", "it", [STAGE_GROUP, TECH_GROUP, DIRECTOR_GROUP]),
-  sfx: department("SFX", "SFX", "them", [TECH_GROUP, DIRECTOR_GROUP]),
-  "mic-plot": department("Mic plot", "mic plot", "it", [TECH_GROUP, DIRECTOR_GROUP]),
-  wardrobe: department("Wardrobe", "wardrobe", "it", [WARDROBE_GROUP, DIRECTOR_GROUP]),
+  casting: department("Casting", "casting", "it", "a", [CASTING_GROUP]),
+  props: department("Props", "props", "them", "a", [STAGE_GROUP, DIRECTOR_GROUP]),
+  scenery: department("Scenery", "scenery", "it", "a", [STAGE_GROUP, TECH_GROUP, DIRECTOR_GROUP]),
+  sfx: department("SFX", "SFX", "them", "an", [TECH_GROUP, DIRECTOR_GROUP]),
+  "mic-plot": department("Mic plot", "mic plot", "it", "a", [TECH_GROUP, DIRECTOR_GROUP]),
+  wardrobe: department("Wardrobe", "wardrobe", "it", "a", [WARDROBE_GROUP, DIRECTOR_GROUP]),
 };
 
 /** A refused change to a department: its line, and which department, so pages needn't read the line. */

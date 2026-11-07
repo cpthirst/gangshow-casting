@@ -155,8 +155,6 @@ const requests = (match: (url: string, init?: RequestInit) => boolean) =>
     .mock.calls.filter(([url, init]) => match(String(url), init))
     .map(([url]) => String(url));
 
-const problem = (wrapper: VueWrapper) => wrapper.get("main [data-test=file-problem]").text();
-
 /** Answers the page's confirm, as the person would. */
 function answerConfirm(confirmed: boolean) {
   const confirm = vi.fn(() => confirmed);

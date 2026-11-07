@@ -61,7 +61,7 @@ const itemRoles = computed(() =>
 
 // Named for the department too, as every Production overview button's page is.
 const title = computed(() =>
-  place.value ? `${departments["props"].name}: ${place.value.item.title}` : "",
+  place.value ? `${departments.props.name}: ${place.value.item.title}` : "",
 );
 
 // Follows the item even if the page is reused for another one (Previous and Next).

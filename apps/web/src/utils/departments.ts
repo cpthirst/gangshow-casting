@@ -15,15 +15,18 @@ export const PERMISSION_NAMES: Record<Permission, string> = {
 export const inOrder = (access: readonly Permission[]) =>
   permissions.filter((permission) => access.includes(permission));
 
-/** "A", "A and B", "A, B and C". */
-export const listed = (names: string[]) =>
-  names.length < 2 ? names.join("") : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+/** "A", "A and B", "A, B and C", or with "or" in place of "and". */
+export const listed = (names: string[], conjunction: "and" | "or" = "and") =>
+  names.length < 2
+    ? names.join("")
+    : `${names.slice(0, -1).join(", ")} ${conjunction} ${names.at(-1)}`;
+
+/** The names of a department's permissions, in the order the Accounts page lists them. */
+export const permissionNamesOf = (id: DepartmentId) =>
+  inOrder(departments[id].permissions).map((permission) => PERMISSION_NAMES[permission]);
 
 /** Who may change a department, in the order the Accounts page lists permissions, then admins. */
-const whoMayChange = (id: DepartmentId) => {
-  const named = inOrder(departments[id].permissions);
-  return listed([...named.map((permission) => PERMISSION_NAMES[permission]), "admins"]);
-};
+const whoMayChange = (id: DepartmentId) => listed([...permissionNamesOf(id), "admins"]);
 
 /** What a department's pages say to someone who may only view them. */
 export const viewOnlyLine = (id: DepartmentId) => {
