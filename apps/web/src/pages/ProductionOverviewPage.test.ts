@@ -157,6 +157,7 @@ describe("Production overview", () => {
       "Mic plot",
       "Wardrobe",
       "Generate Props List",
+      "Generate Mic Plot",
     ]);
   });
 

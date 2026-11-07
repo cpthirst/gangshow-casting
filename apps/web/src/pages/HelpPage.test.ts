@@ -457,6 +457,8 @@ describe("Help page", () => {
         "All items",
         "Previous and Next",
         "Mic 1 to Mic 24",
+        "Used in previous item",
+        "Error",
         "Clear",
         "Mic plot notes",
       ]);
@@ -474,6 +476,74 @@ describe("Help page", () => {
       expect(
         lineNamed(wrapper, "Mic 1 to Mic 24", page).get("[data-test=help-does]").text(),
       ).toContain("only someone cast in the item");
+    });
+
+    it("say all 24 mics show, a mic goes to someone in the item, and their roles come from the casting, ensembles included", async () => {
+      const { wrapper } = await openHelp();
+
+      const mics = lineNamed(wrapper, "Mic 1 to Mic 24", "mic-plot-item")
+        .get("[data-test=help-does]")
+        .text();
+      expect(mics).toContain("All 24 mics, in order, used or not.");
+      expect(mics).toContain("Type a name to give a mic to only someone cast in the item");
+      expect(mics).toContain(
+        "The roles they play in it show under them, from the casting: you don't choose them. Someone without a named part shows their ensemble.",
+      );
+    });
+
+    it("explain a greyed-out mic: used by someone else just before, theirs to keep, reset at the interval", async () => {
+      const { wrapper } = await openHelp();
+
+      const used = lineNamed(wrapper, "Used in previous item", "mic-plot-item")
+        .get("[data-test=help-does]")
+        .text();
+      expect(used).toContain("A mic someone else had in the item just before is greyed out.");
+      expect(used).toContain("The person who had it can keep it.");
+      expect(used).toContain(
+        "It resets at the interval: the first item of each half can use any mic.",
+      );
+    });
+
+    it("explain a mic kept after a reorder stays, flagged as an Error, until it's cleared", async () => {
+      const { wrapper } = await openHelp();
+
+      const error = lineNamed(wrapper, "Error", "mic-plot-item");
+      expect(error.get("svg").attributes("data-icon")).toBe(icons.error.iconName);
+      expect(error.get("[data-test=help-does]").text()).toBe(
+        'A mic given out before the running order changed, which now breaks the "Used in previous item" rule, stays, flagged as an Error, until it\'s cleared. It can only be cleared.',
+      );
+    });
+
+    it("say Tech, Directors and admins change the mic plot, and everyone else views it", async () => {
+      const { wrapper } = await openHelp();
+
+      const changers = "Accounts with Tech or Director, and admins";
+      const labels = (name: string, page: string) =>
+        lineNamed(wrapper, name, page)
+          .findAll("[data-test=help-access]")
+          .map((label) => label.text());
+      for (const name of ["Mic 1 to Mic 24", "Mic plot notes"]) {
+        expect(labels(name, "mic-plot-item")).toEqual([
+          "Reading: Everyone",
+          `Changing: ${changers}`,
+        ]);
+      }
+      expect(labels("Clear", "mic-plot-item")).toEqual([changers]);
+      expect(labels("Mic plot", "production-overview")).toEqual([
+        "Reading: Everyone",
+        `Changing: ${changers}`,
+      ]);
+    });
+
+    it("describe Generate Mic Plot on the Overview, and that its workbook is for the production team only", async () => {
+      const { wrapper } = await openHelp();
+
+      const generate = lineNamed(wrapper, "Generate Mic Plot", "production-overview");
+      expect(generate.get("svg").attributes("data-icon")).toBe(icons.exportFile.iconName);
+      expect(generate.get("[data-test=help-does]").text()).toBe(
+        "Saves every item's mics, with who wears each, their roles and the item's Mic plot notes, as an Excel file. It holds under-18s' names, so it is for the production team only.",
+      );
+      expect(generate.get("[data-test=help-access]").text()).toBe("Everyone");
     });
 
     it("say an SFX file that's MP3, WAV, M4A, AAC or OGG plays in a new tab", async () => {
@@ -541,10 +611,13 @@ describe("Help page", () => {
       }
     });
 
-    it("describe Generate Props List after the buttons, open to everyone", async () => {
+    it("describe Generate Props List and Generate Mic Plot after the buttons, in the page's order, Props List open to everyone", async () => {
       const { wrapper } = await openHelp();
 
-      expect(names(wrapper, "production-overview").at(-1)).toBe("Generate Props List");
+      expect(names(wrapper, "production-overview").slice(-2)).toEqual([
+        "Generate Props List",
+        "Generate Mic Plot",
+      ]);
       const line = lineNamed(wrapper, "Generate Props List", "production-overview");
       expect(line.get("[data-test=help-does]").text()).toContain("Word");
       expect(line.get("svg").attributes("data-icon")).toBe(icons.exportWord.iconName);

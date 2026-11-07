@@ -27,9 +27,9 @@ describe("Welcome page", () => {
     expect([...parts].map((part) => part.tagName)).toEqual(["IMG", "H1", "P", "P"]);
     const intro = wrapper.get("[data-test=intro]").text();
     expect(intro).toContain("iCUE");
-    // It's more than a casting tool: say what's coming, so people know where it's going.
-    expect(intro).toContain("and what each department needs for each item; mic plots are to come.");
-    expect(intro).not.toMatch(/(props|sound effects)[^;]*(to come|coming)/i);
+    // It's more than a casting tool, and nothing in it is still to come.
+    expect(intro).toContain("and what each department needs for each item.");
+    expect(intro).not.toMatch(/to come|coming/i);
     expect(intro).toContain("Chester Gang Show");
     expect(intro.split(/(?<=\.)\s+/).length).toBeLessThanOrEqual(2);
   });
@@ -67,6 +67,16 @@ describe("Welcome page", () => {
       "The Overview's SFX and Wardrobe buttons open each item's sound effects files and costume designs, with notes for each.",
     );
     expect(wrapper.text()).not.toMatch(/coming soon/i);
+  });
+
+  it("says the Overview's Mic plot button opens each item's mics, and Generate Mic Plot saves them all", async () => {
+    const { wrapper } = await openWelcome();
+
+    const production = wrapper.findAll("dd")[2]?.text().replace(/\s+/g, " ") ?? "";
+    expect(production).toContain(
+      "Its Mic plot button opens each item's 24 mics, with who wears each, and Generate Mic Plot saves them all as an Excel file.",
+    );
+    expect(wrapper.text()).not.toMatch(/coming soon|to come/i);
   });
 
   it.each([
