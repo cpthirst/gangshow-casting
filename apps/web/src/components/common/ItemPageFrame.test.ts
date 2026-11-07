@@ -157,7 +157,7 @@ describe("The item page frame", () => {
     ["scenery", [{ event: "scenery", productionId: "2027", itemId: "opening-number" }]],
     ["mic-plot", [{ event: "mic-plot", productionId: "2027", itemId: "opening-number" }]],
     ["casting", [{ event: "item", productionId: "2027", itemId: "opening-number" }]],
-    ["props", []],
+    ["props", [{ event: "props", productionId: "2027", itemId: "opening-number" }]],
   ] as const)(
     "records a visit to the %s page for the item found, and none for one not found",
     async (department, expected) => {

@@ -15,9 +15,9 @@ import { createAppRouter } from "@/router/index.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
 import { CAST_PATH } from "@/utils/cast.ts";
-import { MIC_PLOT_NOTES_PATH, MIC_PLOT_PATH } from "@/utils/mic-plot.ts";
+import { departmentNotesPath } from "@/utils/item-notes.ts";
+import { MIC_PLOT_PATH } from "@/utils/mic-plot.ts";
 import { PROPS_PATH } from "@/utils/props.ts";
-import { PROPS_NOTES_PATH } from "@/utils/props-notes.ts";
 import { ROLES_PATH } from "@/utils/roles.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
 import { RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
@@ -104,7 +104,8 @@ function apiHolds(
         plots.splice(0, plots.length, ...plots.filter((p) => p.itemId !== itemId), saved);
         return json(saved);
       }
-      if (url === MIC_PLOT_NOTES_PATH) return json({ productionId: "2027", notes: micPlotNotes });
+      if (url === departmentNotesPath("mic-plot"))
+        return json({ productionId: "2027", notes: micPlotNotes });
       const savingNotes = /^\/api\/productions\/2027\/items\/([^/]+)\/mic-plot-notes$/.exec(url);
       if (savingNotes && init?.method === "PUT") {
         const itemId = savingNotes[1] ?? "";
@@ -117,7 +118,7 @@ function apiHolds(
       if (url === ROLES_PATH) return json({ productionId: "2027", roles });
       if (url === CAST_PATH) return json({ productionId: "2027", members: [alex, sam, jo] });
       if (url === PROPS_PATH) return json({ productionId: "2027", props: [] });
-      if (url === PROPS_NOTES_PATH) return json({ productionId: "2027", notes: [] });
+      if (url === departmentNotesPath("props")) return json({ productionId: "2027", notes: [] });
       if (/\/(scenery|sfx|wardrobe)-files$/.test(url)) return json({ files: [] });
       if (url === "/api/usage") return new Response(null, { status: 204 });
       return json({ status: "ok", version: "dev" });

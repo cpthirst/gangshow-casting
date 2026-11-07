@@ -2,7 +2,7 @@
 id: simplify.E2.S3
 title: Move the Props item page onto the shared frame, and record its visits
 epic: E2
-status: draft
+status: done
 ---
 
 ## Story
@@ -24,13 +24,13 @@ Then each works as it does today
 ### AC3: A visit is recorded
 Given "jo" opens the Props page for "Opening Number"
 When an admin opens the Usage page
-Then jo's activity shows "opened a Props page"
-And Props pages are counted among the uses, like the Scenery, SFX, Mic plot and Wardrobe pages
+Then jo's activity shows "opened Opening Number's Props page"
+And "Props pages" is counted in jo's uses and the totals, like the Scenery, SFX, Mic plot and Wardrobe pages
 
 ### AC4: A failed recording never shows
 Given recording the visit fails
 When "jo" opens the Props page
-Then the page shows no error
+Then the page shows its props and no error
 
 ### AC5: Not found and errors come from the frame
 Given an address for the Props page of an item that isn't in the latest saved running order
@@ -42,4 +42,5 @@ Then it shows the frame's "Item not found" message
 - FRs: FR6, FR7, FR8, FR17
 - Depends on: simplify.E2.S1
 - Recording Props visits adds one kind of usage event to the shared request schema; the change is additive.
+- Props pages load their data the shared way (FR17): no props or casting saved yet shows none, rather than an error.
 - The existing browser layout walk "an item's props" must still pass.

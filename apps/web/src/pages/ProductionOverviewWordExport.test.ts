@@ -7,8 +7,8 @@ import { createAppRouter } from "@/router/index.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
 import { CAST_PATH } from "@/utils/cast.ts";
+import { departmentNotesPath } from "@/utils/item-notes.ts";
 import { PROPS_PATH } from "@/utils/props.ts";
-import { PROPS_NOTES_PATH } from "@/utils/props-notes.ts";
 import { ROLES_PATH } from "@/utils/roles.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
 import { RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
@@ -85,7 +85,7 @@ beforeEach(() => {
           ? json({ productionId: "2027", props: [telescope] })
           : new Response(null, { status: api.propsStatus });
       }
-      if (url === PROPS_NOTES_PATH) return json({ productionId: "2027", notes: [] });
+      if (url === departmentNotesPath("props")) return json({ productionId: "2027", notes: [] });
       if (url === ROLES_PATH) return json({ productionId: "2027", roles: api.roles });
       if (url === CAST_PATH) return json({ productionId: "2027", members: api.cast });
       if (url === RUNNING_ORDER_PATH) return json(show);

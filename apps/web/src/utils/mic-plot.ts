@@ -10,7 +10,6 @@ import {
 import { sortCast } from "./cast.ts";
 import type { ClashLine } from "./clashes.ts";
 import { countInWords } from "./departments.ts";
-import { departmentNotesPath } from "./item-notes.ts";
 import { fullName, sortRoles } from "./roles.ts";
 
 // Only one production for now (see docs/product/running-order/prd.md).
@@ -22,9 +21,6 @@ export const MIC_PLOT_PATH = `/api/productions/${PRODUCTION_ID}/mic-plot`;
 /** Where one of the item's channels is given out or freed. */
 export const allocateMicPath = (itemId: string) =>
   `/api/productions/${PRODUCTION_ID}/items/${encodeURIComponent(itemId)}/mic-plot`;
-
-/** Every item's Mic plot notes, apart from its other notes (production-mics FR8). */
-export const MIC_PLOT_NOTES_PATH = departmentNotesPath("mic-plot");
 
 export interface ChannelRow {
   channel: number;

@@ -8,7 +8,8 @@ import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
 import { CAST_PATH } from "@/utils/cast.ts";
 import { readSheet, sheetXml } from "@/utils/excel/xlsx.fixture.ts";
-import { MIC_PLOT_NOTES_PATH, MIC_PLOT_PATH } from "@/utils/mic-plot.ts";
+import { departmentNotesPath } from "@/utils/item-notes.ts";
+import { MIC_PLOT_PATH } from "@/utils/mic-plot.ts";
 import { ROLES_PATH } from "@/utils/roles.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
 import { RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
@@ -74,7 +75,7 @@ beforeEach(() => {
           ? json({ productionId: "2027", items: api.plots })
           : new Response(null, { status: api.plotsStatus });
       }
-      if (url === MIC_PLOT_NOTES_PATH) {
+      if (url === departmentNotesPath("mic-plot")) {
         return json({
           productionId: "2027",
           notes: [{ itemId: "space-sketch", text: "Mics 19–24 on for songs only", revision: 1 }],

@@ -3,31 +3,26 @@ import {
   type AddPropRequest,
   CastList,
   type CastMember,
-  departments,
   Prop,
   PropList,
   type Role,
   RoleList,
-  RunningOrder,
+  type RunningOrder,
 } from "@app/shared";
-import { computed, nextTick, onMounted, ref, watch, watchEffect } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
 import { useRoute } from "vue-router";
-import HelpButton from "@/components/common/HelpButton.vue";
-import ItemNotes from "@/components/common/ItemNotes.vue";
-import ItemStepNav from "@/components/common/ItemStepNav.vue";
-import ReadOnlyNotice from "@/components/common/ReadOnlyNotice.vue";
+import ItemPageFrame from "@/components/common/ItemPageFrame.vue";
 import PropCard from "@/components/production/PropCard.vue";
 import PropForm from "@/components/production/PropForm.vue";
-import { showPageTitle } from "@/router/index.ts";
+import { loadData } from "@/services/load-data.ts";
 import { apiFetch, canChange } from "@/services/sign-in.ts";
 import { CAST_PATH } from "@/utils/cast.ts";
-import { itemRouteOf } from "@/utils/departments.ts";
 import { addPropPath, PROPS_PATH, propPath, sortProps } from "@/utils/props.ts";
-import { PROPS_NOTES_PATH, savePropsNotesPath } from "@/utils/props-notes.ts";
 import { ROLES_PATH, sortRoles } from "@/utils/roles.ts";
-import { neighboursOf, placeOf, positionOf, RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
+import { placeOf } from "@/utils/running-order.ts";
 
-// One item's props (production-props FR16, FR17, FR19), laid out as the item's casting page.
+// One item's props (production-props FR16, FR17, FR19), in the frame every item page shares,
+// with the item's Props notes under them.
 
 const route = useRoute();
 const order = ref<RunningOrder>();
@@ -35,21 +30,11 @@ const props = ref<Prop[]>([]);
 // The casting, for each prop's roles and who plays them (production-props FR18).
 const roles = ref<Role[]>([]);
 const cast = ref<CastMember[]>([]);
-const status = ref<"loading" | "loaded" | "error">("loading");
 
 const place = computed(() => {
   const itemId = route.params.itemId;
   return order.value && typeof itemId === "string" ? placeOf(order.value, itemId) : undefined;
 });
-const position = computed(() => (place.value ? positionOf(place.value) : ""));
-
-// Step through the items in show order without going back to the list.
-const neighbours = computed(() =>
-  order.value && place.value ? neighboursOf(order.value, place.value.item.id) : {},
-);
-
-// Loaded, but the item isn't in the latest saved running order.
-const notFound = computed(() => status.value === "loaded" && !place.value);
 
 const itemProps = computed(() =>
   sortProps(props.value.filter((prop) => prop.itemId === place.value?.item.id)),
@@ -59,44 +44,21 @@ const itemRoles = computed(() =>
   sortRoles(roles.value.filter((role) => role.itemId === place.value?.item.id)),
 );
 
-// Named for the department too, as every Production overview button's page is.
-const title = computed(() =>
-  place.value ? `${departments.props.name}: ${place.value.item.title}` : "",
-);
-
-// Follows the item even if the page is reused for another one (Previous and Next).
-watchEffect(() => {
-  if (place.value) showPageTitle(title.value);
-  else if (notFound.value) showPageTitle("Item not found");
-});
-
-onMounted(async () => {
-  try {
-    const [orderRes, allProps, rolesRes, castRes] = await Promise.all([
-      apiFetch(RUNNING_ORDER_PATH),
-      fetchProps(),
-      apiFetch(ROLES_PATH),
-      apiFetch(CAST_PATH),
-    ]);
-    // No saved running order at all: no item can be in it.
-    if (orderRes.status !== 404) {
-      if (!orderRes.ok) throw new Error(`HTTP ${orderRes.status}`);
-      order.value = RunningOrder.parse(await orderRes.json());
-    }
-    props.value = allProps;
-    if (!rolesRes.ok) throw new Error(`HTTP ${rolesRes.status}`);
-    roles.value = RoleList.parse(await rolesRes.json()).roles;
-    // No cast list yet just means nobody is cast.
-    if (castRes.status !== 404) {
-      if (!castRes.ok) throw new Error(`HTTP ${castRes.status}`);
-      cast.value = CastList.parse(await castRes.json()).members;
-    }
-    status.value = "loaded";
-  } catch {
-    // A failed load must never look like "not found".
-    status.value = "error";
-  }
-});
+// Every prop and the casting, loaded with the running order the frame shows; no props,
+// casting or cast list yet just means there are none.
+async function loadProps() {
+  const [loadedProps, loadedRoles, loadedCast] = await Promise.all([
+    loadData(PROPS_PATH, PropList),
+    loadData(ROLES_PATH, RoleList),
+    loadData(CAST_PATH, CastList),
+  ]);
+  return (loadedOrder: RunningOrder) => {
+    order.value = loadedOrder;
+    props.value = loadedProps?.props ?? [];
+    roles.value = loadedRoles?.roles ?? [];
+    cast.value = loadedCast?.members ?? [];
+  };
+}
 
 const adding = ref(false);
 /** The prop whose edit form is open, if any. One form at a time. */
@@ -202,21 +164,14 @@ async function sendRemove(id: number) {
 
 // Someone else removed the prop first: say so and show what's current, if it can be loaded.
 async function showGone(prop: Prop) {
-  const latest = (await loadProps()) ? "Showing the latest props." : "Reload to see the latest.";
+  const latest = (await reloadProps()) ? "Showing the latest props." : "Reload to see the latest.";
   notice.value = `${prop.name} is no longer there: someone else removed it. ${latest}`;
 }
 
-/** Every prop in the production; throws if they can't be loaded. */
-async function fetchProps() {
-  const res = await apiFetch(PROPS_PATH);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return PropList.parse(await res.json()).props;
-}
-
 /** Shows the latest props, or keeps what's shown if they can't be loaded. True if loaded. */
-async function loadProps() {
+async function reloadProps() {
   try {
-    props.value = await fetchProps();
+    props.value = (await loadData(PROPS_PATH, PropList))?.props ?? [];
     return true;
   } catch {
     return false;
@@ -259,21 +214,7 @@ async function postProp(itemId: string, details: AddPropRequest) {
 </script>
 
 <template>
-  <ItemStepNav
-    :list="{ name: 'production-overview' }"
-    :item-route="itemRouteOf('props')"
-    :previous="neighbours.previous"
-    :next="neighbours.next"
-  />
-  <p v-if="status === 'error'" role="alert">Couldn't load the item.</p>
-  <template v-else-if="place">
-    <div class="page-title-row">
-      <h1>{{ title }}</h1>
-      <HelpButton :page="itemRouteOf('props')" label="Help for this item" title="Item help" />
-    </div>
-    <p class="item-position" data-test="position">{{ position }}</p>
-    <!-- Those without Stage or Director see the props with nothing to change them. -->
-    <ReadOnlyNotice about="props" />
+  <ItemPageFrame department="props" :load="loadProps">
     <div v-if="canChange('props')" class="cast-actions">
       <button
         ref="addButton"
@@ -324,19 +265,5 @@ async function postProp(itemId: string, details: AddPropRequest) {
       </template>
     </ul>
     <p v-else>No props have been added yet.</p>
-    <!-- Apart from the casting notes. A fresh instance per item, so stepping to another never
-         mixes their notes. -->
-    <ItemNotes
-      :key="place.item.id"
-      :item-id="place.item.id"
-      :heading="`${departments['props'].name} notes`"
-      :list-path="PROPS_NOTES_PATH"
-      :save-path="savePropsNotesPath(place.item.id)"
-      :can-change="canChange('props')"
-    />
-  </template>
-  <template v-else-if="notFound">
-    <h1>Item not found</h1>
-    <p>It isn't in the latest saved running order. Choose an item from All items.</p>
-  </template>
+  </ItemPageFrame>
 </template>
