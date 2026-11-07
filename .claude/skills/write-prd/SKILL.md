@@ -26,3 +26,6 @@ Output: `docs/product/<feature>/prd.md`, from [templates/prd.md](templates/prd.m
 - Every goal has a measurable success metric.
 - Non-goals are explicit; they're what stops scope creep later.
 - Non-functional requirements cover at least: security, accessibility, performance.
+- **Join the family, don't start a new one.** If the feature adds another of something the app already has (a department, an item page, a kind of per-item data, a list page), its FRs say it joins the shared list or frame (CLAUDE.md, "Simplicity"). Per-item data is deleted when an item is cut. If no shared piece exists yet, add an FR to make one first.
+- **The layout explains itself.** UI requirements say what the screen shows, never a tagline, hint line or explanation of a disabled control. Who can change a page goes in Help.
+- **More than one production.** Nothing assumes there is only one.

@@ -49,5 +49,8 @@ For each:
 ### Held back
 Up to five ideas you considered and set aside, one line each with the reason (too costly for the gain, contradicts an ADR, nobody would notice, already fine).
 
+### Missed at review
+For each kind of finding above, one line: why the rules in CLAUDE.md ("Simplicity"), the planning skills (`.claude/skills`) or the reviewers' briefs (`.claude/agents`) didn't stop it, quoting the brief where it falls short. Write "None" if they cover it and it predates them.
+
 ### Decisions to revisit
 Only if the evidence is strong, and at most two: the ADR, what has changed since it was written, the cost of changing it, and what you'd decide instead. Leave this section out when you have none.

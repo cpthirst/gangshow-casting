@@ -221,14 +221,14 @@ write-prd ──► story-map ──► write-story ──► implement-story �
 | `open-pr` | Conventional PR title, filled template, push | One yes covers the push and the PR (ADR 0031); never merges |
 | `adr` | `docs/adr/NNNN-*.md` | Proposed → Accepted by the user |
 | `batch-stories` | One feature's stories on one branch, each built by a fresh subagent so the session's context stays small, with a single PR at the end | Only the user can switch it on; their yes covers the feature's pushes and its PR |
-| `consult` | A read-only consultant's 3–4 recommended epics for simplifying the app's UX, DX and AX, respecting the ADRs, then the user's picks as questions for the next PRD | Only the user can start it; the user picks the epics before `write-prd` |
+| `consult` | A read-only consultant's 3–4 recommended epics for simplifying the app's UX, DX and AX, respecting the ADRs, then the user's picks as questions for the next PRD, and the lines the reviewers' briefs lacked | Only the user can start it; the user picks the epics before `write-prd`, and approves any brief changes |
 
 ### 3. Reviewer subagents (`.claude/agents/`)
 Subagents run in their own context and report back. Fresh context matters: the agent that wrote the code is a poor judge of it. The reviewers have **no Edit or Write tools**, so they can report problems but can't "fix" them by weakening a test, and a harness test enforces that. They run on smaller models to keep cost down.
 
 | Reviewer | Runs when the diff touches | Focus |
 |---|---|---|
-| `code-reviewer` | always | Correctness, scope against the story, conventions (including where web files go, ADR 0025), ADR conformance, changed or deleted tests, **brevity and clean code** for the next human reader, and whether the README still matches |
+| `code-reviewer` | always | Correctness, scope against the story, conventions (including where web files go, ADR 0025), ADR conformance, changed or deleted tests, **one of each** (it searches beyond the diff for siblings a change copies, per CLAUDE.md's simplicity rules), **brevity and clean code** for the next human reader, and whether the README still matches |
 | `test-auditor` | a story is being implemented | Maps each acceptance criterion to the test(s) covering it, by behaviour. Would the test fail if the behaviour broke? |
 | `security-reviewer` | the API, the shared contract, web code touching sign-in, tokens, storage or URLs, or dependencies | Input validation, auth, secrets, data exposure, frontend injection, dependencies |
 | `infra-reviewer` | `infra/`, the release script, or how the API is packaged or deployed | IAM, public exposure, destructive replacement, removal policies, cost |
@@ -357,6 +357,7 @@ These cover humans and agents alike, and `pnpm install` installs them.
 | [0031](docs/adr/0031-one-yes-opens-a-pull-request.md) | One yes opens a pull request: it covers pushing the branch and creating the PR, while merging still asks |
 | [0032](docs/adr/0032-sfx-files-beside-scenery-files.md) | SFX files beside the scenery files, in the same bucket under each item's `sfx/` folder, and the API's access widened to them alone |
 | [0033](docs/adr/0033-mic-plot-workbook-built-in-the-browser.md) | The Mic Plot workbook: built in the browser with `write-excel-file`, loaded only when used |
+| [0034](docs/adr/0034-simplicity-rules-for-authors-and-reviewers.md) | Simplicity rules for authors and reviewers: one of each, a layout that explains itself, and a reviewer that searches beyond the diff for copies |
 
 ---
 
@@ -378,6 +379,7 @@ This repo was built iteratively, as a coaching exercise in harness engineering. 
 | **9. Releases** | Plain `vX.Y.Z` tags | Changing the tag format risks release-please losing track of the previous release. `bootstrap-sha` was the safety net while moving to the new format |
 | **10. Test naming** | Behaviour-named tests; AC coverage judged by `test-auditor` (ADR 0007) | A name proves nothing about what a test checks. Reviewers mapped every AC to its test from behaviour alone, and found a real gap in the process |
 | **11. The app** | Running order, cast, casting, clashes, exports, hosting, sign-in, team roles, help and usage, story by story (ADRs 0008–0023) | Each new kind of risk earned its own check: browser layout tests for phones (0011), an advisory UX reviewer (0012), database tests against an emulator (0016), and an infra reviewer before anything deploys |
+| **12. Simplicity** | A one-off consultant's review (`consult`), then CLAUDE.md's simplicity rules in the planning skills and reviewers (ADR 0034) | A reviewer that only reads the diff sees one copy, so ten hand-made copies of a department each passed review. Duplication checks must search beyond the diff, and a page that needs a line of explanation needs a better layout |
 
 Two process lessons recur throughout. First, **watch every check fail once before trusting it**. Second, **run the review loop before every PR**: skipping it "to save tokens" defeats the harness, so it's now a standing rule.
 

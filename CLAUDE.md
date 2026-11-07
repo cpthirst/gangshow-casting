@@ -6,10 +6,20 @@
 
 - **Casting is per item.** A show is an ordered sequence of items (production numbers, sketches, songs, dances). A cast member appears in many items, sometimes in a named or featured part. Model "who is in which item", not one role per person.
 - **Running order matters.** Back-to-back appearances (no time for a costume change) and uneven stage time are the core things users need to see.
-- **Each production is self-contained.** Items and casting never carry over between years, even when cast members return. Scope data to a production.
+- **Each production is self-contained.** Items and casting never carry over between years, even when cast members return. Scope data to a production, and take the production from one place, never a hard-coded id: there will be more than one.
 - **Safeguarding and UK GDPR: most of the cast are under 18.** Store only first name, surname, section (Scouts, Explorers, Network), Scout group or Explorer unit, and age band (ADR 0010), plus short Singing and Acting casting notes (ADR 0014). Never add date of birth, exact age, address, contact details, photos or medical data without a story and an ADR that justify it. Casting data is for the production team only and must never be publicly reachable. The only data about the team is the username an admin chooses for each adult volunteer's account (ADR 0018). Don't put real cast data in tests, fixtures or seed data; use made-up names.
 - **Users are non-technical volunteers**, often updating during or after a rehearsal. Prefer UI that is clear at a glance and quick to edit.
-- **Every page about one item** (its casting, its props, and later its scenery, mic plot or SFX) has a link back to its list, and Previous and Next links to the neighbouring items in running order, as the casting item page does.
+- **Every page about one item** (its casting, its props, and later its scenery, mic plot or SFX) has a link back to its list, and Previous and Next links to the neighbouring items in running order, as the casting item page does. All of them share one frame: a "Department: Item" title, the item's position, notes headed by the department ("Casting notes"), the same not-found and error states, and a visit recorded for the Usage page.
+- **Cutting an item takes all its data with it.** When a saved running order drops an item, every kind of data kept per item goes too. A new kind of per-item data joins that clean-up in the same story.
+
+## Simplicity: one of each, and a layout that explains itself
+
+The bar: simple purpose, architecture, design and implementation, with each change improving the experience of users, maintainers and agents together. iCUE grew one feature at a time and missed it in places, which the `simplify` feature (`docs/product/simplify`) is paying down. These rules stop it recurring, and reviewers check them.
+- **Extend the shared piece, never copy a sibling.** Departments, item pages, kinds of per-item data, list pages and API calls each come in families. Before writing a new one, search for its siblings and add it to their shared list or frame. If there's no shared piece and yours would be the third copy, extract one first.
+- **Say a thing once.** A department's name, its permissions, its who-can-change-it line, the production id, and wording that several pages repeat each live in one place that everything reads.
+- **Fix the rule, not the case.** When a shared rule gives one route or page the wrong answer, change the rule (amending its ADR if it has one). Don't add a patch for that one case.
+- **Let the layout explain itself.** Don't add page taglines, hint lines or secondary labels. If a control can never work for this person, hide it rather than disable it with a line saying why. Show a limit only near the limit. What a page is for, and who can change it, belongs in Help (`apps/web/src/utils/help.ts`) and the Welcome page.
+- **Name shared things for what they are.** A style, component or function that more than one page uses is named for its purpose (`.card`), not for the page that first used it (`.role-card`).
 
 ## Platform status
 

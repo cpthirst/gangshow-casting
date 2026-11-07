@@ -22,6 +22,7 @@ Each AC must be covered by **at least one test** in `implement-story` (except in
 - **Observable outcomes only**: what a user or API client sees. No class, table or function names.
 - **Cover the unhappy paths**: validation errors, empty states, unauthorised access, not found.
 - **Concrete examples beat abstractions**: "Given a story titled 'Led migration'", not "Given some data".
+- **No AC asks for explanatory text**: a tagline, hint line or line explaining a disabled control. State what the layout shows instead (CLAUDE.md, "Simplicity").
 
 ## Definition of ready
 
