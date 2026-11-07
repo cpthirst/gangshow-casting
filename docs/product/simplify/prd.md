@@ -36,7 +36,7 @@ There is also a new need. **Another production is coming soon**, and the app can
 | Goal | Metric | Target |
 |---|---|---|
 | A department is described once | Places that list each department's name, permissions or wording | 1 (today about 10) |
-| Nothing about a cut item lingers | Scenery notes, props or props notes left for an item cut after release | 0 |
+| Nothing about a cut item lingers | Scenery notes, props or props notes stored for an item not in the latest saved running order, once a running order has been saved after release | 0 |
 | Refusals don't depend on permission order | Route-specific refusal patches | 0 (today 2) |
 | Item pages share one frame | Separate implementations of the item page frame | 1 (today 4) |
 | Every department's use is visible | Departments missing from the Usage page | 0 (today Props) |
@@ -48,7 +48,6 @@ There is also a new need. **Another production is coming soon**, and the app can
 ## Non-goals
 
 - **Rebuilding or restyling pages that work.** Changes are limited to what the requirements below name.
-- **Removing past leftovers.** Scenery notes, props and props notes of items cut before this ships stay where they are. Only cuts from now on remove them.
 - **Changing what the API returns, except where an FR says so.** Refusal wording stays exactly the same.
 - **Merging Casting into the Production overview.** The production-overview PRD keeps Casting's own pages.
 - **Replacing the browser's own confirm dialogs, or splitting the long Accounts and Running order pages.**
@@ -61,7 +60,7 @@ There is also a new need. **Another production is coming soon**, and the app can
 ## Functional requirements
 
 ### Epic 1: One list of departments
-- **FR1**: When an item is cut from the running order and the order is saved, its scenery notes, props and props notes are deleted with it, as its casting, files and mics already are. Reset on the Running order page still undoes a cut before it's saved.
+- **FR1**: When an item is cut from the running order and the order is saved, its scenery notes, props and props notes are deleted with it, as its casting, files and mics already are. Reset on the Running order page still undoes a cut before it's saved. As with the other kinds of item data, a save removes this data for every item not in the running order, so the first save after release also removes leftovers from items cut earlier (the maintainer agreed, 2026-11-07).
 - **FR2**: Each department's name, the permissions that let an account change it, and the line naming who can change it are stated once. Every page, menu, notice, Help entry, Usage label and refusal uses that one statement.
 - **FR3**: A refusal names the department the route belongs to, whatever order its permissions are listed in. Every refusal's wording stays exactly as it is today.
 - **FR4**: The app tells a read-only refusal apart from other failures without depending on the refusal's wording.
