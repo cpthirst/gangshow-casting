@@ -2,7 +2,7 @@
 id: simplify.E1.S1
 title: Delete a cut item's scenery notes, props and props notes
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story
@@ -47,3 +47,4 @@ Then Old Finale's scenery notes, props and props notes are no longer stored
 - Depends on: none
 - The release notes must say that cutting an item now deletes its scenery notes, props and props notes, and that the first save after release removes those of items cut earlier (PRD FR1, risks).
 - Out of scope: building the clean-up from one list (E1.S5).
+- Follow-up: the Remove confirmation on the Running order page (`apps/web/src/utils/running-order.ts`) names only the roles and casting notes a save removes. It already left out scenery, SFX and Wardrobe files and the mic plot, and now also scenery notes, props and props notes. Suggest a story, perhaps alongside E1.S5's single list, so the dialog names everything a save takes.

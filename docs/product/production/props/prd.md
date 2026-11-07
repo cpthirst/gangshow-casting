@@ -169,7 +169,7 @@ Linking a prop to an ensemble role reads as if everyone in it gets one: "Bread b
 ## Open questions
 
 - Should the post-deploy check (`pnpm check:hosted`) confirm the department permissions? For example, a Stage-only account refused casting changes and allowed props changes. That needs another check account. Owner: maintainer.
-- When an item is removed from the running order (running-order FR10, deferred), are its props and props notes deleted with it? Expected: yes. Owner: production team.
+- ~~When an item is removed from the running order, are its props and props notes deleted with it?~~ Settled: yes, once the running order is saved (simplify FR1, E1.S1).
 
 - Should a carrier be able to carry more than one of a prop, such as 3 balloons all held by one clown? Expected: not in this PRD; each carrier counts as one, and the props notes say more (Non-goals). Owner: props team.
 

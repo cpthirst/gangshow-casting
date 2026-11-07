@@ -12,6 +12,7 @@ import {
 } from "#/production/item-files/item-file-store.ts";
 import type { MicPlotStore } from "#/production/mic-plot/mic-plot-store.ts";
 import { inMemoryMicPlotStore } from "#/production/mic-plot/mic-plot-store.ts";
+import { inMemoryPropStore, type PropStore } from "#/production/props/prop-store.ts";
 import { anItem, aRunningOrder, itemId } from "./running-order.fixture.ts";
 import { inMemoryRunningOrderStore } from "./running-order-store.ts";
 import { createSaveRunningOrder } from "./save-running-order.ts";
@@ -61,6 +62,9 @@ function setUp() {
       roles,
       itemNotes,
       sceneryFiles: noCleanup,
+      sceneryNotes: noCleanup,
+      props: noCleanup,
+      propsNotes: noCleanup,
       sfxFiles: noCleanup,
       sfxNotes: noCleanup,
       wardrobeFiles: noCleanup,
@@ -261,6 +265,9 @@ describe("save running order handler", () => {
         roles: { keepOnlyItems: failing },
         itemNotes: { keepOnlyItems: failing },
         sceneryFiles: { keepOnlyItems: failing },
+        sceneryNotes: { keepOnlyItems: failing },
+        props: { keepOnlyItems: failing },
+        propsNotes: { keepOnlyItems: failing },
         sfxFiles: { keepOnlyItems: failing },
         sfxNotes: { keepOnlyItems: failing },
         wardrobeFiles: { keepOnlyItems: failing },
@@ -289,6 +296,9 @@ describe("save running order handler", () => {
       roles: keeping,
       itemNotes: noCleanup,
       sceneryFiles: keeping,
+      sceneryNotes: noCleanup,
+      props: noCleanup,
+      propsNotes: noCleanup,
       sfxFiles: noCleanup,
       sfxNotes: noCleanup,
       wardrobeFiles: noCleanup,
@@ -369,6 +379,9 @@ describe("save running order handler, with scenery files", () => {
       roles: inMemoryRoleStore(),
       itemNotes: inMemoryItemNoteStore(),
       sceneryFiles,
+      sceneryNotes: noCleanup,
+      props: noCleanup,
+      propsNotes: noCleanup,
       sfxFiles: noCleanup,
       sfxNotes: noCleanup,
       wardrobeFiles: noCleanup,
@@ -491,6 +504,9 @@ describe("save running order handler, with SFX files and notes", () => {
         roles: inMemoryRoleStore(),
         itemNotes: inMemoryItemNoteStore(),
         sceneryFiles: folderItemFileStore(folder, "scenery"),
+        sceneryNotes: noCleanup,
+        props: noCleanup,
+        propsNotes: noCleanup,
         sfxFiles: folderItemFileStore(folder, "sfx"),
         sfxNotes,
         wardrobeFiles: noCleanup,
@@ -564,6 +580,9 @@ describe("save running order handler, with Wardrobe files and notes", () => {
         roles: inMemoryRoleStore(),
         itemNotes: inMemoryItemNoteStore(),
         sceneryFiles: folderItemFileStore(folder, "scenery"),
+        sceneryNotes: noCleanup,
+        props: noCleanup,
+        propsNotes: noCleanup,
         sfxFiles: folderItemFileStore(folder, "sfx"),
         sfxNotes: noCleanup,
         wardrobeFiles: folderItemFileStore(folder, "wardrobe"),
@@ -632,6 +651,9 @@ describe("save running order handler, with mic plots", () => {
       roles: inMemoryRoleStore(),
       itemNotes: inMemoryItemNoteStore(),
       sceneryFiles: noCleanup,
+      sceneryNotes: noCleanup,
+      props: noCleanup,
+      propsNotes: noCleanup,
       sfxFiles: noCleanup,
       sfxNotes: noCleanup,
       wardrobeFiles: noCleanup,
@@ -727,5 +749,137 @@ describe("save running order handler, with mic plots", () => {
 
     expect(await itemsWithMics(micPlots)).toEqual([]);
     log.mockRestore();
+  });
+});
+
+describe("save running order handler, with scenery notes and props", () => {
+  const pirate = itemId("Pirate Sketch");
+  const opening = itemId("Opening Number");
+  const oldFinale = itemId("Old Finale");
+  // Made-up cast member id: Alex Smith.
+  const alex = 1;
+
+  function setUpProps() {
+    const store = inMemoryRunningOrderStore([
+      aRunningOrder(6, { first: ["Opening Number", "Pirate Sketch"] }),
+    ]);
+    const sceneryNotes = inMemoryItemNoteStore();
+    const props = inMemoryPropStore();
+    const propsNotes = inMemoryItemNoteStore();
+    const cleanup = {
+      roles: inMemoryRoleStore(),
+      itemNotes: inMemoryItemNoteStore(),
+      sceneryFiles: noCleanup,
+      sceneryNotes,
+      props,
+      propsNotes,
+      sfxFiles: noCleanup,
+      sfxNotes: noCleanup,
+      wardrobeFiles: noCleanup,
+      wardrobeNotes: noCleanup,
+      micPlotNotes: noCleanup,
+      micPlots: noCleanup,
+    };
+    const handler = createSaveRunningOrder(store, cleanup, () => NOW);
+    return { sceneryNotes, props, propsNotes, handler };
+  }
+
+  async function giveEverything(
+    { sceneryNotes, props, propsNotes }: ReturnType<typeof setUpProps>,
+    item: string,
+  ) {
+    await sceneryNotes.save("2027", item, 0, "Two flats and a mast");
+    await props.add("2027", item, {
+      name: "Cutlass",
+      quantity: 1,
+      roleIds: [],
+      carrierIds: [alex],
+    });
+    await propsNotes.save("2027", item, 0, "Check the cutlass is blunt");
+  }
+
+  const itemsWithNotes = async (notes: ItemNoteStore) =>
+    (await notes.list("2027")).notes.map((note) => note.itemId);
+  const itemsWithProps = async (props: PropStore) =>
+    (await props.list("2027")).props.map((prop) => prop.itemId);
+
+  it("deletes a cut item's scenery notes once the version is saved", async () => {
+    const stores = setUpProps();
+    await stores.sceneryNotes.save("2027", pirate, 0, "Two flats and a mast");
+
+    const res = await stores.handler(request(update(6, ["Opening Number"])));
+
+    expect(res.statusCode).toBe(201);
+    expect(await itemsWithNotes(stores.sceneryNotes)).toEqual([]);
+  });
+
+  it("deletes a cut item's props, and who carries them, once the version is saved", async () => {
+    const stores = setUpProps();
+    await stores.props.add("2027", pirate, {
+      name: "Cutlass",
+      quantity: 1,
+      roleIds: [],
+      carrierIds: [alex],
+    });
+
+    const res = await stores.handler(request(update(6, ["Opening Number"])));
+
+    expect(res.statusCode).toBe(201);
+    expect((await stores.props.list("2027")).props).toEqual([]);
+  });
+
+  it("deletes a cut item's props notes once the version is saved", async () => {
+    const stores = setUpProps();
+    await stores.propsNotes.save("2027", pirate, 0, "Check the cutlass is blunt");
+
+    const res = await stores.handler(request(update(6, ["Opening Number"])));
+
+    expect(res.statusCode).toBe(201);
+    expect(await itemsWithNotes(stores.propsNotes)).toEqual([]);
+  });
+
+  it("keeps the scenery notes, props and props notes of items still in the show", async () => {
+    const stores = setUpProps();
+    await giveEverything(stores, pirate);
+    await giveEverything(stores, opening);
+    const openingProps = (await stores.props.list("2027")).props.filter(
+      (prop) => prop.itemId === opening,
+    );
+
+    await stores.handler(request(update(6, ["Opening Number"])));
+
+    expect((await stores.sceneryNotes.list("2027")).notes).toEqual([
+      { itemId: opening, text: "Two flats and a mast", revision: 1 },
+    ]);
+    expect((await stores.props.list("2027")).props).toEqual(openingProps);
+    expect((await stores.propsNotes.list("2027")).notes).toEqual([
+      { itemId: opening, text: "Check the cutlass is blunt", revision: 1 },
+    ]);
+  });
+
+  it("deletes no scenery notes, props or props notes until a save drops the item", async () => {
+    // Reset on the page sends nothing; a refused save is the closest the API sees.
+    const stores = setUpProps();
+    await giveEverything(stores, pirate);
+
+    const stale = await stores.handler(request(update(5, ["Opening Number"])));
+
+    expect(stale.statusCode).toBe(409);
+    expect(await itemsWithNotes(stores.sceneryNotes)).toEqual([pirate]);
+    expect(await itemsWithProps(stores.props)).toEqual([pirate]);
+    expect(await itemsWithNotes(stores.propsNotes)).toEqual([pirate]);
+  });
+
+  it("deletes leftovers of an item cut earlier at the next save, even one with no changes", async () => {
+    const stores = setUpProps();
+    // Old Finale was cut before cutting took these with it, so they're still stored.
+    await giveEverything(stores, oldFinale);
+
+    const res = await stores.handler(request(update(6, ["Opening Number", "Pirate Sketch"])));
+
+    expect(res.statusCode).toBe(201);
+    expect(await itemsWithNotes(stores.sceneryNotes)).toEqual([]);
+    expect(await itemsWithProps(stores.props)).toEqual([]);
+    expect(await itemsWithNotes(stores.propsNotes)).toEqual([]);
   });
 });

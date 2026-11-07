@@ -7,15 +7,20 @@ import { productionIdOf } from "#/http/params.ts";
 import type { ItemNoteStore } from "#/item-notes/item-note-store.ts";
 import type { ItemFileStore } from "#/production/item-files/item-file-store.ts";
 import type { MicPlotStore } from "#/production/mic-plot/mic-plot-store.ts";
+import type { PropStore } from "#/production/props/prop-store.ts";
 import { applyChange } from "./running-order-changes.ts";
 import type { RunningOrderStore } from "./running-order-store.ts";
 
-/** Where what's kept about each item lives, its casting, its scenery files, its SFX and
- *  Wardrobe files and notes, and its mic plot and notes: it goes when the item leaves the show. */
+/** Where what's kept about each item lives, its casting, its scenery files and notes, its
+ *  props and props notes, its SFX and Wardrobe files and notes, and its mic plot and notes: it
+ *  goes when the item leaves the show. */
 export interface ItemCleanup {
   roles: Pick<RoleStore, "keepOnlyItems">;
   itemNotes: Pick<ItemNoteStore, "keepOnlyItems">;
   sceneryFiles: Pick<ItemFileStore, "keepOnlyItems">;
+  sceneryNotes: Pick<ItemNoteStore, "keepOnlyItems">;
+  props: Pick<PropStore, "keepOnlyItems">;
+  propsNotes: Pick<ItemNoteStore, "keepOnlyItems">;
   sfxFiles: Pick<ItemFileStore, "keepOnlyItems">;
   sfxNotes: Pick<ItemNoteStore, "keepOnlyItems">;
   wardrobeFiles: Pick<ItemFileStore, "keepOnlyItems">;
@@ -74,18 +79,19 @@ async function removeWhatDroppedItemsKept(
     await cleanup.roles.keepOnlyItems(productionId, itemIds);
     await cleanup.itemNotes.keepOnlyItems(productionId, itemIds);
     await cleanup.sceneryFiles.keepOnlyItems(productionId, itemIds);
+    await cleanup.sceneryNotes.keepOnlyItems(productionId, itemIds);
+    await cleanup.props.keepOnlyItems(productionId, itemIds);
+    await cleanup.propsNotes.keepOnlyItems(productionId, itemIds);
     await cleanup.sfxFiles.keepOnlyItems(productionId, itemIds);
     await cleanup.sfxNotes.keepOnlyItems(productionId, itemIds);
     await cleanup.wardrobeFiles.keepOnlyItems(productionId, itemIds);
     await cleanup.wardrobeNotes.keepOnlyItems(productionId, itemIds);
     await cleanup.micPlots.keepOnlyItems(productionId, itemIds);
     await cleanup.micPlotNotes.keepOnlyItems(productionId, itemIds);
-    // A dropped item's props and props notes are kept, for now: whether they go too is an open
-    // question in docs/product/production/props/prd.md, to settle before item removal is built.
   } catch (error) {
     // Only the error's name: a store's message can quote stored casting (ADR 0010).
     console.error(
-      `Couldn't remove dropped items' casting, scenery, SFX, Wardrobe or mic plot in production ${productionId}: ${error instanceof Error ? error.name : "unknown error"}`,
+      `Couldn't remove dropped items' casting, scenery, props, SFX, Wardrobe or mic plot in production ${productionId}: ${error instanceof Error ? error.name : "unknown error"}`,
     );
   }
 }
