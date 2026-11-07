@@ -780,15 +780,13 @@ describe("Cast page", () => {
     describe("for someone signed in", () => {
       afterEach(useLocalSignIn);
 
-      it("offers delete only to admins, saying why to Casting Team Members", async () => {
+      it("offers delete only to admins, leaving it out for Casting Team Members", async () => {
         await signInAs(["casting"]);
         api(cast());
         const wrapper = await openPage();
 
         for (const name of ["Sam Example", "Alex Sample"]) {
-          const button = deleteButton(wrapper, name);
-          expect(button.attributes("disabled")).toBeDefined();
-          expect(button.attributes("data-tooltip")).toBe("Only admins can delete cast members");
+          expect(wrapper.find(`button[aria-label="Delete ${name}"]`).exists()).toBe(false);
         }
         expect(wrapper.get('button[aria-label="Edit Sam Example"]').attributes("disabled")).toBe(
           undefined,
@@ -1147,18 +1145,13 @@ describe("Cast page", () => {
       return openPage();
     }
 
-    it("keeps today's controls for a Casting Team Member, Delete disabled with its reason", async () => {
+    it("keeps adding and editing for a Casting Team Member, without Delete or a line about it", async () => {
       const wrapper = await openAs("casting");
 
       expect(wrapper.find("[data-test=add-member]").exists()).toBe(true);
       expect(wrapper.find('button[aria-label="Edit Ava Example"]').exists()).toBe(true);
-      const remove = wrapper.get('button[aria-label="Delete Ava Example"]');
-      expect(remove.attributes("disabled")).toBeDefined();
-      expect(remove.attributes("data-tooltip")).toBe("Only admins can delete cast members");
-      // Said on the page too: phones don't show tooltips.
-      expect(wrapper.get(".access-note[data-test=admin-only]").text()).toBe(
-        "Only admins can delete cast members",
-      );
+      expect(wrapper.find('button[aria-label="Delete Ava Example"]').exists()).toBe(false);
+      expect(wrapper.text()).not.toContain("Only admins can delete cast members");
       expect(wrapper.find("[data-test=view-only]").exists()).toBe(false);
     });
 
@@ -1180,7 +1173,6 @@ describe("Cast page", () => {
       expect(
         wrapper.get('button[aria-label="Delete Ava Example"]').attributes("disabled"),
       ).toBeUndefined();
-      expect(wrapper.find("[data-test=admin-only]").exists()).toBe(false);
       expect(wrapper.find("[data-test=view-only]").exists()).toBe(false);
     });
   });

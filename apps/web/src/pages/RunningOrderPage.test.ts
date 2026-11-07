@@ -555,26 +555,12 @@ describe("Running order page", () => {
     describe("for someone signed in", () => {
       afterEach(useLocalSignIn);
 
-      it("shows the running order to everyone, but saves only for admins, saying why", async () => {
-        await signInAs(["casting"]);
-        fakeApi(threeItems());
-        const wrapper = await openPage();
-        await press(wrapper, "Move Curtain Up down");
-
-        expect(firstHalfTitles(wrapper)).toEqual(["Pirate Panic", "Curtain Up", "Dance One"]);
-        expect(saveButton(wrapper).attributes("disabled")).toBeDefined();
-        expect(wrapper.get("[data-test=admin-only]").text()).toBe(
-          "Only admins can save the running order, or add and remove items",
-        );
-      });
-
       it("lets an admin save as before", async () => {
         await signInAs(["admin"]);
         fakeApi(threeItems());
         const wrapper = await openPage();
         await press(wrapper, "Move Curtain Up down");
 
-        expect(wrapper.find("[data-test=admin-only]").exists()).toBe(false);
         await click(saveButton(wrapper));
 
         expect(posts()).toBe(1);
@@ -1329,20 +1315,6 @@ describe("Running order page", () => {
       expect(unsaved(wrapper)).toBe(false);
     });
 
-    it("lets only admins add or remove items, saying why", async () => {
-      await signInAs(["casting"]);
-      api(order());
-      const wrapper = await openPage();
-
-      const add = addButton(wrapper, "first half");
-      const removeDance = removeButton(wrapper, "Dance One");
-      expect(add.attributes("disabled")).toBeDefined();
-      expect(add.attributes("data-tooltip")).toBe("Only admins can add items");
-      expect(removeDance.attributes("disabled")).toBeDefined();
-      expect(removeDance.attributes("data-tooltip")).toBe("Only admins can remove items");
-      useLocalSignIn();
-    });
-
     it("lets admins add and remove items", async () => {
       await signInAs(["admin"]);
       api(order());
@@ -1357,10 +1329,11 @@ describe("Running order page", () => {
   });
 
   describe.each([
+    ["with Casting only", ["casting"]],
     ["with Stage only", ["stage"]],
     ["with Director only", ["director"]],
     ["with no permissions", []],
-  ])("for an account %s, which can't change Casting", (_who, groups) => {
+  ])("for an account %s, which can't change the running order", (_who, groups) => {
     beforeEach(async () => {
       sortables.length = 0;
       await signInAs(groups);
@@ -1442,7 +1415,7 @@ describe("Running order page", () => {
 
       expect(wrapper.get(".page-title-row [data-test=view-only]").text()).toBe("View only");
       expect(wrapper.text()).not.toContain("You can view the casting");
-      expect(wrapper.find("[data-test=admin-only]").exists()).toBe(false);
+      expect(wrapper.text()).not.toContain("Only admins can save the running order");
     });
 
     it("shows an empty half as empty, without a hint to drag or add", async () => {
@@ -1460,26 +1433,21 @@ describe("Running order page", () => {
   describe("for other roles", () => {
     afterEach(useLocalSignIn);
 
-    it.each([["casting"], ["admin"]])(
-      "keeps today's controls for %s, with no read-only line",
-      async (group) => {
-        await signInAs([group]);
-        serve(aRunningOrder([anItem("Curtain Up"), anItem("Pirate Panic")], []));
+    it("keeps every control for an admin, with no View only badge", async () => {
+      await signInAs(["admin"]);
+      serve(aRunningOrder([anItem("Curtain Up"), anItem("Pirate Panic")], []));
 
-        const wrapper = await openPage();
+      const wrapper = await openPage();
 
-        expect(wrapper.find('button[aria-label="Move Curtain Up down"]').exists()).toBe(true);
-        expect(wrapper.find('button[aria-label="Edit Curtain Up"]').exists()).toBe(true);
-        expect(wrapper.find("button[data-test=save]").exists()).toBe(true);
-        expect(wrapper.find('button[aria-label="Remove Curtain Up"]').exists()).toBe(true);
-        expect(wrapper.find("[data-add-to]").exists()).toBe(true);
-        // Casting Team Members still learn that only admins save.
-        expect(wrapper.find(".draft-bar .access-note[data-test=admin-only]").exists()).toBe(
-          group === "casting",
-        );
-        expect(wrapper.find("[data-test=view-only]").exists()).toBe(false);
-      },
-    );
+      expect(wrapper.find(".drag-handle").exists()).toBe(true);
+      expect(wrapper.find('button[aria-label="Move Curtain Up down"]').exists()).toBe(true);
+      expect(wrapper.find('button[aria-label="Edit Curtain Up"]').exists()).toBe(true);
+      expect(wrapper.find("button[data-test=save]").exists()).toBe(true);
+      expect(wrapper.find("button[data-test=reset]").exists()).toBe(true);
+      expect(wrapper.find('button[aria-label="Remove Curtain Up"]').exists()).toBe(true);
+      expect(wrapper.find("[data-add-to]").exists()).toBe(true);
+      expect(wrapper.find("[data-test=view-only]").exists()).toBe(false);
+    });
   });
 
   describe("its help (in-app-help E1.S2)", () => {
@@ -1506,6 +1474,18 @@ describe("Running order page", () => {
 
       expect(titlesIn(half(wrapper, "first-half"))).toEqual(["Pirate Panic", "Opening Number"]);
       expect(wrapper.find("[data-test=unsaved]").exists()).toBe(true);
+    });
+
+    it("says in its help that only admins can change the running order", async () => {
+      await signInAs(["casting"]);
+      serve(aRunningOrder([anItem("Opening Number")]));
+      const wrapper = await openPage();
+
+      await helpButton(wrapper).trigger("click");
+
+      expect(wrapper.get("dialog [data-test=who-can-change]").text()).toBe(
+        "Only admins can change the running order.",
+      );
     });
 
     it("offers read-only members the same help", async () => {

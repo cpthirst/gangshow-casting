@@ -30,8 +30,8 @@ export interface PageHelp {
   title: string;
   /** A line about the page as a whole, before its actions. */
   summary: string;
-  /** The department whose access lets someone change the page; the rest only view it. */
-  department?: DepartmentId;
+  /** Who can change the page, a department or admins alone; everyone else only views it. */
+  changedBy?: Exclude<Access, "everyone">;
   /** The page the Help page links to instead, for a page with no menu entry of its own. */
   reachedFrom?: { page: string; title: string };
   lines: HelpLine[];
@@ -42,10 +42,10 @@ export interface PageHelp {
 export const pageHelp: PageHelp[] = [
   {
     page: "running-order",
-    department: "casting",
+    changedBy: "admins",
     title: "Running order",
     summary:
-      "The show's items in the order they're performed. Changes stay on your screen until an admin saves them.",
+      "The show's items in the order they're performed. Changes stay on your screen until you save them.",
     lines: [
       {
         name: "Read the order",
@@ -56,19 +56,19 @@ export const pageHelp: PageHelp[] = [
         icons: [icons.drag],
         name: "Drag",
         does: "Grab an item by its handle and move it to a new place.",
-        access: "casting",
+        access: "admins",
       },
       {
         icons: [icons.moveUp, icons.moveDown, icons.moveToOtherHalf],
         name: "Move",
         does: "Moves an item one place up or down, or to the other half.",
-        access: "casting",
+        access: "admins",
       },
       {
         icons: [icons.edit],
         name: "Edit",
         does: "Changes an item's details, such as its title, minutes or stage.",
-        access: "casting",
+        access: "admins",
       },
       {
         icons: [icons.remove],
@@ -89,13 +89,13 @@ export const pageHelp: PageHelp[] = [
       {
         name: "Reset",
         does: "Throws away the changes you haven't saved.",
-        access: "casting",
+        access: "admins",
       },
     ],
   },
   {
     page: "cast",
-    department: "casting",
+    changedBy: "casting",
     title: "Cast",
     summary: "Everyone in this production's cast, with their section, group and casting notes.",
     lines: [
@@ -130,7 +130,7 @@ export const pageHelp: PageHelp[] = [
   },
   {
     page: "casting-overview",
-    department: "casting",
+    changedBy: "casting",
     title: "Overview",
     summary: "Everyone in the cast and how much they're cast, three ways.",
     lines: [
@@ -171,7 +171,7 @@ export const pageHelp: PageHelp[] = [
   },
   {
     page: "casting-items",
-    department: "casting",
+    changedBy: "casting",
     title: "Items",
     summary: "The show's items in running order, with how far each one's casting has got.",
     lines: [
@@ -196,7 +196,7 @@ export const pageHelp: PageHelp[] = [
   },
   {
     page: "casting-item",
-    department: "casting",
+    changedBy: "casting",
     title: "An item",
     summary: "One item's roles and notes. Open an item from Casting → Items.",
     reachedFrom: { page: "casting-items", title: "Items" },
@@ -298,7 +298,7 @@ export const pageHelp: PageHelp[] = [
   },
   {
     page: "scenery-item",
-    department: "scenery",
+    changedBy: "scenery",
     title: "An item's scenery",
     summary:
       "One item's scenery files and notes. Open an item's scenery from Production → Overview.",
@@ -350,7 +350,7 @@ export const pageHelp: PageHelp[] = [
   },
   {
     page: "props-item",
-    department: "props",
+    changedBy: "props",
     title: "An item's props",
     summary: "One item's props and notes. Open an item's props from Production → Overview.",
     reachedFrom: { page: "production-overview", title: "Production overview" },
@@ -394,7 +394,7 @@ export const pageHelp: PageHelp[] = [
   },
   {
     page: "sfx-item",
-    department: "sfx",
+    changedBy: "sfx",
     title: "An item's SFX",
     summary: "One item's SFX files and notes. Open an item's SFX from Production → Overview.",
     reachedFrom: { page: "production-overview", title: "Production overview" },
@@ -446,7 +446,7 @@ export const pageHelp: PageHelp[] = [
   },
   {
     page: "mic-plot-item",
-    department: "mic-plot",
+    changedBy: "mic-plot",
     title: "An item's mic plot",
     summary:
       "One item's mics and Mic plot notes. Open an item's mic plot from Production → Overview.",
@@ -497,7 +497,7 @@ export const pageHelp: PageHelp[] = [
   },
   {
     page: "wardrobe-item",
-    department: "wardrobe",
+    changedBy: "wardrobe",
     title: "An item's wardrobe",
     summary:
       "One item's Wardrobe files and notes. Open an item's Wardrobe from Production → Overview.",
@@ -553,7 +553,7 @@ export const pageHelp: PageHelp[] = [
 export const permissionHelp = [
   {
     name: "Casting",
-    does: "Changes the cast, the roles and who plays them, and the running order, which an admin then saves.",
+    does: "Changes the cast, and the roles and who plays them.",
   },
   { name: "Stage", does: "Changes the Scenery and Props pages." },
   {
@@ -567,13 +567,17 @@ export const permissionHelp = [
   },
   {
     name: "Admins",
-    does: "Change everything. Only admins can delete cast members, add and remove items, save the running order, and manage accounts.",
+    does: "Change everything. Only admins can delete cast members, change the running order, and manage accounts.",
   },
 ];
 
-/** Who can change the page, for a page a department owns (simplify FR13). */
-export const whoCanChange = (help: PageHelp) =>
-  help.department ? whoCanChangeLine(help.department) : undefined;
+/** Who can change the page, for a page a department or admins alone own (simplify FR13). */
+export function whoCanChange({ changedBy, title }: PageHelp) {
+  if (changedBy === undefined) return undefined;
+  return changedBy === "admins"
+    ? `Only admins can change the ${title.toLowerCase()}.`
+    : whoCanChangeLine(changedBy);
+}
 
 /** The named page's help. A page without any is a mistake in the code, so it fails loudly. */
 export function helpFor(page: string): PageHelp {

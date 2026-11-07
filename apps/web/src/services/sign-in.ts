@@ -105,11 +105,11 @@ export const localAccess = computed<Access | undefined>(() =>
 );
 export const isAdmin = computed(() => access.value === "admin");
 /**
- * Whether a department's pages show their change controls; everyone else sees them read-only
- * (team-roles FR6, production-props FR3). The casting pages and Running order are Casting's.
+ * Whether a department's pages, or a page only admins change, show their change controls;
+ * everyone else sees them read-only (team-roles FR6, production-props FR3, simplify FR12).
  */
-export const canChange = (department: DepartmentId) =>
-  mayChangeDepartment(access.value, department);
+export const canChange = (changedBy: DepartmentId | "admins") =>
+  changedBy === "admins" ? isAdmin.value : mayChangeDepartment(access.value, changedBy);
 /** A change was refused because the person may only read: pages say it wasn't saved. */
 export const changeRefusedAsReadOnly = computed(() => refusedAsReadOnly.value);
 

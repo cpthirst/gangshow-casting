@@ -5,7 +5,7 @@ import { helpFor } from "@/utils/help.ts";
 import HelpButton from "./HelpButton.vue";
 
 // Every page's title row: its title, a View only badge for someone who can't change the page
-// (simplify FR10), and its Help button. The page's Help says which department may change it.
+// (simplify FR10), and its Help button. The page's Help says who may change it.
 // helpLabel and helpTitle name the button and dialog for a page whose own title changes.
 const props = defineProps<{
   title: string;
@@ -14,8 +14,8 @@ const props = defineProps<{
   helpTitle?: string;
 }>();
 
-const department = computed(() => helpFor(props.help).department);
-const viewOnly = computed(() => department.value !== undefined && !canChange(department.value));
+const changedBy = computed(() => helpFor(props.help).changedBy);
+const viewOnly = computed(() => changedBy.value !== undefined && !canChange(changedBy.value));
 </script>
 
 <template>

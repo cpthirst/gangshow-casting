@@ -321,8 +321,8 @@ main a {
   cursor: not-allowed;
 }
 
-/* Why someone can't do something here: "Only admins can …", or that a refused change wasn't saved.
-   The same look on every page, and visible text rather than a tooltip, so it shows on phones. */
+/* That a refused change wasn't saved: the same look on every page, and visible text rather than
+   a tooltip, so it shows on phones. */
 .access-note {
   margin: 0 0 1rem;
   padding: 0.25rem 0.75rem;
@@ -941,10 +941,6 @@ main a {
   margin: 0 0 1rem;
 }
 
-.cast-actions .access-note {
-  margin: 0.75rem 0 0;
-}
-
 .cast-actions button {
   padding: 0.5rem 1.25rem;
   border: 2px solid var(--red-deep);
@@ -1291,12 +1287,6 @@ main a {
 .access-choice .hint {
   flex-basis: 100%;
   margin: 0;
-  font-size: 0.875rem;
-}
-
-/* Why the signed-in admin can't change their own account, shown as phones have no tooltips. */
-.accounts-list .hint {
-  margin: 0.25rem 0 0;
   font-size: 0.875rem;
 }
 

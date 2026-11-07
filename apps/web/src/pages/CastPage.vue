@@ -171,10 +171,6 @@ async function putMember(
   }
 }
 
-// The API refuses non-admins too: this only shows it up front. A refusal anyway means their
-// admin role was removed after they signed in.
-const ONLY_ADMINS_DELETE = "Only admins can delete cast members";
-
 // Permanent by design (PRD FR5, ADR 0010), so always confirm first, naming the person and
 // how many roles they'll leave (casting-roles FR9).
 async function deleteMember(member: CastMember) {
@@ -203,7 +199,8 @@ async function deleteMember(member: CastMember) {
   } else if (status === 409 || status === 404) {
     await showConflict();
   } else if (status === 403) {
-    notice.value = `${ONLY_ADMINS_DELETE}.`;
+    // Only admins see Delete, so their admin role was removed after they signed in.
+    notice.value = "Only admins can delete cast members.";
   } else {
     notice.value = `Couldn't delete ${fullName(member)}. Try again.`;
   }
@@ -286,8 +283,6 @@ onMounted(load);
       >
         Add cast member
       </button>
-      <!-- Delete's tooltip says so too, but phones don't show tooltips. -->
-      <p v-if="!isAdmin" class="access-note" data-test="admin-only">{{ ONLY_ADMINS_DELETE }}</p>
     </div>
     <CastMemberForm
       v-if="adding"
@@ -375,11 +370,12 @@ onMounted(load);
                 <FontAwesomeIcon :icon="icons.edit" />
               </button>
               <button
+                v-if="isAdmin"
                 type="button"
                 class="icon-button"
                 :aria-label="`Delete ${fullName(member)}`"
-                :data-tooltip="isAdmin ? 'Delete from the cast' : ONLY_ADMINS_DELETE"
-                :disabled="busy || !isAdmin"
+                data-tooltip="Delete from the cast"
+                :disabled="busy"
                 @click="deleteMember(member)"
               >
                 <FontAwesomeIcon :icon="icons.remove" />

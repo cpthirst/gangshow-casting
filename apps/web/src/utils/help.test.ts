@@ -36,6 +36,15 @@ describe("Who can change a page, in its Help", () => {
     expect(whoCanChange(helpFor(page))).toBe(line);
   });
 
+  it("says only admins can change the running order, labelling each change Admins only", () => {
+    const help = helpFor("running-order");
+    const changing = help.lines.filter(({ access }) => access !== "everyone");
+
+    expect(whoCanChange(help)).toBe("Only admins can change the running order.");
+    expect(changing.length).toBeGreaterThan(0);
+    for (const { access } of changing) expect(accessLabel(access)).toBe("Admins only");
+  });
+
   it("says nothing for a page no department owns", () => {
     expect(whoCanChange(helpFor("production-overview"))).toBeUndefined();
   });

@@ -642,19 +642,15 @@ describe("Accounts page", () => {
         expect(document.activeElement).toBe(button(wrapper, "Disable sam").element);
       });
 
-      it("won't offer to disable the signed-in admin's own account, saying why", async () => {
+      it("offers no Disable on the signed-in admin's own account, keeping it on the others", async () => {
         await signInAs(["admin"], "pat");
         serveChanges([account("pat", { access: "admin" }), account("sam")], {});
         const wrapper = await openPage();
 
-        const own = button(wrapper, "Disable pat");
-        expect(own.attributes("disabled")).toBeDefined();
-        expect(own.attributes("data-tooltip")).toBe("You can't disable your own account");
-        // Phones show no tooltips, so the reason is on the page too.
-        const why = wrapper.get(`#${own.attributes("aria-describedby")}`);
-        expect(why.text()).toBe("You can't disable your own account");
+        expect(wrapper.find('button[aria-label="Disable pat"]').exists()).toBe(false);
+        expect(wrapper.text()).not.toContain("You can't disable your own account");
         expect(button(wrapper, "Disable sam").attributes("disabled")).toBeUndefined();
-        expect(button(wrapper, "Disable sam").attributes("aria-describedby")).toBeUndefined();
+        expect(button(wrapper, "Disable sam").attributes("data-tooltip")).toBe("Disable account");
       });
 
       it("leaves the account alone if the admin doesn't confirm", async () => {
@@ -993,7 +989,7 @@ describe("Accounts page", () => {
         expect(document.activeElement).toBe(button(wrapper, "Change kim's access").element);
       });
 
-      it("won't let the signed-in admin change their own access, saying why", async () => {
+      it("offers no access controls on the signed-in admin's own account, keeping them on the others", async () => {
         await signInAs(["admin"], "alex");
         serveChanges(
           [account("alex", { access: "admin" }), account("sam", { access: "admin" })],
@@ -1001,18 +997,12 @@ describe("Accounts page", () => {
         );
         const wrapper = await openPage();
 
-        const own = button(wrapper, "Change alex's access");
-        expect(own.classes()).toContain("icon-button");
-        expect(own.element.closest("td")?.classList.contains("actions")).toBe(true);
-        expect(own.attributes("data-tooltip")).toBe("You can't change your own access");
-        expect(button(wrapper, "Change sam's access").attributes("data-tooltip")).toBe(
-          "Change access",
-        );
-        expect(own.attributes("disabled")).toBeDefined();
-        expect(own.attributes("aria-describedby")).toBeDefined();
-        const why = wrapper.get(`#${own.attributes("aria-describedby")}`);
-        expect(why.text()).toBe("You can't change your own access");
-        expect(button(wrapper, "Change sam's access").attributes("disabled")).toBeUndefined();
+        expect(wrapper.find('button[aria-label="Change alex\'s access"]').exists()).toBe(false);
+        expect(wrapper.text()).not.toContain("You can't change your own access");
+        const others = button(wrapper, "Change sam's access");
+        expect(others.attributes("data-tooltip")).toBe("Change access");
+        expect(others.attributes("disabled")).toBeUndefined();
+        expect(button(wrapper, "Reset alex's password").attributes("disabled")).toBeUndefined();
       });
 
       it("shows why the API refused, such as keeping the only admin, leaving the access as it was", async () => {

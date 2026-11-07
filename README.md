@@ -43,8 +43,8 @@ iCUE is hosted on AWS and is open only to the production team. Everyone signs in
 | **Usage** (admins) | Who on the team uses iCUE and how often, so admins can see who might need help getting started | [usage-tracking](docs/product/usage-tracking) |
 
 **Access** ([team-roles](docs/product/team-roles), [production-props](docs/product/production/props)): an account is an Admin, or has any mix of department permissions.
-- **Admin:** everything, plus Accounts and Usage.
-- **Casting:** changes the running order drafts, cast and casting.
+- **Admin:** everything, plus the running order, Accounts and Usage.
+- **Casting:** changes the cast and casting.
 - **Stage, Tech, Wardrobe:** change their own department's pages, as those arrive.
 - **Director:** changes every Production department's pages (Props, Scenery, SFX and Wardrobe today), but not casting or the show. Admins give it on the Accounts page ([production-scenery](docs/product/production/scenery)).
 - **Read-only** (no permissions): sees every page but changes nothing, which suits reviewers such as the director.
