@@ -14,24 +14,20 @@ export interface FilesDepartment {
   key: FileDepartment;
   /** What the upload area says the files must be, if anything. */
   uploadRule?: string;
-  /** The page's help. */
-  help: string;
 }
 
 export const sceneryDepartment: FilesDepartment = {
   key: "scenery",
   uploadRule: "Scenery and set images only: no photos of cast members.",
-  help: "scenery-item",
 };
 
-export const sfxDepartment: FilesDepartment = { key: "sfx", help: "sfx-item" };
+export const sfxDepartment: FilesDepartment = { key: "sfx" };
 
 // Its rule stands in for checking each file, as Scenery's does (production-sfx-wardrobe FR4,
 // ADR 0010).
 export const wardrobeDepartment: FilesDepartment = {
   key: "wardrobe",
   uploadRule: "Costume designs and images only: no photos of cast members.",
-  help: "wardrobe-item",
 };
 
 const itemPath = (itemId: string) =>

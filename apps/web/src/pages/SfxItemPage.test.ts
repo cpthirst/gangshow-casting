@@ -199,23 +199,6 @@ describe("An item's SFX page", () => {
     );
   });
 
-  it("goes back to the Overview, and steps to the previous and next items' SFX pages", async () => {
-    apiHolds(show);
-    const { wrapper, router } = await openAppAt("/production/items/campfire-song/sfx");
-
-    const steps = wrapper
-      .findAll("main nav[aria-label='Item navigation'] a[rel]")
-      .map((link) => [link.attributes("rel"), link.attributes("href")]);
-    expect(steps).toEqual([
-      ["prev", "/production/items/opening-number/sfx"],
-      ["next", "/production/items/finale/sfx"],
-    ]);
-
-    await wrapper.get("main a.back-link").trigger("click");
-    await flushPromises();
-    expect(router.currentRoute.value.fullPath).toBe("/production/overview");
-  });
-
   it("has a help button beside the item's name, which opens the SFX page's help", async () => {
     apiHolds(show);
     const { wrapper } = await openAppAt(OPENING_NUMBER);
@@ -233,15 +216,6 @@ describe("An item's SFX page", () => {
       "Add a file",
       "SFX notes",
     ]);
-  });
-
-  it("says an item that isn't in the running order wasn't found, with a link back", async () => {
-    apiHolds(show);
-    const { wrapper } = await openAppAt("/production/items/no-such-item/sfx");
-
-    expect(wrapper.get("main h1").text()).toBe("Item not found");
-    expect(wrapper.find("[data-test=no-files]").exists()).toBe(false);
-    expect(wrapper.get("main a.back-link").attributes("href")).toBe("/production/overview");
   });
 
   it("lists only the SFX files, and the Scenery page only the scenery files", async () => {

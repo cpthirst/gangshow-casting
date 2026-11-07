@@ -244,32 +244,6 @@ describe("An item's Scenery page", () => {
     ]);
   });
 
-  it("goes back to the Overview, and steps to the previous and next items' Scenery pages", async () => {
-    apiHolds(show);
-    const { wrapper, router } = await openAppAt("/production/items/pirate-sketch/scenery");
-
-    const steps = wrapper
-      .findAll("main nav[aria-label='Item navigation'] a[rel]")
-      .map((link) => [link.attributes("rel"), link.attributes("href")]);
-    expect(steps).toEqual([
-      ["prev", "/production/items/opening-number/scenery"],
-      ["next", "/production/items/finale/scenery"],
-    ]);
-
-    await wrapper.get("main a.back-link").trigger("click");
-    await flushPromises();
-    expect(router.currentRoute.value.fullPath).toBe("/production/overview");
-  });
-
-  it("says an item that isn't in the running order wasn't found, with a link back", async () => {
-    apiHolds(show);
-    const { wrapper } = await openAppAt("/production/items/no-such-item/scenery");
-
-    expect(wrapper.get("main h1").text()).toBe("Item not found");
-    expect(wrapper.find("[data-test=no-files]").exists()).toBe(false);
-    expect(wrapper.get("main a.back-link").attributes("href")).toBe("/production/overview");
-  });
-
   it("reports a failed load of the files rather than no files", async () => {
     vi.stubGlobal(
       "fetch",

@@ -1,107 +1,52 @@
 <script setup lang="ts">
-import {
-  departments,
-  RunningOrder,
-  type SceneryFile,
-  SceneryFileLink,
-  SceneryFileList,
-} from "@app/shared";
+import { departments, type SceneryFile, SceneryFileLink, SceneryFileList } from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-import { computed, ref, watch, watchEffect } from "vue";
+import { computed, ref, useTemplateRef, watch } from "vue";
 import { useRoute } from "vue-router";
-import HelpButton from "@/components/common/HelpButton.vue";
-import ItemNotes from "@/components/common/ItemNotes.vue";
-import ItemStepNav from "@/components/common/ItemStepNav.vue";
-import ReadOnlyNotice from "@/components/common/ReadOnlyNotice.vue";
-import { showPageTitle } from "@/router/index.ts";
+import ItemPageFrame from "@/components/common/ItemPageFrame.vue";
 import { downloadFrom, openFileTab } from "@/services/file-link.ts";
 import { loadData } from "@/services/load-data.ts";
 import { apiFetch, canChange } from "@/services/sign-in.ts";
-import { recordDepartmentPageUse } from "@/services/usage.ts";
-import { itemRouteOf } from "@/utils/departments.ts";
 import { icons } from "@/utils/icons.ts";
 import {
-  departmentNotesPath,
   type FilesDepartment,
   itemFileLinkPath,
   itemFilePath,
   itemFilesPath,
-  saveDepartmentNotesPath,
 } from "@/utils/item-files.ts";
-import { neighboursOf, placeOf, positionOf, RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
 import { fileIconOf, fileLabel, fileSize, opensInBrowser, sortFiles } from "@/utils/scenery.ts";
 import FileUpload from "./FileUpload.vue";
 
-// One item's files and notes for a department, Scenery's, SFX's or Wardrobe's
-// (production-scenery FR6, FR7, production-sfx-wardrobe FR2), laid out as the props item page.
+// One item's files for a department, Scenery's, SFX's or Wardrobe's (production-scenery FR6,
+// FR7, production-sfx-wardrobe FR2), in the frame every item page shares.
 
 const props = defineProps<{ department: FilesDepartment }>();
 
 const route = useRoute();
+const frame = useTemplateRef("frame");
 const key = computed(() => props.department.key);
-// Named and routed as the shared list says (ADR 0035).
+// Named as the shared list says (ADR 0035).
 const named = computed(() => departments[props.department.key]);
 const mayChange = computed(() => canChange(props.department.key));
-const order = ref<RunningOrder>();
 const files = ref<SceneryFile[]>([]);
-const status = ref<"loading" | "loaded" | "error">("loading");
 // Why the last file chosen didn't open, download, delete or upload, if it didn't.
 const fileProblem = ref<string>();
 // A delete is on its way, so the trash icons wait for it.
 const deleting = ref(false);
 
-const itemId = computed(() =>
-  typeof route.params.itemId === "string" ? route.params.itemId : undefined,
-);
-const place = computed(() =>
-  order.value && itemId.value ? placeOf(order.value, itemId.value) : undefined,
-);
-const neighbours = computed(() =>
-  order.value && place.value ? neighboursOf(order.value, place.value.item.id) : {},
-);
-// Loaded, but the item isn't in the latest saved running order.
-const notFound = computed(() => status.value === "loaded" && !place.value);
-const title = computed(() => (place.value ? `${named.value.name}: ${place.value.item.title}` : ""));
-
-// Each visit is a use, once the item is found; what's done with its files isn't (FR15).
-watch(
-  () => place.value?.item.id,
-  (id) => {
-    if (order.value && id) recordDepartmentPageUse(key.value, order.value.productionId, id);
-  },
-);
-
-// Follows the item even if the page is reused for another one (Previous and Next).
-watchEffect(() => {
-  if (place.value) showPageTitle(title.value);
-  else if (notFound.value) showPageTitle("Item not found");
-});
-
 // Files come from storage on every visit, so one renamed or added there shows (FR6).
-async function load(id: string) {
-  status.value = "loading";
-  try {
-    // No saved running order at all: no item can be in it.
-    const [loadedOrder, loadedFiles] = await Promise.all([
-      loadData(RUNNING_ORDER_PATH, RunningOrder),
-      loadData(itemFilesPath(key.value, id), SceneryFileList),
-    ]);
-    // Stepped on to another item while this one loaded: that load shows instead.
-    if (id !== itemId.value) return;
-    order.value = loadedOrder;
-    files.value = sortFiles(loadedFiles?.files ?? []);
-    status.value = "loaded";
-  } catch {
-    // A failed load must never look like "not found" or "no files".
-    if (id === itemId.value) status.value = "error";
-  }
+async function loadFiles(id: string) {
+  const list = await loadData(itemFilesPath(key.value, id), SceneryFileList);
+  return () => {
+    files.value = sortFiles(list?.files ?? []);
+  };
 }
+
+const reload = async () => frame.value?.reload();
 
 // A file opens in a new tab or downloads through a short-lived link (FR10). A file deleted
 // since the page loaded says so, and the grid catches up with storage.
-async function choose({ name }: SceneryFile) {
-  const id = itemId.value;
-  if (!id) return;
+async function choose({ name }: SceneryFile, id: string) {
   fileProblem.value = undefined;
   const tab = opensInBrowser(name, key.value) ? openFileTab() : undefined;
   try {
@@ -109,7 +54,7 @@ async function choose({ name }: SceneryFile) {
     if (!link) {
       tab?.close();
       fileProblem.value = `${name} isn't there any more.`;
-      await load(id);
+      await reload();
       return;
     }
     const { url } = link;
@@ -122,9 +67,8 @@ async function choose({ name }: SceneryFile) {
 }
 
 // For everyone, for good (FR11): there's no history to bring it back, so confirm first.
-async function remove({ name }: SceneryFile) {
-  const id = itemId.value;
-  if (!id || deleting.value) return;
+async function remove({ name }: SceneryFile, id: string) {
+  if (deleting.value) return;
   if (!window.confirm(`Remove ${name}? This can't be undone.`)) return;
   fileProblem.value = undefined;
   deleting.value = true;
@@ -135,7 +79,7 @@ async function remove({ name }: SceneryFile) {
   } else if (code === 404) {
     // Deleted in another browser meanwhile: say so, and catch up with storage.
     fileProblem.value = `${name} isn't there any more.`;
-    await load(id);
+    await reload();
   } else {
     fileProblem.value = `Couldn't remove ${name}. Try again.`;
   }
@@ -150,45 +94,25 @@ async function sendDelete(id: string, name: string) {
   }
 }
 
+// A problem with one item's file isn't another's.
 watch(
-  itemId,
-  (id) => {
+  () => route.params.itemId,
+  () => {
     fileProblem.value = undefined;
-    if (id) load(id);
   },
-  { immediate: true },
 );
 </script>
 
 <template>
-  <ItemStepNav
-    :list="{ name: 'production-overview' }"
-    :item-route="itemRouteOf(department.key)"
-    :previous="neighbours.previous"
-    :next="neighbours.next"
-  />
-  <p v-if="status === 'error'" role="alert">Couldn't load the item.</p>
-  <template v-else-if="place">
-    <div class="page-title-row">
-      <h1>{{ title }}</h1>
-      <HelpButton
-        v-if="department.help"
-        :page="department.help"
-        label="Help for this item"
-        title="Item help"
-      />
-    </div>
-    <p class="item-position" data-test="position">{{ positionOf(place) }}</p>
-    <!-- Those who can't change the department see the files with nothing to change them. -->
-    <ReadOnlyNotice :about="department.key" />
+  <ItemPageFrame ref="frame" v-slot="{ item }" :department="department.key" :load="loadFiles">
     <!-- A fresh instance per item, so a failed upload's Try again never reaches another. -->
     <FileUpload
       v-if="mayChange"
-      :key="place.item.id"
+      :key="item.id"
       :department="department"
-      :item-id="place.item.id"
+      :item-id="item.id"
       :names="files.map((file) => file.name)"
-      @changed="load(place.item.id)"
+      @changed="reload"
       @problem="fileProblem = $event"
     />
     <p v-if="fileProblem" class="notice" role="alert" data-test="file-problem">{{ fileProblem }}</p>
@@ -209,7 +133,7 @@ watch(
             :aria-label="`Remove ${file.name}`"
             data-tooltip="Remove file"
             :disabled="deleting"
-            @click="remove(file)"
+            @click="remove(file, item.id)"
           >
             <FontAwesomeIcon :icon="icons.remove" />
           </button>
@@ -218,7 +142,7 @@ watch(
           type="button"
           class="file-open"
           :aria-label="fileLabel(file.name, department.key)"
-          @click="choose(file)"
+          @click="choose(file, item.id)"
         >
           <FontAwesomeIcon :icon="fileIconOf(file.name, department.key)" class="file-icon" fixed-width />
           <span class="file-name" data-test="name">{{ file.name }}</span>
@@ -233,19 +157,5 @@ watch(
         Add one with Add a file above<span class="upload-drop-hint">, or drag one there</span>.
       </p>
     </template>
-    <!-- Apart from the item's other notes. A fresh instance per item, so stepping to another
-         never mixes their notes. -->
-    <ItemNotes
-      :key="place.item.id"
-      :item-id="place.item.id"
-      :heading="`${named.name} notes`"
-      :list-path="departmentNotesPath(department.key)"
-      :save-path="saveDepartmentNotesPath(department.key, place.item.id)"
-      :can-change="mayChange"
-    />
-  </template>
-  <template v-else-if="notFound">
-    <h1>Item not found</h1>
-    <p>It isn't in the latest saved running order. Choose an item from All items.</p>
-  </template>
+  </ItemPageFrame>
 </template>
