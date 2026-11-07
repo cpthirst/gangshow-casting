@@ -1,33 +1,17 @@
 import { type RunningOrder, SaveRunningOrderRequest } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
-import type { RoleStore } from "#/casting/roles/role-store.ts";
 import type { ApiEvent } from "#/http/handler.ts";
 import { jsonResponse, parseJson } from "#/http/json.ts";
 import { productionIdOf } from "#/http/params.ts";
-import type { ItemNoteStore } from "#/item-notes/item-note-store.ts";
-import type { ItemFileStore } from "#/production/item-files/item-file-store.ts";
-import type { MicPlotStore } from "#/production/mic-plot/mic-plot-store.ts";
-import type { PropStore } from "#/production/props/prop-store.ts";
 import { applyChange } from "./running-order-changes.ts";
 import type { RunningOrderStore } from "./running-order-store.ts";
 
-/** Where what's kept about each item lives, its casting, its scenery files and notes, its
- *  props and props notes, its SFX and Wardrobe files and notes, and its mic plot and notes: it
- *  goes when the item leaves the show. */
-export interface ItemCleanup {
-  roles: Pick<RoleStore, "keepOnlyItems">;
-  itemNotes: Pick<ItemNoteStore, "keepOnlyItems">;
-  sceneryFiles: Pick<ItemFileStore, "keepOnlyItems">;
-  sceneryNotes: Pick<ItemNoteStore, "keepOnlyItems">;
-  props: Pick<PropStore, "keepOnlyItems">;
-  propsNotes: Pick<ItemNoteStore, "keepOnlyItems">;
-  sfxFiles: Pick<ItemFileStore, "keepOnlyItems">;
-  sfxNotes: Pick<ItemNoteStore, "keepOnlyItems">;
-  wardrobeFiles: Pick<ItemFileStore, "keepOnlyItems">;
-  wardrobeNotes: Pick<ItemNoteStore, "keepOnlyItems">;
-  micPlots: Pick<MicPlotStore, "keepOnlyItems">;
-  micPlotNotes: Pick<ItemNoteStore, "keepOnlyItems">;
-}
+/** Every kind of data kept per item, by name, each able to keep only the items still in the
+ *  show: it goes when the item leaves the show (itemCleanupOf in data-stores.ts). */
+export type ItemCleanup = Record<
+  string,
+  { keepOnlyItems(productionId: string, itemIds: string[]): Promise<void> }
+>;
 
 // POST /api/productions/{productionId}/running-order/versions: apply one change to the
 // latest version and save the result as the next version.
@@ -63,9 +47,9 @@ export function createSaveRunningOrder(
 /**
  * Nothing about a removed item is kept (ADR 0010). Only after the version is saved, so a
  * refused save deletes nothing. It keeps the items of the newest version, which a later save
- * may have added to, and removes everything else, not just this save's removals: if it
- * fails, the next save finishes the job. The version is saved either way, so a failure is
- * logged rather than reported to the user as a failed save.
+ * may have added to, and removes everything else, not just this save's removals: if a kind
+ * fails, the others still go and the next save finishes the job. The version is saved either
+ * way, so a failure is logged rather than reported to the user as a failed save.
  */
 async function removeWhatDroppedItemsKept(
   store: RunningOrderStore,
@@ -73,25 +57,24 @@ async function removeWhatDroppedItemsKept(
   productionId: string,
   saved: RunningOrder,
 ) {
-  try {
-    const newest = (await store.latest(productionId)) ?? saved;
-    const itemIds = newest.halves.flatMap((half) => half.items).map((item) => item.id);
-    await cleanup.roles.keepOnlyItems(productionId, itemIds);
-    await cleanup.itemNotes.keepOnlyItems(productionId, itemIds);
-    await cleanup.sceneryFiles.keepOnlyItems(productionId, itemIds);
-    await cleanup.sceneryNotes.keepOnlyItems(productionId, itemIds);
-    await cleanup.props.keepOnlyItems(productionId, itemIds);
-    await cleanup.propsNotes.keepOnlyItems(productionId, itemIds);
-    await cleanup.sfxFiles.keepOnlyItems(productionId, itemIds);
-    await cleanup.sfxNotes.keepOnlyItems(productionId, itemIds);
-    await cleanup.wardrobeFiles.keepOnlyItems(productionId, itemIds);
-    await cleanup.wardrobeNotes.keepOnlyItems(productionId, itemIds);
-    await cleanup.micPlots.keepOnlyItems(productionId, itemIds);
-    await cleanup.micPlotNotes.keepOnlyItems(productionId, itemIds);
-  } catch (error) {
+  const couldNot = (what: string, error: unknown) =>
     // Only the error's name: a store's message can quote stored casting (ADR 0010).
     console.error(
-      `Couldn't remove dropped items' casting, scenery, props, SFX, Wardrobe or mic plot in production ${productionId}: ${error instanceof Error ? error.name : "unknown error"}`,
+      `Couldn't remove dropped items' ${what} in production ${productionId}: ${error instanceof Error ? error.name : "unknown error"}`,
     );
+  let newest: RunningOrder;
+  try {
+    newest = (await store.latest(productionId)) ?? saved;
+  } catch (error) {
+    // Not knowing the newest items, keeping only this version's could delete a later save's.
+    return couldNot("data", error);
+  }
+  const itemIds = newest.halves.flatMap((half) => half.items).map((item) => item.id);
+  for (const [kind, data] of Object.entries(cleanup)) {
+    try {
+      await data.keepOnlyItems(productionId, itemIds);
+    } catch (error) {
+      couldNot(kind, error);
+    }
   }
 }

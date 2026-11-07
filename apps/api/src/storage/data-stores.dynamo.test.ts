@@ -1,3 +1,6 @@
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { CastList, CastMember, ItemNoteList, Role, RoleList, RunningOrder } from "@app/shared";
 import { GetCommand } from "@aws-sdk/lib-dynamodb";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -15,16 +18,20 @@ import { createGetRunningOrder } from "#/show/running-order/get-running-order.ts
 import { anItem, aRunningOrder, itemId } from "#/show/running-order/running-order.fixture.ts";
 import { inMemoryRunningOrderStore } from "#/show/running-order/running-order-store.ts";
 import { createSaveRunningOrder } from "#/show/running-order/save-running-order.ts";
-import { dataStores } from "./data-stores.ts";
+import { dataStores, itemCleanupOf, itemFileStores, remoteStores } from "./data-stores.ts";
 import { aTestTable, seedCast, seedRoles, type TestTable } from "./dynamo.fixture.ts";
+import { eachKindOf, keptFor, seedEveryKind } from "./item-data.fixture.ts";
 
 describe("data stores with a remote table", () => {
   let table: TestTable;
+  let dataDir: string | undefined;
   beforeEach(async () => {
     table = await aTestTable();
   });
   afterEach(async () => {
     await table.drop();
+    if (dataDir !== undefined) await rm(dataDir, { recursive: true, force: true });
+    dataDir = undefined;
   });
 
   it("reads the cast list through the API from the remote table", async () => {
@@ -173,5 +180,38 @@ describe("data stores with a remote table", () => {
       }),
     );
     expect(stored.Item).toMatchObject({ text: "Bows", revision: 1 });
+  });
+
+  it("removes every kind of data a cut item has from the remote table, keeping the other items'", async () => {
+    dataDir = await mkdtemp(join(tmpdir(), "data-stores-"));
+    const stores = remoteStores(table.db, table.tableName);
+    const { stores: files, folder } = itemFileStores({ DATA_DIR: dataDir });
+    if (folder === undefined) throw new Error("expected local files");
+    const [opening, pirate] = [itemId("Opening Number"), itemId("Pirate Sketch")];
+    await stores.runningOrders.save(
+      aRunningOrder(1, { first: ["Opening Number", "Pirate Sketch"] }),
+    );
+    await seedEveryKind(stores, folder, "2027", opening);
+    await seedEveryKind(stores, folder, "2027", pirate);
+    const cleanup = itemCleanupOf(stores, files);
+    const save = createSaveRunningOrder(stores.runningOrders, cleanup);
+
+    const res = await save({
+      pathParameters: { productionId: "2027" },
+      body: JSON.stringify({
+        baseVersion: 1,
+        change: {
+          type: "update",
+          halves: [
+            { id: "first-half", items: [anItem("Opening Number")] },
+            { id: "second-half", items: [] },
+          ],
+        },
+      }),
+    });
+
+    expect(res.statusCode).toBe(201);
+    expect(await keptFor(stores, files, "2027", pirate)).toEqual(eachKindOf(cleanup, 0));
+    expect(await keptFor(stores, files, "2027", opening)).toEqual(eachKindOf(cleanup, 1));
   });
 });

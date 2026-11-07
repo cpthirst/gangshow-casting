@@ -25,7 +25,13 @@ import { createGetCast } from "#/show/cast/get-cast.ts";
 import { createUpdateCastMember } from "#/show/cast/update-cast-member.ts";
 import { createGetRunningOrder } from "#/show/running-order/get-running-order.ts";
 import { createSaveRunningOrder } from "#/show/running-order/save-running-order.ts";
-import { dataStores, itemFileStores, type Stores, usageStore } from "#/storage/data-stores.ts";
+import {
+  dataStores,
+  itemCleanupOf,
+  itemFileStores,
+  type Stores,
+  usageStore,
+} from "#/storage/data-stores.ts";
 import { createUsageRoutes } from "#/usage/usage-routes.ts";
 import type { UsageStore } from "#/usage/usage-store.ts";
 import { handler as health } from "./health.ts";
@@ -35,7 +41,11 @@ import { handler as health } from "./health.ts";
  * the account routes: those run in their own function (account-routes.ts, ADR 0017).
  */
 export function createRoutes(
-  {
+  stores: Stores,
+  usage: UsageStore,
+  files: ItemFileStores,
+): Record<Exclude<RouteKey, AccountRouteKey>, Handler> {
+  const {
     runningOrders,
     cast,
     roles,
@@ -48,30 +58,14 @@ export function createRoutes(
     wardrobeNotes,
     micPlots,
     micPlotNotes,
-  }: Stores,
-  usage: UsageStore,
-  files: ItemFileStores,
-): Record<Exclude<RouteKey, AccountRouteKey>, Handler> {
+  } = stores;
   const { scenery: sceneryFiles, sfx: sfxFiles, wardrobe: wardrobeFiles } = files;
   return {
     "GET /api/health": health,
     "GET /api/productions/{productionId}/running-order": createGetRunningOrder(runningOrders),
     "POST /api/productions/{productionId}/running-order/versions": createSaveRunningOrder(
       runningOrders,
-      {
-        roles,
-        itemNotes,
-        sceneryFiles,
-        sceneryNotes,
-        props,
-        propsNotes,
-        sfxFiles,
-        sfxNotes,
-        wardrobeFiles,
-        wardrobeNotes,
-        micPlots,
-        micPlotNotes,
-      },
+      itemCleanupOf(stores, files),
     ),
     "GET /api/productions/{productionId}/cast": createGetCast(cast),
     "POST /api/productions/{productionId}/cast": createAddCastMember(cast),

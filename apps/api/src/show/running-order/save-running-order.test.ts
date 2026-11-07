@@ -286,6 +286,74 @@ describe("save running order handler", () => {
     log.mockRestore();
   });
 
+  it("still removes the other kinds of a cut item's data when one kind fails, and that kind at the next save", async () => {
+    const store = inMemoryRunningOrderStore([
+      aRunningOrder(6, { first: ["Curtain Up", "Pirate Panic", "Dance One"] }),
+    ]);
+    const dance = itemId("Dance One");
+    const [roles, props, micPlots] = [
+      inMemoryRoleStore(),
+      inMemoryPropStore(),
+      inMemoryMicPlotStore(),
+    ];
+    await roles.add("2027", dance, { name: "Lead dancer", size: "lead", castMemberIds: [12] });
+    await props.add("2027", dance, { name: "Cane", quantity: 1, roleIds: [], carrierIds: [] });
+    await micPlots.allocate("2027", dance, 1, 12);
+    let propsFail = true;
+    const flakyProps = {
+      keepOnlyItems: async (productionId: string, itemIds: string[]) => {
+        if (propsFail) throw new Error("table unavailable");
+        await props.keepOnlyItems(productionId, itemIds);
+      },
+    };
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const handler = createSaveRunningOrder(
+      store,
+      { roles, props: flakyProps, micPlots },
+      () => NOW,
+    );
+
+    const res = await handler(request(update(6, ["Curtain Up", "Pirate Panic"])));
+
+    expect(res.statusCode).toBe(201);
+    expect((await roles.list("2027")).roles).toEqual([]);
+    expect((await micPlots.list("2027")).items).toEqual([]);
+    expect((await props.list("2027")).props).toHaveLength(1);
+    expect(log).toHaveBeenCalledWith(expect.stringContaining("props"));
+    log.mockRestore();
+
+    propsFail = false;
+    await handler(request(update(7, ["Curtain Up", "Pirate Panic"])));
+
+    expect((await props.list("2027")).props).toEqual([]);
+  });
+
+  it("deletes nothing, and logs it, when it can't read the newest version after saving", async () => {
+    const saved = inMemoryRunningOrderStore([
+      aRunningOrder(6, { first: ["Curtain Up", "Pirate Panic", "Dance One"] }),
+    ]);
+    let reads = 0;
+    const store = {
+      ...saved,
+      latest: async (productionId: string) => {
+        reads += 1;
+        if (reads > 1) throw new Error("table unavailable");
+        return saved.latest(productionId);
+      },
+    };
+    const roles = inMemoryRoleStore();
+    await roles.add("2027", itemId("Dance One"), { name: "Lead", size: "lead", castMemberIds: [] });
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const handler = createSaveRunningOrder(store, { roles }, () => NOW);
+
+    const res = await handler(request(update(6, ["Curtain Up", "Pirate Panic"])));
+
+    expect(res.statusCode).toBe(201);
+    expect((await roles.list("2027")).roles).toHaveLength(1);
+    expect(log).toHaveBeenCalledWith(expect.stringContaining("production 2027"));
+    log.mockRestore();
+  });
+
   it("cleans up against the newest version, sparing items a later save added", async () => {
     const store = inMemoryRunningOrderStore([
       aRunningOrder(6, { first: ["Curtain Up", "Pirate Panic", "Dance One"] }),
