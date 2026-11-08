@@ -297,18 +297,26 @@ describe("App shell", () => {
       expect(tickedNames(wrapper)).toEqual(["Admin"]);
     });
 
+    it("says you'll be view only with nothing ticked, in the badge's words", async () => {
+      const { wrapper } = await openAppAt("/");
+
+      await tick(wrapper, "Admin", false);
+
+      expect(accessSwitch(wrapper).get("[data-test=read-only-hint]").text()).toBe(
+        "With nothing ticked, you're view only.",
+      );
+    });
+
     it("shows the casting read-only once switched to Stage and Tech", async () => {
       const { wrapper } = await openAppAt("/cast");
-      expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
+      expect(wrapper.find("[data-test=view-only]").exists()).toBe(false);
 
       await tick(wrapper, "Admin", false);
       await tick(wrapper, "Stage", true);
       await tick(wrapper, "Tech", true);
 
       expect(tickedNames(wrapper)).toEqual(["Stage", "Tech"]);
-      expect(wrapper.get("[data-test=read-only]").text()).toBe(
-        "You can view the casting, but not change it: only Casting and admins can.",
-      );
+      expect(wrapper.get(".page-title-row [data-test=view-only]").text()).toBe("View only");
     });
 
     it("shows a Director the props controls and the casting read-only", async () => {
@@ -335,14 +343,12 @@ describe("App shell", () => {
 
       expect(tickedNames(wrapper)).toEqual(["Director"]);
       expect(wrapper.find("[data-test=add-prop]").exists()).toBe(true);
-      expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
+      expect(wrapper.find("[data-test=view-only]").exists()).toBe(false);
 
       await router.push("/cast");
       await flushPromises();
 
-      expect(wrapper.get("[data-test=read-only]").text()).toBe(
-        "You can view the casting, but not change it: only Casting and admins can.",
-      );
+      expect(wrapper.get(".page-title-row [data-test=view-only]").text()).toBe("View only");
     });
 
     it("lets Casting alone change casting, and leaves Accounts out of the menu", async () => {
@@ -351,7 +357,7 @@ describe("App shell", () => {
       await tick(wrapper, "Admin", false);
       await tick(wrapper, "Casting", true);
 
-      expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
+      expect(wrapper.find("[data-test=view-only]").exists()).toBe(false);
       const links = wrapper.get("nav[aria-label=Main]").findAll("a");
       expect(links.map((link) => link.text())).toEqual([
         "Welcome",
@@ -376,9 +382,7 @@ describe("App shell", () => {
         await tick(wrapper, "Admin", false);
 
         expect(tickedNames(wrapper)).toEqual([]);
-        expect(wrapper.get("[data-test=read-only]").text()).toBe(
-          "You can view the casting, but not change it: only Casting and admins can.",
-        );
+        expect(wrapper.get(".page-title-row [data-test=view-only]").text()).toBe("View only");
       },
     );
 
@@ -610,28 +614,24 @@ describe("App shell", () => {
     expect(router.currentRoute.value.fullPath).toBe("/cast");
   });
 
-  it("shows the Overview page with its description and URL when chosen", async () => {
+  it("shows the Overview page and its URL when chosen", async () => {
     const { wrapper, router } = await openAppAt("/");
 
     await wrapper.get("nav a[href='/casting/overview']").trigger("click");
     await flushPromises();
 
     expect(wrapper.get("main h1").text()).toBe("Overview");
-    expect(wrapper.get("main > p").text()).toBe("Everyone in the cast and how much they're cast.");
     expect(router.currentRoute.value.fullPath).toBe("/casting/overview");
     expect(document.title).toBe("Overview · iCUE");
   });
 
-  it("shows the Items page with its description and URL when chosen", async () => {
+  it("shows the Items page and its URL when chosen", async () => {
     const { wrapper, router } = await openAppAt("/");
 
     await wrapper.get("nav a[href='/casting/items']").trigger("click");
     await flushPromises();
 
     expect(wrapper.get("main h1").text()).toBe("Items");
-    expect(wrapper.get("main > p").text()).toBe(
-      "The show's items, with how far each one's casting has got.",
-    );
     expect(router.currentRoute.value.fullPath).toBe("/casting/items");
   });
 

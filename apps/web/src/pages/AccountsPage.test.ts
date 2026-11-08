@@ -91,7 +91,7 @@ describe("Accounts page", () => {
     ]);
     expect(rows(wrapper)).toEqual([
       ["alex", "Admin", "Enabled"],
-      ["jo", "Read-only", "Enabled"],
+      ["jo", "View only", "Enabled"],
       ["kim", "Stage, Tech", "Enabled"],
       ["lee", "Casting", "Disabled"],
       ["sam", "Casting", "Enabled"],
@@ -221,7 +221,7 @@ describe("Accounts page", () => {
       temporaryPassword: "Made-up-temp-1",
     };
 
-    it("starts the new account with Admin and every permission unticked, saying it will be read-only", async () => {
+    it("starts the new account with Admin and every permission unticked, saying it will be view only", async () => {
       serve([]);
       const wrapper = await openPage();
 
@@ -238,7 +238,7 @@ describe("Accounts page", () => {
         ["Director", false],
       ]);
       expect(form.get("[data-test=read-only-hint]").text()).toBe(
-        "With nothing ticked, the account will be read-only.",
+        "With nothing ticked, the account will be view only.",
       );
       // Screen readers hear it on each tick box, as it says what leaving them all means.
       const hintId = form.get("[data-test=read-only-hint]").attributes("id");
@@ -248,7 +248,7 @@ describe("Accounts page", () => {
       ).toEqual(Array(6).fill(hintId));
     });
 
-    it("stops saying it will be read-only once a permission is ticked", async () => {
+    it("stops saying it will be view only once a permission is ticked", async () => {
       serve([]);
       const wrapper = await openPage();
       await wrapper.get("[data-test=add-account]").trigger("click");
@@ -260,7 +260,7 @@ describe("Accounts page", () => {
       expect(form.find("fieldset input[aria-describedby]").exists()).toBe(false);
     });
 
-    it("creates a read-only account when nothing is ticked", async () => {
+    it("creates a view-only account when nothing is ticked", async () => {
       const fetchMock = serve([account("sam")], () => json(joCreated, 201));
       const wrapper = await openPage();
 
@@ -270,7 +270,7 @@ describe("Accounts page", () => {
         JSON.stringify({ username: "jo", access: [] }),
       ]);
       expect(rows(wrapper)).toEqual([
-        ["jo", "Read-only", "Enabled"],
+        ["jo", "View only", "Enabled"],
         ["sam", "Casting", "Enabled"],
       ]);
     });
@@ -642,19 +642,15 @@ describe("Accounts page", () => {
         expect(document.activeElement).toBe(button(wrapper, "Disable sam").element);
       });
 
-      it("won't offer to disable the signed-in admin's own account, saying why", async () => {
+      it("offers no Disable on the signed-in admin's own account, keeping it on the others", async () => {
         await signInAs(["admin"], "pat");
         serveChanges([account("pat", { access: "admin" }), account("sam")], {});
         const wrapper = await openPage();
 
-        const own = button(wrapper, "Disable pat");
-        expect(own.attributes("disabled")).toBeDefined();
-        expect(own.attributes("data-tooltip")).toBe("You can't disable your own account");
-        // Phones show no tooltips, so the reason is on the page too.
-        const why = wrapper.get(`#${own.attributes("aria-describedby")}`);
-        expect(why.text()).toBe("You can't disable your own account");
+        expect(wrapper.find('button[aria-label="Disable pat"]').exists()).toBe(false);
+        expect(wrapper.text()).not.toContain("You can't disable your own account");
         expect(button(wrapper, "Disable sam").attributes("disabled")).toBeUndefined();
-        expect(button(wrapper, "Disable sam").attributes("aria-describedby")).toBeUndefined();
+        expect(button(wrapper, "Disable sam").attributes("data-tooltip")).toBe("Disable account");
       });
 
       it("leaves the account alone if the admin doesn't confirm", async () => {
@@ -836,7 +832,7 @@ describe("Accounts page", () => {
         expect(rows(wrapper)).toEqual([["sam", "Wardrobe", "Enabled"]]);
       });
 
-      it("makes an account read-only when every permission is unticked, saying they'll only view the show", async () => {
+      it("makes an account view only when every permission is unticked, saying they'll only view the show", async () => {
         const confirm = confirmWith(true);
         const fetchMock = serveChanges([account("sam")], {
           "PUT /api/accounts/sam/access": () => json(account("sam", { access: [] })),
@@ -848,10 +844,11 @@ describe("Accounts page", () => {
         await save(wrapper);
 
         expect(confirm).toHaveBeenCalledWith(
-          "Make sam read-only? When they next sign in, they'll only be able to view the show. sam will be signed out on every device.",
+          "Make sam view only? When they next sign in, they'll only be able to view the show. sam will be signed out on every device.",
         );
         expect(changes(fetchMock)).toEqual([["/api/accounts/sam/access", put([])]]);
-        expect(rows(wrapper)).toEqual([["sam", "Read-only", "Enabled"]]);
+        expect(rows(wrapper)).toEqual([["sam", "View only", "Enabled"]]);
+        expect(wrapper.get("[data-test=announcement]").text()).toBe("sam is now view only.");
       });
 
       it("makes an account an Admin, saying what admins can do, and later gives it permissions instead", async () => {
@@ -925,7 +922,7 @@ describe("Accounts page", () => {
         );
       });
 
-      it("makes a Director read-only when Director is unticked, saying they'll only view the show", async () => {
+      it("makes a Director view only when Director is unticked, saying they'll only view the show", async () => {
         const confirm = confirmWith(true);
         const fetchMock = serveChanges([account("dee", { access: ["director"] })], {
           "PUT /api/accounts/dee/access": () => json(account("dee", { access: [] })),
@@ -937,10 +934,10 @@ describe("Accounts page", () => {
         await save(wrapper);
 
         expect(confirm).toHaveBeenCalledWith(
-          "Make dee read-only? When they next sign in, they'll only be able to view the show. dee will be signed out on every device.",
+          "Make dee view only? When they next sign in, they'll only be able to view the show. dee will be signed out on every device.",
         );
         expect(changes(fetchMock)).toEqual([["/api/accounts/dee/access", put([])]]);
-        expect(rows(wrapper)).toEqual([["dee", "Read-only", "Enabled"]]);
+        expect(rows(wrapper)).toEqual([["dee", "View only", "Enabled"]]);
       });
 
       it("closes without asking or saving when the access is unchanged, so no one is signed out", async () => {
@@ -993,7 +990,7 @@ describe("Accounts page", () => {
         expect(document.activeElement).toBe(button(wrapper, "Change kim's access").element);
       });
 
-      it("won't let the signed-in admin change their own access, saying why", async () => {
+      it("offers no access controls on the signed-in admin's own account, keeping them on the others", async () => {
         await signInAs(["admin"], "alex");
         serveChanges(
           [account("alex", { access: "admin" }), account("sam", { access: "admin" })],
@@ -1001,18 +998,12 @@ describe("Accounts page", () => {
         );
         const wrapper = await openPage();
 
-        const own = button(wrapper, "Change alex's access");
-        expect(own.classes()).toContain("icon-button");
-        expect(own.element.closest("td")?.classList.contains("actions")).toBe(true);
-        expect(own.attributes("data-tooltip")).toBe("You can't change your own access");
-        expect(button(wrapper, "Change sam's access").attributes("data-tooltip")).toBe(
-          "Change access",
-        );
-        expect(own.attributes("disabled")).toBeDefined();
-        expect(own.attributes("aria-describedby")).toBeDefined();
-        const why = wrapper.get(`#${own.attributes("aria-describedby")}`);
-        expect(why.text()).toBe("You can't change your own access");
-        expect(button(wrapper, "Change sam's access").attributes("disabled")).toBeUndefined();
+        expect(wrapper.find('button[aria-label="Change alex\'s access"]').exists()).toBe(false);
+        expect(wrapper.text()).not.toContain("You can't change your own access");
+        const others = button(wrapper, "Change sam's access");
+        expect(others.attributes("data-tooltip")).toBe("Change access");
+        expect(others.attributes("disabled")).toBeUndefined();
+        expect(button(wrapper, "Reset alex's password").attributes("disabled")).toBeUndefined();
       });
 
       it("shows why the API refused, such as keeping the only admin, leaving the access as it was", async () => {

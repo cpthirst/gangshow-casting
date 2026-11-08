@@ -332,7 +332,7 @@ async function saveAccess(account: AccountSummary) {
   });
 }
 
-/** The signed-in admin's own account, which they can't disable or change the access of (FR8). */
+/** The signed-in admin's own account, which offers no Disable or access change (FR8, simplify FR12). */
 const isOwn = (account: AccountSummary) =>
   account.username.toLowerCase() === signedInUsername.value?.toLowerCase();
 
@@ -452,13 +452,13 @@ onMounted(load);
             <tr :data-username="account.username">
               <td class="actions row-icons" data-label="Actions">
                 <button
+                  v-if="!isOwn(account)"
                   type="button"
                   class="icon-button"
                   :aria-label="`Change ${account.username}'s access`"
                   data-test="change-access"
-                  :data-tooltip="isOwn(account) ? 'You can\'t change your own access' : 'Change access'"
-                  :aria-describedby="isOwn(account) ? `${uid}-own-access` : undefined"
-                  :disabled="busy || isOwn(account)"
+                  data-tooltip="Change access"
+                  :disabled="busy"
                   @click="startEditing(account)"
                 >
                   <FontAwesomeIcon :icon="icons.edit" />
@@ -474,31 +474,32 @@ onMounted(load);
                 >
                   <FontAwesomeIcon :icon="icons.resetPassword" />
                 </button>
-                <button
-                  v-if="account.enabled"
-                  type="button"
-                  class="icon-button"
-                  :aria-label="`Disable ${account.username}`"
-                  data-test="disable"
-                  :data-tooltip="isOwn(account) ? 'You can\'t disable your own account' : 'Disable account'"
-                  :aria-describedby="isOwn(account) ? `${uid}-own-disable` : undefined"
-                  :disabled="busy || isOwn(account)"
-                  @click="setEnabled(account, false)"
-                >
-                  <FontAwesomeIcon :icon="icons.disable" />
-                </button>
-                <button
-                  v-else
-                  type="button"
-                  class="icon-button"
-                  :aria-label="`Enable ${account.username}`"
-                  data-test="enable"
-                  data-tooltip="Enable account"
-                  :disabled="busy"
-                  @click="setEnabled(account, true)"
-                >
-                  <FontAwesomeIcon :icon="icons.enable" />
-                </button>
+                <template v-if="!isOwn(account)">
+                  <button
+                    v-if="account.enabled"
+                    type="button"
+                    class="icon-button"
+                    :aria-label="`Disable ${account.username}`"
+                    data-test="disable"
+                    data-tooltip="Disable account"
+                    :disabled="busy"
+                    @click="setEnabled(account, false)"
+                  >
+                    <FontAwesomeIcon :icon="icons.disable" />
+                  </button>
+                  <button
+                    v-else
+                    type="button"
+                    class="icon-button"
+                    :aria-label="`Enable ${account.username}`"
+                    data-test="enable"
+                    data-tooltip="Enable account"
+                    :disabled="busy"
+                    @click="setEnabled(account, true)"
+                  >
+                    <FontAwesomeIcon :icon="icons.enable" />
+                  </button>
+                </template>
               </td>
               <td class="username" data-label="Username">{{ account.username }}</td>
               <td class="access" data-label="Access">
@@ -506,18 +507,11 @@ onMounted(load);
                 <span data-test="access" :class="{ badge: account.access === 'admin' }">{{
                   accessLabel(account.access)
                 }}</span>
-                <p v-if="isOwn(account)" :id="`${uid}-own-access`" class="hint">
-                  You can't change your own access
-                </p>
               </td>
               <!-- Badges only on the states a volunteer needs to notice. -->
               <td class="status" data-label="Status">
                 <span v-if="!account.enabled" class="badge">Disabled</span>
                 <template v-else>Enabled</template>
-                <!-- Phones show no tooltips, so the reason is on the page too. -->
-                <p v-if="isOwn(account) && account.enabled" :id="`${uid}-own-disable`" class="hint">
-                  You can't disable your own account
-                </p>
               </td>
             </tr>
             <!-- Its own row across the table, as the Add account form spans the page. -->

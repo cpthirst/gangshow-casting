@@ -12,9 +12,9 @@ import {
 } from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, nextTick, onMounted, ref } from "vue";
-import { useRoute } from "vue-router";
 import ClashIcon from "@/components/common/ClashIcon.vue";
-import HelpButton from "@/components/common/HelpButton.vue";
+import DraftNumber from "@/components/common/DraftNumber.vue";
+import PageTitle from "@/components/common/PageTitle.vue";
 import { downloadMicPlot } from "@/services/excel-export.ts";
 import { latestMicPlot, latestPropsList } from "@/services/latest-show.ts";
 import { apiFetch, canChange } from "@/services/sign-in.ts";
@@ -25,6 +25,7 @@ import {
   type DepartmentPage,
   departmentPages,
   filesCount,
+  listed,
 } from "@/utils/departments.ts";
 import { icons } from "@/utils/icons.ts";
 import { fileCountsPath } from "@/utils/item-files.ts";
@@ -36,8 +37,6 @@ import { RUNNING_ORDER_PATH, runningClock } from "@/utils/running-order.ts";
 // Production's one page: the show's items, each with a button for every department's page
 // for it and a count for each department (production-overview FR4–FR8, FR10, FR14), laid out
 // as the casting Items list.
-
-const route = useRoute();
 
 type State =
   | { status: "loading" }
@@ -58,12 +57,6 @@ const micsCountOf = computed<Counts | undefined>(() => {
 });
 // Each department with files, by its key: how many files each item has.
 const fileCountsOf = ref<Partial<Record<FileDepartment, Counts>>>({});
-const isFileDepartment = (path: string): path is FileDepartment =>
-  fileDepartments.some((department) => department === path);
-// The departments whose file counts couldn't be loaded, as their counts' alerts name them.
-const fileCountsFailed = computed(() =>
-  departmentPages.filter(({ id }) => isFileDepartment(id) && fileCountsOf.value[id] === "error"),
-);
 
 // Each item's notes for each department, by item id (production-props FR14,
 // production-sfx-wardrobe FR11, production-mics FR13); cleared notes are left out. Shown
@@ -76,6 +69,31 @@ const noteKinds = departmentPages.map(({ id, name }) => ({
 }));
 const notesOf = ref<Record<string, Notes>>({});
 const notesFailed = computed(() => Object.values(notesOf.value).includes("error"));
+
+/** Whether a department's counts couldn't be loaded. */
+function countsFailed(id: DepartmentPage["id"]) {
+  switch (id) {
+    case "scenery":
+    case "sfx":
+    case "wardrobe":
+      return fileCountsOf.value[id] === "error";
+    case "props":
+      return propsCountOf.value === "error";
+    case "mic-plot":
+      return micPlots.value === "error";
+    default:
+      return unknownDepartment(id);
+  }
+}
+
+// Everything that couldn't be loaded, in one alert so failures don't stack up above the show.
+const loadFailure = computed(() => {
+  const failed = departmentPages
+    .filter(({ id }) => countsFailed(id))
+    .map(({ noun }) => `the ${noun} counts`);
+  if (notesFailed.value) failed.push("the notes");
+  return failed.length ? `Couldn't load ${listed(failed)}.` : "";
+});
 
 function notesUnder(itemId: string) {
   return noteKinds.flatMap(({ key, label }) => {
@@ -257,11 +275,7 @@ async function loadRunningOrder() {
 </script>
 
 <template>
-  <div class="page-title-row">
-    <h1>Overview</h1>
-    <HelpButton page="production-overview" />
-  </div>
-  <p>{{ route.meta.description }}</p>
+  <PageTitle title="Overview" help="production-overview" />
   <p class="visually-hidden" role="status" data-test="announcement">{{ announcement }}</p>
   <p v-if="state.status === 'empty'">
     There's no saved running order yet. Set one up on the
@@ -269,7 +283,7 @@ async function loadRunningOrder() {
   </p>
   <p v-else-if="state.status === 'error'" role="alert">Couldn't load the items.</p>
   <template v-else-if="state.status === 'loaded'">
-    <p class="based-on" data-test="version">Based on Draft {{ state.order.version }}</p>
+    <DraftNumber :version="state.order.version" />
     <div class="view-bar">
       <button
         ref="propsButton"
@@ -296,16 +310,7 @@ async function loadRunningOrder() {
     <p v-if="generateFailed.mics" class="notice mic-plot-export-error" role="alert">
       Couldn't generate the mic plot. Try again.
     </p>
-    <p v-if="propsCountOf === 'error'" class="notice" role="alert">
-      Couldn't load the props counts.
-    </p>
-    <p v-if="micPlots === 'error'" class="notice" role="alert">
-      Couldn't load the mic plot counts.
-    </p>
-    <p v-for="{ id, noun } in fileCountsFailed" :key="id" class="notice" role="alert">
-      Couldn't load the {{ noun }} counts.
-    </p>
-    <p v-if="notesFailed" class="notice" role="alert">Couldn't load the notes.</p>
+    <p v-if="loadFailure" class="notice" role="alert">{{ loadFailure }}</p>
     <section v-for="{ half, rows } in halves" :key="half.id" class="half" :aria-labelledby="half.id">
       <h2 :id="half.id">{{ half.name }}</h2>
       <div class="table-scroll" tabindex="0" role="region" :aria-label="`${half.name} items`">

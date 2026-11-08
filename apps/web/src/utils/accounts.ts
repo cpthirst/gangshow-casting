@@ -26,10 +26,10 @@ export const resetWarning = (username: string) =>
 export const disableWarning = (username: string) =>
   `Disable ${username}? They'll be signed out on every device within 5 minutes, and can't sign in until an admin enables them again.`;
 
-/** What an account may do, at a glance: "Admin", its permissions, or "Read-only". */
+/** What an account may do, at a glance: "Admin", its permissions, or "View only". */
 export function accessLabel(access: AccountAccess) {
   if (access === "admin") return "Admin";
-  if (access.length === 0) return "Read-only";
+  if (access.length === 0) return "View only";
   return inOrder(access)
     .map((permission) => PERMISSION_NAMES[permission])
     .join(", ");
@@ -68,7 +68,7 @@ export function accessWarning(username: string, access: AccountAccess) {
     access === "admin"
       ? `Make ${username} an Admin?`
       : access.length === 0
-        ? `Make ${username} read-only?`
+        ? `Make ${username} view only?`
         : `Change ${username}'s access to ${accessLabel(access)}?`;
   return `${question} When they next sign in, ${whatTheyCanDo(access)}. ${username} will be signed out on every device.`;
 }
@@ -82,6 +82,6 @@ export function sameAccess(a: AccountAccess, b: AccountAccess) {
 /** Said once an access change has saved. */
 export function accessChanged(username: string, access: AccountAccess) {
   if (access === "admin") return `${username} is now an Admin.`;
-  if (access.length === 0) return `${username} is now read-only.`;
+  if (access.length === 0) return `${username} is now view only.`;
   return `${username} now has ${accessLabel(access)}.`;
 }

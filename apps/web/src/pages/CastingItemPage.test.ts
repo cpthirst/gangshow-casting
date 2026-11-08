@@ -1978,16 +1978,50 @@ describe("Item notes", () => {
     expect(notesSection(wrapper).get("button[type=submit]").text()).toBe("Save notes");
   });
 
-  it("labels the field by its heading, and says the limit up front", async () => {
+  it("labels the field by its heading, and stops it at 500 characters", async () => {
     savedRunningOrderIs(show);
     const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
 
     expect(field(wrapper).attributes("aria-labelledby")).toBe("notes-heading");
     expect(notesSection(wrapper).findAll("label")).toEqual([]);
-    const hint = notesSection(wrapper).get("[data-test=notes-hint]");
-    expect(hint.text()).toBe("Up to 500 characters");
-    expect(field(wrapper).attributes("aria-describedby")).toContain(hint.attributes("id"));
     expect(field(wrapper).attributes("maxlength")).toBe("500");
+  });
+
+  const count = (wrapper: Page) => notesSection(wrapper).find("[data-test=notes-count]");
+
+  it("says how many characters are left near the limit", async () => {
+    savedRunningOrderIs(show);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    await field(wrapper).setValue("x".repeat(460));
+
+    expect(count(wrapper).text()).toBe("40 characters left");
+  });
+
+  it("starts the count once fewer than 50 characters are left", async () => {
+    savedRunningOrderIs(show);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    await field(wrapper).setValue("x".repeat(450));
+    expect(count(wrapper).exists()).toBe(false);
+    expect(field(wrapper).attributes("aria-describedby")).toBeUndefined();
+
+    await field(wrapper).setValue("x".repeat(451));
+    expect(count(wrapper).text()).toBe("49 characters left");
+
+    await field(wrapper).setValue("x".repeat(499));
+    expect(count(wrapper).text()).toBe("1 character left");
+  });
+
+  it("gives the count as the field's description, for screen readers", async () => {
+    savedRunningOrderIs(show);
+    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+
+    await field(wrapper).setValue("x".repeat(460));
+
+    const describedBy = field(wrapper).attributes("aria-describedby")?.split(" ") ?? [];
+    const descriptions = describedBy.map((id) => document.getElementById(id)?.textContent?.trim());
+    expect(descriptions).toEqual(["40 characters left"]);
   });
 
   it("asks before stepping to another item with unsaved notes", async () => {
@@ -2094,7 +2128,7 @@ describe("Item notes", () => {
     savedRunningOrderIs(show);
     const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
 
-    await saveNotes(wrapper, "x".repeat(501));
+    await saveNotes(wrapper, "x".repeat(520));
 
     expect(error(wrapper).text()).toBe("Notes can be up to 500 characters.");
     expect(error(wrapper).attributes("role")).toBe("alert");
@@ -2206,9 +2240,7 @@ describe.each([
 
     const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
 
-    expect(wrapper.get("[data-test=read-only]").text()).toBe(
-      "You can view the casting, but not change it: only Casting and admins can.",
-    );
+    expect(wrapper.get(".page-title-row [data-test=view-only]").text()).toBe("View only");
   });
 });
 
@@ -2228,7 +2260,7 @@ describe("An item's page for other roles", () => {
     expect(wrapper.find("[data-test=add-role]").exists()).toBe(true);
     expect(wrapper.find('button[aria-label="Edit Captain Hook"]').exists()).toBe(true);
     expect(wrapper.find("section[aria-labelledby=notes-heading] textarea").exists()).toBe(true);
-    expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
+    expect(wrapper.find("[data-test=view-only]").exists()).toBe(false);
   });
   describe("when the API answers a notes save with a failure", () => {
     // Made read-only while editing: this sign-in still says casting, but the API knows better.
@@ -2259,7 +2291,7 @@ describe("An item's page for other roles", () => {
         body: readOnlyRefusal("casting"),
       });
 
-      const notice = wrapper.get("[data-test=read-only]");
+      const notice = wrapper.get("[data-test=refused]");
       expect(notice.text()).toBe(
         "You can view the casting but not change it, so this wasn't saved.",
       );
@@ -2274,7 +2306,7 @@ describe("An item's page for other roles", () => {
         body: { message: "Casting is look but don't touch for you.", department: "casting" },
       });
 
-      expect(wrapper.get("[data-test=read-only]").text()).toBe(
+      expect(wrapper.get("[data-test=refused]").text()).toBe(
         "You can view the casting but not change it, so this wasn't saved.",
       );
     });
@@ -2288,7 +2320,7 @@ describe("An item's page for other roles", () => {
       expect(notesSection().get("[data-test=notes-error]").text()).toBe(
         "Couldn't save the notes. Try again.",
       );
-      expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
+      expect(wrapper.find("[data-test=refused]").exists()).toBe(false);
       expect(notesSection().find("textarea").exists()).toBe(true);
     });
   });

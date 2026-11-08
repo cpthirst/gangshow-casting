@@ -1,25 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { refusedLine, viewOnlyLine } from "./departments.ts";
+import { refusedLine, whoCanChangeLine } from "./departments.ts";
 
-describe("viewOnlyLine", () => {
+describe("whoCanChangeLine", () => {
   it.each([
-    ["casting", "You can view the casting, but not change it: only Casting and admins can."],
-    ["props", "You can view the props, but not change them: only Stage, Director and admins can."],
-    [
-      "scenery",
-      "You can view the scenery, but not change it: only Stage, Tech, Director and admins can.",
-    ],
-    ["sfx", "You can view the SFX, but not change them: only Tech, Director and admins can."],
-    [
-      "mic-plot",
-      "You can view the mic plot, but not change it: only Tech, Director and admins can.",
-    ],
-    [
-      "wardrobe",
-      "You can view the wardrobe, but not change it: only Wardrobe, Director and admins can.",
-    ],
+    ["casting", "Only Casting and admins can change the casting."],
+    ["props", "Only Stage, Director and admins can change the props."],
+    ["scenery", "Only Stage, Tech, Director and admins can change the scenery."],
+    ["sfx", "Only Tech, Director and admins can change the SFX."],
+    ["mic-plot", "Only Tech, Director and admins can change the mic plot."],
+    ["wardrobe", "Only Wardrobe, Director and admins can change the wardrobe."],
   ] as const)("says who may change the %s", (id, line) => {
-    expect(viewOnlyLine(id)).toBe(line);
+    expect(whoCanChangeLine(id)).toBe(line);
   });
 });
 

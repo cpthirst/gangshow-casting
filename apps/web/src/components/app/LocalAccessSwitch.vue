@@ -35,6 +35,6 @@ async function choose(access: Access) {
     class="local-access"
     data-test="local-access"
     legend="Local role"
-    read-only-hint="With nothing ticked, you're read-only."
+    read-only-hint="With nothing ticked, you're view only."
   />
 </template>

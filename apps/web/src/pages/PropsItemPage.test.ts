@@ -5,6 +5,7 @@ import {
   type Prop,
   type Role,
   type RunningOrder,
+  readOnlyRefusal,
   SaveItemNoteRequest,
   UpdatePropRequest,
 } from "@app/shared";
@@ -237,6 +238,17 @@ describe("An item's props page", () => {
     expect(propsShown(wrapper)).toEqual(["Treasure chest"]);
   });
 
+  it("says in its Help who can change the props, from the shared list of departments", async () => {
+    savedShowIs(show);
+    const { wrapper } = await openAppAt(PIRATE_PROPS);
+
+    await wrapper.get("main button[aria-label='Help for this item']").trigger("click");
+
+    expect(wrapper.get("dialog [data-test=who-can-change]").text()).toBe(
+      "Only Stage, Director and admins can change the props.",
+    );
+  });
+
   it("has a help button beside the item's name", async () => {
     savedShowIs(show);
     const { wrapper } = await openAppAt(PIRATE_PROPS);
@@ -442,9 +454,7 @@ describe("Adding a prop", () => {
     const { wrapper } = await openAppAt(PIRATE_PROPS);
 
     expect(wrapper.find("[data-test=add-prop]").exists()).toBe(false);
-    expect(wrapper.get("[data-test=read-only]").text()).toBe(
-      "You can view the props, but not change them: only Stage, Director and admins can.",
-    );
+    expect(wrapper.get(".page-title-row [data-test=view-only]").text()).toBe("View only");
     expect(propsShown(wrapper)).toEqual(["Treasure chest"]);
   });
 
@@ -467,9 +477,45 @@ describe("Adding a prop", () => {
       ]).toEqual([true, true]);
       const notes = wrapper.get("section[aria-labelledby=notes-heading]");
       expect(notes.find("textarea").exists()).toBe(true);
-      expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
+      expect(wrapper.find("[data-test=view-only]").exists()).toBe(false);
     },
   );
+});
+
+describe("The Props page for someone who can only view it", () => {
+  it("names the View only badge in words beside the title, for a screen reader to read out", async () => {
+    await signInAs([], "pat");
+    savedShowIs(show);
+
+    const { wrapper } = await openAppAt(PIRATE_PROPS);
+
+    const row = wrapper.get("main .page-title-row");
+    const badge = row.get("[data-test=view-only]");
+    expect(badge.text()).toBe("View only");
+    expect(badge.attributes("aria-hidden")).toBeUndefined();
+    // Read straight after the title.
+    expect(badge.element.previousElementSibling?.tagName).toBe("H1");
+  });
+
+  it("still alerts that a prop wasn't saved when the API refuses it", async () => {
+    // pat's sign-in still says Stage, but the API knows pat has lost it.
+    await signInAs(["stage"], "pat");
+    savedShowIs(show);
+    const { wrapper } = await openAppAt(PIRATE_PROPS);
+    const fetch = vi.mocked(globalThis.fetch);
+    const answer = fetch.getMockImplementation();
+    fetch.mockImplementation(async (url, init) =>
+      init?.method === "POST"
+        ? json(readOnlyRefusal("props"), 403)
+        : (answer?.(url, init) ?? json({})),
+    );
+
+    await addProp(wrapper, "Treasure chest");
+
+    const alert = wrapper.get("[data-test=refused]");
+    expect(alert.text()).toBe("You can view the props but not change them, so this wasn't saved.");
+    expect(alert.attributes("role")).toBe("alert");
+  });
 });
 
 describe("Props notes", () => {
@@ -551,12 +597,21 @@ describe("Props notes", () => {
     expect(field(again.wrapper).element.value).toBe("Chest set stage left");
   });
 
-  it("says the 500-character limit up front, and refuses longer notes, saving nothing", async () => {
+  it("shows no count or limit line under notes far from the limit", async () => {
     notesAre({});
     const { wrapper } = await openAppAt(PIRATE_PROPS);
-    expect(notesSection(wrapper).get("[data-test=notes-hint]").text()).toBe("Up to 500 characters");
 
-    await saveNotes(wrapper, "x".repeat(501));
+    await field(wrapper).setValue("x".repeat(100));
+
+    expect(notesSection(wrapper).find("[data-test=notes-count]").exists()).toBe(false);
+    expect(notesSection(wrapper).text()).not.toMatch(/characters/);
+  });
+
+  it("refuses notes over 500 characters, saving nothing", async () => {
+    notesAre({});
+    const { wrapper } = await openAppAt(PIRATE_PROPS);
+
+    await saveNotes(wrapper, "x".repeat(520));
 
     expect(error(wrapper).text()).toBe("Notes can be up to 500 characters.");
     expect(notePuts()).toEqual([]);

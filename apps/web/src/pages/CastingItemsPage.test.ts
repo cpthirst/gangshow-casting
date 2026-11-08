@@ -136,17 +136,31 @@ describe("Casting items page", () => {
     await wrapper.get(".page-title-row button[aria-label='Help for Items']").trigger("click");
 
     expect(wrapper.get("dialog h2").text()).toBe("Items help");
+    expect(wrapper.get("dialog p").text()).toBe(
+      "The show's items in running order, with how far each one's casting has got.",
+    );
     expect(wrapper.findAll("dialog [data-test=help-name]").map((name) => name.text())).toContain(
       "Not in printed programme",
     );
   });
 
-  it("shows which saved draft the list is based on", async () => {
-    savedRunningOrderIs(aRunningOrder([anItem("Opening Number")], [], 7));
+  it("starts with the items, with no line restating what the page is for", async () => {
+    savedRunningOrderIs(aRunningOrder([anItem("Opening Number")]));
+    const wrapper = await openItemsPage();
+
+    const pageLines = wrapper.findAll("p").filter((line) => !line.element.closest("dialog"));
+    expect(pageLines.map((line) => line.text())).not.toContain(
+      "The show's items, with how far each one's casting has got.",
+    );
+  });
+
+  it("shows the saved draft's number as the Running order page words it", async () => {
+    savedRunningOrderIs(aRunningOrder([anItem("Opening Number")], [], 3));
 
     const wrapper = await openItemsPage();
 
-    expect(wrapper.get("[data-test=version]").text()).toBe("Based on Draft 7");
+    expect(wrapper.get("[data-test=version]").text()).toBe("Draft 3");
+    expect(wrapper.text()).not.toContain("Based on");
   });
 
   it("shows a newly saved order when the page is opened again", async () => {
@@ -157,7 +171,7 @@ describe("Casting items page", () => {
     const wrapper = await openItemsPage();
 
     expect(titlesIn(wrapper, "First half")).toEqual(["Opening Number", "Campfire Song"]);
-    expect(wrapper.get("[data-test=version]").text()).toBe("Based on Draft 8");
+    expect(wrapper.get("[data-test=version]").text()).toBe("Draft 8");
   });
 
   // Unsaved moves live only in the Running order page; the API serves the last saved version.
@@ -554,9 +568,7 @@ describe.each([
 
     const wrapper = await openItemsPage();
 
-    expect(wrapper.get("[data-test=read-only]").text()).toBe(
-      "You can view the casting, but not change it: only Casting and admins can.",
-    );
+    expect(wrapper.get(".page-title-row [data-test=view-only]").text()).toBe("View only");
   });
 });
 
@@ -575,7 +587,7 @@ describe("The Items list for other roles", () => {
       const wrapper = await openItemsPage();
 
       expect(wrapper.find('a[aria-label="Cast Pirate Panic"]').exists()).toBe(true);
-      expect(wrapper.find("[data-test=read-only]").exists()).toBe(false);
+      expect(wrapper.find("[data-test=view-only]").exists()).toBe(false);
     },
   );
 });

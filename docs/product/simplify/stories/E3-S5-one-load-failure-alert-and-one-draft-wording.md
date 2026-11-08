@@ -2,7 +2,7 @@
 id: simplify.E3.S5
 title: Show one load-failure alert on the Overview, and word the draft number the same everywhere
 epic: E3
-status: ready
+status: done
 ---
 
 ## Story

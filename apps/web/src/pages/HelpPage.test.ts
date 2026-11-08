@@ -108,11 +108,8 @@ describe("Help page", () => {
     for (const line of lines(wrapper)) {
       expect(ACCESS_LABELS).toContain(line.get("[data-test=help-access]").text());
     }
-    for (const name of ["Remove", "Add item", "Save as Draft"]) {
+    for (const name of ["Drag", "Move", "Edit", "Remove", "Add item", "Save as Draft", "Reset"]) {
       expect(accessOf(wrapper, name)).toBe("Admins only");
-    }
-    for (const name of ["Drag", "Move", "Edit", "Reset"]) {
-      expect(accessOf(wrapper, name)).toBe("Accounts with Casting, and admins");
     }
     // So a read-only reviewer sees what they can do here, not only what they can't.
     expect(accessOf(wrapper, "Read the order")).toBe("Everyone");

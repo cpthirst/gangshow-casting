@@ -27,7 +27,7 @@ We will move every file (with `git mv`, so history follows) into these folders. 
 | `router/` | Routes and the menu's structure | `router.ts` → `router/index.ts` |
 | `pages/` | One component per route, and nothing else | the 11 `*Page.vue` files |
 | `components/app/` | The sidebar's parts | `MainMenu`, `HealthStatus`, `LocalAccessSwitch` |
-| `components/common/` | Used across the app's areas | `HelpButton`, `PageHelp`, `ReadOnlyNotice`, `ClashIcon` |
+| `components/common/` | Used across the app's areas | `HelpButton`, `PageHelp`, `PageTitle`, `ClashIcon` |
 | `components/show/` | Parts of the SHOW pages | `CastMemberForm`, `ItemEditor` |
 | `components/casting/` | Parts of the CASTING pages | `CastingGrid`, `ShowByItem`, `ShowTimeline`, `ItemNotes`, `RoleForm`, `CastMemberPicker` |
 | `services/` | Code that calls the API or the browser | `sign-in`, `cognito-sign-in`, `latest-show`, `usage` (recording), `casting-grid-export`, `word-export`, `export-file` |

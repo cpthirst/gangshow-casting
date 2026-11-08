@@ -2,8 +2,8 @@
 import { CastList, CastMember, type CastMemberDetails, RoleList } from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, nextTick, onMounted, ref, useId } from "vue";
-import HelpButton from "@/components/common/HelpButton.vue";
-import ReadOnlyNotice from "@/components/common/ReadOnlyNotice.vue";
+import PageTitle from "@/components/common/PageTitle.vue";
+import RefusalNotice from "@/components/common/RefusalNotice.vue";
 import CastMemberForm from "@/components/show/CastMemberForm.vue";
 import { apiFetch, canChange, isAdmin } from "@/services/sign-in.ts";
 import {
@@ -171,10 +171,6 @@ async function putMember(
   }
 }
 
-// The API refuses non-admins too: this only shows it up front. A refusal anyway means their
-// admin role was removed after they signed in.
-const ONLY_ADMINS_DELETE = "Only admins can delete cast members";
-
 // Permanent by design (PRD FR5, ADR 0010), so always confirm first, naming the person and
 // how many roles they'll leave (casting-roles FR9).
 async function deleteMember(member: CastMember) {
@@ -203,7 +199,8 @@ async function deleteMember(member: CastMember) {
   } else if (status === 409 || status === 404) {
     await showConflict();
   } else if (status === 403) {
-    notice.value = `${ONLY_ADMINS_DELETE}.`;
+    // Only admins see Delete, so their admin role was removed after they signed in.
+    notice.value = "Only admins can delete cast members.";
   } else {
     notice.value = `Couldn't delete ${fullName(member)}. Try again.`;
   }
@@ -266,14 +263,10 @@ onMounted(load);
 </script>
 
 <template>
-  <div class="page-title-row">
-    <h1>Cast</h1>
-    <HelpButton page="cast" />
-  </div>
+  <PageTitle title="Cast" help="cast" />
   <!-- Outside the state switch: a conflict can leave the list empty, and it still needs explaining. -->
   <p v-if="notice" class="notice" role="alert">{{ notice }}</p>
-  <!-- Above the states, so it explains an empty cast too. -->
-  <ReadOnlyNotice />
+  <RefusalNotice />
   <p v-if="state.status === 'loading'">Loading…</p>
   <p v-else-if="state.status === 'empty'">No cast members yet.</p>
   <p v-else-if="state.status === 'error'" role="alert">Couldn't load the cast list.</p>
@@ -290,8 +283,6 @@ onMounted(load);
       >
         Add cast member
       </button>
-      <!-- Delete's tooltip says so too, but phones don't show tooltips. -->
-      <p v-if="!isAdmin" class="access-note" data-test="admin-only">{{ ONLY_ADMINS_DELETE }}</p>
     </div>
     <CastMemberForm
       v-if="adding"
@@ -379,11 +370,12 @@ onMounted(load);
                 <FontAwesomeIcon :icon="icons.edit" />
               </button>
               <button
+                v-if="isAdmin"
                 type="button"
                 class="icon-button"
                 :aria-label="`Delete ${fullName(member)}`"
-                :data-tooltip="isAdmin ? 'Delete from the cast' : ONLY_ADMINS_DELETE"
-                :disabled="busy || !isAdmin"
+                data-tooltip="Delete from the cast"
+                :disabled="busy"
                 @click="deleteMember(member)"
               >
                 <FontAwesomeIcon :icon="icons.remove" />

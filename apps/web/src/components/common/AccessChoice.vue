@@ -7,7 +7,7 @@ import { PERMISSION_NAMES } from "@/utils/departments.ts";
  * An account's access as a labelled group of tick boxes: Admin, or any mix of the department
  * permissions (production-props FR6). Common, as the local access switch offers it too (FR9).
  */
-const { readOnlyHint = "With nothing ticked, the account will be read-only." } = defineProps<{
+const { readOnlyHint = "With nothing ticked, the account will be view only." } = defineProps<{
   legend: string;
   readOnlyHint?: string;
 }>();

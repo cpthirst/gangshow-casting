@@ -28,11 +28,9 @@ export const permissionNamesOf = (id: DepartmentId) =>
 /** Who may change a department, in the order the Accounts page lists permissions, then admins. */
 const whoMayChange = (id: DepartmentId) => listed([...permissionNamesOf(id), "admins"]);
 
-/** What a department's pages say to someone who may only view them. */
-export const viewOnlyLine = (id: DepartmentId) => {
-  const { noun, it } = departments[id];
-  return `You can view the ${noun}, but not change ${it}: only ${whoMayChange(id)} can.`;
-};
+/** Who may change a department, as its pages' Help says it (simplify FR13). */
+export const whoCanChangeLine = (id: DepartmentId) =>
+  `Only ${whoMayChange(id)} can change the ${departments[id].noun}.`;
 
 /** What a department's pages say when the API refuses a change as read-only (team-roles FR12). */
 export const refusedLine = (id: DepartmentId) => {

@@ -6,8 +6,8 @@ import CastingGrid from "@/components/casting/CastingGrid.vue";
 import ShowByItem from "@/components/casting/ShowByItem.vue";
 import ShowTimeline from "@/components/casting/ShowTimeline.vue";
 import ClashIcon from "@/components/common/ClashIcon.vue";
-import HelpButton from "@/components/common/HelpButton.vue";
-import ReadOnlyNotice from "@/components/common/ReadOnlyNotice.vue";
+import PageTitle from "@/components/common/PageTitle.vue";
+import RefusalNotice from "@/components/common/RefusalNotice.vue";
 import ViewSwitch from "@/components/common/ViewSwitch.vue";
 import { downloadGridExport } from "@/services/casting-grid-export.ts";
 import { type LatestShow, latestShow } from "@/services/latest-show.ts";
@@ -244,12 +244,8 @@ async function loadCast() {
 </script>
 
 <template>
-  <div class="page-title-row">
-    <h1>Overview</h1>
-    <HelpButton page="casting-overview" />
-  </div>
-  <ReadOnlyNotice />
-  <p>Everyone in the cast and how much they're cast.</p>
+  <PageTitle title="Overview" help="casting-overview" />
+  <RefusalNotice />
   <p class="visually-hidden" role="status" data-test="announcement">{{ exportAnnouncement }}</p>
   <p v-if="state.status === 'error'" role="alert">Couldn't load the cast.</p>
   <template v-else-if="state.status === 'loaded'">
