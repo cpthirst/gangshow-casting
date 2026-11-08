@@ -10,6 +10,7 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, nextTick, onMounted, ref, useId } from "vue";
 import AccessChoice from "@/components/common/AccessChoice.vue";
+import { AccessRefused, loadRequired } from "@/services/load-data.ts";
 import { apiFetch, signedInUsername } from "@/services/sign-in.ts";
 import {
   ACCOUNTS_PATH,
@@ -65,15 +66,13 @@ const issuedNotice = ref<HTMLElement>();
 
 async function load() {
   try {
-    const res = await apiFetch(ACCOUNTS_PATH);
-    if (res.status === 403) {
-      state.value = { status: "error", message: "Only admins can see accounts." };
-      return;
-    }
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    state.value = { status: "loaded", list: AccountList.parse(await res.json()) };
-  } catch {
-    state.value = { status: "error", message: "Couldn't load the accounts." };
+    state.value = { status: "loaded", list: await loadRequired(ACCOUNTS_PATH, AccountList) };
+  } catch (error) {
+    const message =
+      error instanceof AccessRefused
+        ? "Only admins can see accounts."
+        : "Couldn't load the accounts.";
+    state.value = { status: "error", message };
   }
 }
 

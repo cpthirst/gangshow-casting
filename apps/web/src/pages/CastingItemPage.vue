@@ -190,8 +190,8 @@ async function sendRemove(role: Role) {
 
 async function loadRoles() {
   try {
-    const res = await apiFetch(ROLES_PATH);
-    if (res.ok) roles.value = RoleList.parse(await res.json()).roles;
+    const list = await loadData(ROLES_PATH, RoleList);
+    if (list) roles.value = list.roles;
   } catch {
     // Keep what's shown; the notice still says it may be out of date.
   }

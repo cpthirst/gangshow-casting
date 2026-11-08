@@ -9,7 +9,7 @@ import {
 } from "@app/shared";
 import { computed, nextTick, onMounted, ref, useId, useTemplateRef, watch } from "vue";
 import { useRouter } from "vue-router";
-import { apiFetch } from "@/services/sign-in.ts";
+import { AccessRefused, loadData, loadRequired } from "@/services/load-data.ts";
 import { USAGE_PATH } from "@/services/usage.ts";
 import { ACCOUNTS_PATH } from "@/utils/accounts.ts";
 import { RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
@@ -97,35 +97,33 @@ async function load() {
 }
 
 async function usageFor(range: string): Promise<State> {
+  const accountsLoad = loadRequired(ACCOUNTS_PATH, AccountList);
+  const usageLoad = loadRequired(`${USAGE_PATH}?days=${range}`, UsageSummary);
   try {
     const [accounts, usage, itemTitles] = await Promise.all([
-      apiFetch(ACCOUNTS_PATH),
-      apiFetch(`${USAGE_PATH}?days=${range}`),
+      accountsLoad,
+      usageLoad,
       loadItemTitles(),
     ]);
-    if (accounts.status === 403 || usage.status === 403) {
-      return { status: "error", message: "Only admins can see usage.", forbidden: true };
-    }
-    if (!accounts.ok || !usage.ok) throw new Error(`HTTP ${accounts.status} ${usage.status}`);
-    return {
-      status: "loaded",
-      accounts: AccountList.parse(await accounts.json()),
-      usage: UsageSummary.parse(await usage.json()),
-      itemTitles,
-    };
+    return { status: "loaded", accounts, usage, itemTitles };
   } catch {
-    return { status: "error", message: "Couldn't load usage." };
+    // A refusal decides the message, whichever answer arrived first.
+    const answers = await Promise.allSettled([accountsLoad, usageLoad]);
+    const refused = answers.some(
+      (answer) => answer.status === "rejected" && answer.reason instanceof AccessRefused,
+    );
+    return refused
+      ? { status: "error", message: "Only admins can see usage.", forbidden: true }
+      : { status: "error", message: "Couldn't load usage." };
   }
 }
 
 /** Never fails: without the running order, the rest of the page still shows. */
 async function loadItemTitles(): Promise<ItemTitles> {
   try {
-    const res = await apiFetch(RUNNING_ORDER_PATH);
+    const order = await loadData(RUNNING_ORDER_PATH, RunningOrder);
     // No saved running order: no item is in it.
-    if (res.status === 404) return new Map();
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const order = RunningOrder.parse(await res.json());
+    if (!order) return new Map();
     return new Map(
       order.halves.flatMap((half) =>
         half.items.map((item) => [`${order.productionId}/${item.id}`, item.title] as const),

@@ -5,13 +5,7 @@ import { MIC_PLOT_PATH, micPlotListOf } from "@/utils/mic-plot.ts";
 import { PROPS_PATH, propsListOf } from "@/utils/props.ts";
 import { ROLES_PATH } from "@/utils/roles.ts";
 import { RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
-import { apiFetch } from "./sign-in.ts";
-
-async function getJson(path: string): Promise<unknown> {
-  const res = await apiFetch(path);
-  if (!res.ok) throw new Error(`HTTP ${res.status} for ${path}`);
-  return res.json();
-}
+import { loadRequired } from "./load-data.ts";
 
 export type LatestShow = Awaited<ReturnType<typeof latestShow>>;
 
@@ -19,49 +13,39 @@ export type LatestShow = Awaited<ReturnType<typeof latestShow>>;
  *  casting, not what the page loaded earlier (casting-overview-by-item FR15). Throws if any
  *  of them can't be loaded, or there's no saved running order yet. */
 export async function latestShow() {
-  const [cast, roles, order] = await Promise.all(
-    [CAST_PATH, ROLES_PATH, RUNNING_ORDER_PATH].map(getJson),
-  );
-  return {
-    cast: CastList.parse(cast).members,
-    roles: RoleList.parse(roles).roles,
-    order: RunningOrder.parse(order),
-  };
+  const [cast, { roles }, order] = await Promise.all([
+    loadRequired(CAST_PATH, CastList),
+    loadRequired(ROLES_PATH, RoleList),
+    loadRequired(RUNNING_ORDER_PATH, RunningOrder),
+  ]);
+  return { cast: cast.members, roles, order };
 }
 
 /** The production's title and its props list as saved right now, with the casting as it is
  *  at that moment (production-props FR22). Throws if anything it needs can't be loaded. */
 export async function latestPropsList() {
-  const [show, props, notes] = await Promise.all([
+  const [show, { props }, { notes }] = await Promise.all([
     latestShow(),
-    getJson(PROPS_PATH),
-    getJson(departmentNotesPath("props")),
+    loadRequired(PROPS_PATH, PropList),
+    loadRequired(departmentNotesPath("props"), ItemNoteList),
   ]);
   return {
     title: show.order.title,
-    halves: propsListOf({
-      ...show,
-      props: PropList.parse(props).props,
-      notes: ItemNoteList.parse(notes).notes,
-    }),
+    halves: propsListOf({ ...show, props, notes }),
   };
 }
 
 /** The production and its mic plot as saved right now, with the casting as it is at that
  *  moment (production-mics FR14). Throws if anything it needs can't be loaded. */
 export async function latestMicPlot() {
-  const [show, plots, notes] = await Promise.all([
+  const [show, { items: plots }, { notes }] = await Promise.all([
     latestShow(),
-    getJson(MIC_PLOT_PATH),
-    getJson(departmentNotesPath("mic-plot")),
+    loadRequired(MIC_PLOT_PATH, MicPlotList),
+    loadRequired(departmentNotesPath("mic-plot"), ItemNoteList),
   ]);
   return {
     title: show.order.title,
     productionId: show.order.productionId,
-    halves: micPlotListOf({
-      ...show,
-      plots: MicPlotList.parse(plots).items,
-      notes: ItemNoteList.parse(notes).notes,
-    }),
+    halves: micPlotListOf({ ...show, plots, notes }),
   };
 }

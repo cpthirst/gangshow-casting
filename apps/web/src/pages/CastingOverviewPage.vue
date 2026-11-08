@@ -11,7 +11,7 @@ import RefusalNotice from "@/components/common/RefusalNotice.vue";
 import ViewSwitch from "@/components/common/ViewSwitch.vue";
 import { downloadGridExport } from "@/services/casting-grid-export.ts";
 import { type LatestShow, latestShow } from "@/services/latest-show.ts";
-import { apiFetch } from "@/services/sign-in.ts";
+import { loadData, loadRequired } from "@/services/load-data.ts";
 import { recordExport, recordView } from "@/services/usage.ts";
 import { downloadCastingSheets, downloadItemOverview } from "@/services/word-export.ts";
 import { CAST_PATH } from "@/utils/cast.ts";
@@ -199,20 +199,16 @@ onMounted(() => Promise.all([loadCast(), loadParts()]));
 
 async function loadParts() {
   try {
-    const [rolesRes, orderRes] = await Promise.all([
-      apiFetch(ROLES_PATH),
-      apiFetch(RUNNING_ORDER_PATH),
+    const [{ roles }, order] = await Promise.all([
+      loadRequired(ROLES_PATH, RoleList),
+      loadData(RUNNING_ORDER_PATH, RunningOrder),
     ]);
-    if (!rolesRes.ok) throw new Error(`HTTP ${rolesRes.status}`);
-    const roles = RoleList.parse(await rolesRes.json()).roles;
     // No saved running order: no items, so no roles count yet.
-    if (orderRes.status === 404) {
+    if (!order) {
       parts.value = partsByMember(roles, new Set());
       totals.value = roleTotals(roles, new Set());
       return;
     }
-    if (!orderRes.ok) throw new Error(`HTTP ${orderRes.status}`);
-    const order = RunningOrder.parse(await orderRes.json());
     clashes.value = findClashes(order, roles);
     timeline.value = { order, roles, parts: biggestParts(roles) };
     const itemsInShow = itemIdsInOrder(order);
@@ -228,14 +224,9 @@ async function loadParts() {
 
 async function loadCast() {
   try {
-    const res = await apiFetch(CAST_PATH);
     // No cast list yet: an empty cast, not an error.
-    if (res.status === 404) {
-      state.value = { status: "loaded", cast: [] };
-      return;
-    }
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    state.value = { status: "loaded", cast: CastList.parse(await res.json()).members };
+    const cast = (await loadData(CAST_PATH, CastList))?.members ?? [];
+    state.value = { status: "loaded", cast };
   } catch {
     // A failed load must never look like an empty cast (casting-overview FR8).
     state.value = { status: "error" };

@@ -8,6 +8,7 @@ import PageTitle from "@/components/common/PageTitle.vue";
 import RefusalNotice from "@/components/common/RefusalNotice.vue";
 import ItemEditor from "@/components/show/ItemEditor.vue";
 import { type RowDrop, vSortableRows } from "@/directives/sortable-rows.ts";
+import { loadData } from "@/services/load-data.ts";
 import { apiFetch, isAdmin } from "@/services/sign-in.ts";
 import { helpFor, whoCanChange } from "@/utils/help.ts";
 import { icons } from "@/utils/icons.ts";
@@ -55,13 +56,9 @@ const showSaved = (order: RunningOrder) => {
 
 async function load() {
   try {
-    const res = await apiFetch(RUNNING_ORDER_PATH);
-    if (res.status === 404) {
-      state.value = { status: "empty" };
-      return;
-    }
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    showSaved(RunningOrder.parse(await res.json()));
+    const order = await loadData(RUNNING_ORDER_PATH, RunningOrder);
+    if (order) showSaved(order);
+    else state.value = { status: "empty" };
   } catch {
     state.value = { status: "error" };
   }
@@ -181,12 +178,11 @@ async function confirmRemove(item: RunningOrderItem) {
 /** How many roles and notes the item has now, or undefined if they can't be loaded. */
 async function castingFor(itemId: string) {
   try {
-    const [roles, notes] = await Promise.all([apiFetch(ROLES_PATH), apiFetch(ITEM_NOTES_PATH)]);
-    if (!roles.ok || !notes.ok) return undefined;
-    const roleList = RoleList.safeParse(await roles.json());
-    const noteList = ItemNoteList.safeParse(await notes.json());
-    if (!roleList.success || !noteList.success) return undefined;
-    return castingOf(itemId, roleList.data, noteList.data);
+    const [roles, notes] = await Promise.all([
+      loadData(ROLES_PATH, RoleList),
+      loadData(ITEM_NOTES_PATH, ItemNoteList),
+    ]);
+    return roles && notes && castingOf(itemId, roles, notes);
   } catch {
     return undefined;
   }

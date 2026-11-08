@@ -2,7 +2,7 @@
 id: simplify.E4.S2
 title: Load the list pages' data the shared way
 epic: E4
-status: draft
+status: done
 ---
 
 ## Story

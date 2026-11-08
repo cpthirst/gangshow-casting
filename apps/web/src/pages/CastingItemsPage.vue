@@ -13,7 +13,8 @@ import ClashIcon from "@/components/common/ClashIcon.vue";
 import DraftNumber from "@/components/common/DraftNumber.vue";
 import PageTitle from "@/components/common/PageTitle.vue";
 import RefusalNotice from "@/components/common/RefusalNotice.vue";
-import { apiFetch, canChange } from "@/services/sign-in.ts";
+import { loadData, loadRequired } from "@/services/load-data.ts";
+import { canChange } from "@/services/sign-in.ts";
 import { CAST_PATH } from "@/utils/cast.ts";
 import { clashesInItem, findClashes, summariseClashes } from "@/utils/clashes.ts";
 import { icons } from "@/utils/icons.ts";
@@ -71,10 +72,8 @@ onMounted(() => Promise.all([loadRunningOrder(), loadRoles(), loadCast(), loadNo
 
 async function loadNotes() {
   try {
-    const res = await apiFetch(ITEM_NOTES_PATH);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const list = ItemNoteList.parse(await res.json()).notes;
-    notes.value = new Map(list.filter((n) => n.text !== "").map((n) => [n.itemId, n.text]));
+    const list = await loadRequired(ITEM_NOTES_PATH, ItemNoteList);
+    notes.value = new Map(list.notes.filter((n) => n.text !== "").map((n) => [n.itemId, n.text]));
   } catch {
     // The items still show; only their notes are missing.
     notes.value = "error";
@@ -83,14 +82,8 @@ async function loadNotes() {
 
 async function loadCast() {
   try {
-    const res = await apiFetch(CAST_PATH);
     // No cast list yet just means nobody can clash.
-    if (res.status === 404) {
-      cast.value = [];
-      return;
-    }
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    cast.value = CastList.parse(await res.json()).members;
+    cast.value = (await loadData(CAST_PATH, CastList))?.members ?? [];
   } catch {
     cast.value = "error";
   }
@@ -98,9 +91,7 @@ async function loadCast() {
 
 async function loadRoles() {
   try {
-    const res = await apiFetch(ROLES_PATH);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    roles.value = RoleList.parse(await res.json()).roles;
+    roles.value = (await loadRequired(ROLES_PATH, RoleList)).roles;
   } catch {
     // Never shown as "No roles yet": that would hide work still to do (PRD FR2).
     roles.value = "error";
@@ -110,13 +101,8 @@ async function loadRoles() {
 async function loadRunningOrder() {
   try {
     // The latest saved version: unsaved moves live only on the Running order page (PRD FR1).
-    const res = await apiFetch(RUNNING_ORDER_PATH);
-    if (res.status === 404) {
-      state.value = { status: "empty" };
-      return;
-    }
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    state.value = { status: "loaded", order: RunningOrder.parse(await res.json()) };
+    const order = await loadData(RUNNING_ORDER_PATH, RunningOrder);
+    state.value = order ? { status: "loaded", order } : { status: "empty" };
   } catch {
     // A failed load must never look like "no running order yet" (PRD FR6).
     state.value = { status: "error" };

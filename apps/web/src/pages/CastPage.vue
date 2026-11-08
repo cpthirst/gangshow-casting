@@ -5,6 +5,7 @@ import { computed, nextTick, onMounted, ref, useId } from "vue";
 import PageTitle from "@/components/common/PageTitle.vue";
 import RefusalNotice from "@/components/common/RefusalNotice.vue";
 import CastMemberForm from "@/components/show/CastMemberForm.vue";
+import { loadData } from "@/services/load-data.ts";
 import { apiFetch, canChange, isAdmin } from "@/services/sign-in.ts";
 import {
   CAST_PATH,
@@ -209,11 +210,8 @@ async function deleteMember(member: CastMember) {
 /** How many roles the member is cast in now, or undefined if the roles can't be loaded. */
 async function rolesOf(member: CastMember) {
   try {
-    const res = await apiFetch(ROLES_PATH);
-    if (!res.ok) return undefined;
-    const list = RoleList.safeParse(await res.json());
-    if (!list.success) return undefined;
-    return list.data.roles.filter((role) => role.castMemberIds.includes(member.id)).length;
+    const list = await loadData(ROLES_PATH, RoleList);
+    return list?.roles.filter((role) => role.castMemberIds.includes(member.id)).length;
   } catch {
     return undefined;
   }
@@ -247,13 +245,8 @@ async function postMember(details: CastMemberDetails): Promise<CastMember | "sav
 
 async function load() {
   try {
-    const res = await apiFetch(CAST_PATH);
-    if (res.status === 404) {
-      state.value = { status: "empty" };
-      return;
-    }
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    state.value = { status: "loaded", list: CastList.parse(await res.json()) };
+    const list = await loadData(CAST_PATH, CastList);
+    state.value = list ? { status: "loaded", list } : { status: "empty" };
   } catch {
     state.value = { status: "error" };
   }
