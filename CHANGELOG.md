@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.51.0](https://github.com/cpthirst/gangshow-casting/compare/v1.50.0...v1.51.0) (2026-11-08)
+
+
+### Features
+
+* **web:** the layout explains itself, without taglines or hint lines (simplify.E3) ([#206](https://github.com/cpthirst/gangshow-casting/issues/206)) ([d7a963e](https://github.com/cpthirst/gangshow-casting/commit/d7a963e1bc0704cb0ef5ed45723e0cfcbf80c2fe))
+
 ## [1.50.0](https://github.com/cpthirst/gangshow-casting/compare/v1.49.0...v1.50.0) (2026-11-07)
 
 
