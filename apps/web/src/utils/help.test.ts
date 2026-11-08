@@ -45,6 +45,12 @@ describe("Who can change a page, in its Help", () => {
     for (const { access } of changing) expect(accessLabel(access)).toBe("Admins only");
   });
 
+  it("says in the running order's summary that an admin saves the changes", () => {
+    expect(helpFor("running-order").summary).toBe(
+      "The show's items in the order they're performed. Changes stay on your screen until an admin saves them.",
+    );
+  });
+
   it("says nothing for a page no department owns", () => {
     expect(whoCanChange(helpFor("production-overview"))).toBeUndefined();
   });

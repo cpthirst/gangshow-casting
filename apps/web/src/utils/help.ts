@@ -45,7 +45,7 @@ export const pageHelp: PageHelp[] = [
     changedBy: "admins",
     title: "Running order",
     summary:
-      "The show's items in the order they're performed. Changes stay on your screen until you save them.",
+      "The show's items in the order they're performed. Changes stay on your screen until an admin saves them.",
     lines: [
       {
         name: "Read the order",

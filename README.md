@@ -47,7 +47,7 @@ iCUE is hosted on AWS and is open only to the production team. Everyone signs in
 - **Casting:** changes the cast and casting.
 - **Stage, Tech, Wardrobe:** change their own department's pages, as those arrive.
 - **Director:** changes every Production department's pages (Props, Scenery, SFX and Wardrobe today), but not casting or the show. Admins give it on the Accounts page ([production-scenery](docs/product/production/scenery)).
-- **Read-only** (no permissions): sees every page but changes nothing, which suits reviewers such as the director.
+- **View only** (no permissions): sees every page but changes nothing, which suits reviewers such as the director.
 
 Each change route names the permission it needs ([ADR 0026](docs/adr/0026-department-permissions-as-user-pool-groups.md)). The API checks them on every request, not just the menu.
 

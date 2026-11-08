@@ -297,6 +297,16 @@ describe("App shell", () => {
       expect(tickedNames(wrapper)).toEqual(["Admin"]);
     });
 
+    it("says you'll be view only with nothing ticked, in the badge's words", async () => {
+      const { wrapper } = await openAppAt("/");
+
+      await tick(wrapper, "Admin", false);
+
+      expect(accessSwitch(wrapper).get("[data-test=read-only-hint]").text()).toBe(
+        "With nothing ticked, you're view only.",
+      );
+    });
+
     it("shows the casting read-only once switched to Stage and Tech", async () => {
       const { wrapper } = await openAppAt("/cast");
       expect(wrapper.find("[data-test=view-only]").exists()).toBe(false);
