@@ -1,11 +1,9 @@
 import type { FileDepartment } from "@app/shared";
+import { PRODUCTION_PATH } from "./production.ts";
 
 // Each item's files for a Production department, Scenery's, SFX's or Wardrobe's,
 // which share one page layout (production-sfx-wardrobe FR2) and the API's routes, each named
 // after it.
-
-// Only one production for now (see docs/product/running-order/prd.md).
-const PRODUCTION_ID = "2027";
 
 /** A department whose item page keeps the item's files and notes; its name and route come
  *  from the shared list. */
@@ -30,8 +28,7 @@ export const wardrobeDepartment: FilesDepartment = {
   uploadRule: "Costume designs and images only: no photos of cast members.",
 };
 
-const itemPath = (itemId: string) =>
-  `/api/productions/${PRODUCTION_ID}/items/${encodeURIComponent(itemId)}`;
+const itemPath = (itemId: string) => `${PRODUCTION_PATH}/items/${encodeURIComponent(itemId)}`;
 
 /** The item's files, as file storage holds them now. */
 export const itemFilesPath = (department: FileDepartment, itemId: string) =>
@@ -52,4 +49,4 @@ export const itemFileLinkPath = (department: FileDepartment, itemId: string, nam
 /** How many files each item has, for the department's column on the Overview
  *  (production-overview FR14, production-sfx-wardrobe FR10). */
 export const fileCountsPath = (department: FileDepartment) =>
-  `/api/productions/${PRODUCTION_ID}/${department}-file-counts`;
+  `${PRODUCTION_PATH}/${department}-file-counts`;

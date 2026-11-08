@@ -10,17 +10,15 @@ import {
 import { sortCast } from "./cast.ts";
 import type { ClashLine } from "./clashes.ts";
 import { countInWords } from "./departments.ts";
+import { PRODUCTION_PATH } from "./production.ts";
 import { fullName, sortRoles } from "./roles.ts";
 
-// Only one production for now (see docs/product/running-order/prd.md).
-const PRODUCTION_ID = "2027";
-
 /** Every item's channels given out. */
-export const MIC_PLOT_PATH = `/api/productions/${PRODUCTION_ID}/mic-plot`;
+export const MIC_PLOT_PATH = `${PRODUCTION_PATH}/mic-plot`;
 
 /** Where one of the item's channels is given out or freed. */
 export const allocateMicPath = (itemId: string) =>
-  `/api/productions/${PRODUCTION_ID}/items/${encodeURIComponent(itemId)}/mic-plot`;
+  `${PRODUCTION_PATH}/items/${encodeURIComponent(itemId)}/mic-plot`;
 
 export interface ChannelRow {
   channel: number;

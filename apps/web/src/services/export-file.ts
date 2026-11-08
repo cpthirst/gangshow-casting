@@ -10,7 +10,7 @@ export function saveFile(file: Blob, name: string) {
   URL.revokeObjectURL(url);
 }
 
-/** "Gang Show 2027 casting grid 2027-03-12.xlsx": the production, what the file holds and the
+/** "Gang Show casting grid 2030-03-12.xlsx": the production, what the file holds and the
  *  day, on the user's clock, with characters a file name can't hold swapped for spaces. */
 export function exportFileName(production: string, day: Date, holds: string, extension: string) {
   const name = production

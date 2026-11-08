@@ -7,12 +7,10 @@ import {
   sameRoleName,
 } from "@app/shared";
 import { sortCast } from "./cast.ts";
-
-// Only one production for now (see docs/product/running-order/prd.md).
-const PRODUCTION_ID = "2027";
+import { PRODUCTION_PATH } from "./production.ts";
 
 /** Every role in the production. */
-export const ROLES_PATH = `/api/productions/${PRODUCTION_ID}/roles`;
+export const ROLES_PATH = `${PRODUCTION_PATH}/roles`;
 
 /** Where an edited role is put. */
 export const updateRolePath = (roleId: number) => `${ROLES_PATH}/${roleId}`;
@@ -22,7 +20,7 @@ export const removeRolePath = (role: Role) => `${ROLES_PATH}/${role.id}?revision
 
 /** Where a new role for this item is posted. */
 export const addRolePath = (itemId: string) =>
-  `/api/productions/${PRODUCTION_ID}/items/${encodeURIComponent(itemId)}/roles`;
+  `${PRODUCTION_PATH}/items/${encodeURIComponent(itemId)}/roles`;
 
 const sizeLabels: Record<RoleSize, string> = {
   lead: "Lead",

@@ -1,7 +1,7 @@
 import { type CastMember, CastMemberDetails, type GridSection, type Section } from "@app/shared";
+import { PRODUCTION_PATH } from "./production.ts";
 
-// Only one production for now (see docs/product/running-order/prd.md).
-export const CAST_PATH = "/api/productions/2027/cast";
+export const CAST_PATH = `${PRODUCTION_PATH}/cast`;
 
 const sectionNames: Record<Section, GridSection> = {
   scouts: "Scouts",

@@ -6,12 +6,10 @@ import {
   type Stage,
   type UpdateChange,
 } from "@app/shared";
-
-// Only one production for now (see docs/product/running-order/prd.md).
-const PRODUCTION_ID = "2027";
+import { PRODUCTION_PATH } from "./production.ts";
 
 /** The production's running order: GET answers with the latest saved version. */
-export const RUNNING_ORDER_PATH = `/api/productions/${PRODUCTION_ID}/running-order`;
+export const RUNNING_ORDER_PATH = `${PRODUCTION_PATH}/running-order`;
 
 const stageNames: Record<Stage, string> = { apron: "Apron", full: "Full" };
 
