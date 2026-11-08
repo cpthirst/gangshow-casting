@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.50.0](https://github.com/cpthirst/gangshow-casting/compare/v1.49.0...v1.50.0) (2026-11-07)
+
+
+### Features
+
+* **web:** one frame for every item page, and one way to load data (simplify.E2, E4.S1) ([#204](https://github.com/cpthirst/gangshow-casting/issues/204)) ([fd73902](https://github.com/cpthirst/gangshow-casting/commit/fd73902fbdd26f160a88463f5bc1829fb30ddc98))
+
 ## [1.49.0](https://github.com/cpthirst/gangshow-casting/compare/v1.48.0...v1.49.0) (2026-11-07)
 
 
