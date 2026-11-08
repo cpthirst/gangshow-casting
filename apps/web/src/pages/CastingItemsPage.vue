@@ -129,7 +129,7 @@ async function loadRunningOrder() {
       <h2 :id="half.id">{{ half.name }}</h2>
       <div class="table-scroll" tabindex="0" role="region" :aria-label="`${half.name} items`">
         <!-- The Running order table, with a Cast button where the moves are. -->
-        <table class="running-order items-list" role="table">
+        <table class="items-table items-list" role="table">
           <!-- The same column widths in both halves, so they line up. -->
           <colgroup>
             <col class="col-cast" />
@@ -155,7 +155,7 @@ async function loadRunningOrder() {
                 :data-item-id="item.id"
                 :class="{ 'not-printed': number === null }"
               >
-                <td class="moves" data-label="Cast" role="cell">
+                <td class="icon-column" data-label="Cast" role="cell">
                   <RouterLink
                     class="icon-button"
                     data-test="cast"

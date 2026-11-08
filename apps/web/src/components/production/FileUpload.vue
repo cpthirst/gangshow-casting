@@ -107,7 +107,7 @@ async function upload(file: File, replace: boolean) {
 
 <template>
   <div
-    class="cast-actions file-upload"
+    class="button-row file-upload"
     :class="{ dropping }"
     data-test="upload-area"
     @dragenter="draggedOver"

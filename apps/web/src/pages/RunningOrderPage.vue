@@ -343,7 +343,7 @@ function refocus(itemId: string, direction: Move) {
         <div class="table-scroll" tabindex="0" role="region" :aria-label="`${half.name} items`">
           <!-- Explicit roles: card mode restyles the table as blocks, which can drop its
                semantics in some browsers (e.g. Safari + VoiceOver). -->
-          <table class="running-order" role="table">
+          <table class="items-table" role="table">
             <thead role="rowgroup">
               <tr role="row">
                 <th v-if="isAdmin" scope="col" role="columnheader">Move</th>
@@ -370,7 +370,7 @@ function refocus(itemId: string, direction: Move) {
                   <ItemEditor :item="item" @apply="applyEdit" @cancel="endEdit(item.id)" />
                 </td>
                 <template v-else>
-                  <td v-if="isAdmin" class="moves" data-label="Move" role="cell">
+                  <td v-if="isAdmin" class="icon-column" data-label="Move" role="cell">
                     <span
                       class="drag-handle"
                       role="img"

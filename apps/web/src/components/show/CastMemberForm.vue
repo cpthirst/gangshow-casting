@@ -35,7 +35,7 @@ function submit() {
 <template>
   <form
     data-test="cast-member-form"
-    class="cast-member-form"
+    class="form"
     :aria-label="member ? `Edit ${member.firstName} ${member.lastName}` : 'Add cast member'"
     novalidate
     @submit.prevent="submit"

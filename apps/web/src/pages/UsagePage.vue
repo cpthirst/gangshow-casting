@@ -142,7 +142,7 @@ onMounted(load);
   <!-- Outside the loading switch, so it keeps focus while the page loads the new range, and
        stays when a range fails so another can be tried. -->
   <!-- The Cast page's filter look, so it matches the app's other dropdowns. -->
-  <div v-if="!(state.status === 'error' && state.forbidden)" class="cast-filters">
+  <div v-if="!(state.status === 'error' && state.forbidden)" class="filter-bar">
     <div class="field">
       <label :for="rangeId">Period</label>
       <select :id="rangeId" v-model="days" data-test="range">
@@ -158,12 +158,12 @@ onMounted(load);
     <p data-test="recorded-since">{{ recordedSince }}</p>
     <h2>By feature</h2>
     <div
-      class="table-scroll cast-table"
+      class="table-scroll data-table-box"
       tabindex="0"
       role="region"
       aria-label="Usage by feature"
       data-test="by-feature">
-      <table class="cast-list">
+      <table class="data-table">
         <thead>
           <tr>
             <th scope="col">Feature</th>
@@ -187,13 +187,13 @@ onMounted(load);
       A sign-in lasts the day, so reopening the app within it isn't counted again.
     </p>
     <div
-      class="table-scroll cast-table"
+      class="table-scroll data-table-box"
       tabindex="0"
       role="region"
       aria-label="Usage by person"
       data-test="by-person">
       <!-- The Accounts page's look, so phones show each person as a card too. -->
-      <table class="cast-list">
+      <table class="data-table">
         <thead>
           <tr>
             <th scope="col">Username</th>
@@ -224,12 +224,12 @@ onMounted(load);
     <p v-if="activity.length === 0" data-test="no-activity">No activity in this period.</p>
     <template v-else>
       <div
-        class="table-scroll cast-table"
+        class="table-scroll data-table-box"
         tabindex="0"
         role="region"
         aria-label="Usage activity"
         data-test="activity">
-        <table class="cast-list">
+        <table class="data-table">
           <thead>
             <tr>
               <th scope="col">Username</th>
@@ -249,7 +249,7 @@ onMounted(load);
           </tbody>
         </table>
       </div>
-      <div v-if="activity.length > activityShown" class="cast-actions">
+      <div v-if="activity.length > activityShown" class="button-row">
         <button type="button" data-test="more-activity" @click="showMoreActivity">
           Show the next {{ Math.min(ACTIVITY_PAGE, activity.length - activityShown) }}
         </button>

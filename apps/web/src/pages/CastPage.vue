@@ -265,7 +265,7 @@ onMounted(load);
   <p v-else-if="state.status === 'error'" role="alert">Couldn't load the cast list.</p>
   <template v-else>
     <p class="visually-hidden" role="status" data-test="announcement">{{ announcement }}</p>
-    <div v-if="canChange('casting')" class="cast-actions">
+    <div v-if="canChange('casting')" class="button-row">
       <button
         ref="addButton"
         type="button"
@@ -293,7 +293,7 @@ onMounted(load);
       @save="saveEdit"
       @cancel="cancelEdit"
     />
-    <form class="cast-filters" role="search" aria-label="Filter the cast" @submit.prevent>
+    <form class="filter-bar" role="search" aria-label="Filter the cast" @submit.prevent>
       <div class="field">
         <label :for="`${uid}-first`">First name</label>
         <input
@@ -329,12 +329,12 @@ onMounted(load);
     <p v-if="shown.length === 0">No cast members match these filters.</p>
     <div
       v-else
-      class="table-scroll cast-table"
+      class="table-scroll data-table-box"
       tabindex="0"
       role="region"
       aria-label="Cast members"
     >
-      <table class="cast-list">
+      <table class="data-table">
         <thead>
           <tr>
             <!-- Icons first, as on the Running order and Items pages. -->

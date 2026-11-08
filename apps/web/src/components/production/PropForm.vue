@@ -183,7 +183,7 @@ function submit() {
 
 <template>
   <form
-    class="cast-member-form"
+    class="form"
     :aria-label="prop ? `Edit ${prop.name}` : 'Add prop'"
     novalidate
     @submit.prevent="submit"

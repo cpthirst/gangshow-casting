@@ -256,7 +256,7 @@ main {
 }
 
 /* The running order uses the full width beside the sidebar, so its table has room to fit. */
-main:has(.running-order) {
+main:has(.items-table) {
   max-width: none;
 }
 
@@ -371,63 +371,63 @@ main a {
   border-radius: 0.5rem;
 }
 
-.running-order {
+.items-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.9375rem;
 }
 
-.running-order th,
-.running-order td {
+.items-table th,
+.items-table td {
   padding: 0.625rem 0.75rem;
   border-bottom: 1px solid var(--surface);
   text-align: left;
   vertical-align: top;
 }
 
-.running-order th {
+.items-table th {
   font-size: 0.8125rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
-.running-order .title {
+.items-table .title {
   min-width: 9rem;
   font-weight: 700;
 }
 
 /* Text columns wrap between words; short columns stay on one line and take only the
    room they need. A single very long word widens the table (then .table-scroll scrolls). */
-.running-order td {
+.items-table td {
   overflow-wrap: break-word;
 }
 
-.running-order td.cast,
-.running-order td.comments {
+.items-table td.cast,
+.items-table td.comments {
   min-width: 9rem;
 }
 
-.running-order td.moves,
-.running-order td.starts,
-.running-order td.minutes {
+.items-table td.icon-column,
+.items-table td.starts,
+.items-table td.minutes {
   width: 1%;
   white-space: nowrap;
 }
 
 /* The number column is narrow; the "Not in printed programme" badge wraps inside it. */
-.running-order td.number {
+.items-table td.number {
   width: 1%;
   max-width: 6.5rem;
 }
 
-.running-order td.number .badge {
+.items-table td.number .badge {
   padding: 0.125rem 0.375rem;
   border-radius: 0.375rem;
   white-space: normal;
   text-align: center;
 }
 
-.running-order .minutes {
+.items-table .minutes {
   text-align: right;
 }
 
@@ -467,8 +467,8 @@ main a {
   width: 5.5rem;
 }
 
-.running-order th.count,
-.running-order td.count {
+.items-table th.count,
+.items-table td.count {
   padding-right: 0.25rem;
   padding-left: 0.25rem;
   text-align: center;
@@ -484,18 +484,18 @@ main a {
   width: 5rem;
 }
 
-.running-order tr.not-printed {
+.items-table tr.not-printed {
   background: var(--surface);
   font-style: italic;
 }
 
-.running-order .starts {
+.items-table .starts {
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 
-.running-order tfoot th,
-.running-order tfoot td {
+.items-table tfoot th,
+.items-table tfoot td {
   border-bottom: none;
   font-weight: 900;
   text-align: right;
@@ -511,7 +511,7 @@ main a {
   font-weight: 900;
 }
 
-.running-order .moves {
+.items-table .icon-column {
   white-space: nowrap;
 }
 
@@ -530,7 +530,7 @@ main a {
 /* An item's notes on the Items list: a row of their own straight under the item's, read
    as part of it (casting-item-overview FR9). The line above them is removed by a rule at
    the end of this file, which has to outrank the table's own cell borders. */
-.running-order td.item-notes-text {
+.items-table td.item-notes-text {
   padding-top: 0;
   font-size: 0.875rem;
   white-space: pre-wrap;
@@ -538,7 +538,7 @@ main a {
 }
 
 /* The same "Notes" label as on a phone card, from the cell's data-label. */
-.running-order td.item-notes-text::before {
+.items-table td.item-notes-text::before {
   content: attr(data-label) " ";
   font-size: 0.75rem;
   font-weight: 700;
@@ -550,12 +550,12 @@ main a {
    labelled details, so nothing scrolls sideways. Same table underneath, so dragging,
    move buttons and screen-reader cell labels all still work. */
 @container (max-width: 50rem) {
-  .running-order,
-  .running-order tbody,
-  .running-order tfoot,
-  .running-order tr,
-  .running-order td,
-  .running-order th {
+  .items-table,
+  .items-table tbody,
+  .items-table tfoot,
+  .items-table tr,
+  .items-table td,
+  .items-table th {
     display: block;
     width: auto;
   }
@@ -565,7 +565,7 @@ main a {
     overflow: visible;
   }
 
-  .running-order thead {
+  .items-table thead {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -575,40 +575,40 @@ main a {
 
   /* Each item becomes a padded card with a thick separator. Any page reusing this table
      must put data-item-id on its item rows (Running order, casting Items). */
-  .running-order tbody tr[data-item-id] {
+  .items-table tbody tr[data-item-id] {
     padding: 0.75rem 1rem;
     border-bottom: 4px solid var(--surface);
   }
 
   /* Notes close the item's card: its separator moves below them. */
-  .running-order tbody tr[data-item-id]:has(+ .item-notes-row) {
+  .items-table tbody tr[data-item-id]:has(+ .item-notes-row) {
     padding-bottom: 0.25rem;
     border-bottom: none;
   }
 
-  .running-order tbody tr.item-notes-row {
+  .items-table tbody tr.item-notes-row {
     padding: 0 1rem 0.75rem;
     border-bottom: 4px solid var(--surface);
   }
 
   /* An item with scenery and props notes: the separator goes below the last of them. */
-  .running-order tbody tr.item-notes-row:has(+ .item-notes-row) {
+  .items-table tbody tr.item-notes-row:has(+ .item-notes-row) {
     padding-bottom: 0.25rem;
     border-bottom: none;
   }
 
-  .running-order td {
+  .items-table td {
     padding: 0.125rem 0;
     border: none;
     text-align: left;
   }
 
   /* Hide empty details (e.g. no leads); Vue renders an empty value as no text. */
-  .running-order td[data-label]:empty {
+  .items-table td[data-label]:empty {
     display: none;
   }
 
-  .running-order td[data-label]::before {
+  .items-table td[data-label]::before {
     content: attr(data-label) " ";
     font-size: 0.75rem;
     font-style: normal;
@@ -618,19 +618,19 @@ main a {
   }
 
   /* No labels where the content speaks for itself. */
-  .running-order td.moves::before,
-  .running-order td.title::before,
-  .running-order td.counts::before {
+  .items-table td.icon-column::before,
+  .items-table td.title::before,
+  .items-table td.counts::before {
     content: none;
   }
 
-  .running-order td.moves {
+  .items-table td.icon-column {
     margin-bottom: 0.25rem;
   }
 
   /* On a phone's card each count is a line of its own, so the word sits beside its number:
      "SCENERY 9 files". */
-  .running-order td.count {
+  .items-table td.count {
     text-align: left;
   }
 
@@ -638,14 +638,14 @@ main a {
     display: inline;
   }
 
-  .running-order td.title {
+  .items-table td.title {
     font-size: 1.0625rem;
   }
 
   /* Number, start time and minutes sit together on one line. */
-  .running-order tbody td.number,
-  .running-order tbody td.starts,
-  .running-order tbody td.minutes {
+  .items-table tbody td.number,
+  .items-table tbody td.starts,
+  .items-table tbody td.minutes {
     display: inline-block;
     width: auto;
     max-width: none;
@@ -653,21 +653,21 @@ main a {
     text-align: left;
   }
 
-  .running-order tfoot tr {
+  .items-table tfoot tr {
     display: flex;
     justify-content: space-between;
     padding: 0.75rem 1rem;
   }
 
-  .running-order tfoot th,
-  .running-order tfoot td.minutes {
+  .items-table tfoot th,
+  .items-table tfoot td.minutes {
     width: auto;
     padding: 0;
   }
 }
 
 /* Tall enough to drop an item into once a half is empty. */
-.running-order .empty-half td {
+.items-table .empty-half td {
   padding: 1.5rem 0.75rem;
   border: 2px dashed var(--surface);
   text-align: center;
@@ -675,22 +675,22 @@ main a {
 }
 
 /* Nothing can be dropped in for a read-only account, so it isn't drawn as a target. */
-.running-order .empty-half.read-only td {
+.items-table .empty-half.read-only td {
   padding: 0.75rem;
   border: none;
 }
 
 /* SortableJS's placeholder while dragging. */
-.running-order .sortable-ghost {
+.items-table .sortable-ghost {
   background: var(--surface);
   outline: 2px dashed var(--red);
   opacity: 0.7;
 }
 
 /* Compact icon buttons: the full name ("Move Curtain Up down") is in aria-label and the
-   tooltip explains the icon. The Running order's moves, and .icon-button everywhere else
+   tooltip explains the icon. An items table's .icon-column, and .icon-button everywhere else
    (Cast on the Items page, edit and delete on the Cast page and role cards). */
-.moves button,
+.icon-column button,
 .icon-button {
   width: 2rem;
   height: 2rem;
@@ -708,7 +708,7 @@ main a {
 }
 
 /* Icons centred in their buttons, and buttons lined up side by side. */
-.moves button,
+.icon-column button,
 .icon-button {
   display: inline-flex;
   align-items: center;
@@ -719,13 +719,13 @@ main a {
   text-decoration: none;
 }
 
-.moves button:hover:not(:disabled),
+.icon-column button:hover:not(:disabled),
 .icon-button:hover:not(:disabled) {
   border-color: var(--red-darker);
   color: var(--red-darker);
 }
 
-.moves button:disabled,
+.icon-column button:disabled,
 .icon-button:disabled {
   border-style: dashed;
   opacity: 0.45;
@@ -771,7 +771,7 @@ main a {
 }
 
 /* The edit form, shown in place of an item's row. */
-.running-order td.editing {
+.items-table td.editing {
   padding: 1rem;
   background: var(--surface);
 }
@@ -874,7 +874,7 @@ main a {
   font-weight: 700;
 }
 
-.cast-filters {
+.filter-bar {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
@@ -882,19 +882,19 @@ main a {
   margin: 0 0 1rem;
 }
 
-.cast-filters .field {
+.filter-bar .field {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
 }
 
-.cast-filters label {
+.filter-bar label {
   font-size: 0.8125rem;
   font-weight: 700;
 }
 
-.cast-filters input,
-.cast-filters select {
+.filter-bar input,
+.filter-bar select {
   padding: 0.5rem;
   border: 1px solid var(--text);
   border-radius: 0.25rem;
@@ -903,7 +903,7 @@ main a {
   font: inherit;
 }
 
-.cast-filters button {
+.filter-bar button {
   padding: 0.5rem 1rem;
   border: 2px solid var(--text);
   border-radius: 999px;
@@ -914,7 +914,7 @@ main a {
   cursor: pointer;
 }
 
-.cast-filters button:disabled {
+.filter-bar button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
@@ -937,11 +937,11 @@ main a {
   cursor: not-allowed;
 }
 
-.cast-actions {
+.button-row {
   margin: 0 0 1rem;
 }
 
-.cast-actions button {
+.button-row button {
   padding: 0.5rem 1.25rem;
   border: 2px solid var(--red-deep);
   border-radius: 999px;
@@ -952,7 +952,7 @@ main a {
   cursor: pointer;
 }
 
-.cast-actions button:disabled {
+.button-row button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
@@ -1001,7 +1001,7 @@ main a {
 }
 
 /* The add/edit form: same look as the running order's item editor. */
-.cast-member-form {
+.form {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
   gap: 0.75rem 1rem;
@@ -1012,45 +1012,45 @@ main a {
   background: var(--white);
 }
 
-.cast-member-form .member-id {
+.form .member-id {
   grid-column: 1 / -1;
   margin: 0;
   font-size: 0.875rem;
   font-weight: 700;
 }
 
-.cast-member-form .field {
+.form .field {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
 }
 
-.cast-member-form label {
+.form label {
   font-size: 0.8125rem;
   font-weight: 700;
 }
 
 /* A picker with a "Selected …" list takes a whole row, so the red line above the list runs
    the width of the form on wide screens too. */
-.cast-member-form .field:has(> .members-block) {
+.form .field:has(> .members-block) {
   grid-column: 1 / -1;
 }
 
 /* A picker's label heads its group, so it's the size of the "Selected …" list below it. */
-.cast-member-form label.picker-label {
+.form label.picker-label {
   font-size: 1rem;
 }
 
 /* Dropdowns in every form are as wide as their options, so the arrow sits by the choice,
    not at the far side of a wide field. */
-.cast-member-form select,
+.form select,
 .item-editor select {
   align-self: flex-start;
   min-width: 8rem;
 }
 
-.cast-member-form input,
-.cast-member-form select {
+.form input,
+.form select {
   padding: 0.5rem;
   border: 1px solid var(--text);
   border-radius: 0.25rem;
@@ -1059,29 +1059,29 @@ main a {
   font: inherit;
 }
 
-.cast-member-form [aria-invalid="true"] {
+.form [aria-invalid="true"] {
   border: 2px solid var(--red-darker);
 }
 
 /* Text as well as the red border, so errors don't rely on colour alone. */
-.cast-member-form .field-error {
+.form .field-error {
   margin: 0;
   color: var(--red-darker);
   font-size: 0.8125rem;
   font-weight: 700;
 }
 
-.cast-member-form .form-error {
+.form .form-error {
   grid-column: 1 / -1;
 }
 
-.cast-member-form .editor-actions {
+.form .editor-actions {
   display: flex;
   gap: 0.75rem;
   grid-column: 1 / -1;
 }
 
-.cast-member-form .editor-actions button {
+.form .editor-actions button {
   padding: 0.5rem 1.25rem;
   border: 2px solid var(--text);
   border-radius: 999px;
@@ -1092,13 +1092,13 @@ main a {
   cursor: pointer;
 }
 
-.cast-member-form .editor-actions button.primary {
+.form .editor-actions button.primary {
   border-color: var(--red-deep);
   background: var(--red-deep);
   color: var(--white);
 }
 
-.cast-member-form .editor-actions button:disabled {
+.form .editor-actions button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
@@ -1124,55 +1124,55 @@ main a {
   font-size: 0.875rem;
 }
 
-.cast-member-form .add-all-cast button:disabled {
+.form .add-all-cast button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
 
-.cast-list {
+.data-table {
   width: 100%;
   border-collapse: collapse;
 }
 
-.cast-list th,
-.cast-list td {
+.data-table th,
+.data-table td {
   padding: 0.625rem 0.75rem;
   border-bottom: 1px solid var(--surface);
   text-align: left;
   overflow-wrap: break-word;
 }
 
-.cast-list th {
+.data-table th {
   font-size: 0.8125rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
-.cast-list .actions {
+.data-table .actions {
   width: 1%;
   white-space: nowrap;
 }
 
-.cast-list .not-set {
+.data-table .not-set {
   font-style: italic;
 }
 
-/* The cast list sizes itself to its own width, like the Running order's halves. */
-.cast-table {
+/* A data table sizes itself to its own width, like an items table's halves. */
+.data-table-box {
   container-type: inline-size;
 }
 
 /* Narrow (phones): each person becomes a card with no sideways scrolling: their name in
    bold with the icons beside it, then their section and group, each labelled. */
 @container (max-width: 34rem) {
-  .cast-list,
-  .cast-list tbody,
-  .cast-list tr,
-  .cast-list td {
+  .data-table,
+  .data-table tbody,
+  .data-table tr,
+  .data-table td {
     display: block;
   }
 
-  .cast-list thead {
+  .data-table thead {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -1180,7 +1180,7 @@ main a {
     clip-path: inset(50%);
   }
 
-  .cast-list tbody tr {
+  .data-table tbody tr {
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
@@ -1189,31 +1189,31 @@ main a {
     border-bottom: 4px solid var(--surface);
   }
 
-  .cast-list td {
+  .data-table td {
     padding: 0;
     border: none;
   }
 
-  .cast-list td.first-name,
-  .cast-list td.last-name,
-  .cast-list td.username {
+  .data-table td.first-name,
+  .data-table td.last-name,
+  .data-table td.username {
     font-size: 1.0625rem;
     font-weight: 700;
   }
 
   /* The icons sit on their own line at the top of the card, as on the Running order. */
-  .cast-list td.actions {
+  .data-table td.actions {
     flex-basis: 100%;
     width: auto;
     margin-bottom: 0.25rem;
   }
 
-  .cast-list td:not(.first-name, .last-name, .username, .actions) {
+  .data-table td:not(.first-name, .last-name, .username, .actions) {
     order: 2;
     flex-basis: 100%;
   }
 
-  .cast-list td:not(.first-name, .last-name, .username, .actions)::before {
+  .data-table td:not(.first-name, .last-name, .username, .actions)::before {
     content: attr(data-label) " ";
     font-size: 0.75rem;
     font-style: normal;
@@ -1223,7 +1223,7 @@ main a {
   }
 
   /* No group or notes: no empty line. */
-  .cast-list td:empty {
+  .data-table td:empty {
     display: none;
   }
 }
@@ -1257,7 +1257,7 @@ main a {
   border-radius: 0.25rem;
 }
 
-.cast-member-form .access-choice {
+.form .access-choice {
   grid-column: 1 / -1;
   margin: 0;
 }
@@ -1318,8 +1318,8 @@ main a {
   color: var(--red-deep);
 }
 
-/* Casting items and item pages. The list itself reuses the Running order table. */
-.running-order td.counts {
+/* Casting items and item pages. The list itself is an .items-table. */
+.items-table td.counts {
   white-space: nowrap;
 }
 
@@ -1455,7 +1455,7 @@ main a {
 
 /* An item's roles as cards, biggest first. Size is always written on the pill, so
    colour only helps; every pill keeps dark text on a light tint for contrast. */
-.role-cards {
+.card-list {
   display: grid;
   /* One column, never wider than the page: a card holding the edit form must shrink to
      fit a phone rather than grow to the form's widest layout. */
@@ -1535,7 +1535,7 @@ main a {
   list-style: none;
 }
 
-/* Its card is .role-card's; the channel's name keeps one width, so the pickers line up. */
+/* Its card is .card; the channel's name keeps one width, so the pickers line up. */
 .mic-channel {
   min-width: 0;
 }
@@ -1586,8 +1586,8 @@ main a {
 /* A channel someone else had in the item before: greyed out, the card the page's grey with a
    dashed edge rather than white, its text still the full text colour (9.2:1 on the grey), so
    it reads as unavailable without fading below contrast (production-mics FR5). Selectors
-   specific enough to beat .role-card's white, which comes later. */
-.role-card.mic-held {
+   specific enough to beat .card's white, which comes later. */
+.card.mic-held {
   border: 1px dashed var(--not-in-item);
   background: var(--surface);
 }
@@ -1598,7 +1598,7 @@ main a {
 }
 
 /* Every card's surface, so roles, props and files look alike. */
-.role-card {
+.card {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem 0.75rem;
@@ -1608,7 +1608,7 @@ main a {
   background: var(--white);
 }
 
-.role-name {
+.card-name {
   font-weight: 700;
 }
 
@@ -2070,13 +2070,13 @@ main a {
 }
 
 /* On a role card, "Uncast" sits at the end. */
-.role-card .uncast {
+.card .uncast {
   margin-left: auto;
 }
 
 /* A card's Edit and Remove icons come first, on the left; on phones they sit on their own
    line above the role (see the phone rules below). */
-.role-actions {
+.card-icons {
   display: inline-flex;
   align-items: center;
 }
@@ -2157,7 +2157,7 @@ main a {
 }
 
 /* A card being edited holds the form at full width. */
-.role-card.editing {
+.card.editing {
   display: block;
   background: var(--surface);
 }
@@ -2258,7 +2258,7 @@ main a {
     margin-right: 0.5rem;
   }
 
-  .role-actions {
+  .card-icons {
     flex-basis: 100%;
     margin-bottom: 0.25rem;
   }
@@ -2392,7 +2392,7 @@ main a {
 
 /* An item followed by its notes on the Items list loses its bottom line, so the notes read
    as part of it. Last in the file: it outranks the table's own cell borders. */
-.running-order tr:has(+ .item-notes-row) td {
+.items-table tr:has(+ .item-notes-row) td {
   border-bottom: none;
 }
 

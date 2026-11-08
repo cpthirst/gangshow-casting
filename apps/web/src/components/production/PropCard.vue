@@ -23,9 +23,9 @@ const carrying = computed(() => carryingOf(props.prop, props.roles, props.cast))
 </script>
 
 <template>
-  <li class="role-card" :data-prop-id="prop.id" data-test="prop">
+  <li class="card" :data-prop-id="prop.id" data-test="prop">
     <!-- Icons first, as on the role cards; above the prop on phones. -->
-    <span v-if="canChange" class="role-actions row-icons">
+    <span v-if="canChange" class="card-icons row-icons">
       <button
         type="button"
         class="icon-button"
@@ -49,7 +49,7 @@ const carrying = computed(() => carryingOf(props.prop, props.roles, props.cast))
         <FontAwesomeIcon :icon="icons.remove" />
       </button>
     </span>
-    <span class="role-name" data-test="prop-name">{{ prop.name }}</span>
+    <span class="card-name" data-test="prop-name">{{ prop.name }}</span>
     <!-- A pill, like a role's size. The "×" is read out, not hidden, and the real space
          keeps it a word apart, so a screen reader hears "Umbrella times 10". A quantity of 1
          isn't shown (production-props FR24). -->
@@ -63,7 +63,7 @@ const carrying = computed(() => carryingOf(props.prop, props.roles, props.cast))
       :aria-label="`Roles for ${prop.name}`"
     >
       <li v-for="{ role, carriers, none } in carrying.roles" :key="role.id" data-test="prop-role">
-        <span class="role-name" data-test="prop-role-name">{{ role.name }}</span>
+        <span class="card-name" data-test="prop-role-name">{{ role.name }}</span>
         <!-- Real spaces, so a screen reader hears "Parrot Uncast", not one word. -->
         {{ " " }}
         <!-- In brackets, as the prop form shows them. -->

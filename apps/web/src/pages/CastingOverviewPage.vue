@@ -307,12 +307,12 @@ async function loadCast() {
       </h2>
       <!-- Cards like an item's role cards (casting-overview UI consistency). An explicit
            list role: Safari drops list semantics once bullets are styled away. -->
-      <ul class="role-cards" role="list" :aria-labelledby="`section-${section.key}`">
-        <li v-for="{ member, counts, clashLines, halves } in section.people" :key="member.id" class="role-card" data-test="person">
+      <ul class="card-list" role="list" :aria-labelledby="`section-${section.key}`">
+        <li v-for="{ member, counts, clashLines, halves } in section.people" :key="member.id" class="card" data-test="person">
           <!-- Name and clash icon together, so the icon stays beside the name, as on an
                item's page, with any written-out clashes beneath. -->
           <span class="person-who">
-            <span class="person-name role-name">{{ member.firstName }} {{ member.lastName }}</span>
+            <span class="person-name card-name">{{ member.firstName }} {{ member.lastName }}</span>
             <ClashIcon :lines="clashLines" />
           </span>
           <template v-if="counts">

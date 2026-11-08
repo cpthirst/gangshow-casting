@@ -302,7 +302,7 @@ async function loadRunningOrder() {
     <section v-for="{ half, rows } in halves" :key="half.id" class="half" :aria-labelledby="half.id">
       <h2 :id="half.id">{{ half.name }}</h2>
       <div class="table-scroll" tabindex="0" role="region" :aria-label="`${half.name} items`">
-        <table class="running-order items-list" role="table">
+        <table class="items-table items-list" role="table">
           <!-- The same column widths in both halves, so they line up. -->
           <colgroup>
             <col class="col-departments" />
@@ -334,7 +334,7 @@ async function loadRunningOrder() {
                 :data-item-id="item.id"
                 :class="{ 'not-printed': number === null }"
               >
-                <td class="moves" data-label="Open" role="cell">
+                <td class="icon-column" data-label="Open" role="cell">
                   <!-- Each says whether it edits or views, by the department's permission. -->
                   <RouterLink
                     v-for="department in departmentPages"

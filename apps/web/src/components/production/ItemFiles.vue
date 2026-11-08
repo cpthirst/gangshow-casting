@@ -120,11 +120,11 @@ watch(
          explicit list role: Safari drops list semantics once bullets are styled away. -->
     <ul
       v-if="files.length > 0"
-      class="role-cards"
+      class="card-list"
       role="list"
       :aria-label="`${named.name} files`"
     >
-      <li v-for="file in files" :key="file.name" class="role-card" data-test="file">
+      <li v-for="file in files" :key="file.name" class="card" data-test="file">
         <span v-if="mayChange" class="row-icons">
           <button
             type="button"

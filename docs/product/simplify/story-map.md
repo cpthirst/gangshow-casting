@@ -51,7 +51,7 @@ prd: ./prd.md
 |---|---|---|---|---|
 | [simplify.E4.S1](stories/E4-S1-one-way-to-load-data.md) | One shared way to load data from the API, with one rule for failures and one for "nothing there yet". The file department pages move onto it first | FR17 | (none) | done |
 | [simplify.E4.S2](stories/E4-S2-list-pages-load-data-one-way.md) | The list pages (Cast, Running order, Casting, the Overviews, Accounts, Usage) load data the shared way | FR17 | E4.S1 | done |
-| [simplify.E4.S3](stories/E4-S3-purpose-named-styles.md) | Cards, button rows, forms, tables and the Open column get names that say what they are. The UX reviewer's brief uses the new names | FR16 | E2.S4 | draft |
+| [simplify.E4.S3](stories/E4-S3-purpose-named-styles.md) | Cards, button rows, forms, tables and the Open column get names that say what they are. The UX reviewer's brief uses the new names | FR16 | E2.S4 | done |
 | [simplify.E4.S4](stories/E4-S4-one-production-id.md) | The web app takes its production from one place. The 7 hard-coded ids go | FR18 | E4.S2 | draft |
 
 ## E5: More than one production

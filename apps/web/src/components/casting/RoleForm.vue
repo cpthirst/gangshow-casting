@@ -140,7 +140,7 @@ function submit() {
 
 <template>
   <form
-    class="cast-member-form"
+    class="form"
     :aria-label="role ? `Edit ${role.name}` : 'Add role'"
     novalidate
     @submit.prevent="submit"

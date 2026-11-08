@@ -412,7 +412,7 @@ describe("Production overview", () => {
 
 describe("Department buttons on the Production overview", () => {
   const buttonsIn = (wrapper: VueWrapper, title: string) =>
-    rowFor(wrapper, title)?.findAll("td.moves .icon-button") ?? [];
+    rowFor(wrapper, title)?.findAll("td.icon-column .icon-button") ?? [];
   const namesIn = (wrapper: VueWrapper, title: string) =>
     buttonsIn(wrapper, title).map((button) => button.attributes("aria-label"));
 
@@ -487,7 +487,7 @@ describe("Department buttons on the Production overview", () => {
 
     const names = wrapper
       .findAll("[data-test=item]")
-      .flatMap((row) => row.findAll("td.moves .icon-button"))
+      .flatMap((row) => row.findAll("td.icon-column .icon-button"))
       .map((button) => button.attributes("aria-label"));
     expect(names).toHaveLength(16 * 5);
     expect(names.every((name) => name?.startsWith("Edit "))).toBe(true);

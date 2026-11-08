@@ -366,7 +366,7 @@ describe("Adding roles to an item", () => {
   const rolesShown = (wrapper: Awaited<ReturnType<typeof openAppAt>>["wrapper"]) =>
     wrapper
       .findAll("[data-test=role]")
-      .map((role) => `${role.get(".role-name").text()} ${role.get("[data-test=size]").text()}`);
+      .map((role) => `${role.get(".card-name").text()} ${role.get("[data-test=size]").text()}`);
 
   async function addRole(
     wrapper: Awaited<ReturnType<typeof openAppAt>>["wrapper"],
@@ -523,7 +523,7 @@ describe("Role names within an item", () => {
   };
 
   const roleNames = (wrapper: Page) =>
-    wrapper.findAll("[data-test=role] .role-name").map((name) => name.text());
+    wrapper.findAll("[data-test=role] .card-name").map((name) => name.text());
 
   async function addRole(wrapper: Page, name: string, size = "cameo") {
     await wrapper.get("[data-test=add-role]").trigger("click");
@@ -599,15 +599,15 @@ describe("Role cards", () => {
   });
 
   const cardNames = (wrapper: Awaited<ReturnType<typeof openAppAt>>["wrapper"]) =>
-    wrapper.findAll("[data-test=role] .role-name").map((name) => name.text());
+    wrapper.findAll("[data-test=role] .card-name").map((name) => name.text());
 
   it("shows each role as a card with a pill for its size", async () => {
     savedRunningOrderIs(show, [roleWith(1, "Captain Hook", "lead")]);
     const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
 
     const card = wrapper.get("[data-test=role]");
-    expect(card.classes()).toContain("role-card");
-    expect(card.get(".role-name").text()).toBe("Captain Hook");
+    expect(card.classes()).toContain("card");
+    expect(card.get(".card-name").text()).toBe("Captain Hook");
     expect(card.get("[data-test=size]").text()).toBe("Lead");
     expect(card.get("[data-test=size]").classes()).toContain("pill");
   });
@@ -709,7 +709,7 @@ describe("Casting someone when adding a role", () => {
   const castOn = (wrapper: Page, roleName: string) =>
     wrapper
       .findAll("[data-test=role]")
-      .find((card) => card.get(".role-name").text() === roleName)
+      .find((card) => card.get(".card-name").text() === roleName)
       ?.find("[data-test=cast]")
       .text();
 
@@ -885,9 +885,9 @@ describe("Editing a role", () => {
   ];
 
   const card = (wrapper: Page, name: string) =>
-    wrapper.findAll("[data-test=role]").find((c) => c.get(".role-name").text() === name);
+    wrapper.findAll("[data-test=role]").find((c) => c.get(".card-name").text() === name);
   const cardNames = (wrapper: Page) =>
-    wrapper.findAll("[data-test=role] .role-name").map((name) => name.text());
+    wrapper.findAll("[data-test=role] .card-name").map((name) => name.text());
   const castOn = (wrapper: Page, name: string) =>
     card(wrapper, name)?.find("[data-test=cast]").text();
   const editForm = (wrapper: Page, name: string) => wrapper.get(`form[aria-label='Edit ${name}']`);
@@ -1052,7 +1052,7 @@ describe("Removing a role", () => {
   });
   const smee = () => ({ ...aRole("pirate-sketch", "Smee", "support"), id: 2 });
   const cardNames = (wrapper: Page) =>
-    wrapper.findAll("[data-test=role] .role-name").map((name) => name.text());
+    wrapper.findAll("[data-test=role] .card-name").map((name) => name.text());
 
   async function remove(wrapper: Page, name: string) {
     await wrapper.get(`button[aria-label='Remove ${name}']`).trigger("click");
@@ -1284,7 +1284,7 @@ describe("Role card buttons", () => {
     const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
 
     const first = wrapper.get("[data-test=role] > *");
-    expect(first.classes()).toContain("role-actions");
+    expect(first.classes()).toContain("card-icons");
     expect(first.find("button[aria-label='Edit Parrot']").exists()).toBe(true);
   });
 
@@ -1735,7 +1735,7 @@ describe("Add All Cast", () => {
   const castOn = (wrapper: Page, roleName: string) =>
     wrapper
       .findAll("[data-test=role]")
-      .find((card) => card.find(".role-name").text() === roleName)
+      .find((card) => card.find(".card-name").text() === roleName)
       ?.find("[data-test=cast]")
       .text();
 

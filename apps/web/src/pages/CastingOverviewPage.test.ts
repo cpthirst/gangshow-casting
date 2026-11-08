@@ -120,8 +120,8 @@ describe("Casting overview page", () => {
     const wrapper = await openOverview();
 
     const card = wrapper.get("[data-test=person]");
-    expect(card.classes()).toContain("role-card");
-    expect(card.get(".person-name").classes()).toContain("role-name");
+    expect(card.classes()).toContain("card");
+    expect(card.get(".person-name").classes()).toContain("card-name");
   });
 
   it("presents each section as a list, so screen readers say how many", async () => {

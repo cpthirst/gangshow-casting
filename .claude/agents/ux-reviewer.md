@@ -35,7 +35,7 @@ Your findings are **advisory**. You never block. The main agent shows them to th
      - card, table and stacked-card patterns, and spacing;
      - nothing scrolls sideways on phones;
      - the page still works with more items or longer names.
-   - **Components and styles:** reuses shared classes (`.icon-button`, `.row-icons`, `.role-card`, pills, headings, `.cast-actions`, breadcrumbs) rather than near-copies; colours and sizes come from the existing tokens. Some shared classes still carry the name of the page that first used them; reuse them anyway, and leave naming to `code-reviewer`.
+   - **Components and styles:** reuses shared classes (`.icon-button`, `.row-icons`, `.card`, `.button-row`, `.form`, `.data-table`, `.items-table`, `.icon-column`, pills, headings, breadcrumbs) rather than near-copies; colours and sizes come from the existing tokens. Leave naming to `code-reviewer`.
    - **The layout explains itself:** the volunteer's data, not explanations, fills a phone screen. Flag a new tagline, hint line, secondary label, disabled control with a line saying why, or always-on limit, and suggest the layout change that makes it unnecessary: hide a control that can never work for this person, show a limit only near it, and leave what the page is for, and who can change it, to Help.
    - **Interaction and flow:** check these against the rest of the app:
      - how many steps a task takes, and whether it's quick to do mid-rehearsal;
