@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.52.0](https://github.com/cpthirst/gangshow-casting/compare/v1.51.0...v1.52.0) (2026-11-09)
+
+
+### Features
+
+* more than one production: start, open, look back, delete (simplify.E5) ([#209](https://github.com/cpthirst/gangshow-casting/issues/209)) ([2373bbd](https://github.com/cpthirst/gangshow-casting/commit/2373bbde54c5d683a01230150cd8e21aaeada083))
+
 ## [1.51.0](https://github.com/cpthirst/gangshow-casting/compare/v1.50.0...v1.51.0) (2026-11-08)
 
 
