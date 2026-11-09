@@ -1,4 +1,4 @@
-import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
+import { enableAutoUnmount, flushPromises } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Router } from "vue-router";
 import { openAppAt } from "@/app.fixture.ts";
@@ -11,7 +11,6 @@ import {
   useLocalSignIn,
 } from "@/services/sign-in.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
-import App from "./App.vue";
 
 function nextNavigation(router: Router) {
   return new Promise<void>((resolve) => {

@@ -166,6 +166,8 @@ describe("The item page frame", () => {
 
   it.each([
     ["scenery", [{ event: "scenery", productionId: "2027", itemId: "opening-number" }]],
+    ["sfx", [{ event: "sfx", productionId: "2027", itemId: "opening-number" }]],
+    ["wardrobe", [{ event: "wardrobe", productionId: "2027", itemId: "opening-number" }]],
     ["mic-plot", [{ event: "mic-plot", productionId: "2027", itemId: "opening-number" }]],
     ["casting", [{ event: "item", productionId: "2027", itemId: "opening-number" }]],
     ["props", [{ event: "props", productionId: "2027", itemId: "opening-number" }]],
