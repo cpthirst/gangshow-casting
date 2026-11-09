@@ -1,6 +1,5 @@
 import { mayDeleteProduction, NEWEST_PRODUCTION_REFUSAL } from "@app/shared";
-import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
-import type { ApiEvent } from "#/http/handler.ts";
+import type { Handler } from "#/http/handler.ts";
 import { jsonResponse, messageResponse } from "#/http/json.ts";
 import { productionIdOf } from "#/http/params.ts";
 import type { ItemFileStores } from "#/production/item-files/item-file-store.ts";
@@ -12,8 +11,8 @@ import type { ProductionListStore } from "./production-list-store.ts";
 export function createDeleteProduction(
   { productions }: { productions: ProductionListStore },
   files: ItemFileStores,
-) {
-  return async (event: ApiEvent): Promise<APIGatewayProxyStructuredResultV2> => {
+): Handler {
+  return async (event) => {
     const year = productionIdOf(event);
     const { productions: open, deleting = [] } = await productions.list();
     if (year === undefined || ![...open, ...deleting].includes(year)) return { statusCode: 404 };

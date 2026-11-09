@@ -1,8 +1,6 @@
 import { type RunningOrder, SaveRunningOrderRequest } from "@app/shared";
-import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
-import type { ApiEvent } from "#/http/handler.ts";
+import { type Handler, inProduction } from "#/http/handler.ts";
 import { jsonResponse, parseJson } from "#/http/json.ts";
-import { productionIdOf } from "#/http/params.ts";
 import { applyChange } from "./running-order-changes.ts";
 import type { RunningOrderStore } from "./running-order-store.ts";
 
@@ -19,10 +17,8 @@ export function createSaveRunningOrder(
   store: RunningOrderStore,
   cleanup: ItemCleanup,
   now = () => new Date(),
-) {
-  return async (event: ApiEvent): Promise<APIGatewayProxyStructuredResultV2> => {
-    const productionId = productionIdOf(event);
-    if (productionId === undefined) return { statusCode: 404 };
+): Handler {
+  return inProduction(async (productionId, event) => {
     const request = SaveRunningOrderRequest.safeParse(parseJson(event.body));
     if (!request.success) return { statusCode: 400 };
 
@@ -41,7 +37,7 @@ export function createSaveRunningOrder(
     }
     await removeWhatDroppedItemsKept(store, cleanup, productionId, next);
     return jsonResponse(201, next);
-  };
+  });
 }
 
 /**

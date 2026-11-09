@@ -1,7 +1,6 @@
 import { SetEnabled } from "@app/shared";
-import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import { callerIs } from "#/http/caller.ts";
-import type { ApiEvent } from "#/http/handler.ts";
+import type { Handler } from "#/http/handler.ts";
 import { jsonResponse, messageResponse, parseJson } from "#/http/json.ts";
 import { findAccount } from "./find-account.ts";
 import type { UserDirectory } from "./user-directory.ts";
@@ -11,8 +10,8 @@ import type { UserDirectory } from "./user-directory.ts";
  * Disabling also signs it out everywhere, ending its access within 5 minutes (team-roles FR13), and
  * an admin can't disable themselves, so there's always an enabled admin (FR13).
  */
-export function createSetEnabled(directory: UserDirectory) {
-  return async (event: ApiEvent): Promise<APIGatewayProxyStructuredResultV2> => {
+export function createSetEnabled(directory: UserDirectory): Handler {
+  return async (event) => {
     const request = SetEnabled.safeParse(parseJson(event.body));
     if (!request.success) return { statusCode: 400 };
     const account = await findAccount(directory, event);
