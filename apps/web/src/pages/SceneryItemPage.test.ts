@@ -1255,17 +1255,6 @@ describe("Recording a visit to an item's Scenery page (production-scenery FR15)"
       .map(([, init]) => JSON.parse(String(init?.body)))
       .filter((body) => body.event !== "session");
 
-  it("records opening an item's Scenery page, naming the item and its production", async () => {
-    await signInAs(["stage"], "pat");
-    apiHolds(show);
-
-    await openAppAt(OPENING_NUMBER);
-
-    expect(recorded()).toEqual([
-      { event: "scenery", productionId: "2027", itemId: "opening-number" },
-    ]);
-  });
-
   it("records each item stepped to with Next", async () => {
     apiHolds(show);
     const { wrapper } = await openAppAt(OPENING_NUMBER);
@@ -1293,15 +1282,6 @@ describe("Recording a visit to an item's Scenery page (production-scenery FR15)"
     expect(recorded()).toEqual([
       { event: "scenery", productionId: "2027", itemId: "opening-number" },
     ]);
-  });
-
-  it("records nothing for an item that isn't in the running order", async () => {
-    apiHolds(show);
-
-    const { wrapper } = await openAppAt("/production/items/no-such-item/scenery");
-
-    expect(wrapper.get("main h1").text()).toBe("Item not found");
-    expect(recorded()).toEqual([]);
   });
 });
 

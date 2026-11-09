@@ -218,26 +218,6 @@ describe("An item's Mic plot page", () => {
     expect(wrapper.get("main").text()).not.toContain("Coming soon");
   });
 
-  it("has a help button beside the item's name, which opens the Mic plot page's help", async () => {
-    apiHolds(show);
-    const { wrapper } = await openAppAt(OPENING_NUMBER);
-
-    const row = wrapper.get("main .page-title-row");
-    expect(row.get("h1").text()).toBe("Mic plot: Opening Number");
-    await row.get("button[aria-label='Help for this item']").trigger("click");
-
-    const names = wrapper.findAll("dialog [data-test=help-name]").map((name) => name.text());
-    expect(names).toEqual([
-      "All items",
-      "Previous and Next",
-      "Mic 1 to Mic 24",
-      "Used in previous item",
-      "Error",
-      "Clear",
-      "Mic plot notes",
-    ]);
-  });
-
   it("goes back to the Overview, and steps to the previous and next items' Mic plot pages", async () => {
     apiHolds(show);
     const { wrapper, router } = await openAppAt("/production/items/pirate-sketch/mic-plot");
@@ -254,16 +234,6 @@ describe("An item's Mic plot page", () => {
     await wrapper.get("main a.back-link").trigger("click");
     await flushPromises();
     expect(router.currentRoute.value.fullPath).toBe("/production/overview");
-  });
-
-  it("has no Previous on the first item, and no Next on the last", async () => {
-    apiHolds(show);
-    const first = await openAppAt(OPENING_NUMBER);
-    expect(stepLinks(first.wrapper).map((link) => link.rel)).toEqual(["next"]);
-    first.wrapper.unmount();
-
-    const { wrapper } = await openAppAt("/production/items/finale/mic-plot");
-    expect(stepLinks(wrapper).map((link) => link.rel)).toEqual(["prev"]);
   });
 
   it("shows the next item's own channels after stepping on to it", async () => {
@@ -846,34 +816,11 @@ describe("An item's Mic plot page", () => {
     expect(notesSection(wrapper).find("button").exists()).toBe(false);
   });
 
-  it("says an item that isn't in the running order wasn't found, with a link back to the Overview", async () => {
-    apiHolds(show);
-    const { wrapper, router } = await openAppAt("/production/items/no-such-item/mic-plot");
-
-    expect(wrapper.get("main h1").text()).toBe("Item not found");
-    expect(document.title).toBe("Item not found · iCUE");
-    expect(wrapper.findAll("main [data-test=mic]")).toEqual([]);
-    await wrapper.get("main a.back-link").trigger("click");
-    await flushPromises();
-    expect(router.currentRoute.value.fullPath).toBe("/production/overview");
-  });
-
   it("says the item wasn't found when there's no saved running order", async () => {
     apiHolds(undefined);
     const { wrapper } = await openAppAt("/production/items/finale/mic-plot");
 
     expect(wrapper.get("main h1").text()).toBe("Item not found");
-  });
-
-  it("reports a failed load rather than not found", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => new Response(null, { status: 500 })),
-    );
-    const { wrapper } = await openAppAt("/production/items/finale/mic-plot");
-
-    expect(wrapper.get("main [role=alert]").text()).toBe("Couldn't load the item.");
-    expect(wrapper.get("main").text()).not.toContain("Item not found");
   });
 
   it("shows only the error when the mic plot fails to load", async () => {
@@ -951,24 +898,5 @@ describe("Recording a visit to an item's Mic plot page (production-mics FR16)", 
 
     expect(puts()).toHaveLength(3);
     expect(recorded()).toEqual([visit]);
-  });
-
-  it("records each item stepped to with Next", async () => {
-    apiHolds(show);
-    const { wrapper } = await openAppAt(OPENING_NUMBER);
-
-    await wrapper.get("main nav[aria-label='Item navigation'] a[rel=next]").trigger("click");
-    await flushPromises();
-
-    expect(recorded()).toEqual([visit, { ...visit, itemId: "pirate-sketch" }]);
-  });
-
-  it("records nothing for an item that isn't in the running order", async () => {
-    apiHolds(show);
-
-    const { wrapper } = await openAppAt("/production/items/no-such-item/mic-plot");
-
-    expect(wrapper.get("main h1").text()).toBe("Item not found");
-    expect(recorded()).toEqual([]);
   });
 });

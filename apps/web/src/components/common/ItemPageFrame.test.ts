@@ -73,6 +73,9 @@ describe("The item page frame", () => {
     ["scenery", "Scenery"],
     ["sfx", "SFX"],
     ["wardrobe", "Wardrobe"],
+    ["casting", "Casting"],
+    ["props", "Props"],
+    ["mic-plot", "Mic plot"],
   ] as const)(
     "titles the %s page with the department and item, with its help and position",
     async (department, name) => {
@@ -145,6 +148,7 @@ describe("The item page frame", () => {
       "It isn't in the latest saved running order. Choose an item from All items.",
     );
     expect(wrapper.find("[data-test=page]").exists()).toBe(false);
+    expect(wrapper.find("button[aria-label='Help for this item']").exists()).toBe(false);
     expect(wrapper.get("a.back-link").attributes("href")).toBe("/production/overview");
   });
 

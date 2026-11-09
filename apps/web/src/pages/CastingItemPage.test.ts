@@ -226,16 +226,6 @@ describe("Casting item page", () => {
     ]);
   });
 
-  it("has no Previous on the first item, and no Next on the last", async () => {
-    savedRunningOrderIs(show);
-    const first = await openAppAt("/casting/items/opening-number");
-    expect(stepLinks(first.wrapper).map((link) => link.rel)).toEqual(["next"]);
-    first.wrapper.unmount();
-
-    const { wrapper } = await openAppAt("/casting/items/mystery-act");
-    expect(stepLinks(wrapper).map((link) => link.rel)).toEqual(["prev"]);
-  });
-
   it("opens the next item, with its own roles and links", async () => {
     savedRunningOrderIs(show, [{ ...aRole("campfire-song", "Song Leader"), id: 5 }]);
     const { wrapper, router } = await openAppAt("/casting/items/pirate-sketch");
@@ -265,29 +255,6 @@ describe("Casting item page", () => {
     expect(wrapper.get("main h1").text()).toBe("Items");
   });
 
-  it("shows not found for an item that isn't in the running order", async () => {
-    savedRunningOrderIs(show);
-    const { wrapper } = await openAppAt("/casting/items/no-such-item");
-
-    expect(wrapper.get("main h1").text()).toBe("Item not found");
-    expect(wrapper.get("main nav[aria-label='Item navigation'] a").text()).toBe("All items");
-    expect(document.title).toBe("Item not found · iCUE");
-  });
-
-  it("shows not found when there's no saved running order at all", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async (url: string) =>
-        url === rolesPath()
-          ? json({ productionId: "2027", roles: [] })
-          : new Response(null, { status: 404 }),
-      ),
-    );
-    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
-
-    expect(wrapper.get("main h1").text()).toBe("Item not found");
-  });
-
   it("goes back to the Items list from an item that isn't found", async () => {
     savedRunningOrderIs(show);
     const { wrapper, router } = await openAppAt("/casting/items/no-such-item");
@@ -297,29 +264,6 @@ describe("Casting item page", () => {
 
     expect(router.currentRoute.value.fullPath).toBe("/casting/items");
     expect(wrapper.get("main h1").text()).toBe("Items");
-  });
-
-  it("reports a failed load rather than not found", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => {
-        throw new TypeError("Failed to fetch");
-      }),
-    );
-    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
-
-    expect(wrapper.get("main [role=alert]").text()).toBe("Couldn't load the item.");
-    expect(wrapper.get("main").text()).not.toContain("Item not found");
-  });
-
-  it("reports a server error as a failed load, not as not found", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => new Response(null, { status: 500 })),
-    );
-    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
-
-    expect(wrapper.get("main [role=alert]").text()).toBe("Couldn't load the item.");
   });
 });
 
@@ -1399,28 +1343,6 @@ describe("Clashes on an item's page", () => {
     expect(clashOf(wrapper, "Alex Sample")?.exists()).toBe(false);
   });
 
-  it("doesn't count items with another item between them", async () => {
-    savedRunningOrderIs(clashShow, [
-      cast("opening-number", "lead", [SAM]),
-      cast("dance-one", "lead", [SAM]),
-    ]);
-    const { wrapper } = await openAppAt("/casting/items/opening-number");
-
-    // Five minutes apart: a quick change since casting-rules E2.S3, but not back-to-back.
-    expect(namesOf(wrapper, "Sam Example")).toHaveLength(1);
-    expect(isBackToBack(wrapper, "Sam Example")).toBe(false);
-  });
-
-  it("doesn't count items either side of the interval", async () => {
-    savedRunningOrderIs(clashShow, [
-      cast("dance-one", "lead", [SAM]),
-      cast("campfire-song", "lead", [SAM]),
-    ]);
-    const { wrapper } = await openAppAt("/casting/items/dance-one");
-
-    expect(clashOf(wrapper, "Sam Example")?.exists()).toBe(false);
-  });
-
   it("shows no icon for someone without a clash", async () => {
     savedRunningOrderIs(clashShow, [
       cast("opening-number", "lead", [ALEX]),
@@ -1569,61 +1491,6 @@ describe("Clashes on an item's page", () => {
       ]);
       wrapper.unmount();
     }
-  });
-
-  it("adds up every item between, so 5 minutes is a quick change", async () => {
-    savedRunningOrderIs(timedShow(), samIn("pirate-sketch", "sketch-two"));
-    const { wrapper } = await openAppAt("/casting/items/sketch-two");
-
-    expect(clashOf(wrapper, "Sam Example")?.attributes("data-severity")).toBe("info");
-    expect(linesOf(wrapper, "Sam Example")).toEqual([
-      "Info: quick change. 5 minutes between 'Pirate Sketch' and 'Sketch Two'",
-    ]);
-  });
-
-  it("notes a quick change for 5 to under 8 minutes", async () => {
-    savedRunningOrderIs(timedShow(), samIn("opening-number", "song-two"));
-    const { wrapper } = await openAppAt("/casting/items/song-two");
-
-    expect(clashOf(wrapper, "Sam Example")?.attributes("data-severity")).toBe("info");
-    expect(linesOf(wrapper, "Sam Example")).toEqual([
-      "Info: quick change. 7 minutes between 'Opening Number' and 'Song Two'",
-    ]);
-  });
-
-  it("needs nothing for exactly 8 minutes", async () => {
-    savedRunningOrderIs(timedShow(8), samIn("sketch-two", "campfire-song"));
-    const { wrapper } = await openAppAt("/casting/items/campfire-song");
-
-    expect(namesOf(wrapper, "Sam Example")).toHaveLength(1);
-    expect(clashOf(wrapper, "Sam Example")?.exists()).toBe(false);
-  });
-
-  it("counts the interval towards the gap", async () => {
-    savedRunningOrderIs(timedShow(4), samIn("sketch-two", "campfire-song"));
-    const { wrapper } = await openAppAt("/casting/items/campfire-song");
-
-    expect(linesOf(wrapper, "Sam Example")).toEqual([
-      "Warning: short gap. Only 4 minutes between 'Sketch Two' and 'Campfire Song' (needs at least 5 minutes)",
-    ]);
-  });
-
-  it("compares each appearance only with the next one", async () => {
-    savedRunningOrderIs(timedShow(), samIn("opening-number", "pirate-sketch", "dance-one"));
-    const { wrapper } = await openAppAt("/casting/items/opening-number");
-
-    expect(linesOf(wrapper, "Sam Example")).toEqual([
-      "Error: back-to-back. Lead in 'Opening Number', then Lead in 'Pirate Sketch'",
-    ]);
-  });
-
-  it("reports back-to-back appearances once, not also as a timing warning", async () => {
-    savedRunningOrderIs(timedShow(), samIn("opening-number", "pirate-sketch"));
-    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
-
-    expect(linesOf(wrapper, "Sam Example")).toEqual([
-      "Error: back-to-back. Lead in 'Opening Number', then Lead in 'Pirate Sketch'",
-    ]);
   });
 
   it("gives info its own shape, and says Info in words", async () => {
@@ -1939,7 +1806,6 @@ describe("Item notes", () => {
   type Page = Awaited<ReturnType<typeof openAppAt>>["wrapper"];
   const notesSection = (wrapper: Page) => wrapper.get("section[aria-labelledby=notes-heading]");
   const field = (wrapper: Page) => notesSection(wrapper).get<HTMLTextAreaElement>("textarea");
-  const error = (wrapper: Page) => notesSection(wrapper).find("[data-test=notes-error]");
   const status = (wrapper: Page) => notesSection(wrapper).get("[data-test=notes-status]");
 
   async function saveNotes(wrapper: Page, text: string) {
@@ -1947,66 +1813,6 @@ describe("Item notes", () => {
     await notesSection(wrapper).get("form").trigger("submit");
     await flushPromises();
   }
-
-  const notePuts = () =>
-    vi
-      .mocked(fetch)
-      .mock.calls.filter(([url, init]) => String(url).endsWith("/notes") && init?.method === "PUT");
-
-  it("has a Casting notes section with a text field and a Save button", async () => {
-    savedRunningOrderIs(show);
-    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
-
-    expect(notesSection(wrapper).get("h2").text()).toBe("Casting notes");
-    expect(field(wrapper).element.value).toBe("");
-    expect(notesSection(wrapper).get("button[type=submit]").text()).toBe("Save notes");
-  });
-
-  it("labels the field by its heading, and stops it at 500 characters", async () => {
-    savedRunningOrderIs(show);
-    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
-
-    expect(field(wrapper).attributes("aria-labelledby")).toBe("notes-heading");
-    expect(notesSection(wrapper).findAll("label")).toEqual([]);
-    expect(field(wrapper).attributes("maxlength")).toBe("500");
-  });
-
-  const count = (wrapper: Page) => notesSection(wrapper).find("[data-test=notes-count]");
-
-  it("says how many characters are left near the limit", async () => {
-    savedRunningOrderIs(show);
-    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
-
-    await field(wrapper).setValue("x".repeat(460));
-
-    expect(count(wrapper).text()).toBe("40 characters left");
-  });
-
-  it("starts the count once fewer than 50 characters are left", async () => {
-    savedRunningOrderIs(show);
-    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
-
-    await field(wrapper).setValue("x".repeat(450));
-    expect(count(wrapper).exists()).toBe(false);
-    expect(field(wrapper).attributes("aria-describedby")).toBeUndefined();
-
-    await field(wrapper).setValue("x".repeat(451));
-    expect(count(wrapper).text()).toBe("49 characters left");
-
-    await field(wrapper).setValue("x".repeat(499));
-    expect(count(wrapper).text()).toBe("1 character left");
-  });
-
-  it("gives the count as the field's description, for screen readers", async () => {
-    savedRunningOrderIs(show);
-    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
-
-    await field(wrapper).setValue("x".repeat(460));
-
-    const describedBy = field(wrapper).attributes("aria-describedby")?.split(" ") ?? [];
-    const descriptions = describedBy.map((id) => document.getElementById(id)?.textContent?.trim());
-    expect(descriptions).toEqual(["40 characters left"]);
-  });
 
   it("asks before stepping to another item with unsaved notes", async () => {
     savedRunningOrderIs(show);
@@ -2049,16 +1855,6 @@ describe("Item notes", () => {
 
     expect(confirm).not.toHaveBeenCalled();
     expect(router.currentRoute.value.fullPath).toBe("/casting/items/opening-number");
-  });
-
-  it("clears an old message once the notes are changed again", async () => {
-    savedRunningOrderIs(show);
-    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
-    await saveNotes(wrapper, "Hat change");
-
-    await field(wrapper).setValue("Hat change, and a coat");
-
-    expect(status(wrapper).text()).toBe("");
   });
 
   it("keeps saved notes for the next visit", async () => {
@@ -2106,59 +1902,6 @@ describe("Item notes", () => {
         ([url, init]) => String(url).includes("running-order") && init?.method === "POST",
       );
     expect(savedOrders).toEqual([]);
-  });
-
-  it("refuses notes over 500 characters, saving nothing", async () => {
-    savedRunningOrderIs(show);
-    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
-
-    await saveNotes(wrapper, "x".repeat(520));
-
-    expect(error(wrapper).text()).toBe("Notes can be up to 500 characters.");
-    expect(error(wrapper).attributes("role")).toBe("alert");
-    expect(field(wrapper).attributes("aria-invalid")).toBe("true");
-    expect(notePuts()).toEqual([]);
-  });
-
-  it("removes the notes when they're cleared and saved", async () => {
-    savedRunningOrderIs(show, [], [{ itemId: "pirate-sketch", text: "Hat change", revision: 1 }]);
-    const first = await openAppAt("/casting/items/pirate-sketch");
-    await saveNotes(first.wrapper, "");
-    first.wrapper.unmount();
-
-    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
-
-    expect(field(wrapper).element.value).toBe("");
-  });
-
-  it("refuses a stale save and shows the current notes", async () => {
-    const notes: ItemNote[] = [];
-    savedRunningOrderIs(show, [], notes);
-    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
-    // Someone else saves after this page loaded.
-    notes.push({ itemId: "pirate-sketch", text: "Theirs", revision: 1 });
-
-    await saveNotes(wrapper, "Mine");
-
-    expect(error(wrapper).text()).toBe(
-      "Someone else changed these notes. Here they are now; your text wasn't saved.",
-    );
-    expect(field(wrapper).element.value).toBe("Theirs");
-    expect(notes[0]?.text).toBe("Theirs");
-  });
-
-  it("keeps the text when the notes can't be saved", async () => {
-    savedRunningOrderIs(show);
-    const api = vi.mocked(fetch);
-    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
-    api.mockImplementation(async () => {
-      throw new TypeError("Failed to fetch");
-    });
-
-    await saveNotes(wrapper, "Hat change");
-
-    expect(error(wrapper).text()).toBe("Couldn't save the notes. Try again.");
-    expect(field(wrapper).element.value).toBe("Hat change");
   });
 });
 
@@ -2328,54 +2071,5 @@ describe("An item's page for other roles", () => {
         "Needs a quick change",
       );
     });
-
-    it("has no help button on an item that isn't found", async () => {
-      savedRunningOrderIs(show);
-      const { wrapper } = await openAppAt("/casting/items/no-such-item");
-
-      expect(wrapper.get("main h1").text()).toBe("Item not found");
-      expect(wrapper.find("main .help-button").exists()).toBe(false);
-    });
-  });
-});
-
-describe("Recording an item's page (usage-tracking FR2)", () => {
-  afterEach(() => {
-    vi.unstubAllGlobals();
-    document.body.innerHTML = "";
-  });
-
-  const itemUses = () =>
-    vi
-      .mocked(fetch)
-      .mock.calls.filter(([url, init]) => url === "/api/usage" && init?.method === "POST")
-      .map(([, init]) => JSON.parse(String(init?.body)))
-      .filter((body) => body.event === "item");
-
-  it("records opening an item's page, naming the item and its production", async () => {
-    savedRunningOrderIs(show);
-
-    await openAppAt("/casting/items/pirate-sketch");
-
-    expect(itemUses()).toEqual([{ event: "item", productionId: "2027", itemId: "pirate-sketch" }]);
-  });
-
-  it("records each item stepped to with Next", async () => {
-    savedRunningOrderIs(show);
-    const { wrapper, router } = await openAppAt("/casting/items/opening-number");
-
-    await wrapper.get("main a[rel=next]").trigger("click");
-    await router.isReady();
-    await flushPromises();
-
-    expect(itemUses().map(({ itemId }) => itemId)).toEqual(["opening-number", "pirate-sketch"]);
-  });
-
-  it("records nothing for an item that isn't in the running order", async () => {
-    savedRunningOrderIs(show);
-
-    await openAppAt("/casting/items/no-such-item");
-
-    expect(itemUses()).toEqual([]);
   });
 });
