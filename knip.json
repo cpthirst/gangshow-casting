@@ -1,0 +1,25 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "workspaces": {
+    ".": {
+      "entry": [".claude/hooks/*.ts"],
+      "project": [".claude/hooks/*.ts"]
+    },
+    "apps/web": {
+      "entry": ["e2e/**/*.ts", "src/**/*.fixture.ts"],
+      "project": ["src/**/*.{ts,vue}"]
+    },
+    "apps/api": {
+      "entry": ["src/**/*.fixture.ts", "src/**/*.contract.ts", "src/*.ts", "src/cli/*.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "infra": {
+      "entry": ["bin/*.ts"],
+      "project": ["{bin,lib}/**/*.ts"],
+      "ignoreDependencies": ["esbuild"]
+    },
+    "packages/shared": {
+      "project": ["src/**/*.ts"]
+    }
+  }
+}

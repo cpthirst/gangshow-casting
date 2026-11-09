@@ -103,7 +103,7 @@ The API contract is defined once, as zod schemas in `packages/shared`, and both 
 pnpm install   # Node 26, pnpm 12 (also installs the git hooks)
 pnpm demo      # iCUE on a made-up demo show (:5190), fresh each start: needs no AWS
 pnpm dev       # web on :5173 + API on :3000 (Vite proxies /api), on the real remote table: needs your AWS profile
-pnpm check     # lint + typecheck + tests + cdk synth: the definition of "done"
+pnpm check     # lint + dead code + copies + typecheck + tests + cdk synth: the definition of "done"
 ```
 
 `pnpm dev` keeps scenery, SFX and Wardrobe files in the real bucket, as it keeps the data in the real table. `pnpm demo`, and any run without `FILES_BUCKET`, keeps them in `apps/api/data/files`, which the local API serves at `/api/local-files/`, and takes uploads at, in place of the bucket's links and upload forms (ADR 0030, ADR 0032).
@@ -161,7 +161,7 @@ CI runs both of these as separate jobs.
 ├── .claude/
 │   ├── settings.json        Permissions (allow / ask / deny) + hook registration
 │   ├── hooks/               guard, post-edit and stop-gate hooks (TypeScript; logic unit-tested)
-│   ├── skills/              Delivery workflows: write-prd … open-pr, adr, batch-stories, consult
+│   ├── skills/              Delivery workflows: write-prd … open-pr, adr, batch-stories, consult, dry-sweep
 │   └── agents/              Reviewer subagents (code, test, security, infra, UX) + screenshot-checker
 ├── .github/
 │   ├── workflows/           ci.yml, pr-title.yml, release-please.yml
@@ -225,6 +225,7 @@ write-prd ──► story-map ──► write-story ──► implement-story �
 | `adr` | `docs/adr/NNNN-*.md` | Proposed → Accepted by the user |
 | `batch-stories` | One feature's stories on one branch, each built by a fresh subagent so the session's context stays small, with a single PR at the end | Only the user can switch it on; their yes covers the feature's pushes and its PR |
 | `consult` | A read-only consultant's 3–4 recommended epics for simplifying the app's UX, DX and AX, respecting the ADRs, then the user's picks as questions for the next PRD, and the lines the reviewers' briefs lacked | Only the user can start it; the user picks the epics before `write-prd`, and approves any brief changes |
+| `dry-sweep` | A read-only audit of duplication and bloat, comparing siblings side by side, that reports for the user to pick from (ADR 0038). User-only |
 
 ### 3. Reviewer subagents (`.claude/agents/`)
 Subagents run in their own context and report back. Fresh context matters: the agent that wrote the code is a poor judge of it. The reviewers have **no Edit or Write tools**, so they can report problems but can't "fix" them by weakening a test, and a harness test enforces that. They run on smaller models to keep cost down.
@@ -364,6 +365,7 @@ These cover humans and agents alike, and `pnpm install` installs them.
 | [0035](docs/adr/0035-each-department-states-its-own-refusal.md) | Each department states its permissions and refusal line once; a change route names its department, and a refusal says which department, so the app recognises it without matching wording |
 | [0036](docs/adr/0036-list-of-productions-as-rows-in-the-data-table.md) | The list of productions is one row per production in the existing table; the id is the year, the newest is the highest year, and 2027 is written by the first read that finds the list empty |
 | [0037](docs/adr/0037-delete-a-past-production-marked-then-repeatable.md) | A past production is deleted in the request: marked first so it can't look complete, then its files, its partition and last its list row; any stop can be repeated, and the confirmation names the table's 7-day backup window |
+| [0038](docs/adr/0038-dead-code-copies-and-test-size-in-the-gate.md) | The gate fails on dead exports, app code over 1% copied, and test files over a size budget |
 
 ---
 
