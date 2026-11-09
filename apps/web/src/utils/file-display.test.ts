@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { sceneryFileLinkPath, sceneryFilesPath } from "@/services/production.ts";
+import { itemFileLinkPath, itemFilesPath } from "@/services/production.ts";
+import { fileIconOf, fileLabel, fileSize, sortFiles } from "./file-display.ts";
 import { icons } from "./icons.ts";
-import { fileIconOf, fileLabel, fileSize, sortFiles } from "./scenery.ts";
 
 describe("sceneryFilesPath", () => {
   it("is the item's files in the production", () => {
-    expect(sceneryFilesPath("opening-number")).toBe(
+    expect(itemFilesPath("scenery", "opening-number")).toBe(
       "/api/productions/2027/items/opening-number/scenery-files",
     );
   });
@@ -54,7 +54,7 @@ describe("fileSize", () => {
 
 describe("sceneryFileLinkPath", () => {
   it("asks for a link to one of the item's files, by its name", () => {
-    expect(sceneryFileLinkPath("opening-number", "set plan & build #2.pdf")).toBe(
+    expect(itemFileLinkPath("scenery", "opening-number", "set plan & build #2.pdf")).toBe(
       "/api/productions/2027/items/opening-number/scenery-file-link?name=set+plan+%26+build+%232.pdf",
     );
   });

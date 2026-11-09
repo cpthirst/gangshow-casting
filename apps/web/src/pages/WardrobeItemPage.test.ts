@@ -1,9 +1,9 @@
 import {
+  type ItemFile,
+  ItemFileUploadRequest,
   type ItemNote,
   type RunningOrder,
   SaveItemNoteRequest,
-  type SceneryFile,
-  SceneryUploadRequest,
 } from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -39,7 +39,7 @@ const STORAGE = "https://files.example/";
 
 type Department = "scenery" | "sfx" | "wardrobe";
 /** Each department's files, by item id, as file storage holds them now. */
-type Held = Partial<Record<Department, Record<string, SceneryFile[]>>>;
+type Held = Partial<Record<Department, Record<string, ItemFile[]>>>;
 
 /** A stand-in API holding the running order, each department's files, changed by uploads
  *  and deletes, and any Wardrobe notes. */
@@ -81,7 +81,7 @@ function apiHolds(order: RunningOrder, held: Held = {}, notes: ItemNote[] = []) 
         return json(saved);
       }
       if (what === "uploads") {
-        const request = SceneryUploadRequest.parse(JSON.parse(String(init?.body)));
+        const request = ItemFileUploadRequest.parse(JSON.parse(String(init?.body)));
         if (!request.replace && files.some((file) => file.name === request.name)) {
           return new Response(null, { status: 409 });
         }

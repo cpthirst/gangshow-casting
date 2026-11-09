@@ -1,10 +1,10 @@
 import {
+  type ItemFile,
+  ItemFileUploadRequest,
   type ItemNote,
-  MAX_SCENERY_FILE_BYTES,
+  MAX_ITEM_FILE_BYTES,
   type RunningOrder,
   SaveItemNoteRequest,
-  type SceneryFile,
-  SceneryUploadRequest,
 } from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -14,17 +14,17 @@ import { createAppRouter } from "@/router/index.ts";
 import { downloadFrom, openFileTab } from "@/services/file-link.ts";
 import { StandInXhr } from "@/services/file-upload.fixture.ts";
 import {
+  departmentNotesPath,
+  itemFileLinkPath,
+  itemFilePath,
+  itemFilesPath,
+  itemUploadsPath,
   runningOrderPath,
-  sceneryFileLinkPath,
-  sceneryFilePath,
-  sceneryFilesPath,
-  sceneryNotesPath,
-  sceneryUploadsPath,
 } from "@/services/production.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
+import { replaceQuestion } from "@/utils/file-display.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
-import { replaceQuestion } from "@/utils/scenery.ts";
 
 // The browser's own new tabs and downloads, which happy-dom can't follow.
 vi.mock("@/services/file-link.ts", () => ({ openFileTab: vi.fn(), downloadFrom: vi.fn() }));
@@ -54,7 +54,7 @@ const STORAGE = "https://files.example/";
  *  scenery notes. */
 function apiHolds(
   order: RunningOrder | undefined,
-  files: Record<string, SceneryFile[]> = {},
+  files: Record<string, ItemFile[]> = {},
   notes: ItemNote[] = [],
 ) {
   // The item's files, held from now on, as an upload's first file starts them.
@@ -70,7 +70,7 @@ function apiHolds(
       if (url === runningOrderPath()) {
         return order ? json(order) : new Response(null, { status: 404 });
       }
-      if (url === sceneryNotesPath()) return json({ productionId: "2027", notes });
+      if (url === departmentNotesPath("scenery")) return json({ productionId: "2027", notes });
       if (init?.method === "PUT" && url.endsWith("/scenery-notes")) {
         const { text, revision } = SaveItemNoteRequest.parse(JSON.parse(String(init.body)));
         const itemId = url.split("/").at(-2) ?? "";
@@ -81,7 +81,7 @@ function apiHolds(
       // Hands back a form for file storage, naming the file and its size in its key's place.
       if (init?.method === "POST" && url.endsWith("/scenery-uploads")) {
         const itemId = url.split("/").at(-2) ?? "";
-        const { name, size, replace } = SceneryUploadRequest.parse(JSON.parse(String(init.body)));
+        const { name, size, replace } = ItemFileUploadRequest.parse(JSON.parse(String(init.body)));
         const itemFiles = filesOf(itemId);
         if (!replace && itemFiles.some((file) => file.name === name)) {
           return new Response(null, { status: 409 });
@@ -99,14 +99,16 @@ function apiHolds(
       }
       for (const [itemId, itemFiles] of Object.entries(files)) {
         if (init?.method === "DELETE") {
-          const at = itemFiles.findIndex(({ name }) => url === sceneryFilePath(itemId, name));
+          const at = itemFiles.findIndex(
+            ({ name }) => url === itemFilePath("scenery", itemId, name),
+          );
           if (at < 0) continue;
           itemFiles.splice(at, 1);
           return new Response(null, { status: 204 });
         }
-        if (url === sceneryFilesPath(itemId)) return json({ files: itemFiles });
+        if (url === itemFilesPath("scenery", itemId)) return json({ files: itemFiles });
         for (const { name } of itemFiles) {
-          if (url === sceneryFileLinkPath(itemId, name)) return json({ url: linkTo(name) });
+          if (url === itemFileLinkPath("scenery", itemId, name)) return json({ url: linkTo(name) });
         }
       }
       if (url.includes("/scenery-file-link?") || init?.method === "DELETE") {
@@ -381,7 +383,7 @@ describe("Opening and downloading a scenery file", () => {
 
     await choose(wrapper, "set-plan.pdf");
 
-    expect(linkRequests()).toEqual([sceneryFileLinkPath("opening-number", "set-plan.pdf")]);
+    expect(linkRequests()).toEqual([itemFileLinkPath("scenery", "opening-number", "set-plan.pdf")]);
     expect(tab.show).toHaveBeenCalledWith(linkTo("set-plan.pdf"));
     // Opened before the API answered, so a phone doesn't block it as a pop-up.
     const linkCall = vi.mocked(fetch).mock.calls.findIndex(([url]) => String(url).includes("link"));
@@ -420,7 +422,9 @@ describe("Opening and downloading a scenery file", () => {
 
     await choose(wrapper, "build-list-v2.xlsx");
 
-    expect(linkRequests()).toEqual([sceneryFileLinkPath("opening-number", "build-list-v2.xlsx")]);
+    expect(linkRequests()).toEqual([
+      itemFileLinkPath("scenery", "opening-number", "build-list-v2.xlsx"),
+    ]);
     expect(downloadFrom).toHaveBeenCalledWith(linkTo("build-list-v2.xlsx"));
   });
 
@@ -572,7 +576,7 @@ describe("Deleting a scenery file", () => {
     const confirm = await trash(wrapper, "set-plan.pdf", true);
 
     expect(confirm).toHaveBeenCalledWith(QUESTION);
-    expect(deletes()).toEqual([sceneryFilePath("opening-number", "set-plan.pdf")]);
+    expect(deletes()).toEqual([itemFilePath("scenery", "opening-number", "set-plan.pdf")]);
     expect(rows(wrapper).map((row) => row.name)).toEqual(["Backdrop.png", "build-list.xlsx"]);
     expect(held["opening-number"].map((file) => file.name)).not.toContain("set-plan.pdf");
   });
@@ -728,7 +732,7 @@ describe("Uploading a scenery file", () => {
     await choose(wrapper, aFile("Set Plan (Act 1).pdf", 2_400_000));
 
     const [[url, init] = []] = uploadRequests();
-    expect(url).toBe(sceneryUploadsPath("opening-number"));
+    expect(url).toBe(itemUploadsPath("scenery", "opening-number"));
     expect(JSON.parse(String(init?.body))).toEqual({
       name: "Set Plan (Act 1).pdf",
       size: 2_400_000,
@@ -799,7 +803,7 @@ describe("Uploading a scenery file", () => {
     apiHolds(show);
     const { wrapper } = await openAppAt(OPENING_NUMBER);
 
-    await choose(wrapper, aFile("rig.mov", MAX_SCENERY_FILE_BYTES));
+    await choose(wrapper, aFile("rig.mov", MAX_ITEM_FILE_BYTES));
 
     expect(rows(wrapper)).toEqual([{ name: "rig.mov", size: "100 MB" }]);
   });
@@ -1055,7 +1059,7 @@ describe("Replacing a scenery file", () => {
 
   it("asks to replace a file another browser added since the page loaded", async () => {
     await signInAs(["stage"], "pat");
-    const held: Record<string, SceneryFile[]> = { "opening-number": [] };
+    const held: Record<string, ItemFile[]> = { "opening-number": [] };
     apiHolds(show, held);
     const { wrapper } = await openAppAt(OPENING_NUMBER);
     held["opening-number"] = [{ name: "set-plan.pdf", size: 2_400_000 }];
@@ -1070,7 +1074,7 @@ describe("Replacing a scenery file", () => {
 
   it("lists another browser's file and keeps it when pat cancels the replace", async () => {
     await signInAs(["stage"], "pat");
-    const held: Record<string, SceneryFile[]> = { "opening-number": [] };
+    const held: Record<string, ItemFile[]> = { "opening-number": [] };
     apiHolds(show, held);
     const { wrapper } = await openAppAt(OPENING_NUMBER);
     held["opening-number"] = [{ name: "set-plan.pdf", size: 2_400_000 }];
@@ -1242,7 +1246,7 @@ describe("Dragging a file to upload", () => {
 
   it("uploads nothing dropped during an upload, saying to wait, and finishes the first", async () => {
     await signInAs(["stage"], "pat");
-    const held: Record<string, SceneryFile[]> = { "opening-number": [] };
+    const held: Record<string, ItemFile[]> = { "opening-number": [] };
     apiHolds(show, held);
     const { wrapper } = await openAppAt(OPENING_NUMBER);
     const release = holdStorage();

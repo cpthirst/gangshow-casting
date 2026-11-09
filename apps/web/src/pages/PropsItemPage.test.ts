@@ -1,13 +1,12 @@
 import {
-  AddPropRequest,
   type CastMember,
   type ItemNote,
   type Prop,
+  PropDetails,
   type Role,
   type RunningOrder,
   readOnlyRefusal,
   SaveItemNoteRequest,
-  UpdatePropRequest,
 } from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -85,7 +84,7 @@ function savedShowIs(
       if (url === castPath()) return json({ productionId: "2027", members: casting.cast });
       const addTo = /\/items\/([^/]+)\/props$/.exec(url)?.[1];
       if (addTo && init?.method === "POST") {
-        const details = AddPropRequest.parse(JSON.parse(String(init.body)));
+        const details = PropDetails.parse(JSON.parse(String(init.body)));
         const prop = { ...details, id: stored.length + 1, itemId: addTo };
         stored.push(prop);
         return json(prop, 201);
@@ -95,7 +94,7 @@ function savedShowIs(
       const prop = stored[at];
       if (propId && !prop) return new Response(null, { status: 404 });
       if (prop && init?.method === "PUT") {
-        stored[at] = { ...prop, ...UpdatePropRequest.parse(JSON.parse(String(init.body))) };
+        stored[at] = { ...prop, ...PropDetails.parse(JSON.parse(String(init.body))) };
         return json(stored[at]);
       }
       if (prop && init?.method === "DELETE") stored.splice(at, 1);

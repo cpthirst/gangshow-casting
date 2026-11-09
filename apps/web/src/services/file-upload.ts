@@ -1,4 +1,4 @@
-import { type FileDepartment, SceneryUpload } from "@app/shared";
+import { type FileDepartment, ItemFileUpload } from "@app/shared";
 import { itemUploadsPath } from "./production.ts";
 import { apiFetch } from "./sign-in.ts";
 
@@ -29,7 +29,7 @@ export async function uploadItemFile(
     });
     if (asked.status === 409) return "taken";
     if (!asked.ok) return "failed";
-    const { url, fields } = SceneryUpload.parse(await asked.json());
+    const { url, fields } = ItemFileUpload.parse(await asked.json());
     // File storage reads the fields first, and the file last.
     const form = new FormData();
     for (const [field, value] of Object.entries(fields)) form.append(field, value);

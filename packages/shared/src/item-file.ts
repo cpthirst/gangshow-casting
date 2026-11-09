@@ -17,33 +17,33 @@ export type FileDepartment = (typeof fileDepartments)[number];
  * `<production>/<item id>/scenery/` (ADR 0030), and an SFX or Wardrobe file's, after `…/sfx/` or `…/wardrobe/`. It can't
  * reach outside its item's folder.
  */
-export const SceneryFileName = z
+export const ItemFileName = z
   .string()
   .min(1)
   .max(255)
   .refine((name) => name !== "." && name !== ".." && ![...name].some(isUnsafe));
 
-export const SceneryFile = z.strictObject({
-  name: SceneryFileName,
+export const ItemFile = z.strictObject({
+  name: ItemFileName,
   /** In bytes. */
   size: z.number().int().min(0),
 });
 
 /** GET /api/productions/{productionId}/items/{itemId}/scenery-files: the item's files, as
  *  file storage holds them now (production-scenery FR6). */
-export const SceneryFileList = z.strictObject({ files: z.array(SceneryFile) });
+export const ItemFileList = z.strictObject({ files: z.array(ItemFile) });
 
 /** GET /api/productions/{productionId}/scenery-file-counts: how many files each item has, by
  *  item id, as file storage holds them now (production-overview FR14). An item with none may be
  *  left out. */
-export const SceneryFileCounts = z.strictObject({
+export const ItemFileCounts = z.strictObject({
   counts: z.record(z.string(), z.number().int().min(0)),
 });
 
 /** GET /api/productions/{productionId}/items/{itemId}/scenery-file-link?name=…: a short-lived
  *  link that opens or downloads one file (production-scenery FR10): file storage's, over HTTPS,
  *  or the local API's when run locally. Never anything else the page could be sent to. */
-export const SceneryFileLink = z.strictObject({
+export const ItemFileLink = z.strictObject({
   url: z
     .string()
     .refine((url) => url.startsWith("https://") || url.startsWith("/api/local-files/")),
@@ -51,24 +51,24 @@ export const SceneryFileLink = z.strictObject({
 
 /** The largest file storage keeps: 100 MB, in the decimal units the page shows sizes in
  *  (production-scenery FR8). */
-export const MAX_SCENERY_FILE_BYTES = 100_000_000;
+export const MAX_ITEM_FILE_BYTES = 100_000_000;
 
 /** POST /api/productions/{productionId}/items/{itemId}/scenery-uploads: what's about to be
  *  uploaded. A name already on the item is refused unless replace is true (FR9). */
-export const SceneryUploadRequest = z.strictObject({
+export const ItemFileUploadRequest = z.strictObject({
   // S3 swaps "${filename}" in an upload form's key for the name the browser sends, so a name
   // holding it could land at a key the API never checked.
-  name: SceneryFileName.refine((name) => !name.includes("${")),
+  name: ItemFileName.refine((name) => !name.includes("${")),
   /** In bytes. */
-  size: z.number().int().min(0).max(MAX_SCENERY_FILE_BYTES),
+  size: z.number().int().min(0).max(MAX_ITEM_FILE_BYTES),
   replace: z.boolean().optional(),
 });
 
 /** Where the browser sends the file, straight to file storage, as a form with these fields
  *  and then the file (ADR 0030): file storage's, over HTTPS, or the local API's when run
  *  locally. */
-export const SceneryUpload = z.strictObject({
-  url: SceneryFileLink.shape.url,
+export const ItemFileUpload = z.strictObject({
+  url: ItemFileLink.shape.url,
   fields: z.record(z.string(), z.string()),
 });
 
@@ -110,8 +110,8 @@ export function browserTypeOf(name: string, department: FileDepartment) {
   return browserTypes.get(type) ?? (department === "sfx" ? audioTypes.get(type) : undefined);
 }
 
-export type SceneryFile = z.infer<typeof SceneryFile>;
-export type SceneryFileList = z.infer<typeof SceneryFileList>;
-export type SceneryFileLink = z.infer<typeof SceneryFileLink>;
-export type SceneryUploadRequest = z.infer<typeof SceneryUploadRequest>;
-export type SceneryUpload = z.infer<typeof SceneryUpload>;
+export type ItemFile = z.infer<typeof ItemFile>;
+export type ItemFileList = z.infer<typeof ItemFileList>;
+export type ItemFileLink = z.infer<typeof ItemFileLink>;
+export type ItemFileUploadRequest = z.infer<typeof ItemFileUploadRequest>;
+export type ItemFileUpload = z.infer<typeof ItemFileUpload>;

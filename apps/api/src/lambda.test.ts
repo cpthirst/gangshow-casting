@@ -6,6 +6,9 @@ import {
   adminOnlyRouteKeys,
   CastList,
   HealthResponse,
+  ItemFileCounts,
+  ItemFileLink,
+  ItemFileList,
   ItemNoteList,
   LOCAL_ACCESS_HEADER,
   MicPlotList,
@@ -14,9 +17,6 @@ import {
   readOnlyMayUse,
   readOnlyRefusal,
   routeKeys,
-  SceneryFileCounts,
-  SceneryFileLink,
-  SceneryFileList,
   UsageSummary,
 } from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -188,7 +188,7 @@ describe("Lambda entry point", () => {
       );
 
       expect(res.statusCode).toBe(200);
-      expect(SceneryFileList.parse(JSON.parse(res.body ?? ""))).toEqual({ files: [setPlan] });
+      expect(ItemFileList.parse(JSON.parse(res.body ?? ""))).toEqual({ files: [setPlan] });
     });
 
     it.each([
@@ -202,7 +202,7 @@ describe("Lambda entry point", () => {
       );
 
       expect(res.statusCode).toBe(200);
-      expect(SceneryFileCounts.parse(JSON.parse(res.body ?? ""))).toEqual({
+      expect(ItemFileCounts.parse(JSON.parse(res.body ?? ""))).toEqual({
         counts: { "opening-number": 9 },
       });
     });
@@ -228,7 +228,7 @@ describe("Lambda entry point", () => {
       );
 
       expect(res.statusCode).toBe(200);
-      expect(SceneryFileLink.parse(JSON.parse(res.body ?? ""))).toEqual({ url });
+      expect(ItemFileLink.parse(JSON.parse(res.body ?? ""))).toEqual({ url });
     });
   });
 
@@ -1621,7 +1621,7 @@ describe("Lambda entry point", () => {
         );
     const itemPath = (end: string) => `/api/productions/2027/items/${opening}/${end}`;
     const namesAt = async (api: ReturnType<typeof setUpSfx>["api"], end: string) =>
-      SceneryFileList.parse(
+      ItemFileList.parse(
         JSON.parse((await api(as("[casting]")("GET", itemPath(end)))).body ?? ""),
       ).files.map((file) => file.name);
     const deleteThunder = (groups: string) =>
@@ -1654,7 +1654,7 @@ describe("Lambda entry point", () => {
       const countsAt = async (list: string) => {
         const res = await api(as("[]")("GET", `/api/productions/2027/${list}`));
         expect(res.statusCode).toBe(200);
-        return SceneryFileCounts.parse(JSON.parse(res.body ?? "")).counts;
+        return ItemFileCounts.parse(JSON.parse(res.body ?? "")).counts;
       };
 
       expect(await countsAt("sfx-file-counts")).toEqual({ [opening]: 3 });
@@ -1671,7 +1671,7 @@ describe("Lambda entry point", () => {
       );
 
       expect(res.statusCode).toBe(200);
-      expect(SceneryFileLink.parse(JSON.parse(res.body ?? "")).url).toContain("/sfx/thunder.mp3");
+      expect(ItemFileLink.parse(JSON.parse(res.body ?? "")).url).toContain("/sfx/thunder.mp3");
     });
 
     it("refuses an SFX request for a scenery file, leaving it untouched", async () => {
@@ -1803,7 +1803,7 @@ describe("Lambda entry point", () => {
         );
     const itemPath = (end: string) => `/api/productions/2027/items/${opening}/${end}`;
     const namesAt = async (api: ReturnType<typeof setUpWardrobe>["api"], end: string) =>
-      SceneryFileList.parse(
+      ItemFileList.parse(
         JSON.parse((await api(as("[casting]")("GET", itemPath(end)))).body ?? ""),
       ).files.map((file) => file.name);
     const deletePattern = (groups: string) =>
@@ -1837,7 +1837,7 @@ describe("Lambda entry point", () => {
       );
 
       expect(res.statusCode).toBe(200);
-      expect(SceneryFileLink.parse(JSON.parse(res.body ?? "")).url).toContain(
+      expect(ItemFileLink.parse(JSON.parse(res.body ?? "")).url).toContain(
         "/wardrobe/colour-swatch.png",
       );
     });

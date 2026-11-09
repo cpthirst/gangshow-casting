@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { SceneryFileList } from "@app/shared";
+import { ItemFileList } from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { inMemoryRoleStore } from "#/casting/roles/role-store.ts";
 import { inMemoryItemNoteStore } from "#/item-notes/item-note-store.ts";
@@ -40,7 +40,7 @@ describe("list scenery files handler", () => {
   async function filesOf(item: string) {
     const res = await list(request(item));
     expect(res.statusCode).toBe(200);
-    return SceneryFileList.parse(JSON.parse(res.body ?? "")).files;
+    return ItemFileList.parse(JSON.parse(res.body ?? "")).files;
   }
 
   const sortedNames = async (item: string) => (await filesOf(item)).map((file) => file.name).sort();

@@ -2,8 +2,8 @@ import {
   browserTypeOf,
   type FileDepartment,
   fileTypeOf,
-  MAX_SCENERY_FILE_BYTES,
-  type SceneryFile,
+  type ItemFile,
+  MAX_ITEM_FILE_BYTES,
 } from "@app/shared";
 import { icons } from "./icons.ts";
 
@@ -15,7 +15,7 @@ export const replaceQuestion = (name: string) =>
 /** Why the page won't upload a file, before asking the API: it's too big (FR8); undefined if
  *  it may. */
 export function uploadRefusal({ name, size }: { name: string; size: number }) {
-  if (size > MAX_SCENERY_FILE_BYTES) return `${name} is over 100 MB, so it wasn't uploaded.`;
+  if (size > MAX_ITEM_FILE_BYTES) return `${name} is over 100 MB, so it wasn't uploaded.`;
   return undefined;
 }
 
@@ -55,7 +55,7 @@ export function fileIconOf(name: string, department: FileDepartment) {
 const byName = new Intl.Collator("en-GB", { sensitivity: "base", numeric: true });
 
 /** The files sorted by name, as people read them: ignoring case, numbers in order (FR7). */
-export const sortFiles = (files: SceneryFile[]) =>
+export const sortFiles = (files: ItemFile[]) =>
   [...files].sort((a, b) => byName.compare(a.name, b.name));
 
 // Decimal units, as phones and most computers show file sizes.

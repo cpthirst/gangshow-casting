@@ -1,12 +1,12 @@
-import { type AddPropRequest, carryingCast, type Prop, type Role } from "@app/shared";
+import { carryingCast, type Prop, type PropDetails, type Role } from "@app/shared";
 
 /** Whether a prop links only to its own item's roles (production-props FR18), its quantity
  *  covers its named parts, and each of its carriers is in one of its ensembles but none of
  *  its named parts, no more than the quantity leaves (FR26). itemRoles: every role in the
  *  prop's item. */
-export function linksFitItem({ roleIds, quantity, carrierIds }: AddPropRequest, itemRoles: Role[]) {
+export function linksFitItem({ roleIds, quantity, carrierIds }: PropDetails, itemRoles: Role[]) {
   const linked = itemRoles.filter((role) => roleIds.includes(role.id));
-  // roleIds has no repeats (AddPropRequest), so a shorter list means a role outside the item.
+  // roleIds has no repeats (PropDetails), so a shorter list means a role outside the item.
   if (linked.length !== roleIds.length) return false;
   const { named, choosable } = carryingCast(linked);
   return (

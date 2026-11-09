@@ -1,4 +1,4 @@
-import { SceneryFileName } from "@app/shared";
+import { ItemFileName } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import type { ApiEvent } from "#/http/handler.ts";
 import { jsonResponse } from "#/http/json.ts";
@@ -14,7 +14,7 @@ export function createGetItemFileLink(store: ItemFileStore) {
     const productionId = productionIdOf(event);
     const itemId = folderIdOf(event.pathParameters?.itemId);
     if (productionId === undefined || itemId === undefined) return { statusCode: 404 };
-    const name = SceneryFileName.safeParse(event.queryStringParameters?.name);
+    const name = ItemFileName.safeParse(event.queryStringParameters?.name);
     if (!name.success) return { statusCode: 400 };
     const url = await store.linkTo(productionId, itemId, name.data);
     if (url === undefined) return { statusCode: 404 };

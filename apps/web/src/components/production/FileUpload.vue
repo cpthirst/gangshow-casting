@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { nextTick, ref, shallowRef } from "vue";
 import { uploadItemFile } from "@/services/file-upload.ts";
+import { fileSize, replaceQuestion, uploadRefusal } from "@/utils/file-display.ts";
 import type { FilesDepartment } from "@/utils/item-files.ts";
-import { fileSize, replaceQuestion, uploadRefusal } from "@/utils/scenery.ts";
 
 // Uploading one file at a time to an item's scenery, SFX or Wardrobe, chosen with the button or
 // dropped on the area, showing how much has gone (production-scenery FR8). A name the item has

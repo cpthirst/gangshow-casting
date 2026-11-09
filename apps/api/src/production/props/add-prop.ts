@@ -1,4 +1,4 @@
-import { AddPropRequest } from "@app/shared";
+import { PropDetails } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import type { RoleStore } from "#/casting/roles/role-store.ts";
 import type { ApiEvent } from "#/http/handler.ts";
@@ -20,7 +20,7 @@ export function createAddProp(
     const itemId = event.pathParameters?.itemId;
     if (productionId === undefined || !itemId) return { statusCode: 404 };
     // The body is checked first, so a bad request is a 400 whatever the item.
-    const details = AddPropRequest.safeParse(parseJson(event.body));
+    const details = PropDetails.safeParse(parseJson(event.body));
     if (!details.success) return { statusCode: 400 };
 
     // Props belong to items in the latest saved running order, as roles do.

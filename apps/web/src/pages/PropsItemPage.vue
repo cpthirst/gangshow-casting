@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import {
-  type AddPropRequest,
   CastList,
   type CastMember,
   Prop,
+  type PropDetails,
   PropList,
   type Role,
   RoleList,
@@ -99,7 +99,7 @@ async function stopEditing(id: number) {
 }
 
 // Saves straight away. On failure the form stays open with the edit in it.
-async function saveEdit(details: AddPropRequest) {
+async function saveEdit(details: PropDetails) {
   const prop = editing.value;
   if (!prop || saving.value) return;
   saving.value = true;
@@ -119,7 +119,7 @@ async function saveEdit(details: AddPropRequest) {
   await stopEditing(result.id);
 }
 
-async function putProp(id: number, details: AddPropRequest) {
+async function putProp(id: number, details: PropDetails) {
   try {
     const res = await apiFetch(propPath(id), {
       method: "PUT",
@@ -185,7 +185,7 @@ async function stopAdding() {
 }
 
 // Saves straight away. On failure the form stays open with what was typed.
-async function add(details: AddPropRequest) {
+async function add(details: PropDetails) {
   if (!place.value || saving.value) return;
   saving.value = true;
   formError.value = "";
@@ -199,7 +199,7 @@ async function add(details: AddPropRequest) {
   await stopAdding();
 }
 
-async function postProp(itemId: string, details: AddPropRequest) {
+async function postProp(itemId: string, details: PropDetails) {
   try {
     const res = await apiFetch(addPropPath(itemId), {
       method: "POST",

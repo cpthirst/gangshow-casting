@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { MAX_SCENERY_FILE_BYTES, SceneryUpload } from "@app/shared";
+import { ItemFileUpload, MAX_ITEM_FILE_BYTES } from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { aRunningOrder, itemId } from "#/show/running-order/running-order.fixture.ts";
 import { inMemoryRunningOrderStore } from "#/show/running-order/running-order-store.ts";
@@ -39,7 +39,7 @@ describe("upload scenery file handler", () => {
   });
 
   const uploadIn = (res: { body?: string | undefined }) =>
-    SceneryUpload.parse(JSON.parse(res.body ?? ""));
+    ItemFileUpload.parse(JSON.parse(res.body ?? ""));
 
   it("hands back where to send the file, in the item's place, under its own name", async () => {
     const res = await upload(post({ name: "Set Plan (Act 1).pdf", size: 2_400_000 }));
@@ -51,13 +51,13 @@ describe("upload scenery file handler", () => {
   });
 
   it("accepts a file of exactly 100 MB", async () => {
-    const res = await upload(post({ name: "rig.mov", size: MAX_SCENERY_FILE_BYTES }));
+    const res = await upload(post({ name: "rig.mov", size: MAX_ITEM_FILE_BYTES }));
 
     expect(res.statusCode).toBe(200);
   });
 
   it("refuses a file over 100 MB with 400", async () => {
-    const res = await upload(post({ name: "rig.mov", size: MAX_SCENERY_FILE_BYTES + 1 }));
+    const res = await upload(post({ name: "rig.mov", size: MAX_ITEM_FILE_BYTES + 1 }));
 
     expect(res.statusCode).toBe(400);
   });

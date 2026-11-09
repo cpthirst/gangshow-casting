@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
-  AddPropRequest,
   carryingCast,
   MAX_PROP_NAME_LENGTH,
   MAX_PROP_QUANTITY,
   Prop,
+  PropDetails,
   PropList,
 } from "./prop.ts";
 
@@ -62,9 +62,9 @@ describe("PropList", () => {
   });
 });
 
-describe("AddPropRequest", () => {
+describe("PropDetails", () => {
   it("is a prop's name, trimmed, with a quantity of 1 and no roles unless given", () => {
-    expect(AddPropRequest.parse({ name: " Treasure chest " })).toEqual({
+    expect(PropDetails.parse({ name: " Treasure chest " })).toEqual({
       name: "Treasure chest",
       quantity: 1,
       roleIds: [],
@@ -73,54 +73,54 @@ describe("AddPropRequest", () => {
   });
 
   it.each([1, 10, MAX_PROP_QUANTITY])("takes a quantity of %s", (quantity) => {
-    expect(AddPropRequest.parse({ name: "Umbrella", quantity }).quantity).toBe(quantity);
+    expect(PropDetails.parse({ name: "Umbrella", quantity }).quantity).toBe(quantity);
   });
 
   it.each([0, MAX_PROP_QUANTITY + 1, 2.5, -1, "10"])("refuses a quantity of %s", (quantity) => {
-    expect(AddPropRequest.safeParse({ name: "Umbrella", quantity }).success).toBe(false);
+    expect(PropDetails.safeParse({ name: "Umbrella", quantity }).success).toBe(false);
   });
 
   it("takes the ids of the roles that use the prop", () => {
-    expect(AddPropRequest.parse({ name: "3 umbrellas", roleIds: [1, 2, 3] }).roleIds).toEqual([
+    expect(PropDetails.parse({ name: "3 umbrellas", roleIds: [1, 2, 3] }).roleIds).toEqual([
       1, 2, 3,
     ]);
   });
 
   it("takes up to as many carriers as the quantity", () => {
     const basket = { name: "Bread basket", quantity: 2, roleIds: [1], carrierIds: [3, 4] };
-    expect(AddPropRequest.parse(basket).carrierIds).toEqual([3, 4]);
+    expect(PropDetails.parse(basket).carrierIds).toEqual([3, 4]);
   });
 
   it("refuses more carriers than the quantity", () => {
     const basket = { name: "Bread basket", quantity: 1, roleIds: [1], carrierIds: [3, 4] };
-    expect(AddPropRequest.safeParse(basket).success).toBe(false);
+    expect(PropDetails.safeParse(basket).success).toBe(false);
   });
 
   it("refuses a carrier listed twice", () => {
     const basket = { name: "Bread basket", quantity: 2, roleIds: [1], carrierIds: [3, 3] };
-    expect(AddPropRequest.safeParse(basket).success).toBe(false);
+    expect(PropDetails.safeParse(basket).success).toBe(false);
   });
 
   it("refuses a role listed twice", () => {
-    expect(AddPropRequest.safeParse({ name: "Telescope", roleIds: [1, 1] }).success).toBe(false);
+    expect(PropDetails.safeParse({ name: "Telescope", roleIds: [1, 1] }).success).toBe(false);
   });
 
   it.each([
     ["empty", ""],
     ["only spaces", "   "],
   ])("refuses a name that's %s", (_case, name) => {
-    expect(AddPropRequest.safeParse({ name }).success).toBe(false);
+    expect(PropDetails.safeParse({ name }).success).toBe(false);
   });
 
   it("refuses a name over the longest a prop's name can be", () => {
-    expect(AddPropRequest.safeParse({ name: "x".repeat(MAX_PROP_NAME_LENGTH + 1) }).success).toBe(
+    expect(PropDetails.safeParse({ name: "x".repeat(MAX_PROP_NAME_LENGTH + 1) }).success).toBe(
       false,
     );
   });
 
   it("refuses the app-managed id and item, and unknown fields", () => {
     for (const extra of [{ id: 1 }, { itemId: "finale" }, { castMemberIds: [1] }]) {
-      expect(AddPropRequest.safeParse({ name: "Parrot", ...extra }).success).toBe(false);
+      expect(PropDetails.safeParse({ name: "Parrot", ...extra }).success).toBe(false);
     }
   });
 });

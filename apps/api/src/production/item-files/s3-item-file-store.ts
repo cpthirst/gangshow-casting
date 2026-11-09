@@ -1,4 +1,4 @@
-import { type FileDepartment, MAX_SCENERY_FILE_BYTES, type SceneryFile } from "@app/shared";
+import { type FileDepartment, type ItemFile, MAX_ITEM_FILE_BYTES } from "@app/shared";
 import {
   DeleteObjectCommand,
   DeleteObjectsCommand,
@@ -36,7 +36,7 @@ export function s3ItemFileStore(
   return {
     async list(productionId, itemId) {
       const prefix = folderOf(productionId, itemId);
-      const files: SceneryFile[] = [];
+      const files: ItemFile[] = [];
       let token: string | undefined;
       // Up to 1,000 keys a page. The delimiter keeps anything in a folder below out of them.
       do {
@@ -86,7 +86,7 @@ export function s3ItemFileStore(
       const { url, fields } = await createPresignedPost(s3, {
         Bucket: bucket,
         Key,
-        Conditions: [["content-length-range", 0, MAX_SCENERY_FILE_BYTES]],
+        Conditions: [["content-length-range", 0, MAX_ITEM_FILE_BYTES]],
         Expires: LINK_SECONDS,
       });
       return { url, fields };

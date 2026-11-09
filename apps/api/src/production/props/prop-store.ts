@@ -1,13 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import {
-  type AddPropRequest,
-  ProductionId,
-  Prop,
-  PropList,
-  type Role,
-  type UpdatePropRequest,
-} from "@app/shared";
+import { ProductionId, Prop, type PropDetails, PropList, type Role } from "@app/shared";
 import { parseJson } from "#/http/json.ts";
 import { ifExists } from "#/storage/files.ts";
 import { oneAtATime, writePrivateFile } from "#/storage/private-file.ts";
@@ -19,9 +12,9 @@ export interface PropStore {
   /** Every item's props; none until the first is added. */
   list(productionId: string): Promise<PropList>;
   /** Adds a prop to an item, with the next unused id. */
-  add(productionId: string, itemId: string, details: AddPropRequest): Promise<Prop>;
+  add(productionId: string, itemId: string, details: PropDetails): Promise<Prop>;
   /** Replaces a prop's name, quantity, roles and carriers; it stays on its item. */
-  update(productionId: string, id: number, details: UpdatePropRequest): Promise<Prop | "not-found">;
+  update(productionId: string, id: number, details: PropDetails): Promise<Prop | "not-found">;
   /** Removes a prop for good (production-props FR19). Its id is never reused. */
   remove(productionId: string, id: number): Promise<"removed" | "not-found">;
   /** Takes off every prop's carriers who no longer play one of its roles (production-props
@@ -45,13 +38,13 @@ const nextIdOf = (file: PropFile) =>
 const listOf = ({ productionId, props }: PropFile): PropList => ({ productionId, props });
 
 /** The file with a new prop added to the item under the next id. */
-function withNewProp(file: PropFile, itemId: string, details: AddPropRequest) {
+function withNewProp(file: PropFile, itemId: string, details: PropDetails) {
   const prop: Prop = { ...details, id: nextIdOf(file), itemId };
   return { prop, file: { ...file, props: [...file.props, prop], nextId: prop.id + 1 } };
 }
 
 /** The file with one prop's name, quantity, roles and carriers replaced, or why not. */
-function withUpdatedProp(file: PropFile, id: number, details: UpdatePropRequest) {
+function withUpdatedProp(file: PropFile, id: number, details: PropDetails) {
   const prop = file.props.find((p) => p.id === id);
   if (!prop) return "not-found";
   const updated: Prop = { ...prop, ...details };

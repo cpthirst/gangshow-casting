@@ -20,7 +20,7 @@ const PROP = "PROP#";
 /** How many times to sweep again when a prop changes while its carriers are dropped. */
 const ATTEMPTS = 5;
 /** A prop's sort key. Zero-padded, so props come back in id order. */
-export const propKey = (id: number) => `${PROP}${String(id).padStart(8, "0")}`;
+const propKey = (id: number) => `${PROP}${String(id).padStart(8, "0")}`;
 
 /** A prop as stored: its row, keyed in its production. */
 export const propRow = (productionId: string, prop: Prop) => ({

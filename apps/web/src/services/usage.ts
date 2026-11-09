@@ -41,7 +41,7 @@ export const recordView = (view: PageView) => record({ event: "view", view });
 export const recordExport = (kind: UsageExport) => record({ event: "export", export: kind });
 
 /** Records opening an item's page: which item only, never its title or cast. */
-export const recordItemUse = (productionId: string, itemId: string) =>
+const recordItemUse = (productionId: string, itemId: string) =>
   record({ event: "item", productionId, itemId });
 
 /** Records opening a department's page for an item: which item only, never its title, props,

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { AddPropRequest, CastMember, Prop, Role } from "@app/shared";
+import type { CastMember, Prop, PropDetails, Role } from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, nextTick, onMounted, ref, useId, watch } from "vue";
 import CastMemberPicker from "@/components/casting/CastMemberPicker.vue";
@@ -24,7 +24,7 @@ const props = defineProps<{
   cast: CastMember[];
   prop?: Prop | undefined;
 }>();
-const emit = defineEmits<{ save: [details: AddPropRequest]; cancel: [] }>();
+const emit = defineEmits<{ save: [details: PropDetails]; cancel: [] }>();
 
 const form = ref<PropFormFields>({
   name: props.prop?.name ?? "",

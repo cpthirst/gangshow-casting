@@ -60,10 +60,10 @@ const defaultDataDir = fileURLToPath(new URL("../../data", import.meta.url));
 type Env = Record<string, string | undefined>;
 
 /** The local data folder: DATA_DIR, or apps/api/data. */
-export const dataDirFrom = (env: Env) => env.DATA_DIR ?? defaultDataDir;
+const dataDirFrom = (env: Env) => env.DATA_DIR ?? defaultDataDir;
 
 /** The remote table DATA_TABLE names, with a client for it; undefined if none is set. */
-export function remoteTableFrom(env: Env) {
+function remoteTableFrom(env: Env) {
   const table = env.DATA_TABLE;
   if (!table) return undefined;
   const region = env.DATA_TABLE_REGION ?? "eu-west-2";

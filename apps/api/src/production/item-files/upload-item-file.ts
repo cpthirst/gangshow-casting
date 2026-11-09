@@ -1,4 +1,4 @@
-import { SceneryUploadRequest } from "@app/shared";
+import { ItemFileUploadRequest } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import type { ApiEvent } from "#/http/handler.ts";
 import { jsonResponse, parseJson } from "#/http/json.ts";
@@ -17,7 +17,7 @@ export function createUploadItemFile(store: ItemFileStore, runningOrders: Runnin
     const itemId = folderIdOf(event.pathParameters?.itemId);
     if (productionId === undefined || itemId === undefined) return { statusCode: 404 };
     // A valid name can't reach outside the item's folder.
-    const request = SceneryUploadRequest.safeParse(parseJson(event.body));
+    const request = ItemFileUploadRequest.safeParse(parseJson(event.body));
     if (!request.success) return { statusCode: 400 };
 
     // Only items in the latest saved running order can have files.

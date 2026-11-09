@@ -1,4 +1,4 @@
-import { UpdatePropRequest } from "@app/shared";
+import { PropDetails } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import type { RoleStore } from "#/casting/roles/role-store.ts";
 import type { ApiEvent } from "#/http/handler.ts";
@@ -16,7 +16,7 @@ export function createUpdateProp(props: PropStore, roles: RoleStore) {
     const propId = wholeNumber(event.pathParameters?.propId);
     if (productionId === undefined || propId === undefined) return { statusCode: 404 };
     // Strict: an id, item or any unknown field in the body is refused.
-    const details = UpdatePropRequest.safeParse(parseJson(event.body));
+    const details = PropDetails.safeParse(parseJson(event.body));
     if (!details.success) return { statusCode: 400 };
 
     const prop = (await props.list(productionId)).props.find(({ id }) => id === propId);

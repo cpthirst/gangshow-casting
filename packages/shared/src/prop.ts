@@ -57,7 +57,7 @@ export function carryingCast(roles: Pick<Role, "size" | "castMemberIds">[]) {
  * its roles; 404 if the item isn't in the latest saved running order. Strict, so the
  * app-managed id and item can't be sent.
  */
-export const AddPropRequest = Prop.pick({
+export const PropDetails = Prop.pick({
   name: true,
   quantity: true,
   roleIds: true,
@@ -76,16 +76,6 @@ export const AddPropRequest = Prop.pick({
     message: "More carriers than the quantity",
   });
 
-/**
- * PUT /api/productions/{productionId}/props/{propId}: replaces a prop's name, quantity, roles
- * and carriers, by the same rules as adding one (production-props FR19, FR24, FR26). 200
- * returns the Prop; 400 for an invalid prop, a role not in its item or a carrier not in its
- * roles; 404 if the prop is gone. A quantity, roles or carriers left out are replaced too, by
- * 1 and none. DELETE on the same path removes it: 204,
- * or 404 if it's already gone.
- */
-export const UpdatePropRequest = AddPropRequest;
-
 /** GET /api/productions/{productionId}/props: every item's props, in no particular order. */
 export const PropList = z.strictObject({
   productionId: ProductionId,
@@ -94,5 +84,4 @@ export const PropList = z.strictObject({
 
 export type Prop = z.infer<typeof Prop>;
 export type PropList = z.infer<typeof PropList>;
-export type AddPropRequest = z.infer<typeof AddPropRequest>;
-export type UpdatePropRequest = z.infer<typeof UpdatePropRequest>;
+export type PropDetails = z.infer<typeof PropDetails>;

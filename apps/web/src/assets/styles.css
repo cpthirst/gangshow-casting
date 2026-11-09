@@ -293,15 +293,6 @@ main a {
   font-weight: 700;
 }
 
-.coming-soon {
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
-  border-radius: 999px;
-  background: var(--white);
-  font-size: 0.875rem;
-  font-weight: 700;
-}
-
 /* Draft number, unsaved marker, and Save / Reset, kept together above the tables. */
 .draft-bar {
   display: flex;

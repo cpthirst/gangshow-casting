@@ -5,7 +5,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { dirname } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
-import { LOCAL_ACCESS_HEADER, localAccessFrom, MAX_SCENERY_FILE_BYTES } from "@app/shared";
+import { LOCAL_ACCESS_HEADER, localAccessFrom, MAX_ITEM_FILE_BYTES } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import { LOCAL_ADMIN, localAccountRoutes } from "#/accounts/local-accounts.ts";
 import { accessRefusal, type Productions } from "#/http/access.ts";
@@ -95,7 +95,7 @@ async function sendLocalFile(res: ServerResponse, folder: string, path: string) 
 }
 
 // The form's fields come before the file, and are short: S3's whole form is a few KB.
-const MAX_UPLOAD_BYTES = MAX_SCENERY_FILE_BYTES + 64 * 1024;
+const MAX_UPLOAD_BYTES = MAX_ITEM_FILE_BYTES + 64 * 1024;
 
 // Keeps the file a local upload form sends, refusing it over 100 MB as the bucket does.
 async function receiveLocalFile(
@@ -125,7 +125,7 @@ async function receiveLocalFile(
       res.writeHead(400).end();
       return;
     }
-    if (file.size > MAX_SCENERY_FILE_BYTES) {
+    if (file.size > MAX_ITEM_FILE_BYTES) {
       tooLarge(res);
       return;
     }
