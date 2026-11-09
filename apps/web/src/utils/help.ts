@@ -32,6 +32,8 @@ export interface PageHelp {
   summary: string;
   /** Who can change the page, a department or admins alone; everyone else only views it. */
   changedBy?: Exclude<Access, "everyone">;
+  /** The page is about every production, so a past one being open doesn't make it view only. */
+  acrossProductions?: true;
   /** The page the Help page links to instead, for a page with no menu entry of its own. */
   reachedFrom?: { page: string; title: string };
   lines: HelpLine[];
@@ -550,10 +552,16 @@ export const pageHelp: PageHelp[] = [
   {
     page: "productions",
     changedBy: "admins",
+    acrossProductions: true,
     title: "Productions",
     summary:
-      "Every production, by its year. Everyone opens the newest. Accounts and what they can do are the same in every production.",
+      "Every production, by its year. Everyone starts on the newest and can look back at older ones.",
     lines: [
+      {
+        name: "Switch production",
+        does: "Choose an older year under the year in the menu to look back at it, then Open. A past production is view only for everyone, admins too, and can't be made changeable again; its exports still work. The next time you open the app, you're back on the newest.",
+        access: "everyone",
+      },
       {
         name: "Add production",
         does: "Starts a new production for a four-digit year later than the newest. It starts empty: nothing carries over from earlier years. Everyone opens it from their next page load.",
@@ -581,7 +589,7 @@ export const permissionHelp = [
   },
   {
     name: "Admins",
-    does: "Change everything. Only admins can delete cast members, change the running order, start productions and manage accounts.",
+    does: "Change everything in the newest production. Only admins can delete cast members, change the running order, start productions and manage accounts.",
   },
 ];
 

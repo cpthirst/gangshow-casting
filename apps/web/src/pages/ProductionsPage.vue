@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { mayStartProduction, newestProduction, ProductionList, startRefusal } from "@app/shared";
+import { mayStartProduction, newestFirst, ProductionList, startRefusal } from "@app/shared";
 import { computed, nextTick, onMounted, ref, useId } from "vue";
 import PageTitle from "@/components/common/PageTitle.vue";
 import { useAddForm } from "@/composables/useAddForm.ts";
 import { loadRequired, refusalMessage } from "@/services/load-data.ts";
-import { openProduction, PRODUCTIONS_PATH } from "@/services/production.ts";
+import { openNewestOf, PRODUCTIONS_PATH } from "@/services/production.ts";
 import { apiFetch, isAdmin } from "@/services/sign-in.ts";
 import { startWarning } from "@/utils/production.ts";
 
@@ -15,7 +15,7 @@ type State =
 
 const state = ref<State>({ status: "loading" });
 const years = computed(() =>
-  state.value.status === "loaded" ? state.value.list.productions.toSorted().reverse() : [],
+  state.value.status === "loaded" ? newestFirst(state.value.list.productions) : [],
 );
 
 const uid = useId();
@@ -89,7 +89,7 @@ async function start() {
   else if (result.status === "failed") formError.value = result.message;
   else {
     state.value = { status: "loaded", list: result.list };
-    openProduction(newestProduction(result.list.productions));
+    openNewestOf(result.list.productions);
     announcement.value = `Production ${asked} started.`;
     await stopAdding();
   }

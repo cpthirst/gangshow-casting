@@ -3,7 +3,7 @@
 // does, and refuses what the caller's permissions don't allow (ADR 0026).
 import { accessFrom } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
-import { accessRefusal, groupsFrom } from "./access.ts";
+import { accessRefusal, groupsFrom, type Productions } from "./access.ts";
 import type { ApiEvent, Handler } from "./handler.ts";
 import { matchRoute } from "./match-route.ts";
 
@@ -24,19 +24,20 @@ const noStore = (res: APIGatewayProxyStructuredResultV2): APIGatewayProxyStructu
   headers: { ...res.headers, "cache-control": "no-store" },
 });
 
-export function lambdaEntry(table: Record<string, Handler>) {
-  return async (event: LambdaEvent) => noStore(await respond(table, event));
+export function lambdaEntry(table: Record<string, Handler>, productions: Productions) {
+  return async (event: LambdaEvent) => noStore(await respond(table, event, productions));
 }
 
 async function respond(
   table: Record<string, Handler>,
   event: LambdaEvent,
+  productions: Productions,
 ): Promise<APIGatewayProxyStructuredResultV2> {
   const route = matchRoute(table, event.requestContext.http.method, event.rawPath);
   if (!route) return { statusCode: 404 };
   const groups = groupsFrom(event.requestContext.authorizer?.jwt?.claims?.["cognito:groups"]);
   // Only the token says who someone is: never a header, such as the local access switch's.
-  const refused = accessRefusal(route.key, accessFrom(groups));
+  const refused = await accessRefusal(route, accessFrom(groups), productions);
   if (refused) return refused;
   // API Gateway base64-encodes bodies it doesn't take for text; handlers expect the text.
   const decoded =

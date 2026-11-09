@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { needOf, routeKeys } from "./api-routes.ts";
 import {
+  mayChangeProduction,
   mayStartProduction,
   NewProduction,
+  newestFirst,
   newestProduction,
+  PastProductionRefusal,
   ProductionList,
+  pastProductionRefusal,
   startRefusal,
 } from "./production.ts";
 
@@ -54,5 +58,38 @@ describe("starting a production", () => {
     expect(startRefusal(["2028", "2027"])).toBe(
       "The year must be a four-digit year later than 2028.",
     );
+  });
+});
+
+describe("a past production", () => {
+  it("can be changed only if it's the newest", () => {
+    expect(mayChangeProduction("2028", ["2027", "2028"])).toBe(true);
+    expect(mayChangeProduction("2027", ["2027", "2028"])).toBe(false);
+  });
+
+  it("can't be changed if the list doesn't hold it, so a mistyped address changes nothing", () => {
+    expect(mayChangeProduction("1999", ["2027", "2028"])).toBe(false);
+  });
+
+  it("is refused in the department refusals' words, with the list to catch up from", () => {
+    const refusal = pastProductionRefusal(["2027", "2028"]);
+
+    expect(refusal).toEqual({
+      message: "You can view this past production, but not change it.",
+      productions: ["2027", "2028"],
+    });
+    expect(PastProductionRefusal.safeParse(refusal).success).toBe(true);
+  });
+
+  it("is recognised by the list it carries, never by its wording", () => {
+    const recognised = (body: unknown) => PastProductionRefusal.safeParse(body).success;
+
+    expect(recognised(pastProductionRefusal(["2027", "2028"]))).toBe(true);
+    expect(recognised({ message: "You can view this past production" })).toBe(false);
+    expect(recognised({ message: "x", department: "casting" })).toBe(false);
+  });
+
+  it("lists the newest first", () => {
+    expect(newestFirst(["2027", "2029", "2028"])).toEqual(["2029", "2028", "2027"]);
   });
 });

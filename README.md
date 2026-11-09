@@ -41,6 +41,7 @@ iCUE is hosted on AWS and is open only to the production team. Everyone signs in
 | **Help** | What each page is for and what its buttons do, with who can use each | [in-app-help](docs/product/in-app-help) |
 | **Accounts** (admins) | Create the team's sign-in accounts, see and change each one's access (Admin, or any mix of Casting, Stage, Tech and Wardrobe), reset passwords, and disable or enable accounts | [hosting](docs/product/hosting), [team-roles](docs/product/team-roles) |
 | **Productions** (admins) | Every production by its year, and starting a new one, which starts empty and is what everyone then opens | [simplify](docs/product/simplify) |
+| **Switching production** (sidebar) | Anyone can switch to an older production for the session, under the year in the sidebar. A past production is view only for everyone, admins included (the API refuses every change to it), and can't be reopened; its exports still work | [simplify](docs/product/simplify) |
 | **Usage** (admins) | Who on the team uses iCUE and how often, so admins can see who might need help getting started | [usage-tracking](docs/product/usage-tracking) |
 
 **Access** ([team-roles](docs/product/team-roles), [production-props](docs/product/production/props)): an account is an Admin, or has any mix of department permissions.

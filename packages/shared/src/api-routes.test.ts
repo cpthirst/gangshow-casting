@@ -6,6 +6,7 @@ import {
   departmentIds,
   departments,
   isAccountRoute,
+  isChangeWithinProduction,
   isReadRoute,
   isRefusalAsReadOnly,
   localAccessFrom,
@@ -257,6 +258,28 @@ describe("isReadRoute", () => {
     ]);
     expect(isReadRoute("PUT /api/productions/{productionId}/cast/{castId}")).toBe(false);
     expect(isReadRoute("POST /api/productions/{productionId}/running-order/versions")).toBe(false);
+  });
+});
+
+describe("isChangeWithinProduction", () => {
+  const changes = routeKeys.filter(isChangeWithinProduction);
+
+  it("takes in every route that changes something in a production", () => {
+    expect(changes.length).toBeGreaterThan(20);
+    for (const key of routeKeys.filter((route) => !isReadRoute(route))) {
+      if (key.includes("/{productionId}/")) expect(changes, key).toContain(key);
+    }
+  });
+
+  it.each([
+    "GET /api/productions/{productionId}/cast",
+    "POST /api/productions/{productionId}/casting-grid/export",
+    "POST /api/productions",
+    "DELETE /api/productions/{productionId}",
+    "POST /api/usage",
+    "POST /api/accounts",
+  ])("leaves out %s, which changes nothing within a production", (key) => {
+    expect(isChangeWithinProduction(key)).toBe(false);
   });
 });
 

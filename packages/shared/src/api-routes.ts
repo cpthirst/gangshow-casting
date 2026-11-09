@@ -233,6 +233,14 @@ export const isReadRoute = (key: string) =>
   key.startsWith("GET ") || readsSentAsPost.some((read) => read === key);
 
 /**
+ * Whether a route changes something inside a production, by what it says of itself, so a new
+ * route can't be left out. Starting a production isn't one, and nor is a route that is about
+ * a production as a whole: only those with more of an address after the id.
+ */
+export const isChangeWithinProduction = (key: string) =>
+  key.includes("/{productionId}/") && !isReadRoute(key);
+
+/**
  * The one change anyone may make: recording their own usage, which only ever adds a record
  * about the caller (ADR 0023). Add another only for the same reason.
  */

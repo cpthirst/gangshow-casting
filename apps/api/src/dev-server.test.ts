@@ -13,6 +13,7 @@ import {
   UsageSummary,
 } from "@app/shared";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { inMemoryProductionListStore } from "#/production-list/production-list-store.ts";
 import { createDevServer, devRoutes, startDevServer } from "./dev-server.ts";
 import { routes } from "./routes.ts";
 
@@ -21,7 +22,7 @@ describe("dev server", () => {
   let baseUrl: string;
 
   beforeAll(async () => {
-    server = createDevServer(routes);
+    server = createDevServer(routes, inMemoryProductionListStore());
     await new Promise<void>((resolve) => server.listen(0, resolve));
     const address = server.address();
     if (typeof address !== "object" || address === null) throw new Error("server not listening");
@@ -117,12 +118,15 @@ describe("dev server", () => {
 
 describe("dev server path parameters", () => {
   it("passes {placeholders} in the route to the handler as path parameters", async () => {
-    const server = createDevServer({
-      "GET /api/things/{thingId}": async (event) => ({
-        statusCode: 200,
-        body: event.pathParameters?.thingId ?? "",
-      }),
-    });
+    const server = createDevServer(
+      {
+        "GET /api/things/{thingId}": async (event) => ({
+          statusCode: 200,
+          body: event.pathParameters?.thingId ?? "",
+        }),
+      },
+      inMemoryProductionListStore(),
+    );
     await new Promise<void>((resolve) => server.listen(0, resolve));
     const address = server.address();
     if (typeof address !== "object" || address === null) throw new Error("server not listening");
@@ -140,9 +144,12 @@ describe("dev server path parameters", () => {
 
 describe("dev server request bodies", () => {
   it("passes the request body to the handler", async () => {
-    const server = createDevServer({
-      "POST /api/echo": async (event) => ({ statusCode: 201, body: event.body ?? "" }),
-    });
+    const server = createDevServer(
+      {
+        "POST /api/echo": async (event) => ({ statusCode: 201, body: event.body ?? "" }),
+      },
+      inMemoryProductionListStore(),
+    );
     await new Promise<void>((resolve) => server.listen(0, resolve));
     const address = server.address();
     if (typeof address !== "object" || address === null) throw new Error("server not listening");
@@ -164,12 +171,15 @@ describe("dev server request bodies", () => {
 
 describe("dev server query strings", () => {
   it("passes query string parameters to the handler", async () => {
-    const server = createDevServer({
-      "DELETE /api/things/{thingId}": async (event) => ({
-        statusCode: 200,
-        body: event.queryStringParameters?.revision ?? "none",
-      }),
-    });
+    const server = createDevServer(
+      {
+        "DELETE /api/things/{thingId}": async (event) => ({
+          statusCode: 200,
+          body: event.queryStringParameters?.revision ?? "none",
+        }),
+      },
+      inMemoryProductionListStore(),
+    );
     await new Promise<void>((resolve) => server.listen(0, resolve));
     const address = server.address();
     if (typeof address !== "object" || address === null) throw new Error("server not listening");
@@ -198,7 +208,7 @@ describe("dev server admin-only routes", () => {
         },
       ]),
     );
-    const server = createDevServer(table);
+    const server = createDevServer(table, inMemoryProductionListStore());
     await new Promise<void>((resolve) => server.listen(0, resolve));
     const address = server.address();
     if (typeof address !== "object" || address === null) throw new Error("server not listening");
@@ -224,9 +234,12 @@ describe("dev server admin-only routes", () => {
 
 describe("dev server when a handler fails", () => {
   it("returns 500 instead of crashing when a handler throws", async () => {
-    const server = createDevServer({
-      "GET /api/boom": () => Promise.reject(new Error("boom")),
-    });
+    const server = createDevServer(
+      {
+        "GET /api/boom": () => Promise.reject(new Error("boom")),
+      },
+      inMemoryProductionListStore(),
+    );
     await new Promise<void>((resolve) => server.listen(0, resolve));
     const address = server.address();
     if (typeof address !== "object" || address === null) throw new Error("server not listening");
@@ -254,7 +267,7 @@ describe("dev server local scenery files (production-scenery FR10)", () => {
     await writeFile(join(place(), "set-plan.pdf"), SET_PLAN);
     await writeFile(join(place(), "notes.html"), "<script>alert('made-up')</script>");
     await writeFile(join(folder, "2027", "secret.txt"), "outside any item's scenery");
-    server = createDevServer({}, folder);
+    server = createDevServer({}, inMemoryProductionListStore(), folder);
     await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
     const address = server.address();
     if (typeof address !== "object" || address === null) throw new Error("server not listening");
@@ -356,7 +369,7 @@ describe("dev server local scenery files (production-scenery FR10)", () => {
   });
 
   it("serves no local files when the scenery files are in a bucket", async () => {
-    const bucketServer = createDevServer({});
+    const bucketServer = createDevServer({}, inMemoryProductionListStore());
     await new Promise<void>((resolve) => bucketServer.listen(0, resolve));
     const address = bucketServer.address();
     if (typeof address !== "object" || address === null) throw new Error("server not listening");
@@ -380,7 +393,7 @@ describe("dev server local scenery uploads (production-scenery FR8)", () => {
 
   beforeAll(async () => {
     folder = await mkdtemp(join(tmpdir(), "local-uploads-"));
-    server = createDevServer({}, folder);
+    server = createDevServer({}, inMemoryProductionListStore(), folder);
     await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
     const address = server.address();
     if (typeof address !== "object" || address === null) throw new Error("server not listening");
@@ -484,7 +497,7 @@ describe("dev server local scenery uploads (production-scenery FR8)", () => {
 
 describe("dev server host check", () => {
   it("refuses a request addressed to another host name (DNS rebinding)", async () => {
-    const server = createDevServer(routes);
+    const server = createDevServer(routes, inMemoryProductionListStore());
     await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
     const address = server.address();
     if (typeof address !== "object" || address === null) throw new Error("server not listening");
@@ -513,7 +526,7 @@ describe("dev server host check", () => {
 
 describe("dev server routes", () => {
   it("serve the account routes too, on the made-up local accounts", async () => {
-    const server = createDevServer(devRoutes());
+    const server = createDevServer(devRoutes(), inMemoryProductionListStore());
     await new Promise<void>((resolve) => server.listen(0, resolve));
     const address = server.address();
     if (typeof address !== "object" || address === null) throw new Error("server not listening");
@@ -590,7 +603,7 @@ describe("dev server local access (production-props FR9)", () => {
   let baseUrl: string;
 
   beforeAll(async () => {
-    server = createDevServer(table);
+    server = createDevServer(table, inMemoryProductionListStore());
     await new Promise<void>((resolve) => server.listen(0, resolve));
     const address = server.address();
     if (typeof address !== "object" || address === null) throw new Error("server not listening");

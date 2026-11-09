@@ -124,6 +124,16 @@ body {
   font-weight: 700;
 }
 
+/* Under the year it changes. Wraps rather than widen a narrow sidebar. */
+.production-switch {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: -1rem 1.5rem 1.5rem;
+  font-size: 0.875rem;
+}
+
 /* Stands out on every page, so the demo can't be mistaken for the real show. */
 .demo-label {
   margin: -1rem 1.5rem 1.5rem;
@@ -2338,7 +2348,8 @@ main a {
   }
 
   /* Its own line under the wordmark and Menu button. */
-  .production-year {
+  .production-year,
+  .production-switch {
     order: 1;
     flex-basis: 100%;
     margin: 0;

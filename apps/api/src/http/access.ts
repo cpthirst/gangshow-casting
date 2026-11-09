@@ -1,5 +1,14 @@
-import { type Access, mayChangeDepartment, needOf, readOnlyRefusal } from "@app/shared";
+import {
+  type Access,
+  isChangeWithinProduction,
+  mayChangeDepartment,
+  mayChangeProduction,
+  needOf,
+  pastProductionRefusal,
+  readOnlyRefusal,
+} from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
+import type { ProductionListStore } from "#/production-list/production-list-store.ts";
 import { jsonResponse, messageResponse } from "./json.ts";
 
 /**
@@ -15,16 +24,47 @@ export function groupsFrom(claim: unknown): string[] {
     .filter(Boolean);
 }
 
+/** Which productions there are, which the past-production rule asks about each change. */
+export type Productions = Pick<ProductionListStore, "list">;
+
 /**
- * A 403 if the caller's access doesn't allow the route; undefined to go ahead (ADR 0026).
- * Each change route names its department, any one of whose permissions allows it, and a
- * refusal says which department (ADR 0035). A route missing from the table needs an admin,
- * and the reads and recording usage nothing.
+ * For a function with no routes within a production, the accounts function. Being asked is a
+ * mistake, so it fails closed: the change goes no further.
  */
-export function accessRefusal(
-  routeKey: string,
+export const noProductions: Productions = {
+  list: () => Promise.reject(new Error("This function has no routes within a production")),
+};
+
+/** The route being asked for, as matchRoute found it. */
+interface AskedRoute {
+  key: string;
+  event: { pathParameters: Record<string, string> };
+}
+
+/**
+ * A 403 if the route can't go ahead for this caller; undefined to go ahead. A production that
+ * isn't the newest comes first, as it's closed to everyone, admins included (simplify FR21).
+ * Then the caller's access (ADR 0026): each change route names its department, any one of
+ * whose permissions allows it, and a refusal says which department (ADR 0035). A route
+ * missing from the table needs an admin, and the reads and recording usage nothing.
+ */
+export async function accessRefusal(
+  route: AskedRoute,
   access: Access,
-): APIGatewayProxyStructuredResultV2 | undefined {
+  productions: Productions,
+): Promise<APIGatewayProxyStructuredResultV2 | undefined> {
+  return (await pastProductionRefused(route, productions)) ?? departmentRefusal(route.key, access);
+}
+
+async function pastProductionRefused({ key, event }: AskedRoute, productions: Productions) {
+  if (!isChangeWithinProduction(key)) return undefined;
+  const { productions: held } = await productions.list();
+  return mayChangeProduction(event.pathParameters.productionId ?? "", held)
+    ? undefined
+    : jsonResponse(403, pastProductionRefusal(held));
+}
+
+function departmentRefusal(routeKey: string, access: Access) {
   if (access === "admin") return undefined;
   const need = needOf(routeKey);
   if (need === undefined) return undefined;

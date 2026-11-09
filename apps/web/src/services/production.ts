@@ -1,10 +1,21 @@
-import type { DepartmentId, FileDepartment, Role } from "@app/shared";
+import {
+  type DepartmentId,
+  type FileDepartment,
+  mayChangeProduction,
+  newestFirst,
+  newestProduction,
+  type ProductionList,
+  type Role,
+} from "@app/shared";
 import { shallowRef } from "vue";
 
 // The production the app shows, held here and nowhere else, and the API's addresses for it. The
 // app opens the newest when it starts (useOpenProduction), and pages are only shown once it has
-// (ADR 0036). A ref, so the sidebar follows when an admin starts a new one.
+// (ADR 0036). Someone can switch to an older one (simplify FR20), held here only, so it lasts
+// until the app is next opened. Refs, so the sidebar and every page follow.
 const open = shallowRef<string>();
+/** The productions as the API last listed them. */
+const listed = shallowRef<ProductionList["productions"]>();
 
 /** Where the API lists the productions. */
 export const PRODUCTIONS_PATH = "/api/productions";
@@ -16,6 +27,29 @@ export const openProductionYear = () => open.value;
 export function openProduction(year: string | undefined) {
   open.value = year;
 }
+
+/** Keeps what the API says the productions are. */
+export function listProductions(productions: ProductionList["productions"]) {
+  listed.value = productions;
+}
+
+/** Keeps the list, and opens its newest. */
+export function openNewestOf(productions: ProductionList["productions"]) {
+  listProductions(productions);
+  open.value = newestProduction(productions);
+}
+
+/** The years to switch between, newest first. */
+export const listedProductionYears = () => newestFirst(listed.value ?? []);
+
+/**
+ * Whether the open production can be changed: only the newest (simplify FR21). Until the list
+ * is known, as in component tests, nothing says otherwise; the API decides either way.
+ */
+export const isOpenProductionChangeable = () =>
+  open.value === undefined ||
+  listed.value === undefined ||
+  mayChangeProduction(open.value, listed.value);
 
 /** Where the API keeps everything about the open production. */
 export function productionPath() {

@@ -60,7 +60,7 @@ prd: ./prd.md
 |---|---|---|---|---|
 | [simplify.E5.S1](stories/E5-S1-open-the-newest-production.md) | Walking skeleton: the app keeps a list of productions, holding today's 2027, opens the newest, and shows its year. Includes the ADR for how the list is held | FR20, FR23 | E4.S4 | done |
 | [simplify.E5.S2](stories/E5-S2-start-a-production.md) | An admin starts a new production by year, on a new admin-only Productions page. It must be a year not already taken, it starts empty, and it becomes the one everyone opens. Accounts and permissions are unchanged | FR19, FR23 | E5.S1 | done |
-| [simplify.E5.S3](stories/E5-S3-look-back-at-a-past-production.md) | Anyone can switch to an older production. It's view only for everyone: the API refuses every change, the pages show "View only", and exports still work | FR20, FR21 | E5.S2, E3.S2 | draft |
+| [simplify.E5.S3](stories/E5-S3-look-back-at-a-past-production.md) | Anyone can switch to an older production. It's view only for everyone: the API refuses every change, the pages show "View only", and exports still work | FR20, FR21 | E5.S2, E3.S2 | done |
 | [simplify.E5.S4](stories/E5-S4-delete-a-past-production.md) | An admin deletes a past production for good, after a confirmation naming its year and the backup window. Its data and files go; its usage records stay until they expire. The newest can't be deleted. Includes the ADR for deleting a production | FR22, FR23 | E5.S3 | draft |
 
 ## Order

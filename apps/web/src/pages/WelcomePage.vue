@@ -20,7 +20,9 @@ import logo from "@/assets/logo.jpg";
     <h2 id="welcome-areas-heading">Where to find things</h2>
     <p>
       Use the menu to move around. It has three areas: choose one below to go to its first page.
-      Help and, for admins, Accounts, Productions and Usage sit beside them.
+      Help and, for admins, Accounts, Productions and Usage sit beside them. You open the newest
+      production. To look back at an older one, which you can view but not change, choose it under
+      the year.
     </p>
     <dl>
       <dt>

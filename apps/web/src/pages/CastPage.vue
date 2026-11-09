@@ -8,7 +8,7 @@ import CastMemberForm from "@/components/show/CastMemberForm.vue";
 import { useAddForm } from "@/composables/useAddForm.ts";
 import { loadData } from "@/services/load-data.ts";
 import { castPath, rolesPath } from "@/services/production.ts";
-import { apiFetch, canChange, isAdmin } from "@/services/sign-in.ts";
+import { apiFetch, canChange } from "@/services/sign-in.ts";
 import {
   type CastFilters,
   deleteWarning,
@@ -356,7 +356,7 @@ onMounted(load);
                 <FontAwesomeIcon :icon="icons.edit" />
               </button>
               <button
-                v-if="isAdmin"
+                v-if="canChange('admins')"
                 type="button"
                 class="icon-button"
                 :aria-label="`Delete ${fullName(member)}`"

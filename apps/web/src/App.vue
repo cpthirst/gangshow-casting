@@ -5,6 +5,7 @@ import logoSmall from "@/assets/logo-small.jpg";
 import HealthStatus from "@/components/app/HealthStatus.vue";
 import LocalAccessSwitch from "@/components/app/LocalAccessSwitch.vue";
 import MainMenu from "@/components/app/MainMenu.vue";
+import ProductionSwitch from "@/components/app/ProductionSwitch.vue";
 import { useMediaQuery } from "@/composables/useMediaQuery.ts";
 import { useOpenProduction } from "@/composables/useOpenProduction.ts";
 import { showPageTitle } from "@/router/index.ts";
@@ -85,7 +86,7 @@ function onMenuChoice(event: MouseEvent) {
 // Leaving the page first lets it ask its own question about unsaved changes; signing out
 // goes ahead only if it lets them leave.
 async function leaveAndSignOut() {
-  const stayed = await router.push({ name: "signing-out" });
+  const stayed = await router.push({ name: "leaving" });
   if (stayed) return;
   await signOut();
 }
@@ -113,6 +114,7 @@ function onEscape() {
         </p>
       </div>
       <p v-if="year" class="production-year" data-test="production-year">Gang Show {{ year }}</p>
+      <ProductionSwitch />
       <p v-if="isDemo" class="demo-label" data-test="demo-label">
         Demo data: a made-up show, reset each time the demo starts
       </p>

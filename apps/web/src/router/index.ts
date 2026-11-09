@@ -201,12 +201,13 @@ export function createAppRouter(history: RouterHistory = createWebHistory()) {
         component: MicPlotItemPage,
         meta: { title: "Item", menuPage: "production-overview" },
       },
-      // Where Sign out goes first, so the page being left can ask about unsaved changes.
+      // Where Sign out and switching production go first, so the page being left can ask
+      // about unsaved changes.
       {
-        path: "/signing-out",
-        name: "signing-out",
+        path: "/leaving",
+        name: "leaving",
         component: { render: () => null },
-        meta: { title: "Signing out" },
+        meta: { title: "Leaving" },
       },
       { path: "/casting", redirect: "/casting/overview" },
       // Bookmarks from before the Casting menu (casting-menus FR4).

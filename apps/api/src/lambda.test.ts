@@ -70,7 +70,7 @@ describe("Lambda entry point", () => {
 
   it("passes the matched path parameters, query and body to the handler", async () => {
     const echo: Handler = async (event) => ({ statusCode: 200, body: JSON.stringify(event) });
-    const entry = lambdaEntry({ "PUT /api/things/{thingId}": echo });
+    const entry = lambdaEntry({ "PUT /api/things/{thingId}": echo }, inMemoryProductionListStore());
 
     // As an admin: a route missing from the shared table is admins' only (ADR 0026).
     const res = await entry(
@@ -108,7 +108,7 @@ describe("Lambda entry point", () => {
 
   it("decodes a body that API Gateway sent base64-encoded", async () => {
     const echo: Handler = async (event) => ({ statusCode: 200, body: event.body ?? "" });
-    const entry = lambdaEntry({ "POST /api/things": echo });
+    const entry = lambdaEntry({ "POST /api/things": echo }, inMemoryProductionListStore());
 
     const res = await entry(
       request(
@@ -150,6 +150,7 @@ describe("Lambda entry point", () => {
           inMemoryUsageStore(),
           { scenery: sceneryFiles, sfx: noSceneryFiles, wardrobe: noSceneryFiles },
         ),
+        inMemoryProductionListStore(),
       );
     };
 
@@ -257,6 +258,7 @@ describe("Lambda entry point", () => {
           inMemoryUsageStore(),
           { scenery: noSceneryFiles, sfx: noSceneryFiles, wardrobe: noSceneryFiles },
         ),
+        inMemoryProductionListStore(),
       );
       return { api, cast, runningOrders };
     };
@@ -417,6 +419,7 @@ describe("Lambda entry point", () => {
           inMemoryUsageStore(),
           { scenery: noSceneryFiles, sfx: noSceneryFiles, wardrobe: noSceneryFiles },
         ),
+        inMemoryProductionListStore(),
       );
       return { api, cast, roles, itemNotes, runningOrders };
     };
@@ -514,12 +517,17 @@ describe("Lambda entry point", () => {
 
     it("refuses every route a read-only member may not use before its handler runs, and lets the rest through", async () => {
       const handler = vi.fn(async () => ({ statusCode: 200 }));
-      const api = lambdaEntry(Object.fromEntries(routeKeys.map((key) => [key, handler])));
+      const api = lambdaEntry(
+        Object.fromEntries(routeKeys.map((key) => [key, handler])),
+        inMemoryProductionListStore(),
+      );
 
       for (const key of routeKeys) {
         handler.mockClear();
         const [method = "", path = ""] = key.split(" ");
-        const res = await api(asReadOnly(method, path.replaceAll(/\{\w+\}/g, "x")));
+        const res = await api(
+          asReadOnly(method, path.replace("{productionId}", "2027").replaceAll(/\{\w+\}/g, "x")),
+        );
 
         if (readOnlyMayUse(key) && !adminOnlyRouteKeys.includes(key)) {
           expect(handler, key).toHaveBeenCalledOnce();
@@ -639,6 +647,7 @@ describe("Lambda entry point", () => {
           inMemoryUsageStore(),
           { scenery: noSceneryFiles, sfx: noSceneryFiles, wardrobe: noSceneryFiles },
         ),
+        inMemoryProductionListStore(),
       );
       // What the stores hold, to show a refused change changed nothing.
       const stored = async () => ({
@@ -669,11 +678,21 @@ describe("Lambda entry point", () => {
     // Every route, each with a stand-in handler, to see which reach it.
     const everyRoute = () => {
       const reached = vi.fn(async () => ({ statusCode: 200 }));
-      const api = lambdaEntry(Object.fromEntries(routeKeys.map((key) => [key, reached])));
+      const api = lambdaEntry(
+        Object.fromEntries(routeKeys.map((key) => [key, reached])),
+        inMemoryProductionListStore(),
+      );
       const send = async (key: string, groups: string) => {
         reached.mockClear();
         const [method = "", path = ""] = key.split(" ");
-        const res = await api(request(method, path.replaceAll(/\{\w+\}/g, "x"), {}, groups));
+        const res = await api(
+          request(
+            method,
+            path.replace("{productionId}", "2027").replaceAll(/\{\w+\}/g, "x"),
+            {},
+            groups,
+          ),
+        );
         return { res, ran: reached.mock.calls.length > 0 };
       };
       return send;
@@ -732,7 +751,10 @@ describe("Lambda entry point", () => {
 
     it("refuses a route missing from the table for everyone but admins, before its handler runs", async () => {
       const reached = vi.fn(async () => ({ statusCode: 200 }));
-      const api = lambdaEntry({ "PUT /api/things/{thingId}": reached });
+      const api = lambdaEntry(
+        { "PUT /api/things/{thingId}": reached },
+        inMemoryProductionListStore(),
+      );
 
       for (const groups of ["[casting stage tech wardrobe]", "[]"]) {
         const res = await api(request("PUT", "/api/things/1", {}, groups));
@@ -979,7 +1001,8 @@ describe("Lambda entry point", () => {
         message: "You can view the props, but not change them.",
         department: "props",
       };
-      const setUpProps = () => {
+      const setUpProps = (years?: string[]) => {
+        const productions = inMemoryProductionListStore(years);
         const cast = inMemoryCastStore();
         const roles = inMemoryRoleStore();
         const props = inMemoryPropStore();
@@ -1000,12 +1023,13 @@ describe("Lambda entry point", () => {
               wardrobeNotes: inMemoryItemNoteStore(),
               micPlotNotes: inMemoryItemNoteStore(),
               micPlots: inMemoryMicPlotStore(),
-              productions: inMemoryProductionListStore(),
+              productions,
               removeCastMember: uncastThenRemove(cast, roles),
             },
             inMemoryUsageStore(),
             { scenery: noSceneryFiles, sfx: noSceneryFiles, wardrobe: noSceneryFiles },
           ),
+          productions,
         );
         return { api, props };
       };
@@ -1046,7 +1070,7 @@ describe("Lambda entry point", () => {
       );
 
       it("gives pat, with Stage, the same access in another production", async () => {
-        const { api, props } = setUpProps();
+        const { api, props } = setUpProps(["2027", "2028"]);
         const pat = as("[stage]");
         const inNext = "/api/productions/2028";
 
@@ -1076,7 +1100,7 @@ describe("Lambda entry point", () => {
         expect(cast.statusCode).toBe(403);
       });
 
-      it("gives pat, with Stage, the same access in the old production and the new one once it starts", async () => {
+      it("keeps pat's Stage access for the new production once it starts, with the old one view only", async () => {
         const { api, props } = setUpProps();
         const started = await api(as("[admin]")("POST", "/api/productions", { year: "2028" }));
         const addTo = (year: string) =>
@@ -1087,7 +1111,7 @@ describe("Lambda entry point", () => {
           );
 
         expect(started.statusCode).toBe(201);
-        expect((await addTo("2027")).statusCode).toBe(201);
+        expect((await addTo("2027")).statusCode).toBe(403);
         expect((await addTo("2028")).statusCode).toBe(201);
         expect((await props.list("2028")).props).toHaveLength(1);
       });
@@ -1185,6 +1209,7 @@ describe("Lambda entry point", () => {
             inMemoryUsageStore(),
             { scenery: noSceneryFiles, sfx: noSceneryFiles, wardrobe: noSceneryFiles },
           ),
+          inMemoryProductionListStore(),
         );
         return { api, itemNotes, propsNotes };
       };
@@ -1276,6 +1301,7 @@ describe("Lambda entry point", () => {
               wardrobe: noSceneryFiles,
             },
           ),
+          inMemoryProductionListStore(),
         );
         return { api, deleted };
       };
@@ -1370,6 +1396,7 @@ describe("Lambda entry point", () => {
             inMemoryUsageStore(),
             { scenery: noSceneryFiles, sfx: noSceneryFiles, wardrobe: noSceneryFiles },
           ),
+          inMemoryProductionListStore(),
         );
         return { api, itemNotes };
       };
@@ -1530,6 +1557,7 @@ describe("Lambda entry point", () => {
             wardrobe: folderItemFileStore(folder, "wardrobe"),
           },
         ),
+        inMemoryProductionListStore(),
       );
       return { api, sceneryNotes };
     };
@@ -1711,6 +1739,7 @@ describe("Lambda entry point", () => {
             wardrobe: folderItemFileStore(folder, "wardrobe"),
           },
         ),
+        inMemoryProductionListStore(),
       );
       return { api, sceneryNotes, sfxNotes };
     };
@@ -1894,6 +1923,7 @@ describe("Lambda entry point", () => {
           inMemoryUsageStore(),
           { scenery: noSceneryFiles, sfx: noSceneryFiles, wardrobe: noSceneryFiles },
         ),
+        inMemoryProductionListStore(),
       );
     };
     const give = (groups: string, channel: number, castMemberId: number | null) =>
@@ -2050,6 +2080,7 @@ describe("Lambda entry point", () => {
           inMemoryUsageStore(),
           { scenery: noSceneryFiles, sfx: noSceneryFiles, wardrobe: noSceneryFiles },
         ),
+        inMemoryProductionListStore(),
       );
     };
     const signedInAs = (username: string, groups: string, method: string, body?: unknown) => ({

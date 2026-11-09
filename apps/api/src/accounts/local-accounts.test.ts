@@ -2,6 +2,7 @@ import type { Server } from "node:http";
 import { AccountList, CreatedAccount } from "@app/shared";
 import { afterEach, describe, expect, it } from "vitest";
 import { createDevServer } from "#/dev-server.ts";
+import { noProductions } from "#/http/access.ts";
 import { localAccountRoutes } from "./local-accounts.ts";
 
 let server: Server | undefined;
@@ -10,7 +11,7 @@ afterEach(
 );
 
 async function serve() {
-  server = createDevServer(localAccountRoutes());
+  server = createDevServer(localAccountRoutes(), noProductions);
   await new Promise<void>((resolve) => server?.listen(0, resolve));
   const address = server.address();
   if (typeof address !== "object" || address === null) throw new Error("server not listening");

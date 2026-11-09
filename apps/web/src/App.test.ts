@@ -236,7 +236,7 @@ describe("App shell", () => {
       vi.stubGlobal("fetch", fetchMock);
       const { router } = await openAppAt("/cast");
 
-      await router.push("/signing-out");
+      await router.push("/leaving");
       await flushPromises();
 
       expect(pageUses(fetchMock)).toEqual([{ event: "page", page: "cast" }]);

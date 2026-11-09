@@ -183,5 +183,8 @@ export const dataLocation = `${where}; ${files.where}`;
 /** The local item files' folder, which the dev server serves; undefined with a bucket. */
 export const localFilesFolder = files.folder;
 
+/** The list of productions the routes act on, for the entry points' refusals (http/access.ts). */
+export const productions = stores.productions;
+
 /** The routes on the data the environment names (data-stores.ts). */
 export const routes = createRoutes(stores, usageStore(), files.stores);
