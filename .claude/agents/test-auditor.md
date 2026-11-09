@@ -20,10 +20,11 @@ You audit tests for a story in this repo. Tests are named after behaviour, not s
    - **Mutation test (in your head):** if you deleted the line(s) implementing this behaviour, or flipped the key condition, would this test fail? If not, it's weak.
    - **Given:** does the test actually set up the stated starting state?
    - **When:** does it act through the public interface (calling API handlers directly or via the dev server, `mount()`, `Template.fromStack()`), not by calling internals?
-   - **Then:** does it assert the *observable outcome* stated in the AC: status codes, response bodies validated with the shared zod schema, rendered text? Not just "no error was thrown", and not a mock having been called.
+   - **Then:** does it assert the *observable outcome* stated in the AC: status codes, response bodies validated with the shared zod schema, what the user can observe, with exact wording only where it's the requirement (safeguarding, a refusal, or an AC that sets it)? Not just "no error was thrown", and not a mock having been called.
    - **Red flags:** tautologies (`expect(1).toBe(1)`), assertions on values the test itself constructed, mocking the unit under test, snapshot-only assertions, missing `await`.
 4. Note any unhappy path implied by the story that no AC or test covers.
-5. Run the story's test files once to confirm they pass.
+5. **Overlap.** For each new test, search for the same behaviour at a lower or shared level, and name the existing test. Report as `should-fix`: a test that repeats one a shared frame, component or rule already has; a test left behind on a page when its code moved; a third copy of a test helper or fake API; a check of exact wording where the wording isn't the requirement. With no story to audit, do this step alone.
+6. Run the story's test files once to confirm they pass.
 
 ## Output (exactly this shape)
 

@@ -15,10 +15,14 @@
 ## Simplicity: one of each, and a layout that explains itself
 
 The bar: simple purpose, architecture, design and implementation, with each change improving the experience of users, maintainers and agents together. iCUE grew one feature at a time and missed it in places, which the `simplify` feature (`docs/product/simplify`) is paying down. These rules stop it recurring, and reviewers check them.
-- **Extend the shared piece, never copy a sibling.** Departments, item pages, kinds of per-item data, list pages and API calls each come in families. Before writing a new one, search for its siblings and add it to their shared list or frame. If there's no shared piece and yours would be the third copy, extract one first.
+- **Extend the shared piece, never copy a sibling.** Departments, item pages, kinds of per-item data, list pages, API calls, stores, handlers, add/edit flows, Help entries and test helpers each come in families. Before writing a new one, search for its siblings and add it to their shared list or frame. If there's no shared piece and yours would be the third copy, extract one first.
+- **Finish the move.** Moving siblings onto a shared piece includes all of them, their tests and their names, and deletes whatever is left behind.
 - **Say a thing once.** A department's name, its permissions, its who-can-change-it line, the production id, and wording that several pages repeat each live in one place that everything reads.
 - **Fix the rule, not the case.** When a shared rule gives one route or page the wrong answer, change the rule (amending its ADR if it has one). Don't add a patch for that one case.
 - **Let the layout explain itself.** Don't add page taglines, hint lines or secondary labels. If a control can never work for this person, hide it rather than disable it with a line saying why. Show a limit only near the limit. What a page is for, and who can change it, belongs in Help (`apps/web/src/utils/help.ts`) and the Welcome page.
+- **A test lives with what it tests.** Test a shared frame, component or rule once, in its own test file. A page keeps one check that it's wired up.
+- **Test helpers are shared code.** The third copy of a helper or fake API goes in a `.fixture.ts`.
+- **Don't pin content.** Assert exact wording only where the wording is the requirement: safeguarding, a refusal, or an AC that sets it. For Help and Welcome, check structure.
 - **Name shared things for what they are.** A style, component or function that more than one page uses is named for its purpose (`.card`), not for the page that first used it (`.role-card`).
 
 ## Platform status
@@ -80,7 +84,7 @@ Playwright walks each page and its forms at 320px and 360px, checking nothing sc
 ## Skills (`.claude/skills/`)
 
 Delivery chain: **write-prd → story-map → write-story → implement-story → open-pr**, plus **adr** for decisions.
-New feature work starts from a story with Given/When/Then ACs. If there isn't one, offer the chain rather than coding from a vague request. Every AC needs at least one test, except in a documentation story (see Workflow): `test-auditor` checks the mapping at review, and the PR lists which test covers each AC.
+New feature work starts from a story with Given/When/Then ACs. If there isn't one, offer the chain rather than coding from a vague request. Every AC needs at least one test, at the lowest level that owns the behaviour, except in a documentation story (see Workflow): `test-auditor` checks the mapping at review, and the PR lists which test covers each AC.
 
 **batch-stories** (`/batch-stories on <feature>` / `off` / `status`) is a user-only toggle. It lets you build one feature's stories on one branch, committing and pushing each, with a single PR at the end. Only the user can start it.
 
@@ -93,7 +97,7 @@ Run after the gate is green, before a story is `done` or a PR is opened. **Skip 
 | Reviewer | Run when the diff (`git diff main...HEAD`) touches |
 |---|---|
 | `code-reviewer` | always |
-| `test-auditor` | a story is being implemented |
+| `test-auditor` | a story is being implemented, or more than ~50 test lines change |
 | `security-reviewer` | non-test code in `apps/api` (including `routes.ts` and `dev-server.ts`) or `packages/shared`; `apps/web` code that touches sign-in, tokens, browser storage, `fetch` or other URLs, or renders raw HTML (`v-html`, `innerHTML`); or dependency changes in any `package.json` / `pnpm-workspace.yaml`. When unsure, run it |
 | `infra-reviewer` | `infra/`, `tooling/src/release.ts`, or anything that changes how the API is packaged or deployed |
 | `ux-reviewer` | `apps/web` (advisory: never blocks) |

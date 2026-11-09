@@ -17,7 +17,7 @@ Output: `docs/product/<feature>/story-map.md` from [templates/story-map.md](temp
    - **Small**: about a day's work, one PR under ~400 changed lines (`.md` files don't count). Split anything bigger.
    - **INVEST**: independent where possible, valuable, testable.
    - For a brand-new feature, make `E1.S1` a **walking skeleton**: the thinnest end-to-end path, deployed.
-   - **Shared piece first.** If the feature adds a sibling to something the app has (a department, item page or per-item data kind) and no shared list or frame holds the siblings yet, the first story extracts one and moves the existing siblings onto it, so no later story copies one (CLAUDE.md, "Simplicity").
+   - **Shared piece first.** If the feature adds a sibling to something the app has (a department, item page or per-item data kind) and no shared list or frame holds the siblings yet, the first story extracts one and moves the existing siblings and their tests onto it, so no later story copies one (CLAUDE.md, "Simplicity").
 4. **Sequence.** Record dependencies (`Depends on`). Order stories so each one builds on finished work.
 5. **Check coverage.** Every FR in the PRD maps to at least one story. Fill in the coverage table; any gap is a missing story or a requirement to drop (ask the user which).
 6. **Checkpoint.** Show the map (epics, story titles, order, coverage) and wait for the user's approval or changes. Don't create story files before then.

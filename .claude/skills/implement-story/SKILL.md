@@ -14,12 +14,12 @@ Input: a story file in `docs/product/<feature>/stories/`. Done means: every AC h
 1. **Pick the story.** If asked for "the next one", take the first `ready` story in `story-map.md` order whose dependencies are `done`. If the story is `draft`, refine it with the `write-story` skill first, and get the user's agreement.
 2. **Branch** off an up-to-date `main`: `feat/<feature>-e<n>-s<n>-<slug>`.
 3. **Mark it `in-progress`** in the story frontmatter and the story map.
-4. **Find the siblings.** Search for code that already does the job the story needs: another department, item page, store, list page, style or API call. Plan to extend it (CLAUDE.md, "Simplicity"). If extending it means extracting a shared piece that's too big for this story, stop and suggest a story for it first.
-5. **Plan the tests.** For each AC, decide where its test lives: `packages/shared` for contracts, `apps/api` by calling its handlers directly, `apps/web` with `mount()`, or `infra` with `Template` assertions. If the API shape changes, the zod schema in `packages/shared` changes first.
+4. **Find the siblings.** Search for code that already does the job the story needs: another department, item page, store, list page, style, API call, test or fixture. Plan to extend it (CLAUDE.md, "Simplicity"). If extending it means extracting a shared piece that's too big for this story, stop and suggest a story for it first.
+5. **Plan the tests.** For each AC, decide where its test lives: `packages/shared` for contracts, `apps/api` by calling its handlers directly, `apps/web` with `mount()`, or `infra` with `Template` assertions. Choose the lowest level that owns the behaviour. If a shared piece's tests already cover an AC, add only the check that it's wired up. If the API shape changes, the zod schema in `packages/shared` changes first.
 6. **For each AC, in order:**
    1. **Red**: write a test for the AC, named after the behaviour (e.g. `it("shows unavailable when the API is unreachable")`), structured Given / When / Then. Run it and confirm it fails *for the expected reason* (missing behaviour, not a typo).
    2. **Green**: write the minimum code to pass it.
-   3. **Refactor** with all tests green, folding anything you copied into the shared piece.
+   3. **Refactor** with all tests green, folding anything you copied into the shared piece, and copied test setup into a fixture.
 7. **Gate.** Run `pnpm check` and get it green.
 8. **Review.** Run the review loop in CLAUDE.md. `test-auditor` always runs for a story; give it the story path. Keep the non-blocking findings for the PR. If `ux-reviewer` ran, ask the user what to do with its findings (CLAUDE.md, review loop step 5). If the story adds a page or form the browser layout tests don't walk, ask whether to add one.
 9. **Close out.** Set `status: done` in the story and the story map.
