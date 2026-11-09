@@ -1,6 +1,6 @@
 import { SceneryFileList } from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { loadData } from "./load-data.ts";
+import { AccessRefused, loadData, loadRequired } from "./load-data.ts";
 import { signInNeeded, useLocalSignIn } from "./sign-in.ts";
 
 beforeEach(useLocalSignIn);
@@ -55,5 +55,37 @@ describe("Loading data from the API", () => {
 
     await expect(loadData(PATH, SceneryFileList)).rejects.toThrow();
     expect(signInNeeded.value).toBe(true);
+  });
+
+  it("says so when the API refuses this person the data", async () => {
+    apiAnswers(() => new Response(null, { status: 403 }));
+
+    await expect(loadData(PATH, SceneryFileList)).rejects.toBeInstanceOf(AccessRefused);
+  });
+
+  it("doesn't call any other failure a refusal", async () => {
+    apiAnswers(() => new Response(null, { status: 500 }));
+
+    await expect(loadData(PATH, SceneryFileList)).rejects.not.toBeInstanceOf(AccessRefused);
+  });
+});
+
+describe("Loading data that must be there", () => {
+  it("reads the API's answer by its schema", async () => {
+    apiAnswers(() => new Response(JSON.stringify({ files: [] })));
+
+    await expect(loadRequired(PATH, SceneryFileList)).resolves.toEqual({ files: [] });
+  });
+
+  it("fails when there's nothing there", async () => {
+    apiAnswers(() => new Response(null, { status: 404 }));
+
+    await expect(loadRequired(PATH, SceneryFileList)).rejects.toThrow();
+  });
+
+  it("fails as loading does when the API fails", async () => {
+    apiAnswers(() => new Response(null, { status: 500 }));
+
+    await expect(loadRequired(PATH, SceneryFileList)).rejects.toThrow("HTTP 500");
   });
 });

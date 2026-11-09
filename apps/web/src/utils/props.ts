@@ -11,18 +11,16 @@ import {
 } from "@app/shared";
 import { sortCast } from "./cast.ts";
 import { countInWords } from "./departments.ts";
+import { PRODUCTION_PATH } from "./production.ts";
 import { type CastMemberChoice, castOf, fullName, sortRoles } from "./roles.ts";
 import { runningClock } from "./running-order.ts";
 
-// Only one production for now (see docs/product/running-order/prd.md).
-const PRODUCTION_ID = "2027";
-
 /** Every prop in the production (production-props FR13). */
-export const PROPS_PATH = `/api/productions/${PRODUCTION_ID}/props`;
+export const PROPS_PATH = `${PRODUCTION_PATH}/props`;
 
 /** Where a new prop for this item is posted. */
 export const addPropPath = (itemId: string) =>
-  `/api/productions/${PRODUCTION_ID}/items/${encodeURIComponent(itemId)}/props`;
+  `${PRODUCTION_PATH}/items/${encodeURIComponent(itemId)}/props`;
 
 /** Where one prop is edited (PUT) or removed (DELETE). */
 export const propPath = (propId: number) => `${PROPS_PATH}/${propId}`;

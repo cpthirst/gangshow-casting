@@ -205,14 +205,14 @@ async function allocate(channel: number, castMemberId: number | null) {
       <li
         v-for="mic in channels"
         :key="mic.channel"
-        class="role-card mic-channel"
+        class="card mic-channel"
         :class="{ 'mic-held': isHeld(mic), 'mic-kept': isKept(mic) }"
         data-test="mic"
         @focusout="leave(mic.channel)"
       >
         <template v-if="canChange('mic-plot')">
-          <!-- role-actions: on phones the icon gets its own line, as on role and prop cards. -->
-          <span class="role-actions row-icons">
+          <!-- card-icons: on phones the icon gets its own line, as on role and prop cards. -->
+          <span class="card-icons row-icons">
             <button
               type="button"
               class="icon-button"

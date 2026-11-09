@@ -554,7 +554,7 @@ describe("Deleting a scenery file", () => {
     const { wrapper } = await openAppAt(OPENING_NUMBER);
 
     const row = wrapper.get("main [data-test=file]");
-    expect(row.classes()).toContain("role-card");
+    expect(row.classes()).toContain("card");
     const parts = row.findAll("[data-test=delete], .file-icon, [data-test=name]");
     expect(parts.map((part) => part.attributes("data-test") ?? "icon")).toEqual([
       "delete",

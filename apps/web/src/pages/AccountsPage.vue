@@ -10,6 +10,7 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, nextTick, onMounted, ref, useId } from "vue";
 import AccessChoice from "@/components/common/AccessChoice.vue";
+import { AccessRefused, loadRequired } from "@/services/load-data.ts";
 import { apiFetch, signedInUsername } from "@/services/sign-in.ts";
 import {
   ACCOUNTS_PATH,
@@ -65,15 +66,13 @@ const issuedNotice = ref<HTMLElement>();
 
 async function load() {
   try {
-    const res = await apiFetch(ACCOUNTS_PATH);
-    if (res.status === 403) {
-      state.value = { status: "error", message: "Only admins can see accounts." };
-      return;
-    }
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    state.value = { status: "loaded", list: AccountList.parse(await res.json()) };
-  } catch {
-    state.value = { status: "error", message: "Couldn't load the accounts." };
+    state.value = { status: "loaded", list: await loadRequired(ACCOUNTS_PATH, AccountList) };
+  } catch (error) {
+    const message =
+      error instanceof AccessRefused
+        ? "Only admins can see accounts."
+        : "Couldn't load the accounts.";
+    state.value = { status: "error", message };
   }
 }
 
@@ -347,7 +346,7 @@ onMounted(load);
   <p v-else-if="state.status === 'error'" role="alert">{{ state.message }}</p>
   <template v-else>
     <p class="visually-hidden" role="status" data-test="announcement">{{ announcement }}</p>
-    <div class="cast-actions">
+    <div class="button-row">
       <button
         ref="addButton"
         type="button"
@@ -363,7 +362,7 @@ onMounted(load);
     <form
       v-if="adding"
       data-test="create-account"
-      class="cast-member-form"
+      class="form"
       aria-label="Add an account"
       novalidate
       @submit.prevent="create"
@@ -432,13 +431,13 @@ onMounted(load);
     <p v-if="accounts.length === 0">No accounts yet.</p>
     <div
       v-else
-      class="table-scroll cast-table"
+      class="table-scroll data-table-box"
       tabindex="0"
       role="region"
       aria-label="Accounts"
     >
       <!-- The Cast list's look, so phones show each account as a card too. -->
-      <table class="cast-list accounts-list">
+      <table class="data-table accounts-list">
         <thead>
           <tr>
             <th scope="col" class="actions">Actions</th>

@@ -2,7 +2,7 @@
 id: simplify.E4.S4
 title: Take the production from one place in the web app
 epic: E4
-status: draft
+status: done
 ---
 
 ## Story

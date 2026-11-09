@@ -350,7 +350,7 @@ describe("Cast page", () => {
       serve(cast());
       const wrapper = await openPage();
 
-      const fields = wrapper.findAll("form.cast-filters :is(input, select)");
+      const fields = wrapper.findAll("form.filter-bar :is(input, select)");
       expect(fields.map((field) => field.attributes("name"))).toEqual([
         "firstName",
         "lastName",

@@ -2,7 +2,7 @@
 id: simplify.E4.S3
 title: Give the shared styles names that say what they are
 epic: E4
-status: draft
+status: done
 ---
 
 ## Story

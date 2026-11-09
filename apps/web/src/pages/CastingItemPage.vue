@@ -190,8 +190,8 @@ async function sendRemove(role: Role) {
 
 async function loadRoles() {
   try {
-    const res = await apiFetch(ROLES_PATH);
-    if (res.ok) roles.value = RoleList.parse(await res.json()).roles;
+    const list = await loadData(ROLES_PATH, RoleList);
+    if (list) roles.value = list.roles;
   } catch {
     // Keep what's shown; the notice still says it may be out of date.
   }
@@ -248,7 +248,7 @@ async function postRole(itemId: string, details: AddRoleRequest) {
     :list="{ name: 'casting-items' }"
     :load="loadCasting"
   >
-    <div v-if="canChange('casting')" class="cast-actions">
+    <div v-if="canChange('casting')" class="button-row">
       <button
         ref="addButton"
         type="button"
@@ -273,11 +273,11 @@ async function postRole(itemId: string, details: AddRoleRequest) {
     />
     <!-- An explicit list role: Safari drops list semantics once bullets are styled away,
          and the count of roles should be announced (AC6). -->
-    <ul v-if="itemRoles.length > 0" class="role-cards" role="list" aria-label="Roles">
+    <ul v-if="itemRoles.length > 0" class="card-list" role="list" aria-label="Roles">
       <li
         v-for="role in itemRoles"
         :key="role.id"
-        :class="['role-card', { editing: editing?.id === role.id }]"
+        :class="['card', { editing: editing?.id === role.id }]"
         :data-role-id="role.id"
         data-test="role"
       >
@@ -296,7 +296,7 @@ async function postRole(itemId: string, details: AddRoleRequest) {
         />
         <template v-else>
           <!-- Icons first, as on the Running order and Items pages; above the role on phones. -->
-          <span v-if="canChange('casting')" class="role-actions row-icons">
+          <span v-if="canChange('casting')" class="card-icons row-icons">
             <button
               type="button"
               class="icon-button"
@@ -320,7 +320,7 @@ async function postRole(itemId: string, details: AddRoleRequest) {
               <FontAwesomeIcon :icon="icons.remove" />
             </button>
           </span>
-          <span class="role-name">{{ role.name }}</span>
+          <span class="card-name">{{ role.name }}</span>
           <!-- Real spaces, so a screen reader hears "Captain Hook Lead Uncast", not one word. -->
           {{ " " }}
           <span :class="['pill', `pill-${role.size}`]" data-test="size">{{

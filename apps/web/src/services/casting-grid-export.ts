@@ -1,12 +1,12 @@
 import type { CastingGridExportRequest } from "@app/shared";
 import { fullGridHeading, type GridColumn, type GridRow } from "@/utils/overview.ts";
+import { PRODUCTION_PATH } from "@/utils/production.ts";
 import { roleSizeLetter } from "@/utils/roles.ts";
 import { exportFileName, saveFile } from "./export-file.ts";
 import { apiFetch } from "./sign-in.ts";
 
-// Only one production for now (see docs/product/running-order/prd.md).
 /** Every role (ADR 0021): the server turns the grid it is sent into an Excel file (ADR 0019). */
-export const EXPORT_PATH = "/api/productions/2027/casting-grid/export";
+export const EXPORT_PATH = `${PRODUCTION_PATH}/casting-grid/export`;
 
 /** The grid exactly as shown, for the server to make a file from: whole item headings (the
  *  screen cuts long ones short) and one role letter, or nothing, in each cell. */

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { HealthResponse } from "@app/shared";
 import { computed, onMounted, ref } from "vue";
-import { apiFetch, signInNeeded } from "@/services/sign-in.ts";
+import { loadRequired } from "@/services/load-data.ts";
+import { signInNeeded } from "@/services/sign-in.ts";
 
 const status = ref("checking…");
 // The API answers no one until they sign in, which isn't the same as it being down.
@@ -14,9 +15,7 @@ const releaseOf = (version: string) => (/^\d/.test(version) ? `v${version}` : ve
 
 onMounted(async () => {
   try {
-    const res = await apiFetch("/api/health");
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const { status: health, version } = HealthResponse.parse(await res.json());
+    const { status: health, version } = await loadRequired("/api/health", HealthResponse);
     status.value = health;
     release.value = releaseOf(version);
   } catch {

@@ -215,7 +215,7 @@ async function postProp(itemId: string, details: AddPropRequest) {
 
 <template>
   <ItemPageFrame department="props" :load="loadProps">
-    <div v-if="canChange('props')" class="cast-actions">
+    <div v-if="canChange('props')" class="button-row">
       <button
         ref="addButton"
         type="button"
@@ -238,10 +238,10 @@ async function postProp(itemId: string, details: AddPropRequest) {
       @cancel="stopAdding"
     />
     <!-- An explicit list role: Safari drops list semantics once bullets are styled away. -->
-    <ul v-if="itemProps.length > 0" class="role-cards" role="list" aria-label="Props">
+    <ul v-if="itemProps.length > 0" class="card-list" role="list" aria-label="Props">
       <template v-for="prop in itemProps" :key="prop.id">
         <!-- While editing, the card holds the form instead. -->
-        <li v-if="editing?.id === prop.id" class="role-card editing" :data-prop-id="prop.id">
+        <li v-if="editing?.id === prop.id" class="card editing" :data-prop-id="prop.id">
           <PropForm
             :prop="prop"
             :saving="saving"

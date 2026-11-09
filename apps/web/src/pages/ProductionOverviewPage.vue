@@ -17,7 +17,8 @@ import DraftNumber from "@/components/common/DraftNumber.vue";
 import PageTitle from "@/components/common/PageTitle.vue";
 import { downloadMicPlot } from "@/services/excel-export.ts";
 import { latestMicPlot, latestPropsList } from "@/services/latest-show.ts";
-import { apiFetch, canChange } from "@/services/sign-in.ts";
+import { loadData, loadRequired } from "@/services/load-data.ts";
+import { canChange } from "@/services/sign-in.ts";
 import { recordExport } from "@/services/usage.ts";
 import { downloadPropsList } from "@/services/word-export.ts";
 import {
@@ -215,10 +216,8 @@ onMounted(() => {
 
 async function loadNotes(path: string): Promise<Notes> {
   try {
-    const res = await apiFetch(path);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const list = ItemNoteList.parse(await res.json()).notes;
-    return new Map(list.filter((n) => n.text !== "").map((n) => [n.itemId, n.text]));
+    const list = await loadRequired(path, ItemNoteList);
+    return new Map(list.notes.filter((n) => n.text !== "").map((n) => [n.itemId, n.text]));
   } catch {
     // The items still show; only these notes are missing.
     return "error";
@@ -227,9 +226,7 @@ async function loadNotes(path: string): Promise<Notes> {
 
 async function loadProps() {
   try {
-    const res = await apiFetch(PROPS_PATH);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    propsCountOf.value = propCounts(PropList.parse(await res.json()).props);
+    propsCountOf.value = propCounts((await loadRequired(PROPS_PATH, PropList)).props);
   } catch {
     propsCountOf.value = "error";
   }
@@ -237,9 +234,7 @@ async function loadProps() {
 
 async function loadMicPlots() {
   try {
-    const res = await apiFetch(MIC_PLOT_PATH);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    micPlots.value = MicPlotList.parse(await res.json()).items;
+    micPlots.value = (await loadRequired(MIC_PLOT_PATH, MicPlotList)).items;
   } catch {
     micPlots.value = "error";
   }
@@ -248,9 +243,7 @@ async function loadMicPlots() {
 // From file storage on every visit, so a file added there is counted (FR14).
 async function loadFileCounts(department: FileDepartment): Promise<Counts> {
   try {
-    const res = await apiFetch(fileCountsPath(department));
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const { counts } = SceneryFileCounts.parse(await res.json());
+    const { counts } = await loadRequired(fileCountsPath(department), SceneryFileCounts);
     return (itemId) => counts[itemId] ?? 0;
   } catch {
     return "error";
@@ -260,13 +253,8 @@ async function loadFileCounts(department: FileDepartment): Promise<Counts> {
 async function loadRunningOrder() {
   try {
     // The latest saved version, as on the casting Items list.
-    const res = await apiFetch(RUNNING_ORDER_PATH);
-    if (res.status === 404) {
-      state.value = { status: "empty" };
-      return;
-    }
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    state.value = { status: "loaded", order: RunningOrder.parse(await res.json()) };
+    const order = await loadData(RUNNING_ORDER_PATH, RunningOrder);
+    state.value = order ? { status: "loaded", order } : { status: "empty" };
   } catch {
     // A failed load must never look like "no running order yet".
     state.value = { status: "error" };
@@ -314,7 +302,7 @@ async function loadRunningOrder() {
     <section v-for="{ half, rows } in halves" :key="half.id" class="half" :aria-labelledby="half.id">
       <h2 :id="half.id">{{ half.name }}</h2>
       <div class="table-scroll" tabindex="0" role="region" :aria-label="`${half.name} items`">
-        <table class="running-order items-list" role="table">
+        <table class="items-table items-list" role="table">
           <!-- The same column widths in both halves, so they line up. -->
           <colgroup>
             <col class="col-departments" />
@@ -346,7 +334,7 @@ async function loadRunningOrder() {
                 :data-item-id="item.id"
                 :class="{ 'not-printed': number === null }"
               >
-                <td class="moves" data-label="Open" role="cell">
+                <td class="icon-column" data-label="Open" role="cell">
                   <!-- Each says whether it edits or views, by the department's permission. -->
                   <RouterLink
                     v-for="department in departmentPages"
