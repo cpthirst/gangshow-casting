@@ -4,12 +4,13 @@ import {
   channelsKeptAgainstTheRule,
   RunningOrderItem,
 } from "@app/shared";
-import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import type { RoleStore } from "#/casting/roles/role-store.ts";
-import type { ApiEvent } from "#/http/handler.ts";
+import { type Handler, inProduction } from "#/http/handler.ts";
 import { jsonResponse, parseJson } from "#/http/json.ts";
-import { productionIdOf } from "#/http/params.ts";
-import type { RunningOrderStore } from "#/show/running-order/running-order-store.ts";
+import {
+  latestOrderWith,
+  type RunningOrderStore,
+} from "#/show/running-order/running-order-store.ts";
 import type { MicPlotStore } from "./mic-plot-store.ts";
 
 // PUT /api/productions/{productionId}/items/{itemId}/mic-plot: give one of the item's channels
@@ -22,19 +23,17 @@ export function createAllocateMic(
   micPlots: MicPlotStore,
   runningOrders: RunningOrderStore,
   roles: RoleStore,
-) {
-  return async (event: ApiEvent): Promise<APIGatewayProxyStructuredResultV2> => {
-    const productionId = productionIdOf(event);
+): Handler {
+  return inProduction(async (productionId, event) => {
     const itemId = RunningOrderItem.shape.id.safeParse(event.pathParameters?.itemId);
-    if (productionId === undefined || !itemId.success) return { statusCode: 404 };
+    if (!itemId.success) return { statusCode: 404 };
     // The body is checked first, so a bad request is a 400 whatever the item.
     const request = AllocateMicRequest.safeParse(parseJson(event.body));
     if (!request.success) return { statusCode: 400 };
 
     // Mic plots belong to items in the latest saved running order, as roles do.
-    const order = await runningOrders.latest(productionId);
-    const inShow = order?.halves.some((half) => half.items.some((item) => item.id === itemId.data));
-    if (!order || !inShow) return { statusCode: 404 };
+    const order = await latestOrderWith(runningOrders, productionId, itemId.data);
+    if (!order) return { statusCode: 404 };
 
     const { channel, castMemberId } = request.data;
     if (castMemberId !== null) {
@@ -53,5 +52,5 @@ export function createAllocateMic(
     const plot = await micPlots.allocate(productionId, itemId.data, channel, castMemberId);
     if ("onAnotherChannel" in plot) return jsonResponse(409, plot.onAnotherChannel);
     return jsonResponse(200, plot);
-  };
+  });
 }

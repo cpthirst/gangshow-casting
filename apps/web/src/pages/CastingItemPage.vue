@@ -9,11 +9,12 @@ import {
   type RunningOrder,
 } from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-import { computed, nextTick, ref } from "vue";
-import { useRoute } from "vue-router";
+import { computed, ref } from "vue";
 import RoleForm from "@/components/casting/RoleForm.vue";
 import ClashIcon from "@/components/common/ClashIcon.vue";
 import ItemPageFrame from "@/components/common/ItemPageFrame.vue";
+import { useItemPlace } from "@/composables/useItemPlace.ts";
+import { useListEditing } from "@/composables/useListEditing.ts";
 import { loadData } from "@/services/load-data.ts";
 import {
   addRolePath,
@@ -22,7 +23,7 @@ import {
   rolesPath,
   updateRolePath,
 } from "@/services/production.ts";
-import { apiFetch, canChange } from "@/services/sign-in.ts";
+import { canChange, deleteStatus, sendJson } from "@/services/sign-in.ts";
 import { clashesOf, describeEach, findClashes } from "@/utils/clashes.ts";
 import { icons } from "@/utils/icons.ts";
 import {
@@ -33,20 +34,15 @@ import {
   roleSizeLabel,
   sortRoles,
 } from "@/utils/roles.ts";
-import { placeOf } from "@/utils/running-order.ts";
 
 // One item's roles and who plays them, in the frame every item page shares, with the item's
 // Casting notes under them.
 
-const route = useRoute();
 const order = ref<RunningOrder>();
 const roles = ref<Role[]>([]);
 const cast = ref<CastMember[]>([]);
 
-const place = computed(() => {
-  const itemId = route.params.itemId;
-  return order.value && typeof itemId === "string" ? placeOf(order.value, itemId) : undefined;
-});
+const place = useItemPlace(order);
 
 // Worked out from the saved running order and every role, so other items count too
 // (casting-rules FR1).
@@ -84,32 +80,20 @@ async function loadCasting() {
   };
 }
 
-const adding = ref(false);
-/** The role whose edit form is open, if any. One form at a time. */
-const editing = ref<Role | null>(null);
-const saving = ref(false);
-const formError = ref("");
-const notice = ref("");
-const addButton = ref<HTMLButtonElement>();
-const busy = computed(() => adding.value || editing.value !== null || saving.value);
-
-function startAdding() {
-  formError.value = "";
-  notice.value = "";
-  adding.value = true;
-}
-
-function startEditing(role: Role) {
-  formError.value = "";
-  notice.value = "";
-  editing.value = role;
-}
-
-async function stopEditing(id: number) {
-  editing.value = null;
-  await nextTick();
-  document.querySelector<HTMLButtonElement>(`[data-role-id="${id}"] [data-test=edit]`)?.focus();
-}
+const {
+  adding,
+  addButton,
+  editing,
+  saving,
+  formError,
+  notice,
+  busy,
+  startAdding,
+  stopAdding,
+  startEditing,
+  stopEditing,
+  focusAddButton,
+} = useListEditing<Role>("data-role-id");
 
 // Saves straight away (PRD FR8), unless someone else changed or removed the role first.
 async function saveEdit(details: AddRoleRequest) {
@@ -138,10 +122,9 @@ async function saveEdit(details: AddRoleRequest) {
 
 async function putRole(role: Role, details: AddRoleRequest) {
   try {
-    const res = await apiFetch(updateRolePath(role.id), {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ ...details, revision: role.revision }),
+    const res = await sendJson(updateRolePath(role.id), "PUT", {
+      ...details,
+      revision: role.revision,
     });
     if (res.ok) return Role.parse(await res.json());
     if (res.status === 409 || res.status === 404) return "conflict";
@@ -167,26 +150,16 @@ async function removeRole(role: Role) {
   if (!window.confirm(question)) return;
   saving.value = true;
   notice.value = "";
-  const status = await sendRemove(role);
+  const status = await deleteStatus(removeRolePath(role));
   saving.value = false;
   if (status === 204) {
     roles.value = roles.value.filter((r) => r.id !== role.id);
     // Its buttons are gone, so keep keyboard focus on the page.
-    await nextTick();
-    addButton.value?.focus();
+    await focusAddButton();
   } else if (status === 409 || status === 404) {
     await showConflict();
   } else {
     notice.value = `Couldn't remove ${role.name}. Try again.`;
-  }
-}
-
-// The status code, or undefined if the request didn't get an answer.
-async function sendRemove(role: Role) {
-  try {
-    return (await apiFetch(removeRolePath(role), { method: "DELETE" })).status;
-  } catch {
-    return undefined;
   }
 }
 
@@ -197,12 +170,6 @@ async function loadRoles() {
   } catch {
     // Keep what's shown; the notice still says it may be out of date.
   }
-}
-
-async function stopAdding() {
-  adding.value = false;
-  await nextTick();
-  addButton.value?.focus();
 }
 
 // Saves straight away (PRD FR8). On failure the form stays open with what was typed.
@@ -227,11 +194,7 @@ async function add(details: AddRoleRequest) {
 
 async function postRole(itemId: string, details: AddRoleRequest) {
   try {
-    const res = await apiFetch(addRolePath(itemId), {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(details),
-    });
+    const res = await sendJson(addRolePath(itemId), "POST", details);
     if (res.status === 201) return Role.parse(await res.json());
     if (res.status === 400 && AddRoleRefusal.safeParse(await res.json()).success) {
       return "name-taken";

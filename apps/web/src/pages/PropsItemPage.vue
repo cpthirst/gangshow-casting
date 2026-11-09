@@ -1,25 +1,26 @@
 <script setup lang="ts">
 import {
-  type AddPropRequest,
   CastList,
   type CastMember,
   Prop,
+  type PropDetails,
   PropList,
   type Role,
   RoleList,
   type RunningOrder,
 } from "@app/shared";
-import { computed, nextTick, ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import ItemPageFrame from "@/components/common/ItemPageFrame.vue";
 import PropCard from "@/components/production/PropCard.vue";
 import PropForm from "@/components/production/PropForm.vue";
+import { useItemPlace } from "@/composables/useItemPlace.ts";
+import { useListEditing } from "@/composables/useListEditing.ts";
 import { loadData } from "@/services/load-data.ts";
 import { addPropPath, castPath, propPath, propsPath, rolesPath } from "@/services/production.ts";
-import { apiFetch, canChange } from "@/services/sign-in.ts";
+import { canChange, deleteStatus, sendJson } from "@/services/sign-in.ts";
 import { sortProps } from "@/utils/props.ts";
 import { sortRoles } from "@/utils/roles.ts";
-import { placeOf } from "@/utils/running-order.ts";
 
 // One item's props (production-props FR16, FR17, FR19), in the frame every item page shares,
 // with the item's Props notes under them.
@@ -31,10 +32,7 @@ const props = ref<Prop[]>([]);
 const roles = ref<Role[]>([]);
 const cast = ref<CastMember[]>([]);
 
-const place = computed(() => {
-  const itemId = route.params.itemId;
-  return order.value && typeof itemId === "string" ? placeOf(order.value, itemId) : undefined;
-});
+const place = useItemPlace(order);
 
 const itemProps = computed(() =>
   sortProps(props.value.filter((prop) => prop.itemId === place.value?.item.id)),
@@ -60,14 +58,21 @@ async function loadProps() {
   };
 }
 
-const adding = ref(false);
-/** The prop whose edit form is open, if any. One form at a time. */
-const editing = ref<Prop | null>(null);
-const saving = ref(false);
-const formError = ref("");
-const notice = ref("");
-const addButton = ref<HTMLButtonElement>();
-const busy = computed(() => adding.value || editing.value !== null || saving.value);
+const {
+  adding,
+  addButton,
+  editing,
+  saving,
+  formError,
+  notice,
+  busy,
+  startAdding,
+  stopAdding,
+  startEditing,
+  stopEditing,
+  focusAddButton,
+  clearMessages,
+} = useListEditing<Prop>("data-prop-id");
 
 // A form opened on one item never carries over to the next (Previous and Next reuse the page).
 watch(
@@ -75,31 +80,12 @@ watch(
   () => {
     adding.value = false;
     editing.value = null;
-    formError.value = "";
-    notice.value = "";
+    clearMessages();
   },
 );
 
-function startAdding() {
-  formError.value = "";
-  notice.value = "";
-  adding.value = true;
-}
-
-function startEditing(prop: Prop) {
-  formError.value = "";
-  notice.value = "";
-  editing.value = prop;
-}
-
-async function stopEditing(id: number) {
-  editing.value = null;
-  await nextTick();
-  document.querySelector<HTMLButtonElement>(`[data-prop-id="${id}"] [data-test=edit]`)?.focus();
-}
-
 // Saves straight away. On failure the form stays open with the edit in it.
-async function saveEdit(details: AddPropRequest) {
+async function saveEdit(details: PropDetails) {
   const prop = editing.value;
   if (!prop || saving.value) return;
   saving.value = true;
@@ -119,13 +105,9 @@ async function saveEdit(details: AddPropRequest) {
   await stopEditing(result.id);
 }
 
-async function putProp(id: number, details: AddPropRequest) {
+async function putProp(id: number, details: PropDetails) {
   try {
-    const res = await apiFetch(propPath(id), {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(details),
-    });
+    const res = await sendJson(propPath(id), "PUT", details);
     if (res.ok) return Prop.parse(await res.json());
     return res.status === 404 ? "gone" : undefined;
   } catch {
@@ -139,26 +121,16 @@ async function removeProp(prop: Prop) {
   if (!window.confirm(`Remove the prop ${prop.name} from ${place.value.item.title}?`)) return;
   saving.value = true;
   notice.value = "";
-  const status = await sendRemove(prop.id);
+  const status = await deleteStatus(propPath(prop.id));
   saving.value = false;
   if (status === 204) {
     props.value = props.value.filter((p) => p.id !== prop.id);
     // Its buttons are gone, so keep keyboard focus on the page.
-    await nextTick();
-    addButton.value?.focus();
+    await focusAddButton();
   } else if (status === 404) {
     await showGone(prop);
   } else {
     notice.value = `Couldn't remove ${prop.name}. Try again.`;
-  }
-}
-
-// The status code, or undefined if the request didn't get an answer.
-async function sendRemove(id: number) {
-  try {
-    return (await apiFetch(propPath(id), { method: "DELETE" })).status;
-  } catch {
-    return undefined;
   }
 }
 
@@ -178,14 +150,8 @@ async function reloadProps() {
   }
 }
 
-async function stopAdding() {
-  adding.value = false;
-  await nextTick();
-  addButton.value?.focus();
-}
-
 // Saves straight away. On failure the form stays open with what was typed.
-async function add(details: AddPropRequest) {
+async function add(details: PropDetails) {
   if (!place.value || saving.value) return;
   saving.value = true;
   formError.value = "";
@@ -199,13 +165,9 @@ async function add(details: AddPropRequest) {
   await stopAdding();
 }
 
-async function postProp(itemId: string, details: AddPropRequest) {
+async function postProp(itemId: string, details: PropDetails) {
   try {
-    const res = await apiFetch(addPropPath(itemId), {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(details),
-    });
+    const res = await sendJson(addPropPath(itemId), "POST", details);
     return res.status === 201 ? Prop.parse(await res.json()) : undefined;
   } catch {
     return undefined;

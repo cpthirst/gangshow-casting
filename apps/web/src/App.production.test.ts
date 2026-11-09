@@ -2,6 +2,7 @@ import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory } from "vue-router";
 import App from "@/App.vue";
+import { json } from "@/app.fixture.ts";
 import { createAppRouter } from "@/router/index.ts";
 import { openProduction } from "@/services/production.ts";
 import { chooseLocalAccess, signInNeeded, useLocalSignIn } from "@/services/sign-in.ts";
@@ -54,8 +55,6 @@ function serveProductions(list: () => Response = () => json({ productions: ["202
   );
   return requests;
 }
-
-const json = (body: unknown) => new Response(JSON.stringify(body));
 
 async function open(path: string) {
   const router = createAppRouter(createMemoryHistory());

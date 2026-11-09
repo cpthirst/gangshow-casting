@@ -16,7 +16,7 @@ You are a senior engineer reviewing a colleague's change in this repo. You did n
 
 1. Get the change: use the diff in your prompt. Run `git diff main...HEAD` (plus `git diff` for uncommitted work) only if you weren't given one, or were given only a `--stat`. Read whole files only where the diff lacks context you need. If the task names a story file, read it along with its acceptance criteria.
 2. CLAUDE.md is already in your context; don't read it again. Read any ADR in `docs/adr/` that the change touches.
-3. **Look beyond the diff for siblings.** A diff only shows one copy, so you can't judge duplication from it alone. For each new page, component, handler, store, style class, constant or API call, Grep the repo for code that already does the same job, and count the copies.
+3. **Look beyond the diff for siblings.** A diff only shows one copy, so you can't judge duplication from it alone. For each new page, component, handler, store, style class, constant, API call, test helper or fixture, Grep the repo for code that already does the same job, and count the copies.
 4. Review for each of the areas below.
 5. Cite exact `file:line` for each finding. Quote the code, and for readability findings show the shorter or clearer version.
 
@@ -47,6 +47,7 @@ You are a senior engineer reviewing a colleague's change in this repo. You did n
 - **A special case.** A patch for one route or page that works around a shared rule giving it the wrong answer: `should-fix`. Say how the rule would change, and which ADR it touches.
 - **Per-item data left behind.** A new kind of data kept per item that isn't deleted when a saved running order drops the item: `blocker`.
 - **Item page frame.** A page about one item that lacks the frame CLAUDE.md lists (back, Previous and Next, "Department: Item" title, position, department-named notes, not-found and error states, a recorded visit): `blocker`.
+- **An unfinished move.** A sibling not moved onto the shared piece, a wrapper with no production caller, or a shared piece still named after one department: `should-fix`.
 - **Borrowed names.** A shared style, component or function named after one page (`.role-card` used by Props): `should-fix`, with the purpose name.
 - **Text doing the layout's job.** A new tagline, hint line or secondary label, a disabled control with a line saying why, or an always-on limit: `should-fix`, with the layout change that makes it unnecessary (hide the control, show the limit near it, move the explanation to Help). Don't offer a `wording` rewrite for a sentence that shouldn't be there.
 

@@ -1,19 +1,16 @@
 import {
-  AddPropRequest,
   type CastMember,
   type ItemNote,
   type Prop,
+  PropDetails,
   type Role,
   type RunningOrder,
   readOnlyRefusal,
   SaveItemNoteRequest,
-  UpdatePropRequest,
 } from "@app/shared";
-import { enableAutoUnmount, flushPromises, mount, type VueWrapper } from "@vue/test-utils";
+import { enableAutoUnmount, flushPromises, type VueWrapper } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createMemoryHistory } from "vue-router";
-import App from "@/App.vue";
-import { createAppRouter } from "@/router/index.ts";
+import { json, openAppAt } from "@/app.fixture.ts";
 import {
   castPath,
   departmentNotesPath,
@@ -40,8 +37,6 @@ const show = aRunningOrder(
   [anItem("Opening Number"), anItem("Pirate Sketch")],
   [anItem("Campfire Song"), anItem("Finale")],
 );
-
-const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 
 const aProp = (
   id: number,
@@ -85,7 +80,7 @@ function savedShowIs(
       if (url === castPath()) return json({ productionId: "2027", members: casting.cast });
       const addTo = /\/items\/([^/]+)\/props$/.exec(url)?.[1];
       if (addTo && init?.method === "POST") {
-        const details = AddPropRequest.parse(JSON.parse(String(init.body)));
+        const details = PropDetails.parse(JSON.parse(String(init.body)));
         const prop = { ...details, id: stored.length + 1, itemId: addTo };
         stored.push(prop);
         return json(prop, 201);
@@ -95,7 +90,7 @@ function savedShowIs(
       const prop = stored[at];
       if (propId && !prop) return new Response(null, { status: 404 });
       if (prop && init?.method === "PUT") {
-        stored[at] = { ...prop, ...UpdatePropRequest.parse(JSON.parse(String(init.body))) };
+        stored[at] = { ...prop, ...PropDetails.parse(JSON.parse(String(init.body))) };
         return json(stored[at]);
       }
       if (prop && init?.method === "DELETE") stored.splice(at, 1);
@@ -114,16 +109,6 @@ function addingFails() {
       ? new Response(null, { status: 500 })
       : (answer?.(url, init) ?? json({})),
   );
-}
-
-// The whole app, so routing, the menu and the tab title are real.
-async function openAppAt(path: string) {
-  const router = createAppRouter(createMemoryHistory());
-  await router.push(path);
-  await router.isReady();
-  const wrapper = mount(App, { global: { plugins: [router] }, attachTo: document.body });
-  await flushPromises();
-  return { wrapper, router };
 }
 
 const PIRATE_PROPS = "/production/items/pirate-sketch/props";
@@ -222,16 +207,6 @@ describe("An item's props page", () => {
     expect(document.title).toBe("Props: Campfire Song · iCUE");
   });
 
-  it("has no Previous on the first item, and no Next on the last", async () => {
-    savedShowIs(show);
-    const first = await openAppAt("/production/items/opening-number/props");
-    expect(stepLinks(first.wrapper).map((link) => link.rel)).toEqual(["next"]);
-    first.wrapper.unmount();
-
-    const { wrapper } = await openAppAt("/production/items/finale/props");
-    expect(stepLinks(wrapper).map((link) => link.rel)).toEqual(["prev"]);
-  });
-
   it("opens the same item's props page from its own address", async () => {
     savedShowIs(show, [aProp(1, "pirate-sketch", "Treasure chest")]);
 
@@ -252,50 +227,12 @@ describe("An item's props page", () => {
     );
   });
 
-  it("has a help button beside the item's name", async () => {
-    savedShowIs(show);
-    const { wrapper } = await openAppAt(PIRATE_PROPS);
-
-    const row = wrapper.get("main .page-title-row");
-    expect(row.get("h1").text()).toBe("Props: Pirate Sketch");
-    expect(row.find("button[aria-label='Help for this item']").exists()).toBe(true);
-  });
-
   it("marks the Production overview as the current page in the menu", async () => {
     savedShowIs(show);
     const { wrapper } = await openAppAt(PIRATE_PROPS);
 
     const current = wrapper.findAll("nav a[aria-current=page]");
     expect(current.map((link) => link.attributes("href"))).toEqual(["/production/overview"]);
-  });
-
-  it("says an item that isn't in the running order wasn't found, with a link back to the Overview", async () => {
-    savedShowIs(show);
-    const { wrapper, router } = await openAppAt("/production/items/no-such-item/props");
-
-    expect(wrapper.get("main h1").text()).toBe("Item not found");
-    expect(document.title).toBe("Item not found · iCUE");
-    await wrapper.get("main a.back-link").trigger("click");
-    await flushPromises();
-    expect(router.currentRoute.value.fullPath).toBe("/production/overview");
-  });
-
-  it("says the item wasn't found when there's no saved running order", async () => {
-    savedShowIs(undefined);
-    const { wrapper } = await openAppAt(PIRATE_PROPS);
-
-    expect(wrapper.get("main h1").text()).toBe("Item not found");
-  });
-
-  it("reports a failed load rather than not found", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => new Response(null, { status: 500 })),
-    );
-    const { wrapper } = await openAppAt(PIRATE_PROPS);
-
-    expect(wrapper.get("main [role=alert]").text()).toBe("Couldn't load the item.");
-    expect(wrapper.get("main").text()).not.toContain("Item not found");
   });
 
   it("lists props alphabetically, ignoring case, with numbers by value", async () => {
@@ -549,7 +486,6 @@ describe("Props notes", () => {
   const notesSection = (wrapper: VueWrapper) =>
     wrapper.get("section[aria-labelledby=notes-heading]");
   const field = (wrapper: VueWrapper) => notesSection(wrapper).get<HTMLTextAreaElement>("textarea");
-  const error = (wrapper: VueWrapper) => notesSection(wrapper).find("[data-test=notes-error]");
 
   async function saveNotes(wrapper: VueWrapper, text: string) {
     await field(wrapper).setValue(text);
@@ -598,66 +534,6 @@ describe("Props notes", () => {
     casting.wrapper.unmount();
     const again = await openAppAt(PIRATE_PROPS);
     expect(field(again.wrapper).element.value).toBe("Chest set stage left");
-  });
-
-  it("shows no count or limit line under notes far from the limit", async () => {
-    notesAre({});
-    const { wrapper } = await openAppAt(PIRATE_PROPS);
-
-    await field(wrapper).setValue("x".repeat(100));
-
-    expect(notesSection(wrapper).find("[data-test=notes-count]").exists()).toBe(false);
-    expect(notesSection(wrapper).text()).not.toMatch(/characters/);
-  });
-
-  it("refuses notes over 500 characters, saving nothing", async () => {
-    notesAre({});
-    const { wrapper } = await openAppAt(PIRATE_PROPS);
-
-    await saveNotes(wrapper, "x".repeat(520));
-
-    expect(error(wrapper).text()).toBe("Notes can be up to 500 characters.");
-    expect(notePuts()).toEqual([]);
-  });
-
-  it("removes the props notes when they're cleared and saved", async () => {
-    const stored = notesAre({ props: [{ itemId: "pirate-sketch", text: "Chest", revision: 1 }] });
-    const { wrapper } = await openAppAt(PIRATE_PROPS);
-
-    await saveNotes(wrapper, "");
-
-    expect(stored).toEqual([{ itemId: "pirate-sketch", text: "", revision: 2 }]);
-  });
-
-  it("refuses a save after someone else's, showing their notes", async () => {
-    const stored = notesAre({});
-    const { wrapper } = await openAppAt(PIRATE_PROPS);
-    stored.push({ itemId: "pirate-sketch", text: "Theirs", revision: 1 });
-
-    await saveNotes(wrapper, "Mine");
-
-    expect(error(wrapper).text()).toBe(
-      "Someone else changed these notes. Here they are now; your text wasn't saved.",
-    );
-    expect(field(wrapper).element.value).toBe("Theirs");
-    expect(stored[0]?.text).toBe("Theirs");
-  });
-
-  it("keeps the text when the notes can't be saved", async () => {
-    notesAre({});
-    const fetch = vi.mocked(globalThis.fetch);
-    const answer = fetch.getMockImplementation();
-    fetch.mockImplementation(async (url, init) =>
-      init?.method === "PUT"
-        ? new Response(null, { status: 500 })
-        : (answer?.(url, init) ?? json({})),
-    );
-    const { wrapper } = await openAppAt(PIRATE_PROPS);
-
-    await saveNotes(wrapper, "Chest set stage left");
-
-    expect(error(wrapper).text()).toBe("Couldn't save the notes. Try again.");
-    expect(field(wrapper).element.value).toBe("Chest set stage left");
   });
 
   it("shows the props notes without Stage, with nothing to change them", async () => {

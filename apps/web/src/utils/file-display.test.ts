@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { sceneryFileLinkPath, sceneryFilesPath } from "@/services/production.ts";
+import { itemFileLinkPath, itemFilesPath } from "@/services/production.ts";
+import { fileIconOf, fileLabel, fileSize, sortFiles } from "./file-display.ts";
 import { icons } from "./icons.ts";
-import { fileIconOf, fileLabel, fileSize, sortFiles } from "./scenery.ts";
 
 describe("sceneryFilesPath", () => {
   it("is the item's files in the production", () => {
-    expect(sceneryFilesPath("opening-number")).toBe(
+    expect(itemFilesPath("scenery", "opening-number")).toBe(
       "/api/productions/2027/items/opening-number/scenery-files",
     );
   });
@@ -54,7 +54,7 @@ describe("fileSize", () => {
 
 describe("sceneryFileLinkPath", () => {
   it("asks for a link to one of the item's files, by its name", () => {
-    expect(sceneryFileLinkPath("opening-number", "set plan & build #2.pdf")).toBe(
+    expect(itemFileLinkPath("scenery", "opening-number", "set plan & build #2.pdf")).toBe(
       "/api/productions/2027/items/opening-number/scenery-file-link?name=set+plan+%26+build+%232.pdf",
     );
   });
@@ -65,6 +65,7 @@ describe("fileLabel", () => {
     ["set-plan.pdf", "Open set-plan.pdf, PDF file"],
     ["Backdrop.png", "Open Backdrop.png, PNG file"],
     ["build-list.xlsx", "Download build-list.xlsx, XLSX file"],
+    ["cues.docx", "Download cues.docx, DOCX file"],
     ["notes.html", "Download notes.html, HTML file"],
     ["notes", "Download notes"],
   ])("names the file for %s %j", (name, label) => {
@@ -118,5 +119,9 @@ describe("an SFX file's icon and name", () => {
   it("says an audio file opens on SFX, and downloads elsewhere", () => {
     expect(fileLabel("thunder.mp3", "sfx")).toBe("Open thunder.mp3, MP3 file");
     expect(fileLabel("thunder.mp3", "wardrobe")).toBe("Download thunder.mp3, MP3 file");
+  });
+
+  it("goes by the last extension, so notes.mp3.html only downloads, even on SFX", () => {
+    expect(fileLabel("notes.mp3.html", "sfx")).toBe("Download notes.mp3.html, HTML file");
   });
 });

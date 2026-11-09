@@ -2,6 +2,7 @@ import type { AccountSummary, RunningOrder, UsageActivity, UsageSummary } from "
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory } from "vue-router";
+import { json } from "@/app.fixture.ts";
 import { createAppRouter } from "@/router/index.ts";
 import { runningOrderPath } from "@/services/production.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
@@ -16,8 +17,6 @@ const accounts: AccountSummary[] = ["robin", "alex", "sky", "kit"].map((username
   access: ["casting"],
   enabled: true,
 }));
-
-const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 
 type Summary = Omit<UsageSummary, "activity"> & Partial<Pick<UsageSummary, "activity">>;
 

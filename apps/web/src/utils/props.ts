@@ -1,11 +1,11 @@
 import {
-  AddPropRequest,
   type CastMember,
   carryingCast,
   type ItemNote,
   MAX_PROP_NAME_LENGTH,
   MAX_PROP_QUANTITY,
   type Prop,
+  PropDetails,
   type Role,
   type RunningOrder,
 } from "@app/shared";
@@ -187,7 +187,7 @@ export interface PropFormFields {
 }
 
 export type PropFormResult =
-  | { ok: true; details: AddPropRequest }
+  | { ok: true; details: PropDetails }
   | { ok: false; errors: Partial<Record<keyof PropFormFields, string>> };
 
 /** The prop the form describes, or a message for each field that needs fixing. Limits come
@@ -201,7 +201,7 @@ export function propDetailsFrom(
 ): PropFormResult {
   const quantity = quantityOf(form.quantity);
   const carrierIds = carrying.offersCarriers ? form.carrierIds : [];
-  const parsed = AddPropRequest.safeParse({
+  const parsed = PropDetails.safeParse({
     name: form.name,
     quantity,
     roleIds: form.roleIds,

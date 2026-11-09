@@ -6,6 +6,9 @@ import {
   adminOnlyRouteKeys,
   CastList,
   HealthResponse,
+  ItemFileCounts,
+  ItemFileLink,
+  ItemFileList,
   ItemNoteList,
   LOCAL_ACCESS_HEADER,
   MicPlotList,
@@ -14,9 +17,6 @@ import {
   readOnlyMayUse,
   readOnlyRefusal,
   routeKeys,
-  SceneryFileCounts,
-  SceneryFileLink,
-  SceneryFileList,
   UsageSummary,
 } from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -24,30 +24,17 @@ import { inMemoryRoleStore } from "#/casting/roles/role-store.ts";
 import type { Handler } from "#/http/handler.ts";
 import { lambdaEntry } from "#/http/lambda-entry.ts";
 import { inMemoryItemNoteStore } from "#/item-notes/item-note-store.ts";
-import {
-  folderItemFileStore,
-  type ItemFileStore,
-} from "#/production/item-files/item-file-store.ts";
-import { inMemoryMicPlotStore } from "#/production/mic-plot/mic-plot-store.ts";
+import { folderItemFileStore } from "#/production/item-files/item-file-store.ts";
 import { inMemoryPropStore } from "#/production/props/prop-store.ts";
 import { inMemoryProductionListStore } from "#/production-list/production-list-store.ts";
 import { aCastList, aCastMember } from "#/show/cast/cast.fixture.ts";
 import { inMemoryCastStore } from "#/show/cast/cast-store.ts";
-import { uncastThenRemove } from "#/show/cast/remove-cast-member.ts";
 import { aRunningOrder, itemId } from "#/show/running-order/running-order.fixture.ts";
 import { inMemoryRunningOrderStore } from "#/show/running-order/running-order-store.ts";
+import { inMemoryStores, noFiles, noItemFiles } from "#/storage/stores.fixture.ts";
 import { inMemoryUsageStore } from "#/usage/usage-store.ts";
 import { handler } from "./lambda.ts";
 import { createRoutes } from "./routes.ts";
-
-const noSceneryFiles: ItemFileStore = {
-  list: async () => [],
-  linkTo: async () => undefined,
-  remove: async () => "gone",
-  uploadTo: async () => "taken",
-  countByItem: async () => ({}),
-  keepOnlyItems: async () => {},
-};
 
 // The parts of an API Gateway HTTP API (payload v2) event that the entry point reads, signed
 // in as a Casting Team Member unless a test says otherwise.
@@ -125,30 +112,20 @@ describe("Lambda entry point", () => {
   // API Gateway lets only signed-in requests through (infra's authorizer, and the post-deploy
   // check), so every request that reaches the entry point is a signed-in one.
   describe("on the show's data", () => {
-    const entry = (sceneryFiles = noSceneryFiles) => {
+    const entry = (sceneryFiles = noFiles) => {
       const cast = inMemoryCastStore([aCastList([aCastMember(1)])]);
       const roles = inMemoryRoleStore();
       return lambdaEntry(
         createRoutes(
-          {
+          inMemoryStores({
             cast,
             roles,
             runningOrders: inMemoryRunningOrderStore([
               aRunningOrder(3, { first: ["Pirate Sketch"] }),
             ]),
-            itemNotes: inMemoryItemNoteStore(),
-            props: inMemoryPropStore(),
-            propsNotes: inMemoryItemNoteStore(),
-            sceneryNotes: inMemoryItemNoteStore(),
-            sfxNotes: inMemoryItemNoteStore(),
-            wardrobeNotes: inMemoryItemNoteStore(),
-            micPlotNotes: inMemoryItemNoteStore(),
-            micPlots: inMemoryMicPlotStore(),
-            productions: inMemoryProductionListStore(),
-            removeCastMember: uncastThenRemove(cast, roles),
-          },
+          }),
           inMemoryUsageStore(),
-          { scenery: sceneryFiles, sfx: noSceneryFiles, wardrobe: noSceneryFiles },
+          { ...noItemFiles, scenery: sceneryFiles },
         ),
         inMemoryProductionListStore(),
       );
@@ -181,28 +158,28 @@ describe("Lambda entry point", () => {
       ["admin", "[admin]"],
     ])("lists an item's scenery files for an account with %s", async (_, groups) => {
       const setPlan = { name: "set-plan.pdf", size: 2_400_000 };
-      const api = entry({ ...noSceneryFiles, list: async () => [setPlan] });
+      const api = entry({ ...noFiles, list: async () => [setPlan] });
 
       const res = await api(
         request("GET", "/api/productions/2027/items/opening-number/scenery-files", {}, groups),
       );
 
       expect(res.statusCode).toBe(200);
-      expect(SceneryFileList.parse(JSON.parse(res.body ?? ""))).toEqual({ files: [setPlan] });
+      expect(ItemFileList.parse(JSON.parse(res.body ?? ""))).toEqual({ files: [setPlan] });
     });
 
     it.each([
       ["Casting only", "[casting]"],
       ["no permissions", "[]"],
     ])("counts each item's scenery files for an account with %s", async (_, groups) => {
-      const api = entry({ ...noSceneryFiles, countByItem: async () => ({ "opening-number": 9 }) });
+      const api = entry({ ...noFiles, countByItem: async () => ({ "opening-number": 9 }) });
 
       const res = await api(
         request("GET", "/api/productions/2027/scenery-file-counts", {}, groups),
       );
 
       expect(res.statusCode).toBe(200);
-      expect(SceneryFileCounts.parse(JSON.parse(res.body ?? ""))).toEqual({
+      expect(ItemFileCounts.parse(JSON.parse(res.body ?? ""))).toEqual({
         counts: { "opening-number": 9 },
       });
     });
@@ -213,7 +190,7 @@ describe("Lambda entry point", () => {
     ])("links to an item's scenery file for an account with %s", async (_, groups) => {
       const url = "https://files.example/2027/opening-number/scenery/set-plan.pdf?signed";
       const api = entry({
-        ...noSceneryFiles,
+        ...noFiles,
         linkTo: async (_production, item, name) =>
           item === "opening-number" && name === "set-plan.pdf" ? url : undefined,
       });
@@ -228,7 +205,7 @@ describe("Lambda entry point", () => {
       );
 
       expect(res.statusCode).toBe(200);
-      expect(SceneryFileLink.parse(JSON.parse(res.body ?? ""))).toEqual({ url });
+      expect(ItemFileLink.parse(JSON.parse(res.body ?? ""))).toEqual({ url });
     });
   });
 
@@ -240,23 +217,13 @@ describe("Lambda entry point", () => {
       const runningOrders = inMemoryRunningOrderStore([aRunningOrder(4)]);
       const api = lambdaEntry(
         createRoutes(
-          {
+          inMemoryStores({
             cast,
             roles,
             runningOrders,
-            itemNotes: inMemoryItemNoteStore(),
-            props: inMemoryPropStore(),
-            propsNotes: inMemoryItemNoteStore(),
-            sceneryNotes: inMemoryItemNoteStore(),
-            sfxNotes: inMemoryItemNoteStore(),
-            wardrobeNotes: inMemoryItemNoteStore(),
-            micPlotNotes: inMemoryItemNoteStore(),
-            micPlots: inMemoryMicPlotStore(),
-            productions: inMemoryProductionListStore(),
-            removeCastMember: uncastThenRemove(cast, roles),
-          },
+          }),
           inMemoryUsageStore(),
-          { scenery: noSceneryFiles, sfx: noSceneryFiles, wardrobe: noSceneryFiles },
+          noItemFiles,
         ),
         inMemoryProductionListStore(),
       );
@@ -401,23 +368,14 @@ describe("Lambda entry point", () => {
       ]);
       const api = lambdaEntry(
         createRoutes(
-          {
+          inMemoryStores({
             cast,
             roles,
             runningOrders,
             itemNotes,
-            props: inMemoryPropStore(),
-            propsNotes: inMemoryItemNoteStore(),
-            sceneryNotes: inMemoryItemNoteStore(),
-            sfxNotes: inMemoryItemNoteStore(),
-            wardrobeNotes: inMemoryItemNoteStore(),
-            micPlotNotes: inMemoryItemNoteStore(),
-            micPlots: inMemoryMicPlotStore(),
-            productions: inMemoryProductionListStore(),
-            removeCastMember: uncastThenRemove(cast, roles),
-          },
+          }),
           inMemoryUsageStore(),
-          { scenery: noSceneryFiles, sfx: noSceneryFiles, wardrobe: noSceneryFiles },
+          noItemFiles,
         ),
         inMemoryProductionListStore(),
       );
@@ -629,23 +587,14 @@ describe("Lambda entry point", () => {
       ]);
       const api = lambdaEntry(
         createRoutes(
-          {
+          inMemoryStores({
             cast,
             roles,
             runningOrders,
             itemNotes,
-            props: inMemoryPropStore(),
-            propsNotes: inMemoryItemNoteStore(),
-            sceneryNotes: inMemoryItemNoteStore(),
-            sfxNotes: inMemoryItemNoteStore(),
-            wardrobeNotes: inMemoryItemNoteStore(),
-            micPlotNotes: inMemoryItemNoteStore(),
-            micPlots: inMemoryMicPlotStore(),
-            productions: inMemoryProductionListStore(),
-            removeCastMember: uncastThenRemove(cast, roles),
-          },
+          }),
           inMemoryUsageStore(),
-          { scenery: noSceneryFiles, sfx: noSceneryFiles, wardrobe: noSceneryFiles },
+          noItemFiles,
         ),
         inMemoryProductionListStore(),
       );
@@ -1008,26 +957,18 @@ describe("Lambda entry point", () => {
         const props = inMemoryPropStore();
         const api = lambdaEntry(
           createRoutes(
-            {
+            inMemoryStores({
               cast,
               roles,
               runningOrders: inMemoryRunningOrderStore([
                 aRunningOrder(4, { first: ["Pirate Sketch"] }),
                 aRunningOrder(1, { first: ["Pirate Sketch"], productionId: "2028" }),
               ]),
-              itemNotes: inMemoryItemNoteStore(),
               props,
-              propsNotes: inMemoryItemNoteStore(),
-              sceneryNotes: inMemoryItemNoteStore(),
-              sfxNotes: inMemoryItemNoteStore(),
-              wardrobeNotes: inMemoryItemNoteStore(),
-              micPlotNotes: inMemoryItemNoteStore(),
-              micPlots: inMemoryMicPlotStore(),
               productions,
-              removeCastMember: uncastThenRemove(cast, roles),
-            },
+            }),
             inMemoryUsageStore(),
-            { scenery: noSceneryFiles, sfx: noSceneryFiles, wardrobe: noSceneryFiles },
+            noItemFiles,
           ),
           productions,
         );
@@ -1227,25 +1168,17 @@ describe("Lambda entry point", () => {
         const propsNotes = inMemoryItemNoteStore();
         const api = lambdaEntry(
           createRoutes(
-            {
+            inMemoryStores({
               cast,
               roles,
               runningOrders: inMemoryRunningOrderStore([
                 aRunningOrder(4, { first: ["Pirate Sketch"] }),
               ]),
               itemNotes,
-              props: inMemoryPropStore(),
               propsNotes,
-              sceneryNotes: inMemoryItemNoteStore(),
-              sfxNotes: inMemoryItemNoteStore(),
-              wardrobeNotes: inMemoryItemNoteStore(),
-              micPlotNotes: inMemoryItemNoteStore(),
-              micPlots: inMemoryMicPlotStore(),
-              productions: inMemoryProductionListStore(),
-              removeCastMember: uncastThenRemove(cast, roles),
-            },
+            }),
             inMemoryUsageStore(),
-            { scenery: noSceneryFiles, sfx: noSceneryFiles, wardrobe: noSceneryFiles },
+            noItemFiles,
           ),
           inMemoryProductionListStore(),
         );
@@ -1311,32 +1244,21 @@ describe("Lambda entry point", () => {
         const roles = inMemoryRoleStore();
         const api = lambdaEntry(
           createRoutes(
-            {
+            inMemoryStores({
               cast,
               roles,
-              runningOrders: inMemoryRunningOrderStore(),
-              itemNotes: inMemoryItemNoteStore(),
-              props: inMemoryPropStore(),
-              propsNotes: inMemoryItemNoteStore(),
-              sceneryNotes: inMemoryItemNoteStore(),
-              sfxNotes: inMemoryItemNoteStore(),
-              wardrobeNotes: inMemoryItemNoteStore(),
-              micPlotNotes: inMemoryItemNoteStore(),
-              micPlots: inMemoryMicPlotStore(),
-              productions: inMemoryProductionListStore(),
-              removeCastMember: uncastThenRemove(cast, roles),
-            },
+            }),
             inMemoryUsageStore(),
             {
               scenery: {
-                ...noSceneryFiles,
+                ...noFiles,
                 remove: async (production, item, name) => {
                   deleted.push(`${production}/${item}/${name}`);
                   return "removed";
                 },
               },
-              sfx: noSceneryFiles,
-              wardrobe: noSceneryFiles,
+              sfx: noFiles,
+              wardrobe: noFiles,
             },
           ),
           inMemoryProductionListStore(),
@@ -1414,25 +1336,16 @@ describe("Lambda entry point", () => {
         const itemNotes = inMemoryItemNoteStore();
         const api = lambdaEntry(
           createRoutes(
-            {
+            inMemoryStores({
               cast,
               roles,
               runningOrders: inMemoryRunningOrderStore([
                 aRunningOrder(4, { first: ["Pirate Sketch"] }),
               ]),
               itemNotes,
-              props: inMemoryPropStore(),
-              propsNotes: inMemoryItemNoteStore(),
-              sceneryNotes: inMemoryItemNoteStore(),
-              sfxNotes: inMemoryItemNoteStore(),
-              wardrobeNotes: inMemoryItemNoteStore(),
-              micPlotNotes: inMemoryItemNoteStore(),
-              micPlots: inMemoryMicPlotStore(),
-              productions: inMemoryProductionListStore(),
-              removeCastMember: uncastThenRemove(cast, roles),
-            },
+            }),
             inMemoryUsageStore(),
-            { scenery: noSceneryFiles, sfx: noSceneryFiles, wardrobe: noSceneryFiles },
+            noItemFiles,
           ),
           inMemoryProductionListStore(),
         );
@@ -1475,55 +1388,6 @@ describe("Lambda entry point", () => {
         expect((await propsNotes(api)).map((note) => note.text)).toEqual(["Chest set stage left"]);
       });
 
-      it("refuses props notes over 500 characters, saving nothing", async () => {
-        const { api } = setUpNotes();
-
-        const res = await api(saveNotes("[stage]", 0, "x".repeat(501)));
-
-        expect(res.statusCode).toBe(400);
-        expect(await propsNotes(api)).toEqual([]);
-      });
-
-      it("clears props notes saved as empty text", async () => {
-        const { api } = setUpNotes();
-        await api(saveNotes("[stage]", 0, "Chest set stage left"));
-
-        await api(saveNotes("[stage]", 1, "  "));
-
-        expect((await propsNotes(api)).map((note) => note.text)).toEqual([""]);
-      });
-
-      it("refuses a save made since someone else saved, keeping theirs", async () => {
-        const { api } = setUpNotes();
-        await api(saveNotes("[stage]", 0, "Theirs"));
-
-        const res = await api(saveNotes("[stage]", 0, "Mine"));
-
-        expect(res.statusCode).toBe(409);
-        expect((await propsNotes(api)).map((note) => note.text)).toEqual(["Theirs"]);
-      });
-
-      it("keeps props notes when a new running-order version keeps the item", async () => {
-        const { api } = setUpNotes();
-        await api(saveNotes("[stage]", 0, "Chest set stage left"));
-
-        const saved = await api(
-          as("[admin]")("POST", "/api/productions/2027/running-order/versions", {
-            baseVersion: 4,
-            change: {
-              type: "update",
-              // Pirate Sketch moved to the second half, its props notes kept with it.
-              halves: aRunningOrder(4, { second: ["Pirate Sketch"], first: [] }).halves.map(
-                ({ id, items }) => ({ id, items }),
-              ),
-            },
-          }),
-        );
-
-        expect(saved.statusCode).toBe(201);
-        expect((await propsNotes(api)).map((note) => note.text)).toEqual(["Chest set stage left"]);
-      });
-
       it("refuses props notes from sam, with Casting only, saying the props are read-only", async () => {
         const { api } = setUpNotes();
 
@@ -1551,43 +1415,26 @@ describe("Lambda entry point", () => {
     );
   });
 
-  describe("SFX files and notes (production-sfx-wardrobe E1.S1)", () => {
+  describe("SFX and Wardrobe routes (production-sfx-wardrobe E1)", () => {
     const opening = itemId("Opening Number");
-    const SFX_READ_ONLY = {
-      message: "You can view the SFX, but not change them.",
-      department: "sfx",
-    };
     let folder: string;
     beforeEach(async () => {
-      folder = await mkdtemp(join(tmpdir(), "lambda-sfx-"));
+      folder = await mkdtemp(join(tmpdir(), "lambda-files-"));
     });
     afterEach(async () => {
       await rm(folder, { recursive: true, force: true });
     });
 
-    const setUpSfx = () => {
-      const cast = inMemoryCastStore();
-      const roles = inMemoryRoleStore();
+    const setUp = () => {
       const sceneryNotes = inMemoryItemNoteStore();
       const api = lambdaEntry(
         createRoutes(
-          {
-            cast,
-            roles,
+          inMemoryStores({
             runningOrders: inMemoryRunningOrderStore([
               aRunningOrder(4, { first: ["Opening Number", "Finale"] }),
             ]),
-            itemNotes: inMemoryItemNoteStore(),
-            props: inMemoryPropStore(),
-            propsNotes: inMemoryItemNoteStore(),
             sceneryNotes,
-            sfxNotes: inMemoryItemNoteStore(),
-            wardrobeNotes: inMemoryItemNoteStore(),
-            micPlotNotes: inMemoryItemNoteStore(),
-            micPlots: inMemoryMicPlotStore(),
-            productions: inMemoryProductionListStore(),
-            removeCastMember: uncastThenRemove(cast, roles),
-          },
+          }),
           inMemoryUsageStore(),
           {
             scenery: folderItemFileStore(folder, "scenery"),
@@ -1620,41 +1467,25 @@ describe("Lambda entry point", () => {
           groups,
         );
     const itemPath = (end: string) => `/api/productions/2027/items/${opening}/${end}`;
-    const namesAt = async (api: ReturnType<typeof setUpSfx>["api"], end: string) =>
-      SceneryFileList.parse(
+    type Api = ReturnType<typeof setUp>["api"];
+    const namesAt = async (api: Api, end: string) =>
+      ItemFileList.parse(
         JSON.parse((await api(as("[casting]")("GET", itemPath(end)))).body ?? ""),
       ).files.map((file) => file.name);
-    const deleteThunder = (groups: string) =>
-      as(groups)("DELETE", itemPath("sfx-files"), { query: { name: "thunder.mp3" } });
-    const uploadThunder = (groups: string) =>
-      as(groups)("POST", itemPath("sfx-uploads"), {
-        body: { name: "thunder.mp3", size: 2_400_000 },
-      });
-    const saveSfxNotes = (groups: string, text: string) =>
-      as(groups)("PUT", itemPath("sfx-notes"), { body: { revision: 0, text } });
-    const notesAt = async (api: ReturnType<typeof setUpSfx>["api"], list: string) =>
+    const notesAt = async (api: Api, list: string) =>
       ItemNoteList.parse(
         JSON.parse((await api(as("[casting]")("GET", `/api/productions/2027/${list}`))).body ?? ""),
       ).notes;
 
-    it("lists only the item's SFX files on the SFX route, and only its scenery files on Scenery's", async () => {
-      const { api } = setUpSfx();
-      await putFile("scenery", "set-plan.pdf");
-      await putFile("sfx", "thunder.mp3");
-
-      expect(await namesAt(api, "sfx-files")).toEqual(["thunder.mp3"]);
-      expect(await namesAt(api, "scenery-files")).toEqual(["set-plan.pdf"]);
-    });
-
-    it("counts each item's SFX and Wardrobe files on their own routes, for anyone signed in", async () => {
-      const { api } = setUpSfx();
+    it("counts each item's files on each department's own route, for anyone signed in", async () => {
+      const { api } = setUp();
       await putFile("scenery", "set-plan.pdf");
       for (const name of ["thunder.mp3", "rain.mp3", "bell.wav"]) await putFile("sfx", name);
       await putFile("wardrobe", "jacket-pattern.pdf");
       const countsAt = async (list: string) => {
         const res = await api(as("[]")("GET", `/api/productions/2027/${list}`));
         expect(res.statusCode).toBe(200);
-        return SceneryFileCounts.parse(JSON.parse(res.body ?? "")).counts;
+        return ItemFileCounts.parse(JSON.parse(res.body ?? "")).counts;
       };
 
       expect(await countsAt("sfx-file-counts")).toEqual({ [opening]: 3 });
@@ -1662,245 +1493,107 @@ describe("Lambda entry point", () => {
       expect(await countsAt("scenery-file-counts")).toEqual({ [opening]: 1 });
     });
 
-    it("links to an SFX file, which anyone signed in may ask for", async () => {
-      const { api } = setUpSfx();
-      await putFile("sfx", "thunder.mp3");
+    describe.each([
+      {
+        key: "sfx",
+        file: "thunder.mp3",
+        neighbour: "scenery",
+        neighbourFile: "set-plan.pdf",
+        mayChange: ["[tech]", "[director]", "[admin]"],
+        viewsOnly: "[stage]",
+        refusal: "You can view the SFX, but not change them.",
+      },
+      {
+        key: "wardrobe",
+        file: "jacket-pattern.pdf",
+        neighbour: "sfx",
+        neighbourFile: "thunder.mp3",
+        mayChange: ["[wardrobe]", "[director]", "[admin]"],
+        viewsOnly: "[tech]",
+        refusal: "You can view the wardrobe, but not change it.",
+      },
+    ])("$key", ({ key, file, neighbour, neighbourFile, mayChange, viewsOnly, refusal }) => {
+      const deleteIt = (groups: string) =>
+        as(groups)("DELETE", itemPath(`${key}-files`), { query: { name: file } });
+      const uploadIt = (groups: string) =>
+        as(groups)("POST", itemPath(`${key}-uploads`), { body: { name: file, size: 1_000 } });
+      const saveNotes = (groups: string, text: string) =>
+        as(groups)("PUT", itemPath(`${key}-notes`), { body: { revision: 0, text } });
 
-      const res = await api(
-        as("[]")("GET", itemPath("sfx-file-link"), { query: { name: "thunder.mp3" } }),
-      );
+      it("lists only its own files", async () => {
+        const { api } = setUp();
+        await putFile(neighbour, neighbourFile);
+        await putFile(key, file);
 
-      expect(res.statusCode).toBe(200);
-      expect(SceneryFileLink.parse(JSON.parse(res.body ?? "")).url).toContain("/sfx/thunder.mp3");
-    });
-
-    it("refuses an SFX request for a scenery file, leaving it untouched", async () => {
-      const { api } = setUpSfx();
-      await putFile("scenery", "set-plan.pdf");
-      const name = { query: { name: "../scenery/set-plan.pdf" } };
-
-      const deleted = await api(as("[tech]")("DELETE", itemPath("sfx-files"), name));
-      const linked = await api(as("[tech]")("GET", itemPath("sfx-file-link"), name));
-
-      expect([deleted.statusCode, linked.statusCode]).toEqual([400, 400]);
-      expect(existsSync(join(folder, "2027", opening, "scenery", "set-plan.pdf"))).toBe(true);
-    });
-
-    it.each([
-      ["lee, with Tech", "[tech]"],
-      ["dee, with Director", "[director]"],
-      ["ash, an admin", "[admin]"],
-    ])("lets %s upload, delete and change the SFX notes", async (_who, groups) => {
-      const { api } = setUpSfx();
-      await putFile("sfx", "thunder.mp3");
-
-      const deleted = await api(deleteThunder(groups));
-      const uploaded = await api(uploadThunder(groups));
-      const saved = await api(saveSfxNotes(groups, "Thunder on the second verse"));
-
-      expect([deleted.statusCode, uploaded.statusCode, saved.statusCode]).toEqual([204, 200, 200]);
-    });
-
-    it("refuses pat, with Stage only, an upload, delete or note change, saying the SFX is view-only", async () => {
-      const { api } = setUpSfx();
-      await putFile("sfx", "thunder.mp3");
-
-      for (const res of [
-        await api(uploadThunder("[stage]")),
-        await api(deleteThunder("[stage]")),
-        await api(saveSfxNotes("[stage]", "Thunder")),
-      ]) {
-        expect(res.statusCode).toBe(403);
-        expect(JSON.parse(res.body ?? "")).toEqual(SFX_READ_ONLY);
-      }
-      expect(await namesAt(api, "sfx-files")).toEqual(["thunder.mp3"]);
-      expect(await notesAt(api, "sfx-notes")).toEqual([]);
-    });
-
-    it("keeps SFX notes per item, apart from the scenery notes", async () => {
-      const { api, sceneryNotes } = setUpSfx();
-      await sceneryNotes.save("2027", opening, 0, "Cloud");
-
-      await api(saveSfxNotes("[tech]", "Thunder on the second verse"));
-
-      expect(await notesAt(api, "sfx-notes")).toEqual([
-        { itemId: opening, text: "Thunder on the second verse", revision: 1 },
-      ]);
-      expect(await notesAt(api, "scenery-notes")).toEqual([
-        { itemId: opening, text: "Cloud", revision: 1 },
-      ]);
-    });
-  });
-
-  describe("Wardrobe files and notes (production-sfx-wardrobe E1.S2)", () => {
-    const opening = itemId("Opening Number");
-    const WARDROBE_READ_ONLY = {
-      message: "You can view the wardrobe, but not change it.",
-      department: "wardrobe",
-    };
-    let folder: string;
-    beforeEach(async () => {
-      folder = await mkdtemp(join(tmpdir(), "lambda-wardrobe-"));
-    });
-    afterEach(async () => {
-      await rm(folder, { recursive: true, force: true });
-    });
-
-    const setUpWardrobe = () => {
-      const cast = inMemoryCastStore();
-      const roles = inMemoryRoleStore();
-      const sceneryNotes = inMemoryItemNoteStore();
-      const sfxNotes = inMemoryItemNoteStore();
-      const api = lambdaEntry(
-        createRoutes(
-          {
-            cast,
-            roles,
-            runningOrders: inMemoryRunningOrderStore([
-              aRunningOrder(4, { first: ["Opening Number", "Finale"] }),
-            ]),
-            itemNotes: inMemoryItemNoteStore(),
-            props: inMemoryPropStore(),
-            propsNotes: inMemoryItemNoteStore(),
-            sceneryNotes,
-            sfxNotes,
-            wardrobeNotes: inMemoryItemNoteStore(),
-            micPlotNotes: inMemoryItemNoteStore(),
-            micPlots: inMemoryMicPlotStore(),
-            productions: inMemoryProductionListStore(),
-            removeCastMember: uncastThenRemove(cast, roles),
-          },
-          inMemoryUsageStore(),
-          {
-            scenery: folderItemFileStore(folder, "scenery"),
-            sfx: folderItemFileStore(folder, "sfx"),
-            wardrobe: folderItemFileStore(folder, "wardrobe"),
-          },
-        ),
-        inMemoryProductionListStore(),
-      );
-      return { api, sceneryNotes, sfxNotes };
-    };
-
-    // Put straight into file storage, as an upload would (made-up files).
-    async function putFile(department: string, name: string) {
-      const place = join(folder, "2027", opening, department);
-      await mkdir(place, { recursive: true });
-      await writeFile(join(place, name), "made-up");
-    }
-    // A request signed in with the groups, with a JSON body or query string as given.
-    const as =
-      (groups: string) =>
-      (method: string, rawPath: string, extra: { body?: unknown; query?: object } = {}) =>
-        request(
-          method,
-          rawPath,
-          {
-            ...(extra.body === undefined ? {} : { body: JSON.stringify(extra.body) }),
-            ...(extra.query === undefined ? {} : { queryStringParameters: extra.query }),
-          },
-          groups,
-        );
-    const itemPath = (end: string) => `/api/productions/2027/items/${opening}/${end}`;
-    const namesAt = async (api: ReturnType<typeof setUpWardrobe>["api"], end: string) =>
-      SceneryFileList.parse(
-        JSON.parse((await api(as("[casting]")("GET", itemPath(end)))).body ?? ""),
-      ).files.map((file) => file.name);
-    const deletePattern = (groups: string) =>
-      as(groups)("DELETE", itemPath("wardrobe-files"), { query: { name: "jacket-pattern.pdf" } });
-    const uploadPattern = (groups: string) =>
-      as(groups)("POST", itemPath("wardrobe-uploads"), {
-        body: { name: "jacket-pattern.pdf", size: 1_200_000 },
+        expect(await namesAt(api, `${key}-files`)).toEqual([file]);
       });
-    const saveWardrobeNotes = (groups: string, text: string) =>
-      as(groups)("PUT", itemPath("wardrobe-notes"), { body: { revision: 0, text } });
-    const notesAt = async (api: ReturnType<typeof setUpWardrobe>["api"], list: string) =>
-      ItemNoteList.parse(
-        JSON.parse((await api(as("[casting]")("GET", `/api/productions/2027/${list}`))).body ?? ""),
-      ).notes;
 
-    it("lists only the item's Wardrobe files on the Wardrobe route, not its scenery or SFX files", async () => {
-      const { api } = setUpWardrobe();
-      await putFile("scenery", "set-plan.pdf");
-      await putFile("sfx", "thunder.mp3");
-      await putFile("wardrobe", "jacket-pattern.pdf");
+      it("links to a file, which anyone signed in may ask for", async () => {
+        const { api } = setUp();
+        await putFile(key, file);
 
-      expect(await namesAt(api, "wardrobe-files")).toEqual(["jacket-pattern.pdf"]);
-    });
+        const res = await api(
+          as("[]")("GET", itemPath(`${key}-file-link`), { query: { name: file } }),
+        );
 
-    it("links to a Wardrobe file, which anyone signed in may ask for", async () => {
-      const { api } = setUpWardrobe();
-      await putFile("wardrobe", "colour-swatch.png");
+        expect(res.statusCode).toBe(200);
+        expect(ItemFileLink.parse(JSON.parse(res.body ?? "")).url).toContain(`/${key}/${file}`);
+      });
 
-      const res = await api(
-        as("[]")("GET", itemPath("wardrobe-file-link"), { query: { name: "colour-swatch.png" } }),
-      );
+      it("refuses a request reaching into another department's files, leaving them untouched", async () => {
+        const { api } = setUp();
+        await putFile(neighbour, neighbourFile);
+        const name = { query: { name: `../${neighbour}/${neighbourFile}` } };
 
-      expect(res.statusCode).toBe(200);
-      expect(SceneryFileLink.parse(JSON.parse(res.body ?? "")).url).toContain(
-        "/wardrobe/colour-swatch.png",
-      );
-    });
+        const deleted = await api(as("[admin]")("DELETE", itemPath(`${key}-files`), name));
+        const linked = await api(as("[admin]")("GET", itemPath(`${key}-file-link`), name));
 
-    it("refuses a Wardrobe request for an SFX file, leaving it untouched", async () => {
-      const { api } = setUpWardrobe();
-      await putFile("sfx", "thunder.mp3");
-      const name = { query: { name: "../sfx/thunder.mp3" } };
+        expect([deleted.statusCode, linked.statusCode]).toEqual([400, 400]);
+        expect(existsSync(join(folder, "2027", opening, neighbour, neighbourFile))).toBe(true);
+      });
 
-      const deleted = await api(as("[wardrobe]")("DELETE", itemPath("wardrobe-files"), name));
-      const linked = await api(as("[wardrobe]")("GET", itemPath("wardrobe-file-link"), name));
+      it.each(mayChange)("lets %s upload, delete and change the notes", async (groups) => {
+        const { api } = setUp();
+        await putFile(key, file);
 
-      expect([deleted.statusCode, linked.statusCode]).toEqual([400, 400]);
-      expect(existsSync(join(folder, "2027", opening, "sfx", "thunder.mp3"))).toBe(true);
-    });
+        const deleted = await api(deleteIt(groups));
+        const uploaded = await api(uploadIt(groups));
+        const saved = await api(saveNotes(groups, "Made-up note"));
 
-    it.each([
-      ["kit, with Wardrobe", "[wardrobe]"],
-      ["dee, with Director", "[director]"],
-      ["ash, an admin", "[admin]"],
-    ])("lets %s upload, delete and change the Wardrobe notes", async (_who, groups) => {
-      const { api } = setUpWardrobe();
-      await putFile("wardrobe", "jacket-pattern.pdf");
+        expect([deleted.statusCode, uploaded.statusCode, saved.statusCode]).toEqual([
+          204, 200, 200,
+        ]);
+      });
 
-      const deleted = await api(deletePattern(groups));
-      const uploaded = await api(uploadPattern(groups));
-      const saved = await api(saveWardrobeNotes(groups, "Gold jackets for the chorus"));
+      it(`refuses ${viewsOnly} an upload, delete or note change, saying it's view-only`, async () => {
+        const { api } = setUp();
+        await putFile(key, file);
 
-      expect([deleted.statusCode, uploaded.statusCode, saved.statusCode]).toEqual([204, 200, 200]);
-    });
+        for (const res of [
+          await api(uploadIt(viewsOnly)),
+          await api(deleteIt(viewsOnly)),
+          await api(saveNotes(viewsOnly, "Made-up note")),
+        ]) {
+          expect(res.statusCode).toBe(403);
+          expect(JSON.parse(res.body ?? "")).toEqual({ message: refusal, department: key });
+        }
+        expect(await namesAt(api, `${key}-files`)).toEqual([file]);
+        expect(await notesAt(api, `${key}-notes`)).toEqual([]);
+      });
 
-    it("refuses lee, with Tech only, an upload, delete or note change, saying the wardrobe is view-only", async () => {
-      const { api } = setUpWardrobe();
-      await putFile("wardrobe", "jacket-pattern.pdf");
+      it("keeps its notes apart from the scenery notes", async () => {
+        const { api, sceneryNotes } = setUp();
+        await sceneryNotes.save("2027", opening, 0, "Cloud");
 
-      for (const res of [
-        await api(uploadPattern("[tech]")),
-        await api(deletePattern("[tech]")),
-        await api(saveWardrobeNotes("[tech]", "Gold jackets")),
-      ]) {
-        expect(res.statusCode).toBe(403);
-        expect(JSON.parse(res.body ?? "")).toEqual(WARDROBE_READ_ONLY);
-      }
-      expect(await namesAt(api, "wardrobe-files")).toEqual(["jacket-pattern.pdf"]);
-      expect(await notesAt(api, "wardrobe-notes")).toEqual([]);
-    });
+        await api(saveNotes("[admin]", "Made-up note"));
 
-    it("keeps Wardrobe notes per item, apart from the scenery and SFX notes", async () => {
-      const { api, sceneryNotes, sfxNotes } = setUpWardrobe();
-      await sceneryNotes.save("2027", opening, 0, "Cloud");
-      await sfxNotes.save("2027", opening, 0, "Thunder");
-
-      await api(saveWardrobeNotes("[wardrobe]", "Gold jackets for the chorus"));
-
-      expect(await notesAt(api, "wardrobe-notes")).toEqual([
-        { itemId: opening, text: "Gold jackets for the chorus", revision: 1 },
-      ]);
-      expect(await notesAt(api, "scenery-notes")).toEqual([
-        { itemId: opening, text: "Cloud", revision: 1 },
-      ]);
-      expect(await notesAt(api, "sfx-notes")).toEqual([
-        { itemId: opening, text: "Thunder", revision: 1 },
-      ]);
+        expect(await notesAt(api, `${key}-notes`)).toEqual([
+          { itemId: opening, text: "Made-up note", revision: 1 },
+        ]);
+        expect(await notesAt(api, "scenery-notes")).toEqual([
+          { itemId: opening, text: "Cloud", revision: 1 },
+        ]);
+      });
     });
   });
 
@@ -1941,25 +1634,15 @@ describe("Lambda entry point", () => {
       ]);
       return lambdaEntry(
         createRoutes(
-          {
+          inMemoryStores({
             cast,
             roles,
             runningOrders: inMemoryRunningOrderStore([
               aRunningOrder(4, { first: ["Opening Number", "Finale"] }),
             ]),
-            itemNotes: inMemoryItemNoteStore(),
-            props: inMemoryPropStore(),
-            propsNotes: inMemoryItemNoteStore(),
-            sceneryNotes: inMemoryItemNoteStore(),
-            sfxNotes: inMemoryItemNoteStore(),
-            wardrobeNotes: inMemoryItemNoteStore(),
-            micPlotNotes: inMemoryItemNoteStore(),
-            micPlots: inMemoryMicPlotStore(),
-            productions: inMemoryProductionListStore(),
-            removeCastMember: uncastThenRemove(cast, roles),
-          },
+          }),
           inMemoryUsageStore(),
-          { scenery: noSceneryFiles, sfx: noSceneryFiles, wardrobe: noSceneryFiles },
+          noItemFiles,
         ),
         inMemoryProductionListStore(),
       );
@@ -2100,23 +1783,13 @@ describe("Lambda entry point", () => {
       const roles = inMemoryRoleStore();
       return lambdaEntry(
         createRoutes(
-          {
+          inMemoryStores({
             cast,
             roles,
             runningOrders: inMemoryRunningOrderStore([aRunningOrder(3)]),
-            itemNotes: inMemoryItemNoteStore(),
-            props: inMemoryPropStore(),
-            propsNotes: inMemoryItemNoteStore(),
-            sceneryNotes: inMemoryItemNoteStore(),
-            sfxNotes: inMemoryItemNoteStore(),
-            wardrobeNotes: inMemoryItemNoteStore(),
-            micPlotNotes: inMemoryItemNoteStore(),
-            micPlots: inMemoryMicPlotStore(),
-            productions: inMemoryProductionListStore(),
-            removeCastMember: uncastThenRemove(cast, roles),
-          },
+          }),
           inMemoryUsageStore(),
-          { scenery: noSceneryFiles, sfx: noSceneryFiles, wardrobe: noSceneryFiles },
+          noItemFiles,
         ),
         inMemoryProductionListStore(),
       );

@@ -1,4 +1,4 @@
-import { type FileDepartment, MAX_SCENERY_FILE_BYTES, SceneryUpload } from "@app/shared";
+import { type FileDepartment, ItemFileUpload, MAX_ITEM_FILE_BYTES } from "@app/shared";
 import {
   DeleteObjectCommand,
   DeleteObjectsCommand,
@@ -159,7 +159,7 @@ describe("deleting scenery files from a bucket", () => {
 describe("uploading scenery files to a bucket", () => {
   /** The rules file storage holds the upload to, as signed into its form. */
   function policyOf(upload: unknown) {
-    const { fields } = SceneryUpload.parse(upload);
+    const { fields } = ItemFileUpload.parse(upload);
     const policy = JSON.parse(Buffer.from(fields.Policy ?? "", "base64").toString("utf8"));
     return { fields, policy };
   }
@@ -185,7 +185,7 @@ describe("uploading scenery files to a bucket", () => {
     expect(policyOf(upload).policy.conditions).toContainEqual([
       "content-length-range",
       0,
-      MAX_SCENERY_FILE_BYTES,
+      MAX_ITEM_FILE_BYTES,
     ]);
   });
 
@@ -352,7 +352,7 @@ describe("SFX files in a bucket, kept apart from the scenery files", () => {
   it("signs a form that puts the file under the item's SFX folder", async () => {
     s3.on(HeadObjectCommand).rejects(new NotFound({ message: "", $metadata: {} }));
 
-    const upload = SceneryUpload.parse(
+    const upload = ItemFileUpload.parse(
       await sfx().uploadTo("2027", "opening-number", "thunder.mp3", { replace: false }),
     );
 

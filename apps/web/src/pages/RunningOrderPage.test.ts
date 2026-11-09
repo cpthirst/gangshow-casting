@@ -224,14 +224,6 @@ describe("Running order page", () => {
     expect(wrapper.text()).toContain("Couldn't load the running order");
   });
 
-  it("treats an off-contract response as a load failure", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ x: 1 }))));
-
-    const wrapper = await openPage();
-
-    expect(wrapper.text()).toContain("Couldn't load the running order");
-  });
-
   describe("running clock", () => {
     const startsAt = (wrapper: Awaited<ReturnType<typeof openPage>>, title: string) =>
       rowFor(wrapper, title).get("[data-test=starts]").text();

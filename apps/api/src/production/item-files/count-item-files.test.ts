@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { SceneryFileCounts } from "@app/shared";
+import { ItemFileCounts } from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { itemId } from "#/show/running-order/running-order.fixture.ts";
 import { createCountItemFiles } from "./count-item-files.ts";
@@ -37,7 +37,7 @@ describe("count scenery files handler", () => {
   async function countsOf(productionId = "2027") {
     const res = await count({ pathParameters: { productionId } });
     expect(res.statusCode).toBe(200);
-    return SceneryFileCounts.parse(JSON.parse(res.body ?? "")).counts;
+    return ItemFileCounts.parse(JSON.parse(res.body ?? "")).counts;
   }
 
   it("counts each item's scenery files", async () => {

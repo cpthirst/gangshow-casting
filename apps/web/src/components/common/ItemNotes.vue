@@ -3,7 +3,7 @@ import { ItemNote, ItemNoteList, MAX_NOTE_LENGTH } from "@app/shared";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { onBeforeRouteLeave, onBeforeRouteUpdate } from "vue-router";
 import { loadData } from "@/services/load-data.ts";
-import { apiFetch } from "@/services/sign-in.ts";
+import { sendJson } from "@/services/sign-in.ts";
 
 // An item's notes: one free-text field, saved on its own, apart from the running order
 // (casting-item-overview FR8, FR10). The casting notes and the props notes (production-props
@@ -78,10 +78,9 @@ async function save() {
   }
   saving.value = true;
   try {
-    const res = await apiFetch(props.savePath, {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ text: text.value, revision: saved.value.revision }),
+    const res = await sendJson(props.savePath, "PUT", {
+      text: text.value,
+      revision: saved.value.revision,
     });
     if (res.status === 409) {
       show(await currentNote());

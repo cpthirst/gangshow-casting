@@ -1,6 +1,5 @@
 import { mayStartProduction, NewProduction, startRefusal } from "@app/shared";
-import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
-import type { ApiEvent } from "#/http/handler.ts";
+import type { Handler } from "#/http/handler.ts";
 import { jsonResponse, messageResponse, parseJson } from "#/http/json.ts";
 import type { CastStore } from "#/show/cast/cast-store.ts";
 import { firstRunningOrder } from "#/show/running-order/first-running-order.ts";
@@ -17,8 +16,8 @@ interface StartStores {
 export function createStartProduction(
   { productions, cast, runningOrders }: StartStores,
   now = () => new Date(),
-) {
-  return async (event: ApiEvent): Promise<APIGatewayProxyStructuredResultV2> => {
+): Handler {
+  return async (event) => {
     const request = NewProduction.safeParse(parseJson(event.body));
     if (!request.success) return { statusCode: 400 };
     const { year } = request.data;

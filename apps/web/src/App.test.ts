@@ -1,7 +1,7 @@
-import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
+import { enableAutoUnmount, flushPromises } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createMemoryHistory, type Router } from "vue-router";
-import { createAppRouter } from "@/router/index.ts";
+import type { Router } from "vue-router";
+import { openAppAt } from "@/app.fixture.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import {
   SignInEnded,
@@ -11,16 +11,6 @@ import {
   useLocalSignIn,
 } from "@/services/sign-in.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
-import App from "./App.vue";
-
-async function openAppAt(path: string) {
-  const router = createAppRouter(createMemoryHistory());
-  await router.push(path);
-  await router.isReady();
-  const wrapper = mount(App, { global: { plugins: [router] }, attachTo: document.body });
-  await flushPromises();
-  return { wrapper, router };
-}
 
 function nextNavigation(router: Router) {
   return new Promise<void>((resolve) => {

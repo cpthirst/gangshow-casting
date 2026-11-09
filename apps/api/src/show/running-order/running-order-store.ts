@@ -13,6 +13,19 @@ export interface RunningOrderStore {
   save(order: RunningOrder): Promise<"saved" | "conflict">;
 }
 
+/** The latest saved running order, if it has this item: anything kept per item belongs to
+ *  an item in it. */
+export async function latestOrderWith(
+  runningOrders: RunningOrderStore,
+  productionId: string,
+  itemId: string,
+) {
+  const order = await runningOrders.latest(productionId);
+  return order?.halves.some((half) => half.items.some((item) => item.id === itemId))
+    ? order
+    : undefined;
+}
+
 const newest = (versions: RunningOrder[]) =>
   versions.reduce<RunningOrder | undefined>(
     (best, order) => (best === undefined || order.version > best.version ? order : best),

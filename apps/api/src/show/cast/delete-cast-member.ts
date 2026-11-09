@@ -1,7 +1,6 @@
-import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import type { RoleStore } from "#/casting/roles/role-store.ts";
-import type { ApiEvent } from "#/http/handler.ts";
-import { productionIdOf, wholeNumber } from "#/http/params.ts";
+import { type Handler, inProduction } from "#/http/handler.ts";
+import { wholeNumber } from "#/http/params.ts";
 import { type CastingFollowers, productionFollowsCasting } from "#/production/follow-casting.ts";
 import { refusalStatus } from "./cast-store.ts";
 import type { RemoveCastMember } from "./remove-cast-member.ts";
@@ -14,10 +13,8 @@ export function createDeleteCastMember(
   removeCastMember: RemoveCastMember,
   roles: RoleStore,
   followers: CastingFollowers,
-) {
-  return async (event: ApiEvent): Promise<APIGatewayProxyStructuredResultV2> => {
-    const productionId = productionIdOf(event);
-    if (productionId === undefined) return { statusCode: 404 };
+): Handler {
+  return inProduction(async (productionId, event) => {
     const castId = wholeNumber(event.pathParameters?.castId);
     const revision = wholeNumber(event.queryStringParameters?.revision);
     if (castId === undefined || revision === undefined) return { statusCode: 400 };
@@ -27,5 +24,5 @@ export function createDeleteCastMember(
     // Uncast from every role by now, so they carry nothing and have no mic.
     await productionFollowsCasting(followers, roles, productionId);
     return { statusCode: 204 };
-  };
+  });
 }

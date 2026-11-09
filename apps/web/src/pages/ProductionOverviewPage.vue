@@ -3,12 +3,12 @@ import {
   channelsKeptAgainstTheRule,
   type FileDepartment,
   fileDepartments,
+  ItemFileCounts,
   type ItemMicPlot,
   ItemNoteList,
   MicPlotList,
   PropList,
   RunningOrder,
-  SceneryFileCounts,
 } from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, nextTick, onMounted, ref } from "vue";
@@ -248,7 +248,7 @@ async function loadMicPlots() {
 // From file storage on every visit, so a file added there is counted (FR14).
 async function loadFileCounts(department: FileDepartment): Promise<Counts> {
   try {
-    const { counts } = await loadRequired(fileCountsPath(department), SceneryFileCounts);
+    const { counts } = await loadRequired(fileCountsPath(department), ItemFileCounts);
     return (itemId) => counts[itemId] ?? 0;
   } catch {
     return "error";

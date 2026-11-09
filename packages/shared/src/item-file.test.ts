@@ -3,20 +3,20 @@ import {
   browserTypeOf,
   fileDepartments,
   fileTypeOf,
-  MAX_SCENERY_FILE_BYTES,
-  SceneryFileCounts,
-  SceneryFileLink,
-  SceneryFileList,
-  SceneryFileName,
-  SceneryUpload,
-  SceneryUploadRequest,
-} from "./scenery.ts";
+  ItemFileCounts,
+  ItemFileLink,
+  ItemFileList,
+  ItemFileName,
+  ItemFileUpload,
+  ItemFileUploadRequest,
+  MAX_ITEM_FILE_BYTES,
+} from "./item-file.ts";
 
-describe("SceneryFileName", () => {
+describe("ItemFileName", () => {
   it.each(["set-plan.pdf", "Backdrop v2 (final).png", "<b>plan.pdf", "x".repeat(255)])(
     "accepts %s",
     (name) => {
-      expect(SceneryFileName.safeParse(name).success).toBe(true);
+      expect(ItemFileName.safeParse(name).success).toBe(true);
     },
   );
 
@@ -31,41 +31,41 @@ describe("SceneryFileName", () => {
     ["the folder itself", "."],
     ["the folder above", ".."],
   ])("refuses %s, which could reach outside the item's folder", (_, name) => {
-    expect(SceneryFileName.safeParse(name).success).toBe(false);
+    expect(ItemFileName.safeParse(name).success).toBe(false);
   });
 });
 
-describe("SceneryFileList", () => {
+describe("ItemFileList", () => {
   it("is an item's files, each with its name and size in bytes", () => {
     const list = { files: [{ name: "set-plan.pdf", size: 2_400_000 }] };
-    expect(SceneryFileList.parse(list)).toEqual(list);
+    expect(ItemFileList.parse(list)).toEqual(list);
   });
 
   it("refuses a negative size", () => {
-    expect(SceneryFileList.safeParse({ files: [{ name: "a.pdf", size: -1 }] }).success).toBe(false);
+    expect(ItemFileList.safeParse({ files: [{ name: "a.pdf", size: -1 }] }).success).toBe(false);
   });
 });
 
-describe("SceneryFileCounts", () => {
+describe("ItemFileCounts", () => {
   it("is how many files each item has, by item id", () => {
     const counts = { counts: { "opening-number": 9, finale: 1 } };
-    expect(SceneryFileCounts.parse(counts)).toEqual(counts);
+    expect(ItemFileCounts.parse(counts)).toEqual(counts);
   });
 
   it.each([-1, 1.5])("refuses a count of %s", (count) => {
-    expect(SceneryFileCounts.safeParse({ counts: { finale: count } }).success).toBe(false);
+    expect(ItemFileCounts.safeParse({ counts: { finale: count } }).success).toBe(false);
   });
 });
 
-describe("SceneryFileLink", () => {
+describe("ItemFileLink", () => {
   it("is a link that downloads one file", () => {
     const link = { url: "https://files.example/2027/opening-number/scenery/set-plan.pdf?x=1" };
-    expect(SceneryFileLink.parse(link)).toEqual(link);
+    expect(ItemFileLink.parse(link)).toEqual(link);
   });
 
   it("can be a link on the app's own server, as pnpm demo's are", () => {
     const link = { url: "/api/local-files/2027/opening-number/scenery/set-plan.pdf" };
-    expect(SceneryFileLink.parse(link)).toEqual(link);
+    expect(ItemFileLink.parse(link)).toEqual(link);
   });
 
   it.each([
@@ -74,24 +74,24 @@ describe("SceneryFileLink", () => {
     "/production/overview",
     "//files.example/set-plan.pdf",
   ])("refuses %s, which isn't file storage", (url) => {
-    expect(SceneryFileLink.safeParse({ url }).success).toBe(false);
+    expect(ItemFileLink.safeParse({ url }).success).toBe(false);
   });
 });
 
-describe("SceneryUploadRequest", () => {
+describe("ItemFileUploadRequest", () => {
   it("names the file and its size, and may ask to replace one of the same name", () => {
     const request = { name: "set-plan.pdf", size: 2_400_000, replace: true };
-    expect(SceneryUploadRequest.parse(request)).toEqual(request);
-    expect(SceneryUploadRequest.parse({ name: "set-plan.pdf", size: 0 })).toEqual({
+    expect(ItemFileUploadRequest.parse(request)).toEqual(request);
+    expect(ItemFileUploadRequest.parse({ name: "set-plan.pdf", size: 0 })).toEqual({
       name: "set-plan.pdf",
       size: 0,
     });
   });
 
   it("accepts a file of exactly 100 MB, the most file storage keeps", () => {
-    expect(MAX_SCENERY_FILE_BYTES).toBe(100_000_000);
-    const request = { name: "rig.mov", size: MAX_SCENERY_FILE_BYTES };
-    expect(SceneryUploadRequest.safeParse(request).success).toBe(true);
+    expect(MAX_ITEM_FILE_BYTES).toBe(100_000_000);
+    const request = { name: "rig.mov", size: MAX_ITEM_FILE_BYTES };
+    expect(ItemFileUploadRequest.safeParse(request).success).toBe(true);
   });
 
   it.each([
@@ -102,28 +102,28 @@ describe("SceneryUploadRequest", () => {
     ["a name file storage would rewrite", { name: "${filename}", size: 1 }],
     ["a name with file storage's rewrite inside it", { name: "plan-${filename}.pdf", size: 1 }],
   ])("refuses %s", (_, request) => {
-    expect(SceneryUploadRequest.safeParse(request).success).toBe(false);
+    expect(ItemFileUploadRequest.safeParse(request).success).toBe(false);
   });
 });
 
-describe("SceneryUpload", () => {
+describe("ItemFileUpload", () => {
   it("is where to send the file, and the form fields to send with it", () => {
     const upload = {
       url: "https://files.example/",
       fields: { key: "2027/opening-number/scenery/set-plan.pdf", Policy: "abc" },
     };
-    expect(SceneryUpload.parse(upload)).toEqual(upload);
+    expect(ItemFileUpload.parse(upload)).toEqual(upload);
   });
 
   it("can be the app's own server, as pnpm demo's is", () => {
     const upload = { url: "/api/local-files/2027/opening-number/scenery/set-plan.pdf", fields: {} };
-    expect(SceneryUpload.parse(upload)).toEqual(upload);
+    expect(ItemFileUpload.parse(upload)).toEqual(upload);
   });
 
   it.each(["javascript:alert(1)", "http://files.example/", "//files.example/"])(
     "refuses %s, which isn't file storage",
     (url) => {
-      expect(SceneryUpload.safeParse({ url, fields: {} }).success).toBe(false);
+      expect(ItemFileUpload.safeParse({ url, fields: {} }).success).toBe(false);
     },
   );
 });

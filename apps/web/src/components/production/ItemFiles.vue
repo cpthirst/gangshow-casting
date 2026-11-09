@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { departments, type SceneryFile, SceneryFileLink, SceneryFileList } from "@app/shared";
+import { departments, type ItemFile, ItemFileLink, ItemFileList } from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, ref, useTemplateRef, watch } from "vue";
 import { useRoute } from "vue-router";
@@ -8,9 +8,15 @@ import { downloadFrom, openFileTab } from "@/services/file-link.ts";
 import { loadData } from "@/services/load-data.ts";
 import { itemFileLinkPath, itemFilePath, itemFilesPath } from "@/services/production.ts";
 import { apiFetch, canChange } from "@/services/sign-in.ts";
+import {
+  fileIconOf,
+  fileLabel,
+  fileSize,
+  opensInBrowser,
+  sortFiles,
+} from "@/utils/file-display.ts";
 import { icons } from "@/utils/icons.ts";
 import type { FilesDepartment } from "@/utils/item-files.ts";
-import { fileIconOf, fileLabel, fileSize, opensInBrowser, sortFiles } from "@/utils/scenery.ts";
 import FileUpload from "./FileUpload.vue";
 
 // One item's files for a department, Scenery's, SFX's or Wardrobe's (production-scenery FR6,
@@ -24,7 +30,7 @@ const key = computed(() => props.department.key);
 // Named as the shared list says (ADR 0035).
 const named = computed(() => departments[props.department.key]);
 const mayChange = computed(() => canChange(props.department.key));
-const files = ref<SceneryFile[]>([]);
+const files = ref<ItemFile[]>([]);
 // Why the last file chosen didn't open, download, delete or upload, if it didn't.
 const fileProblem = ref<string>();
 // A delete is on its way, so the trash icons wait for it.
@@ -32,7 +38,7 @@ const deleting = ref(false);
 
 // Files come from storage on every visit, so one renamed or added there shows (FR6).
 async function loadFiles(id: string) {
-  const list = await loadData(itemFilesPath(key.value, id), SceneryFileList);
+  const list = await loadData(itemFilesPath(key.value, id), ItemFileList);
   return () => {
     files.value = sortFiles(list?.files ?? []);
   };
@@ -42,11 +48,11 @@ const reload = async () => frame.value?.reload();
 
 // A file opens in a new tab or downloads through a short-lived link (FR10). A file deleted
 // since the page loaded says so, and the grid catches up with storage.
-async function choose({ name }: SceneryFile, id: string) {
+async function choose({ name }: ItemFile, id: string) {
   fileProblem.value = undefined;
   const tab = opensInBrowser(name, key.value) ? openFileTab() : undefined;
   try {
-    const link = await loadData(itemFileLinkPath(key.value, id, name), SceneryFileLink);
+    const link = await loadData(itemFileLinkPath(key.value, id, name), ItemFileLink);
     if (!link) {
       tab?.close();
       fileProblem.value = `${name} isn't there any more.`;
@@ -63,7 +69,7 @@ async function choose({ name }: SceneryFile, id: string) {
 }
 
 // For everyone, for good (FR11): there's no history to bring it back, so confirm first.
-async function remove({ name }: SceneryFile, id: string) {
+async function remove({ name }: ItemFile, id: string) {
   if (deleting.value) return;
   if (!window.confirm(`Remove ${name}? This can't be undone.`)) return;
   fileProblem.value = undefined;

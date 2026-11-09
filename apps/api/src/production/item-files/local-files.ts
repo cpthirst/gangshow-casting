@@ -1,6 +1,6 @@
 import { stat } from "node:fs/promises";
 import { join } from "node:path";
-import { fileDepartments, ProductionId, SceneryFileName } from "@app/shared";
+import { fileDepartments, ItemFileName, ProductionId } from "@app/shared";
 import { folderIdOf } from "#/http/params.ts";
 import { ifExists } from "#/storage/files.ts";
 import { fileHeadersOf } from "./file-headers.ts";
@@ -33,7 +33,7 @@ export function localFilePlace(folder: string, path: string) {
     .map(decoded);
   const production = ProductionId.safeParse(productionId);
   const item = folderIdOf(itemId);
-  const fileName = SceneryFileName.safeParse(name);
+  const fileName = ItemFileName.safeParse(name);
   const fileDepartment = fileDepartments.find((known) => known === department);
   if (
     rest.length > 0 ||

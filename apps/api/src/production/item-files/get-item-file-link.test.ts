@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { SceneryFileLink } from "@app/shared";
+import { ItemFileLink } from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { itemId } from "#/show/running-order/running-order.fixture.ts";
 import { createGetItemFileLink } from "./get-item-file-link.ts";
@@ -39,7 +39,7 @@ describe("scenery file link handler", () => {
     const res = await getLink(request("set-plan.pdf"));
 
     expect(res.statusCode).toBe(200);
-    expect(SceneryFileLink.parse(JSON.parse(res.body ?? ""))).toEqual({
+    expect(ItemFileLink.parse(JSON.parse(res.body ?? ""))).toEqual({
       url: `/api/local-files/2027/${openingNumber}/scenery/set-plan.pdf`,
     });
     // Anyone holding the link can use it for a while, so nothing on the way may keep it.

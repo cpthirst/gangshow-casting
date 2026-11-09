@@ -9,7 +9,7 @@ import {
   adminOnlyRouteKeys,
   HealthResponse,
   LOCAL_ACCESS_HEADER,
-  MAX_SCENERY_FILE_BYTES,
+  MAX_ITEM_FILE_BYTES,
   UsageSummary,
 } from "@app/shared";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
@@ -449,8 +449,8 @@ describe("dev server local scenery uploads (production-scenery FR8)", () => {
   it("keeps a file of exactly 100 MB, and refuses one over it, keeping nothing", async () => {
     const path = (name: string) => `/api/local-files/2027/finale/scenery/${name}`;
 
-    const exactly = await upload(path("rig.mov"), form(new Uint8Array(MAX_SCENERY_FILE_BYTES)));
-    const over = await upload(path("big.mov"), form(new Uint8Array(MAX_SCENERY_FILE_BYTES + 1)));
+    const exactly = await upload(path("rig.mov"), form(new Uint8Array(MAX_ITEM_FILE_BYTES)));
+    const over = await upload(path("big.mov"), form(new Uint8Array(MAX_ITEM_FILE_BYTES + 1)));
 
     expect(exactly.status).toBe(204);
     expect(over.status).toBe(413);
@@ -466,7 +466,7 @@ describe("dev server local scenery uploads (production-scenery FR8)", () => {
           headers: {
             origin: LOCAL_APP,
             "content-type": "multipart/form-data; boundary=x",
-            "content-length": String(MAX_SCENERY_FILE_BYTES * 2),
+            "content-length": String(MAX_ITEM_FILE_BYTES * 2),
           },
         },
         (answer) => resolve(answer.statusCode),

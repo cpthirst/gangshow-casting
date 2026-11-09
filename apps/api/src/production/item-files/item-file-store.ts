@@ -1,11 +1,6 @@
 import { readdir, rm, stat } from "node:fs/promises";
 import { join } from "node:path";
-import {
-  type FileDepartment,
-  type SceneryFile,
-  SceneryFileName,
-  type SceneryUpload,
-} from "@app/shared";
+import { type FileDepartment, type ItemFile, ItemFileName, type ItemFileUpload } from "@app/shared";
 import { folderIdOf } from "#/http/params.ts";
 import { ifExists } from "#/storage/files.ts";
 import { localFileLink } from "./local-files.ts";
@@ -17,25 +12,25 @@ import { localFileLink } from "./local-files.ts";
  */
 export interface ItemFileStore {
   /** The item's files, in no particular order; none if it has no folder yet. */
-  list(productionId: string, itemId: string): Promise<SceneryFile[]>;
+  list(productionId: string, itemId: string): Promise<ItemFile[]>;
   /** How many files each item in the production has, by item id, from one look at storage
    *  (production-overview FR14); an item with none is left out. */
   countByItem(productionId: string): Promise<Record<string, number>>;
   /** A short-lived link that opens or downloads one of the item's files (FR10); undefined if
-   *  it isn't there. The name is a valid SceneryFileName. */
+   *  it isn't there. The name is a valid ItemFileName. */
   linkTo(productionId: string, itemId: string, name: string): Promise<string | undefined>;
   /** Deletes one of the item's files for good (FR11), or says it was already gone. The name is
-   *  a valid SceneryFileName. */
+   *  a valid ItemFileName. */
   remove(productionId: string, itemId: string, name: string): Promise<"removed" | "gone">;
   /** Where the browser may send one file of the item's, of up to 100 MB, for a few minutes
    *  (FR8); "taken" if the item has a file of that name and it isn't to be replaced (FR9). The
-   *  name is a valid SceneryFileName. */
+   *  name is a valid ItemFileName. */
   uploadTo(
     productionId: string,
     itemId: string,
     name: string,
     options: { replace: boolean },
-  ): Promise<SceneryUpload | "taken">;
+  ): Promise<ItemFileUpload | "taken">;
   /** Deletes every one of the department's files of the production's items not listed, for
    *  good, leaving other departments' files alone (FR13). It goes by storage, not the running
    *  order, so a file put in a removed item's folder later goes too. */
@@ -59,7 +54,7 @@ export function countsByItem(keys: Iterable<string>, department: FileDepartment)
     const [item, keyDepartment, name, ...rest] = key.split("/");
     const itemId = folderIdOf(item);
     if (itemId === undefined || keyDepartment !== department || rest.length > 0) continue;
-    if (!SceneryFileName.safeParse(name).success) continue;
+    if (!ItemFileName.safeParse(name).success) continue;
     counts[itemId] = (counts[itemId] ?? 0) + 1;
   }
   return counts;
@@ -77,8 +72,8 @@ export function isDroppedFile(key: string, kept: ReadonlySet<string>, department
 
 /** A file storage keeps under the item's folder, as a list of zero or one files: none if its
  *  name isn't one a file may have, such as a folder's placeholder. */
-export const asItemFiles = (name: string, size: number): SceneryFile[] =>
-  SceneryFileName.safeParse(name).success ? [{ name, size }] : [];
+export const asItemFiles = (name: string, size: number): ItemFile[] =>
+  ItemFileName.safeParse(name).success ? [{ name, size }] : [];
 
 /** The department's files in a local folder laid out as the bucket is, for pnpm dev, the demo
  *  and tests. */

@@ -1,13 +1,12 @@
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { json } from "@/app.fixture.ts";
 import { openProduction, openProductionYear, PRODUCTIONS_PATH } from "@/services/production.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
 import ProductionsPage from "./ProductionsPage.vue";
 
 enableAutoUnmount(afterEach);
-
-const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 
 /** The API: GET lists the productions; POST answers with `started`. */
 function serve(productions: string[], started: () => Response = () => json({}, 500)) {

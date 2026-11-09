@@ -12,7 +12,7 @@ import PageTitle from "@/components/common/PageTitle.vue";
 import { useAddForm } from "@/composables/useAddForm.ts";
 import { loadRequired, refusalMessage } from "@/services/load-data.ts";
 import { listProductions, openNewestOf, PRODUCTIONS_PATH } from "@/services/production.ts";
-import { apiFetch, isAdmin } from "@/services/sign-in.ts";
+import { apiFetch, isAdmin, sendJson } from "@/services/sign-in.ts";
 import { icons } from "@/utils/icons.ts";
 import { deleteWarning, startWarning } from "@/utils/production.ts";
 
@@ -81,11 +81,7 @@ const failed: Posted = { status: "failed", message: FAILED };
 
 async function postYear(asked: string): Promise<Posted> {
   try {
-    const res = await apiFetch(PRODUCTIONS_PATH, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ year: asked }),
-    });
+    const res = await sendJson(PRODUCTIONS_PATH, "POST", { year: asked });
     if (res.status === 201) {
       const list = ProductionList.safeParse(await res.json().catch(() => undefined));
       return list.success ? { status: "started", list: list.data } : failed;

@@ -3,6 +3,7 @@ import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { h } from "vue";
 import { createMemoryHistory } from "vue-router";
+import { json } from "@/app.fixture.ts";
 import { createAppRouter } from "@/router/index.ts";
 import { departmentNotesPath, runningOrderPath } from "@/services/production.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
@@ -21,13 +22,12 @@ afterEach(() => {
 // Made-up items, in show order: Opening Number, Pirate Sketch | Finale.
 const show = aRunningOrder([anItem("Opening Number"), anItem("Pirate Sketch")], [anItem("Finale")]);
 
-const json = (body: unknown) => new Response(JSON.stringify(body));
-
 /** A stand-in API with the running order (none if undefined), or failing to give it. */
-function apiHolds(order: typeof show | undefined | "fails") {
+function apiHolds(order: typeof show | undefined | "fails" | "unreachable") {
   const fetch = vi.fn(async (url: string, _init?: RequestInit) => {
     if (url === runningOrderPath()) {
       if (order === "fails") return new Response(null, { status: 500 });
+      if (order === "unreachable") throw new TypeError("Failed to fetch");
       return order ? json(order) : new Response(null, { status: 404 });
     }
     if (url.endsWith("-notes")) return json({ productionId: "2027", notes: [] });
@@ -74,6 +74,9 @@ describe("The item page frame", () => {
     ["scenery", "Scenery"],
     ["sfx", "SFX"],
     ["wardrobe", "Wardrobe"],
+    ["casting", "Casting"],
+    ["props", "Props"],
+    ["mic-plot", "Mic plot"],
   ] as const)(
     "titles the %s page with the department and item, with its help and position",
     async (department, name) => {
@@ -86,6 +89,12 @@ describe("The item page frame", () => {
       const place = placeOf(show, "opening-number");
       expect(wrapper.get("[data-test=position]").text()).toBe(place ? positionOf(place) : "");
       expect(document.title).toContain(`${name}: Opening Number`);
+
+      await row.get("button[aria-label='Help for this item']").trigger("click");
+
+      expect(wrapper.findAll("dialog [data-test=help-name]").map((line) => line.text())).toContain(
+        `${name} notes`,
+      );
     },
   );
 
@@ -146,11 +155,13 @@ describe("The item page frame", () => {
       "It isn't in the latest saved running order. Choose an item from All items.",
     );
     expect(wrapper.find("[data-test=page]").exists()).toBe(false);
+    expect(wrapper.find("button[aria-label='Help for this item']").exists()).toBe(false);
     expect(wrapper.get("a.back-link").attributes("href")).toBe("/production/overview");
   });
 
   it.each([
     ["the running order", "fails" as const, (id: string) => loadsAt(id)()],
+    ["an unreachable API", "unreachable" as const, (id: string) => loadsAt(id)()],
     ["the page's own data", show, () => Promise.reject(new Error("HTTP 500"))],
   ])("shows one error in place of the page when %s fails to load", async (_, order, load) => {
     apiHolds(order);
@@ -167,6 +178,8 @@ describe("The item page frame", () => {
 
   it.each([
     ["scenery", [{ event: "scenery", productionId: "2027", itemId: "opening-number" }]],
+    ["sfx", [{ event: "sfx", productionId: "2027", itemId: "opening-number" }]],
+    ["wardrobe", [{ event: "wardrobe", productionId: "2027", itemId: "opening-number" }]],
     ["mic-plot", [{ event: "mic-plot", productionId: "2027", itemId: "opening-number" }]],
     ["casting", [{ event: "item", productionId: "2027", itemId: "opening-number" }]],
     ["props", [{ event: "props", productionId: "2027", itemId: "opening-number" }]],

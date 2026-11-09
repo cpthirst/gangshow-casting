@@ -1,6 +1,5 @@
 import { type CreatedAccount, NewAccount } from "@app/shared";
-import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
-import type { ApiEvent } from "#/http/handler.ts";
+import type { Handler } from "#/http/handler.ts";
 import { jsonResponse, messageResponse, parseJson } from "#/http/json.ts";
 import { type UserDirectory, UsernameTaken } from "./user-directory.ts";
 
@@ -8,8 +7,8 @@ import { type UserDirectory, UsernameTaken } from "./user-directory.ts";
  * POST /api/accounts: a new account with a temporary password, returned only here, for the
  * admin to pass on (ADR 0018). Never log it.
  */
-export function createCreateAccount(directory: UserDirectory, newPassword: () => string) {
-  return async (event: ApiEvent): Promise<APIGatewayProxyStructuredResultV2> => {
+export function createCreateAccount(directory: UserDirectory, newPassword: () => string): Handler {
+  return async (event) => {
     const request = NewAccount.safeParse(parseJson(event.body));
     // Only the username comes from what an admin types; anything else wrong is a bad client.
     if (!request.success) {

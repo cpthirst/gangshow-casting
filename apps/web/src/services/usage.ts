@@ -5,7 +5,7 @@ import {
   type RecordUsageRequest,
   type UsageExport,
 } from "@app/shared";
-import { apiFetch } from "./sign-in.ts";
+import { sendJson } from "./sign-in.ts";
 
 export const USAGE_PATH = "/api/usage";
 
@@ -14,11 +14,7 @@ export const USAGE_PATH = "/api/usage";
  * doing, and a failure is ignored, so recording can't get in their way (FR3).
  */
 function record(request: RecordUsageRequest) {
-  apiFetch(USAGE_PATH, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(request),
-  }).catch(() => {});
+  sendJson(USAGE_PATH, "POST", request).catch(() => {});
 }
 
 /** Records that someone started using the app. */
@@ -41,7 +37,7 @@ export const recordView = (view: PageView) => record({ event: "view", view });
 export const recordExport = (kind: UsageExport) => record({ event: "export", export: kind });
 
 /** Records opening an item's page: which item only, never its title or cast. */
-export const recordItemUse = (productionId: string, itemId: string) =>
+const recordItemUse = (productionId: string, itemId: string) =>
   record({ event: "item", productionId, itemId });
 
 /** Records opening a department's page for an item: which item only, never its title, props,

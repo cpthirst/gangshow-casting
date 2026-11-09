@@ -174,14 +174,6 @@ describe("Cast page", () => {
     expect(wrapper.text()).toContain("Couldn't load the cast list");
   });
 
-  it("treats an off-contract response as a load failure", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ x: 1 }))));
-
-    const wrapper = await openPage();
-
-    expect(wrapper.text()).toContain("Couldn't load the cast list");
-  });
-
   describe("row buttons", () => {
     it("puts the icons in the first column, like the Running order and Items pages", async () => {
       serve(aCast([aMember("Sam", "Example")]));
@@ -288,16 +280,6 @@ describe("Cast page", () => {
           .findAll("option")
           .map((o) => o.text()),
       ).toEqual(["All", "Scouts", "Explorers", "Network", "Not set"]);
-    });
-
-    it("combines filters", async () => {
-      serve(cast());
-      const wrapper = await openPage();
-
-      await firstName(wrapper).setValue("sam");
-      await section(wrapper).setValue("scouts");
-
-      expect(names(wrapper)).toEqual(["Sam Example"]);
     });
 
     it("shows matches out of the total, in a live region for screen readers", async () => {

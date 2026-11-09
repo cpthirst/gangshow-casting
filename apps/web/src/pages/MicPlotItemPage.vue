@@ -16,9 +16,10 @@ import { useRoute } from "vue-router";
 import CastMemberPicker from "@/components/casting/CastMemberPicker.vue";
 import ClashIcon from "@/components/common/ClashIcon.vue";
 import ItemPageFrame from "@/components/common/ItemPageFrame.vue";
+import { useItemPlace } from "@/composables/useItemPlace.ts";
 import { loadData } from "@/services/load-data.ts";
 import { allocateMicPath, castPath, micPlotPath, rolesPath } from "@/services/production.ts";
-import { apiFetch, canChange } from "@/services/sign-in.ts";
+import { canChange, sendJson } from "@/services/sign-in.ts";
 import { icons } from "@/utils/icons.ts";
 import {
   castInItem,
@@ -28,7 +29,7 @@ import {
   micRolesText,
 } from "@/utils/mic-plot.ts";
 import { type CastMemberChoice, fullName } from "@/utils/roles.ts";
-import { neighboursOf, placeOf } from "@/utils/running-order.ts";
+import { neighboursOf } from "@/utils/running-order.ts";
 
 // One item's mic plot: Mic 1 to Mic 24, each given to a cast member in the item or free, with
 // the roles they play there (production-mics FR2, FR3, FR4), a channel someone had in the item
@@ -53,10 +54,7 @@ const announcement = ref("");
 /** Why the last change wasn't saved, if it wasn't. */
 const problem = ref("");
 
-const place = computed(() => {
-  const itemId = route.params.itemId;
-  return order.value && typeof itemId === "string" ? placeOf(order.value, itemId) : undefined;
-});
+const place = useItemPlace(order);
 const neighbours = computed(() =>
   order.value && place.value ? neighboursOf(order.value, place.value.item.id) : {},
 );
@@ -168,11 +166,7 @@ async function allocate(channel: number, castMemberId: number | null) {
   problem.value = "";
   saving.value = { channel, castMemberId };
   try {
-    const res = await apiFetch(allocateMicPath(item.id), {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ channel, castMemberId }),
-    });
+    const res = await sendJson(allocateMicPath(item.id), "PUT", { channel, castMemberId });
     if (res.status === 409) {
       // Someone else gave them another of the item's mics first.
       show(ItemMicPlot.parse(await res.json()));

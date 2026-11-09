@@ -1,0 +1,10 @@
+{
+  "path": ["apps/web/src", "apps/api/src", "packages/shared/src", "infra/lib", "tooling/src"],
+  "pattern": "**/*.{ts,vue,css}",
+  "ignore": ["**/*.test.ts", "**/*.fixture.ts", "**/*.contract.ts", "**/node_modules/**"],
+  "minLines": 8,
+  "minTokens": 60,
+  "threshold": 1,
+  "reporters": ["console"],
+  "silent": false
+}
