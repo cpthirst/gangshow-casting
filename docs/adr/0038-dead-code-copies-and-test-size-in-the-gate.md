@@ -1,6 +1,6 @@
 # 0038. Dead code, copies and test file size in the gate
 
-- **Status**: Proposed
+- **Status**: Accepted
 - **Date**: 2026-11-09
 - **Deciders**: Maintainer
 
