@@ -1,4 +1,3 @@
-import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { FileDepartment } from "@app/shared";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
@@ -44,6 +43,7 @@ import type { ItemCleanup } from "#/show/running-order/save-running-order.ts";
 import { dynamoUsageStore } from "#/usage/dynamo-usage-store.ts";
 import { inMemoryUsageStore } from "#/usage/usage-store.ts";
 import { documentClient } from "./dynamo-table.ts";
+import { filesFolderIn } from "./files.ts";
 
 // Git-ignored: real production data never goes in the repo (CLAUDE.md safeguarding).
 const defaultDataDir = fileURLToPath(new URL("../../data", import.meta.url));
@@ -181,7 +181,7 @@ export function itemFileStores(env: Env = process.env) {
       folder: undefined,
     };
   }
-  const folder = join(dataDirFrom(env), "files");
+  const folder = filesFolderIn(dataDirFrom(env));
   return {
     stores: storesFor((department) => folderItemFileStore(folder, department)),
     where: `scenery, SFX and Wardrobe files in ${folder}`,

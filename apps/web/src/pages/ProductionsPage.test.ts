@@ -202,4 +202,157 @@ describe("Productions page", () => {
     expect(document.activeElement).toBe(wrapper.get("[data-test=add-production]").element);
     expect(posts(fetchMock)).toEqual([]);
   });
+
+  describe("deleting a production", () => {
+    /** The API: GET lists the productions; DELETE answers with `deleted`, then lists `after`. */
+    function serveDelete(
+      list: { productions: string[]; deleting?: string[] },
+      deleted: () => Response,
+      after = list,
+    ) {
+      let current = list;
+      const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+        if (init?.method !== "DELETE") return json(current);
+        current = after;
+        return deleted();
+      });
+      vi.stubGlobal("fetch", fetchMock);
+      return fetchMock;
+    }
+    const deletes = (fetchMock: ReturnType<typeof serveDelete>) =>
+      fetchMock.mock.calls.filter(([, init]) => init?.method === "DELETE");
+    const deleteButton = (wrapper: Page, year: string) =>
+      wrapper.find(`tr[data-year="${year}"] [data-test=delete-production]`);
+    async function askToDelete(wrapper: Page, year: string) {
+      await deleteButton(wrapper, year).trigger("click");
+      await flushPromises();
+    }
+
+    it("confirms, naming the year, that it can't be undone, and how long backups last", async () => {
+      const confirm = confirmWith(true);
+      serveDelete({ productions: ["2027", "2028"] }, () => json({ productions: ["2028"] }));
+      const wrapper = await openPage();
+
+      await askToDelete(wrapper, "2027");
+
+      expect(confirm).toHaveBeenCalledWith(
+        "Delete production 2027? This can't be undone. Copies stay in backups for up to 7 days.",
+      );
+    });
+
+    it("deletes the production and stops listing it", async () => {
+      confirmWith(true);
+      const fetchMock = serveDelete({ productions: ["2027", "2028"] }, () =>
+        json({ productions: ["2028"] }),
+      );
+      const wrapper = await openPage();
+
+      await askToDelete(wrapper, "2027");
+
+      expect(deletes(fetchMock)[0]?.[0]).toBe(`${PRODUCTIONS_PATH}/2027`);
+      expect(years(wrapper)).toEqual(["2028"]);
+      expect(wrapper.get("[data-test=announcement]").text()).toBe("Production 2027 deleted.");
+      expect(document.activeElement).toBe(wrapper.get("[data-test=add-production]").element);
+    });
+
+    it("keeps the production when the admin cancels", async () => {
+      confirmWith(false);
+      const fetchMock = serveDelete({ productions: ["2027", "2028"] }, () => json({}, 500));
+      const wrapper = await openPage();
+
+      await askToDelete(wrapper, "2027");
+
+      expect(deletes(fetchMock)).toEqual([]);
+      expect(years(wrapper)).toEqual(["2028", "2027"]);
+    });
+
+    it("offers no Delete for the newest", async () => {
+      serveDelete({ productions: ["2027", "2028"] }, () => json({}, 500));
+
+      const wrapper = await openPage();
+
+      expect(deleteButton(wrapper, "2028").exists()).toBe(false);
+      expect(deleteButton(wrapper, "2027").exists()).toBe(true);
+    });
+
+    it("has no actions at all with only the one production", async () => {
+      serveDelete({ productions: ["2027"] }, () => json({}, 500));
+
+      const wrapper = await openPage();
+
+      expect(wrapper.find("th.actions").exists()).toBe(false);
+    });
+
+    it("offers no Delete to someone who isn't an admin", async () => {
+      await signInAs(["casting", "stage", "tech", "wardrobe", "director"]);
+      serveDelete({ productions: ["2027", "2028"] }, () => json({}, 500));
+
+      const wrapper = await openPage();
+
+      expect(deleteButton(wrapper, "2027").exists()).toBe(false);
+    });
+
+    it("shows a delete that stopped part way as not finished, with Delete again", async () => {
+      serveDelete({ productions: ["2028"], deleting: ["2027"] }, () => json({}, 500));
+
+      const wrapper = await openPage();
+
+      expect(wrapper.get('tr[data-year="2027"]').text()).toContain("Not finished");
+      expect(wrapper.find('tr[data-year="2027"] td[data-label=Status]').exists()).toBe(true);
+      expect(wrapper.find('tr[data-year="2028"] td[data-label=Status]').exists()).toBe(false);
+      expect(deleteButton(wrapper, "2027").attributes("aria-label")).toBe(
+        "Delete production 2027 again",
+      );
+    });
+
+    it("finishes a delete that stopped part way when it's confirmed again", async () => {
+      const confirm = confirmWith(true);
+      const fetchMock = serveDelete({ productions: ["2028"], deleting: ["2027"] }, () =>
+        json({ productions: ["2028"] }),
+      );
+      const wrapper = await openPage();
+
+      await askToDelete(wrapper, "2027");
+
+      expect(confirm).toHaveBeenCalledWith(expect.stringContaining("Delete production 2027?"));
+      expect(deletes(fetchMock)).toHaveLength(1);
+      expect(wrapper.find('tr[data-year="2027"]').exists()).toBe(false);
+    });
+
+    it("says it didn't finish and shows it as not finished when the delete fails", async () => {
+      confirmWith(true);
+      serveDelete({ productions: ["2027", "2028"] }, () => json({}, 500), {
+        productions: ["2028"],
+        deleting: ["2027"],
+      });
+      const wrapper = await openPage();
+
+      await askToDelete(wrapper, "2027");
+
+      expect(wrapper.get(".form-error").text()).toBe("Couldn't finish deleting 2027. Try again.");
+      expect(wrapper.get('tr[data-year="2027"]').text()).toContain("Not finished");
+    });
+
+    it("shows the API's refusal in its own words", async () => {
+      confirmWith(true);
+      const message = "The newest production can't be deleted.";
+      serveDelete({ productions: ["2027", "2028"] }, () => json({ message }, 400));
+      const wrapper = await openPage();
+
+      await askToDelete(wrapper, "2027");
+
+      expect(wrapper.get(".form-error").text()).toBe(message);
+    });
+
+    it("moves the admin to the newest when they delete the production they had open", async () => {
+      openProduction("2027");
+      confirmWith(true);
+      serveDelete({ productions: ["2027", "2028"] }, () => json({ productions: ["2028"] }));
+      const wrapper = await openPage();
+
+      await askToDelete(wrapper, "2027");
+
+      expect(openProductionYear()).toBe("2028");
+    });
+  });
 });

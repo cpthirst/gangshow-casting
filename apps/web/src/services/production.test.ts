@@ -5,10 +5,14 @@ import {
   castPath,
   departmentNotesPath,
   fileCountsPath,
+  forgetProductionDeletedWhileOpen,
   itemFilesPath,
   itemNotesPath,
+  listProductions,
   micPlotPath,
   openProduction,
+  openProductionYear,
+  productionDeletedWhileOpen,
   propsPath,
   rolesPath,
   runningOrderPath,
@@ -50,5 +54,31 @@ describe("the app's code", () => {
     const modules = import.meta.glob(["../**/*.{ts,vue}", "!../**/*.test.ts", "!../main.ts"]);
 
     for (const load of Object.values(modules)) await load();
+  });
+});
+
+describe("a list that no longer holds the open production", () => {
+  beforeEach(() => openProduction("2027"));
+
+  it("opens the newest, and remembers which one had gone", () => {
+    listProductions(["2026", "2028"]);
+
+    expect(openProductionYear()).toBe("2028");
+    expect(productionDeletedWhileOpen()).toBe("2027");
+  });
+
+  it("changes nothing while the list still holds it", () => {
+    listProductions(["2027", "2028"]);
+
+    expect(openProductionYear()).toBe("2027");
+    expect(productionDeletedWhileOpen()).toBeUndefined();
+  });
+
+  it("stops remembering once it's forgotten", () => {
+    listProductions(["2028"]);
+
+    forgetProductionDeletedWhileOpen();
+
+    expect(productionDeletedWhileOpen()).toBeUndefined();
   });
 });

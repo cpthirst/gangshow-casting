@@ -1,6 +1,7 @@
 import { SceneryFileList } from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AccessRefused, loadData, loadRequired } from "./load-data.ts";
+import { openProduction } from "./production.ts";
 import { signInNeeded, useLocalSignIn } from "./sign-in.ts";
 
 beforeEach(useLocalSignIn);
@@ -87,5 +88,18 @@ describe("Loading data that must be there", () => {
     apiAnswers(() => new Response(null, { status: 500 }));
 
     await expect(loadRequired(PATH, SceneryFileList)).rejects.toThrow("HTTP 500");
+  });
+});
+
+describe("Something missing from the newest production", () => {
+  afterEach(() => openProduction(undefined));
+
+  it("asks for nothing more, so an ordinary 404 costs no list request", async () => {
+    openProduction("2027");
+    apiAnswers(() => new Response(null, { status: 404 }));
+
+    await expect(loadData(PATH, SceneryFileList)).resolves.toBeUndefined();
+
+    expect(vi.mocked(fetch).mock.calls.map(([url]) => url)).toEqual([PATH]);
   });
 });

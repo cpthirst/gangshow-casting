@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import logoSmall from "@/assets/logo-small.jpg";
 import HealthStatus from "@/components/app/HealthStatus.vue";
@@ -9,6 +9,10 @@ import ProductionSwitch from "@/components/app/ProductionSwitch.vue";
 import { useMediaQuery } from "@/composables/useMediaQuery.ts";
 import { useOpenProduction } from "@/composables/useOpenProduction.ts";
 import { showPageTitle } from "@/router/index.ts";
+import {
+  forgetProductionDeletedWhileOpen,
+  productionDeletedWhileOpen,
+} from "@/services/production.ts";
 import {
   isHosted,
   isLocal,
@@ -35,6 +39,23 @@ const menuButton = ref<HTMLButtonElement>();
 const isPhone = useMediaQuery(PHONE_QUERY);
 const isMenuOpen = ref(false);
 const { year, failed: productionFailed } = useOpenProduction();
+
+const deletedProduction = computed(productionDeletedWhileOpen);
+
+// Gone from under someone: the page they're on may be about it, so they go where the
+// production switch takes them. On Productions it's their own delete, and that page says so.
+watch(deletedProduction, async (deleted) => {
+  if (deleted === undefined) return;
+  if (route.name === "productions") {
+    forgetProductionDeletedWhileOpen();
+    return;
+  }
+  // As the switch does: leaving lets a page ask about unsaved changes, and reloads the
+  // Running order even if it's already the page open.
+  const stayed = await router.push({ name: "leaving" });
+  if (!stayed) await router.replace({ name: "running-order" });
+  watch(() => route.fullPath, forgetProductionDeletedWhileOpen, { once: true });
+});
 
 // A menu left open on a phone shouldn't reappear after a rotate or resize.
 watch(isPhone, closeMenu);
@@ -161,7 +182,12 @@ function onEscape() {
       </template>
       <p v-else-if="productionFailed" role="alert">Couldn't load the productions.</p>
       <p v-else-if="!year">Loading…</p>
-      <RouterView v-else />
+      <template v-else>
+        <p v-if="deletedProduction" role="status" data-test="production-deleted">
+          Production {{ deletedProduction }} has been deleted, so you're now on {{ year }}.
+        </p>
+        <RouterView />
+      </template>
     </main>
   </div>
 </template>

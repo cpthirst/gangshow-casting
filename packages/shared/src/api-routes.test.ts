@@ -22,8 +22,9 @@ import {
 } from "./api-routes.ts";
 
 describe("adminOnlyRouteKeys", () => {
-  it("keeps managing accounts, starting a production, deleting a cast member, saving a running-order version and reading usage for admins", () => {
+  it("keeps managing accounts, starting or deleting a production, deleting a cast member, saving a running-order version and reading usage for admins", () => {
     expect([...adminOnlyRouteKeys].sort()).toEqual([
+      "DELETE /api/productions/{productionId}",
       "DELETE /api/productions/{productionId}/cast/{castId}",
       "GET /api/accounts",
       "GET /api/usage",

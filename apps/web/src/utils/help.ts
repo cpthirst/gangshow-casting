@@ -1,4 +1,4 @@
-import type { DepartmentId } from "@app/shared";
+import { BACKUP_WINDOW_DAYS, type DepartmentId } from "@app/shared";
 import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import { listed, permissionNamesOf, whoCanChangeLine } from "./departments.ts";
 import { icons } from "./icons.ts";
@@ -567,6 +567,11 @@ export const pageHelp: PageHelp[] = [
         does: "Starts a new production for a four-digit year later than the newest. It starts empty: nothing carries over from earlier years. Everyone opens it from their next page load.",
         access: "admins",
       },
+      {
+        name: "Delete production",
+        does: `Deletes a past production for good: its cast, running orders, casting, props, files, mics and notes. It asks first, and can't be undone, though copies stay in backups for up to ${BACKUP_WINDOW_DAYS} days. The newest can't be deleted, and nobody's account changes. If a delete stops part way, the production shows as Not finished and can't be opened: delete it again to finish.`,
+        access: "admins",
+      },
     ],
   },
 ];
@@ -589,7 +594,7 @@ export const permissionHelp = [
   },
   {
     name: "Admins",
-    does: "Change everything in the newest production. Only admins can delete cast members, change the running order, start productions and manage accounts.",
+    does: "Change everything in the newest production. Only admins can delete cast members, change the running order, start and delete productions and manage accounts.",
   },
 ];
 

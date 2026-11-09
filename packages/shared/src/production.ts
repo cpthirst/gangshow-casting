@@ -3,7 +3,11 @@ import { z } from "zod";
 /** A production's id, which is its year: all it's named by (ADR 0036). */
 export const ProductionYear = z.string().regex(/^\d{4}$/);
 
-export const ProductionList = z.object({ productions: z.array(ProductionYear).nonempty() });
+export const ProductionList = z.object({
+  productions: z.array(ProductionYear).nonempty(),
+  /** Productions whose delete hasn't finished (ADR 0037), which nothing opens; left out if none. */
+  deleting: z.array(ProductionYear).optional(),
+});
 export type ProductionList = z.infer<typeof ProductionList>;
 
 /** The production everyone opens: the highest year (ADR 0036). */
@@ -49,3 +53,16 @@ export const mayStartProduction = (year: string, productions: ProductionList["pr
 /** What an admin is told when mayStartProduction says no. */
 export const startRefusal = (productions: ProductionList["productions"]) =>
   `The year must be a four-digit year later than ${newestProduction(productions)}.`;
+
+/**
+ * How long copies of a deleted production can stay in backups: the table's point-in-time
+ * recovery period, which the stack reads from here. The files bucket keeps none (ADR 0037).
+ */
+export const BACKUP_WINDOW_DAYS = 7;
+
+/** Any production but the newest can be deleted, so the list never empties (ADR 0036, 0037). */
+export const mayDeleteProduction = (year: string, productions: ProductionList["productions"]) =>
+  year !== newestProduction(productions);
+
+/** What an admin is told when mayDeleteProduction says no. */
+export const NEWEST_PRODUCTION_REFUSAL = "The newest production can't be deleted.";

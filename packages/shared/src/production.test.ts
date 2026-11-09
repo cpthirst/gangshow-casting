@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { needOf, routeKeys } from "./api-routes.ts";
+import { isChangeWithinProduction, needOf, routeKeys } from "./api-routes.ts";
 import {
+  BACKUP_WINDOW_DAYS,
   mayChangeProduction,
+  mayDeleteProduction,
   mayStartProduction,
   NewProduction,
   newestFirst,
@@ -91,5 +93,32 @@ describe("a past production", () => {
 
   it("lists the newest first", () => {
     expect(newestFirst(["2027", "2029", "2028"])).toEqual(["2029", "2028", "2027"]);
+  });
+});
+
+describe("deleting a production", () => {
+  it("is a route only admins may use", () => {
+    expect(routeKeys).toContain("DELETE /api/productions/{productionId}");
+    expect(needOf("DELETE /api/productions/{productionId}")).toBe("admin");
+  });
+
+  it("is about the production as a whole, so a past production can be deleted", () => {
+    expect(isChangeWithinProduction("DELETE /api/productions/{productionId}")).toBe(false);
+  });
+
+  it("is allowed for any production but the newest", () => {
+    expect(mayDeleteProduction("2027", ["2027", "2028"])).toBe(true);
+    expect(mayDeleteProduction("2028", ["2027", "2028"])).toBe(false);
+  });
+
+  it("can leave a production not finished, which the list names apart", () => {
+    const list = { productions: ["2028"], deleting: ["2027"] };
+
+    expect(ProductionList.parse(list)).toEqual(list);
+    expect(ProductionList.parse({ productions: ["2028"] })).toEqual({ productions: ["2028"] });
+  });
+
+  it("leaves copies in backups for the table's point-in-time recovery period", () => {
+    expect(BACKUP_WINDOW_DAYS).toBe(7);
   });
 });

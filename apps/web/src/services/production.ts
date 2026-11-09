@@ -17,6 +17,9 @@ const open = shallowRef<string>();
 /** The productions as the API last listed them. */
 const listed = shallowRef<ProductionList["productions"]>();
 
+/** The production someone had open when it was deleted, until they're told. */
+const deletedWhileOpen = shallowRef<string>();
+
 /** Where the API lists the productions. */
 export const PRODUCTIONS_PATH = "/api/productions";
 
@@ -26,11 +29,26 @@ export const openProductionYear = () => open.value;
 /** Opens the production with this year, or (undefined) none. */
 export function openProduction(year: string | undefined) {
   open.value = year;
+  deletedWhileOpen.value = undefined;
 }
 
-/** Keeps what the API says the productions are. */
+/** The production deleted while it was open, which the app moves someone off and tells them. */
+export const productionDeletedWhileOpen = () => deletedWhileOpen.value;
+
+/** They've been told, or did it themselves. */
+export function forgetProductionDeletedWhileOpen() {
+  deletedWhileOpen.value = undefined;
+}
+
+/**
+ * Keeps what the API says the productions are. If the list no longer holds the open one, it
+ * has been deleted (ADR 0037), so the newest opens instead, wherever the list came from.
+ */
 export function listProductions(productions: ProductionList["productions"]) {
   listed.value = productions;
+  if (open.value === undefined || productions.includes(open.value)) return;
+  deletedWhileOpen.value = open.value;
+  open.value = newestProduction(productions);
 }
 
 /** Keeps the list, and opens its newest. */

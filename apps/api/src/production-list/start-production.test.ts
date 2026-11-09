@@ -90,7 +90,7 @@ describe("POST /api/productions", () => {
     const cast = inMemoryCastStore();
     const runningOrders = inMemoryRunningOrderStore();
     const stores = { cast, runningOrders };
-    const failing: ProductionListStore = { list: held.list, start: down };
+    const failing: ProductionListStore = { ...held, start: down };
     await expect(starting(failing, stores)(asking("2028"))).rejects.toThrow();
 
     const res = await starting(held, stores)(asking("2028"));
@@ -105,6 +105,7 @@ describe("POST /api/productions", () => {
     // Someone else's start lands between this request's check and its write.
     let read = 0;
     const racing: ProductionListStore = {
+      ...inMemoryProductionListStore(),
       list: async () =>
         read++ === 0 ? { productions: ["2027"] } : { productions: ["2027", "2028"] },
       start: async () => "exists",

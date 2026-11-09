@@ -19,6 +19,7 @@ import { createAddProp } from "#/production/props/add-prop.ts";
 import { createGetProps } from "#/production/props/get-props.ts";
 import { createRemoveProp } from "#/production/props/remove-prop.ts";
 import { createUpdateProp } from "#/production/props/update-prop.ts";
+import { createDeleteProduction } from "#/production-list/delete-production.ts";
 import { createGetProductions } from "#/production-list/get-productions.ts";
 import { createStartProduction } from "#/production-list/start-production.ts";
 import { createAddCastMember } from "#/show/cast/add-cast-member.ts";
@@ -67,6 +68,7 @@ export function createRoutes(
     "GET /api/health": health,
     "GET /api/productions": createGetProductions(productions),
     "POST /api/productions": createStartProduction(stores),
+    "DELETE /api/productions/{productionId}": createDeleteProduction(stores, files),
     "GET /api/productions/{productionId}/running-order": createGetRunningOrder(runningOrders),
     "POST /api/productions/{productionId}/running-order/versions": createSaveRunningOrder(
       runningOrders,

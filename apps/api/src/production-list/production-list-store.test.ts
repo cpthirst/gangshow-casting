@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -27,6 +27,17 @@ describe("file production list store", () => {
       await writeFile(join(dataDir, PRODUCTIONS_FILE), JSON.stringify({ productions }));
     }
     return fileProductionListStore(dataDir);
+  });
+
+  it("refuses to erase a folder that isn't a production's, removing nothing", async () => {
+    await mkdir(join(dataDir, "files", "2027"), { recursive: true });
+    await writeFile(join(dataDir, "files", "2027", "made-up.pdf"), "made-up");
+
+    await expect(fileProductionListStore(dataDir).eraseData("files")).rejects.toThrow(
+      "Invalid production id",
+    );
+
+    expect(await readdir(join(dataDir, "files", "2027"))).toEqual(["made-up.pdf"]);
   });
 
   it("writes 2027 to the data folder the first time the list is read", async () => {

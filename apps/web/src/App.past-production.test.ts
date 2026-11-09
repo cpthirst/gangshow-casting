@@ -312,7 +312,9 @@ describe("a past production, as an admin", () => {
     await goTo(wrapper, router, "/admin/productions");
 
     expect(wrapper.find("[data-test=view-only]").exists()).toBe(false);
-    const buttons = wrapper.findAll("main button").map((button) => button.text());
+    const buttons = wrapper
+      .findAll("main button:not([data-test=delete-production])")
+      .map((button) => button.text());
     expect(buttons.filter((name) => !["Help", "Close"].includes(name))).toEqual(["Add production"]);
   });
 
@@ -385,5 +387,120 @@ describe("exports from a past production", () => {
     expect(requests.map(({ url }) => url)).toContain(`/api/productions/2027/${source}`);
     expect(requests.map(({ url }) => url)).not.toContain(`/api/productions/2028/${source}`);
     expect(saved.map(({ name }) => name).join()).toContain("2027");
+  });
+});
+
+describe("a production deleted while someone has it open", () => {
+  /** The API once `gone` has been deleted: it holds only the others, and nothing of it. */
+  function serveAfterDeleting(gone: string, remaining: string[]) {
+    const list = { deleted: false, missingAnswers404: true, listFails: false };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: unknown) => {
+        const url = String(input);
+        if (url === "/api/productions" && list.listFails)
+          return new Response(null, { status: 500 });
+        if (url === "/api/productions")
+          return json({ productions: list.deleted ? remaining : [gone, ...remaining] });
+        const year = /\/productions\/(\d{4})\//.exec(url)?.[1] ?? "";
+        if (list.deleted && year === gone && list.missingAnswers404)
+          return new Response(null, { status: 404 });
+        return json(answer(year, url.split("/").at(-1) ?? ""));
+      }),
+    );
+    return list;
+  }
+
+  it("opens the newest, saying why, on the next page opened", async () => {
+    const api = serveAfterDeleting("2027", ["2028"]);
+    const { wrapper, router } = await open("/cast");
+    await switchTo(wrapper, "2027");
+    expect(yearShown(wrapper)).toBe("Gang Show 2027");
+    api.deleted = true;
+
+    await goTo(wrapper, router, "/cast");
+    await flushPromises();
+
+    expect(yearShown(wrapper)).toBe("Gang Show 2028");
+    expect(router.currentRoute.value.name).toBe("running-order");
+    expect(wrapper.get("[data-test=production-deleted]").text()).toBe(
+      "Production 2027 has been deleted, so you're now on 2028.",
+    );
+    const select = wrapper.find("[data-test=production-switch]");
+    expect(select.exists()).toBe(false);
+  });
+
+  it("is noticed on the next page even where its reads answer 200 with nothing", async () => {
+    const api = serveAfterDeleting("2027", ["2028"]);
+    const { wrapper, router } = await open("/cast");
+    await switchTo(wrapper, "2027");
+    api.deleted = true;
+    api.missingAnswers404 = false;
+
+    await goTo(wrapper, router, "/production/overview");
+    await flushPromises();
+
+    expect(yearShown(wrapper)).toBe("Gang Show 2028");
+    expect(wrapper.get("[data-test=production-deleted]").text()).toBe(
+      "Production 2027 has been deleted, so you're now on 2028.",
+    );
+  });
+
+  it("doesn't read the list again on each page while the newest is open", async () => {
+    const { requests } = serveProductions();
+    const { wrapper, router } = await open("/cast");
+    requests.length = 0;
+
+    await goTo(wrapper, router, "/production/overview");
+
+    expect(requests.map(({ url }) => url)).not.toContain("/api/productions");
+  });
+
+  it("stays on the past production if the list can't be read", async () => {
+    const api = serveAfterDeleting("2027", ["2028"]);
+    const { wrapper, router } = await open("/cast");
+    await switchTo(wrapper, "2027");
+    api.listFails = true;
+
+    await goTo(wrapper, router, "/production/overview");
+    await flushPromises();
+
+    expect(yearShown(wrapper)).toBe("Gang Show 2027");
+  });
+
+  it("no longer says so after moving to another page", async () => {
+    const api = serveAfterDeleting("2027", ["2028"]);
+    const { wrapper, router } = await open("/cast");
+    await switchTo(wrapper, "2027");
+    api.deleted = true;
+    await goTo(wrapper, router, "/cast");
+    await flushPromises();
+
+    await goTo(wrapper, router, "/cast");
+
+    expect(wrapper.find("[data-test=production-deleted]").exists()).toBe(false);
+  });
+
+  it("opens the newest on the next load, and never offers one not finished deleting", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: unknown) => {
+        const url = String(input);
+        if (url === "/api/productions")
+          return json({ productions: ["2026", "2028"], deleting: ["2027"] });
+        const year = /\/productions\/(\d{4})\//.exec(url)?.[1] ?? "";
+        return json(answer(year, url.split("/").at(-1) ?? ""));
+      }),
+    );
+
+    const { wrapper } = await open("/");
+
+    expect(yearShown(wrapper)).toBe("Gang Show 2028");
+    expect(
+      wrapper
+        .get("[data-test=production-switch] select")
+        .findAll("option")
+        .map((o) => o.text()),
+    ).toEqual(["2028", "2026"]);
   });
 });

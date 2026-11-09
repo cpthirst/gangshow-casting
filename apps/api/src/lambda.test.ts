@@ -1116,6 +1116,44 @@ describe("Lambda entry point", () => {
         expect((await props.list("2028")).props).toHaveLength(1);
       });
 
+      it("lets an admin delete a past production, though past productions are closed to changes", async () => {
+        const { api } = setUpProps(["2027", "2028"]);
+
+        const res = await api(as("[admin]")("DELETE", "/api/productions/2027"));
+
+        expect(res.statusCode).toBe(200);
+        expect(JSON.parse(res.body ?? "")).toEqual({ productions: ["2028"] });
+      });
+
+      it("refuses deleting a production from sam, with every permission but not an admin", async () => {
+        const { api } = setUpProps(["2027", "2028"]);
+
+        const res = await api(
+          as("[casting stage tech wardrobe director]")("DELETE", "/api/productions/2027"),
+        );
+
+        expect(res.statusCode).toBe(403);
+        expect(JSON.parse(res.body ?? "")).toEqual({ message: "Only admins can do this." });
+        const { productions } = JSON.parse(
+          (await api(as("[admin]")("GET", "/api/productions"))).body ?? "",
+        );
+        expect(productions.toSorted()).toEqual(["2027", "2028"]);
+      });
+
+      it("keeps pat's Stage access once a past production is deleted", async () => {
+        const { api, props } = setUpProps(["2027", "2028"]);
+
+        await api(as("[admin]")("DELETE", "/api/productions/2027"));
+        const added = await api(
+          as("[stage]")("POST", `/api/productions/2028/items/${pirate}/props`, {
+            name: "Treasure chest",
+          }),
+        );
+
+        expect(added.statusCode).toBe(201);
+        expect((await props.list("2028")).props).toHaveLength(1);
+      });
+
       it("refuses starting a production from sam, with every permission but not an admin", async () => {
         const { api } = setUpProps();
 
