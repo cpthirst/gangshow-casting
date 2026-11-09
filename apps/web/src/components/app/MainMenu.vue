@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { useRoute } from "vue-router";
-import { isMenuGroup, menuPages } from "@/router/index.ts";
+import { isMenuGroup, menuFor, menuPages } from "@/router/index.ts";
 import { isAdmin } from "@/services/sign-in.ts";
 
 // The main menu, as a disclosure navigation menu (WAI-ARIA Authoring Practices): each group's
@@ -10,9 +10,7 @@ import { isAdmin } from "@/services/sign-in.ts";
 
 const route = useRoute();
 
-const entries = computed(() =>
-  menuPages.filter((entry) => isMenuGroup(entry) || !entry.adminOnly || isAdmin.value),
-);
+const entries = computed(() => menuFor(isAdmin.value));
 
 // A page outside the menu, such as an item, marks its menu page (Items) as current.
 const isCurrent = (pageName: string) => route.name === pageName || route.meta.menuPage === pageName;

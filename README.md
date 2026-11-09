@@ -28,7 +28,7 @@ Chester Gang Show is a volunteer-led Scouting variety show: comedy, music, dance
 
 ## What iCUE does today
 
-iCUE is hosted on AWS and is open only to the production team. Everyone signs in with an account an admin gives them. Each page has a help button, and the Help page brings all the help together. The menu has three areas: **Show**, **Production** and **Casting**.
+iCUE is hosted on AWS and is open only to the production team. Everyone signs in with an account an admin gives them. Each page has a help button, and the Help page brings all the help together. The menu has three areas: **Show**, **Production** and **Casting**. Admins also have **Admin**, which holds Accounts, Productions and Usage.
 
 | Page | What it's for | Product docs |
 |---|---|---|

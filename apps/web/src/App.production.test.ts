@@ -130,7 +130,7 @@ describe("the app with productions 2027 and 2028", () => {
   it("opens a production for the admin who starts it, in the sidebar and on every page after", async () => {
     const requests = serveProductions();
     vi.stubGlobal("confirm", () => true);
-    const wrapper = await open("/productions");
+    const wrapper = await open("/admin/productions");
 
     await wrapper.get("[data-test=add-production]").trigger("click");
     await wrapper.get("input[name=year]").setValue("2029");

@@ -309,7 +309,7 @@ describe("a past production, as an admin", () => {
     const { wrapper, router } = await open("/");
     await switchTo(wrapper, "2027");
 
-    await goTo(wrapper, router, "/productions");
+    await goTo(wrapper, router, "/admin/productions");
 
     expect(wrapper.find("[data-test=view-only]").exists()).toBe(false);
     const buttons = wrapper.findAll("main button").map((button) => button.text());

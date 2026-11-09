@@ -61,7 +61,7 @@ test("the accounts list, its add form and a new account's password fit the scree
 }, testInfo) => {
   // Both widths share one API, so each adds its own account: a long, unbroken username.
   const username = `extraordinarily-long-name-${testInfo.project.name.slice(-3)}`;
-  await page.goto("/accounts");
+  await page.goto("/admin/accounts");
   await expect(page.getByRole("cell", { name: "robin", exact: true })).toBeVisible();
   await expectNoSidewaysScroll(page);
 
@@ -78,7 +78,7 @@ test("the accounts list, its add form and a new account's password fit the scree
 test("the productions list, its start form and its confirmation fit the screen", async ({
   page,
 }) => {
-  await page.goto("/productions");
+  await page.goto("/admin/productions");
   // On a phone each cell also reads out its card label, so find the year in the table's text.
   const list = page.getByRole("region", { name: "Productions" });
   await expect(list.getByText("2027", { exact: true })).toBeVisible();
@@ -108,7 +108,7 @@ test("the productions list, its start form and its confirmation fit the screen",
 
 test("the usage list fits the screen", async ({ page }) => {
   // Opening the app records a session for the made-up local admin, so their row has a date.
-  await page.goto("/usage");
+  await page.goto("/admin/usage");
   // alex is in the activity list too: look in the per-person table.
   const byPerson = page.getByRole("region", { name: "Usage by person" });
   await expect(byPerson.getByRole("cell", { name: "alex", exact: true })).toBeVisible();

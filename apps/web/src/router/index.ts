@@ -122,25 +122,31 @@ export const menuPages: (MenuPage | MenuGroup)[] = [
     ],
   },
   {
-    path: "/accounts",
-    name: "accounts",
-    component: AccountsPage,
-    meta: { title: "Accounts" },
-    adminOnly: true,
-  },
-  {
-    path: "/productions",
-    name: "productions",
-    component: ProductionsPage,
-    meta: { title: "Productions" },
-    adminOnly: true,
-  },
-  {
-    path: "/usage",
-    name: "usage",
-    component: UsagePage,
-    meta: { title: "Usage" },
-    adminOnly: true,
+    name: "admin",
+    title: "Admin",
+    pages: [
+      {
+        path: "/admin/accounts",
+        name: "accounts",
+        component: AccountsPage,
+        meta: { title: "Accounts" },
+        adminOnly: true,
+      },
+      {
+        path: "/admin/productions",
+        name: "productions",
+        component: ProductionsPage,
+        meta: { title: "Productions" },
+        adminOnly: true,
+      },
+      {
+        path: "/admin/usage",
+        name: "usage",
+        component: UsagePage,
+        meta: { title: "Usage" },
+        adminOnly: true,
+      },
+    ],
   },
   {
     path: "/help",
@@ -159,6 +165,16 @@ export const isAdminOnlyPage = (name: unknown) =>
   );
 
 export const isMenuGroup = (entry: MenuPage | MenuGroup): entry is MenuGroup => "pages" in entry;
+
+/** The menu this person sees: no admin-only pages unless an admin, and no group left empty. */
+export function menuFor(isAdmin: boolean, entries = menuPages) {
+  const canSee = (page: MenuPage) => isAdmin || !page.adminOnly;
+  return entries.flatMap((entry): (MenuPage | MenuGroup)[] => {
+    if (!isMenuGroup(entry)) return canSee(entry) ? [entry] : [];
+    const pages = entry.pages.filter(canSee);
+    return pages.length > 0 ? [{ ...entry, pages }] : [];
+  });
+}
 
 export function createAppRouter(history: RouterHistory = createWebHistory()) {
   const router = createRouter({
@@ -210,6 +226,10 @@ export function createAppRouter(history: RouterHistory = createWebHistory()) {
         meta: { title: "Leaving" },
       },
       { path: "/casting", redirect: "/casting/overview" },
+      { path: "/admin", redirect: { name: "accounts" } },
+      // Bookmarks from before the Admin menu.
+      { path: "/accounts", redirect: { name: "accounts" } },
+      { path: "/usage", redirect: { name: "usage" } },
       // Bookmarks from before the Casting menu (casting-menus FR4).
       { path: "/casting-grid", redirect: "/casting/overview" },
       // Bookmarks from before the Overview, or before Production's pages became views
