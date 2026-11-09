@@ -23,10 +23,11 @@ afterEach(() => {
 const show = aRunningOrder([anItem("Opening Number"), anItem("Pirate Sketch")], [anItem("Finale")]);
 
 /** A stand-in API with the running order (none if undefined), or failing to give it. */
-function apiHolds(order: typeof show | undefined | "fails") {
+function apiHolds(order: typeof show | undefined | "fails" | "unreachable") {
   const fetch = vi.fn(async (url: string, _init?: RequestInit) => {
     if (url === runningOrderPath()) {
       if (order === "fails") return new Response(null, { status: 500 });
+      if (order === "unreachable") throw new TypeError("Failed to fetch");
       return order ? json(order) : new Response(null, { status: 404 });
     }
     if (url.endsWith("-notes")) return json({ productionId: "2027", notes: [] });
@@ -88,6 +89,12 @@ describe("The item page frame", () => {
       const place = placeOf(show, "opening-number");
       expect(wrapper.get("[data-test=position]").text()).toBe(place ? positionOf(place) : "");
       expect(document.title).toContain(`${name}: Opening Number`);
+
+      await row.get("button[aria-label='Help for this item']").trigger("click");
+
+      expect(wrapper.findAll("dialog [data-test=help-name]").map((line) => line.text())).toContain(
+        `${name} notes`,
+      );
     },
   );
 
@@ -154,6 +161,7 @@ describe("The item page frame", () => {
 
   it.each([
     ["the running order", "fails" as const, (id: string) => loadsAt(id)()],
+    ["an unreachable API", "unreachable" as const, (id: string) => loadsAt(id)()],
     ["the page's own data", show, () => Promise.reject(new Error("HTTP 500"))],
   ])("shows one error in place of the page when %s fails to load", async (_, order, load) => {
     apiHolds(order);

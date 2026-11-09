@@ -730,8 +730,7 @@ main a {
 }
 
 .icon-column button:hover:not(:disabled),
-.icon-button:hover:not(:disabled),
-.help-access-admins {
+.icon-button:hover:not(:disabled) {
   border-color: var(--red-darker);
   color: var(--red-darker);
 }
@@ -2523,6 +2522,12 @@ main a {
 
 .help-access {
   margin-left: 0.25rem;
+}
+
+/* After .badge, whose border it recolours. */
+.help-access-admins {
+  border-color: var(--red-darker);
+  color: var(--red-darker);
 }
 
 /* A page's help button, at the top right beside its heading: pill-shaped like the Overview's

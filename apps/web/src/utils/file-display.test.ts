@@ -65,6 +65,7 @@ describe("fileLabel", () => {
     ["set-plan.pdf", "Open set-plan.pdf, PDF file"],
     ["Backdrop.png", "Open Backdrop.png, PNG file"],
     ["build-list.xlsx", "Download build-list.xlsx, XLSX file"],
+    ["cues.docx", "Download cues.docx, DOCX file"],
     ["notes.html", "Download notes.html, HTML file"],
     ["notes", "Download notes"],
   ])("names the file for %s %j", (name, label) => {
@@ -118,5 +119,9 @@ describe("an SFX file's icon and name", () => {
   it("says an audio file opens on SFX, and downloads elsewhere", () => {
     expect(fileLabel("thunder.mp3", "sfx")).toBe("Open thunder.mp3, MP3 file");
     expect(fileLabel("thunder.mp3", "wardrobe")).toBe("Download thunder.mp3, MP3 file");
+  });
+
+  it("goes by the last extension, so notes.mp3.html only downloads, even on SFX", () => {
+    expect(fileLabel("notes.mp3.html", "sfx")).toBe("Download notes.mp3.html, HTML file");
   });
 });
