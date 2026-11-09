@@ -547,6 +547,20 @@ export const pageHelp: PageHelp[] = [
       },
     ],
   },
+  {
+    page: "productions",
+    changedBy: "admins",
+    title: "Productions",
+    summary:
+      "Every production, by its year. Everyone opens the newest. Accounts and what they can do are the same in every production.",
+    lines: [
+      {
+        name: "Add production",
+        does: "Starts a new production for a four-digit year later than the newest. It starts empty: nothing carries over from earlier years. Everyone opens it from their next page load.",
+        access: "admins",
+      },
+    ],
+  },
 ];
 
 /** What each permission lets someone change, for the Help page's Permissions section. */
@@ -567,7 +581,7 @@ export const permissionHelp = [
   },
   {
     name: "Admins",
-    does: "Change everything. Only admins can delete cast members, change the running order, and manage accounts.",
+    does: "Change everything. Only admins can delete cast members, change the running order, start productions and manage accounts.",
   },
 ];
 

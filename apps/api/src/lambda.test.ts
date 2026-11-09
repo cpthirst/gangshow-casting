@@ -1076,6 +1076,39 @@ describe("Lambda entry point", () => {
         expect(cast.statusCode).toBe(403);
       });
 
+      it("gives pat, with Stage, the same access in the old production and the new one once it starts", async () => {
+        const { api, props } = setUpProps();
+        const started = await api(as("[admin]")("POST", "/api/productions", { year: "2028" }));
+        const addTo = (year: string) =>
+          api(
+            as("[stage]")("POST", `/api/productions/${year}/items/${pirate}/props`, {
+              name: "Treasure chest",
+            }),
+          );
+
+        expect(started.statusCode).toBe(201);
+        expect((await addTo("2027")).statusCode).toBe(201);
+        expect((await addTo("2028")).statusCode).toBe(201);
+        expect((await props.list("2028")).props).toHaveLength(1);
+      });
+
+      it("refuses starting a production from sam, with every permission but not an admin", async () => {
+        const { api } = setUpProps();
+
+        const res = await api(
+          as("[casting stage tech wardrobe director]")("POST", "/api/productions", {
+            year: "2028",
+          }),
+        );
+
+        expect(res.statusCode).toBe(403);
+        expect(JSON.parse(res.body ?? "")).toEqual({ message: "Only admins can do this." });
+        const { productions } = JSON.parse(
+          (await api(as("[admin]")("GET", "/api/productions"))).body ?? "",
+        );
+        expect(productions).toEqual(["2027"]);
+      });
+
       const PROP_PATH = "/api/productions/2027/props/1";
       const editProp = (groups: string) =>
         as(groups)("PUT", PROP_PATH, { name: "Gold chest", roleIds: [] });

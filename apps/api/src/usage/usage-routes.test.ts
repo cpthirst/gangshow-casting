@@ -362,6 +362,7 @@ describe("reading usage", () => {
       "production-overview",
       "help",
       "accounts",
+      "productions",
       "usage",
       "overview-by-person",
       "overview-by-item",

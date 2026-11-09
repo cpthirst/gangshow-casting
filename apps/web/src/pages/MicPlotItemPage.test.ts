@@ -12,15 +12,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory } from "vue-router";
 import App from "@/App.vue";
 import { createAppRouter } from "@/router/index.ts";
+import {
+  castPath,
+  departmentNotesPath,
+  micPlotPath,
+  propsPath,
+  rolesPath,
+  runningOrderPath,
+} from "@/services/production.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
-import { castPath } from "@/utils/cast.ts";
-import { departmentNotesPath } from "@/utils/item-notes.ts";
-import { micPlotPath } from "@/utils/mic-plot.ts";
-import { propsPath } from "@/utils/props.ts";
-import { rolesPath } from "@/utils/roles.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
-import { runningOrderPath } from "@/utils/running-order.ts";
 
 enableAutoUnmount(afterEach);
 // As on pnpm dev: everyone acts as an admin, unless a test signs someone in.

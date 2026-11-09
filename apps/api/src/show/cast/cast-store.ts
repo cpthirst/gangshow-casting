@@ -8,6 +8,8 @@ import { oneAtATime, writePrivateFile } from "#/storage/private-file.ts";
 /** Where each production's cast list lives: one mutable document, no history (ADR 0010). */
 export interface CastStore {
   list(productionId: string): Promise<CastList | undefined>;
+  /** Gives a new production its empty cast list; one that already has a list keeps it. */
+  start(productionId: string): Promise<void>;
   /** Adds a member with the next unused id; undefined if the production has no cast list. */
   add(productionId: string, details: CastMemberDetails): Promise<CastMember | undefined>;
   /** Replaces a member's details, if they're still at the given revision. */
@@ -81,6 +83,9 @@ export function inMemoryCastStore(initial: CastList[] = []): CastStore {
       const file = files.get(productionId);
       return file && listOf(file);
     },
+    async start(productionId) {
+      if (!files.has(productionId)) files.set(productionId, { productionId, members: [] });
+    },
     async add(productionId, details) {
       const file = files.get(productionId);
       if (!file) return undefined;
@@ -126,6 +131,10 @@ export function fileCastStore(dataDir: string): CastStore {
       const file = await read(productionId);
       return file && listOf(file);
     },
+    start: (productionId) =>
+      inTurn(async () => {
+        if (!(await read(productionId))) await write({ productionId, members: [] });
+      }),
     add: (productionId, details) =>
       inTurn(async () => {
         const file = await read(productionId);

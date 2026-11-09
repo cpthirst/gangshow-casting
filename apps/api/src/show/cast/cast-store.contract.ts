@@ -23,6 +23,25 @@ export function behavesAsACastStore(make: (initial?: CastList[]) => Promise<Cast
     expect([member?.singing, member?.acting]).toEqual([undefined, undefined]);
   });
 
+  it("starts a production's cast list empty, so members can then be added", async () => {
+    const store = await make();
+
+    await store.start("2028");
+
+    expect(await store.list("2028")).toEqual({ productionId: "2028", members: [] });
+    expect(await store.add("2028", { ...jo })).toEqual({ ...jo, id: 1, revision: 1 });
+  });
+
+  it("leaves a cast list that's already there as it is when asked to start it", async () => {
+    const list = aCastList([aCastMember(7)]);
+    const store = await make([list]);
+
+    await store.start("2027");
+
+    expect(await store.list("2027")).toEqual(list);
+    expect((await store.add("2027", { ...jo }))?.id).toBe(8);
+  });
+
   it("adds a member with the next id and revision 1", async () => {
     const store = await make([aCastList([aCastMember(1), aCastMember(56)])]);
 

@@ -29,4 +29,20 @@ export function behavesAsAProductionListStore(make: Make) {
 
     expect(await store.list()).toEqual({ productions: ["2028"] });
   });
+
+  it("holds a production once it has started it, as well as the others", async () => {
+    const store = await make(["2027"]);
+
+    expect(await store.start("2028")).toBe("started");
+
+    expect((await store.list()).productions.toSorted()).toEqual(["2027", "2028"]);
+  });
+
+  it("won't start a production it already holds", async () => {
+    const store = await make(["2027", "2028"]);
+
+    expect(await store.start("2028")).toBe("exists");
+
+    expect((await store.list()).productions.toSorted()).toEqual(["2027", "2028"]);
+  });
 }

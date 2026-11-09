@@ -9,11 +9,10 @@ import RefusalNotice from "@/components/common/RefusalNotice.vue";
 import ItemEditor from "@/components/show/ItemEditor.vue";
 import { type RowDrop, vSortableRows } from "@/directives/sortable-rows.ts";
 import { loadData } from "@/services/load-data.ts";
+import { itemNotesPath, rolesPath, runningOrderPath } from "@/services/production.ts";
 import { apiFetch, isAdmin } from "@/services/sign-in.ts";
 import { helpFor, whoCanChange } from "@/utils/help.ts";
 import { icons } from "@/utils/icons.ts";
-import { itemNotesPath } from "@/utils/item-notes.ts";
-import { rolesPath } from "@/utils/roles.ts";
 import {
   addItem,
   aNewItem,
@@ -28,7 +27,6 @@ import {
   removeWarning,
   replaceItem,
   runningClock,
-  runningOrderPath,
   sameContent,
   stageLabel,
   updateOf,

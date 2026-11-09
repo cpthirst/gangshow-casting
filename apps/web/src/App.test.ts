@@ -64,6 +64,7 @@ describe("App shell", () => {
       expect.stringMatching(/^Casting/),
       expect.stringMatching(/^Production/),
       "Accounts",
+      "Productions",
       "Usage",
       "Help",
     ]);
@@ -75,6 +76,7 @@ describe("App shell", () => {
       "Items",
       "Overview",
       "Accounts",
+      "Productions",
       "Usage",
       "Help",
     ]);
@@ -88,6 +90,23 @@ describe("App shell", () => {
 
     const links = wrapper.get("nav[aria-label=Main]").findAll("a");
     expect(links.map((link) => link.text())).not.toContain("Accounts");
+  });
+
+  it("leaves Productions out of sam's menu, with every permission but not an admin", async () => {
+    await signInAs(["casting", "stage", "tech", "wardrobe", "director"]);
+
+    const { wrapper } = await openAppAt("/");
+
+    const links = wrapper.get("nav[aria-label=Main]").findAll("a");
+    expect(links.map((link) => link.text())).not.toContain("Productions");
+  });
+
+  it("shows Productions in the menu to a signed-in admin", async () => {
+    await signInAs(["admin"]);
+
+    const { wrapper } = await openAppAt("/");
+
+    expect(wrapper.get("nav[aria-label=Main] a[href='/productions']").text()).toBe("Productions");
   });
 
   it("says the Usage page is for admins only to a team member who goes to its address", async () => {
@@ -170,6 +189,7 @@ describe("App shell", () => {
       ["/casting/overview", "casting-overview"],
       ["/casting/items", "casting-items"],
       ["/accounts", "accounts"],
+      ["/productions", "productions"],
       ["/usage", "usage"],
     ])(
       "records opening %s at its address, as a link, bookmark or reload does",

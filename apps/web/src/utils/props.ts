@@ -11,19 +11,8 @@ import {
 } from "@app/shared";
 import { sortCast } from "./cast.ts";
 import { countInWords } from "./departments.ts";
-import { productionPath } from "./production.ts";
 import { type CastMemberChoice, castOf, fullName, sortRoles } from "./roles.ts";
 import { runningClock } from "./running-order.ts";
-
-/** Every prop in the production (production-props FR13). */
-export const propsPath = () => `${productionPath()}/props`;
-
-/** Where a new prop for this item is posted. */
-export const addPropPath = (itemId: string) =>
-  `${productionPath()}/items/${encodeURIComponent(itemId)}/props`;
-
-/** Where one prop is edited (PUT) or removed (DELETE). */
-export const propPath = (propId: number) => `${propsPath()}/${propId}`;
 
 /** How many props each item has, by item id, adding up quantities ("Umbrella ×10" is 10;
  *  production-props FR25): 0 for an item with none. */

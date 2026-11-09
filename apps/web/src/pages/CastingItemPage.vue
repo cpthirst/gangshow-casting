@@ -15,21 +15,23 @@ import RoleForm from "@/components/casting/RoleForm.vue";
 import ClashIcon from "@/components/common/ClashIcon.vue";
 import ItemPageFrame from "@/components/common/ItemPageFrame.vue";
 import { loadData } from "@/services/load-data.ts";
+import {
+  addRolePath,
+  castPath,
+  removeRolePath,
+  rolesPath,
+  updateRolePath,
+} from "@/services/production.ts";
 import { apiFetch, canChange } from "@/services/sign-in.ts";
-import { castPath } from "@/utils/cast.ts";
 import { clashesOf, describeEach, findClashes } from "@/utils/clashes.ts";
 import { icons } from "@/utils/icons.ts";
 import {
-  addRolePath,
   castNames,
   castOf,
   fullName,
   nameTakenMessage,
-  removeRolePath,
   roleSizeLabel,
-  rolesPath,
   sortRoles,
-  updateRolePath,
 } from "@/utils/roles.ts";
 import { placeOf } from "@/utils/running-order.ts";
 

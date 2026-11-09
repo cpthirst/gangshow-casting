@@ -1,8 +1,8 @@
 import type { CastingGridExportRequest } from "@app/shared";
 import { fullGridHeading, type GridColumn, type GridRow } from "@/utils/overview.ts";
-import { productionPath } from "@/utils/production.ts";
 import { roleSizeLetter } from "@/utils/roles.ts";
 import { exportFileName, saveFile } from "./export-file.ts";
+import { productionPath } from "./production.ts";
 import { apiFetch } from "./sign-in.ts";
 
 /** Every role (ADR 0021): the server turns the grid it is sent into an Excel file (ADR 0019). */

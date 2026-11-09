@@ -7,20 +7,6 @@ import {
   sameRoleName,
 } from "@app/shared";
 import { sortCast } from "./cast.ts";
-import { productionPath } from "./production.ts";
-
-/** Every role in the production. */
-export const rolesPath = () => `${productionPath()}/roles`;
-
-/** Where an edited role is put. */
-export const updateRolePath = (roleId: number) => `${rolesPath()}/${roleId}`;
-
-/** Where a role is removed, if it's still at the revision shown. */
-export const removeRolePath = (role: Role) => `${rolesPath()}/${role.id}?revision=${role.revision}`;
-
-/** Where a new role for this item is posted. */
-export const addRolePath = (itemId: string) =>
-  `${productionPath()}/items/${encodeURIComponent(itemId)}/roles`;
 
 const sizeLabels: Record<RoleSize, string> = {
   lead: "Lead",

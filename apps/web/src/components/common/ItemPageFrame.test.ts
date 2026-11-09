@@ -4,11 +4,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { h } from "vue";
 import { createMemoryHistory } from "vue-router";
 import { createAppRouter } from "@/router/index.ts";
+import { departmentNotesPath, runningOrderPath } from "@/services/production.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
 import { itemRouteOf } from "@/utils/departments.ts";
-import { departmentNotesPath } from "@/utils/item-notes.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
-import { placeOf, positionOf, runningOrderPath } from "@/utils/running-order.ts";
+import { placeOf, positionOf } from "@/utils/running-order.ts";
 import ItemPageFrame from "./ItemPageFrame.vue";
 
 enableAutoUnmount(afterEach);

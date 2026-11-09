@@ -1,20 +1,19 @@
 import { newestProduction, ProductionList } from "@app/shared";
-import { ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { loadRequired } from "@/services/load-data.ts";
+import { openProduction, openProductionYear, PRODUCTIONS_PATH } from "@/services/production.ts";
 import { signInNeeded } from "@/services/sign-in.ts";
-import { openProduction, openProductionYear, PRODUCTIONS_PATH } from "@/utils/production.ts";
 
 /** Opens the newest production, once someone is signed in to ask the API for the list. */
 export function useOpenProduction() {
-  const year = ref(openProductionYear());
+  const year = computed(openProductionYear);
   const failed = ref(false);
 
   async function openNewest() {
     failed.value = false;
     try {
       const { productions } = await loadRequired(PRODUCTIONS_PATH, ProductionList);
-      year.value = newestProduction(productions);
-      openProduction(year.value);
+      openProduction(newestProduction(productions));
     } catch {
       failed.value = true;
     }

@@ -13,18 +13,18 @@ import App from "@/App.vue";
 import { createAppRouter } from "@/router/index.ts";
 import { downloadFrom, openFileTab } from "@/services/file-link.ts";
 import { StandInXhr } from "@/services/file-upload.fixture.ts";
-import { signInAs } from "@/services/sign-in.fixture.ts";
-import { useLocalSignIn } from "@/services/sign-in.ts";
-import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
-import { runningOrderPath } from "@/utils/running-order.ts";
 import {
-  replaceQuestion,
+  runningOrderPath,
   sceneryFileLinkPath,
   sceneryFilePath,
   sceneryFilesPath,
   sceneryNotesPath,
   sceneryUploadsPath,
-} from "@/utils/scenery.ts";
+} from "@/services/production.ts";
+import { signInAs } from "@/services/sign-in.fixture.ts";
+import { useLocalSignIn } from "@/services/sign-in.ts";
+import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
+import { replaceQuestion } from "@/utils/scenery.ts";
 
 // The browser's own new tabs and downloads, which happy-dom can't follow.
 vi.mock("@/services/file-link.ts", () => ({ openFileTab: vi.fn(), downloadFrom: vi.fn() }));

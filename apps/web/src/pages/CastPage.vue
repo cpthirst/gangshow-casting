@@ -5,11 +5,12 @@ import { computed, nextTick, onMounted, ref, useId } from "vue";
 import PageTitle from "@/components/common/PageTitle.vue";
 import RefusalNotice from "@/components/common/RefusalNotice.vue";
 import CastMemberForm from "@/components/show/CastMemberForm.vue";
+import { useAddForm } from "@/composables/useAddForm.ts";
 import { loadData } from "@/services/load-data.ts";
+import { castPath, rolesPath } from "@/services/production.ts";
 import { apiFetch, canChange, isAdmin } from "@/services/sign-in.ts";
 import {
   type CastFilters,
-  castPath,
   deleteWarning,
   filterCast,
   hasFilters,
@@ -19,7 +20,6 @@ import {
   sortCast,
 } from "@/utils/cast.ts";
 import { icons } from "@/utils/icons.ts";
-import { rolesPath } from "@/utils/roles.ts";
 
 type State =
   | { status: "loading" }
@@ -49,25 +49,18 @@ const uid = useId();
 
 /** Screen-reader announcement of the last change to the list. */
 const announcement = ref("");
-const adding = ref(false);
+const { adding, addButton, stopAdding } = useAddForm();
 /** The member whose edit form is open, if any. One form at a time. */
 const editing = ref<CastMember | null>(null);
 const saving = ref(false);
 // While a form is open or a change is saving, other changes wait.
 const busy = computed(() => saving.value || adding.value || editing.value !== null);
 const formError = ref("");
-const addButton = ref<HTMLButtonElement>();
 
 function startAdding() {
   formError.value = "";
   notice.value = "";
   adding.value = true;
-}
-
-async function stopAdding() {
-  adding.value = false;
-  await nextTick();
-  addButton.value?.focus();
 }
 
 async function add(details: CastMemberDetails) {

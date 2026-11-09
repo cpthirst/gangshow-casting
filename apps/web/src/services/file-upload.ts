@@ -1,5 +1,5 @@
 import { type FileDepartment, SceneryUpload } from "@app/shared";
-import { itemUploadsPath } from "@/utils/item-files.ts";
+import { itemUploadsPath } from "./production.ts";
 import { apiFetch } from "./sign-in.ts";
 
 // Uploading one of an item's scenery, SFX or Wardrobe files (production-scenery FR8): the API

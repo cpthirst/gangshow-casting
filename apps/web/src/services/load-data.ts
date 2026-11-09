@@ -31,3 +31,10 @@ export async function loadRequired<T>(path: string, schema: Schema<T>): Promise<
   if (data === undefined) throw new Error(`Nothing at ${path}`);
   return data;
 }
+
+/** The message a refusal carries, such as why a change can't be made, if it has one. */
+export async function refusalMessage(res: Response) {
+  const body: unknown = await res.json().catch(() => undefined);
+  if (typeof body !== "object" || body === null || !("message" in body)) return undefined;
+  return typeof body.message === "string" ? body.message : undefined;
+}

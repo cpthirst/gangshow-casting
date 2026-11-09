@@ -3,9 +3,9 @@ import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory } from "vue-router";
 import { createAppRouter } from "@/router/index.ts";
+import { runningOrderPath } from "@/services/production.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
-import { runningOrderPath } from "@/utils/running-order.ts";
 import UsagePage from "./UsagePage.vue";
 
 enableAutoUnmount(afterEach);

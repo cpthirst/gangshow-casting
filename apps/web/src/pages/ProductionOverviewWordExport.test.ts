@@ -4,14 +4,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory } from "vue-router";
 import App from "@/App.vue";
 import { createAppRouter } from "@/router/index.ts";
+import {
+  castPath,
+  departmentNotesPath,
+  propsPath,
+  rolesPath,
+  runningOrderPath,
+} from "@/services/production.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
-import { castPath } from "@/utils/cast.ts";
-import { departmentNotesPath } from "@/utils/item-notes.ts";
-import { propsPath } from "@/utils/props.ts";
-import { rolesPath } from "@/utils/roles.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
-import { runningOrderPath } from "@/utils/running-order.ts";
 import { documentXml, readDocx } from "@/utils/word/docx.fixture.ts";
 
 // The Production overview's Generate Props List button (production-props FR22, FR23; ADR 0022). Made-up

@@ -21,13 +21,14 @@ import {
 } from "./api-routes.ts";
 
 describe("adminOnlyRouteKeys", () => {
-  it("keeps managing accounts, deleting a cast member, saving a running-order version and reading usage for admins", () => {
+  it("keeps managing accounts, starting a production, deleting a cast member, saving a running-order version and reading usage for admins", () => {
     expect([...adminOnlyRouteKeys].sort()).toEqual([
       "DELETE /api/productions/{productionId}/cast/{castId}",
       "GET /api/accounts",
       "GET /api/usage",
       "POST /api/accounts",
       "POST /api/accounts/{username}/password",
+      "POST /api/productions",
       "POST /api/productions/{productionId}/running-order/versions",
       "PUT /api/accounts/{username}/access",
       "PUT /api/accounts/{username}/enabled",

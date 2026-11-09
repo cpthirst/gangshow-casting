@@ -4,11 +4,15 @@ import { computed, ref, watch, watchEffect } from "vue";
 import { type RouteLocationRaw, useRoute } from "vue-router";
 import { showPageTitle } from "@/router/index.ts";
 import { loadData } from "@/services/load-data.ts";
+import {
+  departmentNotesPath,
+  runningOrderPath,
+  saveDepartmentNotesPath,
+} from "@/services/production.ts";
 import { canChange } from "@/services/sign-in.ts";
 import { recordDepartmentPageUse } from "@/services/usage.ts";
 import { itemRouteOf } from "@/utils/departments.ts";
-import { departmentNotesPath, saveDepartmentNotesPath } from "@/utils/item-notes.ts";
-import { neighboursOf, placeOf, positionOf, runningOrderPath } from "@/utils/running-order.ts";
+import { neighboursOf, placeOf, positionOf } from "@/utils/running-order.ts";
 import ItemNotes from "./ItemNotes.vue";
 import ItemStepNav from "./ItemStepNav.vue";
 import PageTitle from "./PageTitle.vue";

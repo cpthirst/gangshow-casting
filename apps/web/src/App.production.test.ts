@@ -3,8 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory } from "vue-router";
 import App from "@/App.vue";
 import { createAppRouter } from "@/router/index.ts";
+import { openProduction } from "@/services/production.ts";
 import { chooseLocalAccess, signInNeeded, useLocalSignIn } from "@/services/sign-in.ts";
-import { openProduction } from "@/utils/production.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
 
 enableAutoUnmount(afterEach);
@@ -35,12 +35,17 @@ const answers: Record<string, unknown> = {
 /** A stand-in API holding productions 2027 and 2028, keeping every request the page makes. */
 function serveProductions(list: () => Response = () => json({ productions: ["2027", "2028"] })) {
   const requests: { url: string; body: string }[] = [];
+  let started: string[] | undefined;
   vi.stubGlobal(
     "fetch",
     vi.fn(async (input: unknown, init?: RequestInit) => {
       const url = String(input);
       requests.push({ url, body: String(init?.body ?? "") });
-      if (url === PRODUCTIONS) return list();
+      if (url === PRODUCTIONS && init?.method === "POST") {
+        started = ["2027", "2028", "2029"];
+        return new Response(JSON.stringify({ productions: started }), { status: 201 });
+      }
+      if (url === PRODUCTIONS) return started ? json({ productions: started }) : list();
       const last = url.split("/").at(-1) ?? "";
       if (last.endsWith("-counts")) return json({ counts: {} });
       if (last.endsWith("notes")) return json({ productionId, notes: [] });
@@ -120,6 +125,30 @@ describe("the app with productions 2027 and 2028", () => {
     expect(wrapper.get("[role=alert]").text()).toBe("Couldn't load the productions.");
     expect(wrapper.find("[data-test=production-year]").exists()).toBe(false);
     expect(requests.map(({ url }) => url)).not.toContain(`${NEWEST}/cast`);
+  });
+
+  it("opens a production for the admin who starts it, in the sidebar and on every page after", async () => {
+    const requests = serveProductions();
+    vi.stubGlobal("confirm", () => true);
+    const wrapper = await open("/productions");
+
+    await wrapper.get("[data-test=add-production]").trigger("click");
+    await wrapper.get("input[name=year]").setValue("2029");
+    await wrapper.get("[data-test=start-production]").trigger("submit");
+    await flushPromises();
+
+    expect(wrapper.get("[data-test=production-year]").text()).toBe("Gang Show 2029");
+    await wrapper.get("nav[aria-label=Main] a[href='/cast']").trigger("click");
+    await flushPromises();
+    expect(requests.map(({ url }) => url)).toContain(`${PRODUCTIONS}/2029/cast`);
+  });
+
+  it("opens the newest again for everyone from their next page load", async () => {
+    serveProductions(() => json({ productions: ["2027", "2028", "2029"] }));
+
+    const wrapper = await open("/");
+
+    expect(wrapper.get("[data-test=production-year]").text()).toBe("Gang Show 2029");
   });
 
   it("asks for the list only once someone has signed in", async () => {

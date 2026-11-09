@@ -9,6 +9,7 @@ import HelpPage from "@/pages/HelpPage.vue";
 import MicPlotItemPage from "@/pages/MicPlotItemPage.vue";
 import NotFoundPage from "@/pages/NotFoundPage.vue";
 import ProductionOverviewPage from "@/pages/ProductionOverviewPage.vue";
+import ProductionsPage from "@/pages/ProductionsPage.vue";
 import PropsItemPage from "@/pages/PropsItemPage.vue";
 import RunningOrderPage from "@/pages/RunningOrderPage.vue";
 import SceneryItemPage from "@/pages/SceneryItemPage.vue";
@@ -125,6 +126,13 @@ export const menuPages: (MenuPage | MenuGroup)[] = [
     name: "accounts",
     component: AccountsPage,
     meta: { title: "Accounts" },
+    adminOnly: true,
+  },
+  {
+    path: "/productions",
+    name: "productions",
+    component: ProductionsPage,
+    meta: { title: "Productions" },
     adminOnly: true,
   },
   {

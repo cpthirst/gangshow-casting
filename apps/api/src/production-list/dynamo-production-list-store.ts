@@ -1,5 +1,6 @@
 import { ProductionList } from "@app/shared";
 import { type DynamoDBDocumentClient, PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import { written } from "#/storage/dynamo-table.ts";
 import { FIRST_PRODUCTION, type ProductionListStore } from "./production-list-store.ts";
 
 const PRODUCTIONS = "PRODUCTIONS";
@@ -26,6 +27,19 @@ export function dynamoProductionListStore(
         new PutCommand({ TableName: tableName, Item: { pk: PRODUCTIONS, sk: FIRST_PRODUCTION } }),
       );
       return { productions: [FIRST_PRODUCTION] };
+    },
+
+    async start(year) {
+      const started = await written(() =>
+        db.send(
+          new PutCommand({
+            TableName: tableName,
+            Item: { pk: PRODUCTIONS, sk: year },
+            ConditionExpression: "attribute_not_exists(pk)",
+          }),
+        ),
+      );
+      return started ? "started" : "exists";
     },
   };
 }

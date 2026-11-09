@@ -3,13 +3,10 @@ import { enableAutoUnmount, flushPromises, mount, type VueWrapper } from "@vue/t
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory } from "vue-router";
 import { createAppRouter } from "@/router/index.ts";
+import { castPath, itemNotesPath, rolesPath, runningOrderPath } from "@/services/production.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
-import { castPath } from "@/utils/cast.ts";
-import { itemNotesPath } from "@/utils/item-notes.ts";
-import { rolesPath } from "@/utils/roles.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
-import { runningOrderPath } from "@/utils/running-order.ts";
 import CastingItemsPage from "./CastingItemsPage.vue";
 
 enableAutoUnmount(afterEach);

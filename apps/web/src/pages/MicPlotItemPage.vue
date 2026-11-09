@@ -17,19 +17,17 @@ import CastMemberPicker from "@/components/casting/CastMemberPicker.vue";
 import ClashIcon from "@/components/common/ClashIcon.vue";
 import ItemPageFrame from "@/components/common/ItemPageFrame.vue";
 import { loadData } from "@/services/load-data.ts";
+import { allocateMicPath, castPath, micPlotPath, rolesPath } from "@/services/production.ts";
 import { apiFetch, canChange } from "@/services/sign-in.ts";
-import { castPath } from "@/utils/cast.ts";
 import { icons } from "@/utils/icons.ts";
 import {
-  allocateMicPath,
   castInItem,
   channelsOf,
   choicesFor,
   keptMicError,
-  micPlotPath,
   micRolesText,
 } from "@/utils/mic-plot.ts";
-import { type CastMemberChoice, fullName, rolesPath } from "@/utils/roles.ts";
+import { type CastMemberChoice, fullName } from "@/utils/roles.ts";
 import { neighboursOf, placeOf } from "@/utils/running-order.ts";
 
 // One item's mic plot: Mic 1 to Mic 24, each given to a cast member in the item or free, with

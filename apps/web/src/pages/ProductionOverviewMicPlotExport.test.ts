@@ -4,15 +4,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory } from "vue-router";
 import App from "@/App.vue";
 import { createAppRouter } from "@/router/index.ts";
+import {
+  castPath,
+  departmentNotesPath,
+  micPlotPath,
+  rolesPath,
+  runningOrderPath,
+} from "@/services/production.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
-import { castPath } from "@/utils/cast.ts";
 import { readSheet, sheetXml } from "@/utils/excel/xlsx.fixture.ts";
-import { departmentNotesPath } from "@/utils/item-notes.ts";
-import { micPlotPath } from "@/utils/mic-plot.ts";
-import { rolesPath } from "@/utils/roles.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
-import { runningOrderPath } from "@/utils/running-order.ts";
 
 // The Overview's Generate Mic Plot button (production-mics FR14, FR16; ADR 0033). Made-up
 // names only: tests never use the real cast (CLAUDE.md safeguarding).

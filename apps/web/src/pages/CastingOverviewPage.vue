@@ -12,9 +12,9 @@ import ViewSwitch from "@/components/common/ViewSwitch.vue";
 import { downloadGridExport } from "@/services/casting-grid-export.ts";
 import { type LatestShow, latestShow } from "@/services/latest-show.ts";
 import { loadData, loadRequired } from "@/services/load-data.ts";
+import { castPath, rolesPath, runningOrderPath } from "@/services/production.ts";
 import { recordExport, recordView } from "@/services/usage.ts";
 import { downloadCastingSheets, downloadItemOverview } from "@/services/word-export.ts";
-import { castPath } from "@/utils/cast.ts";
 import { type Clash, clashesOfPerson, describeEach, findClashes } from "@/utils/clashes.ts";
 import { icons } from "@/utils/icons.ts";
 import {
@@ -31,8 +31,7 @@ import {
   spokenParts,
   timelineOf,
 } from "@/utils/overview.ts";
-import { roleSizeLabel, rolesPath } from "@/utils/roles.ts";
-import { runningOrderPath } from "@/utils/running-order.ts";
+import { roleSizeLabel } from "@/utils/roles.ts";
 
 const state = ref<
   { status: "loading" } | { status: "error" } | { status: "loaded"; cast: CastMember[] }

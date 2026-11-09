@@ -75,6 +75,37 @@ test("the accounts list, its add form and a new account's password fit the scree
   await expectNoSidewaysScroll(page);
 });
 
+test("the productions list, its start form and its confirmation fit the screen", async ({
+  page,
+}) => {
+  await page.goto("/productions");
+  // On a phone each cell also reads out its card label, so find the year in the table's text.
+  const list = page.getByRole("region", { name: "Productions" });
+  await expect(list.getByText("2027", { exact: true })).toBeVisible();
+  await expectNoSidewaysScroll(page);
+
+  await page.getByRole("button", { name: "Add production" }).click();
+  await expect(page.getByLabel("Year")).toBeFocused();
+  await expectNoSidewaysScroll(page);
+
+  await page.getByLabel("Year").fill("next year");
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByText("The year must be a four-digit year later than 2027.")).toBeVisible();
+  await expectNoSidewaysScroll(page);
+
+  // Cancelled, as every walk shares one API and the others need 2027 to stay the newest.
+  let question = "";
+  page.once("dialog", (dialog) => {
+    question = dialog.message();
+    return dialog.dismiss();
+  });
+  await page.getByLabel("Year").fill("2028");
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect.poll(() => question).toContain("Start production 2028?");
+  await expect(list.getByText("2028", { exact: true })).toBeHidden();
+  await expectNoSidewaysScroll(page);
+});
+
 test("the usage list fits the screen", async ({ page }) => {
   // Opening the app records a session for the made-up local admin, so their row has a date.
   await page.goto("/usage");

@@ -17,6 +17,12 @@ async function openWelcome() {
 beforeEach(useLocalSignIn);
 
 describe("Welcome page", () => {
+  it("names Productions among the admins' pages beside the menu's three areas", async () => {
+    const { wrapper } = await openWelcome();
+
+    expect(wrapper.get(".welcome-areas").text()).toContain("Accounts, Productions and Usage");
+  });
+
   it("shows the logo above a Welcome heading and a short introduction to the app", async () => {
     const { wrapper } = await openWelcome();
 

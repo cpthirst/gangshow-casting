@@ -15,10 +15,10 @@ import ItemPageFrame from "@/components/common/ItemPageFrame.vue";
 import PropCard from "@/components/production/PropCard.vue";
 import PropForm from "@/components/production/PropForm.vue";
 import { loadData } from "@/services/load-data.ts";
+import { addPropPath, castPath, propPath, propsPath, rolesPath } from "@/services/production.ts";
 import { apiFetch, canChange } from "@/services/sign-in.ts";
-import { castPath } from "@/utils/cast.ts";
-import { addPropPath, propPath, propsPath, sortProps } from "@/utils/props.ts";
-import { rolesPath, sortRoles } from "@/utils/roles.ts";
+import { sortProps } from "@/utils/props.ts";
+import { sortRoles } from "@/utils/roles.ts";
 import { placeOf } from "@/utils/running-order.ts";
 
 // One item's props (production-props FR16, FR17, FR19), in the frame every item page shares,

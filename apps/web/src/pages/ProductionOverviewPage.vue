@@ -18,6 +18,13 @@ import PageTitle from "@/components/common/PageTitle.vue";
 import { downloadMicPlot } from "@/services/excel-export.ts";
 import { latestMicPlot, latestPropsList } from "@/services/latest-show.ts";
 import { loadData, loadRequired } from "@/services/load-data.ts";
+import {
+  departmentNotesPath,
+  fileCountsPath,
+  micPlotPath,
+  propsPath,
+  runningOrderPath,
+} from "@/services/production.ts";
 import { canChange } from "@/services/sign-in.ts";
 import { recordExport } from "@/services/usage.ts";
 import { downloadPropsList } from "@/services/word-export.ts";
@@ -29,11 +36,9 @@ import {
   listed,
 } from "@/utils/departments.ts";
 import { icons } from "@/utils/icons.ts";
-import { fileCountsPath } from "@/utils/item-files.ts";
-import { departmentNotesPath } from "@/utils/item-notes.ts";
-import { keptMicsSummary, micPlotPath, micsCount } from "@/utils/mic-plot.ts";
-import { propCounts, propsCount, propsPath } from "@/utils/props.ts";
-import { runningClock, runningOrderPath } from "@/utils/running-order.ts";
+import { keptMicsSummary, micsCount } from "@/utils/mic-plot.ts";
+import { propCounts, propsCount } from "@/utils/props.ts";
+import { runningClock } from "@/utils/running-order.ts";
 
 // Production's one page: the show's items, each with a button for every department's page
 // for it and a count for each department (production-overview FR4–FR8, FR10, FR14), laid out
