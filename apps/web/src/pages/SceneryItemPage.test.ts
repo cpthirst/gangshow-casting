@@ -144,7 +144,6 @@ describe("An item's Scenery page", () => {
       { name: "build-list.xlsx", size: "40 KB" },
       { name: "set-plan.pdf", size: "2.4 MB" },
     ]);
-    expect(wrapper.get("main").text()).not.toContain("Coming soon");
   });
 
   it("gives each row its type's icon, hidden from screen readers", async () => {

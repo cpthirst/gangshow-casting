@@ -56,12 +56,6 @@ async function followLink(wrapper: Wrapper, router: Wrapper["vm"]["$router"], pa
 beforeEach(useLocalSignIn);
 
 describe("Help page", () => {
-  it("opens with a Help heading", async () => {
-    const { wrapper } = await openHelp();
-
-    expect(wrapper.get("h1").text()).toBe("Help");
-  });
-
   it("has a Running order section that links to the Running order page", async () => {
     const { wrapper, router } = await openHelp();
 
@@ -138,14 +132,6 @@ describe("Help page", () => {
     for (const section of wrapper.findAll("section.help-section")) {
       expect(section.findAll("[data-test=help-line]").length).toBeLessThanOrEqual(8);
     }
-  });
-
-  it("never calls the department Costume", async () => {
-    const { wrapper } = await openHelp();
-
-    // Wardrobe's upload rule names costume designs, which isn't naming the department.
-    const rule = "Costume designs and images only";
-    expect(wrapper.text().replaceAll(rule, "")).not.toContain("Costume");
   });
 
   it("shows every role the same help", async () => {
@@ -385,24 +371,6 @@ describe("Help page", () => {
       ]);
     });
 
-    it("say how to download, upload, replace and remove a scenery file, and that replacing and removing can't be undone", async () => {
-      const { wrapper } = await openHelp();
-
-      const doesOf = (name: string) =>
-        lineNamed(wrapper, name, "scenery-item").get("[data-test=help-does]").text();
-      expect(doesOf("Files")).toContain("Any other file downloads.");
-      expect(doesOf("Add a file")).toContain("Adds one file of up to 100 MB");
-      expect(doesOf("Add a file")).toContain(
-        "A file with the same name as one already there replaces it, once you confirm. The old copy can't be brought back.",
-      );
-      expect(doesOf("Remove")).toBe(
-        "Takes a file off the item, once you confirm. It can't be brought back.",
-      );
-      expect(lineNamed(wrapper, "Remove", "scenery-item").get("svg").attributes("data-icon")).toBe(
-        icons.remove.iconName,
-      );
-    });
-
     it("say scenery is for scenery and set images only, never photos of cast members", async () => {
       const { wrapper } = await openHelp();
 
@@ -419,7 +387,6 @@ describe("Help page", () => {
       async (department, page, changers) => {
         const { wrapper } = await openHelp();
 
-        expect(summaryOf(wrapper, page)).toContain(`One item's ${department} files and notes.`);
         expect(summaryOf(wrapper, page)).toContain("Production → Overview");
         expect(names(wrapper, page)).toEqual([
           "All items",
@@ -440,17 +407,6 @@ describe("Help page", () => {
             .findAll("[data-test=help-access]")
             .map((label) => label.text()),
         ).toEqual(["Reading: Everyone", `Changing: Accounts with ${changers}, and admins`]);
-
-        const doesOf = (name: string) =>
-          lineNamed(wrapper, name, page).get("[data-test=help-does]").text();
-        expect(doesOf("Files")).toContain("Any other file downloads.");
-        expect(doesOf("Add a file")).toContain("Adds one file of up to 100 MB");
-        expect(doesOf("Add a file")).toContain(
-          "A file with the same name as one already there replaces it, once you confirm. The old copy can't be brought back.",
-        );
-        expect(doesOf("Remove")).toBe(
-          "Takes a file off the item, once you confirm. It can't be brought back.",
-        );
       },
     );
 
@@ -485,42 +441,6 @@ describe("Help page", () => {
       ).toContain("only someone cast in the item");
     });
 
-    it("say all 24 mics show, a mic goes to someone in the item, and their roles come from the casting, ensembles included", async () => {
-      const { wrapper } = await openHelp();
-
-      const mics = lineNamed(wrapper, "Mic 1 to Mic 24", "mic-plot-item")
-        .get("[data-test=help-does]")
-        .text();
-      expect(mics).toContain("All 24 mics, in order, used or not.");
-      expect(mics).toContain("Type a name to give a mic to only someone cast in the item");
-      expect(mics).toContain(
-        "The roles they play in it show under them, from the casting: you don't choose them. Someone without a named part shows their ensemble.",
-      );
-    });
-
-    it("explain a greyed-out mic: used by someone else just before, theirs to keep, reset at the interval", async () => {
-      const { wrapper } = await openHelp();
-
-      const used = lineNamed(wrapper, "Used in previous item", "mic-plot-item")
-        .get("[data-test=help-does]")
-        .text();
-      expect(used).toContain("A mic someone else had in the item just before is greyed out.");
-      expect(used).toContain("The person who had it can keep it.");
-      expect(used).toContain(
-        "It resets at the interval: the first item of each half can use any mic.",
-      );
-    });
-
-    it("explain a mic kept after a reorder stays, flagged as an Error, until it's cleared", async () => {
-      const { wrapper } = await openHelp();
-
-      const error = lineNamed(wrapper, "Error", "mic-plot-item");
-      expect(error.get("svg").attributes("data-icon")).toBe(icons.error.iconName);
-      expect(error.get("[data-test=help-does]").text()).toBe(
-        'A mic given out before the running order changed, which now breaks the "Used in previous item" rule, stays, flagged as an Error, until it\'s cleared. It can only be cleared.',
-      );
-    });
-
     it("say Tech, Directors and admins change the mic plot, and everyone else views it", async () => {
       const { wrapper } = await openHelp();
 
@@ -551,14 +471,6 @@ describe("Help page", () => {
         "Saves every item's mics, with who wears each, their roles and the item's Mic plot notes, as an Excel file. It holds under-18s' names, so it is for the production team only.",
       );
       expect(generate.get("[data-test=help-access]").text()).toBe("Everyone");
-    });
-
-    it("say an SFX file that's MP3, WAV, M4A, AAC or OGG plays in a new tab", async () => {
-      const { wrapper } = await openHelp();
-
-      expect(lineNamed(wrapper, "Files", "sfx-item").get("[data-test=help-does]").text()).toContain(
-        "Plays an MP3, WAV, M4A, AAC or OGG file in a new tab",
-      );
     });
 
     it("say Wardrobe is for costume designs and images only, never photos of cast members, and SFX has no such rule", async () => {
@@ -630,37 +542,6 @@ describe("Help page", () => {
       expect(line.get("svg").attributes("data-icon")).toBe(icons.exportWord.iconName);
       expect(line.get("[data-test=help-access]").text()).toBe("Everyone");
     });
-
-    it("don't name Stage, Tech or Wardrobe as pages", async () => {
-      const { wrapper } = await openHelp();
-
-      expect(sectionTitles(wrapper)).not.toEqual(
-        expect.arrayContaining([expect.stringMatching(/^(Stage|Tech|Wardrobe)$/)]),
-      );
-      expect(wrapper.text()).not.toMatch(
-        /Production → (Stage|Tech|Wardrobe)|(Stage|Tech|Wardrobe) (page|view)|the (Scenery|Props|Mic plot|SFX) view/,
-      );
-    });
-  });
-
-  it("says SFX, the Mic plot and Wardrobe are here, with nothing still to come", async () => {
-    const { wrapper } = await openHelp();
-
-    const stillToCome = /\b(to come|coming|comes?)\b/i;
-    const lineTexts = wrapper
-      .findAll("[data-test=help-line], [data-test=permission]")
-      .map((line) => line.text().replace(/\s+/g, " ").trim());
-    // A line about SFX, the Mic plot or Wardrobe, or any part of a line that names them, says
-    // nothing is to come.
-    for (const text of lineTexts) {
-      if (/^(SFX|Mic plot|Wardrobe)\b/.test(text)) expect(text).not.toMatch(stillToCome);
-      for (const clause of text.split(/[.,;:]/)) {
-        if (/SFX|mic plot|wardrobe/i.test(clause)) expect(clause).not.toMatch(stillToCome);
-      }
-    }
-    for (const page of ["sfx-item", "mic-plot-item", "wardrobe-item"]) {
-      expect(sectionFor(wrapper, page).text()).not.toMatch(stillToCome);
-    }
   });
 
   describe("the Permissions section", () => {

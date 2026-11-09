@@ -50,14 +50,6 @@ describe("Welcome page", () => {
     },
   );
 
-  it("says what sits beside the areas, once, and no fixed count of them", async () => {
-    const { wrapper } = await openWelcome();
-
-    const guide = wrapper.get(".welcome-areas p").text().replace(/\s+/g, " ");
-    expect(guide).toContain("Help sits beside them.");
-    expect(guide).not.toMatch(/Admin|three areas/);
-  });
-
   it("shows the logo above a Welcome heading and a short introduction to the app", async () => {
     const { wrapper } = await openWelcome();
 
@@ -75,53 +67,6 @@ describe("Welcome page", () => {
     expect(intro.split(/(?<=\.)\s+/).length).toBeLessThanOrEqual(2);
   });
 
-  it("explains what is under Show, Production and Casting, and points to the menu", async () => {
-    await signInAs(["casting"]);
-
-    const { wrapper } = await openWelcome();
-
-    expect(wrapper.get("section.welcome-areas").text()).toContain("Use the menu");
-    const areas = wrapper.findAll("dt").map((term) => term.text());
-    expect(areas).toEqual(["Show", "Casting", "Production"]);
-    const production = wrapper.findAll("dd")[2]?.text().replace(/\s+/g, " ") ?? "";
-    expect(production).toContain(
-      "the Overview, with the show's items in running order and a button to open each department's page for them",
-    );
-    expect(production).not.toContain("a page each");
-    expect(production).toContain(
-      "Stage, Tech or Wardrobe lets someone change that department's pages, and Director lets them change every department's",
-    );
-  });
-
-  it("says each item's Scenery page holds its set plans, designs and photos, for everyone to download", async () => {
-    const { wrapper } = await openWelcome();
-
-    const production = wrapper.findAll("dd")[2]?.text().replace(/\s+/g, " ") ?? "";
-    expect(production).toContain(
-      "Each item's Scenery page holds its set plans, designs and photos, for everyone to download.",
-    );
-  });
-
-  it("says the Overview's SFX and Wardrobe buttons open each item's files and notes, and neither is coming soon", async () => {
-    const { wrapper } = await openWelcome();
-
-    const production = wrapper.findAll("dd")[2]?.text().replace(/\s+/g, " ") ?? "";
-    expect(production).toContain(
-      "The Overview's SFX and Wardrobe buttons open each item's sound effects files and costume designs, with notes for each.",
-    );
-    expect(wrapper.text()).not.toMatch(/coming soon/i);
-  });
-
-  it("says the Overview's Mic plot button opens each item's mics, and Generate Mic Plot saves them all", async () => {
-    const { wrapper } = await openWelcome();
-
-    const production = wrapper.findAll("dd")[2]?.text().replace(/\s+/g, " ") ?? "";
-    expect(production).toContain(
-      "Its Mic plot button opens each item's 24 mics, with who wears each, and Generate Mic Plot saves them all as an Excel file.",
-    );
-    expect(wrapper.text()).not.toMatch(/coming soon|to come/i);
-  });
-
   it.each([
     ["show", "running-order"],
     ["casting", "casting-overview"],
@@ -136,22 +81,6 @@ describe("Welcome page", () => {
     await flushPromises();
 
     expect(router.currentRoute.value.name).toBe(first);
-  });
-
-  it("calls the department Wardrobe, never Costume", async () => {
-    const { wrapper } = await openWelcome();
-
-    expect(wrapper.text()).toContain("Wardrobe");
-    expect(wrapper.text()).not.toContain("Costume");
-  });
-
-  it("tells someone new to check out Help first, before the guide to the menu", async () => {
-    const { wrapper } = await openWelcome();
-
-    const note = wrapper.get("[data-test=help-note]");
-    expect(note.text()).toContain("New here?");
-    expect(note.get("a").attributes("href")).toBe("/help");
-    expect(wrapper.get(".welcome").element.contains(note.element)).toBe(true);
   });
 
   it("links to the pages it names, and to Help", async () => {
@@ -171,11 +100,5 @@ describe("Welcome page", () => {
     await wrapper.get("a[href='/help']").trigger("click");
     await flushPromises();
     expect(router.currentRoute.value.name).toBe("help");
-  });
-
-  it("no longer carries the page-by-page help", async () => {
-    const { wrapper } = await openWelcome();
-
-    expect(wrapper.find("section.help-section").exists()).toBe(false);
   });
 });

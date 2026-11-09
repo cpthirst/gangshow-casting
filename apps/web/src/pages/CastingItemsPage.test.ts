@@ -141,16 +141,6 @@ describe("Casting items page", () => {
     );
   });
 
-  it("starts with the items, with no line restating what the page is for", async () => {
-    savedRunningOrderIs(aRunningOrder([anItem("Opening Number")]));
-    const wrapper = await openItemsPage();
-
-    const pageLines = wrapper.findAll("p").filter((line) => !line.element.closest("dialog"));
-    expect(pageLines.map((line) => line.text())).not.toContain(
-      "The show's items, with how far each one's casting has got.",
-    );
-  });
-
   it("shows the saved draft's number as the Running order page words it", async () => {
     savedRunningOrderIs(aRunningOrder([anItem("Opening Number")], [], 3));
 

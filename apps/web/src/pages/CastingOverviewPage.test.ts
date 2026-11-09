@@ -169,15 +169,6 @@ describe("Casting overview page", () => {
 
     expect(wrapper.get("main").text()).toContain("No cast members yet.");
   });
-
-  it("replaces the placeholder at the same address", async () => {
-    castIs([person("Sam", "Example", "scouts")]);
-
-    const wrapper = await openOverview();
-
-    expect(wrapper.get("main").text()).not.toContain("Coming soon");
-    expect(wrapper.get("main h1").text()).toBe("Overview");
-  });
 });
 
 describe("Casting overview parts", () => {

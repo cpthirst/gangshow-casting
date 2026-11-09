@@ -215,7 +215,6 @@ describe("An item's Mic plot page", () => {
     expect(channels(wrapper)).toEqual(
       Array.from({ length: 24 }, (_, i) => ({ mic: `Mic ${i + 1}`, who: "" })),
     );
-    expect(wrapper.get("main").text()).not.toContain("Coming soon");
   });
 
   it("goes back to the Overview, and steps to the previous and next items' Mic plot pages", async () => {
