@@ -1,15 +1,11 @@
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { type ItemMicPlot, type MicPlotList, type Role, StoredMicPlotList } from "@app/shared";
 import {
-  type ItemMicPlot,
-  type MicPlotList,
-  ProductionId,
-  type Role,
-  StoredMicPlotList,
-} from "@app/shared";
-import { parseJson } from "#/http/json.ts";
-import { ifExists } from "#/storage/files.ts";
-import { oneAtATime, writePrivateFile } from "#/storage/private-file.ts";
+  type Change,
+  documentsInFiles,
+  documentsInMemory,
+  type ProductionDocuments,
+  saveRevised,
+} from "#/storage/production-documents.ts";
 
 /** Refused: the cast member is already on another of the item's channels, as it is now. */
 export type OnAnotherChannel = { onAnotherChannel: ItemMicPlot };
@@ -69,11 +65,14 @@ function withItemAllocation(
   itemId: string,
   channel: number,
   castMemberId: number | null,
-) {
+): Change<MicPlotList, ItemMicPlot | OnAnotherChannel> {
   const plot = withAllocation(plotOf(list, itemId), channel, castMemberId);
-  if ("onAnotherChannel" in plot) return { plot, list };
+  if ("onAnotherChannel" in plot) return { answer: plot };
   const others = list.items.filter((item) => item.itemId !== itemId);
-  return { plot, list: { ...list, items: plot.mics.length > 0 ? [...others, plot] : others } };
+  return {
+    answer: plot,
+    save: { ...list, items: plot.mics.length > 0 ? [...others, plot] : others },
+  };
 }
 
 const onlyItems = (list: MicPlotList, itemIds: string[]): MicPlotList => ({
@@ -87,78 +86,41 @@ const withCastMics = (list: MicPlotList, roles: Role[]): MicPlotList => ({
   items: list.items.map((plot) => castMics(plot, roles)).filter((plot) => plot.mics.length > 0),
 });
 
-/** Mic plots held in memory, starting with those given: for tests. */
-export function inMemoryMicPlotStore(saved: MicPlotList[] = []): MicPlotStore {
-  const lists = new Map<string, MicPlotList>(saved.map((list) => [list.productionId, list]));
-  const listOf = (productionId: string) => lists.get(productionId) ?? empty(productionId);
+/** A mic plot store's rules, wherever its files are kept. */
+function micPlotStoreOver(files: ProductionDocuments<MicPlotList>): MicPlotStore {
   return {
-    list: async (productionId) => listOf(productionId),
-    async allocate(productionId, itemId, channel, castMemberId) {
-      const allocated = withItemAllocation(listOf(productionId), itemId, channel, castMemberId);
-      lists.set(productionId, allocated.list);
-      return allocated.plot;
-    },
-    async keepOnlyItems(productionId, itemIds) {
-      lists.set(productionId, onlyItems(listOf(productionId), itemIds));
-    },
-    async freeUncastChannels(productionId, roles) {
-      lists.set(productionId, withCastMics(listOf(productionId), roles));
-    },
+    list: files.read,
+    // Checked and saved in one turn, so two at once can't put someone on two channels.
+    allocate: (productionId, itemId, channel, castMemberId) =>
+      files.change(productionId, (list) => withItemAllocation(list, itemId, channel, castMemberId)),
+    keepOnlyItems: (productionId, itemIds) =>
+      saveRevised(files, productionId, (list) => {
+        const kept = onlyItems(list, itemIds);
+        // Nothing to write if every item stays (or there's no file yet).
+        return kept.items.length === list.items.length ? undefined : kept;
+      }),
+    freeUncastChannels: (productionId, roles) =>
+      saveRevised(files, productionId, (list) => {
+        const kept = withCastMics(list, roles);
+        // Nothing to write if no one lost a channel (or there's no file yet).
+        return JSON.stringify(kept) === JSON.stringify(list) ? undefined : kept;
+      }),
   };
 }
+
+/** Mic plots held in memory, starting with those given: for tests. */
+export const inMemoryMicPlotStore = (saved: MicPlotList[] = []) =>
+  micPlotStoreOver(documentsInMemory<MicPlotList>(saved, empty));
 
 /** Local file: `<dataDir>/<productionId>/mic-plot.json` (git-ignored), created with the first
  *  mic given out. It links children to channels, so kept owner-only. */
-export function fileMicPlotStore(dataDir: string): MicPlotStore {
-  // The id becomes a folder name: never trust callers to have checked it.
-  const fileFor = (productionId: string) => {
-    if (!ProductionId.safeParse(productionId).success) throw new Error("Invalid production id");
-    return join(dataDir, productionId, "mic-plot.json");
-  };
-
-  async function read(productionId: string) {
-    const text = await ifExists(() => readFile(fileFor(productionId), "utf8"));
-    if (text === undefined) return empty(productionId);
-    const parsed = StoredMicPlotList.safeParse(parseJson(text));
-    if (!parsed.success || parsed.data.productionId !== productionId) {
-      throw new Error(`Mic plot file for production ${productionId} is invalid`);
-    }
-    return parsed.data;
-  }
-
-  const write = (list: MicPlotList) =>
-    writePrivateFile(fileFor(list.productionId), JSON.stringify(list, null, 2));
-  const inTurn = oneAtATime();
-
-  return {
-    list: read,
-    allocate: (productionId, itemId, channel, castMemberId) =>
-      // Checked and saved in one turn, so two at once can't put someone on two channels.
-      inTurn(async () => {
-        const allocated = withItemAllocation(
-          await read(productionId),
-          itemId,
-          channel,
-          castMemberId,
-        );
-        if (!("onAnotherChannel" in allocated.plot)) await write(allocated.list);
-        return allocated.plot;
-      }),
-    keepOnlyItems: (productionId, itemIds) =>
-      inTurn(async () => {
-        const list = await read(productionId);
-        const kept = onlyItems(list, itemIds);
-        // Nothing to write if every item stays (or there's no file yet).
-        if (kept.items.length === list.items.length) return;
-        await write(kept);
-      }),
-    freeUncastChannels: (productionId, roles) =>
-      inTurn(async () => {
-        const list = await read(productionId);
-        const kept = withCastMics(list, roles);
-        // Nothing to write if no one lost a channel (or there's no file yet).
-        if (JSON.stringify(kept) === JSON.stringify(list)) return;
-        await write(kept);
-      }),
-  };
-}
+export const fileMicPlotStore = (dataDir: string) =>
+  micPlotStoreOver(
+    documentsInFiles<MicPlotList>({
+      dataDir,
+      fileName: "mic-plot.json",
+      label: "Mic plot",
+      schema: StoredMicPlotList,
+      empty,
+    }),
+  );

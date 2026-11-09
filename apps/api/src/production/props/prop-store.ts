@@ -1,9 +1,11 @@
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
-import { ProductionId, Prop, type PropDetails, PropList, type Role } from "@app/shared";
-import { parseJson } from "#/http/json.ts";
-import { ifExists } from "#/storage/files.ts";
-import { oneAtATime, writePrivateFile } from "#/storage/private-file.ts";
+import { Prop, type PropDetails, PropList, type Role } from "@app/shared";
+import {
+  type Change,
+  documentsInFiles,
+  documentsInMemory,
+  type ProductionDocuments,
+  saveRevised,
+} from "#/storage/production-documents.ts";
 import { castCarriers } from "./prop-links.ts";
 
 /** Where each production's props live (production-props FR13): the production's own, apart from
@@ -38,27 +40,34 @@ const nextIdOf = (file: PropFile) =>
 const listOf = ({ productionId, props }: PropFile): PropList => ({ productionId, props });
 
 /** The file with a new prop added to the item under the next id. */
-function withNewProp(file: PropFile, itemId: string, details: PropDetails) {
+function withNewProp(file: PropFile, itemId: string, details: PropDetails): Change<PropFile, Prop> {
   const prop: Prop = { ...details, id: nextIdOf(file), itemId };
-  return { prop, file: { ...file, props: [...file.props, prop], nextId: prop.id + 1 } };
+  return { answer: prop, save: { ...file, props: [...file.props, prop], nextId: prop.id + 1 } };
 }
 
 /** The file with one prop's name, quantity, roles and carriers replaced, or why not. */
-function withUpdatedProp(file: PropFile, id: number, details: PropDetails) {
+function withUpdatedProp(
+  file: PropFile,
+  id: number,
+  details: PropDetails,
+): Change<PropFile, Prop | "not-found"> {
   const prop = file.props.find((p) => p.id === id);
-  if (!prop) return "not-found";
+  if (!prop) return { answer: "not-found" };
   const updated: Prop = { ...prop, ...details };
   return {
-    prop: updated,
-    file: { ...file, props: file.props.map((p) => (p.id === id ? updated : p)) },
+    answer: updated,
+    save: { ...file, props: file.props.map((p) => (p.id === id ? updated : p)) },
   };
 }
 
 /** The file without the prop, or why not. Keeps nextId, so its id is never reused. */
-function withoutProp(file: PropFile, id: number) {
-  if (!file.props.some((p) => p.id === id)) return "not-found";
+function withoutProp(file: PropFile, id: number): Change<PropFile, "removed" | "not-found"> {
+  if (!file.props.some((p) => p.id === id)) return { answer: "not-found" };
   // nextId is worked out before filtering, so the removed id stays taken.
-  return { ...file, props: file.props.filter((p) => p.id !== id), nextId: nextIdOf(file) };
+  return {
+    answer: "removed",
+    save: { ...file, props: file.props.filter((p) => p.id !== id), nextId: nextIdOf(file) },
+  };
 }
 
 /** The file with only carriers who still play one of their prop's roles. */
@@ -74,99 +83,44 @@ const withOnlyItems = (file: PropFile, itemIds: string[]): PropFile => ({
   nextId: nextIdOf(file),
 });
 
-/** Props held in memory, starting with those given: for tests. */
-export function inMemoryPropStore(saved: PropList[] = []): PropStore {
-  const files = new Map<string, PropFile>(saved.map((list) => [list.productionId, list]));
-  const fileOf = (productionId: string) => files.get(productionId) ?? emptyFile(productionId);
+/** A prop store's rules, wherever its files are kept. */
+function propStoreOver(files: ProductionDocuments<PropFile>): PropStore {
   return {
-    list: async (productionId) => listOf(fileOf(productionId)),
-    async add(productionId, itemId, details) {
-      const added = withNewProp(fileOf(productionId), itemId, details);
-      files.set(productionId, added.file);
-      return added.prop;
-    },
-    async update(productionId, id, details) {
-      const updated = withUpdatedProp(fileOf(productionId), id, details);
-      if (updated === "not-found") return updated;
-      files.set(productionId, updated.file);
-      return updated.prop;
-    },
-    async remove(productionId, id) {
-      const removed = withoutProp(fileOf(productionId), id);
-      if (removed === "not-found") return removed;
-      files.set(productionId, removed);
-      return "removed";
-    },
-    async dropStrayCarriers(productionId, roles) {
-      files.set(productionId, withCastCarriers(fileOf(productionId), roles));
-    },
-    async keepOnlyItems(productionId, itemIds) {
-      files.set(productionId, withOnlyItems(fileOf(productionId), itemIds));
-    },
+    list: async (productionId) => listOf(await files.read(productionId)),
+    // Read and saved in one turn, so two adds at once can't take the same id.
+    add: (productionId, itemId, details) =>
+      files.change(productionId, (file) => withNewProp(file, itemId, details)),
+    update: (productionId, id, details) =>
+      files.change(productionId, (file) => withUpdatedProp(file, id, details)),
+    // The file is rewritten without it: no copy is kept.
+    remove: (productionId, id) => files.change(productionId, (file) => withoutProp(file, id)),
+    dropStrayCarriers: (productionId, roles) =>
+      // No props, no carriers: nothing to save, and no file made.
+      saveRevised(files, productionId, (file) =>
+        file.props.length === 0 ? undefined : withCastCarriers(file, roles),
+      ),
+    keepOnlyItems: (productionId, itemIds) =>
+      saveRevised(files, productionId, (file) => {
+        const kept = withOnlyItems(file, itemIds);
+        // Nothing to write if every item stays (or there's no file yet).
+        return kept.props.length === file.props.length ? undefined : kept;
+      }),
   };
 }
+
+/** Props held in memory, starting with those given: for tests. */
+export const inMemoryPropStore = (saved: PropList[] = []) =>
+  propStoreOver(documentsInMemory<PropFile>(saved, emptyFile));
 
 /** Local file: `<dataDir>/<productionId>/props.json` (git-ignored), created with the first
  *  prop. */
-export function filePropStore(dataDir: string): PropStore {
-  // The id becomes a folder name: never trust callers to have checked it.
-  const fileFor = (productionId: string) => {
-    if (!ProductionId.safeParse(productionId).success) throw new Error("Invalid production id");
-    return join(dataDir, productionId, "props.json");
-  };
-
-  async function read(productionId: string) {
-    const text = await ifExists(() => readFile(fileFor(productionId), "utf8"));
-    if (text === undefined) return emptyFile(productionId);
-    const parsed = PropFile.safeParse(parseJson(text));
-    if (!parsed.success || parsed.data.productionId !== productionId) {
-      throw new Error(`Props file for production ${productionId} is invalid`);
-    }
-    return parsed.data;
-  }
-
-  const write = (file: PropFile) =>
-    writePrivateFile(fileFor(file.productionId), JSON.stringify(PropFile.parse(file), null, 2));
-  const inTurn = oneAtATime();
-
-  return {
-    list: async (productionId) => listOf(await read(productionId)),
-    add: (productionId, itemId, details) =>
-      // Read and saved in one turn, so two adds at once can't take the same id.
-      inTurn(async () => {
-        const added = withNewProp(await read(productionId), itemId, details);
-        await write(added.file);
-        return added.prop;
-      }),
-    update: (productionId, id, details) =>
-      inTurn(async () => {
-        const updated = withUpdatedProp(await read(productionId), id, details);
-        if (updated === "not-found") return updated;
-        await write(updated.file);
-        return updated.prop;
-      }),
-    remove: (productionId, id) =>
-      inTurn(async () => {
-        // The file is rewritten without it: no copy is kept.
-        const removed = withoutProp(await read(productionId), id);
-        if (removed === "not-found") return removed;
-        await write(removed);
-        return "removed";
-      }),
-    dropStrayCarriers: (productionId, roles) =>
-      inTurn(async () => {
-        const file = await read(productionId);
-        // No props, no carriers: nothing to save, and no file made.
-        if (file.props.length === 0) return;
-        await write(withCastCarriers(file, roles));
-      }),
-    keepOnlyItems: (productionId, itemIds) =>
-      inTurn(async () => {
-        const file = await read(productionId);
-        const kept = withOnlyItems(file, itemIds);
-        // Nothing to write if every item stays (or there's no file yet).
-        if (kept.props.length === file.props.length) return;
-        await write(kept);
-      }),
-  };
-}
+export const filePropStore = (dataDir: string) =>
+  propStoreOver(
+    documentsInFiles({
+      dataDir,
+      fileName: "props.json",
+      label: "Props",
+      schema: PropFile,
+      empty: emptyFile,
+    }),
+  );
