@@ -1,6 +1,7 @@
 import type { AccountSummary, CreatedAccount } from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { json } from "@/app.fixture.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
 import { ACCOUNTS_PATH } from "@/utils/accounts.ts";
@@ -15,8 +16,6 @@ const account = (username: string, flags: Partial<AccountSummary> = {}): Account
   enabled: true,
   ...flags,
 });
-
-const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 
 /** The API: GET lists the accounts; POST answers with `created`. */
 function serve(accounts: AccountSummary[], created: () => Response = () => json({}, 500)) {

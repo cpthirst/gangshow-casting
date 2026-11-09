@@ -4,6 +4,7 @@ import { enableAutoUnmount, flushPromises, mount, type VueWrapper } from "@vue/t
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory } from "vue-router";
 import App from "@/App.vue";
+import { json } from "@/app.fixture.ts";
 import { createAppRouter } from "@/router/index.ts";
 import { openProduction } from "@/services/production.ts";
 import { chooseLocalAccess, useLocalSignIn } from "@/services/sign-in.ts";
@@ -80,8 +81,6 @@ const answer = (productionId: string, last: string): unknown => {
   };
   return answers[last] ?? { status: "ok", version: "1.2.3" };
 };
-
-const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 
 /** A stand-in API holding productions 2027 and 2028, keeping every request made of it. */
 function serveProductions({ productions = ["2027", "2028"] } = {}) {

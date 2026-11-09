@@ -5,11 +5,9 @@ import {
   type RunningOrder,
   SaveItemNoteRequest,
 } from "@app/shared";
-import { enableAutoUnmount, flushPromises, mount, type VueWrapper } from "@vue/test-utils";
+import { enableAutoUnmount, flushPromises, type VueWrapper } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createMemoryHistory } from "vue-router";
-import App from "@/App.vue";
-import { createAppRouter } from "@/router/index.ts";
+import { json, openAppAt } from "@/app.fixture.ts";
 import { downloadFrom, openFileTab } from "@/services/file-link.ts";
 import { StandInXhr } from "@/services/file-upload.fixture.ts";
 import { runningOrderPath } from "@/services/production.ts";
@@ -32,7 +30,6 @@ afterEach(() => {
 // Made-up items, in show order: Opening Number, Campfire Song | Finale.
 const show = aRunningOrder([anItem("Opening Number"), anItem("Campfire Song")], [anItem("Finale")]);
 
-const json = (body: unknown) => new Response(JSON.stringify(body));
 const linkTo = (name: string) => `https://files.example/${encodeURIComponent(name)}?signed`;
 /** Where the stand-in file storage takes uploads, apart from the API, as the bucket is. */
 const STORAGE = "https://files.example/";
@@ -99,16 +96,6 @@ function apiHolds(order: RunningOrder, held: Held = {}, notes: ItemNote[] = []) 
       return new Response(null, { status: 404 });
     }),
   );
-}
-
-// The whole app, so routing, the menu and the tab title are real.
-async function openAppAt(path: string) {
-  const router = createAppRouter(createMemoryHistory());
-  await router.push(path);
-  await router.isReady();
-  const wrapper = mount(App, { global: { plugins: [router] }, attachTo: document.body });
-  await flushPromises();
-  return { wrapper, router };
 }
 
 const OPENING_NUMBER = "/production/items/opening-number/wardrobe";

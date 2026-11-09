@@ -7,11 +7,9 @@ import {
   type RunningOrder,
   SaveItemNoteRequest,
 } from "@app/shared";
-import { enableAutoUnmount, flushPromises, mount, type VueWrapper } from "@vue/test-utils";
+import { enableAutoUnmount, flushPromises, type VueWrapper } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createMemoryHistory } from "vue-router";
-import App from "@/App.vue";
-import { createAppRouter } from "@/router/index.ts";
+import { json, openAppAt } from "@/app.fixture.ts";
 import {
   castPath,
   departmentNotesPath,
@@ -69,8 +67,6 @@ const casting: Role[] = [
 // A show of one made-up item, for the roles each mic shows.
 const spaceShow = aRunningOrder([anItem("Space Sketch")]);
 const SPACE_SKETCH = "/production/items/space-sketch/mic-plot";
-
-const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 
 /** Every item's Mic plot notes the stand-in API holds, saved as the API would. */
 const micPlotNotes: ItemNote[] = [];
@@ -137,16 +133,6 @@ function micPlotAnswers(status: number) {
       url === micPlotPath() ? new Response(null, { status }) : holds?.(url, init),
     ),
   );
-}
-
-// The whole app, so routing, the menu and the tab title are real.
-async function openAppAt(path: string) {
-  const router = createAppRouter(createMemoryHistory());
-  await router.push(path);
-  await router.isReady();
-  const wrapper = mount(App, { global: { plugins: [router] }, attachTo: document.body });
-  await flushPromises();
-  return { wrapper, router };
 }
 
 const OPENING_NUMBER = "/production/items/opening-number/mic-plot";

@@ -3,6 +3,7 @@ import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { h } from "vue";
 import { createMemoryHistory } from "vue-router";
+import { json } from "@/app.fixture.ts";
 import { createAppRouter } from "@/router/index.ts";
 import { departmentNotesPath, runningOrderPath } from "@/services/production.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
@@ -20,8 +21,6 @@ afterEach(() => {
 
 // Made-up items, in show order: Opening Number, Pirate Sketch | Finale.
 const show = aRunningOrder([anItem("Opening Number"), anItem("Pirate Sketch")], [anItem("Finale")]);
-
-const json = (body: unknown) => new Response(JSON.stringify(body));
 
 /** A stand-in API with the running order (none if undefined), or failing to give it. */
 function apiHolds(order: typeof show | undefined | "fails") {

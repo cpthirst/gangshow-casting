@@ -9,11 +9,9 @@ import {
   sameRoleName,
   UpdateRoleRequest,
 } from "@app/shared";
-import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
+import { enableAutoUnmount, flushPromises } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createMemoryHistory } from "vue-router";
-import App from "@/App.vue";
-import { createAppRouter } from "@/router/index.ts";
+import { json, openAppAt } from "@/app.fixture.ts";
 import { castPath, itemNotesPath, rolesPath } from "@/services/production.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
@@ -27,8 +25,6 @@ const show = aRunningOrder(
   [anItem("Opening Number"), anItem("Pirate Sketch")],
   [anItem("Campfire Song"), anItem("Mystery Act", { printed: false })],
 );
-
-const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 
 // Made-up names only: tests never use the real cast (CLAUDE.md safeguarding).
 const member = (
@@ -109,16 +105,6 @@ function savedRunningOrderIs(order: RunningOrder, roles: Role[] = [], notes: Ite
   );
   // The live roles, so a test can play someone else changing them.
   return stored;
-}
-
-// The whole app, so routing, the menu and the tab title are real.
-async function openAppAt(path: string) {
-  const router = createAppRouter(createMemoryHistory());
-  await router.push(path);
-  await router.isReady();
-  const wrapper = mount(App, { global: { plugins: [router] }, attachTo: document.body });
-  await flushPromises();
-  return { wrapper, router };
 }
 
 describe("Casting item page", () => {

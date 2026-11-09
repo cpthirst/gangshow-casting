@@ -6,11 +6,9 @@ import {
   type RunningOrder,
   SaveItemNoteRequest,
 } from "@app/shared";
-import { enableAutoUnmount, flushPromises, mount, type VueWrapper } from "@vue/test-utils";
+import { enableAutoUnmount, flushPromises, type VueWrapper } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createMemoryHistory } from "vue-router";
-import App from "@/App.vue";
-import { createAppRouter } from "@/router/index.ts";
+import { json, openAppAt } from "@/app.fixture.ts";
 import { downloadFrom, openFileTab } from "@/services/file-link.ts";
 import { StandInXhr } from "@/services/file-upload.fixture.ts";
 import {
@@ -43,8 +41,6 @@ const show = aRunningOrder([anItem("Opening Number"), anItem("Pirate Sketch")], 
 
 /** The stand-in API's short-lived link to a file. */
 const linkTo = (name: string) => `https://files.example/${encodeURIComponent(name)}?signed`;
-
-const json = (body: unknown) => new Response(JSON.stringify(body));
 
 /** Where the stand-in file storage takes uploads, apart from the API, as the bucket is. */
 const STORAGE = "https://files.example/";
@@ -119,16 +115,6 @@ function apiHolds(
       return json({ status: "ok", version: "dev" });
     }),
   );
-}
-
-// The whole app, so routing, the menu and the tab title are real.
-async function openAppAt(path: string) {
-  const router = createAppRouter(createMemoryHistory());
-  await router.push(path);
-  await router.isReady();
-  const wrapper = mount(App, { global: { plugins: [router] }, attachTo: document.body });
-  await flushPromises();
-  return { wrapper, router };
 }
 
 const rows = (wrapper: VueWrapper) =>
