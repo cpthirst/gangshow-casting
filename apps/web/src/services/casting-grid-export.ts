@@ -3,7 +3,7 @@ import { fullGridHeading, type GridColumn, type GridRow } from "@/utils/overview
 import { roleSizeLetter } from "@/utils/roles.ts";
 import { exportFileName, saveFile } from "./export-file.ts";
 import { productionPath } from "./production.ts";
-import { apiFetch } from "./sign-in.ts";
+import { sendJson } from "./sign-in.ts";
 
 /** Every role (ADR 0021): the server turns the grid it is sent into an Excel file (ADR 0019). */
 export const castingGridExportPath = () => `${productionPath()}/casting-grid/export`;
@@ -35,11 +35,7 @@ export async function downloadGridExport(
   day = new Date(),
 ) {
   try {
-    const res = await apiFetch(castingGridExportPath(), {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(exportRequestOf(columns, rows)),
-    });
+    const res = await sendJson(castingGridExportPath(), "POST", exportRequestOf(columns, rows));
     if (!res.ok) return false;
     saveFile(await res.blob(), exportFileName(production, day, "casting grid", "xlsx"));
     return true;

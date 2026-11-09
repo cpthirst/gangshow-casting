@@ -233,6 +233,23 @@ export async function apiFetch(...args: Parameters<typeof fetch>) {
   return res;
 }
 
+/** Sends JSON to the API. */
+export const sendJson = (path: string, method: "POST" | "PUT", body: unknown) =>
+  apiFetch(path, {
+    method,
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+/** Deletes what's at the path: the status code, or undefined if there was no answer. */
+export async function deleteStatus(path: string) {
+  try {
+    return (await apiFetch(path, { method: "DELETE" })).status;
+  } catch {
+    return undefined;
+  }
+}
+
 /** Shows a refusal's meaning at once: a lost permission, or a production no longer the newest. */
 function noticeRefusal(body: unknown) {
   if (isRefusalAsReadOnly(body)) {

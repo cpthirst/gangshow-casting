@@ -21,7 +21,7 @@ import {
   rolesPath,
   runningOrderPath,
 } from "@/services/production.ts";
-import { apiFetch, canChange } from "@/services/sign-in.ts";
+import { canChange, sendJson } from "@/services/sign-in.ts";
 import { helpFor, whoCanChange } from "@/utils/help.ts";
 import { icons } from "@/utils/icons.ts";
 import {
@@ -259,10 +259,9 @@ type SaveResult =
 // anything else failed.
 async function saveDraft(baseVersion: number, working: RunningOrder): Promise<SaveResult> {
   try {
-    const res = await apiFetch(`${runningOrderPath()}/versions`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ baseVersion, change: updateOf(working) }),
+    const res = await sendJson(`${runningOrderPath()}/versions`, "POST", {
+      baseVersion,
+      change: updateOf(working),
     });
     if (res.status === 403) return { outcome: "refused" };
     if (res.status !== 201 && res.status !== 409) return { outcome: "failed" };

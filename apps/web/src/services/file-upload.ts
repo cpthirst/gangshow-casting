@@ -1,6 +1,6 @@
 import { type FileDepartment, ItemFileUpload } from "@app/shared";
 import { itemUploadsPath } from "./production.ts";
-import { apiFetch } from "./sign-in.ts";
+import { sendJson } from "./sign-in.ts";
 
 // Uploading one of an item's scenery, SFX or Wardrobe files (production-scenery FR8): the API
 // says where, then the file goes straight to file storage, never through the API (ADR 0030).
@@ -22,10 +22,10 @@ export async function uploadItemFile(
   { replace, onProgress }: UploadOptions,
 ): Promise<UploadResult> {
   try {
-    const asked = await apiFetch(itemUploadsPath(department, itemId), {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ name: file.name, size: file.size, ...(replace ? { replace } : {}) }),
+    const asked = await sendJson(itemUploadsPath(department, itemId), "POST", {
+      name: file.name,
+      size: file.size,
+      ...(replace ? { replace } : {}),
     });
     if (asked.status === 409) return "taken";
     if (!asked.ok) return "failed";

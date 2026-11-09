@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { CastList, CastMember, type CastMemberDetails, RoleList } from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-import { computed, nextTick, onMounted, ref, useId } from "vue";
+import { computed, onMounted, ref, useId } from "vue";
 import PageTitle from "@/components/common/PageTitle.vue";
 import RefusalNotice from "@/components/common/RefusalNotice.vue";
 import CastMemberForm from "@/components/show/CastMemberForm.vue";
-import { useAddForm } from "@/composables/useAddForm.ts";
+import { useListEditing } from "@/composables/useListEditing.ts";
 import { loadData } from "@/services/load-data.ts";
 import { castPath, rolesPath } from "@/services/production.ts";
-import { apiFetch, canChange } from "@/services/sign-in.ts";
+import { canChange, deleteStatus, sendJson } from "@/services/sign-in.ts";
 import {
   type CastFilters,
   deleteWarning,
@@ -49,19 +49,20 @@ const uid = useId();
 
 /** Screen-reader announcement of the last change to the list. */
 const announcement = ref("");
-const { adding, addButton, stopAdding } = useAddForm();
-/** The member whose edit form is open, if any. One form at a time. */
-const editing = ref<CastMember | null>(null);
-const saving = ref(false);
-// While a form is open or a change is saving, other changes wait.
-const busy = computed(() => saving.value || adding.value || editing.value !== null);
-const formError = ref("");
-
-function startAdding() {
-  formError.value = "";
-  notice.value = "";
-  adding.value = true;
-}
+const {
+  adding,
+  addButton,
+  editing,
+  saving,
+  formError,
+  notice,
+  busy,
+  startAdding,
+  stopAdding,
+  startEditing,
+  stopEditing,
+  focusAddButton,
+} = useListEditing<CastMember>("data-member-id");
 
 async function add(details: CastMemberDetails) {
   if (state.value.status !== "loaded" || saving.value) return;
@@ -86,30 +87,13 @@ async function add(details: CastMemberDetails) {
   await stopAdding();
 }
 
-/** Visible message about a conflict or a failed change. */
-const notice = ref("");
-
 const fullName = (member: CastMember) => `${member.firstName} ${member.lastName}`;
-
-function startEditing(member: CastMember) {
-  formError.value = "";
-  notice.value = "";
-  editing.value = member;
-}
-
-async function stopEditing(id: number) {
-  editing.value = null;
-  await nextTick();
-  // The row may be filtered out of view after a rename; then focus simply stays put.
-  document.querySelector<HTMLButtonElement>(`[data-member-id="${id}"] [data-test="edit"]`)?.focus();
-}
 
 // Someone else changed or removed the member first: say so and show what's current.
 async function showConflict() {
   notice.value = "Someone else changed this cast member. Showing the latest list.";
   await load();
-  await nextTick();
-  addButton.value?.focus();
+  await focusAddButton();
 }
 
 const saveEdit = (details: CastMemberDetails) => editing.value && update(editing.value, details);
@@ -151,10 +135,9 @@ async function putMember(
   details: CastMemberDetails,
 ): Promise<CastMember | "saved" | "conflict" | "failed"> {
   try {
-    const res = await apiFetch(`${castPath()}/${member.id}`, {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ ...details, revision: member.revision }),
+    const res = await sendJson(`${castPath()}/${member.id}`, "PUT", {
+      ...details,
+      revision: member.revision,
     });
     if (res.status === 409 || res.status === 404) return "conflict";
     if (res.status !== 200) return "failed";
@@ -188,8 +171,7 @@ async function deleteMember(member: CastMember) {
     }
     announcement.value = `${fullName(member)} deleted.`;
     // The row (and its button) is gone, so keep keyboard focus on the page.
-    await nextTick();
-    addButton.value?.focus();
+    await focusAddButton();
   } else if (status === 409 || status === 404) {
     await showConflict();
   } else if (status === 403) {
@@ -211,23 +193,13 @@ async function rolesOf(member: CastMember) {
 }
 
 // The status code, or undefined if the request didn't get an answer.
-async function sendDelete(member: CastMember) {
-  try {
-    const url = `${castPath()}/${member.id}?revision=${member.revision}`;
-    return (await apiFetch(url, { method: "DELETE" })).status;
-  } catch {
-    return undefined;
-  }
-}
+const sendDelete = (member: CastMember) =>
+  deleteStatus(`${castPath()}/${member.id}?revision=${member.revision}`);
 
 // 201 → the saved member (or "saved" if its reply can't be read); anything else failed.
 async function postMember(details: CastMemberDetails): Promise<CastMember | "saved" | "failed"> {
   try {
-    const res = await apiFetch(castPath(), {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(details),
-    });
+    const res = await sendJson(castPath(), "POST", details);
     if (res.status !== 201) return "failed";
     const member = CastMember.safeParse(await res.json().catch(() => undefined));
     return member.success ? member.data : "saved";

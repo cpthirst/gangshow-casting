@@ -12,7 +12,7 @@ import { computed, nextTick, onMounted, ref, useId } from "vue";
 import AccessChoice from "@/components/common/AccessChoice.vue";
 import { useAddForm } from "@/composables/useAddForm.ts";
 import { AccessRefused, loadRequired, refusalMessage } from "@/services/load-data.ts";
-import { apiFetch, signedInUsername } from "@/services/sign-in.ts";
+import { apiFetch, sendJson, signedInUsername } from "@/services/sign-in.ts";
 import {
   ACCOUNTS_PATH,
   accessChanged,
@@ -130,11 +130,7 @@ async function postAccount(
   access: AccountAccess,
 ): Promise<CreatedAccount | { usernameError: string } | { formError: string }> {
   try {
-    const res = await apiFetch(ACCOUNTS_PATH, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ username: name, access }),
-    });
+    const res = await sendJson(ACCOUNTS_PATH, "POST", { username: name, access });
     if (res.status === 409) return { usernameError: "That username is already taken." };
     if (res.status === 403) return { formError: "Only admins can add accounts." };
     if (res.status !== 201) return FAILED;
