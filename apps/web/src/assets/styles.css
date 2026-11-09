@@ -367,7 +367,9 @@ main a {
 }
 
 /* Each half sizes its table to its own width (see the stacked layout below). */
-.half {
+.half,
+.data-table-box,
+.by-item-item {
   container-type: inline-size;
 }
 
@@ -378,7 +380,8 @@ main a {
   border-radius: 0.5rem;
 }
 
-.items-table {
+.items-table,
+.by-item-roles {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.9375rem;
@@ -727,7 +730,8 @@ main a {
 }
 
 .icon-column button:hover:not(:disabled),
-.icon-button:hover:not(:disabled) {
+.icon-button:hover:not(:disabled),
+.help-access-admins {
   border-color: var(--red-darker);
   color: var(--red-darker);
 }
@@ -801,7 +805,8 @@ main a {
   gap: 0.25rem;
 }
 
-.item-editor label {
+.item-editor label,
+.filter-bar label {
   font-size: 0.8125rem;
   font-weight: 700;
 }
@@ -809,7 +814,9 @@ main a {
 .item-editor input:not([type="checkbox"]),
 .item-editor textarea,
 .item-editor select,
-.item-notes textarea {
+.item-notes textarea,
+.filter-bar input,
+.filter-bar select {
   padding: 0.5rem;
   border: 1px solid var(--text);
   border-radius: 0.25rem;
@@ -824,7 +831,8 @@ main a {
   overflow-wrap: anywhere;
 }
 
-.item-editor [aria-invalid="true"] {
+.item-editor [aria-invalid="true"],
+.item-notes [aria-invalid="true"] {
   border: 2px solid var(--red-darker);
 }
 
@@ -893,21 +901,6 @@ main a {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-}
-
-.filter-bar label {
-  font-size: 0.8125rem;
-  font-weight: 700;
-}
-
-.filter-bar input,
-.filter-bar select {
-  padding: 0.5rem;
-  border: 1px solid var(--text);
-  border-radius: 0.25rem;
-  background: var(--white);
-  color: var(--text);
-  font: inherit;
 }
 
 .filter-bar button {
@@ -1162,11 +1155,6 @@ main a {
 
 .data-table .not-set {
   font-style: italic;
-}
-
-/* A data table sizes itself to its own width, like an items table's halves. */
-.data-table-box {
-  container-type: inline-size;
 }
 
 /* Narrow (phones): each person becomes a card with no sideways scrolling: their name in
@@ -1429,10 +1417,6 @@ main a {
 .item-notes .notes-count {
   margin: 0.25rem 0 0;
   font-size: 0.875rem;
-}
-
-.item-notes [aria-invalid="true"] {
-  border: 2px solid var(--red-darker);
 }
 
 .item-notes .editor-actions {
@@ -2340,13 +2324,7 @@ main a {
 
   /* Its own line under the wordmark and Menu button. */
   .production-year,
-  .production-switch {
-    order: 1;
-    flex-basis: 100%;
-    margin: 0;
-  }
-
-  /* Its own line under the wordmark and Menu button. */
+  .production-switch,
   .demo-label {
     order: 1;
     flex-basis: 100%;
@@ -2424,10 +2402,6 @@ main a {
 
 /* The By item view (casting-overview-by-item): a heading per half and item, each item's roles
    in a table like the running order's. */
-/* Each item sizes its roles table to its own width, so a phone stacks it (below). */
-.by-item-item {
-  container-type: inline-size;
-}
 
 .by-item-item h3 {
   margin: 1rem 0 0.5rem;
@@ -2439,12 +2413,6 @@ main a {
 .by-item-unprinted .badge {
   color: var(--text);
   vertical-align: middle;
-}
-
-.by-item-roles {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9375rem;
 }
 
 .by-item-roles th,
@@ -2555,11 +2523,6 @@ main a {
 
 .help-access {
   margin-left: 0.25rem;
-}
-
-.help-access-admins {
-  border-color: var(--red-darker);
-  color: var(--red-darker);
 }
 
 /* A page's help button, at the top right beside its heading: pill-shaped like the Overview's
