@@ -1,7 +1,13 @@
-import { BACKUP_WINDOW_DAYS, type DepartmentId } from "@app/shared";
+import { BACKUP_WINDOW_DAYS, type DepartmentId, departments } from "@app/shared";
 import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import { listed, permissionNamesOf, whoCanChangeLine } from "./departments.ts";
 import { icons } from "./icons.ts";
+import {
+  type FilesDepartment,
+  sceneryDepartment,
+  sfxDepartment,
+  wardrobeDepartment,
+} from "./item-files.ts";
 
 // Who can use an action, said the same way on every page (in-app-help FR5): everyone, admins
 // alone, or whoever the shared list says may change a department's pages.
@@ -37,6 +43,86 @@ export interface PageHelp {
   /** The page the Help page links to instead, for a page with no menu entry of its own. */
   reachedFrom?: { page: string; title: string };
   lines: HelpLine[];
+}
+
+const productionOverview = { page: "production-overview", title: "Production overview" };
+
+/** The way around every item page: back to its list, and on through the show. */
+const itemNavigationLines = (backTo: string): HelpLine[] => [
+  {
+    icons: [icons.allItems],
+    name: "All items",
+    does: `Goes back to ${backTo}.`,
+    access: "everyone",
+  },
+  {
+    icons: [icons.back, icons.forward],
+    name: "Previous and Next",
+    does: "Steps to the item before or after this one in the show.",
+    access: "everyone",
+  },
+];
+
+const DOCUMENT_ICONS = [
+  icons.pdfFile,
+  icons.wordFile,
+  icons.excelFile,
+  icons.powerPointFile,
+  icons.imageFile,
+  icons.file,
+];
+
+const OPENS_DOCUMENTS =
+  "Opens a PDF, image or text file in a new tab. Any other file downloads. Each file's icon shows its type: PDF, Word, Excel, PowerPoint, image, or any other file.";
+
+/** The help for a department whose item page keeps files and notes, all laid out alike. */
+function fileDepartmentHelp(
+  { key, uploadRule }: FilesDepartment,
+  {
+    summaryName,
+    filesIcons = DOCUMENT_ICONS,
+    filesDo = OPENS_DOCUMENTS,
+    notesAreFor,
+  }: {
+    /** As the summary says the department's name. */
+    summaryName: string;
+    filesIcons?: IconDefinition[];
+    filesDo?: string;
+    /** Finishes "Anything …". */
+    notesAreFor: string;
+  },
+): PageHelp {
+  const { name, noun } = departments[key];
+  const addAFile =
+    "Adds one file of up to 100 MB to the item, chosen with the button or dragged onto it, showing how much has uploaded. A file with the same name as one already there replaces it, once you confirm. The old copy can't be brought back.";
+  return {
+    page: `${key}-item`,
+    changedBy: key,
+    title: `An item's ${noun}`,
+    summary: `One item's ${summaryName} files and notes. Open an item's ${summaryName} from Production → Overview.`,
+    reachedFrom: productionOverview,
+    lines: [
+      ...itemNavigationLines("the Production overview"),
+      { icons: filesIcons, name: "Files", does: filesDo, access: "everyone" },
+      {
+        icons: [icons.remove],
+        name: "Remove",
+        does: "Takes a file off the item, once you confirm. It can't be brought back.",
+        access: key,
+      },
+      {
+        name: "Add a file",
+        does: uploadRule ? `${addAFile} ${uploadRule}` : addAFile,
+        access: key,
+      },
+      {
+        name: `${name} notes`,
+        does: `Anything ${notesAreFor}.`,
+        access: "everyone",
+        changeAccess: key,
+      },
+    ],
+  };
 }
 
 // Written once, shown on the Help page and behind each page's help button (FR9). Keep each
@@ -203,18 +289,7 @@ export const pageHelp: PageHelp[] = [
     summary: "One item's roles and notes. Open an item from Casting → Items.",
     reachedFrom: { page: "casting-items", title: "Items" },
     lines: [
-      {
-        icons: [icons.allItems],
-        name: "All items",
-        does: "Goes back to the list of items.",
-        access: "everyone",
-      },
-      {
-        icons: [icons.back, icons.forward],
-        name: "Previous and Next",
-        does: "Steps to the item before or after this one in the show.",
-        access: "everyone",
-      },
+      ...itemNavigationLines("the list of items"),
       {
         name: "Add role",
         does: "Adds a role to the item, with its size and who plays it.",
@@ -298,77 +373,18 @@ export const pageHelp: PageHelp[] = [
       },
     ],
   },
-  {
-    page: "scenery-item",
-    changedBy: "scenery",
-    title: "An item's scenery",
-    summary:
-      "One item's scenery files and notes. Open an item's scenery from Production → Overview.",
-    reachedFrom: { page: "production-overview", title: "Production overview" },
-    lines: [
-      {
-        icons: [icons.allItems],
-        name: "All items",
-        does: "Goes back to the Production overview.",
-        access: "everyone",
-      },
-      {
-        icons: [icons.back, icons.forward],
-        name: "Previous and Next",
-        does: "Steps to the item before or after this one in the show.",
-        access: "everyone",
-      },
-      {
-        icons: [
-          icons.pdfFile,
-          icons.wordFile,
-          icons.excelFile,
-          icons.powerPointFile,
-          icons.imageFile,
-          icons.file,
-        ],
-        name: "Files",
-        does: "Opens a PDF, image or text file in a new tab. Any other file downloads. Each file's icon shows its type: PDF, Word, Excel, PowerPoint, image, or any other file.",
-        access: "everyone",
-      },
-      {
-        icons: [icons.remove],
-        name: "Remove",
-        does: "Takes a file off the item, once you confirm. It can't be brought back.",
-        access: "scenery",
-      },
-      {
-        name: "Add a file",
-        does: "Adds one file of up to 100 MB to the item, chosen with the button or dragged onto it, showing how much has uploaded. A file with the same name as one already there replaces it, once you confirm. The old copy can't be brought back. Scenery and set images only: no photos of cast members.",
-        access: "scenery",
-      },
-      {
-        name: "Scenery notes",
-        does: "Anything the stage and tech teams need to know about the item's sets.",
-        access: "everyone",
-        changeAccess: "scenery",
-      },
-    ],
-  },
+  fileDepartmentHelp(sceneryDepartment, {
+    summaryName: "scenery",
+    notesAreFor: "the stage and tech teams need to know about the item's sets",
+  }),
   {
     page: "props-item",
     changedBy: "props",
     title: "An item's props",
     summary: "One item's props and notes. Open an item's props from Production → Overview.",
-    reachedFrom: { page: "production-overview", title: "Production overview" },
+    reachedFrom: productionOverview,
     lines: [
-      {
-        icons: [icons.allItems],
-        name: "All items",
-        does: "Goes back to the Production overview.",
-        access: "everyone",
-      },
-      {
-        icons: [icons.back, icons.forward],
-        name: "Previous and Next",
-        does: "Steps to the item before or after this one in the show.",
-        access: "everyone",
-      },
+      ...itemNavigationLines("the Production overview"),
       {
         name: "Add prop",
         does: "Adds a prop by name, quantity and roles. When there are more people than the quantity, also choose who carries it.",
@@ -394,78 +410,22 @@ export const pageHelp: PageHelp[] = [
       },
     ],
   },
-  {
-    page: "sfx-item",
-    changedBy: "sfx",
-    title: "An item's SFX",
-    summary: "One item's SFX files and notes. Open an item's SFX from Production → Overview.",
-    reachedFrom: { page: "production-overview", title: "Production overview" },
-    lines: [
-      {
-        icons: [icons.allItems],
-        name: "All items",
-        does: "Goes back to the Production overview.",
-        access: "everyone",
-      },
-      {
-        icons: [icons.back, icons.forward],
-        name: "Previous and Next",
-        does: "Steps to the item before or after this one in the show.",
-        access: "everyone",
-      },
-      {
-        icons: [
-          icons.audioFile,
-          icons.pdfFile,
-          icons.wordFile,
-          icons.excelFile,
-          icons.powerPointFile,
-          icons.imageFile,
-          icons.file,
-        ],
-        name: "Files",
-        does: "Plays an MP3, WAV, M4A, AAC or OGG file in a new tab, and opens a PDF, image or text file there too. Any other file downloads. Each file's icon shows its type: audio, PDF, Word, Excel, PowerPoint, image, or any other file.",
-        access: "everyone",
-      },
-      {
-        icons: [icons.remove],
-        name: "Remove",
-        does: "Takes a file off the item, once you confirm. It can't be brought back.",
-        access: "sfx",
-      },
-      {
-        name: "Add a file",
-        does: "Adds one file of up to 100 MB to the item, chosen with the button or dragged onto it, showing how much has uploaded. A file with the same name as one already there replaces it, once you confirm. The old copy can't be brought back.",
-        access: "sfx",
-      },
-      {
-        name: "SFX notes",
-        does: "Anything the tech team needs to know about the item's sound effects.",
-        access: "everyone",
-        changeAccess: "sfx",
-      },
-    ],
-  },
+  fileDepartmentHelp(sfxDepartment, {
+    summaryName: "SFX",
+    filesIcons: [icons.audioFile, ...DOCUMENT_ICONS],
+    filesDo:
+      "Plays an MP3, WAV, M4A, AAC or OGG file in a new tab, and opens a PDF, image or text file there too. Any other file downloads. Each file's icon shows its type: audio, PDF, Word, Excel, PowerPoint, image, or any other file.",
+    notesAreFor: "the tech team needs to know about the item's sound effects",
+  }),
   {
     page: "mic-plot-item",
     changedBy: "mic-plot",
     title: "An item's mic plot",
     summary:
       "One item's mics and Mic plot notes. Open an item's mic plot from Production → Overview.",
-    reachedFrom: { page: "production-overview", title: "Production overview" },
+    reachedFrom: productionOverview,
     lines: [
-      {
-        icons: [icons.allItems],
-        name: "All items",
-        does: "Goes back to the Production overview.",
-        access: "everyone",
-      },
-      {
-        icons: [icons.back, icons.forward],
-        name: "Previous and Next",
-        does: "Steps to the item before or after this one in the show.",
-        access: "everyone",
-      },
+      ...itemNavigationLines("the Production overview"),
       {
         name: "Mic 1 to Mic 24",
         does: "All 24 mics, in order, used or not. Type a name to give a mic to only someone cast in the item, one mic each. The roles they play in it show under them, from the casting: you don't choose them. Someone without a named part shows their ensemble. It saves straight away.",
@@ -497,58 +457,10 @@ export const pageHelp: PageHelp[] = [
       },
     ],
   },
-  {
-    page: "wardrobe-item",
-    changedBy: "wardrobe",
-    title: "An item's wardrobe",
-    summary:
-      "One item's Wardrobe files and notes. Open an item's Wardrobe from Production → Overview.",
-    reachedFrom: { page: "production-overview", title: "Production overview" },
-    lines: [
-      {
-        icons: [icons.allItems],
-        name: "All items",
-        does: "Goes back to the Production overview.",
-        access: "everyone",
-      },
-      {
-        icons: [icons.back, icons.forward],
-        name: "Previous and Next",
-        does: "Steps to the item before or after this one in the show.",
-        access: "everyone",
-      },
-      {
-        icons: [
-          icons.pdfFile,
-          icons.wordFile,
-          icons.excelFile,
-          icons.powerPointFile,
-          icons.imageFile,
-          icons.file,
-        ],
-        name: "Files",
-        does: "Opens a PDF, image or text file in a new tab. Any other file downloads. Each file's icon shows its type: PDF, Word, Excel, PowerPoint, image, or any other file.",
-        access: "everyone",
-      },
-      {
-        icons: [icons.remove],
-        name: "Remove",
-        does: "Takes a file off the item, once you confirm. It can't be brought back.",
-        access: "wardrobe",
-      },
-      {
-        name: "Add a file",
-        does: "Adds one file of up to 100 MB to the item, chosen with the button or dragged onto it, showing how much has uploaded. A file with the same name as one already there replaces it, once you confirm. The old copy can't be brought back. Costume designs and images only: no photos of cast members.",
-        access: "wardrobe",
-      },
-      {
-        name: "Wardrobe notes",
-        does: "Anything the wardrobe team needs to know about what the cast wear in the item.",
-        access: "everyone",
-        changeAccess: "wardrobe",
-      },
-    ],
-  },
+  fileDepartmentHelp(wardrobeDepartment, {
+    summaryName: "Wardrobe",
+    notesAreFor: "the wardrobe team needs to know about what the cast wear in the item",
+  }),
   {
     page: "productions",
     changedBy: "admins",
