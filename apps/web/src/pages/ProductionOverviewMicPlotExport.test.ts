@@ -4,15 +4,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory } from "vue-router";
 import App from "@/App.vue";
 import { createAppRouter } from "@/router/index.ts";
+import {
+  castPath,
+  departmentNotesPath,
+  micPlotPath,
+  rolesPath,
+  runningOrderPath,
+} from "@/services/production.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
-import { CAST_PATH } from "@/utils/cast.ts";
 import { readSheet, sheetXml } from "@/utils/excel/xlsx.fixture.ts";
-import { departmentNotesPath } from "@/utils/item-notes.ts";
-import { MIC_PLOT_PATH } from "@/utils/mic-plot.ts";
-import { ROLES_PATH } from "@/utils/roles.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
-import { RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
 
 // The Overview's Generate Mic Plot button (production-mics FR14, FR16; ADR 0033). Made-up
 // names only: tests never use the real cast (CLAUDE.md safeguarding).
@@ -70,7 +72,7 @@ beforeEach(() => {
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string) => {
-      if (url === MIC_PLOT_PATH) {
+      if (url === micPlotPath()) {
         return api.plotsStatus === 200
           ? json({ productionId: "2027", items: api.plots })
           : new Response(null, { status: api.plotsStatus });
@@ -81,9 +83,9 @@ beforeEach(() => {
           notes: [{ itemId: "space-sketch", text: "Mics 19–24 on for songs only", revision: 1 }],
         });
       }
-      if (url === ROLES_PATH) return json({ productionId: "2027", roles: [alien] });
-      if (url === CAST_PATH) return json({ productionId: "2027", members: [alex, jo] });
-      if (url === RUNNING_ORDER_PATH) {
+      if (url === rolesPath()) return json({ productionId: "2027", roles: [alien] });
+      if (url === castPath()) return json({ productionId: "2027", members: [alex, jo] });
+      if (url === runningOrderPath()) {
         return api.order === 200 ? json(show) : new Response(null, { status: api.order });
       }
       if (url.endsWith("-notes")) return json({ productionId: "2027", notes: [] });

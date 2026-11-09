@@ -30,6 +30,7 @@ import {
 } from "#/production/item-files/item-file-store.ts";
 import { inMemoryMicPlotStore } from "#/production/mic-plot/mic-plot-store.ts";
 import { inMemoryPropStore } from "#/production/props/prop-store.ts";
+import { inMemoryProductionListStore } from "#/production-list/production-list-store.ts";
 import { aCastList, aCastMember } from "#/show/cast/cast.fixture.ts";
 import { inMemoryCastStore } from "#/show/cast/cast-store.ts";
 import { uncastThenRemove } from "#/show/cast/remove-cast-member.ts";
@@ -69,7 +70,7 @@ describe("Lambda entry point", () => {
 
   it("passes the matched path parameters, query and body to the handler", async () => {
     const echo: Handler = async (event) => ({ statusCode: 200, body: JSON.stringify(event) });
-    const entry = lambdaEntry({ "PUT /api/things/{thingId}": echo });
+    const entry = lambdaEntry({ "PUT /api/things/{thingId}": echo }, inMemoryProductionListStore());
 
     // As an admin: a route missing from the shared table is admins' only (ADR 0026).
     const res = await entry(
@@ -107,7 +108,7 @@ describe("Lambda entry point", () => {
 
   it("decodes a body that API Gateway sent base64-encoded", async () => {
     const echo: Handler = async (event) => ({ statusCode: 200, body: event.body ?? "" });
-    const entry = lambdaEntry({ "POST /api/things": echo });
+    const entry = lambdaEntry({ "POST /api/things": echo }, inMemoryProductionListStore());
 
     const res = await entry(
       request(
@@ -143,11 +144,13 @@ describe("Lambda entry point", () => {
             wardrobeNotes: inMemoryItemNoteStore(),
             micPlotNotes: inMemoryItemNoteStore(),
             micPlots: inMemoryMicPlotStore(),
+            productions: inMemoryProductionListStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
           { scenery: sceneryFiles, sfx: noSceneryFiles, wardrobe: noSceneryFiles },
         ),
+        inMemoryProductionListStore(),
       );
     };
 
@@ -249,11 +252,13 @@ describe("Lambda entry point", () => {
             wardrobeNotes: inMemoryItemNoteStore(),
             micPlotNotes: inMemoryItemNoteStore(),
             micPlots: inMemoryMicPlotStore(),
+            productions: inMemoryProductionListStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
           { scenery: noSceneryFiles, sfx: noSceneryFiles, wardrobe: noSceneryFiles },
         ),
+        inMemoryProductionListStore(),
       );
       return { api, cast, runningOrders };
     };
@@ -408,11 +413,13 @@ describe("Lambda entry point", () => {
             wardrobeNotes: inMemoryItemNoteStore(),
             micPlotNotes: inMemoryItemNoteStore(),
             micPlots: inMemoryMicPlotStore(),
+            productions: inMemoryProductionListStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
           { scenery: noSceneryFiles, sfx: noSceneryFiles, wardrobe: noSceneryFiles },
         ),
+        inMemoryProductionListStore(),
       );
       return { api, cast, roles, itemNotes, runningOrders };
     };
@@ -510,12 +517,17 @@ describe("Lambda entry point", () => {
 
     it("refuses every route a read-only member may not use before its handler runs, and lets the rest through", async () => {
       const handler = vi.fn(async () => ({ statusCode: 200 }));
-      const api = lambdaEntry(Object.fromEntries(routeKeys.map((key) => [key, handler])));
+      const api = lambdaEntry(
+        Object.fromEntries(routeKeys.map((key) => [key, handler])),
+        inMemoryProductionListStore(),
+      );
 
       for (const key of routeKeys) {
         handler.mockClear();
         const [method = "", path = ""] = key.split(" ");
-        const res = await api(asReadOnly(method, path.replaceAll(/\{\w+\}/g, "x")));
+        const res = await api(
+          asReadOnly(method, path.replace("{productionId}", "2027").replaceAll(/\{\w+\}/g, "x")),
+        );
 
         if (readOnlyMayUse(key) && !adminOnlyRouteKeys.includes(key)) {
           expect(handler, key).toHaveBeenCalledOnce();
@@ -629,11 +641,13 @@ describe("Lambda entry point", () => {
             wardrobeNotes: inMemoryItemNoteStore(),
             micPlotNotes: inMemoryItemNoteStore(),
             micPlots: inMemoryMicPlotStore(),
+            productions: inMemoryProductionListStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
           { scenery: noSceneryFiles, sfx: noSceneryFiles, wardrobe: noSceneryFiles },
         ),
+        inMemoryProductionListStore(),
       );
       // What the stores hold, to show a refused change changed nothing.
       const stored = async () => ({
@@ -664,11 +678,21 @@ describe("Lambda entry point", () => {
     // Every route, each with a stand-in handler, to see which reach it.
     const everyRoute = () => {
       const reached = vi.fn(async () => ({ statusCode: 200 }));
-      const api = lambdaEntry(Object.fromEntries(routeKeys.map((key) => [key, reached])));
+      const api = lambdaEntry(
+        Object.fromEntries(routeKeys.map((key) => [key, reached])),
+        inMemoryProductionListStore(),
+      );
       const send = async (key: string, groups: string) => {
         reached.mockClear();
         const [method = "", path = ""] = key.split(" ");
-        const res = await api(request(method, path.replaceAll(/\{\w+\}/g, "x"), {}, groups));
+        const res = await api(
+          request(
+            method,
+            path.replace("{productionId}", "2027").replaceAll(/\{\w+\}/g, "x"),
+            {},
+            groups,
+          ),
+        );
         return { res, ran: reached.mock.calls.length > 0 };
       };
       return send;
@@ -727,7 +751,10 @@ describe("Lambda entry point", () => {
 
     it("refuses a route missing from the table for everyone but admins, before its handler runs", async () => {
       const reached = vi.fn(async () => ({ statusCode: 200 }));
-      const api = lambdaEntry({ "PUT /api/things/{thingId}": reached });
+      const api = lambdaEntry(
+        { "PUT /api/things/{thingId}": reached },
+        inMemoryProductionListStore(),
+      );
 
       for (const groups of ["[casting stage tech wardrobe]", "[]"]) {
         const res = await api(request("PUT", "/api/things/1", {}, groups));
@@ -974,7 +1001,8 @@ describe("Lambda entry point", () => {
         message: "You can view the props, but not change them.",
         department: "props",
       };
-      const setUpProps = () => {
+      const setUpProps = (years?: string[]) => {
+        const productions = inMemoryProductionListStore(years);
         const cast = inMemoryCastStore();
         const roles = inMemoryRoleStore();
         const props = inMemoryPropStore();
@@ -985,6 +1013,7 @@ describe("Lambda entry point", () => {
               roles,
               runningOrders: inMemoryRunningOrderStore([
                 aRunningOrder(4, { first: ["Pirate Sketch"] }),
+                aRunningOrder(1, { first: ["Pirate Sketch"], productionId: "2028" }),
               ]),
               itemNotes: inMemoryItemNoteStore(),
               props,
@@ -994,11 +1023,13 @@ describe("Lambda entry point", () => {
               wardrobeNotes: inMemoryItemNoteStore(),
               micPlotNotes: inMemoryItemNoteStore(),
               micPlots: inMemoryMicPlotStore(),
+              productions,
               removeCastMember: uncastThenRemove(cast, roles),
             },
             inMemoryUsageStore(),
             { scenery: noSceneryFiles, sfx: noSceneryFiles, wardrobe: noSceneryFiles },
           ),
+          productions,
         );
         return { api, props };
       };
@@ -1037,6 +1068,108 @@ describe("Lambda entry point", () => {
           expect((await props.list("2027")).props).toEqual([]);
         },
       );
+
+      it("gives pat, with Stage, the same access in another production", async () => {
+        const { api, props } = setUpProps(["2027", "2028"]);
+        const pat = as("[stage]");
+        const inNext = "/api/productions/2028";
+
+        const added = await api(
+          pat("POST", `${inNext}/items/${pirate}/props`, { name: "Treasure chest" }),
+        );
+        const noted = await api(
+          pat("PUT", `${inNext}/items/${pirate}/scenery-notes`, { text: "Mast up", revision: 0 }),
+        );
+        const viewed = await api(pat("GET", `${inNext}/roles`));
+        const cast = await api(
+          pat("POST", `${inNext}/cast`, {
+            firstName: "Made",
+            lastName: "Up",
+            section: "Scouts",
+            group: "1st Example",
+            ageBand: "under-14",
+          }),
+        );
+
+        expect(added.statusCode).toBe(201);
+        expect((await props.list("2028")).props.map(({ name }) => name)).toEqual([
+          "Treasure chest",
+        ]);
+        expect(noted.statusCode).toBe(200);
+        expect(viewed.statusCode).toBe(200);
+        expect(cast.statusCode).toBe(403);
+      });
+
+      it("keeps pat's Stage access for the new production once it starts, with the old one view only", async () => {
+        const { api, props } = setUpProps();
+        const started = await api(as("[admin]")("POST", "/api/productions", { year: "2028" }));
+        const addTo = (year: string) =>
+          api(
+            as("[stage]")("POST", `/api/productions/${year}/items/${pirate}/props`, {
+              name: "Treasure chest",
+            }),
+          );
+
+        expect(started.statusCode).toBe(201);
+        expect((await addTo("2027")).statusCode).toBe(403);
+        expect((await addTo("2028")).statusCode).toBe(201);
+        expect((await props.list("2028")).props).toHaveLength(1);
+      });
+
+      it("lets an admin delete a past production, though past productions are closed to changes", async () => {
+        const { api } = setUpProps(["2027", "2028"]);
+
+        const res = await api(as("[admin]")("DELETE", "/api/productions/2027"));
+
+        expect(res.statusCode).toBe(200);
+        expect(JSON.parse(res.body ?? "")).toEqual({ productions: ["2028"] });
+      });
+
+      it("refuses deleting a production from sam, with every permission but not an admin", async () => {
+        const { api } = setUpProps(["2027", "2028"]);
+
+        const res = await api(
+          as("[casting stage tech wardrobe director]")("DELETE", "/api/productions/2027"),
+        );
+
+        expect(res.statusCode).toBe(403);
+        expect(JSON.parse(res.body ?? "")).toEqual({ message: "Only admins can do this." });
+        const { productions } = JSON.parse(
+          (await api(as("[admin]")("GET", "/api/productions"))).body ?? "",
+        );
+        expect(productions.toSorted()).toEqual(["2027", "2028"]);
+      });
+
+      it("keeps pat's Stage access once a past production is deleted", async () => {
+        const { api, props } = setUpProps(["2027", "2028"]);
+
+        await api(as("[admin]")("DELETE", "/api/productions/2027"));
+        const added = await api(
+          as("[stage]")("POST", `/api/productions/2028/items/${pirate}/props`, {
+            name: "Treasure chest",
+          }),
+        );
+
+        expect(added.statusCode).toBe(201);
+        expect((await props.list("2028")).props).toHaveLength(1);
+      });
+
+      it("refuses starting a production from sam, with every permission but not an admin", async () => {
+        const { api } = setUpProps();
+
+        const res = await api(
+          as("[casting stage tech wardrobe director]")("POST", "/api/productions", {
+            year: "2028",
+          }),
+        );
+
+        expect(res.statusCode).toBe(403);
+        expect(JSON.parse(res.body ?? "")).toEqual({ message: "Only admins can do this." });
+        const { productions } = JSON.parse(
+          (await api(as("[admin]")("GET", "/api/productions"))).body ?? "",
+        );
+        expect(productions).toEqual(["2027"]);
+      });
 
       const PROP_PATH = "/api/productions/2027/props/1";
       const editProp = (groups: string) =>
@@ -1108,11 +1241,13 @@ describe("Lambda entry point", () => {
               wardrobeNotes: inMemoryItemNoteStore(),
               micPlotNotes: inMemoryItemNoteStore(),
               micPlots: inMemoryMicPlotStore(),
+              productions: inMemoryProductionListStore(),
               removeCastMember: uncastThenRemove(cast, roles),
             },
             inMemoryUsageStore(),
             { scenery: noSceneryFiles, sfx: noSceneryFiles, wardrobe: noSceneryFiles },
           ),
+          inMemoryProductionListStore(),
         );
         return { api, itemNotes, propsNotes };
       };
@@ -1188,6 +1323,7 @@ describe("Lambda entry point", () => {
               wardrobeNotes: inMemoryItemNoteStore(),
               micPlotNotes: inMemoryItemNoteStore(),
               micPlots: inMemoryMicPlotStore(),
+              productions: inMemoryProductionListStore(),
               removeCastMember: uncastThenRemove(cast, roles),
             },
             inMemoryUsageStore(),
@@ -1203,6 +1339,7 @@ describe("Lambda entry point", () => {
               wardrobe: noSceneryFiles,
             },
           ),
+          inMemoryProductionListStore(),
         );
         return { api, deleted };
       };
@@ -1291,11 +1428,13 @@ describe("Lambda entry point", () => {
               wardrobeNotes: inMemoryItemNoteStore(),
               micPlotNotes: inMemoryItemNoteStore(),
               micPlots: inMemoryMicPlotStore(),
+              productions: inMemoryProductionListStore(),
               removeCastMember: uncastThenRemove(cast, roles),
             },
             inMemoryUsageStore(),
             { scenery: noSceneryFiles, sfx: noSceneryFiles, wardrobe: noSceneryFiles },
           ),
+          inMemoryProductionListStore(),
         );
         return { api, itemNotes };
       };
@@ -1446,6 +1585,7 @@ describe("Lambda entry point", () => {
             wardrobeNotes: inMemoryItemNoteStore(),
             micPlotNotes: inMemoryItemNoteStore(),
             micPlots: inMemoryMicPlotStore(),
+            productions: inMemoryProductionListStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
@@ -1455,6 +1595,7 @@ describe("Lambda entry point", () => {
             wardrobe: folderItemFileStore(folder, "wardrobe"),
           },
         ),
+        inMemoryProductionListStore(),
       );
       return { api, sceneryNotes };
     };
@@ -1626,6 +1767,7 @@ describe("Lambda entry point", () => {
             wardrobeNotes: inMemoryItemNoteStore(),
             micPlotNotes: inMemoryItemNoteStore(),
             micPlots: inMemoryMicPlotStore(),
+            productions: inMemoryProductionListStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
@@ -1635,6 +1777,7 @@ describe("Lambda entry point", () => {
             wardrobe: folderItemFileStore(folder, "wardrobe"),
           },
         ),
+        inMemoryProductionListStore(),
       );
       return { api, sceneryNotes, sfxNotes };
     };
@@ -1812,11 +1955,13 @@ describe("Lambda entry point", () => {
             wardrobeNotes: inMemoryItemNoteStore(),
             micPlotNotes: inMemoryItemNoteStore(),
             micPlots: inMemoryMicPlotStore(),
+            productions: inMemoryProductionListStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
           { scenery: noSceneryFiles, sfx: noSceneryFiles, wardrobe: noSceneryFiles },
         ),
+        inMemoryProductionListStore(),
       );
     };
     const give = (groups: string, channel: number, castMemberId: number | null) =>
@@ -1967,11 +2112,13 @@ describe("Lambda entry point", () => {
             wardrobeNotes: inMemoryItemNoteStore(),
             micPlotNotes: inMemoryItemNoteStore(),
             micPlots: inMemoryMicPlotStore(),
+            productions: inMemoryProductionListStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
           { scenery: noSceneryFiles, sfx: noSceneryFiles, wardrobe: noSceneryFiles },
         ),
+        inMemoryProductionListStore(),
       );
     };
     const signedInAs = (username: string, groups: string, method: string, body?: unknown) => ({

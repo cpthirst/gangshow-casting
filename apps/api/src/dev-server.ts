@@ -8,7 +8,7 @@ import { pipeline } from "node:stream/promises";
 import { LOCAL_ACCESS_HEADER, localAccessFrom, MAX_SCENERY_FILE_BYTES } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import { LOCAL_ADMIN, localAccountRoutes } from "#/accounts/local-accounts.ts";
-import { accessRefusal } from "#/http/access.ts";
+import { accessRefusal, type Productions } from "#/http/access.ts";
 import type { Handler } from "#/http/handler.ts";
 import { matchRoute } from "#/http/match-route.ts";
 import {
@@ -18,10 +18,14 @@ import {
 } from "#/production/item-files/local-files.ts";
 import { createUsageRoutes } from "#/usage/usage-routes.ts";
 import { inMemoryUsageStore } from "#/usage/usage-store.ts";
-import { dataLocation, localFilesFolder, routes } from "./routes.ts";
+import { dataLocation, localFilesFolder, productions, routes } from "./routes.ts";
 
 /** The dev API, serving the scenery, SFX and Wardrobe files in localFiles too when there's no bucket. */
-export function createDevServer(table: Record<string, Handler>, localFiles?: string) {
+export function createDevServer(
+  table: Record<string, Handler>,
+  productionList: Productions,
+  localFiles?: string,
+) {
   return createServer(async (req, res) => {
     const url = new URL(req.url ?? "/", "http://localhost");
     const path = url.pathname;
@@ -42,21 +46,22 @@ export function createDevServer(table: Record<string, Handler>, localFiles?: str
       res.writeHead(404).end();
       return;
     }
-    // Like the hosted entry point, before the handler runs (ADR 0026).
-    // The access chosen with the local switch (production-props FR9).
-    const refusedAccess = accessRefusal(
-      route.key,
-      localAccessFrom(req.headers[LOCAL_ACCESS_HEADER]),
-    );
-    if (refusedAccess) {
-      send(res, refusedAccess);
-      return;
-    }
-    if (Number(req.headers["content-length"] ?? 0) > MAX_BODY_BYTES) {
-      tooLarge(res);
-      return;
-    }
     try {
+      // Like the hosted entry point, before the handler runs (ADR 0026).
+      // The access chosen with the local switch (production-props FR9).
+      const refusedAccess = await accessRefusal(
+        route,
+        localAccessFrom(req.headers[LOCAL_ACCESS_HEADER]),
+        productionList,
+      );
+      if (refusedAccess) {
+        send(res, refusedAccess);
+        return;
+      }
+      if (Number(req.headers["content-length"] ?? 0) > MAX_BODY_BYTES) {
+        tooLarge(res);
+        return;
+      }
       const body = await readBody(req);
       // Like API Gateway, leave out body and queryStringParameters when there are none.
       const event = {
@@ -222,9 +227,13 @@ function releaseVersion(): string {
 export function startDevServer(port: number) {
   process.env.APP_VERSION ??= releaseVersion();
   // Loopback only: the dev API is unauthenticated, so keep it off the local network.
-  return createDevServer(devRoutes(), localFilesFolder).listen(port, "127.0.0.1", () => {
-    process.stdout.write(`api listening on http://127.0.0.1:${port}; data: ${dataLocation}\n`);
-  });
+  return createDevServer(devRoutes(), productions, localFilesFolder).listen(
+    port,
+    "127.0.0.1",
+    () => {
+      process.stdout.write(`api listening on http://127.0.0.1:${port}; data: ${dataLocation}\n`);
+    },
+  );
 }
 
 if (import.meta.main) startDevServer(Number(process.env.PORT ?? 3000));

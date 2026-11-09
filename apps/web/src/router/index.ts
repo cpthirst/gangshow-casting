@@ -9,6 +9,7 @@ import HelpPage from "@/pages/HelpPage.vue";
 import MicPlotItemPage from "@/pages/MicPlotItemPage.vue";
 import NotFoundPage from "@/pages/NotFoundPage.vue";
 import ProductionOverviewPage from "@/pages/ProductionOverviewPage.vue";
+import ProductionsPage from "@/pages/ProductionsPage.vue";
 import PropsItemPage from "@/pages/PropsItemPage.vue";
 import RunningOrderPage from "@/pages/RunningOrderPage.vue";
 import SceneryItemPage from "@/pages/SceneryItemPage.vue";
@@ -121,18 +122,31 @@ export const menuPages: (MenuPage | MenuGroup)[] = [
     ],
   },
   {
-    path: "/accounts",
-    name: "accounts",
-    component: AccountsPage,
-    meta: { title: "Accounts" },
-    adminOnly: true,
-  },
-  {
-    path: "/usage",
-    name: "usage",
-    component: UsagePage,
-    meta: { title: "Usage" },
-    adminOnly: true,
+    name: "admin",
+    title: "Admin",
+    pages: [
+      {
+        path: "/admin/accounts",
+        name: "accounts",
+        component: AccountsPage,
+        meta: { title: "Accounts" },
+        adminOnly: true,
+      },
+      {
+        path: "/admin/productions",
+        name: "productions",
+        component: ProductionsPage,
+        meta: { title: "Productions" },
+        adminOnly: true,
+      },
+      {
+        path: "/admin/usage",
+        name: "usage",
+        component: UsagePage,
+        meta: { title: "Usage" },
+        adminOnly: true,
+      },
+    ],
   },
   {
     path: "/help",
@@ -151,6 +165,16 @@ export const isAdminOnlyPage = (name: unknown) =>
   );
 
 export const isMenuGroup = (entry: MenuPage | MenuGroup): entry is MenuGroup => "pages" in entry;
+
+/** The menu this person sees: no admin-only pages unless an admin, and no group left empty. */
+export function menuFor(isAdmin: boolean, entries = menuPages) {
+  const canSee = (page: MenuPage) => isAdmin || !page.adminOnly;
+  return entries.flatMap((entry): (MenuPage | MenuGroup)[] => {
+    if (!isMenuGroup(entry)) return canSee(entry) ? [entry] : [];
+    const pages = entry.pages.filter(canSee);
+    return pages.length > 0 ? [{ ...entry, pages }] : [];
+  });
+}
 
 export function createAppRouter(history: RouterHistory = createWebHistory()) {
   const router = createRouter({
@@ -193,14 +217,19 @@ export function createAppRouter(history: RouterHistory = createWebHistory()) {
         component: MicPlotItemPage,
         meta: { title: "Item", menuPage: "production-overview" },
       },
-      // Where Sign out goes first, so the page being left can ask about unsaved changes.
+      // Where Sign out and switching production go first, so the page being left can ask
+      // about unsaved changes.
       {
-        path: "/signing-out",
-        name: "signing-out",
+        path: "/leaving",
+        name: "leaving",
         component: { render: () => null },
-        meta: { title: "Signing out" },
+        meta: { title: "Leaving" },
       },
       { path: "/casting", redirect: "/casting/overview" },
+      { path: "/admin", redirect: { name: "accounts" } },
+      // Bookmarks from before the Admin menu.
+      { path: "/accounts", redirect: { name: "accounts" } },
+      { path: "/usage", redirect: { name: "usage" } },
       // Bookmarks from before the Casting menu (casting-menus FR4).
       { path: "/casting-grid", redirect: "/casting/overview" },
       // Bookmarks from before the Overview, or before Production's pages became views

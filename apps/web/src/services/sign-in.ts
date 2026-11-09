@@ -6,9 +6,11 @@ import {
   LOCAL_ACCESS_HEADER,
   localAccessHeader,
   mayChangeDepartment,
+  PastProductionRefusal,
   type SignInConfig,
 } from "@app/shared";
 import { computed, ref, shallowRef } from "vue";
+import { isOpenProductionChangeable, listProductions } from "./production.ts";
 
 /** A signed-in person, as the sign-in library keeps them on this device. */
 export interface SignedInUser {
@@ -109,6 +111,9 @@ export const isAdmin = computed(() => access.value === "admin");
  * everyone else sees them read-only (team-roles FR6, production-props FR3, simplify FR12).
  */
 export const canChange = (changedBy: DepartmentId | "admins") =>
+  isOpenProductionChangeable() && hasAccessToChange(changedBy);
+/** Access alone, ignoring whether the open production is the newest. For pages about every production (Productions). */
+export const hasAccessToChange = (changedBy: DepartmentId | "admins") =>
   changedBy === "admins" ? isAdmin.value : mayChangeDepartment(access.value, changedBy);
 /** A change was refused because the person may only read: pages say it wasn't saved. */
 export const changeRefusedAsReadOnly = computed(() => refusedAsReadOnly.value);
@@ -224,10 +229,18 @@ export async function apiFetch(...args: Parameters<typeof fetch>) {
     ? await fetch(input, { ...init, headers: withHeader(init?.headers, ...extra) })
     : await fetch(...args);
   if (res.status === 401 || (isHosted.value && !user.value)) signInNeeded.value = true;
-  if (res.status === 403 && isRefusalAsReadOnly(await refusalOf(res))) {
-    refusedAsReadOnly.value = true;
-  }
+  if (res.status === 403) noticeRefusal(await refusalOf(res));
   return res;
+}
+
+/** Shows a refusal's meaning at once: a lost permission, or a production no longer the newest. */
+function noticeRefusal(body: unknown) {
+  if (isRefusalAsReadOnly(body)) {
+    refusedAsReadOnly.value = true;
+    return;
+  }
+  const past = PastProductionRefusal.safeParse(body);
+  if (past.success) listProductions(past.data.productions);
 }
 
 /** A refusal's body, read from a copy so the page can still read the reply. */

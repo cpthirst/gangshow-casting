@@ -10,7 +10,8 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, nextTick, onMounted, ref, useId } from "vue";
 import AccessChoice from "@/components/common/AccessChoice.vue";
-import { AccessRefused, loadRequired } from "@/services/load-data.ts";
+import { useAddForm } from "@/composables/useAddForm.ts";
+import { AccessRefused, loadRequired, refusalMessage } from "@/services/load-data.ts";
 import { apiFetch, signedInUsername } from "@/services/sign-in.ts";
 import {
   ACCOUNTS_PATH,
@@ -37,7 +38,7 @@ const accounts = computed(() =>
 );
 
 const uid = useId();
-const adding = ref(false);
+const { adding, addButton, stopAdding } = useAddForm();
 const username = ref("");
 /** What the tick boxes say: Admin, or the permissions ticked. */
 type Ticked = { admin: boolean; permissions: Permission[] };
@@ -60,7 +61,6 @@ const issued = ref<{ result: CreatedAccount; isNew: boolean } | null>(null);
 const notice = ref("");
 /** Screen-reader announcement of the last change to the list. */
 const announcement = ref("");
-const addButton = ref<HTMLButtonElement>();
 const usernameInput = ref<HTMLInputElement>();
 const issuedNotice = ref<HTMLElement>();
 
@@ -93,12 +93,6 @@ async function startAdding() {
   adding.value = true;
   await nextTick();
   usernameInput.value?.focus();
-}
-
-async function stopAdding() {
-  adding.value = false;
-  await nextTick();
-  addButton.value?.focus();
 }
 
 async function create() {
@@ -189,7 +183,7 @@ async function change(
   if (res?.ok) return res.json().catch(() => null);
   if (res?.status === 409) {
     // The API says why, such as keeping the only admin (FR14).
-    notice.value = (await refusalOf(res)) ?? conflict;
+    notice.value = (await refusalMessage(res)) ?? conflict;
     return undefined;
   }
   if (res?.status === 404) {
@@ -201,13 +195,6 @@ async function change(
     notice.value = failed;
   }
   return undefined;
-}
-
-/** The message a refusal carries, if it has one. */
-async function refusalOf(res: Response) {
-  const body: unknown = await res.json().catch(() => undefined);
-  if (typeof body !== "object" || body === null || !("message" in body)) return undefined;
-  return typeof body.message === "string" ? body.message : undefined;
 }
 
 // Ends their sign-ins everywhere, so it's always confirmed first.

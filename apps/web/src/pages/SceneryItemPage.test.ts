@@ -13,18 +13,18 @@ import App from "@/App.vue";
 import { createAppRouter } from "@/router/index.ts";
 import { downloadFrom, openFileTab } from "@/services/file-link.ts";
 import { StandInXhr } from "@/services/file-upload.fixture.ts";
-import { signInAs } from "@/services/sign-in.fixture.ts";
-import { useLocalSignIn } from "@/services/sign-in.ts";
-import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
-import { RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
 import {
-  replaceQuestion,
-  SCENERY_NOTES_PATH,
+  runningOrderPath,
   sceneryFileLinkPath,
   sceneryFilePath,
   sceneryFilesPath,
+  sceneryNotesPath,
   sceneryUploadsPath,
-} from "@/utils/scenery.ts";
+} from "@/services/production.ts";
+import { signInAs } from "@/services/sign-in.fixture.ts";
+import { useLocalSignIn } from "@/services/sign-in.ts";
+import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
+import { replaceQuestion } from "@/utils/scenery.ts";
 
 // The browser's own new tabs and downloads, which happy-dom can't follow.
 vi.mock("@/services/file-link.ts", () => ({ openFileTab: vi.fn(), downloadFrom: vi.fn() }));
@@ -67,10 +67,10 @@ function apiHolds(
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init?: RequestInit) => {
-      if (url === RUNNING_ORDER_PATH) {
+      if (url === runningOrderPath()) {
         return order ? json(order) : new Response(null, { status: 404 });
       }
-      if (url === SCENERY_NOTES_PATH) return json({ productionId: "2027", notes });
+      if (url === sceneryNotesPath()) return json({ productionId: "2027", notes });
       if (init?.method === "PUT" && url.endsWith("/scenery-notes")) {
         const { text, revision } = SaveItemNoteRequest.parse(JSON.parse(String(init.body)));
         const itemId = url.split("/").at(-2) ?? "";
@@ -248,7 +248,7 @@ describe("An item's Scenery page", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: string) =>
-        url === RUNNING_ORDER_PATH ? json(show) : new Response(null, { status: 500 }),
+        url === runningOrderPath() ? json(show) : new Response(null, { status: 500 }),
       ),
     );
     const { wrapper } = await openAppAt(OPENING_NUMBER);

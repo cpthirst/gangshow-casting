@@ -10,6 +10,9 @@ export const routeKeys = [
   "POST /api/accounts/{username}/password",
   "PUT /api/accounts/{username}/enabled",
   "PUT /api/accounts/{username}/access",
+  "GET /api/productions",
+  "POST /api/productions",
+  "DELETE /api/productions/{productionId}",
   "GET /api/productions/{productionId}/running-order",
   "POST /api/productions/{productionId}/running-order/versions",
   "GET /api/productions/{productionId}/cast",
@@ -231,6 +234,14 @@ export const isReadRoute = (key: string) =>
   key.startsWith("GET ") || readsSentAsPost.some((read) => read === key);
 
 /**
+ * Whether a route changes something inside a production, by what it says of itself, so a new
+ * route can't be left out. Starting a production isn't one, and nor is a route that is about
+ * a production as a whole: only those with more of an address after the id.
+ */
+export const isChangeWithinProduction = (key: string) =>
+  key.includes("/{productionId}/") && !isReadRoute(key);
+
+/**
  * The one change anyone may make: recording their own usage, which only ever adds a record
  * about the caller (ADR 0023). Add another only for the same reason.
  */
@@ -268,6 +279,8 @@ export const routeNeeds: RouteNeeds = {
   "POST /api/accounts/{username}/password": "admin",
   "PUT /api/accounts/{username}/enabled": "admin",
   "PUT /api/accounts/{username}/access": "admin",
+  "POST /api/productions": "admin",
+  "DELETE /api/productions/{productionId}": "admin",
   "POST /api/productions/{productionId}/running-order/versions": "admin",
   "POST /api/productions/{productionId}/cast": "casting",
   "PUT /api/productions/{productionId}/cast/{castId}": "casting",

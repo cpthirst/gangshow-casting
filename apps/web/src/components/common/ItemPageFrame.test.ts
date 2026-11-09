@@ -4,11 +4,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { h } from "vue";
 import { createMemoryHistory } from "vue-router";
 import { createAppRouter } from "@/router/index.ts";
+import { departmentNotesPath, runningOrderPath } from "@/services/production.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
 import { itemRouteOf } from "@/utils/departments.ts";
-import { departmentNotesPath } from "@/utils/item-notes.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
-import { placeOf, positionOf, RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
+import { placeOf, positionOf } from "@/utils/running-order.ts";
 import ItemPageFrame from "./ItemPageFrame.vue";
 
 enableAutoUnmount(afterEach);
@@ -26,7 +26,7 @@ const json = (body: unknown) => new Response(JSON.stringify(body));
 /** A stand-in API with the running order (none if undefined), or failing to give it. */
 function apiHolds(order: typeof show | undefined | "fails") {
   const fetch = vi.fn(async (url: string, _init?: RequestInit) => {
-    if (url === RUNNING_ORDER_PATH) {
+    if (url === runningOrderPath()) {
       if (order === "fails") return new Response(null, { status: 500 });
       return order ? json(order) : new Response(null, { status: 404 });
     }

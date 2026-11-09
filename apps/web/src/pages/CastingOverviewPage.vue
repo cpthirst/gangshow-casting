@@ -12,9 +12,9 @@ import ViewSwitch from "@/components/common/ViewSwitch.vue";
 import { downloadGridExport } from "@/services/casting-grid-export.ts";
 import { type LatestShow, latestShow } from "@/services/latest-show.ts";
 import { loadData, loadRequired } from "@/services/load-data.ts";
+import { castPath, rolesPath, runningOrderPath } from "@/services/production.ts";
 import { recordExport, recordView } from "@/services/usage.ts";
 import { downloadCastingSheets, downloadItemOverview } from "@/services/word-export.ts";
-import { CAST_PATH } from "@/utils/cast.ts";
 import { type Clash, clashesOfPerson, describeEach, findClashes } from "@/utils/clashes.ts";
 import { icons } from "@/utils/icons.ts";
 import {
@@ -31,8 +31,7 @@ import {
   spokenParts,
   timelineOf,
 } from "@/utils/overview.ts";
-import { ROLES_PATH, roleSizeLabel } from "@/utils/roles.ts";
-import { RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
+import { roleSizeLabel } from "@/utils/roles.ts";
 
 const state = ref<
   { status: "loading" } | { status: "error" } | { status: "loaded"; cast: CastMember[] }
@@ -200,8 +199,8 @@ onMounted(() => Promise.all([loadCast(), loadParts()]));
 async function loadParts() {
   try {
     const [{ roles }, order] = await Promise.all([
-      loadRequired(ROLES_PATH, RoleList),
-      loadData(RUNNING_ORDER_PATH, RunningOrder),
+      loadRequired(rolesPath(), RoleList),
+      loadData(runningOrderPath(), RunningOrder),
     ]);
     // No saved running order: no items, so no roles count yet.
     if (!order) {
@@ -225,7 +224,7 @@ async function loadParts() {
 async function loadCast() {
   try {
     // No cast list yet: an empty cast, not an error.
-    const cast = (await loadData(CAST_PATH, CastList))?.members ?? [];
+    const cast = (await loadData(castPath(), CastList))?.members ?? [];
     state.value = { status: "loaded", cast };
   } catch {
     // A failed load must never look like an empty cast (casting-overview FR8).

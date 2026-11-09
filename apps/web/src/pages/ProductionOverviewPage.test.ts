@@ -4,14 +4,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory } from "vue-router";
 import App from "@/App.vue";
 import { createAppRouter } from "@/router/index.ts";
+import {
+  departmentNotesPath,
+  fileCountsPath,
+  micPlotPath,
+  propsPath,
+  runningOrderPath,
+} from "@/services/production.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
-import { fileCountsPath } from "@/utils/item-files.ts";
-import { departmentNotesPath } from "@/utils/item-notes.ts";
-import { MIC_PLOT_PATH } from "@/utils/mic-plot.ts";
-import { PROPS_PATH } from "@/utils/props.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
-import { RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
 
 enableAutoUnmount(afterEach);
 // As on pnpm dev: everyone acts as an admin, unless a test signs someone in.
@@ -49,15 +51,15 @@ function apiAnswers(answers: {
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string) => {
-      if (url === RUNNING_ORDER_PATH) return answers.order();
-      if (url === PROPS_PATH) return answers.props();
+      if (url === runningOrderPath()) return answers.order();
+      if (url === propsPath()) return answers.props();
       if (url === SCENERY_FILE_COUNTS_PATH) return (answers.scenery ?? noFiles)();
       if (url === SFX_FILE_COUNTS_PATH) return (answers.sfx ?? noFiles)();
       if (url === WARDROBE_FILE_COUNTS_PATH) return (answers.wardrobe ?? noFiles)();
       if (url === SFX_NOTES_PATH) return (answers.sfxNotes ?? noNotes)();
       if (url === WARDROBE_NOTES_PATH) return (answers.wardrobeNotes ?? noNotes)();
       if (url === departmentNotesPath("mic-plot")) return (answers.micPlotNotes ?? noNotes)();
-      if (url === MIC_PLOT_PATH) {
+      if (url === micPlotPath()) {
         return (answers.micPlot ?? json({ productionId: "2027", items: [] }))();
       }
       if (url === departmentNotesPath("props")) {

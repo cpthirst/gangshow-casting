@@ -2,7 +2,7 @@
 id: simplify.E5.S3
 title: Switch to a past production, view only
 epic: E5
-status: draft
+status: done
 ---
 
 ## Story

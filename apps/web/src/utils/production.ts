@@ -1,6 +1,9 @@
-// The production the app shows, named here and nowhere else. Only one for now (see
-// docs/product/running-order/prd.md).
-const PRODUCTION_ID = "2027";
+import { BACKUP_WINDOW_DAYS } from "@app/shared";
 
-/** Where the API keeps everything about the production the app shows. */
-export const PRODUCTION_PATH = `/api/productions/${PRODUCTION_ID}`;
+/** Asked before starting a production: everyone moves to it, and the newest can't be deleted. */
+export const startWarning = (year: string) =>
+  `Start production ${year}? Everyone will move to ${year}, and this can't be undone.`;
+
+/** Asked before deleting a production, or finishing a delete that stopped part way. */
+export const deleteWarning = (year: string) =>
+  `Delete production ${year}? This can't be undone. Copies stay in backups for up to ${BACKUP_WINDOW_DAYS} days.`;

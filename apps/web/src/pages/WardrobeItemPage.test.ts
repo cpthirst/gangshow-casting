@@ -12,10 +12,10 @@ import App from "@/App.vue";
 import { createAppRouter } from "@/router/index.ts";
 import { downloadFrom, openFileTab } from "@/services/file-link.ts";
 import { StandInXhr } from "@/services/file-upload.fixture.ts";
+import { runningOrderPath } from "@/services/production.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
-import { RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
 
 // The browser's own new tabs and downloads, which happy-dom can't follow.
 vi.mock("@/services/file-link.ts", () => ({ openFileTab: vi.fn(), downloadFrom: vi.fn() }));
@@ -55,7 +55,7 @@ function apiHolds(order: RunningOrder, held: Held = {}, notes: ItemNote[] = []) 
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init?: RequestInit) => {
-      if (url === RUNNING_ORDER_PATH) return json(order);
+      if (url === runningOrderPath()) return json(order);
       if (url === "/api/productions/2027/wardrobe-notes")
         return json({ productionId: "2027", notes });
       if (url === STORAGE && init?.body instanceof FormData) {
@@ -456,7 +456,7 @@ describe("Loading the Wardrobe page's data", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: string) =>
-        url === RUNNING_ORDER_PATH ? json(show) : new Response(null, { status: 500 }),
+        url === runningOrderPath() ? json(show) : new Response(null, { status: 500 }),
       ),
     );
     const { wrapper } = await openAppAt(OPENING_NUMBER);

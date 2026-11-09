@@ -6,10 +6,6 @@ import {
   type Stage,
   type UpdateChange,
 } from "@app/shared";
-import { PRODUCTION_PATH } from "./production.ts";
-
-/** The production's running order: GET answers with the latest saved version. */
-export const RUNNING_ORDER_PATH = `${PRODUCTION_PATH}/running-order`;
 
 const stageNames: Record<Stage, string> = { apron: "Apron", full: "Full" };
 

@@ -2,7 +2,7 @@
 id: simplify.E5.S2
 title: Let an admin start a new production by year
 epic: E5
-status: draft
+status: done
 ---
 
 ## Story
@@ -19,7 +19,7 @@ Then 2028 is listed, and everyone opens it from their next page load
 ### AC2: It starts empty
 Given an admin has just started 2028
 When anyone opens its Cast, Running order, Casting Items and Production overview
-Then there's no cast, no saved running order, no casting, props, files, mics or notes
+Then there's no cast, an empty running order, no casting, props, files, mics or notes
 
 ### AC3: Nothing carries over
 Given 2027 has a cast, items and casting
@@ -41,6 +41,12 @@ Given "pat" has Stage before 2028 is started
 When an admin starts 2028
 Then pat still has Stage, in 2028 and in 2027
 
+### AC7: Starting one is confirmed first
+Given the newest production is 2028
+When an admin starts production "2029"
+Then they're asked to confirm, in words that name 2029 and say everyone will move to it and it can't be undone
+And if they cancel, nothing is started and 2028 stays open
+
 ## Notes
 
 - FRs: FR19, FR23
@@ -49,3 +55,4 @@ Then pat still has Stage, in 2028 and in 2027
 - Add a browser layout walk of the Productions page and its start form at 320px and 360px (agreed with the maintainer, 2026-11-07).
 - Help and Welcome describe the new page (README too, if it lists pages).
 - AC4's "later than the newest" follows from FR20 and FR21: an earlier year would be a past production, and so view only, from the moment it was started.
+- A new production's first running order has curtain up at 19:15 and a 20-minute interval: fixed defaults the maintainer chose, because no page can change them yet.

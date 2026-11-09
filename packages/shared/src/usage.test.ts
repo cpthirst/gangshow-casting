@@ -21,6 +21,7 @@ describe("RecordUsageRequest", () => {
     "production-overview",
     "help",
     "accounts",
+    "productions",
     "usage",
   ])("accepts opening the menu page %s", (page) => {
     expect(RecordUsageRequest.parse({ event: "page", page })).toEqual({ event: "page", page });

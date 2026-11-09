@@ -1,5 +1,11 @@
 <script setup lang="ts">
-import { ItemNoteList, RoleList, RunningOrder, type RunningOrderItem } from "@app/shared";
+import {
+  ItemNoteList,
+  PAST_PRODUCTION_REFUSAL,
+  RoleList,
+  RunningOrder,
+  type RunningOrderItem,
+} from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
 import { onBeforeRouteLeave } from "vue-router";
@@ -9,11 +15,15 @@ import RefusalNotice from "@/components/common/RefusalNotice.vue";
 import ItemEditor from "@/components/show/ItemEditor.vue";
 import { type RowDrop, vSortableRows } from "@/directives/sortable-rows.ts";
 import { loadData } from "@/services/load-data.ts";
-import { apiFetch, isAdmin } from "@/services/sign-in.ts";
+import {
+  isOpenProductionChangeable,
+  itemNotesPath,
+  rolesPath,
+  runningOrderPath,
+} from "@/services/production.ts";
+import { apiFetch, canChange } from "@/services/sign-in.ts";
 import { helpFor, whoCanChange } from "@/utils/help.ts";
 import { icons } from "@/utils/icons.ts";
-import { ITEM_NOTES_PATH } from "@/utils/item-notes.ts";
-import { ROLES_PATH } from "@/utils/roles.ts";
 import {
   addItem,
   aNewItem,
@@ -24,7 +34,6 @@ import {
   locate,
   type Move,
   moveItem,
-  RUNNING_ORDER_PATH,
   removeItem,
   removeWarning,
   replaceItem,
@@ -56,7 +65,7 @@ const showSaved = (order: RunningOrder) => {
 
 async function load() {
   try {
-    const order = await loadData(RUNNING_ORDER_PATH, RunningOrder);
+    const order = await loadData(runningOrderPath(), RunningOrder);
     if (order) showSaved(order);
     else state.value = { status: "empty" };
   } catch {
@@ -94,10 +103,10 @@ async function move(itemId: string, direction: Move) {
 // Only admins change the running order (its Help says so). Everyone else sees it with nothing
 // to change it (simplify FR12): the Move column, its drag handles and every control are left out.
 /** Eight columns of the show's details, plus Move for an admin. */
-const columns = computed(() => (isAdmin.value ? 9 : 8));
+const columns = computed(() => (canChange("admins") ? 9 : 8));
 
 function drop({ itemId, toHalf, toIndex }: RowDrop) {
-  if (state.value.status !== "loaded" || busy.value || !isAdmin.value) return;
+  if (state.value.status !== "loaded" || busy.value || !canChange("admins")) return;
   const { working } = state.value;
   const dropped = dropItem(working, itemId, toHalf, toIndex);
   if (!sameContent(dropped, working)) changeWorking(dropped, itemId);
@@ -133,7 +142,7 @@ const focusEdit = (itemId: string) =>
     ?.focus();
 
 function startAdding(halfIndex: 0 | 1) {
-  if (busy.value || !isAdmin.value) return;
+  if (busy.value || !canChange("admins")) return;
   newItem.value = aNewItem();
   addingTo.value = halfIndex;
 }
@@ -159,7 +168,7 @@ async function endAdding() {
 // Always asked first. Nothing is deleted until the draft is saved, when the item's roles
 // and notes go too (ADR 0010), so the question says what goes and Reset undoes it.
 async function confirmRemove(item: RunningOrderItem) {
-  if (state.value.status !== "loaded" || busy.value || !isAdmin.value) return;
+  if (state.value.status !== "loaded" || busy.value || !canChange("admins")) return;
   const place = locate(state.value.working, item.id);
   counting.value = true;
   // An item added since the last save can't have any casting yet.
@@ -179,8 +188,8 @@ async function confirmRemove(item: RunningOrderItem) {
 async function castingFor(itemId: string) {
   try {
     const [roles, notes] = await Promise.all([
-      loadData(ROLES_PATH, RoleList),
-      loadData(ITEM_NOTES_PATH, ItemNoteList),
+      loadData(rolesPath(), RoleList),
+      loadData(itemNotesPath(), ItemNoteList),
     ]);
     return roles && notes && castingOf(itemId, roles, notes);
   } catch {
@@ -217,7 +226,7 @@ async function save() {
   saving.value = false;
 
   if (result.outcome === "refused") {
-    notice.value = ONLY_ADMINS_SAVE;
+    notice.value = isOpenProductionChangeable() ? ONLY_ADMINS_SAVE : PAST_PRODUCTION_REFUSAL;
     announcement.value = notice.value;
     return;
   }
@@ -250,7 +259,7 @@ type SaveResult =
 // anything else failed.
 async function saveDraft(baseVersion: number, working: RunningOrder): Promise<SaveResult> {
   try {
-    const res = await apiFetch(`${RUNNING_ORDER_PATH}/versions`, {
+    const res = await apiFetch(`${runningOrderPath()}/versions`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ baseVersion, change: updateOf(working) }),
@@ -310,7 +319,7 @@ function refocus(itemId: string, direction: Move) {
       <DraftNumber :version="loaded.saved.version" />
       <p v-if="loaded.unsaved" class="unsaved" data-test="unsaved">Unsaved changes</p>
       <RefusalNotice />
-      <template v-if="isAdmin">
+      <template v-if="canChange('admins')">
         <button
           type="button"
           class="primary"
@@ -346,7 +355,7 @@ function refocus(itemId: string, direction: Move) {
           <table class="items-table" role="table">
             <thead role="rowgroup">
               <tr role="row">
-                <th v-if="isAdmin" scope="col" role="columnheader">Move</th>
+                <th v-if="canChange('admins')" scope="col" role="columnheader">Move</th>
                 <th scope="col" role="columnheader">#</th>
                 <th scope="col" role="columnheader">Starts</th>
                 <th scope="col" role="columnheader">Item</th>
@@ -357,7 +366,7 @@ function refocus(itemId: string, direction: Move) {
                 <th scope="col" role="columnheader" class="minutes">Mins</th>
               </tr>
             </thead>
-            <tbody role="rowgroup" :data-half="i" v-sortable-rows="{ onDrop: drop, disabled: busy || !isAdmin }">
+            <tbody role="rowgroup" :data-half="i" v-sortable-rows="{ onDrop: drop, disabled: busy || !canChange('admins') }">
               <tr
                 v-for="{ item, number, startsAt } in rows"
                 role="row"
@@ -370,7 +379,7 @@ function refocus(itemId: string, direction: Move) {
                   <ItemEditor :item="item" @apply="applyEdit" @cancel="endEdit(item.id)" />
                 </td>
                 <template v-else>
-                  <td v-if="isAdmin" class="icon-column" data-label="Move" role="cell">
+                  <td v-if="canChange('admins')" class="icon-column" data-label="Move" role="cell">
                     <span
                       class="drag-handle"
                       role="img"
@@ -458,11 +467,11 @@ function refocus(itemId: string, direction: Move) {
               <tr
                 v-else-if="rows.length === 0"
                 class="empty-half"
-                :class="{ 'read-only': !isAdmin }"
+                :class="{ 'read-only': !canChange('admins') }"
                 role="row"
               >
                 <td :colspan="columns" role="cell">
-                  <template v-if="!isAdmin">No items yet</template>
+                  <template v-if="!canChange('admins')">No items yet</template>
                   <template v-else>No items. Drag one here, use “Move to {{ half.name.toLowerCase() }}” on an item, or use Add item below.</template>
                 </td>
               </tr>
@@ -476,7 +485,7 @@ function refocus(itemId: string, direction: Move) {
           </table>
         </div>
         <button
-          v-if="isAdmin"
+          v-if="canChange('admins')"
           type="button"
           class="add-item"
           :data-add-to="i"

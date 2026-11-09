@@ -6,18 +6,6 @@ import {
   type SceneryFile,
 } from "@app/shared";
 import { icons } from "./icons.ts";
-import { itemFileLinkPath, itemFilePath, itemFilesPath, itemUploadsPath } from "./item-files.ts";
-import { departmentNotesPath, saveDepartmentNotesPath } from "./item-notes.ts";
-
-/** The item's scenery files, as file storage holds them now (production-scenery FR6). */
-export const sceneryFilesPath = (itemId: string) => itemFilesPath("scenery", itemId);
-
-/** One of the item's files, to delete it (FR11). */
-export const sceneryFilePath = (itemId: string, name: string) =>
-  itemFilePath("scenery", itemId, name);
-
-/** Where to ask for an upload of one of the item's files (FR8). */
-export const sceneryUploadsPath = (itemId: string) => itemUploadsPath("scenery", itemId);
 
 /** What the page asks before an upload replaces the item's file of the same name (FR9):
  *  there's no history, so the old copy is gone for good. */
@@ -30,10 +18,6 @@ export function uploadRefusal({ name, size }: { name: string; size: number }) {
   if (size > MAX_SCENERY_FILE_BYTES) return `${name} is over 100 MB, so it wasn't uploaded.`;
   return undefined;
 }
-
-/** A short-lived link that opens or downloads one of the item's files (FR10). */
-export const sceneryFileLinkPath = (itemId: string, name: string) =>
-  itemFileLinkPath("scenery", itemId, name);
 
 /** Whether choosing the department's file opens it in a new tab, rather than downloading it. */
 export const opensInBrowser = (name: string, department: FileDepartment) =>
@@ -67,12 +51,6 @@ export function fileIconOf(name: string, department: FileDepartment) {
   const found = typesByIcon.find(([, types]) => types.some((each) => each === type));
   return found?.[0] ?? icons.file;
 }
-
-/** Every item's scenery notes, apart from its casting and props notes. */
-export const SCENERY_NOTES_PATH = departmentNotesPath("scenery");
-
-/** Where an item's scenery notes are saved. */
-export const saveSceneryNotesPath = (itemId: string) => saveDepartmentNotesPath("scenery", itemId);
 
 const byName = new Intl.Collator("en-GB", { sensitivity: "base", numeric: true });
 

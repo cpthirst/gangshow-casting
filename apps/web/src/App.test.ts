@@ -63,8 +63,7 @@ describe("App shell", () => {
       expect.stringMatching(/^Show/),
       expect.stringMatching(/^Casting/),
       expect.stringMatching(/^Production/),
-      "Accounts",
-      "Usage",
+      expect.stringMatching(/^Admin/),
       "Help",
     ]);
     expect(menu.findAll("a").map((link) => link.text())).toEqual([
@@ -75,6 +74,7 @@ describe("App shell", () => {
       "Items",
       "Overview",
       "Accounts",
+      "Productions",
       "Usage",
       "Help",
     ]);
@@ -90,6 +90,25 @@ describe("App shell", () => {
     expect(links.map((link) => link.text())).not.toContain("Accounts");
   });
 
+  it("leaves Productions out of sam's menu, with every permission but not an admin", async () => {
+    await signInAs(["casting", "stage", "tech", "wardrobe", "director"]);
+
+    const { wrapper } = await openAppAt("/");
+
+    const links = wrapper.get("nav[aria-label=Main]").findAll("a");
+    expect(links.map((link) => link.text())).not.toContain("Productions");
+  });
+
+  it("shows Productions in the menu to a signed-in admin", async () => {
+    await signInAs(["admin"]);
+
+    const { wrapper } = await openAppAt("/");
+
+    expect(wrapper.get("nav[aria-label=Main] a[href='/admin/productions']").text()).toBe(
+      "Productions",
+    );
+  });
+
   it("says the Usage page is for admins only to a team member who goes to its address", async () => {
     await signInAs(["casting"]);
     vi.stubGlobal(
@@ -101,7 +120,7 @@ describe("App shell", () => {
       ),
     );
 
-    const { wrapper } = await openAppAt("/usage");
+    const { wrapper } = await openAppAt("/admin/usage");
 
     expect(wrapper.get("main h1").text()).toBe("Usage");
     expect(wrapper.get("main [role=alert]").text()).toBe("Only admins can see usage.");
@@ -124,7 +143,33 @@ describe("App shell", () => {
 
     const { wrapper } = await openAppAt("/");
 
-    expect(wrapper.get("nav[aria-label=Main] a[href='/accounts']").text()).toBe("Accounts");
+    expect(wrapper.get("nav[aria-label=Main] a[href='/admin/accounts']").text()).toBe("Accounts");
+  });
+
+  it.each([[[]], [["casting", "stage", "tech", "wardrobe", "director"]], [["read-only"]]])(
+    "shows no Admin label to a signed-in team member in %j",
+    async (groups) => {
+      await signInAs(groups);
+
+      const { wrapper } = await openAppAt("/");
+
+      expect(wrapper.find("#menu-admin").exists()).toBe(false);
+      expect(wrapper.get("nav[aria-label=Main]").text()).not.toContain("Admin");
+    },
+  );
+
+  it("opens the Admin group on an admin page and marks that page as current", async () => {
+    await signInAs(["admin"]);
+
+    const { wrapper } = await openAppAt("/admin/usage");
+
+    expect(wrapper.get("#menu-admin").text()).toBe("Admin");
+    expect(wrapper.get("#menu-admin-pages").isVisible()).toBe(true);
+    expect(wrapper.get("#menu-admin-pages a[aria-current=page]").text()).toBe("Usage");
+
+    await wrapper.get("#menu-admin").trigger("click");
+
+    expect(wrapper.get("#menu-admin").classes()).toContain("holds-current");
   });
 
   describe("recording page uses (usage-tracking FR2)", () => {
@@ -169,6 +214,10 @@ describe("App shell", () => {
       ["/cast", "cast"],
       ["/casting/overview", "casting-overview"],
       ["/casting/items", "casting-items"],
+      ["/admin/accounts", "accounts"],
+      ["/admin/productions", "productions"],
+      ["/admin/usage", "usage"],
+      // A bookmark from before the Admin menu counts once, as the page it lands on.
       ["/accounts", "accounts"],
       ["/usage", "usage"],
     ])(
@@ -216,7 +265,7 @@ describe("App shell", () => {
       vi.stubGlobal("fetch", fetchMock);
       const { router } = await openAppAt("/cast");
 
-      await router.push("/signing-out");
+      await router.push("/leaving");
       await flushPromises();
 
       expect(pageUses(fetchMock)).toEqual([{ event: "page", page: "cast" }]);
@@ -387,7 +436,7 @@ describe("App shell", () => {
     );
 
     it("moves to the Running order when the chosen access can't open the page shown", async () => {
-      const { wrapper, router } = await openAppAt("/accounts");
+      const { wrapper, router } = await openAppAt("/admin/accounts");
 
       await tick(wrapper, "Admin", false);
 

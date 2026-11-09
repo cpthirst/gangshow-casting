@@ -28,7 +28,7 @@ Chester Gang Show is a volunteer-led Scouting variety show: comedy, music, dance
 
 ## What iCUE does today
 
-iCUE is hosted on AWS and is open only to the production team. Everyone signs in with an account an admin gives them. Each page has a help button, and the Help page brings all the help together. The menu has three areas: **Show**, **Production** and **Casting**.
+iCUE is hosted on AWS and is open only to the production team. Everyone signs in with an account an admin gives them. Each page has a help button, and the Help page brings all the help together. The menu has three areas: **Show**, **Production** and **Casting**. Admins also have **Admin**, which holds Accounts, Productions and Usage.
 
 | Page | What it's for | Product docs |
 |---|---|---|
@@ -40,10 +40,12 @@ iCUE is hosted on AWS and is open only to the production team. Everyone signs in
 | **An item's page** | The item's parts (lead, supporting, cameo, ensemble), who plays each, warnings about quick changes and short gaps between appearances, and the item's notes. Step to the previous or next item | [casting/item-overview](docs/product/casting/item-overview), [roles](docs/product/casting/roles), [rules](docs/product/casting/rules) |
 | **Help** | What each page is for and what its buttons do, with who can use each | [in-app-help](docs/product/in-app-help) |
 | **Accounts** (admins) | Create the team's sign-in accounts, see and change each one's access (Admin, or any mix of Casting, Stage, Tech and Wardrobe), reset passwords, and disable or enable accounts | [hosting](docs/product/hosting), [team-roles](docs/product/team-roles) |
+| **Productions** (admins) | Every production by its year; starting a new one, which starts empty and is what everyone then opens; and deleting a past one for good | [simplify](docs/product/simplify) |
+| **Switching production** (sidebar) | Anyone can switch to an older production for the session, under the year in the sidebar. A past production is view only for everyone, admins included (the API refuses every change to it), and can't be reopened; its exports still work | [simplify](docs/product/simplify) |
 | **Usage** (admins) | Who on the team uses iCUE and how often, so admins can see who might need help getting started | [usage-tracking](docs/product/usage-tracking) |
 
 **Access** ([team-roles](docs/product/team-roles), [production-props](docs/product/production/props)): an account is an Admin, or has any mix of department permissions.
-- **Admin:** everything, plus the running order, Accounts and Usage.
+- **Admin:** everything, plus the running order, Accounts, Productions and Usage.
 - **Casting:** changes the cast and casting.
 - **Stage, Tech, Wardrobe:** change their own department's pages, as those arrive.
 - **Director:** changes every Production department's pages (Props, Scenery, SFX and Wardrobe today), but not casting or the show. Admins give it on the Accounts page ([production-scenery](docs/product/production/scenery)).
@@ -143,6 +145,7 @@ CI runs both of these as separate jobs.
 │           ├── casting/         roles/, casting-grid/ (the Excel export)
 │           ├── production/      props/, item-files/ (Scenery's, SFX's and Wardrobe's files, in a bucket or a local folder)
 │           ├── item-notes/      Notes per item, for casting, props, scenery, SFX and Wardrobe
+│           ├── production-list/ Which productions exist; the newest is the one everyone opens (ADR 0036)
 │           ├── accounts/        The team's accounts, on the user pool
 │           ├── usage/           Usage records
 │           ├── http/            Requests, responses, route matching, permissions
@@ -359,6 +362,8 @@ These cover humans and agents alike, and `pnpm install` installs them.
 | [0033](docs/adr/0033-mic-plot-workbook-built-in-the-browser.md) | The Mic Plot workbook: built in the browser with `write-excel-file`, loaded only when used |
 | [0034](docs/adr/0034-simplicity-rules-for-authors-and-reviewers.md) | Simplicity rules for authors and reviewers: one of each, a layout that explains itself, and a reviewer that searches beyond the diff for copies |
 | [0035](docs/adr/0035-each-department-states-its-own-refusal.md) | Each department states its permissions and refusal line once; a change route names its department, and a refusal says which department, so the app recognises it without matching wording |
+| [0036](docs/adr/0036-list-of-productions-as-rows-in-the-data-table.md) | The list of productions is one row per production in the existing table; the id is the year, the newest is the highest year, and 2027 is written by the first read that finds the list empty |
+| [0037](docs/adr/0037-delete-a-past-production-marked-then-repeatable.md) | A past production is deleted in the request: marked first so it can't look complete, then its files, its partition and last its list row; any stop can be repeated, and the confirmation names the table's 7-day backup window |
 
 ---
 

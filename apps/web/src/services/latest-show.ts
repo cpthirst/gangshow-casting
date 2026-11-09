@@ -1,11 +1,15 @@
 import { CastList, ItemNoteList, MicPlotList, PropList, RoleList, RunningOrder } from "@app/shared";
-import { CAST_PATH } from "@/utils/cast.ts";
-import { departmentNotesPath } from "@/utils/item-notes.ts";
-import { MIC_PLOT_PATH, micPlotListOf } from "@/utils/mic-plot.ts";
-import { PROPS_PATH, propsListOf } from "@/utils/props.ts";
-import { ROLES_PATH } from "@/utils/roles.ts";
-import { RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
+import { micPlotListOf } from "@/utils/mic-plot.ts";
+import { propsListOf } from "@/utils/props.ts";
 import { loadRequired } from "./load-data.ts";
+import {
+  castPath,
+  departmentNotesPath,
+  micPlotPath,
+  propsPath,
+  rolesPath,
+  runningOrderPath,
+} from "./production.ts";
 
 export type LatestShow = Awaited<ReturnType<typeof latestShow>>;
 
@@ -14,9 +18,9 @@ export type LatestShow = Awaited<ReturnType<typeof latestShow>>;
  *  of them can't be loaded, or there's no saved running order yet. */
 export async function latestShow() {
   const [cast, { roles }, order] = await Promise.all([
-    loadRequired(CAST_PATH, CastList),
-    loadRequired(ROLES_PATH, RoleList),
-    loadRequired(RUNNING_ORDER_PATH, RunningOrder),
+    loadRequired(castPath(), CastList),
+    loadRequired(rolesPath(), RoleList),
+    loadRequired(runningOrderPath(), RunningOrder),
   ]);
   return { cast: cast.members, roles, order };
 }
@@ -26,7 +30,7 @@ export async function latestShow() {
 export async function latestPropsList() {
   const [show, { props }, { notes }] = await Promise.all([
     latestShow(),
-    loadRequired(PROPS_PATH, PropList),
+    loadRequired(propsPath(), PropList),
     loadRequired(departmentNotesPath("props"), ItemNoteList),
   ]);
   return {
@@ -40,7 +44,7 @@ export async function latestPropsList() {
 export async function latestMicPlot() {
   const [show, { items: plots }, { notes }] = await Promise.all([
     latestShow(),
-    loadRequired(MIC_PLOT_PATH, MicPlotList),
+    loadRequired(micPlotPath(), MicPlotList),
     loadRequired(departmentNotesPath("mic-plot"), ItemNoteList),
   ]);
   return {

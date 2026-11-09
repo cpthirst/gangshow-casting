@@ -1,4 +1,3 @@
-import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { FileDepartment } from "@app/shared";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
@@ -32,6 +31,8 @@ import { dynamoMicPlotStore } from "#/production/mic-plot/dynamo-mic-plot-store.
 import { fileMicPlotStore } from "#/production/mic-plot/mic-plot-store.ts";
 import { dynamoPropStore } from "#/production/props/dynamo-prop-store.ts";
 import { filePropStore } from "#/production/props/prop-store.ts";
+import { dynamoProductionListStore } from "#/production-list/dynamo-production-list-store.ts";
+import { fileProductionListStore } from "#/production-list/production-list-store.ts";
 import { fileCastStore } from "#/show/cast/cast-store.ts";
 import { dynamoCastStore } from "#/show/cast/dynamo-cast-store.ts";
 import { dynamoRemoveCastMember } from "#/show/cast/dynamo-remove-cast-member.ts";
@@ -42,6 +43,7 @@ import type { ItemCleanup } from "#/show/running-order/save-running-order.ts";
 import { dynamoUsageStore } from "#/usage/dynamo-usage-store.ts";
 import { inMemoryUsageStore } from "#/usage/usage-store.ts";
 import { documentClient } from "./dynamo-table.ts";
+import { filesFolderIn } from "./files.ts";
 
 // Git-ignored: real production data never goes in the repo (CLAUDE.md safeguarding).
 const defaultDataDir = fileURLToPath(new URL("../../data", import.meta.url));
@@ -85,6 +87,7 @@ export function fileStores(dataDir: string) {
     wardrobeNotes: fileItemNoteStore(dataDir, WARDROBE_NOTES_FILE),
     micPlotNotes: fileItemNoteStore(dataDir, MIC_PLOT_NOTES_FILE),
     micPlots: fileMicPlotStore(dataDir),
+    productions: fileProductionListStore(dataDir),
   };
 }
 
@@ -106,14 +109,16 @@ export function remoteStores(db: DynamoDBDocumentClient, table: string): Stores 
     wardrobeNotes: dynamoItemNoteStore(db, table, WARDROBE_NOTE),
     micPlotNotes: dynamoItemNoteStore(db, table, MIC_PLOT_NOTE),
     micPlots: dynamoMicPlotStore(db, table),
+    productions: dynamoProductionListStore(db, table),
   };
 }
 
-/** The stores that hold the show's data rather than an item's: everything else is per item. */
+/** The stores not kept per item: everything else is. */
 export const showWideStores = [
   "runningOrders",
   "cast",
   "removeCastMember",
+  "productions",
 ] as const satisfies readonly (keyof Stores)[];
 
 /**
@@ -176,7 +181,7 @@ export function itemFileStores(env: Env = process.env) {
       folder: undefined,
     };
   }
-  const folder = join(dataDirFrom(env), "files");
+  const folder = filesFolderIn(dataDirFrom(env));
   return {
     stores: storesFor((department) => folderItemFileStore(folder, department)),
     where: `scenery, SFX and Wardrobe files in ${folder}`,

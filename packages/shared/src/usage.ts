@@ -11,6 +11,7 @@ export const MenuPageName = z.enum([
   "production-overview",
   "help",
   "accounts",
+  "productions",
   "usage",
 ]);
 

@@ -2,7 +2,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { CastList, CastMember, ItemNoteList, Role, RoleList, RunningOrder } from "@app/shared";
-import { GetCommand } from "@aws-sdk/lib-dynamodb";
+import { GetCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createAddRole } from "#/casting/roles/add-role.ts";
 import { createGetRoles } from "#/casting/roles/get-roles.ts";
@@ -18,7 +18,13 @@ import { createGetRunningOrder } from "#/show/running-order/get-running-order.ts
 import { anItem, aRunningOrder, itemId } from "#/show/running-order/running-order.fixture.ts";
 import { inMemoryRunningOrderStore } from "#/show/running-order/running-order-store.ts";
 import { createSaveRunningOrder } from "#/show/running-order/save-running-order.ts";
-import { dataStores, itemCleanupOf, itemFileStores, remoteStores } from "./data-stores.ts";
+import {
+  dataStores,
+  itemCleanupOf,
+  itemFileStores,
+  remoteStores,
+  usageStore,
+} from "./data-stores.ts";
 import { aTestTable, seedCast, seedRoles, type TestTable } from "./dynamo.fixture.ts";
 import { eachKindOf, keptFor, seedEveryKind } from "./item-data.fixture.ts";
 
@@ -213,5 +219,44 @@ describe("data stores with a remote table", () => {
     expect(res.statusCode).toBe(201);
     expect(await keptFor(stores, files, "2027", pirate)).toEqual(eachKindOf(cleanup, 0));
     expect(await keptFor(stores, files, "2027", opening)).toEqual(eachKindOf(cleanup, 1));
+  });
+
+  it("erases everything in a production's partition, leaving other partitions alone", async () => {
+    dataDir = await mkdtemp(join(tmpdir(), "data-stores-"));
+    const stores = remoteStores(table.db, table.tableName);
+    const { folder } = itemFileStores({ DATA_DIR: dataDir });
+    if (folder === undefined) throw new Error("expected local files");
+    const pirate = itemId("Pirate Sketch");
+    for (const productionId of ["2027", "2028"]) {
+      await stores.runningOrders.save({
+        ...aRunningOrder(1, { first: ["Pirate Sketch"] }),
+        productionId,
+      });
+      await seedEveryKind(stores, folder, productionId, pirate);
+    }
+    await stores.productions.start("2027");
+    const usage = usageStore({ ...process.env, DATA_TABLE: table.tableName });
+    await usage.record({ username: "jo", event: "session", at: "2026-11-02T09:00:00.000Z" });
+    const rowsIn = async (pk: string) => {
+      const { Items = [] } = await table.db.send(
+        new QueryCommand({
+          TableName: table.tableName,
+          KeyConditionExpression: "pk = :pk",
+          ExpressionAttributeValues: { ":pk": pk },
+        }),
+      );
+      return Items.length;
+    };
+    const before2028 = await rowsIn("PROD#2028");
+    const beforeUsage = await rowsIn("USAGE");
+
+    await stores.productions.eraseData("2027");
+
+    expect(await rowsIn("PROD#2027")).toBe(0);
+    expect(before2028).toBeGreaterThan(0);
+    expect(await rowsIn("PROD#2028")).toBe(before2028);
+    expect(await rowsIn("PRODUCTIONS")).toBe(1);
+    expect(beforeUsage).toBeGreaterThan(0);
+    expect(await rowsIn("USAGE")).toBe(beforeUsage);
   });
 });

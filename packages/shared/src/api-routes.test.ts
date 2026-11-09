@@ -6,6 +6,7 @@ import {
   departmentIds,
   departments,
   isAccountRoute,
+  isChangeWithinProduction,
   isReadRoute,
   isRefusalAsReadOnly,
   localAccessFrom,
@@ -21,13 +22,15 @@ import {
 } from "./api-routes.ts";
 
 describe("adminOnlyRouteKeys", () => {
-  it("keeps managing accounts, deleting a cast member, saving a running-order version and reading usage for admins", () => {
+  it("keeps managing accounts, starting or deleting a production, deleting a cast member, saving a running-order version and reading usage for admins", () => {
     expect([...adminOnlyRouteKeys].sort()).toEqual([
+      "DELETE /api/productions/{productionId}",
       "DELETE /api/productions/{productionId}/cast/{castId}",
       "GET /api/accounts",
       "GET /api/usage",
       "POST /api/accounts",
       "POST /api/accounts/{username}/password",
+      "POST /api/productions",
       "POST /api/productions/{productionId}/running-order/versions",
       "PUT /api/accounts/{username}/access",
       "PUT /api/accounts/{username}/enabled",
@@ -256,6 +259,28 @@ describe("isReadRoute", () => {
     ]);
     expect(isReadRoute("PUT /api/productions/{productionId}/cast/{castId}")).toBe(false);
     expect(isReadRoute("POST /api/productions/{productionId}/running-order/versions")).toBe(false);
+  });
+});
+
+describe("isChangeWithinProduction", () => {
+  const changes = routeKeys.filter(isChangeWithinProduction);
+
+  it("takes in every route that changes something in a production", () => {
+    expect(changes.length).toBeGreaterThan(20);
+    for (const key of routeKeys.filter((route) => !isReadRoute(route))) {
+      if (key.includes("/{productionId}/")) expect(changes, key).toContain(key);
+    }
+  });
+
+  it.each([
+    "GET /api/productions/{productionId}/cast",
+    "POST /api/productions/{productionId}/casting-grid/export",
+    "POST /api/productions",
+    "DELETE /api/productions/{productionId}",
+    "POST /api/usage",
+    "POST /api/accounts",
+  ])("leaves out %s, which changes nothing within a production", (key) => {
+    expect(isChangeWithinProduction(key)).toBe(false);
   });
 });
 

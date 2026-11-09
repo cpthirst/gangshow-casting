@@ -10,9 +10,9 @@ import {
 import { computed, nextTick, onMounted, ref, useId, useTemplateRef, watch } from "vue";
 import { useRouter } from "vue-router";
 import { AccessRefused, loadData, loadRequired } from "@/services/load-data.ts";
+import { runningOrderPath } from "@/services/production.ts";
 import { USAGE_PATH } from "@/services/usage.ts";
 import { ACCOUNTS_PATH } from "@/utils/accounts.ts";
-import { RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
 import {
   dayOf,
   featureName,
@@ -121,7 +121,7 @@ async function usageFor(range: string): Promise<State> {
 /** Never fails: without the running order, the rest of the page still shows. */
 async function loadItemTitles(): Promise<ItemTitles> {
   try {
-    const order = await loadData(RUNNING_ORDER_PATH, RunningOrder);
+    const order = await loadData(runningOrderPath(), RunningOrder);
     // No saved running order: no item is in it.
     if (!order) return new Map();
     return new Map(

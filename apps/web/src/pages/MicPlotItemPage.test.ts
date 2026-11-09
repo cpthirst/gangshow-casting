@@ -12,15 +12,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory } from "vue-router";
 import App from "@/App.vue";
 import { createAppRouter } from "@/router/index.ts";
+import {
+  castPath,
+  departmentNotesPath,
+  micPlotPath,
+  propsPath,
+  rolesPath,
+  runningOrderPath,
+} from "@/services/production.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
-import { CAST_PATH } from "@/utils/cast.ts";
-import { departmentNotesPath } from "@/utils/item-notes.ts";
-import { MIC_PLOT_PATH } from "@/utils/mic-plot.ts";
-import { PROPS_PATH } from "@/utils/props.ts";
-import { ROLES_PATH } from "@/utils/roles.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
-import { RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
 
 enableAutoUnmount(afterEach);
 // As on pnpm dev: everyone acts as an admin, unless a test signs someone in.
@@ -88,10 +90,10 @@ function apiHolds(
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init?: RequestInit) => {
-      if (url === RUNNING_ORDER_PATH) {
+      if (url === runningOrderPath()) {
         return order ? json(order) : new Response(null, { status: 404 });
       }
-      if (url === MIC_PLOT_PATH) return json({ productionId: "2027", items: plots });
+      if (url === micPlotPath()) return json({ productionId: "2027", items: plots });
       const giving = /^\/api\/productions\/2027\/items\/([^/]+)\/mic-plot$/.exec(url);
       if (giving && init?.method === "PUT") {
         if (answer) return answer();
@@ -115,9 +117,9 @@ function apiHolds(
         micPlotNotes.splice(0, micPlotNotes.length, ...others, saved);
         return json(saved);
       }
-      if (url === ROLES_PATH) return json({ productionId: "2027", roles });
-      if (url === CAST_PATH) return json({ productionId: "2027", members: [alex, sam, jo] });
-      if (url === PROPS_PATH) return json({ productionId: "2027", props: [] });
+      if (url === rolesPath()) return json({ productionId: "2027", roles });
+      if (url === castPath()) return json({ productionId: "2027", members: [alex, sam, jo] });
+      if (url === propsPath()) return json({ productionId: "2027", props: [] });
       if (url === departmentNotesPath("props")) return json({ productionId: "2027", notes: [] });
       if (/\/(scenery|sfx|wardrobe)-files$/.test(url)) return json({ files: [] });
       if (url === "/api/usage") return new Response(null, { status: 204 });
@@ -132,7 +134,7 @@ function micPlotAnswers(status: number) {
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init?: RequestInit) =>
-      url === MIC_PLOT_PATH ? new Response(null, { status }) : holds?.(url, init),
+      url === micPlotPath() ? new Response(null, { status }) : holds?.(url, init),
     ),
   );
 }

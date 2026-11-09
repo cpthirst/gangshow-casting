@@ -6,14 +6,10 @@ import { useRoute } from "vue-router";
 import ItemPageFrame from "@/components/common/ItemPageFrame.vue";
 import { downloadFrom, openFileTab } from "@/services/file-link.ts";
 import { loadData } from "@/services/load-data.ts";
+import { itemFileLinkPath, itemFilePath, itemFilesPath } from "@/services/production.ts";
 import { apiFetch, canChange } from "@/services/sign-in.ts";
 import { icons } from "@/utils/icons.ts";
-import {
-  type FilesDepartment,
-  itemFileLinkPath,
-  itemFilePath,
-  itemFilesPath,
-} from "@/utils/item-files.ts";
+import type { FilesDepartment } from "@/utils/item-files.ts";
 import { fileIconOf, fileLabel, fileSize, opensInBrowser, sortFiles } from "@/utils/scenery.ts";
 import FileUpload from "./FileUpload.vue";
 

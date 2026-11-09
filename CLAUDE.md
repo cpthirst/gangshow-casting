@@ -48,7 +48,7 @@ pnpm --filter <pkg> exec vitest run <file> -t "<name>"   # one test
 | Path | What | Notes |
 |---|---|---|
 | `apps/web` | Vue 3 + Vite SPA | `src/` by kind (ADR 0025): `pages/` (one per route), `components/{app,common,show,casting}`, `services/` (calls the API or browser), `utils/` (plain logic), `router/`, `assets/`, `composables/`, `directives/`. Vitest + `@vue/test-utils` + happy-dom; Playwright layout tests in `e2e/` |
-| `apps/api` | Lambda-shaped handlers, no framework | One handler per route, listed in `routes.ts`; `dev-server.ts` (node:http) runs them locally (ADR 0006). `src/` by area (ADR 0028): `show/{cast,running-order}`, `casting/{roles,casting-grid}`, `production/props`, `item-notes`, `accounts`, `usage`, plus `http/`, `storage/` and `cli/` |
+| `apps/api` | Lambda-shaped handlers, no framework | One handler per route, listed in `routes.ts`; `dev-server.ts` (node:http) runs them locally (ADR 0006). `src/` by area (ADR 0028): `show/{cast,running-order}`, `casting/{roles,casting-grid}`, `production/props`, `item-notes`, `production-list`, `accounts`, `usage`, plus `http/`, `storage/` and `cli/` |
 | `packages/shared` | zod schemas + inferred types | The API contract. Imported from source, no build step |
 | `infra` | CDK v2 app, one `AppStack` | Run directly by Node (`cdk.json`); add resources as stories need them |
 | `tooling` | Repo scripts | `demo.ts` runs `pnpm demo`; `release.ts` runs `pnpm release`; harness tests |

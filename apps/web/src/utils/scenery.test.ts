@@ -1,13 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { sceneryFileLinkPath, sceneryFilesPath } from "@/services/production.ts";
 import { icons } from "./icons.ts";
-import {
-  fileIconOf,
-  fileLabel,
-  fileSize,
-  sceneryFileLinkPath,
-  sceneryFilesPath,
-  sortFiles,
-} from "./scenery.ts";
+import { fileIconOf, fileLabel, fileSize, sortFiles } from "./scenery.ts";
 
 describe("sceneryFilesPath", () => {
   it("is the item's files in the production", () => {

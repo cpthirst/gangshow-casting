@@ -14,11 +14,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory } from "vue-router";
 import App from "@/App.vue";
 import { createAppRouter } from "@/router/index.ts";
+import { castPath, itemNotesPath, rolesPath } from "@/services/production.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
-import { CAST_PATH } from "@/utils/cast.ts";
-import { ITEM_NOTES_PATH } from "@/utils/item-notes.ts";
-import { ROLES_PATH } from "@/utils/roles.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
 
 enableAutoUnmount(afterEach);
@@ -61,8 +59,8 @@ function savedRunningOrderIs(order: RunningOrder, roles: Role[] = [], notes: Ite
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init?: RequestInit) => {
-      if (url === ROLES_PATH) return json({ productionId: "2027", roles: stored });
-      if (url === ITEM_NOTES_PATH) return json({ productionId: "2027", notes });
+      if (url === rolesPath()) return json({ productionId: "2027", roles: stored });
+      if (url === itemNotesPath()) return json({ productionId: "2027", notes });
       const notesOf = /\/items\/([^/]+)\/notes$/.exec(url)?.[1];
       if (notesOf && init?.method === "PUT") {
         const { text, revision } = SaveItemNoteRequest.parse(JSON.parse(String(init.body)));
@@ -73,7 +71,7 @@ function savedRunningOrderIs(order: RunningOrder, roles: Role[] = [], notes: Ite
         else notes[index] = saved;
         return json(saved);
       }
-      if (url === CAST_PATH) return json({ productionId: "2027", members: theCast });
+      if (url === castPath()) return json({ productionId: "2027", members: theCast });
       const addTo = /\/items\/([^/]+)\/roles$/.exec(url)?.[1];
       if (addTo && init?.method === "POST") {
         const details = AddRoleRequest.parse(JSON.parse(String(init.body)));
@@ -294,7 +292,7 @@ describe("Casting item page", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: string) =>
-        url === ROLES_PATH
+        url === rolesPath()
           ? json({ productionId: "2027", roles: [] })
           : new Response(null, { status: 404 }),
       ),
@@ -468,7 +466,7 @@ describe("Adding roles to an item", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: string) =>
-        url === ROLES_PATH ? new Response(null, { status: 500 }) : json(show),
+        url === rolesPath() ? new Response(null, { status: 500 }) : json(show),
       ),
     );
     const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
@@ -481,7 +479,7 @@ describe("Adding roles to an item", () => {
     savedRunningOrderIs(show);
     const answer = vi.mocked(fetch).getMockImplementation();
     vi.mocked(fetch).mockImplementation(async (url, init) =>
-      url === ROLES_PATH
+      url === rolesPath()
         ? new Response(null, { status: 404 })
         : (answer?.(url, init) ?? json(show)),
     );
@@ -1701,7 +1699,7 @@ describe("Clashes on an item's page", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: string, init?: RequestInit) =>
-        url === CAST_PATH ? new Response(null, { status: 500 }) : fetchShow(url, init),
+        url === castPath() ? new Response(null, { status: 500 }) : fetchShow(url, init),
       ),
     );
     const { wrapper } = await openAppAt("/casting/items/pirate-sketch");

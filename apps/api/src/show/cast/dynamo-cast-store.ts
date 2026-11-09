@@ -82,6 +82,17 @@ export function dynamoCastStore(db: DynamoDBDocumentClient, tableName: string): 
       return parsed.data;
     },
 
+    async start(productionId) {
+      await db.send(
+        new UpdateCommand({
+          TableName: tableName,
+          Key: { pk: partitionFor(productionId), sk: META },
+          UpdateExpression: "SET castNextId = if_not_exists(castNextId, :first)",
+          ExpressionAttributeValues: { ":first": 1 },
+        }),
+      );
+    },
+
     async add(productionId, details) {
       const id = await takeNextId(productionId);
       if (id === undefined) return undefined;

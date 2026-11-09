@@ -71,6 +71,15 @@ describe("Help page", () => {
     expect(router.currentRoute.value.name).toBe("running-order");
   });
 
+  it("has a Productions section saying starting one is for admins, linking to its page", async () => {
+    const { wrapper, router } = await openHelp();
+
+    const section = wrapper.get("[aria-labelledby=help-productions]");
+    expect(section.text()).toContain("Add production");
+    expect(section.text()).toContain("Admins only");
+    expect(await followLink(wrapper, router, "productions")).toBe("productions");
+  });
+
   it("explains each of the Running order's actions in one line", async () => {
     const { wrapper } = await openHelp();
 
@@ -292,6 +301,7 @@ describe("Help page", () => {
         "An item's SFX",
         "An item's mic plot",
         "An item's wardrobe",
+        "Productions",
         "Permissions",
       ]);
       for (const page of ["scenery-item", "sfx-item", "mic-plot-item", "wardrobe-item"]) {

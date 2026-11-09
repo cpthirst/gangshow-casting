@@ -2,7 +2,7 @@
 id: simplify.E5.S4
 title: Let an admin delete a past production for good
 epic: E5
-status: draft
+status: done
 ---
 
 ## Story
@@ -51,6 +51,12 @@ Given productions 2026, 2027 and 2028
 When an admin deletes 2026
 Then 2027 and 2028 are unchanged, and nobody's access changes
 
+### AC9: A delete that stopped part way can be finished
+Given deleting 2027 stopped part way, as a timeout would leave it
+When an admin opens the Productions page
+Then 2027 is shown as not finished, nobody can open it, and the admin can only delete it again
+And when the admin confirms deleting it again, the rest of it goes and 2027 is no longer listed
+
 ## Notes
 
 - FRs: FR22, FR23
@@ -58,3 +64,4 @@ Then 2027 and 2028 are unchanged, and nobody's access changes
 - AC2's backup window: the data table's point-in-time recovery keeps 7 days (`infra/lib/app-stack.ts`). The ADR settles the files bucket's window, and the confirmation names whichever is longer.
 - AC7: usage records hold the adult team's use of the app, not cast data (ADR 0023), so they expire on their own schedule (PRD FR22).
 - Deleting files touches the files bucket (ADR 0030, 0032): run `infra-reviewer` if infra changes.
+- Decision: [ADR 0037](../../../adr/0037-delete-a-past-production-marked-then-repeatable.md).

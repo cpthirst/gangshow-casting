@@ -3,9 +3,9 @@ import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory } from "vue-router";
 import { createAppRouter } from "@/router/index.ts";
+import { runningOrderPath } from "@/services/production.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
-import { RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
 import UsagePage from "./UsagePage.vue";
 
 enableAutoUnmount(afterEach);
@@ -33,7 +33,7 @@ function serve(
     vi.fn(async (url: string) => {
       // A copy each time: the page asks again whenever the range changes.
       if (url === "/api/accounts") return accountList.clone();
-      if (url === RUNNING_ORDER_PATH) {
+      if (url === runningOrderPath()) {
         if (order === "unavailable") return json({}, 500);
         return order ? json(order) : json({}, 404);
       }

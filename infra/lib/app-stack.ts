@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import {
   ADMIN_GROUP,
+  BACKUP_WINDOW_DAYS,
   CASTING_GROUP,
   DIRECTOR_GROUP,
   isAccountRoute,
@@ -89,7 +90,7 @@ export class AppStack extends Stack {
       // 7 days, so data deleted in the app is gone from every copy within a week (ADR 0010).
       pointInTimeRecoverySpecification: {
         pointInTimeRecoveryEnabled: true,
-        recoveryPeriodInDays: 7,
+        recoveryPeriodInDays: BACKUP_WINDOW_DAYS,
       },
       // The only copy of the show's data: deleting it must be a separate, deliberate step.
       removalPolicy: RemovalPolicy.RETAIN,

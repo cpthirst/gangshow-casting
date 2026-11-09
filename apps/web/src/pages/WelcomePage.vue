@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import logo from "@/assets/logo.jpg";
+import { isAdmin } from "@/services/sign-in.ts";
 </script>
 
 <template>
@@ -19,8 +20,9 @@ import logo from "@/assets/logo.jpg";
   <section class="welcome-areas" aria-labelledby="welcome-areas-heading">
     <h2 id="welcome-areas-heading">Where to find things</h2>
     <p>
-      Use the menu to move around. It has three areas: choose one below to go to its first page.
-      Help and, for admins, Accounts and Usage sit beside them.
+      Use the menu to move around. It has the areas below: choose one to go to its first page.
+      Help sits beside them. You open the newest production. To look back at an older one, which
+      you can view but not change, choose it under the year.
     </p>
     <dl>
       <dt>
@@ -59,6 +61,19 @@ import logo from "@/assets/logo.jpg";
         Wardrobe lets someone change that department's pages, and Director lets them change
         every department's.
       </dd>
+      <template v-if="isAdmin">
+        <dt>
+          <!-- The first page in the group: the menu opens the group when it arrives. -->
+          <RouterLink :to="{ name: 'accounts' }" data-test="area-admin">Admin</RouterLink>
+        </dt>
+        <dd>
+          Looking after iCUE: the team's sign-in
+          <RouterLink :to="{ name: 'accounts' }">Accounts</RouterLink>, the
+          <RouterLink :to="{ name: 'productions' }">Productions</RouterLink> by year, and
+          <RouterLink :to="{ name: 'usage' }">Usage</RouterLink>, showing who on the team uses iCUE
+          and how often.
+        </dd>
+      </template>
     </dl>
   </section>
 </template>

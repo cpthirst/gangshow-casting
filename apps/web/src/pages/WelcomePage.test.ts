@@ -2,6 +2,7 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createMemoryHistory } from "vue-router";
 import { createAppRouter, isMenuGroup, menuPages } from "@/router/index.ts";
+import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
 import WelcomePage from "./WelcomePage.vue";
 
@@ -17,6 +18,46 @@ async function openWelcome() {
 beforeEach(useLocalSignIn);
 
 describe("Welcome page", () => {
+  it("describes the Admin area's pages to an admin, and links to each", async () => {
+    await signInAs(["admin"]);
+
+    const { wrapper } = await openWelcome();
+
+    const terms = wrapper.findAll("dt").map((term) => term.text());
+    expect(terms).toEqual(["Show", "Casting", "Production", "Admin"]);
+    const admin = wrapper.findAll("dd")[3];
+    expect(admin?.findAll("a").map((link) => [link.text(), link.attributes("href")])).toEqual([
+      ["Accounts", "/admin/accounts"],
+      ["Productions", "/admin/productions"],
+      ["Usage", "/admin/usage"],
+    ]);
+  });
+
+  it.each([[["casting", "stage", "tech", "wardrobe", "director"]], [["read-only"]], [[]]])(
+    "leaves the Admin area out for a team member in %j",
+    async (groups) => {
+      await signInAs(groups);
+
+      const { wrapper } = await openWelcome();
+
+      expect(wrapper.findAll("dt").map((term) => term.text())).toEqual([
+        "Show",
+        "Casting",
+        "Production",
+      ]);
+      expect(wrapper.find("[data-test=area-admin]").exists()).toBe(false);
+      expect(wrapper.get(".welcome-areas").text()).not.toContain("Accounts");
+    },
+  );
+
+  it("says what sits beside the areas, once, and no fixed count of them", async () => {
+    const { wrapper } = await openWelcome();
+
+    const guide = wrapper.get(".welcome-areas p").text().replace(/\s+/g, " ");
+    expect(guide).toContain("Help sits beside them.");
+    expect(guide).not.toMatch(/Admin|three areas/);
+  });
+
   it("shows the logo above a Welcome heading and a short introduction to the app", async () => {
     const { wrapper } = await openWelcome();
 
@@ -35,6 +76,8 @@ describe("Welcome page", () => {
   });
 
   it("explains what is under Show, Production and Casting, and points to the menu", async () => {
+    await signInAs(["casting"]);
+
     const { wrapper } = await openWelcome();
 
     expect(wrapper.get("section.welcome-areas").text()).toContain("Use the menu");
@@ -83,6 +126,7 @@ describe("Welcome page", () => {
     ["show", "running-order"],
     ["casting", "casting-overview"],
     ["production", "production-overview"],
+    ["admin", "accounts"],
   ])("takes the %s area's name to the first page in that menu group", async (area, first) => {
     const { wrapper, router } = await openWelcome();
     const group = menuPages.find((entry) => isMenuGroup(entry) && entry.name === area);

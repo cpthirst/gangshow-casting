@@ -1,7 +1,4 @@
 import { type CastMember, CastMemberDetails, type GridSection, type Section } from "@app/shared";
-import { PRODUCTION_PATH } from "./production.ts";
-
-export const CAST_PATH = `${PRODUCTION_PATH}/cast`;
 
 const sectionNames: Record<Section, GridSection> = {
   scouts: "Scouts",

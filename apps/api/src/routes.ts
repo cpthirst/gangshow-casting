@@ -19,6 +19,9 @@ import { createAddProp } from "#/production/props/add-prop.ts";
 import { createGetProps } from "#/production/props/get-props.ts";
 import { createRemoveProp } from "#/production/props/remove-prop.ts";
 import { createUpdateProp } from "#/production/props/update-prop.ts";
+import { createDeleteProduction } from "#/production-list/delete-production.ts";
+import { createGetProductions } from "#/production-list/get-productions.ts";
+import { createStartProduction } from "#/production-list/start-production.ts";
 import { createAddCastMember } from "#/show/cast/add-cast-member.ts";
 import { createDeleteCastMember } from "#/show/cast/delete-cast-member.ts";
 import { createGetCast } from "#/show/cast/get-cast.ts";
@@ -58,10 +61,14 @@ export function createRoutes(
     wardrobeNotes,
     micPlots,
     micPlotNotes,
+    productions,
   } = stores;
   const { scenery: sceneryFiles, sfx: sfxFiles, wardrobe: wardrobeFiles } = files;
   return {
     "GET /api/health": health,
+    "GET /api/productions": createGetProductions(productions),
+    "POST /api/productions": createStartProduction(stores),
+    "DELETE /api/productions/{productionId}": createDeleteProduction(stores, files),
     "GET /api/productions/{productionId}/running-order": createGetRunningOrder(runningOrders),
     "POST /api/productions/{productionId}/running-order/versions": createSaveRunningOrder(
       runningOrders,
@@ -177,6 +184,9 @@ export const dataLocation = `${where}; ${files.where}`;
 
 /** The local item files' folder, which the dev server serves; undefined with a bucket. */
 export const localFilesFolder = files.folder;
+
+/** The list of productions the routes act on, for the entry points' refusals (http/access.ts). */
+export const productions = stores.productions;
 
 /** The routes on the data the environment names (data-stores.ts). */
 export const routes = createRoutes(stores, usageStore(), files.stores);

@@ -18,6 +18,13 @@ import PageTitle from "@/components/common/PageTitle.vue";
 import { downloadMicPlot } from "@/services/excel-export.ts";
 import { latestMicPlot, latestPropsList } from "@/services/latest-show.ts";
 import { loadData, loadRequired } from "@/services/load-data.ts";
+import {
+  departmentNotesPath,
+  fileCountsPath,
+  micPlotPath,
+  propsPath,
+  runningOrderPath,
+} from "@/services/production.ts";
 import { canChange } from "@/services/sign-in.ts";
 import { recordExport } from "@/services/usage.ts";
 import { downloadPropsList } from "@/services/word-export.ts";
@@ -29,11 +36,9 @@ import {
   listed,
 } from "@/utils/departments.ts";
 import { icons } from "@/utils/icons.ts";
-import { fileCountsPath } from "@/utils/item-files.ts";
-import { departmentNotesPath } from "@/utils/item-notes.ts";
-import { keptMicsSummary, MIC_PLOT_PATH, micsCount } from "@/utils/mic-plot.ts";
-import { PROPS_PATH, propCounts, propsCount } from "@/utils/props.ts";
-import { RUNNING_ORDER_PATH, runningClock } from "@/utils/running-order.ts";
+import { keptMicsSummary, micsCount } from "@/utils/mic-plot.ts";
+import { propCounts, propsCount } from "@/utils/props.ts";
+import { runningClock } from "@/utils/running-order.ts";
 
 // Production's one page: the show's items, each with a button for every department's page
 // for it and a count for each department (production-overview FR4–FR8, FR10, FR14), laid out
@@ -226,7 +231,7 @@ async function loadNotes(path: string): Promise<Notes> {
 
 async function loadProps() {
   try {
-    propsCountOf.value = propCounts((await loadRequired(PROPS_PATH, PropList)).props);
+    propsCountOf.value = propCounts((await loadRequired(propsPath(), PropList)).props);
   } catch {
     propsCountOf.value = "error";
   }
@@ -234,7 +239,7 @@ async function loadProps() {
 
 async function loadMicPlots() {
   try {
-    micPlots.value = (await loadRequired(MIC_PLOT_PATH, MicPlotList)).items;
+    micPlots.value = (await loadRequired(micPlotPath(), MicPlotList)).items;
   } catch {
     micPlots.value = "error";
   }
@@ -253,7 +258,7 @@ async function loadFileCounts(department: FileDepartment): Promise<Counts> {
 async function loadRunningOrder() {
   try {
     // The latest saved version, as on the casting Items list.
-    const order = await loadData(RUNNING_ORDER_PATH, RunningOrder);
+    const order = await loadData(runningOrderPath(), RunningOrder);
     state.value = order ? { status: "loaded", order } : { status: "empty" };
   } catch {
     // A failed load must never look like "no running order yet".

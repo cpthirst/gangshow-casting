@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { canChange } from "@/services/sign-in.ts";
+import { isOpenProductionChangeable } from "@/services/production.ts";
+import { hasAccessToChange } from "@/services/sign-in.ts";
 import { helpFor } from "@/utils/help.ts";
 import HelpButton from "./HelpButton.vue";
 
 // Every page's title row: its title, a View only badge for someone who can't change the page
-// (simplify FR10), and its Help button. The page's Help says who may change it.
+// or on any page about a past production (simplify FR10, FR21), and its Help button. The page's Help says who may change it.
 // helpLabel and helpTitle name the button and dialog for a page whose own title changes.
 const props = defineProps<{
   title: string;
@@ -14,8 +15,13 @@ const props = defineProps<{
   helpTitle?: string;
 }>();
 
-const changedBy = computed(() => helpFor(props.help).changedBy);
-const viewOnly = computed(() => changedBy.value !== undefined && !canChange(changedBy.value));
+const page = computed(() => helpFor(props.help));
+const viewOnly = computed(() => {
+  const { changedBy, acrossProductions } = page.value;
+  // Everything about a past production is view only, even a page no one can change anyway.
+  if (!acrossProductions && !isOpenProductionChangeable()) return true;
+  return changedBy !== undefined && !hasAccessToChange(changedBy);
+});
 </script>
 
 <template>

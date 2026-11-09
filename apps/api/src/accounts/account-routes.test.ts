@@ -1,5 +1,6 @@
 import { AccountList, accountRouteKeys } from "@app/shared";
 import { describe, expect, it } from "vitest";
+import { noProductions } from "#/http/access.ts";
 import { lambdaEntry } from "#/http/lambda-entry.ts";
 import { aTeamDirectory } from "./account.fixture.ts";
 import { createAccountRoutes } from "./account-routes.ts";
@@ -17,7 +18,10 @@ const signedIn = (method: string, groups: string, body?: string) => ({
 
 function setUp() {
   const { directory, accounts } = memoryUserDirectory();
-  const api = lambdaEntry(createAccountRoutes(directory, () => "Made-up-temp-1"));
+  const api = lambdaEntry(
+    createAccountRoutes(directory, () => "Made-up-temp-1"),
+    noProductions,
+  );
   return { api, accounts };
 }
 
@@ -83,7 +87,13 @@ describe("changing an account through the account routes", () => {
   });
   const setUp = () => {
     const { directory, accounts } = aTeamDirectory();
-    return { api: lambdaEntry(createAccountRoutes(directory, () => "Made-up-temp-1")), accounts };
+    return {
+      api: lambdaEntry(
+        createAccountRoutes(directory, () => "Made-up-temp-1"),
+        noProductions,
+      ),
+      accounts,
+    };
   };
 
   it("refuses a non-admin's reset, disable or enable with 403, changing nothing", async () => {
