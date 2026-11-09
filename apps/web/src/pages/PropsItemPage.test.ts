@@ -16,12 +16,12 @@ import App from "@/App.vue";
 import { createAppRouter } from "@/router/index.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
-import { CAST_PATH } from "@/utils/cast.ts";
-import { departmentNotesPath, ITEM_NOTES_PATH } from "@/utils/item-notes.ts";
-import { PROPS_PATH } from "@/utils/props.ts";
-import { ROLES_PATH } from "@/utils/roles.ts";
+import { castPath } from "@/utils/cast.ts";
+import { departmentNotesPath, itemNotesPath } from "@/utils/item-notes.ts";
+import { propsPath } from "@/utils/props.ts";
+import { rolesPath } from "@/utils/roles.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
-import { RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
+import { runningOrderPath } from "@/utils/running-order.ts";
 
 enableAutoUnmount(afterEach);
 // As on pnpm dev: everyone acts as an admin, unless a test signs someone in.
@@ -73,13 +73,13 @@ function savedShowIs(
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init?: RequestInit) => {
-      if (url === RUNNING_ORDER_PATH) {
+      if (url === runningOrderPath()) {
         return order ? json(order) : new Response(null, { status: 404 });
       }
-      if (url === PROPS_PATH) return json({ productionId: "2027", props: stored });
+      if (url === propsPath()) return json({ productionId: "2027", props: stored });
       if (url === departmentNotesPath("props")) return json({ productionId: "2027", notes: [] });
-      if (url === ROLES_PATH) return json({ productionId: "2027", roles: casting.roles });
-      if (url === CAST_PATH) return json({ productionId: "2027", members: casting.cast });
+      if (url === rolesPath()) return json({ productionId: "2027", roles: casting.roles });
+      if (url === castPath()) return json({ productionId: "2027", members: casting.cast });
       const addTo = /\/items\/([^/]+)\/props$/.exec(url)?.[1];
       if (addTo && init?.method === "POST") {
         const details = AddPropRequest.parse(JSON.parse(String(init.body)));
@@ -527,7 +527,7 @@ describe("Props notes", () => {
     const answer = fetch.getMockImplementation();
     fetch.mockImplementation(async (url, init) => {
       if (url === departmentNotesPath("props")) return json({ productionId: "2027", notes: props });
-      if (url === ITEM_NOTES_PATH) return json({ productionId: "2027", notes: casting });
+      if (url === itemNotesPath()) return json({ productionId: "2027", notes: casting });
       const notesOf = /\/items\/([^/]+)\/props-notes$/.exec(String(url))?.[1];
       if (notesOf && init?.method === "PUT") {
         const { text, revision } = SaveItemNoteRequest.parse(JSON.parse(String(init.body)));

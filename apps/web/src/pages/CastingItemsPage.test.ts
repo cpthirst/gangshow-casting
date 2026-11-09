@@ -5,11 +5,11 @@ import { createMemoryHistory } from "vue-router";
 import { createAppRouter } from "@/router/index.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
-import { CAST_PATH } from "@/utils/cast.ts";
-import { ITEM_NOTES_PATH } from "@/utils/item-notes.ts";
-import { ROLES_PATH } from "@/utils/roles.ts";
+import { castPath } from "@/utils/cast.ts";
+import { itemNotesPath } from "@/utils/item-notes.ts";
+import { rolesPath } from "@/utils/roles.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
-import { RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
+import { runningOrderPath } from "@/utils/running-order.ts";
 import CastingItemsPage from "./CastingItemsPage.vue";
 
 enableAutoUnmount(afterEach);
@@ -25,11 +25,11 @@ function savedRunningOrderIs(
   notes: ItemNote[] = [],
 ) {
   const fetch = vi.fn(async (url: string) => {
-    if (url === ROLES_PATH) return new Response(JSON.stringify({ productionId: "2027", roles }));
-    if (url === ITEM_NOTES_PATH) {
+    if (url === rolesPath()) return new Response(JSON.stringify({ productionId: "2027", roles }));
+    if (url === itemNotesPath()) {
       return new Response(JSON.stringify({ productionId: "2027", notes }));
     }
-    if (url === CAST_PATH) {
+    if (url === castPath()) {
       return new Response(JSON.stringify({ productionId: "2027", members: cast }));
     }
     return new Response(JSON.stringify(order));
@@ -183,7 +183,7 @@ describe("Casting items page", () => {
     const wrapper = await openItemsPage();
 
     // One read of the saved version (the roles are fetched separately, for the counts).
-    expect(fetch.mock.calls.filter(([url]) => url === RUNNING_ORDER_PATH)).toHaveLength(1);
+    expect(fetch.mock.calls.filter(([url]) => url === runningOrderPath())).toHaveLength(1);
     expect(titlesIn(wrapper, "First half")).toEqual(["Opening Number", "Pirate Sketch"]);
   });
 
@@ -351,7 +351,7 @@ describe("Casting items page role counts", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: string) =>
-        url === ROLES_PATH
+        url === rolesPath()
           ? new Response(null, { status: 500 })
           : new Response(JSON.stringify(show)),
       ),
@@ -457,8 +457,8 @@ describe("Clashes on the Items list", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: string) => {
-        if (url === ROLES_PATH) return new Response(null, { status: 500 });
-        if (url === CAST_PATH) {
+        if (url === rolesPath()) return new Response(null, { status: 500 });
+        if (url === castPath()) {
           return new Response(JSON.stringify({ productionId: "2027", members: theCast }));
         }
         return new Response(JSON.stringify(show));
@@ -475,7 +475,7 @@ describe("Clashes on the Items list", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: string) =>
-        url === CAST_PATH ? new Response(null, { status: 500 }) : answer(url),
+        url === castPath() ? new Response(null, { status: 500 }) : answer(url),
       ),
     );
     const wrapper = await openItemsPage();
@@ -528,7 +528,7 @@ describe("Notes on the Items list", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: string) =>
-        url === ITEM_NOTES_PATH ? new Response(null, { status: 500 }) : answer(url),
+        url === itemNotesPath() ? new Response(null, { status: 500 }) : answer(url),
       ),
     );
     const wrapper = await openItemsPage();

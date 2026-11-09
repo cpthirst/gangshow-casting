@@ -530,6 +530,16 @@ describe("AppStack", () => {
       }
     });
 
+    it("refuses anyone not signed in who asks for the list of productions", () => {
+      const routes = resourcesOfType(synth().template, "AWS::ApiGatewayV2::Route");
+      const list = routes.find((r) => r.Properties.RouteKey === "GET /api/productions");
+
+      expect(list?.Properties).toMatchObject({
+        AuthorizationType: "JWT",
+        AuthorizerId: { Ref: expect.stringMatching(/TeamSignIn/) },
+      });
+    });
+
     it("limits requests to 20 a second, with bursts of up to 40", () => {
       synth().template.hasResourceProperties("AWS::ApiGatewayV2::Stage", {
         StageName: "$default",

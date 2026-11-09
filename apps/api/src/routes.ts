@@ -19,6 +19,7 @@ import { createAddProp } from "#/production/props/add-prop.ts";
 import { createGetProps } from "#/production/props/get-props.ts";
 import { createRemoveProp } from "#/production/props/remove-prop.ts";
 import { createUpdateProp } from "#/production/props/update-prop.ts";
+import { createGetProductions } from "#/production-list/get-productions.ts";
 import { createAddCastMember } from "#/show/cast/add-cast-member.ts";
 import { createDeleteCastMember } from "#/show/cast/delete-cast-member.ts";
 import { createGetCast } from "#/show/cast/get-cast.ts";
@@ -58,10 +59,12 @@ export function createRoutes(
     wardrobeNotes,
     micPlots,
     micPlotNotes,
+    productions,
   } = stores;
   const { scenery: sceneryFiles, sfx: sfxFiles, wardrobe: wardrobeFiles } = files;
   return {
     "GET /api/health": health,
+    "GET /api/productions": createGetProductions(productions),
     "GET /api/productions/{productionId}/running-order": createGetRunningOrder(runningOrders),
     "POST /api/productions/{productionId}/running-order/versions": createSaveRunningOrder(
       runningOrders,

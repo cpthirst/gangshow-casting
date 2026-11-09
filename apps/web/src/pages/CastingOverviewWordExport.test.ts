@@ -6,10 +6,10 @@ import App from "@/App.vue";
 import { createAppRouter } from "@/router/index.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
-import { CAST_PATH } from "@/utils/cast.ts";
-import { ROLES_PATH } from "@/utils/roles.ts";
+import { castPath } from "@/utils/cast.ts";
+import { rolesPath } from "@/utils/roles.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
-import { RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
+import { runningOrderPath } from "@/utils/running-order.ts";
 import { documentXml, outline, readDocx } from "@/utils/word/docx.fixture.ts";
 
 // The Overview's Word exports (casting-overview-by-item E2, ADR 0022). Made-up names only:
@@ -70,16 +70,16 @@ beforeEach(() => {
     "fetch",
     vi.fn(async (url: string) => {
       if (url === "/api/usage" && api.usageFails) throw new TypeError("fetch failed");
-      if (url === ROLES_PATH) {
+      if (url === rolesPath()) {
         await api.holdRoles;
         return api.rolesStatus === 200
           ? new Response(JSON.stringify({ productionId: "2027", roles: api.roles }))
           : new Response(null, { status: api.rolesStatus });
       }
-      if (url === CAST_PATH) {
+      if (url === castPath()) {
         return new Response(JSON.stringify({ productionId: "2027", members: api.cast }));
       }
-      if (url === RUNNING_ORDER_PATH) return new Response(JSON.stringify(show));
+      if (url === runningOrderPath()) return new Response(JSON.stringify(show));
       return new Response(JSON.stringify({ status: "ok", version: "dev" }));
     }),
   );

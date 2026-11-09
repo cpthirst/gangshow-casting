@@ -8,7 +8,7 @@ import { canChange } from "@/services/sign-in.ts";
 import { recordDepartmentPageUse } from "@/services/usage.ts";
 import { itemRouteOf } from "@/utils/departments.ts";
 import { departmentNotesPath, saveDepartmentNotesPath } from "@/utils/item-notes.ts";
-import { neighboursOf, placeOf, positionOf, RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
+import { neighboursOf, placeOf, positionOf, runningOrderPath } from "@/utils/running-order.ts";
 import ItemNotes from "./ItemNotes.vue";
 import ItemStepNav from "./ItemStepNav.vue";
 import PageTitle from "./PageTitle.vue";
@@ -72,7 +72,7 @@ async function open(id: string) {
   try {
     // No saved running order at all: no item can be in it.
     const [loadedOrder, showData] = await Promise.all([
-      loadData(RUNNING_ORDER_PATH, RunningOrder),
+      loadData(runningOrderPath(), RunningOrder),
       props.load(id),
     ]);
     // Stepped on to another item while this one loaded: that load shows instead.

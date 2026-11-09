@@ -118,6 +118,12 @@ body {
   line-height: 1.2;
 }
 
+/* Which year's show every page is about. */
+.production-year {
+  margin: -1rem 1.5rem 1.5rem;
+  font-weight: 700;
+}
+
 /* Stands out on every page, so the demo can't be mistaken for the real show. */
 .demo-label {
   margin: -1rem 1.5rem 1.5rem;
@@ -2329,6 +2335,13 @@ main a {
 
   .step-link {
     justify-content: center;
+  }
+
+  /* Its own line under the wordmark and Menu button. */
+  .production-year {
+    order: 1;
+    flex-basis: 100%;
+    margin: 0;
   }
 
   /* Its own line under the wordmark and Menu button. */

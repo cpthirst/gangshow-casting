@@ -6,6 +6,7 @@ import HealthStatus from "@/components/app/HealthStatus.vue";
 import LocalAccessSwitch from "@/components/app/LocalAccessSwitch.vue";
 import MainMenu from "@/components/app/MainMenu.vue";
 import { useMediaQuery } from "@/composables/useMediaQuery.ts";
+import { useOpenProduction } from "@/composables/useOpenProduction.ts";
 import { showPageTitle } from "@/router/index.ts";
 import {
   isHosted,
@@ -32,6 +33,7 @@ const main = ref<HTMLElement>();
 const menuButton = ref<HTMLButtonElement>();
 const isPhone = useMediaQuery(PHONE_QUERY);
 const isMenuOpen = ref(false);
+const { year, failed: productionFailed } = useOpenProduction();
 
 // A menu left open on a phone shouldn't reappear after a rotate or resize.
 watch(isPhone, closeMenu);
@@ -110,6 +112,7 @@ function onEscape() {
           <span class="wordmark-tagline">Show Management App</span>
         </p>
       </div>
+      <p v-if="year" class="production-year" data-test="production-year">Gang Show {{ year }}</p>
       <p v-if="isDemo" class="demo-label" data-test="demo-label">
         Demo data: a made-up show, reset each time the demo starts
       </p>
@@ -154,6 +157,8 @@ function onEscape() {
           </button>
         </div>
       </template>
+      <p v-else-if="productionFailed" role="alert">Couldn't load the productions.</p>
+      <p v-else-if="!year">Loading…</p>
       <RouterView v-else />
     </main>
   </div>

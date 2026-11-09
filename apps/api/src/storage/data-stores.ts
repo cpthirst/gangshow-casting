@@ -32,6 +32,8 @@ import { dynamoMicPlotStore } from "#/production/mic-plot/dynamo-mic-plot-store.
 import { fileMicPlotStore } from "#/production/mic-plot/mic-plot-store.ts";
 import { dynamoPropStore } from "#/production/props/dynamo-prop-store.ts";
 import { filePropStore } from "#/production/props/prop-store.ts";
+import { dynamoProductionListStore } from "#/production-list/dynamo-production-list-store.ts";
+import { fileProductionListStore } from "#/production-list/production-list-store.ts";
 import { fileCastStore } from "#/show/cast/cast-store.ts";
 import { dynamoCastStore } from "#/show/cast/dynamo-cast-store.ts";
 import { dynamoRemoveCastMember } from "#/show/cast/dynamo-remove-cast-member.ts";
@@ -85,6 +87,7 @@ export function fileStores(dataDir: string) {
     wardrobeNotes: fileItemNoteStore(dataDir, WARDROBE_NOTES_FILE),
     micPlotNotes: fileItemNoteStore(dataDir, MIC_PLOT_NOTES_FILE),
     micPlots: fileMicPlotStore(dataDir),
+    productions: fileProductionListStore(dataDir),
   };
 }
 
@@ -106,14 +109,16 @@ export function remoteStores(db: DynamoDBDocumentClient, table: string): Stores 
     wardrobeNotes: dynamoItemNoteStore(db, table, WARDROBE_NOTE),
     micPlotNotes: dynamoItemNoteStore(db, table, MIC_PLOT_NOTE),
     micPlots: dynamoMicPlotStore(db, table),
+    productions: dynamoProductionListStore(db, table),
   };
 }
 
-/** The stores that hold the show's data rather than an item's: everything else is per item. */
+/** The stores not kept per item: everything else is. */
 export const showWideStores = [
   "runningOrders",
   "cast",
   "removeCastMember",
+  "productions",
 ] as const satisfies readonly (keyof Stores)[];
 
 /**

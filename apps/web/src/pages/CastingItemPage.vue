@@ -16,7 +16,7 @@ import ClashIcon from "@/components/common/ClashIcon.vue";
 import ItemPageFrame from "@/components/common/ItemPageFrame.vue";
 import { loadData } from "@/services/load-data.ts";
 import { apiFetch, canChange } from "@/services/sign-in.ts";
-import { CAST_PATH } from "@/utils/cast.ts";
+import { castPath } from "@/utils/cast.ts";
 import { clashesOf, describeEach, findClashes } from "@/utils/clashes.ts";
 import { icons } from "@/utils/icons.ts";
 import {
@@ -25,9 +25,9 @@ import {
   castOf,
   fullName,
   nameTakenMessage,
-  ROLES_PATH,
   removeRolePath,
   roleSizeLabel,
+  rolesPath,
   sortRoles,
   updateRolePath,
 } from "@/utils/roles.ts";
@@ -72,8 +72,8 @@ const takenNames = computed(() => ({
 // list yet just means there are none.
 async function loadCasting() {
   const [loadedRoles, loadedCast] = await Promise.all([
-    loadData(ROLES_PATH, RoleList),
-    loadData(CAST_PATH, CastList),
+    loadData(rolesPath(), RoleList),
+    loadData(castPath(), CastList),
   ]);
   return (loadedOrder: RunningOrder) => {
     order.value = loadedOrder;
@@ -190,7 +190,7 @@ async function sendRemove(role: Role) {
 
 async function loadRoles() {
   try {
-    const list = await loadData(ROLES_PATH, RoleList);
+    const list = await loadData(rolesPath(), RoleList);
     if (list) roles.value = list.roles;
   } catch {
     // Keep what's shown; the notice still says it may be out of date.

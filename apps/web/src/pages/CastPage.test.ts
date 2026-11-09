@@ -9,7 +9,7 @@ import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
-import { ROLES_PATH } from "@/utils/roles.ts";
+import { rolesPath } from "@/utils/roles.ts";
 import CastPage from "./CastPage.vue";
 
 enableAutoUnmount(afterEach);
@@ -587,7 +587,7 @@ describe("Cast page", () => {
       vi.stubGlobal(
         "fetch",
         vi.fn(async (url: string, init?: RequestInit) => {
-          if (url === ROLES_PATH)
+          if (url === rolesPath())
             return new Response(JSON.stringify({ productionId: "2027", roles }));
           if (init?.method !== "DELETE") return new Response(JSON.stringify(list));
           deletes.push(url);
@@ -672,7 +672,7 @@ describe("Cast page", () => {
       api(cast());
       const answer = vi.mocked(fetch).getMockImplementation();
       vi.mocked(fetch).mockImplementation(async (url, init) =>
-        url === ROLES_PATH
+        url === rolesPath()
           ? new Response(null, { status: 500 })
           : (answer?.(url, init) ?? new Response(null)),
       );

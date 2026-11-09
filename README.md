@@ -143,6 +143,7 @@ CI runs both of these as separate jobs.
 │           ├── casting/         roles/, casting-grid/ (the Excel export)
 │           ├── production/      props/, item-files/ (Scenery's, SFX's and Wardrobe's files, in a bucket or a local folder)
 │           ├── item-notes/      Notes per item, for casting, props, scenery, SFX and Wardrobe
+│           ├── production-list/ Which productions exist; the newest is the one everyone opens (ADR 0036)
 │           ├── accounts/        The team's accounts, on the user pool
 │           ├── usage/           Usage records
 │           ├── http/            Requests, responses, route matching, permissions
@@ -359,6 +360,7 @@ These cover humans and agents alike, and `pnpm install` installs them.
 | [0033](docs/adr/0033-mic-plot-workbook-built-in-the-browser.md) | The Mic Plot workbook: built in the browser with `write-excel-file`, loaded only when used |
 | [0034](docs/adr/0034-simplicity-rules-for-authors-and-reviewers.md) | Simplicity rules for authors and reviewers: one of each, a layout that explains itself, and a reviewer that searches beyond the diff for copies |
 | [0035](docs/adr/0035-each-department-states-its-own-refusal.md) | Each department states its permissions and refusal line once; a change route names its department, and a refusal says which department, so the app recognises it without matching wording |
+| [0036](docs/adr/0036-list-of-productions-as-rows-in-the-data-table.md) | The list of productions is one row per production in the existing table; the id is the year, the newest is the highest year, and 2027 is written by the first read that finds the list empty |
 
 ---
 

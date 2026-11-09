@@ -7,10 +7,10 @@ import CastingGrid from "@/components/casting/CastingGrid.vue";
 import { createAppRouter } from "@/router/index.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
-import { CAST_PATH } from "@/utils/cast.ts";
-import { ROLES_PATH } from "@/utils/roles.ts";
+import { castPath } from "@/utils/cast.ts";
+import { rolesPath } from "@/utils/roles.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
-import { RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
+import { runningOrderPath } from "@/utils/running-order.ts";
 
 enableAutoUnmount(afterEach);
 // As on pnpm dev: everyone acts as an admin, unless a test signs someone in.
@@ -31,7 +31,7 @@ function castIs(members: CastMember[]) {
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string) =>
-      url === CAST_PATH
+      url === castPath()
         ? new Response(JSON.stringify({ productionId: "2027", members }))
         : new Response(JSON.stringify({ status: "ok", version: "dev" })),
     ),
@@ -145,7 +145,7 @@ describe("Casting overview page", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: string) =>
-        url === CAST_PATH
+        url === castPath()
           ? new Response(null, { status: 500 })
           : new Response(JSON.stringify({ status: "ok", version: "dev" })),
       ),
@@ -161,7 +161,7 @@ describe("Casting overview page", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: string) =>
-        url === CAST_PATH
+        url === castPath()
           ? new Response(null, { status: 404 })
           : new Response(JSON.stringify({ status: "ok", version: "dev" })),
       ),
@@ -207,9 +207,9 @@ describe("Casting overview parts", () => {
     { order = show, status = {} }: { order?: RunningOrder; status?: Record<string, number> } = {},
   ) {
     const answers: Record<string, unknown> = {
-      [CAST_PATH]: { productionId: "2027", members },
-      [ROLES_PATH]: { productionId: "2027", roles },
-      [RUNNING_ORDER_PATH]: order,
+      [castPath()]: { productionId: "2027", members },
+      [rolesPath()]: { productionId: "2027", roles },
+      [runningOrderPath()]: order,
     };
     vi.stubGlobal(
       "fetch",
@@ -316,8 +316,8 @@ describe("Casting overview parts", () => {
   });
 
   it.each([
-    ["the roles", ROLES_PATH],
-    ["the running order", RUNNING_ORDER_PATH],
+    ["the roles", rolesPath()],
+    ["the running order", runningOrderPath()],
   ])("reports %s failing to load rather than showing no parts", async (_case, failing) => {
     theShowIs([person("Sam", "Example", "scouts")], [], { status: { [failing]: 500 } });
 
@@ -330,7 +330,7 @@ describe("Casting overview parts", () => {
   it("marks everyone as having no parts when there's no saved running order yet", async () => {
     const sam = person("Sam", "Example", "scouts");
     theShowIs([sam], [role("pirate-sketch", "lead", [sam.id])], {
-      status: { [RUNNING_ORDER_PATH]: 404 },
+      status: { [runningOrderPath()]: 404 },
     });
 
     const wrapper = await openOverview();
@@ -403,9 +403,9 @@ describe("Clashes on the Overview", () => {
 
   function showIs(failing: Record<string, number> = {}) {
     const answers: Record<string, unknown> = {
-      [CAST_PATH]: { productionId: "2027", members: [sam, alex, jo] },
-      [ROLES_PATH]: { productionId: "2027", roles },
-      [RUNNING_ORDER_PATH]: show,
+      [castPath()]: { productionId: "2027", members: [sam, alex, jo] },
+      [rolesPath()]: { productionId: "2027", roles },
+      [runningOrderPath()]: show,
     };
     vi.stubGlobal(
       "fetch",
@@ -458,7 +458,7 @@ describe("Clashes on the Overview", () => {
     expect(clashOf(wrapper, "Jo Newcomer")?.attributes("data-severity")).toBe("info");
   });
 
-  it.each([ROLES_PATH, RUNNING_ORDER_PATH])(
+  it.each([rolesPath(), runningOrderPath()])(
     "shows no icons when %s can't be loaded",
     async (failing) => {
       showIs({ [failing]: 500 });
@@ -508,14 +508,14 @@ describe("Timeline on the Overview", () => {
     failing?: Record<string, number>;
   } = {}) {
     const answers: Record<string, unknown> = {
-      [CAST_PATH]: { productionId: "2027", members: [sam, alex, jo] },
-      [ROLES_PATH]: { productionId: "2027", roles },
-      ...(order ? { [RUNNING_ORDER_PATH]: order } : {}),
+      [castPath()]: { productionId: "2027", members: [sam, alex, jo] },
+      [rolesPath()]: { productionId: "2027", roles },
+      ...(order ? { [runningOrderPath()]: order } : {}),
     };
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: string) => {
-        const code = failing[url] ?? (url === RUNNING_ORDER_PATH && !order ? 404 : undefined);
+        const code = failing[url] ?? (url === runningOrderPath() && !order ? 404 : undefined);
         if (code) return new Response(null, { status: code });
         if (url in answers) return new Response(JSON.stringify(answers[url]));
         return new Response(JSON.stringify({ status: "ok", version: "dev" }));
@@ -647,7 +647,7 @@ describe("Timeline on the Overview", () => {
     expect(wrapper.find("[data-test=timeline]").exists()).toBe(false);
   });
 
-  it.each([ROLES_PATH, RUNNING_ORDER_PATH])(
+  it.each([rolesPath(), runningOrderPath()])(
     "shows no dots when %s can't be loaded",
     async (path) => {
       showIs({ failing: { [path]: 500 } });
@@ -683,9 +683,9 @@ describe("Casting overview role totals", () => {
     { members = [], status = {} }: { members?: CastMember[]; status?: Record<string, number> } = {},
   ) {
     const answers: Record<string, unknown> = {
-      [CAST_PATH]: { productionId: "2027", members },
-      [ROLES_PATH]: { productionId: "2027", roles },
-      [RUNNING_ORDER_PATH]: show,
+      [castPath()]: { productionId: "2027", members },
+      [rolesPath()]: { productionId: "2027", roles },
+      [runningOrderPath()]: show,
     };
     const asked: string[] = [];
     vi.stubGlobal(
@@ -798,8 +798,8 @@ describe("Casting overview role totals", () => {
 
     await openOverview();
 
-    expect(asked).toContain(ROLES_PATH);
-    expect(asked.filter((url) => url.includes("/roles"))).toEqual([ROLES_PATH]);
+    expect(asked).toContain(rolesPath());
+    expect(asked.filter((url) => url.includes("/roles"))).toEqual([rolesPath()]);
   });
 
   it("doesn't count roles in items missing from the saved running order", async () => {
@@ -811,7 +811,7 @@ describe("Casting overview role totals", () => {
   });
 
   it("shows zero totals when there is no saved running order", async () => {
-    theShowIs(aShow, { status: { [RUNNING_ORDER_PATH]: 404 } });
+    theShowIs(aShow, { status: { [runningOrderPath()]: 404 } });
 
     const wrapper = await openOverview();
 
@@ -819,7 +819,7 @@ describe("Casting overview role totals", () => {
   });
 
   it("shows no totals, rather than zeros, when the roles can't be loaded", async () => {
-    theShowIs(aShow, { status: { [ROLES_PATH]: 500 } });
+    theShowIs(aShow, { status: { [rolesPath()]: 500 } });
 
     const wrapper = await openOverview();
 
@@ -860,14 +860,14 @@ describe("Casting grid on the Overview", () => {
     }: { members?: CastMember[]; order?: RunningOrder | null } = {},
   ) {
     const answers: Record<string, unknown> = {
-      [CAST_PATH]: { productionId: "2027", members },
-      [ROLES_PATH]: { productionId: "2027", roles },
-      [RUNNING_ORDER_PATH]: order,
+      [castPath()]: { productionId: "2027", members },
+      [rolesPath()]: { productionId: "2027", roles },
+      [runningOrderPath()]: order,
     };
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: string) => {
-        if (url === RUNNING_ORDER_PATH && order === null)
+        if (url === runningOrderPath() && order === null)
           return new Response(null, { status: 404 });
         if (url in answers) return new Response(JSON.stringify(answers[url]));
         return new Response(JSON.stringify({ status: "ok", version: "dev" }));
@@ -1227,7 +1227,7 @@ describe("Casting grid on the Overview", () => {
     theShowIs(cast);
     const fetched = globalThis.fetch;
     vi.stubGlobal("fetch", (url: string) =>
-      url === ROLES_PATH ? Promise.resolve(new Response(null, { status: 500 })) : fetched(url),
+      url === rolesPath() ? Promise.resolve(new Response(null, { status: 500 })) : fetched(url),
     );
 
     const wrapper = await openGrid();
@@ -1344,9 +1344,9 @@ describe("Excel export from the grid", () => {
             : new Response(null, { status: exportStatus });
         }
         const answers: Record<string, unknown> = {
-          [CAST_PATH]: { productionId: "2027", members: [sam, alex] },
-          [ROLES_PATH]: { productionId: "2027", roles },
-          [RUNNING_ORDER_PATH]: show,
+          [castPath()]: { productionId: "2027", members: [sam, alex] },
+          [rolesPath()]: { productionId: "2027", roles },
+          [runningOrderPath()]: show,
         };
         return url in answers
           ? new Response(JSON.stringify(answers[url]))
@@ -1582,12 +1582,12 @@ describe.each([
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: string) => {
-        if (url === CAST_PATH) {
+        if (url === castPath()) {
           return new Response(JSON.stringify({ productionId: "2027", members: [ava] }));
         }
-        if (url === ROLES_PATH)
+        if (url === rolesPath())
           return new Response(JSON.stringify({ productionId: "2027", roles }));
-        if (url === RUNNING_ORDER_PATH) return new Response(JSON.stringify(order));
+        if (url === runningOrderPath()) return new Response(JSON.stringify(order));
         return new Response(JSON.stringify({ status: "ok", version: "dev" }));
       }),
     );
@@ -1693,9 +1693,9 @@ describe("The By item view on the Overview", () => {
   function theShowIs(roles: Role[], order: RunningOrder = show) {
     const answers: Record<string, unknown> = {
       // Not in surname order, so the view's own ordering is what's tested.
-      [CAST_PATH]: { productionId: "2027", members: [cara, ava, ben] },
-      [ROLES_PATH]: { productionId: "2027", roles },
-      [RUNNING_ORDER_PATH]: order,
+      [castPath()]: { productionId: "2027", members: [cara, ava, ben] },
+      [rolesPath()]: { productionId: "2027", roles },
+      [runningOrderPath()]: order,
     };
     vi.stubGlobal(
       "fetch",
@@ -1955,11 +1955,11 @@ describe("Recording Overview view switches (usage-tracking FR2)", () => {
       "fetch",
       vi.fn(async (url: string) => {
         if (url === "/api/usage") return usage();
-        if (url === RUNNING_ORDER_PATH)
+        if (url === runningOrderPath())
           return new Response(JSON.stringify(aRunningOrder([anItem("Opening Number")])));
-        if (url === ROLES_PATH)
+        if (url === rolesPath())
           return new Response(JSON.stringify({ productionId: "2027", roles: [] }));
-        if (url === CAST_PATH)
+        if (url === castPath())
           return new Response(JSON.stringify({ productionId: "2027", members }));
         return new Response(JSON.stringify({ status: "ok", version: "dev" }));
       }),

@@ -69,7 +69,7 @@ export function fileIconOf(name: string, department: FileDepartment) {
 }
 
 /** Every item's scenery notes, apart from its casting and props notes. */
-export const SCENERY_NOTES_PATH = departmentNotesPath("scenery");
+export const sceneryNotesPath = () => departmentNotesPath("scenery");
 
 /** Where an item's scenery notes are saved. */
 export const saveSceneryNotesPath = (itemId: string) => saveDepartmentNotesPath("scenery", itemId);

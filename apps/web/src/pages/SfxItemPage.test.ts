@@ -15,7 +15,7 @@ import { StandInXhr } from "@/services/file-upload.fixture.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
-import { RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
+import { runningOrderPath } from "@/utils/running-order.ts";
 
 // The browser's own new tabs and downloads, which happy-dom can't follow.
 vi.mock("@/services/file-link.ts", () => ({ openFileTab: vi.fn(), downloadFrom: vi.fn() }));
@@ -55,7 +55,7 @@ function apiHolds(order: RunningOrder, held: Held = {}, notes: ItemNote[] = []) 
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init?: RequestInit) => {
-      if (url === RUNNING_ORDER_PATH) return json(order);
+      if (url === runningOrderPath()) return json(order);
       if (url === "/api/productions/2027/sfx-notes") return json({ productionId: "2027", notes });
       if (url === STORAGE && init?.body instanceof FormData) {
         const { department, itemId, name, size } = JSON.parse(String(init.body.get("key")));
@@ -565,7 +565,7 @@ describe("Loading the SFX page's data", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: string) => {
-        if (url === RUNNING_ORDER_PATH) return json(show);
+        if (url === runningOrderPath()) return json(show);
         if (url === "/api/usage") return new Response(null, { status: 204 });
         // Neither the item's files nor the SFX notes are there yet.
         return new Response(null, { status: 404 });

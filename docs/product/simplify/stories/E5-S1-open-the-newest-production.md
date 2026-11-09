@@ -2,7 +2,7 @@
 id: simplify.E5.S1
 title: Keep a list of productions and open the newest
 epic: E5
-status: draft
+status: done
 ---
 
 ## Story
@@ -45,6 +45,7 @@ Then the API refuses them
 
 - FRs: FR20, FR23
 - Depends on: simplify.E4.S4
+- ADR: [0036](../../../adr/0036-list-of-productions-as-rows-in-the-data-table.md), how the list is held.
 - Walking skeleton for Epic 5. AC3 can use a second production set up in the test; starting one comes in E5.S2.
 - Every API route already takes the production in its address, so no existing route changes shape (PRD constraints).
 - The sidebar's year is a new element: ask the maintainer whether the browser layout walks should check it (CLAUDE.md).

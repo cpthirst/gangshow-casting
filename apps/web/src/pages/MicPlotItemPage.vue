@@ -18,7 +18,7 @@ import ClashIcon from "@/components/common/ClashIcon.vue";
 import ItemPageFrame from "@/components/common/ItemPageFrame.vue";
 import { loadData } from "@/services/load-data.ts";
 import { apiFetch, canChange } from "@/services/sign-in.ts";
-import { CAST_PATH } from "@/utils/cast.ts";
+import { castPath } from "@/utils/cast.ts";
 import { icons } from "@/utils/icons.ts";
 import {
   allocateMicPath,
@@ -26,10 +26,10 @@ import {
   channelsOf,
   choicesFor,
   keptMicError,
-  MIC_PLOT_PATH,
+  micPlotPath,
   micRolesText,
 } from "@/utils/mic-plot.ts";
-import { type CastMemberChoice, fullName, ROLES_PATH } from "@/utils/roles.ts";
+import { type CastMemberChoice, fullName, rolesPath } from "@/utils/roles.ts";
 import { neighboursOf, placeOf } from "@/utils/running-order.ts";
 
 // One item's mic plot: Mic 1 to Mic 24, each given to a cast member in the item or free, with
@@ -128,9 +128,9 @@ watch(
 // plot, casting or cast list yet just means nobody is on a mic or cast.
 async function loadMics() {
   const [loadedPlots, loadedRoles, loadedCast] = await Promise.all([
-    loadData(MIC_PLOT_PATH, MicPlotList),
-    loadData(ROLES_PATH, RoleList),
-    loadData(CAST_PATH, CastList),
+    loadData(micPlotPath(), MicPlotList),
+    loadData(rolesPath(), RoleList),
+    loadData(castPath(), CastList),
   ]);
   return (loadedOrder: RunningOrder) => {
     order.value = loadedOrder;

@@ -1,6 +1,10 @@
 // Runs before every web test file (vite.config.ts). happy-dom's page is http://localhost:3000,
 // which is `pnpm dev`'s API on the real table, so a request a test hasn't faked must never go out.
 import { afterEach } from "vitest";
+import { openProduction } from "@/utils/production.ts";
+
+// As once the app has started and opened the newest. The tests of that opening reset it.
+openProduction("2027");
 
 let unfaked: string[] = [];
 

@@ -30,6 +30,7 @@ import {
 } from "#/production/item-files/item-file-store.ts";
 import { inMemoryMicPlotStore } from "#/production/mic-plot/mic-plot-store.ts";
 import { inMemoryPropStore } from "#/production/props/prop-store.ts";
+import { inMemoryProductionListStore } from "#/production-list/production-list-store.ts";
 import { aCastList, aCastMember } from "#/show/cast/cast.fixture.ts";
 import { inMemoryCastStore } from "#/show/cast/cast-store.ts";
 import { uncastThenRemove } from "#/show/cast/remove-cast-member.ts";
@@ -143,6 +144,7 @@ describe("Lambda entry point", () => {
             wardrobeNotes: inMemoryItemNoteStore(),
             micPlotNotes: inMemoryItemNoteStore(),
             micPlots: inMemoryMicPlotStore(),
+            productions: inMemoryProductionListStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
@@ -249,6 +251,7 @@ describe("Lambda entry point", () => {
             wardrobeNotes: inMemoryItemNoteStore(),
             micPlotNotes: inMemoryItemNoteStore(),
             micPlots: inMemoryMicPlotStore(),
+            productions: inMemoryProductionListStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
@@ -408,6 +411,7 @@ describe("Lambda entry point", () => {
             wardrobeNotes: inMemoryItemNoteStore(),
             micPlotNotes: inMemoryItemNoteStore(),
             micPlots: inMemoryMicPlotStore(),
+            productions: inMemoryProductionListStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
@@ -629,6 +633,7 @@ describe("Lambda entry point", () => {
             wardrobeNotes: inMemoryItemNoteStore(),
             micPlotNotes: inMemoryItemNoteStore(),
             micPlots: inMemoryMicPlotStore(),
+            productions: inMemoryProductionListStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
@@ -985,6 +990,7 @@ describe("Lambda entry point", () => {
               roles,
               runningOrders: inMemoryRunningOrderStore([
                 aRunningOrder(4, { first: ["Pirate Sketch"] }),
+                aRunningOrder(1, { first: ["Pirate Sketch"], productionId: "2028" }),
               ]),
               itemNotes: inMemoryItemNoteStore(),
               props,
@@ -994,6 +1000,7 @@ describe("Lambda entry point", () => {
               wardrobeNotes: inMemoryItemNoteStore(),
               micPlotNotes: inMemoryItemNoteStore(),
               micPlots: inMemoryMicPlotStore(),
+              productions: inMemoryProductionListStore(),
               removeCastMember: uncastThenRemove(cast, roles),
             },
             inMemoryUsageStore(),
@@ -1037,6 +1044,37 @@ describe("Lambda entry point", () => {
           expect((await props.list("2027")).props).toEqual([]);
         },
       );
+
+      it("gives pat, with Stage, the same access in another production", async () => {
+        const { api, props } = setUpProps();
+        const pat = as("[stage]");
+        const inNext = "/api/productions/2028";
+
+        const added = await api(
+          pat("POST", `${inNext}/items/${pirate}/props`, { name: "Treasure chest" }),
+        );
+        const noted = await api(
+          pat("PUT", `${inNext}/items/${pirate}/scenery-notes`, { text: "Mast up", revision: 0 }),
+        );
+        const viewed = await api(pat("GET", `${inNext}/roles`));
+        const cast = await api(
+          pat("POST", `${inNext}/cast`, {
+            firstName: "Made",
+            lastName: "Up",
+            section: "Scouts",
+            group: "1st Example",
+            ageBand: "under-14",
+          }),
+        );
+
+        expect(added.statusCode).toBe(201);
+        expect((await props.list("2028")).props.map(({ name }) => name)).toEqual([
+          "Treasure chest",
+        ]);
+        expect(noted.statusCode).toBe(200);
+        expect(viewed.statusCode).toBe(200);
+        expect(cast.statusCode).toBe(403);
+      });
 
       const PROP_PATH = "/api/productions/2027/props/1";
       const editProp = (groups: string) =>
@@ -1108,6 +1146,7 @@ describe("Lambda entry point", () => {
               wardrobeNotes: inMemoryItemNoteStore(),
               micPlotNotes: inMemoryItemNoteStore(),
               micPlots: inMemoryMicPlotStore(),
+              productions: inMemoryProductionListStore(),
               removeCastMember: uncastThenRemove(cast, roles),
             },
             inMemoryUsageStore(),
@@ -1188,6 +1227,7 @@ describe("Lambda entry point", () => {
               wardrobeNotes: inMemoryItemNoteStore(),
               micPlotNotes: inMemoryItemNoteStore(),
               micPlots: inMemoryMicPlotStore(),
+              productions: inMemoryProductionListStore(),
               removeCastMember: uncastThenRemove(cast, roles),
             },
             inMemoryUsageStore(),
@@ -1291,6 +1331,7 @@ describe("Lambda entry point", () => {
               wardrobeNotes: inMemoryItemNoteStore(),
               micPlotNotes: inMemoryItemNoteStore(),
               micPlots: inMemoryMicPlotStore(),
+              productions: inMemoryProductionListStore(),
               removeCastMember: uncastThenRemove(cast, roles),
             },
             inMemoryUsageStore(),
@@ -1446,6 +1487,7 @@ describe("Lambda entry point", () => {
             wardrobeNotes: inMemoryItemNoteStore(),
             micPlotNotes: inMemoryItemNoteStore(),
             micPlots: inMemoryMicPlotStore(),
+            productions: inMemoryProductionListStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
@@ -1626,6 +1668,7 @@ describe("Lambda entry point", () => {
             wardrobeNotes: inMemoryItemNoteStore(),
             micPlotNotes: inMemoryItemNoteStore(),
             micPlots: inMemoryMicPlotStore(),
+            productions: inMemoryProductionListStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
@@ -1812,6 +1855,7 @@ describe("Lambda entry point", () => {
             wardrobeNotes: inMemoryItemNoteStore(),
             micPlotNotes: inMemoryItemNoteStore(),
             micPlots: inMemoryMicPlotStore(),
+            productions: inMemoryProductionListStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),
@@ -1967,6 +2011,7 @@ describe("Lambda entry point", () => {
             wardrobeNotes: inMemoryItemNoteStore(),
             micPlotNotes: inMemoryItemNoteStore(),
             micPlots: inMemoryMicPlotStore(),
+            productions: inMemoryProductionListStore(),
             removeCastMember: uncastThenRemove(cast, roles),
           },
           inMemoryUsageStore(),

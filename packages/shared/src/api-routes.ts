@@ -10,6 +10,7 @@ export const routeKeys = [
   "POST /api/accounts/{username}/password",
   "PUT /api/accounts/{username}/enabled",
   "PUT /api/accounts/{username}/access",
+  "GET /api/productions",
   "GET /api/productions/{productionId}/running-order",
   "POST /api/productions/{productionId}/running-order/versions",
   "GET /api/productions/{productionId}/cast",

@@ -16,9 +16,9 @@ import PropCard from "@/components/production/PropCard.vue";
 import PropForm from "@/components/production/PropForm.vue";
 import { loadData } from "@/services/load-data.ts";
 import { apiFetch, canChange } from "@/services/sign-in.ts";
-import { CAST_PATH } from "@/utils/cast.ts";
-import { addPropPath, PROPS_PATH, propPath, sortProps } from "@/utils/props.ts";
-import { ROLES_PATH, sortRoles } from "@/utils/roles.ts";
+import { castPath } from "@/utils/cast.ts";
+import { addPropPath, propPath, propsPath, sortProps } from "@/utils/props.ts";
+import { rolesPath, sortRoles } from "@/utils/roles.ts";
 import { placeOf } from "@/utils/running-order.ts";
 
 // One item's props (production-props FR16, FR17, FR19), in the frame every item page shares,
@@ -48,9 +48,9 @@ const itemRoles = computed(() =>
 // casting or cast list yet just means there are none.
 async function loadProps() {
   const [loadedProps, loadedRoles, loadedCast] = await Promise.all([
-    loadData(PROPS_PATH, PropList),
-    loadData(ROLES_PATH, RoleList),
-    loadData(CAST_PATH, CastList),
+    loadData(propsPath(), PropList),
+    loadData(rolesPath(), RoleList),
+    loadData(castPath(), CastList),
   ]);
   return (loadedOrder: RunningOrder) => {
     order.value = loadedOrder;
@@ -171,7 +171,7 @@ async function showGone(prop: Prop) {
 /** Shows the latest props, or keeps what's shown if they can't be loaded. True if loaded. */
 async function reloadProps() {
   try {
-    props.value = (await loadData(PROPS_PATH, PropList))?.props ?? [];
+    props.value = (await loadData(propsPath(), PropList))?.props ?? [];
     return true;
   } catch {
     return false;

@@ -12,8 +12,8 @@ import { loadData } from "@/services/load-data.ts";
 import { apiFetch, isAdmin } from "@/services/sign-in.ts";
 import { helpFor, whoCanChange } from "@/utils/help.ts";
 import { icons } from "@/utils/icons.ts";
-import { ITEM_NOTES_PATH } from "@/utils/item-notes.ts";
-import { ROLES_PATH } from "@/utils/roles.ts";
+import { itemNotesPath } from "@/utils/item-notes.ts";
+import { rolesPath } from "@/utils/roles.ts";
 import {
   addItem,
   aNewItem,
@@ -24,11 +24,11 @@ import {
   locate,
   type Move,
   moveItem,
-  RUNNING_ORDER_PATH,
   removeItem,
   removeWarning,
   replaceItem,
   runningClock,
+  runningOrderPath,
   sameContent,
   stageLabel,
   updateOf,
@@ -56,7 +56,7 @@ const showSaved = (order: RunningOrder) => {
 
 async function load() {
   try {
-    const order = await loadData(RUNNING_ORDER_PATH, RunningOrder);
+    const order = await loadData(runningOrderPath(), RunningOrder);
     if (order) showSaved(order);
     else state.value = { status: "empty" };
   } catch {
@@ -179,8 +179,8 @@ async function confirmRemove(item: RunningOrderItem) {
 async function castingFor(itemId: string) {
   try {
     const [roles, notes] = await Promise.all([
-      loadData(ROLES_PATH, RoleList),
-      loadData(ITEM_NOTES_PATH, ItemNoteList),
+      loadData(rolesPath(), RoleList),
+      loadData(itemNotesPath(), ItemNoteList),
     ]);
     return roles && notes && castingOf(itemId, roles, notes);
   } catch {
@@ -250,7 +250,7 @@ type SaveResult =
 // anything else failed.
 async function saveDraft(baseVersion: number, working: RunningOrder): Promise<SaveResult> {
   try {
-    const res = await apiFetch(`${RUNNING_ORDER_PATH}/versions`, {
+    const res = await apiFetch(`${runningOrderPath()}/versions`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ baseVersion, change: updateOf(working) }),

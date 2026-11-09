@@ -10,15 +10,15 @@ import {
 import { sortCast } from "./cast.ts";
 import type { ClashLine } from "./clashes.ts";
 import { countInWords } from "./departments.ts";
-import { PRODUCTION_PATH } from "./production.ts";
+import { productionPath } from "./production.ts";
 import { fullName, sortRoles } from "./roles.ts";
 
 /** Every item's channels given out. */
-export const MIC_PLOT_PATH = `${PRODUCTION_PATH}/mic-plot`;
+export const micPlotPath = () => `${productionPath()}/mic-plot`;
 
 /** Where one of the item's channels is given out or freed. */
 export const allocateMicPath = (itemId: string) =>
-  `${PRODUCTION_PATH}/items/${encodeURIComponent(itemId)}/mic-plot`;
+  `${productionPath()}/items/${encodeURIComponent(itemId)}/mic-plot`;
 
 export interface ChannelRow {
   channel: number;

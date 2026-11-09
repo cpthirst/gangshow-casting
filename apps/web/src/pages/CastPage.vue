@@ -8,8 +8,8 @@ import CastMemberForm from "@/components/show/CastMemberForm.vue";
 import { loadData } from "@/services/load-data.ts";
 import { apiFetch, canChange, isAdmin } from "@/services/sign-in.ts";
 import {
-  CAST_PATH,
   type CastFilters,
+  castPath,
   deleteWarning,
   filterCast,
   hasFilters,
@@ -19,7 +19,7 @@ import {
   sortCast,
 } from "@/utils/cast.ts";
 import { icons } from "@/utils/icons.ts";
-import { ROLES_PATH } from "@/utils/roles.ts";
+import { rolesPath } from "@/utils/roles.ts";
 
 type State =
   | { status: "loading" }
@@ -158,7 +158,7 @@ async function putMember(
   details: CastMemberDetails,
 ): Promise<CastMember | "saved" | "conflict" | "failed"> {
   try {
-    const res = await apiFetch(`${CAST_PATH}/${member.id}`, {
+    const res = await apiFetch(`${castPath()}/${member.id}`, {
       method: "PUT",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ ...details, revision: member.revision }),
@@ -210,7 +210,7 @@ async function deleteMember(member: CastMember) {
 /** How many roles the member is cast in now, or undefined if the roles can't be loaded. */
 async function rolesOf(member: CastMember) {
   try {
-    const list = await loadData(ROLES_PATH, RoleList);
+    const list = await loadData(rolesPath(), RoleList);
     return list?.roles.filter((role) => role.castMemberIds.includes(member.id)).length;
   } catch {
     return undefined;
@@ -220,7 +220,7 @@ async function rolesOf(member: CastMember) {
 // The status code, or undefined if the request didn't get an answer.
 async function sendDelete(member: CastMember) {
   try {
-    const url = `${CAST_PATH}/${member.id}?revision=${member.revision}`;
+    const url = `${castPath()}/${member.id}?revision=${member.revision}`;
     return (await apiFetch(url, { method: "DELETE" })).status;
   } catch {
     return undefined;
@@ -230,7 +230,7 @@ async function sendDelete(member: CastMember) {
 // 201 → the saved member (or "saved" if its reply can't be read); anything else failed.
 async function postMember(details: CastMemberDetails): Promise<CastMember | "saved" | "failed"> {
   try {
-    const res = await apiFetch(CAST_PATH, {
+    const res = await apiFetch(castPath(), {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(details),
@@ -245,7 +245,7 @@ async function postMember(details: CastMemberDetails): Promise<CastMember | "sav
 
 async function load() {
   try {
-    const list = await loadData(CAST_PATH, CastList);
+    const list = await loadData(castPath(), CastList);
     state.value = list ? { status: "loaded", list } : { status: "empty" };
   } catch {
     state.value = { status: "error" };

@@ -16,13 +16,13 @@ import { StandInXhr } from "@/services/file-upload.fixture.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
-import { RUNNING_ORDER_PATH } from "@/utils/running-order.ts";
+import { runningOrderPath } from "@/utils/running-order.ts";
 import {
   replaceQuestion,
-  SCENERY_NOTES_PATH,
   sceneryFileLinkPath,
   sceneryFilePath,
   sceneryFilesPath,
+  sceneryNotesPath,
   sceneryUploadsPath,
 } from "@/utils/scenery.ts";
 
@@ -67,10 +67,10 @@ function apiHolds(
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init?: RequestInit) => {
-      if (url === RUNNING_ORDER_PATH) {
+      if (url === runningOrderPath()) {
         return order ? json(order) : new Response(null, { status: 404 });
       }
-      if (url === SCENERY_NOTES_PATH) return json({ productionId: "2027", notes });
+      if (url === sceneryNotesPath()) return json({ productionId: "2027", notes });
       if (init?.method === "PUT" && url.endsWith("/scenery-notes")) {
         const { text, revision } = SaveItemNoteRequest.parse(JSON.parse(String(init.body)));
         const itemId = url.split("/").at(-2) ?? "";
@@ -248,7 +248,7 @@ describe("An item's Scenery page", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: string) =>
-        url === RUNNING_ORDER_PATH ? json(show) : new Response(null, { status: 500 }),
+        url === runningOrderPath() ? json(show) : new Response(null, { status: 500 }),
       ),
     );
     const { wrapper } = await openAppAt(OPENING_NUMBER);
