@@ -118,3 +118,38 @@ describe("add role handler casting", () => {
     expect(Role.parse(JSON.parse(res.body ?? "")).castMemberIds).toEqual([12, 13]);
   });
 });
+
+describe("add role handler in a gang's item", () => {
+  // Made-up cast: Sam Example (12) is in Cubs, Sam Sample (13) in Scouts.
+  function setUpBeaverBop() {
+    const roles = inMemoryRoleStore();
+    const order = aRunningOrder(7, { first: ["Beaver Bop"] });
+    for (const item of order.halves[0].items) item.gang = "junior";
+    const cast = inMemoryCastStore([
+      aCastList([
+        aCastMember(12, { section: "cubs" }),
+        aCastMember(13, { lastName: "Sample", section: "scouts" }),
+      ]),
+    ]);
+    const handler = createAddRole(roles, inMemoryRunningOrderStore([order]), cast);
+    const add = (castMemberIds: number[]) =>
+      handler(request({ name: "Chief Beaver", size: "lead", castMemberIds }, itemId("Beaver Bop")));
+    return { roles, add };
+  }
+
+  it("casts someone in the item's gang", async () => {
+    const { add } = setUpBeaverBop();
+
+    expect((await add([12])).statusCode).toBe(201);
+  });
+
+  it("refuses someone outside the item's gang, saying so and storing nothing", async () => {
+    const { roles, add } = setUpBeaverBop();
+
+    const res = await add([13]);
+
+    expect(res.statusCode).toBe(400);
+    expect(JSON.parse(res.body ?? "")).toEqual({ message: "Sam Sample isn't in the Junior gang" });
+    expect((await roles.list("2027")).roles).toEqual([]);
+  });
+});

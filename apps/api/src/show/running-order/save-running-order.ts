@@ -1,6 +1,16 @@
-import { type RunningOrder, SaveRunningOrderRequest } from "@app/shared";
+import {
+  itemsChangingGang,
+  itemsOf,
+  type RunningOrder,
+  SaveRunningOrderRequest,
+} from "@app/shared";
+import {
+  type RemoveOutOfGang,
+  removeOutOfGangAfterSave,
+} from "#/casting/roles/remove-out-of-gang.ts";
 import { type Handler, inProduction } from "#/http/handler.ts";
 import { jsonResponse, parseJson } from "#/http/json.ts";
+import { errorName } from "#/storage/error-name.ts";
 import { applyChange } from "./running-order-changes.ts";
 import type { RunningOrderStore } from "./running-order-store.ts";
 
@@ -12,10 +22,12 @@ export type ItemCleanup = Record<
 >;
 
 // POST /api/productions/{productionId}/running-order/versions: apply one change to the
-// latest version and save the result as the next version.
+// latest version and save the result as the next version. An item set to another gang loses
+// from its roles anyone not in that gang (junior-cast FR5), whatever the client asked.
 export function createSaveRunningOrder(
   store: RunningOrderStore,
   cleanup: ItemCleanup,
+  removeOutOfGang: RemoveOutOfGang,
   now = () => new Date(),
 ): Handler {
   return inProduction(async (productionId, event) => {
@@ -36,8 +48,21 @@ export function createSaveRunningOrder(
       return newer ? jsonResponse(409, newer) : { statusCode: 409 };
     }
     await removeWhatDroppedItemsKept(store, cleanup, productionId, next);
+    await removeWhoLeftTheirGang(removeOutOfGang, productionId, itemsChangingGang(latest, next));
     return jsonResponse(201, next);
   });
+}
+
+/** After the version is saved, like the clean-up. */
+async function removeWhoLeftTheirGang(
+  removeOutOfGang: RemoveOutOfGang,
+  productionId: string,
+  itemIds: string[],
+) {
+  if (itemIds.length === 0) return;
+  await removeOutOfGangAfterSave(removeOutOfGang, productionId, (role) =>
+    itemIds.includes(role.itemId),
+  );
 }
 
 /**
@@ -54,9 +79,8 @@ async function removeWhatDroppedItemsKept(
   saved: RunningOrder,
 ) {
   const couldNot = (what: string, error: unknown) =>
-    // Only the error's name: a store's message can quote stored casting (ADR 0010).
     console.error(
-      `Couldn't remove dropped items' ${what} in production ${productionId}: ${error instanceof Error ? error.name : "unknown error"}`,
+      `Couldn't remove dropped items' ${what} in production ${productionId}: ${errorName(error)}`,
     );
   let newest: RunningOrder;
   try {
@@ -65,7 +89,7 @@ async function removeWhatDroppedItemsKept(
     // Not knowing the newest items, keeping only this version's could delete a later save's.
     return couldNot("data", error);
   }
-  const itemIds = newest.halves.flatMap((half) => half.items).map((item) => item.id);
+  const itemIds = itemsOf(newest).map((item) => item.id);
   for (const [kind, data] of Object.entries(cleanup)) {
     try {
       await data.keepOnlyItems(productionId, itemIds);

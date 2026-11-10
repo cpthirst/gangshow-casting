@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { RunningOrderItem } from "@app/shared";
+import { ItemGang, itemGangLabels, type RunningOrderItem } from "@app/shared";
 import { onMounted, ref, useId } from "vue";
 import { formFor, type ItemForm, itemFrom, STAGE_CHOICES } from "@/utils/running-order.ts";
 
@@ -60,6 +60,14 @@ function submit() {
       <label :for="idFor('cast')">Cast</label>
       <textarea :id="idFor('cast')" v-model="form.cast" name="cast" rows="2" v-bind="invalid('cast')" />
       <p v-if="errors.cast" :id="errorFor('cast')" class="field-error">{{ errors.cast }}</p>
+    </div>
+    <div class="field">
+      <label :for="idFor('gang')">Gang</label>
+      <select :id="idFor('gang')" v-model="form.gang" name="gang">
+        <option v-for="gang in ItemGang.options" :key="gang" :value="gang">
+          {{ itemGangLabels[gang] }}
+        </option>
+      </select>
     </div>
     <div class="field">
       <label :for="idFor('stage')">Stage</label>

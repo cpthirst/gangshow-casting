@@ -5,7 +5,12 @@ import { ItemFileList } from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { inMemoryRoleStore } from "#/casting/roles/role-store.ts";
 import { inMemoryItemNoteStore } from "#/item-notes/item-note-store.ts";
-import { anItem, aRunningOrder, itemId } from "#/show/running-order/running-order.fixture.ts";
+import {
+  anItem,
+  aRunningOrder,
+  itemId,
+  noGangRemoval,
+} from "#/show/running-order/running-order.fixture.ts";
 import { inMemoryRunningOrderStore } from "#/show/running-order/running-order-store.ts";
 import { createSaveRunningOrder } from "#/show/running-order/save-running-order.ts";
 import { folderItemFileStore } from "./item-file-store.ts";
@@ -90,20 +95,24 @@ describe("list scenery files handler", () => {
     const runningOrders = inMemoryRunningOrderStore([
       aRunningOrder(1, { first: ["Opening Number", "Pirate Sketch", "Finale"] }),
     ]);
-    const save = createSaveRunningOrder(runningOrders, {
-      roles: inMemoryRoleStore(),
-      itemNotes: inMemoryItemNoteStore(),
-      sceneryFiles: folderItemFileStore(folder, "scenery"),
-      sceneryNotes: { keepOnlyItems: async () => {} },
-      props: { keepOnlyItems: async () => {} },
-      propsNotes: { keepOnlyItems: async () => {} },
-      sfxFiles: { keepOnlyItems: async () => {} },
-      sfxNotes: { keepOnlyItems: async () => {} },
-      wardrobeFiles: { keepOnlyItems: async () => {} },
-      wardrobeNotes: { keepOnlyItems: async () => {} },
-      micPlotNotes: { keepOnlyItems: async () => {} },
-      micPlots: { keepOnlyItems: async () => {} },
-    });
+    const save = createSaveRunningOrder(
+      runningOrders,
+      {
+        roles: inMemoryRoleStore(),
+        itemNotes: inMemoryItemNoteStore(),
+        sceneryFiles: folderItemFileStore(folder, "scenery"),
+        sceneryNotes: { keepOnlyItems: async () => {} },
+        props: { keepOnlyItems: async () => {} },
+        propsNotes: { keepOnlyItems: async () => {} },
+        sfxFiles: { keepOnlyItems: async () => {} },
+        sfxNotes: { keepOnlyItems: async () => {} },
+        wardrobeFiles: { keepOnlyItems: async () => {} },
+        wardrobeNotes: { keepOnlyItems: async () => {} },
+        micPlotNotes: { keepOnlyItems: async () => {} },
+        micPlots: { keepOnlyItems: async () => {} },
+      },
+      noGangRemoval,
+    );
     await putFile(openingNumber, "set-plan.pdf", 10);
 
     const halves = [

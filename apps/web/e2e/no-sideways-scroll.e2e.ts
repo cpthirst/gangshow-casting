@@ -321,6 +321,7 @@ async function showOf(page: Page, count: number) {
     comments: "",
     minutes: 3,
     printed: true,
+    gang: "senior",
   });
   const half = Math.ceil(count / 2);
   await page.route(RUNNING_ORDER_URL, async (route) => {

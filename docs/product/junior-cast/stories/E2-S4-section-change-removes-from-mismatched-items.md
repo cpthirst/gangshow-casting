@@ -2,7 +2,7 @@
 id: junior-cast.E2.S4
 title: Changing a member's section removes them from items they no longer match
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story

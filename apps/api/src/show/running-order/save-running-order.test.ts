@@ -2,8 +2,9 @@ import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { RunningOrder, type RunningOrderItem, type SaveRunningOrderRequest } from "@app/shared";
+import { RunningOrder, type RunningOrderItem } from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { outOfGangRemoval, type RemoveOutOfGang } from "#/casting/roles/remove-out-of-gang.ts";
 import { inMemoryRoleStore } from "#/casting/roles/role-store.ts";
 import { type ItemNoteStore, inMemoryItemNoteStore } from "#/item-notes/item-note-store.ts";
 import {
@@ -13,7 +14,10 @@ import {
 import type { MicPlotStore } from "#/production/mic-plot/mic-plot-store.ts";
 import { inMemoryMicPlotStore } from "#/production/mic-plot/mic-plot-store.ts";
 import { inMemoryPropStore, type PropStore } from "#/production/props/prop-store.ts";
-import { anItem, aRunningOrder, itemId } from "./running-order.fixture.ts";
+import { aCastList, aCastMember } from "#/show/cast/cast.fixture.ts";
+import { inMemoryCastStore } from "#/show/cast/cast-store.ts";
+import { inMemoryStores } from "#/storage/stores.fixture.ts";
+import { anItem, aRunningOrder, itemId, noGangRemoval } from "./running-order.fixture.ts";
 import { inMemoryRunningOrderStore } from "./running-order-store.ts";
 import { createSaveRunningOrder } from "./save-running-order.ts";
 
@@ -24,31 +28,28 @@ const request = (body: unknown, productionId = "2027") => ({
   body: typeof body === "string" ? body : JSON.stringify(body),
 });
 
-// Saves the given titles (made-up items) in order, with any edits applied.
+// Saves the given titles (made-up items) in order, with any edits applied. An edit may
+// return unknown to send an item the contract refuses.
 const update = (
   baseVersion: number,
   first: string[],
   second: string[] = [],
-  edit: (item: RunningOrderItem) => RunningOrderItem = (item) => item,
-) =>
-  ({
-    baseVersion,
-    change: {
-      type: "update",
-      halves: [
-        { id: "first-half", items: first.map(anItem).map(edit) },
-        { id: "second-half", items: second.map(anItem).map(edit) },
-      ],
-    },
-  }) satisfies SaveRunningOrderRequest;
+  edit: (item: RunningOrderItem) => unknown = (item) => item,
+) => ({
+  baseVersion,
+  change: {
+    type: "update",
+    halves: [
+      { id: "first-half", items: first.map(anItem).map(edit) },
+      { id: "second-half", items: second.map(anItem).map(edit) },
+    ],
+  },
+});
 
 const titlesIn = (body: string | undefined) =>
   RunningOrder.parse(JSON.parse(body ?? "")).halves.map((half) =>
     half.items.map((item) => item.title),
   );
-
-// A clean-up store with nothing to delete.
-const noCleanup = { keepOnlyItems: async () => {} };
 
 function setUp() {
   const store = inMemoryRunningOrderStore([
@@ -56,24 +57,7 @@ function setUp() {
   ]);
   const roles = inMemoryRoleStore();
   const itemNotes = inMemoryItemNoteStore();
-  const handler = createSaveRunningOrder(
-    store,
-    {
-      roles,
-      itemNotes,
-      sceneryFiles: noCleanup,
-      sceneryNotes: noCleanup,
-      props: noCleanup,
-      propsNotes: noCleanup,
-      sfxFiles: noCleanup,
-      sfxNotes: noCleanup,
-      wardrobeFiles: noCleanup,
-      wardrobeNotes: noCleanup,
-      micPlotNotes: noCleanup,
-      micPlots: noCleanup,
-    },
-    () => NOW,
-  );
+  const handler = createSaveRunningOrder(store, { roles, itemNotes }, noGangRemoval, () => NOW);
   return { store, roles, itemNotes, handler };
 }
 
@@ -137,8 +121,8 @@ describe("save running order handler", () => {
 
   it("saves edited item details as the next version", async () => {
     const { handler } = setUp();
-    const twentyMinutes = (item: RunningOrderItem) =>
-      item.title === "Pirate Panic" ? { ...item, minutes: 20 } : item;
+    const twentyMinutes = (item: RunningOrderItem): RunningOrderItem =>
+      item.title === "Pirate Panic" ? { ...item, minutes: 20, gang: "junior" } : item;
 
     const res = await handler(
       request(update(6, ["Curtain Up", "Pirate Panic", "Dance One"], [], twentyMinutes)),
@@ -146,30 +130,24 @@ describe("save running order handler", () => {
 
     expect(res.statusCode).toBe(201);
     const saved = RunningOrder.parse(JSON.parse(res.body ?? ""));
-    expect(saved.halves[0].items.find((i) => i.title === "Pirate Panic")?.minutes).toBe(20);
-  });
-
-  it.each([
-    ["an empty title", (item: RunningOrderItem) => ({ ...item, title: "" })],
-    ["negative minutes", (item: RunningOrderItem) => ({ ...item, minutes: -3 })],
-  ])("rejects an edit with %s with 400, saving nothing", async (_case, edit) => {
-    const { store, handler } = setUp();
-
-    const res = await handler(
-      request(update(6, ["Curtain Up", "Pirate Panic", "Dance One"], [], edit)),
-    );
-
-    expect(res.statusCode).toBe(400);
-    expect((await store.latest("2027"))?.version).toBe(6);
+    const pirates = saved.halves[0].items.find((i) => i.title === "Pirate Panic");
+    expect(pirates).toMatchObject({ minutes: 20, gang: "junior" });
   });
 
   it.each([
     ["malformed JSON", "{not json"],
     ["an off-contract body", { baseVersion: 6, change: { type: "shuffle" } }],
-  ])("rejects %s with 400", async (_case, body) => {
-    const { handler } = setUp();
+    ["an edit with an empty title", update(6, ["Curtain Up"], [], (i) => ({ ...i, title: "" }))],
+    [
+      "an edit with negative minutes",
+      update(6, ["Curtain Up"], [], (i) => ({ ...i, minutes: -3 })),
+    ],
+    ["a gang outside the list", update(6, ["Curtain Up"], [], (i) => ({ ...i, gang: "infants" }))],
+  ])("rejects %s with 400, saving nothing", async (_case, body) => {
+    const { store, handler } = setUp();
 
     expect((await handler(request(body))).statusCode).toBe(400);
+    expect((await store.latest("2027"))?.version).toBe(6);
   });
 
   it("returns 404 for a production with nothing stored", async () => {
@@ -275,6 +253,7 @@ describe("save running order handler", () => {
         micPlotNotes: { keepOnlyItems: failing },
         micPlots: { keepOnlyItems: failing },
       },
+      noGangRemoval,
       () => NOW,
     );
 
@@ -310,6 +289,7 @@ describe("save running order handler", () => {
     const handler = createSaveRunningOrder(
       store,
       { roles, props: flakyProps, micPlots },
+      noGangRemoval,
       () => NOW,
     );
 
@@ -344,7 +324,7 @@ describe("save running order handler", () => {
     const roles = inMemoryRoleStore();
     await roles.add("2027", itemId("Dance One"), { name: "Lead", size: "lead", castMemberIds: [] });
     const log = vi.spyOn(console, "error").mockImplementation(() => {});
-    const handler = createSaveRunningOrder(store, { roles }, () => NOW);
+    const handler = createSaveRunningOrder(store, { roles }, noGangRemoval, () => NOW);
 
     const res = await handler(request(update(6, ["Curtain Up", "Pirate Panic"])));
 
@@ -360,20 +340,7 @@ describe("save running order handler", () => {
     ]);
     const kept: string[][] = [];
     const keeping = { keepOnlyItems: async (_p: string, ids: string[]) => void kept.push(ids) };
-    const casting = {
-      roles: keeping,
-      itemNotes: noCleanup,
-      sceneryFiles: keeping,
-      sceneryNotes: noCleanup,
-      props: noCleanup,
-      propsNotes: noCleanup,
-      sfxFiles: noCleanup,
-      sfxNotes: noCleanup,
-      wardrobeFiles: noCleanup,
-      wardrobeNotes: noCleanup,
-      micPlotNotes: noCleanup,
-      micPlots: noCleanup,
-    };
+    const casting = { roles: keeping, sceneryFiles: keeping };
     // Someone else saves version 8, with a new item, just after this save writes 7.
     const racing = {
       ...store,
@@ -387,6 +354,7 @@ describe("save running order handler", () => {
     await createSaveRunningOrder(
       racing,
       casting,
+      noGangRemoval,
       () => NOW,
     )(request(update(6, ["Curtain Up", "Pirate Panic"])));
 
@@ -428,6 +396,57 @@ describe("save running order handler", () => {
   });
 });
 
+describe("save running order handler, with an item's gang changed", () => {
+  // Pirate Panic casts member 12, in Scouts. Curtain Up, for the Senior gang, still casts
+  // member 13, in Beavers, from before items had a gang.
+  async function setUpCasting(removal?: RemoveOutOfGang) {
+    const runningOrders = inMemoryRunningOrderStore([
+      aRunningOrder(6, { first: ["Curtain Up", "Pirate Panic"] }),
+    ]);
+    const stores = inMemoryStores({
+      runningOrders,
+      cast: inMemoryCastStore([
+        aCastList([aCastMember(12), aCastMember(13, { section: "beavers" })]),
+      ]),
+    });
+    const lead = { name: "Lead", size: "lead" } as const;
+    await stores.roles.add("2027", itemId("Pirate Panic"), { ...lead, castMemberIds: [12] });
+    await stores.roles.add("2027", itemId("Curtain Up"), { ...lead, castMemberIds: [13] });
+    const removeOutOfGang = removal ?? outOfGangRemoval(stores);
+    const handler = createSaveRunningOrder(runningOrders, {}, removeOutOfGang, () => NOW);
+    const castIn = async (title: string) =>
+      (await stores.roles.list("2027")).roles.find((role) => role.itemId === itemId(title))
+        ?.castMemberIds;
+    return { handler, castIn };
+  }
+  // The client sends Pirate Panic for the Junior gang, asking nobody.
+  const pirateIsJunior = update(6, ["Curtain Up", "Pirate Panic"], [], (item) =>
+    item.title === "Pirate Panic" ? { ...item, gang: "junior" } : item,
+  );
+
+  it("takes anyone not in the item's new gang out of its roles once saved", async () => {
+    const { handler, castIn } = await setUpCasting();
+
+    expect((await handler(request(pirateIsJunior))).statusCode).toBe(201);
+
+    expect(await castIn("Pirate Panic")).toEqual([]);
+    expect(await castIn("Curtain Up")).toEqual([13]);
+  });
+
+  it("still answers 201 when the removal fails, logging no names", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { handler } = await setUpCasting(async () => {
+      throw new Error("Sam Example is in role 1");
+    });
+
+    expect((await handler(request(pirateIsJunior))).statusCode).toBe(201);
+
+    expect(log).toHaveBeenCalledWith(expect.stringContaining("production 2027"));
+    expect(log).not.toHaveBeenCalledWith(expect.stringContaining("Sam"));
+    log.mockRestore();
+  });
+});
+
 describe("save running order handler, with scenery files", () => {
   const cut = itemId("Cut Sketch");
   const opening = itemId("Opening Number");
@@ -447,17 +466,8 @@ describe("save running order handler, with scenery files", () => {
       roles: inMemoryRoleStore(),
       itemNotes: inMemoryItemNoteStore(),
       sceneryFiles,
-      sceneryNotes: noCleanup,
-      props: noCleanup,
-      propsNotes: noCleanup,
-      sfxFiles: noCleanup,
-      sfxNotes: noCleanup,
-      wardrobeFiles: noCleanup,
-      wardrobeNotes: noCleanup,
-      micPlotNotes: noCleanup,
-      micPlots: noCleanup,
     };
-    return createSaveRunningOrder(store, cleanup, () => NOW);
+    return createSaveRunningOrder(store, cleanup, noGangRemoval, () => NOW);
   }
   const files = () => folderItemFileStore(folder, "scenery");
 
@@ -572,16 +582,10 @@ describe("save running order handler, with SFX files and notes", () => {
         roles: inMemoryRoleStore(),
         itemNotes: inMemoryItemNoteStore(),
         sceneryFiles: folderItemFileStore(folder, "scenery"),
-        sceneryNotes: noCleanup,
-        props: noCleanup,
-        propsNotes: noCleanup,
         sfxFiles: folderItemFileStore(folder, "sfx"),
         sfxNotes,
-        wardrobeFiles: noCleanup,
-        wardrobeNotes: noCleanup,
-        micPlotNotes: noCleanup,
-        micPlots: noCleanup,
       },
+      noGangRemoval,
       () => NOW,
     );
     return { handler, sfxNotes };
@@ -648,16 +652,11 @@ describe("save running order handler, with Wardrobe files and notes", () => {
         roles: inMemoryRoleStore(),
         itemNotes: inMemoryItemNoteStore(),
         sceneryFiles: folderItemFileStore(folder, "scenery"),
-        sceneryNotes: noCleanup,
-        props: noCleanup,
-        propsNotes: noCleanup,
         sfxFiles: folderItemFileStore(folder, "sfx"),
-        sfxNotes: noCleanup,
         wardrobeFiles: folderItemFileStore(folder, "wardrobe"),
         wardrobeNotes,
-        micPlotNotes: noCleanup,
-        micPlots: noCleanup,
       },
+      noGangRemoval,
       () => NOW,
     );
     return { handler, wardrobeNotes };
@@ -718,18 +717,14 @@ describe("save running order handler, with mic plots", () => {
     const cleanup = {
       roles: inMemoryRoleStore(),
       itemNotes: inMemoryItemNoteStore(),
-      sceneryFiles: noCleanup,
-      sceneryNotes: noCleanup,
-      props: noCleanup,
-      propsNotes: noCleanup,
-      sfxFiles: noCleanup,
-      sfxNotes: noCleanup,
-      wardrobeFiles: noCleanup,
-      wardrobeNotes: noCleanup,
       micPlotNotes,
       micPlots,
     };
-    return { micPlots, micPlotNotes, handler: createSaveRunningOrder(store, cleanup, () => NOW) };
+    return {
+      micPlots,
+      micPlotNotes,
+      handler: createSaveRunningOrder(store, cleanup, noGangRemoval, () => NOW),
+    };
   }
   const itemsWithMics = async (micPlots: MicPlotStore) =>
     (await micPlots.list("2027")).items.map((plot) => plot.itemId);
@@ -837,18 +832,11 @@ describe("save running order handler, with scenery notes and props", () => {
     const cleanup = {
       roles: inMemoryRoleStore(),
       itemNotes: inMemoryItemNoteStore(),
-      sceneryFiles: noCleanup,
       sceneryNotes,
       props,
       propsNotes,
-      sfxFiles: noCleanup,
-      sfxNotes: noCleanup,
-      wardrobeFiles: noCleanup,
-      wardrobeNotes: noCleanup,
-      micPlotNotes: noCleanup,
-      micPlots: noCleanup,
     };
-    const handler = createSaveRunningOrder(store, cleanup, () => NOW);
+    const handler = createSaveRunningOrder(store, cleanup, noGangRemoval, () => NOW);
     return { sceneryNotes, props, propsNotes, handler };
   }
 

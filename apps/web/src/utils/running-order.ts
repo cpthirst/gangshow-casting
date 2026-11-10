@@ -1,11 +1,21 @@
 import {
+  type CastMember,
+  gangOfItem,
+  type ItemGang,
   type ItemNoteList,
+  itemsChangingGang,
+  itemsOf,
+  type Leaving,
+  outOfGang,
+  type Role,
   type RoleList,
   type RunningOrder,
   RunningOrderItem,
+  type Section,
   type Stage,
   type UpdateChange,
 } from "@app/shared";
+import { fullName } from "./roles.ts";
 
 const stageNames: Record<Stage, string> = { apron: "Apron", full: "Full" };
 
@@ -104,7 +114,7 @@ export function dropItem(
   toHalf: 0 | 1,
   toIndex: number,
 ): RunningOrder {
-  const item = order.halves.flatMap((half) => half.items).find((i) => i.id === itemId);
+  const item = itemsOf(order).find((i) => i.id === itemId);
   if (!item) return order;
   const without = (items: RunningOrderItem[]) => items.filter((i) => i.id !== itemId);
   const first = without(order.halves[0].items);
@@ -134,6 +144,7 @@ export const aNewItem = (): RunningOrderItem => ({
   comments: "",
   minutes: null,
   printed: true,
+  gang: "senior",
 });
 
 /** True for an item added since the last save. */
@@ -206,6 +217,75 @@ export function removeWarning(title: string, casting: ItemCasting | undefined) {
   return goes ? `${question} Saving the draft also removes ${goes}.` : question;
 }
 
+const listed = (parts: string[]) => new Intl.ListFormat("en-GB").format(parts);
+
+/**
+ * The question before a save that sets items to another gang, taking out of their roles
+ * everyone not in that gang (junior-cast FR5): who leaves which roles, by item. Undefined when
+ * no one leaves. casting is the production's roles and cast now, or undefined when they
+ * couldn't be loaded.
+ */
+export function gangChangeWarning(
+  saved: RunningOrder,
+  working: RunningOrder,
+  casting: { roles: Role[]; members: CastMember[] } | undefined,
+) {
+  const changing = itemsChangingGang(saved, working);
+  if (changing.length === 0) return undefined;
+  if (!casting)
+    return "Save the draft? Saving takes anyone not in an item's gang out of its roles.";
+  const leaving = outOfGang(
+    casting.roles.filter((role) => changing.includes(role.itemId)),
+    casting.members,
+    (itemId) => gangOfItem(working, itemId),
+  );
+  if (leaving.length === 0) return undefined;
+  return `Save the draft? It removes ${whoLeaves(leaving, casting.members, working)}.`;
+}
+
+/**
+ * The question before saving a member's section, when the new one is for another gang: the
+ * roles they leave, by item, in items not for it (junior-cast FR12). Undefined when they
+ * leave none. casting is the running order and roles now, or undefined when they couldn't be
+ * loaded.
+ */
+export function sectionChangeWarning(
+  member: CastMember,
+  section: Section | null,
+  casting: { order: RunningOrder | undefined; roles: Role[] } | undefined,
+) {
+  const name = fullName(member);
+  if (!casting)
+    return `Save ${name}? It takes them out of any roles in items not for their new gang.`;
+  const { order, roles } = casting;
+  const moved = { ...member, section };
+  const leaving = outOfGang(
+    roles.filter((role) => role.castMemberIds.includes(member.id)),
+    [moved],
+    (itemId) => gangOfItem(order, itemId),
+  );
+  // With no running order, no item is for one gang, so no one leaves.
+  if (leaving.length === 0 || !order) return undefined;
+  return `Save ${name}? It removes ${whoLeaves(leaving, [moved], order)}.`;
+}
+
+/** "Sam Sample from Captain and Pirates in Pirate Sketch; …": who leaves which roles, by item
+ *  in running order. */
+function whoLeaves(leaving: Leaving[], members: CastMember[], order: RunningOrder) {
+  return itemsOf(order)
+    .flatMap((item) => {
+      const inItem = leaving.filter(({ role }) => role.itemId === item.id);
+      const who = members.flatMap((member) => {
+        const roles = inItem
+          .filter(({ castMemberIds }) => castMemberIds.includes(member.id))
+          .map(({ role }) => role.name);
+        return roles.length === 0 ? [] : [`${fullName(member)} from ${listed(roles)}`];
+      });
+      return who.length === 0 ? [] : [`${listed(who)} in ${item.title}`];
+    })
+    .join("; ");
+}
+
 // Field by field in a fixed order, so object key order never matters.
 const contentOf = (order: RunningOrder) =>
   JSON.stringify(
@@ -219,6 +299,7 @@ const contentOf = (order: RunningOrder) =>
         i.comments,
         i.minutes,
         i.printed,
+        i.gang,
       ]),
     ),
   );
@@ -235,6 +316,7 @@ export interface ItemForm {
   comments: string;
   minutes: string;
   printed: boolean;
+  gang: ItemGang;
 }
 
 /** Stage sequences in use; the item being edited may add its own. */
@@ -255,10 +337,11 @@ export const formFor = (item: RunningOrderItem): ItemForm => ({
   comments: item.comments,
   minutes: item.minutes === null ? "" : String(item.minutes),
   printed: item.printed,
+  gang: item.gang,
 });
 
-// Every field that can fail validation (a checkbox can't).
-const fieldMessages: Record<Exclude<keyof ItemForm, "printed">, string> = {
+// Every field that can fail validation (a checkbox or a fixed list can't).
+const fieldMessages: Record<Exclude<keyof ItemForm, "printed" | "gang">, string> = {
   title: "Enter a title (up to 120 characters).",
   cast: "Keep this to 500 characters or fewer.",
   stage: "Choose where on stage this happens.",
@@ -289,6 +372,7 @@ export function itemFrom(form: ItemForm, id: string): ItemFormResult {
     // Anything but whole digits fails the schema's integer check below.
     minutes: minutes === "" ? null : /^\d+$/.test(minutes) ? Number(minutes) : Number.NaN,
     printed: form.printed,
+    gang: form.gang,
   };
   const parsed = RunningOrderItem.safeParse(candidate);
   if (parsed.success) return { ok: true, item: parsed.data };
@@ -343,7 +427,7 @@ export const positionOf = ({ half, number }: NonNullable<ReturnType<typeof place
 /** The items either side of one, in performance order: across the interval too, so the
  *  item pages can be stepped through like the show. */
 export function neighboursOf(order: RunningOrder, itemId: string) {
-  const items = order.halves.flatMap((half) => half.items);
+  const items = itemsOf(order);
   const index = items.findIndex((item) => item.id === itemId);
   if (index === -1) return {};
   return { previous: items[index - 1], next: items[index + 1] };

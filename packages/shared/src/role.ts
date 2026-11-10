@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { CastMember } from "./cast.ts";
-import { ProductionId, RunningOrderItem } from "./running-order.ts";
+import { CastMember, castableIn } from "./cast.ts";
+import { type ItemGang, ProductionId, RunningOrderItem } from "./running-order.ts";
 
 /** Ranked biggest first, for ordering an item's roles (casting-item-overview.E2.S1). */
 export const RoleSize = z.enum(["lead", "support", "cameo", "ensemble"]);
@@ -78,6 +78,35 @@ export const RoleList = z.strictObject({
   productionId: ProductionId,
   roles: z.array(Role).max(2000),
 });
+
+/** Who is to leave a role: those cast in it who aren't in its item's gang. */
+export interface Leaving {
+  role: Role;
+  castMemberIds: number[];
+}
+
+/**
+ * Who in each role isn't in its item's gang, for the roles that have anyone: those a change
+ * to an item's gang or a member's section takes out (junior-cast FR5, FR12). The one rule the
+ * confirmation and the removal both read. Anyone not on the cast list is left to its own
+ * clean-up, as their gang isn't known.
+ */
+export function outOfGang(
+  roles: Role[],
+  members: CastMember[],
+  gangOf: (itemId: string) => ItemGang,
+): Leaving[] {
+  const sections = new Map(members.map((member) => [member.id, member.section]));
+  return roles
+    .map((role) => ({
+      role,
+      castMemberIds: role.castMemberIds.filter((id) => {
+        const section = sections.get(id);
+        return section !== undefined && !castableIn(gangOf(role.itemId), section);
+      }),
+    }))
+    .filter((leaving) => leaving.castMemberIds.length > 0);
+}
 
 export type RoleSize = z.infer<typeof RoleSize>;
 export type Role = z.infer<typeof Role>;

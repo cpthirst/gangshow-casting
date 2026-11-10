@@ -3,7 +3,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { anItem, aRunningOrder, itemId } from "#/show/running-order/running-order.fixture.ts";
+import {
+  anItem,
+  aRunningOrder,
+  itemId,
+  noGangRemoval,
+} from "#/show/running-order/running-order.fixture.ts";
 import { createSaveRunningOrder } from "#/show/running-order/save-running-order.ts";
 import {
   dataStores,
@@ -166,7 +171,7 @@ describe("data stores", () => {
     await seedEveryKind(stores, folder, "2027", opening);
     await seedEveryKind(stores, folder, "2027", pirate);
     const cleanup = itemCleanupOf(stores, files);
-    const save = createSaveRunningOrder(stores.runningOrders, cleanup);
+    const save = createSaveRunningOrder(stores.runningOrders, cleanup, noGangRemoval);
 
     const res = await save({
       pathParameters: { productionId: "2027" },

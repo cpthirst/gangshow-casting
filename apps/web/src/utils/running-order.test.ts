@@ -1,16 +1,19 @@
-import type { RunningOrder, RunningOrderItem } from "@app/shared";
+import type { CastMember, Role, RunningOrder, RunningOrderItem } from "@app/shared";
 import { describe, expect, it } from "vitest";
 import { anItem, aRunningOrder } from "./running-order.fixture.ts";
 import {
   dropItem,
   formatTime,
   formFor,
+  gangChangeWarning,
   type ItemForm,
   itemFrom,
   neighboursOf,
   placeOf,
   positionOf,
   replaceItem,
+  sameContent,
+  sectionChangeWarning,
 } from "./running-order.ts";
 
 describe("formatTime", () => {
@@ -36,6 +39,7 @@ describe("dropItem", () => {
     comments: "",
     minutes: 5,
     printed: true,
+    gang: "senior",
   });
   const order = (first: string[], second: string[]): RunningOrder => ({
     productionId: "2027",
@@ -93,6 +97,7 @@ describe("item form", () => {
     comments: "Performed to track",
     minutes: 18,
     printed: true,
+    gang: "junior",
   };
 
   it("round-trips an item through the form unchanged", () => {
@@ -128,6 +133,17 @@ describe("item form", () => {
   });
 });
 
+describe("sameContent", () => {
+  // Save and Reset are offered only when the draft differs from the saved version.
+  it("tells a draft apart from the saved version when only an item's gang changed", () => {
+    const saved = aRunningOrder([anItem("Beaver Bop")]);
+    const draft = aRunningOrder([anItem("Beaver Bop", { gang: "junior" })]);
+
+    expect(sameContent(saved, draft)).toBe(false);
+    expect(sameContent(saved, aRunningOrder([anItem("Beaver Bop")]))).toBe(true);
+  });
+});
+
 describe("replaceItem", () => {
   const item = (title: string): RunningOrderItem => ({
     id: `itm_${title}`,
@@ -138,6 +154,7 @@ describe("replaceItem", () => {
     comments: "",
     minutes: 5,
     printed: true,
+    gang: "senior",
   });
   const order: RunningOrder = {
     productionId: "2027",
@@ -233,5 +250,107 @@ describe("neighboursOf", () => {
 
   it("has no neighbours for an item that isn't in the running order", () => {
     expect(titles("no-such-item")).toEqual([undefined, undefined]);
+  });
+});
+
+describe("gangChangeWarning", () => {
+  // Made-up names only (CLAUDE.md safeguarding).
+  const member = (id: number, name: string, section: CastMember["section"]): CastMember => {
+    const [firstName = "", lastName = ""] = name.split(" ");
+    return { id, firstName, lastName, section, group: "", revision: 1 };
+  };
+  const members = [
+    member(1, "Sam Sample", "scouts"),
+    member(2, "Alex Smith", null),
+    member(3, "Poppy Example", "beavers"),
+  ];
+  const role = (id: number, itemId: string, name: string, castMemberIds: number[]): Role => ({
+    id,
+    itemId,
+    name,
+    size: castMemberIds.length > 1 ? "ensemble" : "lead",
+    castMemberIds,
+    revision: 1,
+  });
+  const roles = [
+    role(1, "pirate-sketch", "Captain", [1]),
+    role(2, "pirate-sketch", "Pirates", [2, 3]),
+    role(3, "opening-number", "Chorus", [1]),
+  ];
+  const saved = aRunningOrder([anItem("Opening Number"), anItem("Pirate Sketch")]);
+  const withPirates = (gang: RunningOrderItem["gang"]) =>
+    aRunningOrder([anItem("Opening Number"), anItem("Pirate Sketch", { gang })]);
+
+  it("names who leaves which roles, and no one who stays", () => {
+    const warning = gangChangeWarning(saved, withPirates("junior"), { roles, members }) ?? "";
+
+    expect(warning).toContain(
+      "Sam Sample from Captain and Alex Smith from Pirates in Pirate Sketch",
+    );
+    expect(warning).not.toContain("Poppy");
+    expect(warning).not.toContain("Chorus");
+  });
+
+  it("asks nothing when no one leaves", () => {
+    expect(gangChangeWarning(saved, withPirates("both"), { roles, members })).toBeUndefined();
+    expect(gangChangeWarning(saved, saved, { roles, members })).toBeUndefined();
+  });
+
+  it("still warns that people leave their roles when the casting couldn't be loaded", () => {
+    expect(gangChangeWarning(saved, withPirates("junior"), undefined)).toBeDefined();
+  });
+});
+
+describe("sectionChangeWarning", () => {
+  // Made-up names only (CLAUDE.md safeguarding). Ollie Sample is in Cubs.
+  const ollie: CastMember = {
+    id: 1,
+    firstName: "Ollie",
+    lastName: "Sample",
+    section: "cubs",
+    group: "",
+    revision: 1,
+  };
+  const role = (id: number, itemId: string, name: string): Role => ({
+    id,
+    itemId,
+    name,
+    size: "ensemble",
+    castMemberIds: [ollie.id],
+    revision: 1,
+  });
+  const order = aRunningOrder([
+    anItem("Beaver Bop", { gang: "junior" }),
+    anItem("Grand Finale", { gang: "both" }),
+  ]);
+  const roles = [
+    role(1, "beaver-bop", "Chief Beaver"),
+    role(2, "beaver-bop", "Dam Builders"),
+    role(3, "grand-finale", "Finale Chorus"),
+  ];
+
+  it("names the roles they leave, by item, and none they keep", () => {
+    const warning = sectionChangeWarning(ollie, "scouts", { order, roles }) ?? "";
+
+    expect(warning).toContain("Ollie Sample from Chief Beaver and Dam Builders in Beaver Bop");
+    expect(warning).not.toContain("Finale");
+  });
+
+  it("counts a cleared section as Senior", () => {
+    expect(sectionChangeWarning(ollie, null, { order, roles })).toContain("Beaver Bop");
+  });
+
+  it("asks nothing when no item is affected", () => {
+    expect(sectionChangeWarning(ollie, "beavers", { order, roles })).toBeUndefined();
+    expect(
+      sectionChangeWarning({ ...ollie, section: "scouts" }, "explorers", {
+        order,
+        roles: [role(3, "grand-finale", "Finale Chorus")],
+      }),
+    ).toBeUndefined();
+  });
+
+  it("still warns that they leave roles when the casting couldn't be loaded", () => {
+    expect(sectionChangeWarning(ollie, "scouts", undefined)).toBeDefined();
   });
 });

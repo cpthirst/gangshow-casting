@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ProductionId } from "./running-order.ts";
+import { type ItemGang, itemGangLabels, ProductionId } from "./running-order.ts";
 
 /** Every section, youngest first: the order the filter, the form and the Overview use. */
 export const Section = z.enum(["beavers", "cubs", "scouts", "explorers", "network"]);
@@ -21,10 +21,10 @@ export const sectionLabels = {
 export const Gang = z.enum(["junior", "senior"]);
 export type Gang = z.infer<typeof Gang>;
 
-export const gangLabels = { junior: "Junior", senior: "Senior" } as const satisfies Record<
-  Gang,
-  string
->;
+export const gangLabels = {
+  junior: itemGangLabels.junior,
+  senior: itemGangLabels.senior,
+} as const satisfies Record<Gang, string>;
 
 const juniorSections: readonly Section[] = ["beavers", "cubs"];
 
@@ -32,6 +32,11 @@ const juniorSections: readonly Section[] = ["beavers", "cubs"];
  *  section, is Senior. The one rule every page reads (junior-cast FR9). */
 export const gangOf = (section: Section | null): Gang =>
   section !== null && juniorSections.includes(section) ? "junior" : "senior";
+
+/** Whether someone in this section can be cast in an item for this gang: an item for both
+ *  gangs takes anyone (junior-cast FR4). The rule the cast search and the API both read. */
+export const castableIn = (itemGang: ItemGang, section: Section | null) =>
+  itemGang === "both" || gangOf(section) === itemGang;
 
 /** A short free-text note on how someone sings or acts (ADR 0014); absent when not given. */
 const SkillNote = z.string().trim().max(100).optional();

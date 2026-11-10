@@ -2,7 +2,7 @@
 id: junior-cast.E2.S1
 title: Mark which gang an item is for
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story

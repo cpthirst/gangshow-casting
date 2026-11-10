@@ -1,6 +1,9 @@
 import {
+  type CastList,
   type ItemNoteList,
+  type Role,
   type RoleList,
+  type RoleSize,
   type RunningOrder,
   type RunningOrderItem,
   SaveRunningOrderRequest,
@@ -9,6 +12,7 @@ import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
+import { anItem as aFixtureItem } from "@/utils/running-order.fixture.ts";
 import RunningOrderPage from "./RunningOrderPage.vue";
 
 // SortableJS can't drag in happy-dom, so stand in for it and fire its drop event directly.
@@ -46,17 +50,12 @@ vi.mock("sortablejs", () => ({
 enableAutoUnmount(afterEach);
 
 // Made-up data only: tests never use the real programme (CLAUDE.md safeguarding).
-const anItem = (title: string, details: Partial<RunningOrderItem> = {}): RunningOrderItem => ({
-  id: `itm_${title.toLowerCase().replaceAll(" ", "-")}`,
-  title,
-  cast: "Full Senior Gang",
-  stage: ["full"],
-  leads: "",
-  comments: "",
-  minutes: 5,
-  printed: true,
-  ...details,
-});
+const anItem = (title: string, details: Partial<RunningOrderItem> = {}) =>
+  aFixtureItem(title, {
+    id: `itm_${title.toLowerCase().replaceAll(" ", "-")}`,
+    cast: "Full Senior Gang",
+    ...details,
+  });
 
 const aRunningOrder = (
   first: RunningOrderItem[],
@@ -75,6 +74,14 @@ const aRunningOrder = (
   ],
 });
 
+const aRole = (
+  id: number,
+  itemId: string,
+  name: string,
+  castMemberIds: number[],
+  size: RoleSize = "lead",
+): Role => ({ id, itemId, name, size, castMemberIds, revision: 1 });
+
 type SentItems = SaveRunningOrderRequest["change"]["halves"][number]["items"];
 let serverIds = 0;
 /** The items as the server saves them: an added item, sent without an id, gets one. */
@@ -85,6 +92,46 @@ function serve(order: RunningOrder) {
   const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(order)));
   vi.stubGlobal("fetch", fetchMock);
   return fetchMock;
+}
+
+/** The production's casting, as the fake API serves it. */
+interface Casting {
+  roles?: RoleList["roles"];
+  notes?: ItemNoteList["notes"];
+  members?: CastList["members"];
+}
+
+/** A stand-in for the API: serves the latest version and the casting, and applies saved
+ *  drafts as the server does, naming new items. */
+function fakeApi(initial: RunningOrder, { roles = [], notes = [], members = [] }: Casting = {}) {
+  let latest = initial;
+  const saves: SaveRunningOrderRequest[] = [];
+  const served = { roles: { roles }, "item-notes": { notes }, cast: { members } };
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string, init?: RequestInit) => {
+      const casting = Object.entries(served).find(([path]) => url.endsWith(`/${path}`));
+      if (casting) return new Response(JSON.stringify({ productionId: "2027", ...casting[1] }));
+      if (init?.method !== "POST") return new Response(JSON.stringify(latest));
+      expect(url).toBe("/api/productions/2027/running-order/versions");
+      const request = SaveRunningOrderRequest.parse(JSON.parse(String(init.body)));
+      saves.push(request);
+      if (request.baseVersion !== latest.version) {
+        return new Response(JSON.stringify(latest), { status: 409 });
+      }
+      const [first, second] = request.change.halves;
+      latest = {
+        ...latest,
+        version: latest.version + 1,
+        halves: [
+          { ...latest.halves[0], items: savedItems(first.items) },
+          { ...latest.halves[1], items: savedItems(second.items) },
+        ],
+      };
+      return new Response(JSON.stringify(latest), { status: 201 });
+    }),
+  );
+  return { saves, someoneElseSaves: (order: RunningOrder) => (latest = order) };
 }
 
 async function openPage() {
@@ -312,34 +359,6 @@ describe("Running order page", () => {
   });
 
   describe("reordering with move buttons", () => {
-    // A stand-in for the API: serves the latest version and applies saved drafts to it.
-    function fakeApi(initial: RunningOrder) {
-      let latest = initial;
-      vi.stubGlobal(
-        "fetch",
-        vi.fn(async (url: string, init?: RequestInit) => {
-          if (init?.method !== "POST") return new Response(JSON.stringify(latest));
-          expect(url).toBe("/api/productions/2027/running-order/versions");
-          const { baseVersion, change } = SaveRunningOrderRequest.parse(
-            JSON.parse(String(init.body)),
-          );
-          if (baseVersion !== latest.version) {
-            return new Response(JSON.stringify(latest), { status: 409 });
-          }
-          latest = {
-            ...latest,
-            version: latest.version + 1,
-            halves: [
-              { ...latest.halves[0], items: savedItems(change.halves[0].items) },
-              { ...latest.halves[1], items: savedItems(change.halves[1].items) },
-            ],
-          };
-          return new Response(JSON.stringify(latest), { status: 201 });
-        }),
-      );
-      return { someoneElseSaves: (order: RunningOrder) => (latest = order) };
-    }
-
     const threeItems = () =>
       aRunningOrder(
         [anItem("Curtain Up"), anItem("Pirate Panic"), anItem("Dance One")],
@@ -802,27 +821,8 @@ describe("Running order page", () => {
 
   describe("editing an item's details", () => {
     let saves: SaveRunningOrderRequest[] = [];
-    function api(initial: RunningOrder) {
-      let latest = initial;
-      saves = [];
-      vi.stubGlobal(
-        "fetch",
-        vi.fn(async (_url: string, init?: RequestInit) => {
-          if (init?.method !== "POST") return new Response(JSON.stringify(latest));
-          const request = SaveRunningOrderRequest.parse(JSON.parse(String(init.body)));
-          saves.push(request);
-          const [first, second] = request.change.halves;
-          latest = {
-            ...latest,
-            version: latest.version + 1,
-            halves: [
-              { ...latest.halves[0], items: savedItems(first.items) },
-              { ...latest.halves[1], items: savedItems(second.items) },
-            ],
-          };
-          return new Response(JSON.stringify(latest), { status: 201 });
-        }),
-      );
+    function api(initial: RunningOrder, casting: Casting = {}) {
+      ({ saves } = fakeApi(initial, casting));
     }
 
     const order = () =>
@@ -870,6 +870,48 @@ describe("Running order page", () => {
       await flushPromises();
       expect(wrapper.text()).toContain("Draft 7");
       expect(saves[0]?.change.halves[0].items[1]?.minutes).toBe(20);
+    });
+
+    describe("changing an item's gang", () => {
+      // Made-up names only: Sam Sample, in Scouts, plays Pirate Panic's Captain.
+      const sam = { id: 1, firstName: "Sam", lastName: "Sample", group: "", revision: 1 };
+      async function saveAs(gang: string, answer: boolean) {
+        api(order(), {
+          roles: [aRole(1, anItem("Pirate Panic").id, "Captain", [1])],
+          members: [{ ...sam, section: "scouts" }],
+        });
+        const confirm = vi.fn(() => answer);
+        vi.stubGlobal("confirm", confirm);
+        const wrapper = await openPage();
+        await (await openEditor(wrapper, "Pirate Panic")).get("select[name=gang]").setValue(gang);
+        await apply(wrapper);
+        await wrapper.get("button[data-test=save]").trigger("click");
+        await flushPromises();
+        return { wrapper, confirm };
+      }
+
+      it("asks before saving, naming who leaves which roles, and saves once confirmed", async () => {
+        const { confirm } = await saveAs("junior", true);
+
+        expect(confirm).toHaveBeenCalledWith(expect.stringContaining("Sam Sample from Captain"));
+        expect(saves).toHaveLength(1);
+      });
+
+      it("saves nothing when the admin goes back, keeping the draft's new gang", async () => {
+        const { wrapper } = await saveAs("junior", false);
+
+        expect(saves).toEqual([]);
+        expect(unsaved(wrapper)).toBe(true);
+        const form = await openEditor(wrapper, "Pirate Panic");
+        expect(form.get<HTMLSelectElement>("select[name=gang]").element.value).toBe("junior");
+      });
+
+      it("saves without asking when no one leaves", async () => {
+        const { confirm } = await saveAs("both", true);
+
+        expect(confirm).not.toHaveBeenCalled();
+        expect(saves).toHaveLength(1);
+      });
     });
 
     it("edits every detail", async () => {
@@ -1024,37 +1066,12 @@ describe("Running order page", () => {
 
   describe("adding and removing items", () => {
     let saves: SaveRunningOrderRequest[] = [];
-    // A stand-in for the API: the running order, applying saved drafts and naming new items
-    // as the server does, plus the roles and notes the removal question counts.
     function api(
       initial: RunningOrder,
       roles: RoleList["roles"] = [],
       notes: ItemNoteList["notes"] = [],
     ) {
-      let latest = initial;
-      saves = [];
-      vi.stubGlobal(
-        "fetch",
-        vi.fn(async (url: string, init?: RequestInit) => {
-          if (url.endsWith("/roles"))
-            return new Response(JSON.stringify({ productionId: "2027", roles }));
-          if (url.endsWith("/item-notes")) {
-            return new Response(JSON.stringify({ productionId: "2027", notes }));
-          }
-          if (init?.method !== "POST") return new Response(JSON.stringify(latest));
-          const request = SaveRunningOrderRequest.parse(JSON.parse(String(init.body)));
-          saves.push(request);
-          latest = {
-            ...latest,
-            version: latest.version + 1,
-            halves: [
-              { ...latest.halves[0], items: savedItems(request.change.halves[0].items) },
-              { ...latest.halves[1], items: savedItems(request.change.halves[1].items) },
-            ],
-          };
-          return new Response(JSON.stringify(latest), { status: 201 });
-        }),
-      );
+      ({ saves } = fakeApi(initial, { roles, notes }));
     }
 
     const order = () =>
@@ -1179,30 +1196,9 @@ describe("Running order page", () => {
       api(
         order(),
         [
-          {
-            id: 1,
-            itemId: dance,
-            name: "Lead dancer",
-            size: "lead",
-            castMemberIds: [12],
-            revision: 1,
-          },
-          {
-            id: 2,
-            itemId: dance,
-            name: "Chorus",
-            size: "ensemble",
-            castMemberIds: [],
-            revision: 1,
-          },
-          {
-            id: 3,
-            itemId: anItem("Pirate Panic").id,
-            name: "Captain",
-            size: "lead",
-            castMemberIds: [],
-            revision: 1,
-          },
+          aRole(1, dance, "Lead dancer", [12]),
+          aRole(2, dance, "Chorus", [], "ensemble"),
+          aRole(3, anItem("Pirate Panic").id, "Captain", []),
         ],
         [{ itemId: dance, text: "Needs tap shoes", revision: 1 }],
       );

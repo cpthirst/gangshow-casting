@@ -5,6 +5,18 @@ export const ProductionId = z.string().regex(/^[a-z0-9-]{1,40}$/i);
 
 export const Stage = z.enum(["apron", "full"]);
 
+/** Which gang an item is for, Junior first as the Cast page's gang filter lists them, in
+ *  the order the item editor offers them (junior-cast FR2). */
+export const ItemGang = z.enum(["junior", "senior", "both"]);
+export type ItemGang = z.infer<typeof ItemGang>;
+
+/** Each item gang's label: the one list the item editor and the cast's gang labels read. */
+export const itemGangLabels = {
+  junior: "Junior",
+  senior: "Senior",
+  both: "Both",
+} as const satisfies Record<ItemGang, string>;
+
 export const RunningOrderItem = z.object({
   id: z.string().min(1).max(40),
   title: z.string().trim().min(1).max(120),
@@ -17,6 +29,9 @@ export const RunningOrderItem = z.object({
   minutes: z.number().int().min(0).max(240).nullable(),
   /** False for items left out of the printed show programme. */
   printed: z.boolean(),
+  /** Who can be cast in it. Senior unless marked otherwise, so items saved before items had a
+   *  gang read as Senior (junior-cast FR2). */
+  gang: ItemGang.default("senior"),
 });
 
 const Half = <Id extends string>(id: Id) =>
@@ -33,6 +48,22 @@ export const RunningOrder = z.object({
   intervalMinutes: z.number().int().min(0),
   halves: z.tuple([Half("first-half"), Half("second-half")]),
 });
+
+/** Every item in the order, first half then second, in performance order. */
+export const itemsOf = (order: RunningOrder) => order.halves.flatMap((half) => half.items);
+
+/** The gang an item in the order is for; any gang for an item that isn't in it. */
+export const gangOfItem = (order: RunningOrder | undefined, itemId: string): ItemGang =>
+  (order && itemsOf(order).find((item) => item.id === itemId)?.gang) ?? "both";
+
+/** The items in both orders that are for another gang after: the ones whose roles lose anyone
+ *  not in their new gang (junior-cast FR5). An added or cut item has no casting to keep. */
+export function itemsChangingGang(before: RunningOrder, after: RunningOrder) {
+  const was = new Map(itemsOf(before).map((item) => [item.id, item.gang]));
+  return itemsOf(after)
+    .filter((item) => was.has(item.id) && was.get(item.id) !== item.gang)
+    .map((item) => item.id);
+}
 
 export type Stage = z.infer<typeof Stage>;
 export type RunningOrderItem = z.infer<typeof RunningOrderItem>;

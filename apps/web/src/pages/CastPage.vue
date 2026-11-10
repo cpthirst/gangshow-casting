@@ -5,7 +5,9 @@ import {
   type CastMemberDetails,
   Gang,
   gangLabels,
+  gangOf,
   RoleList,
+  RunningOrder,
   Section,
 } from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
@@ -15,7 +17,7 @@ import RefusalNotice from "@/components/common/RefusalNotice.vue";
 import CastMemberForm from "@/components/show/CastMemberForm.vue";
 import { useListEditing } from "@/composables/useListEditing.ts";
 import { loadData } from "@/services/load-data.ts";
-import { castPath, rolesPath } from "@/services/production.ts";
+import { castPath, rolesPath, runningOrderPath } from "@/services/production.ts";
 import { canChange, deleteStatus, sendJson } from "@/services/sign-in.ts";
 import {
   type CastFilters,
@@ -28,6 +30,7 @@ import {
   sortCast,
 } from "@/utils/cast.ts";
 import { icons } from "@/utils/icons.ts";
+import { sectionChangeWarning } from "@/utils/running-order.ts";
 
 type State =
   | { status: "loading" }
@@ -112,8 +115,12 @@ async function update(member: CastMember, details: CastMemberDetails) {
   if (saving.value) return;
   saving.value = true;
   formError.value = "";
-  const result = await putMember(member, details);
+  // Going back saves nothing and keeps the form as it is.
+  const result = (await confirmSectionChange(member, details))
+    ? await putMember(member, details)
+    : undefined;
   saving.value = false;
+  if (!result) return;
 
   if (result === "failed") {
     formError.value = "Couldn't save the changes. Try again.";
@@ -134,6 +141,27 @@ async function update(member: CastMember, details: CastMemberDetails) {
   }
   announcement.value = `${details.firstName} ${details.lastName} updated.`;
   await stopEditing(member.id);
+}
+
+/** Whether to go ahead with a save that moves them to another gang, taking them out of the
+ *  roles of items not for it (junior-cast FR12). Nothing to ask unless they leave a role. */
+async function confirmSectionChange(member: CastMember, details: CastMemberDetails) {
+  if (gangOf(member.section) === gangOf(details.section)) return true;
+  const warning = sectionChangeWarning(member, details.section, await roleCastingNow());
+  return warning === undefined || window.confirm(warning);
+}
+
+/** The running order and roles now, or undefined if they can't be loaded. */
+async function roleCastingNow() {
+  try {
+    const [order, roles] = await Promise.all([
+      loadData(runningOrderPath(), RunningOrder),
+      loadData(rolesPath(), RoleList),
+    ]);
+    return { order, roles: roles?.roles ?? [] };
+  } catch {
+    return undefined;
+  }
 }
 
 // 200 → the updated member (or "saved" if its reply can't be read); 409/404 → someone

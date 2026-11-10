@@ -233,6 +233,7 @@ async function postRole(itemId: string, details: AddRoleRequest) {
       :taken="takenNames"
       :cast="cast"
       :in-other-roles="inOtherRoles()"
+      :gang="item.gang"
       @save="add"
       @cancel="stopAdding"
     />
@@ -256,6 +257,7 @@ async function postRole(itemId: string, details: AddRoleRequest) {
           :taken="takenNames"
           :cast="cast"
           :in-other-roles="inOtherRoles(role.id)"
+          :gang="item.gang"
           @save="saveEdit"
           @cancel="stopEditing(role.id)"
         />

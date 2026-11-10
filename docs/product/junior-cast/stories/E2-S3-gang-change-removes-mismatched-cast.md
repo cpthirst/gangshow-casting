@@ -2,7 +2,7 @@
 id: junior-cast.E2.S3
 title: Changing an item's gang removes who no longer matches
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story
@@ -59,7 +59,7 @@ Then Sam Sample is still cast in Opening Number
 
 - FRs: FR5, FR6, FR11
 - Depends on: E2.S2 (the gang rule and the item's gang)
-- Join the running order's existing save and Remove confirmations (`apps/web/src/utils/running-order.ts`) rather than adding a second dialog. A save that both cuts an item and changes another's gang asks once, naming both.
+- Join the running order's existing save and Remove confirmations (`apps/web/src/utils/running-order.ts`) rather than adding a second dialog. The Save question names only who leaves through a gang change: Remove already asks about a cut item when it is clicked, so the Save question doesn't repeat it (the user's choice at review).
 - AC5 and AC6 come from the clean-up every casting change already runs (Props carriers and the Mic plot follow casting). Check it runs after a gang change; don't test the clean-up again.
 - The removal runs on the server after the version is saved, like the clean-up after a cut (AC7). Logs and errors never include names.
 - Help's Running order entry says that changing an item's gang removes anyone not in that gang from its roles. Check its structure, not its wording.

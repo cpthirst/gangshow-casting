@@ -1,10 +1,11 @@
 import { randomUUID } from "node:crypto";
-import type {
-  ChangeItem,
-  RunningOrder,
-  RunningOrderChange,
-  RunningOrderItem,
-  UpdateChange,
+import {
+  type ChangeItem,
+  itemsOf,
+  type RunningOrder,
+  type RunningOrderChange,
+  type RunningOrderItem,
+  type UpdateChange,
 } from "@app/shared";
 
 export type ChangeResult = { ok: true; order: RunningOrder } | { ok: false; error: string };
@@ -26,7 +27,7 @@ export function applyChange(
 // shared schema). Every item with an id must be one of the latest version's, at most once:
 // an item left out is removed, and only items sent without an id are new (PRD FR8, FR10).
 function update(latest: RunningOrder, change: UpdateChange, newId: () => string): ChangeResult {
-  const existing = new Set(latest.halves.flatMap((half) => half.items).map((item) => item.id));
+  const existing = new Set(itemsOf(latest).map((item) => item.id));
   const ids = change.halves
     .flatMap((half) => half.items)
     .flatMap((item) => ("id" in item ? [item.id] : []));

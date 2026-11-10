@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import {
+  CastList,
   ItemNoteList,
+  itemsChangingGang,
   PAST_PRODUCTION_REFUSAL,
   RoleList,
   RunningOrder,
@@ -16,6 +18,7 @@ import ItemEditor from "@/components/show/ItemEditor.vue";
 import { type RowDrop, vSortableRows } from "@/directives/sortable-rows.ts";
 import { loadData } from "@/services/load-data.ts";
 import {
+  castPath,
   isOpenProductionChangeable,
   itemNotesPath,
   rolesPath,
@@ -30,6 +33,7 @@ import {
   castingOf,
   dropItem,
   formatTime,
+  gangChangeWarning,
   isUnsaved,
   locate,
   type Move,
@@ -222,8 +226,11 @@ async function save() {
   if (state.value.status !== "loaded" || busy.value || !loaded.value?.unsaved) return;
   const { saved, working } = state.value;
   saving.value = true;
-  const result = await saveDraft(saved.version, working);
+  const goAhead = await confirmGangChanges(saved, working);
+  const result = goAhead ? await saveDraft(saved.version, working) : undefined;
   saving.value = false;
+  // Going back saves nothing and keeps the draft as it is.
+  if (!result) return;
 
   if (result.outcome === "refused") {
     notice.value = isOpenProductionChangeable() ? ONLY_ADMINS_SAVE : PAST_PRODUCTION_REFUSAL;
@@ -241,6 +248,27 @@ async function save() {
       ? `Someone else saved a newer draft. Showing the latest (Draft ${result.order.version}). Your unsaved changes were discarded.`
       : "";
   announcement.value = notice.value || `Saved as Draft ${result.order.version}.`;
+}
+
+/** Whether to go ahead with a save that may take people out of roles for not being in their
+ *  item's new gang (junior-cast FR5). Nothing to ask unless someone leaves. */
+async function confirmGangChanges(saved: RunningOrder, working: RunningOrder) {
+  if (itemsChangingGang(saved, working).length === 0) return true;
+  const warning = gangChangeWarning(saved, working, await castingNow());
+  return warning === undefined || window.confirm(warning);
+}
+
+/** The production's roles and cast, or undefined if they can't be loaded. */
+async function castingNow() {
+  try {
+    const [roles, cast] = await Promise.all([
+      loadData(rolesPath(), RoleList),
+      loadData(castPath(), CastList),
+    ]);
+    return { roles: roles?.roles ?? [], members: cast?.members ?? [] };
+  } catch {
+    return undefined;
+  }
 }
 
 function reset() {

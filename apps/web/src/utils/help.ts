@@ -181,7 +181,7 @@ export const pageHelp: PageHelp[] = [
       {
         icons: [icons.edit],
         name: "Edit",
-        does: "Changes an item's details, such as its title, minutes or stage.",
+        does: "Changes an item's details, such as its title, minutes, stage or gang. Saving an item for a different gang takes anyone not in that gang out of its roles, and asks you first.",
         access: "admins",
       },
       {
@@ -236,7 +236,7 @@ export const pageHelp: PageHelp[] = [
       {
         icons: [icons.edit],
         name: "Edit",
-        does: "Changes someone's name, section, group or casting notes.",
+        does: "Changes someone's name, section, group or casting notes. Moving them to the other gang asks first, then takes them out of roles in items not for it.",
         access: "casting",
       },
       {
@@ -336,6 +336,11 @@ export const pageHelp: PageHelp[] = [
         icons: [icons.remove],
         name: "Remove",
         does: "Takes a role off the item.",
+        access: "casting",
+      },
+      {
+        name: "Cast member",
+        does: `Searches the cast by name, offering only the item's gang: for a Junior item, ${gangSections("junior")}; for a Senior item, ${gangSections("senior")}; for an item for both gangs, everyone.`,
         access: "casting",
       },
       {

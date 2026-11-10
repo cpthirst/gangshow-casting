@@ -655,24 +655,19 @@ describe("Casting someone when adding a role", () => {
     expect(wrapper.find("[data-test=role] [data-test=uncast]").exists()).toBe(false);
   });
 
-  it("narrows the choices by first or last name as you type", async () => {
-    savedRunningOrderIs(show);
-    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
+  const beaverBop = aRunningOrder([anItem("Beaver Bop", { gang: "junior" })]);
+  it.each([
+    ["by first or last name", show, "pirate-sketch", "samp", ["Alex Sample"]],
+    ["ignoring case and accents", show, "pirate-sketch", "zoe", ["Zoë Adams"]],
+    ["to the item's gang", beaverBop, "beaver-bop", "sam", []],
+  ])("narrows the choices %s", async (_case, order, item, typed, names) => {
+    savedRunningOrderIs(order);
+    const { wrapper } = await openAppAt(`/casting/items/${item}`);
     await startRole(wrapper, "Captain Hook", "lead");
 
-    await type(wrapper, "samp");
+    await type(wrapper, typed);
 
-    expect(offered(wrapper)).toEqual(["Alex Sample"]);
-  });
-
-  it("matches names ignoring case and accents", async () => {
-    savedRunningOrderIs(show);
-    const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
-    await startRole(wrapper, "Captain Hook", "lead");
-
-    await type(wrapper, "zoe");
-
-    expect(offered(wrapper)).toEqual(["Zoë Adams"]);
+    expect(offered(wrapper)).toEqual(names);
   });
 
   it("shows each choice's section and group alongside the name", async () => {

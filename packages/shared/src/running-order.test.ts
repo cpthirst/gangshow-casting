@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { ProductionId, RunningOrder, SaveRunningOrderRequest } from "./running-order.ts";
+import {
+  gangOfItem,
+  itemsChangingGang,
+  ProductionId,
+  RunningOrder,
+  RunningOrderItem,
+  SaveRunningOrderRequest,
+} from "./running-order.ts";
 
 const item = {
   id: "itm_curtain-up",
@@ -10,6 +17,7 @@ const item = {
   comments: "",
   minutes: 5,
   printed: true,
+  gang: "senior",
 };
 
 const runningOrder = {
@@ -46,6 +54,7 @@ describe("RunningOrder", () => {
     ["negative minutes", { minutes: -3 }],
     ["fractional minutes", { minutes: 2.5 }],
     ["an over-long title", { title: "x".repeat(121) }],
+    ["a gang outside the list", { gang: "infants" }],
   ])("rejects an item with %s", (_case, change) => {
     const bad = { ...item, ...change };
 
@@ -55,6 +64,22 @@ describe("RunningOrder", () => {
         halves: [{ ...runningOrder.halves[0], items: [bad] }, runningOrder.halves[1]],
       }),
     ).toThrow();
+  });
+
+  it.each(["senior", "junior", "both"])("accepts an item for the %s gang", (gang) => {
+    expect(RunningOrderItem.parse({ ...item, gang }).gang).toBe(gang);
+  });
+
+  it("reads an item saved before items had a gang as Senior", () => {
+    const { gang: _gang, ...saved } = item;
+
+    expect(RunningOrderItem.parse(saved).gang).toBe("senior");
+  });
+
+  // Kept with the item's other details rather than per item elsewhere, so the running
+  // order's clean-up after a cut needs no entry for it (junior-cast FR10).
+  it("keeps the gang in the item itself, so cutting the item takes its gang with it", () => {
+    expect(Object.keys(RunningOrderItem.shape)).toContain("gang");
   });
 
   it("rejects a running order without exactly two halves", () => {
@@ -127,6 +152,7 @@ describe("SaveRunningOrderRequest", () => {
   it.each([
     ["a new item with no title", { title: " " }],
     ["an item whose id is empty", { id: "" }],
+    ["a new item whose gang is outside the list", { gang: "infants" }],
   ])("rejects %s", (_case, change) => {
     const { id: _id, ...added } = item;
     const bad = { ...added, ...change };
@@ -135,5 +161,44 @@ describe("SaveRunningOrderRequest", () => {
     expect(SaveRunningOrderRequest.safeParse({ baseVersion: 6, change: withBad }).success).toBe(
       false,
     );
+  });
+});
+
+describe("gangOfItem", () => {
+  const order = RunningOrder.parse(runningOrder);
+
+  it("gives the gang the item is for", () => {
+    expect(gangOfItem(order, "itm_curtain-up")).toBe("senior");
+  });
+
+  it("lets any gang into an item that isn't in the order", () => {
+    expect(gangOfItem(order, "itm_cut")).toBe("both");
+    expect(gangOfItem(undefined, "itm_curtain-up")).toBe("both");
+  });
+});
+
+describe("itemsChangingGang", () => {
+  const withItems = (items: object[]) =>
+    RunningOrder.parse({
+      ...runningOrder,
+      halves: [{ ...runningOrder.halves[0], items }, runningOrder.halves[1]],
+    });
+  const pirates = { ...item, id: "itm_pirates", gang: "senior" };
+
+  it("lists the items whose gang the change sets to another", () => {
+    const before = withItems([item, pirates]);
+    const after = withItems([
+      { ...item, minutes: 9 },
+      { ...pirates, gang: "junior" },
+    ]);
+
+    expect(itemsChangingGang(before, after)).toEqual(["itm_pirates"]);
+  });
+
+  it("leaves out items added or cut, which have no casting to keep", () => {
+    const before = withItems([item]);
+    const after = withItems([{ ...pirates, gang: "junior" }]);
+
+    expect(itemsChangingGang(before, after)).toEqual([]);
   });
 });
