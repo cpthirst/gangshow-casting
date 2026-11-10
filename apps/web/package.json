@@ -26,10 +26,12 @@
     "@fortawesome/fontawesome-svg-core": "^7.3.1",
     "@fortawesome/free-solid-svg-icons": "^7.3.1",
     "@fortawesome/vue-fontawesome": "^3.3.3",
+    "chart.js": "^4.5.1",
     "docx": "9.8.1",
     "oidc-client-ts": "^3.5.0",
     "sortablejs": "^1.15.7",
     "vue": "^3.5.43",
+    "vue-chartjs": "^5.3.3",
     "vue-router": "^5.4.0",
     "write-excel-file": "^4.1.1"
   }

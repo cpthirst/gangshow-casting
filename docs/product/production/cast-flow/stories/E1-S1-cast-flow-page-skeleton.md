@@ -2,7 +2,7 @@
 id: production-cast-flow.E1.S1
 title: Add the Cast flow page with a sample graph
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story
@@ -42,4 +42,5 @@ Then the visit is listed against Cast flow, as visits to other menu pages are
 - Opening the page needs only sign-in, as Production's Overview does. Signed-out access is already refused by the app's sign-in; check it's wired up, don't test it again.
 - The page has no tagline or explanatory line (FR16 puts the explanation in Help, in E2.S1).
 - The graph must not make the page scroll sideways at 320px. It may shrink or scroll within itself. Offer to add the page to the browser layout walk; don't add it unasked.
-- Out of scope: real counts (E1.S2), item markers (E1.S2), the key's tick boxes and descriptions (E2.S1), hover and the table (E2.S2), Help (E2.S1).
+- Out of scope: real counts (E1.S2), item markers (E1.S2), the key's tick boxes and descriptions (E2.S1), the table and keyboard focus (E2.S2), Help's content (E2.S1).
+- **Brought forward from E2.S2 by the product owner (2026-11-10):** hovering over, clicking or tapping the graph shows the clock time and every place's count then, with Chart.js's own tooltip. The side starts at 0, never below. Help has a placeholder entry (title and summary) so the page can use the shared title row; E2.S1 fills it in.

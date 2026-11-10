@@ -1,6 +1,7 @@
 import type { Component } from "vue";
 import { createRouter, createWebHistory, type RouterHistory } from "vue-router";
 import AccountsPage from "@/pages/AccountsPage.vue";
+import CastFlowPage from "@/pages/CastFlowPage.vue";
 import CastingItemPage from "@/pages/CastingItemPage.vue";
 import CastingItemsPage from "@/pages/CastingItemsPage.vue";
 import CastingOverviewPage from "@/pages/CastingOverviewPage.vue";
@@ -118,6 +119,12 @@ export const menuPages: (MenuPage | MenuGroup)[] = [
           // Casting has an Overview too.
           usageTitle: "Production overview",
         },
+      },
+      {
+        path: "/production/cast-flow",
+        name: "cast-flow",
+        component: CastFlowPage,
+        meta: { title: "Cast flow" },
       },
     ],
   },

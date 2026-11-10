@@ -19,6 +19,7 @@ describe("RecordUsageRequest", () => {
     "casting-overview",
     "casting-items",
     "production-overview",
+    "cast-flow",
     "help",
     "accounts",
     "productions",

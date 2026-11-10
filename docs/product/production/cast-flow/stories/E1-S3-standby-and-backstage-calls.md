@@ -2,7 +2,7 @@
 id: production-cast-flow.E1.S3
 title: Add the Standby and Backstage calls
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story

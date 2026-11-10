@@ -48,6 +48,42 @@ describe("the menu each person sees", () => {
   });
 });
 
+describe("the menu's pages", () => {
+  const pageNames = (admin: boolean) =>
+    menuFor(admin).flatMap((entry) =>
+      (isMenuGroup(entry) ? entry.pages : [entry]).map(({ name }) => name),
+    );
+
+  it("gives anyone but an admin every page outside Admin, in order", () => {
+    expect(pageNames(false)).toEqual([
+      "welcome",
+      "running-order",
+      "cast",
+      "casting-overview",
+      "casting-items",
+      "production-overview",
+      "cast-flow",
+      "help",
+    ]);
+  });
+});
+
+describe("the Production group", () => {
+  it.each([
+    ["an admin", true],
+    ["anyone else", false],
+  ])("lists Overview, then Cast flow, to %s", (_who, admin) => {
+    const production = menuFor(admin).find((entry) => entry.name === "production");
+
+    expect(production).toMatchObject({
+      pages: [
+        { name: "production-overview", meta: { title: "Overview" } },
+        { name: "cast-flow", path: "/production/cast-flow", meta: { title: "Cast flow" } },
+      ],
+    });
+  });
+});
+
 describe("the Admin group", () => {
   it("holds Accounts, Productions and Usage, in that order, at their addresses", () => {
     const admin = menuPages.find((entry) => isMenuGroup(entry) && entry.name === "admin");

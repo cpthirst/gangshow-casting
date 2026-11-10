@@ -497,6 +497,14 @@ export const pageHelp: PageHelp[] = [
     summaryName: "Wardrobe",
     notesAreFor: "the wardrobe team needs to know about what the cast wear in the item",
   }),
+  // The places and how they're timed join it with the graph's key (production-cast-flow E2.S1).
+  {
+    page: "cast-flow",
+    title: "Cast flow",
+    summary:
+      "A line graph of how many of the cast are on stage, on standby, backstage and in the dressing rooms through the show.",
+    lines: [],
+  },
   {
     page: "productions",
     changedBy: "admins",

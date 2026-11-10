@@ -289,6 +289,7 @@ describe("Help page", () => {
         "An item's SFX",
         "An item's mic plot",
         "An item's wardrobe",
+        "Cast flow",
         "Productions",
         "Permissions",
       ]);
