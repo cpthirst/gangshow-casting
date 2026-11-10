@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type CastFlowPlace, castFlowOf } from "./cast-flow.ts";
+import { type CastFlowPlace, castFlowOf, shortMark } from "./cast-flow.ts";
 import { aCastMember, aRole, ids } from "./casting.fixture.ts";
 import { anItem, aRunningOrder } from "./running-order.fixture.ts";
 
@@ -192,5 +192,22 @@ describe("castFlowOf, calling the cast before their items", () => {
     for (const { counts } of flow.points) {
       expect(Object.values(counts).reduce((sum, count) => sum + count, 0)).toBe(60);
     }
+  });
+});
+
+describe("shortMark", () => {
+  it("cuts a long mark label to 10 characters, ended with an ellipsis", () => {
+    expect(shortMark("2 Campfire Sketch")).toBe("2 Campfire…");
+    expect(shortMark("Scene Change Song")).toBe("Scene Chan…");
+  });
+
+  it("leaves a label that fits whole", () => {
+    expect(shortMark("1 Opening")).toBe("1 Opening");
+    expect(shortMark("Interval")).toBe("Interval");
+    expect(shortMark("10 Finales")).toBe("10 Finales");
+  });
+
+  it("doesn't leave a space before the ellipsis", () => {
+    expect(shortMark("4 The Big Show")).toBe("4 The Big…");
   });
 });

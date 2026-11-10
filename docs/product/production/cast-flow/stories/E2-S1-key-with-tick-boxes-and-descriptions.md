@@ -2,7 +2,7 @@
 id: production-cast-flow.E2.S1
 title: A graph for each place, with what it means
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story
@@ -32,13 +32,12 @@ Then each graph is headed by its place's name and its description:
 Given the Cast flow page
 When it opens
 Then all four graphs run from 18:54 to 19:53, so the same time sits at the same point across the page
-And the clock times are shown once, under the Dressing Room graph
+And each graph shows the clock times along its bottom
 
-### AC4: The item marks run through every graph
+### AC4: Every graph shows the item marks
 Given the Cast flow page
 When it opens
-Then the item and interval marks are labelled once, above the On-stage graph
-And each mark's faint dashed line runs through all four graphs
+Then each graph labels the item and interval marks along its top, with each mark's faint dashed line down the graph
 
 ### AC5: The graphs share one people scale
 Given the Dressing Room peaks at 60 and Standby at 40
@@ -60,6 +59,12 @@ Given the Help page
 When someone opens it
 Then its Cast flow entry describes the four places with the same descriptions as the graphs' headings, the 5-minute length assumed for untimed items, and that the counts are estimates
 
+### AC9: Long mark labels are cut short
+Given Campfire Sketch is item 2
+When someone opens Cast flow
+Then its mark reads "2 Campfire…", cut to 10 characters and ended with "…"
+And "1 Opening" and "Interval", which fit, are shown whole
+
 ## Notes
 
 - FRs: FR10, FR13, FR16 (FR12, the tick boxes, was dropped with the stacked graphs)
@@ -67,6 +72,7 @@ Then its Cast flow entry describes the four places with the same descriptions as
 - **Rewritten 2026-11-10 at the product owner's request.** One graph with four lines was too cluttered. A graph per place needs no tick boxes, no places ticked on opening and no line styles, so those ACs went.
 - AC2's wording is the requirement (PRD FR13), so it's asserted exactly. The descriptions live in the one list of places, with each place's name and colour, which the headings and Help both read. AC8 checks Help's structure and that it uses that list, not its wording. The 4- and 6-minute figures in the descriptions come from the same values the counting uses.
 - The headings' descriptions are the page's only explanatory text (PRD FR16), an agreed exception to CLAUDE.md's "Let the layout explain itself".
-- The four graphs are drawn from the same counts and marks as now; only the layout changes. Each graph is short enough that all four fit a laptop screen. At phone widths the page must not scroll sideways.
+- The four graphs are drawn from the same counts and marks as now; only the layout changes. With its own clock times and marks, each graph is about 14rem tall, so on a laptop the page scrolls to reach the lower graphs; the product owner chose axes on every graph and didn't ask for the four to fit one screen. At phone widths the page must not scroll sideways.
+- The product owner chose (2026-11-10) to repeat the clock times and the item marks on every graph, so each reads on its own, and to cut long mark labels so they crowd less. The item's full name comes with hover in E2.S2.
 - Hovering shows only that graph's place (AC6). E2.S2 widens it to every place and the item running.
 - Out of scope: the item on hover, keyboard focus on marks, and the table (E2.S2).

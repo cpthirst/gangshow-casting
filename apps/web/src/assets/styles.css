@@ -357,10 +357,12 @@ main a {
   font-weight: 700;
 }
 
-/* Section headings: the Running order's halves, and the Casting overview's sections. */
+/* Section headings: the Running order's halves, the Casting overview's sections, and Cast
+   flow's places. */
 .half h2,
 .overview-section h2,
-.by-item-half h2 {
+.by-item-half h2,
+.place-graph h2 {
   margin: 1.5rem 0 0.5rem;
   font-size: 1.375rem;
   font-weight: 900;
@@ -2696,6 +2698,10 @@ main a {
 /* A graph fills its column and keeps its height, shrinking with the page (ADR 0039). */
 .graph {
   position: relative;
-  height: 24rem;
+  height: 14rem;
   min-width: 0;
+}
+
+.place-description {
+  margin-top: 0.25rem;
 }

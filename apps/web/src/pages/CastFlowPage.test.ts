@@ -23,7 +23,9 @@ afterEach(() => {
 
 // Curtain up at 19:15, with Opening's calls from 19:09: Opening (10 minutes, 30 of the 50 on
 // the cast list), then the interval.
-const show: RunningOrder = aRunningOrder([anItem("Opening", { minutes: 10 })]);
+const show: RunningOrder = aRunningOrder([
+  anItem("Opening Number", { id: "opening", minutes: 10 }),
+]);
 const opening: Role[] = [aRole(1, "opening", ids(1, 30))];
 const cast: CastMember[] = ids(1, 50).map((id) => aCastMember(id));
 
@@ -59,13 +61,19 @@ async function openPage() {
 }
 
 type Page = Awaited<ReturnType<typeof openPage>>;
-const graphOf = (wrapper: Page) => wrapper.getComponent(Line);
-const lineOf = (wrapper: Page, place: string) =>
-  graphOf(wrapper)
-    .props("data")
-    .datasets.find(({ label }) => label === place);
+const PLACES = ["On-stage", "Standby", "Backstage", "Dressing Room"];
+const graphsOf = (wrapper: Page) => wrapper.findAllComponents(Line);
+const placeOf = (graph: ReturnType<typeof graphsOf>[number]) =>
+  graph.props("data").datasets[0]?.label;
+function graphOf(wrapper: Page, place: string) {
+  const graph = graphsOf(wrapper).find((each) => placeOf(each) === place);
+  if (!graph) throw new Error(`No ${place} graph`);
+  return graph;
+}
+const lineOf = (wrapper: Page, place: string) => graphOf(wrapper, place).props("data").datasets[0];
+const optionsOf = (wrapper: Page, place: string) => graphOf(wrapper, place).props("options");
 
-/** A line's count from a time, in minutes after midnight, if it has a point there. */
+/** A place's count from a time, in minutes after midnight, if its line has a point there. */
 function countAt(wrapper: Page, place: string, minutes: number) {
   const point = lineOf(wrapper, place)?.data.find(
     (each) => typeof each === "object" && each?.x === minutes,
@@ -86,68 +94,119 @@ describe("the Cast flow page", () => {
     expect(wrapper.get("h1").text()).toBe("Cast flow");
   });
 
-  it("draws a line for each place, each level until the next change", async () => {
+  it("draws a graph for each place, stacked in order, each one line in its own colour", async () => {
     serve();
 
     const wrapper = await openPage();
 
-    expect(
-      graphOf(wrapper)
-        .props("data")
-        .datasets.map(({ label }) => label),
-    ).toEqual(["On-stage", "Standby", "Backstage", "Dressing Room"]);
+    const graphs = graphsOf(wrapper);
+    expect(graphs.map(placeOf)).toEqual(PLACES);
+    expect(graphs.every((graph) => graph.props("data").datasets.length === 1)).toBe(true);
+    expect(new Set(PLACES.map((place) => lineOf(wrapper, place)?.borderColor)).size).toBe(4);
     // Chart.js's "before" holds each point's count until the next point.
     expect(lineOf(wrapper, "On-stage")).toMatchObject({ stepped: "before" });
     expect(countAt(wrapper, "Backstage", 19 * 60 + 9)).toBe(30);
     expect(countAt(wrapper, "Standby", 19 * 60 + 11)).toBe(30);
     expect(countAt(wrapper, "On-stage", 19 * 60 + 15)).toBe(30);
     expect(countAt(wrapper, "Dressing Room", 19 * 60 + 15)).toBe(20);
-    expect(wrapper.get("canvas").attributes("role")).toBe("img");
   });
 
-  it("puts clock times along the bottom and the number of people, from 0, up the side", async () => {
+  it("heads each graph with its place and what it means", async () => {
     serve();
 
     const wrapper = await openPage();
 
-    const { x, y } = graphOf(wrapper).props("options")?.scales ?? {};
-    const tick = x?.ticks?.callback;
+    const headings = wrapper
+      .findAll("[data-test=place]")
+      .map((place) => [place.get("h2").text(), place.get("p").text()]);
+    expect(headings).toEqual([
+      ["On-stage", "Performing in the item that's running."],
+      ["Standby", "In the wings, from 4 minutes before their item."],
+      [
+        "Backstage",
+        "In the holding area for props, mics and quick changes, from 6 minutes before their item.",
+      ],
+      ["Dressing Room", "Everyone else on the cast list."],
+    ]);
+  });
+
+  it("gives every graph the same time, with the clock times along its bottom", async () => {
+    serve();
+
+    const wrapper = await openPage();
+
+    for (const place of PLACES) {
+      const x = optionsOf(wrapper, place)?.scales?.x;
+      expect(x).toMatchObject({ min: 19 * 60 + 9, max: 19 * 60 + 45 });
+      expect(x?.ticks?.display).not.toBe(false);
+    }
+    const tick = optionsOf(wrapper, "Backstage")?.scales?.x?.ticks?.callback;
     // Chart.js calls it with its scale as `this`, which the label doesn't use.
     expect(tick && Reflect.apply(tick, undefined, [19 * 60 + 5, 0, []])).toBe("7:05 pm");
-    expect(x).toMatchObject({ position: "bottom", min: 19 * 60 + 9, max: 19 * 60 + 45 });
-    expect(y).toMatchObject({ min: 0, title: { display: true, text: "People" } });
   });
 
-  it("marks each start along the time with a faint dashed line up the graph", async () => {
+  it("labels the item marks along every graph's top, each with its dashed line down the graph", async () => {
     serve();
 
     const wrapper = await openPage();
 
-    const marks = graphOf(wrapper).props("options")?.scales?.marks;
+    for (const place of PLACES) {
+      const marks = optionsOf(wrapper, place)?.scales?.marks;
+      expect(marks).toMatchObject({ border: { dash: [4, 4] }, ticks: { autoSkip: false } });
+      expect(marks?.ticks?.display).not.toBe(false);
+    }
+    const marks = optionsOf(wrapper, "Dressing Room")?.scales?.marks;
     const scale = { ticks: [{ value: 0 }] };
     if (marks?.afterBuildTicks) Reflect.apply(marks.afterBuildTicks, undefined, [scale]);
     expect(scale.ticks).toEqual([{ value: 19 * 60 + 15 }, { value: 19 * 60 + 25 }]);
     const label = marks?.ticks?.callback;
     expect(label && Reflect.apply(label, undefined, [19 * 60 + 25, 1, []])).toBe("Interval");
+    expect(label && Reflect.apply(label, undefined, [19 * 60 + 15, 0, []])).toBe("1 Opening…");
     // Names tilt up to upright rather than run into each other on a narrow screen.
-    expect(marks).toMatchObject({
-      border: { dash: [4, 4] },
-      ticks: { autoSkip: false, maxRotation: 90 },
-    });
+    expect(marks).toMatchObject({ ticks: { autoSkip: false, maxRotation: 90 } });
   });
 
-  it("shows every count at a moment on hovering over, clicking or tapping the graph", async () => {
+  it("puts every graph on one people scale, from 0 to the busiest place's peak", async () => {
     serve();
 
     const wrapper = await openPage();
 
-    const options = graphOf(wrapper).props("options");
+    // The Dressing Room's 50, in the interval, is the busiest any place gets.
+    for (const place of PLACES) {
+      expect(optionsOf(wrapper, place)?.scales?.y).toMatchObject({
+        min: 0,
+        max: 50,
+        title: { display: true, text: "People" },
+      });
+    }
+  });
+
+  it("shows a graph's count at a moment on hovering over, clicking or tapping it", async () => {
+    serve();
+
+    const wrapper = await openPage();
+
+    const options = optionsOf(wrapper, "Standby");
     expect(Chart.registry.getPlugin("tooltip")).toBeDefined();
     expect(options?.interaction).toMatchObject({ mode: "index", intersect: false });
     expect(options?.events).toEqual(expect.arrayContaining(["mousemove", "click", "touchstart"]));
     const title = options?.plugins?.tooltip?.callbacks?.title;
-    const hovered = [{ parsed: { x: 19 * 60 + 5 } }];
-    expect(title && Reflect.apply(title, undefined, [hovered])).toBe("7:05 pm");
+    const hovered = [{ parsed: { x: 19 * 60 + 12 } }];
+    expect(title && Reflect.apply(title, undefined, [hovered])).toBe("7:12 pm");
+    // The graph's one line, whose point from 19:11 holds Standby's count at 19:12.
+    expect(graphOf(wrapper, "Standby").props("data").datasets).toHaveLength(1);
+    expect(countAt(wrapper, "Standby", 19 * 60 + 11)).toBe(30);
+  });
+
+  it("names each graph by its place, with its description, for a screen reader", async () => {
+    serve();
+
+    const wrapper = await openPage();
+
+    const canvas = wrapper.get("canvas[aria-label='Backstage graph']");
+    expect(canvas.attributes("role")).toBe("img");
+    const describedBy = canvas.attributes("aria-describedby") ?? "";
+    expect(wrapper.get(`[id="${describedBy}"]`).text()).toContain("In the holding area");
   });
 
   it("writes the graph's text in the app's font", async () => {

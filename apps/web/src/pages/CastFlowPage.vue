@@ -4,7 +4,6 @@ import {
   type ChartData,
   Chart as ChartJS,
   type ChartOptions,
-  Legend,
   LinearScale,
   LineElement,
   PointElement,
@@ -16,11 +15,17 @@ import NoRunningOrder from "@/components/common/NoRunningOrder.vue";
 import PageTitle from "@/components/common/PageTitle.vue";
 import { loadData, loadRequired } from "@/services/load-data.ts";
 import { castPath, rolesPath, runningOrderPath } from "@/services/production.ts";
-import { CAST_FLOW_PLACES, castFlowOf } from "@/utils/cast-flow.ts";
+import {
+  CAST_FLOW_PLACES,
+  type CastFlowMark,
+  type CastFlowPoint,
+  castFlowOf,
+  shortMark,
+} from "@/utils/cast-flow.ts";
 import { formatTime } from "@/utils/running-order.ts";
 
 // Only the parts a line graph uses, so the rest of Chart.js stays out of the bundle (ADR 0039).
-ChartJS.register(LinearScale, LineElement, PointElement, Legend, Tooltip);
+ChartJS.register(LinearScale, LineElement, PointElement, Tooltip);
 // A canvas can't inherit CSS, so the graph's text takes the page's font from the stylesheet.
 ChartJS.defaults.font.family = getComputedStyle(document.body).fontFamily;
 
@@ -54,33 +59,62 @@ onMounted(async () => {
 
 const flow = computed(() => (state.value.status === "loaded" ? state.value.flow : undefined));
 
-const data = computed<ChartData<"line", { x: number; y: number }[]>>(() => ({
-  datasets: CAST_FLOW_PLACES.map(({ id, name, colour }) => ({
-    label: name,
-    data: (flow.value?.points ?? []).map(({ at, counts }) => ({ x: at, y: counts[id] })),
-    borderColor: colour,
-    backgroundColor: colour,
-    // Each count holds from its point until the next.
-    stepped: "before",
-  })),
-}));
+type Place = (typeof CAST_FLOW_PLACES)[number];
 
-const options = computed<ChartOptions<"line">>(() => {
+// One graph per place, stacked nearest the stage first (FR10), all on one time axis and one
+// people scale so the same height and the same moment line up down the page.
+const graphs = computed(() => {
   const points = flow.value?.points ?? [];
   const marks = flow.value?.marks ?? [];
+  const peak = Math.max(0, ...points.flatMap(({ counts }) => Object.values(counts)));
+  return CAST_FLOW_PLACES.map((place) => ({
+    place,
+    data: dataFor(place, points),
+    options: optionsFor({ points, marks, peak }),
+  }));
+});
+
+function dataFor(
+  { id, name, colour }: Place,
+  points: CastFlowPoint[],
+): ChartData<"line", { x: number; y: number }[]> {
+  return {
+    datasets: [
+      {
+        label: name,
+        data: points.map(({ at, counts }) => ({ x: at, y: counts[id] })),
+        borderColor: colour,
+        backgroundColor: colour,
+        // Each count holds from its point until the next.
+        stepped: "before",
+      },
+    ],
+  };
+}
+
+function optionsFor({
+  points,
+  marks,
+  peak,
+}: {
+  points: CastFlowPoint[];
+  marks: CastFlowMark[];
+  peak: number;
+}): ChartOptions<"line"> {
   const span = { type: "linear", min: points[0]?.at, max: points.at(-1)?.at } as const;
   return {
     responsive: true,
     maintainAspectRatio: false,
     scales: {
+      // Every graph has its own clock times and marks, so each reads on its own.
       x: {
         ...span,
         position: "bottom",
         grid: { display: false },
         ticks: { callback: (minutes) => formatTime(Number(minutes)) },
       },
-      // Each item's and the interval's start, by its label, with a faint dashed line up the
-      // graph, drawn behind the place lines (FR11).
+      // Each item's and the interval's start, labelled along the top, cut short if long, with a
+      // faint dashed line down the graph, behind its line (FR11).
       marks: {
         ...span,
         position: "top",
@@ -91,15 +125,20 @@ const options = computed<ChartOptions<"line">>(() => {
           autoSkip: false,
           // Names tilt, up to upright, rather than run into each other on a narrow screen.
           maxRotation: 90,
-          callback: (minutes) => marks.find(({ at }) => at === minutes)?.label ?? "",
+          callback: (minutes) => shortMark(marks.find(({ at }) => at === minutes)?.label ?? ""),
         },
         grid: { color: "rgb(64 64 64 / 0.3)" },
         border: { dash: [4, 4] },
       },
       // Never below none: beginAtZero alone lets Chart.js pad under 0.
-      y: { min: 0, title: { display: true, text: "People" }, ticks: { precision: 0 } },
+      y: {
+        min: 0,
+        max: peak,
+        title: { display: true, text: "People" },
+        ticks: { precision: 0 },
+      },
     },
-    // Pointing anywhere on the graph, or clicking or tapping it, shows every place's count then.
+    // Pointing anywhere on a graph, or clicking or tapping it, shows its count then.
     interaction: { mode: "index", intersect: false },
     events: ["mousemove", "mouseout", "click", "touchstart", "touchmove"],
     plugins: {
@@ -113,7 +152,7 @@ const options = computed<ChartOptions<"line">>(() => {
       },
     },
   };
-});
+}
 </script>
 
 <template>
@@ -125,11 +164,26 @@ const options = computed<ChartOptions<"line">>(() => {
     <RouterLink :to="{ name: 'cast' }">Cast page</RouterLink>.
   </p>
   <p v-else-if="state.status === 'error'" role="alert">Couldn't load the show.</p>
-  <div v-else-if="state.status === 'loaded'" class="graph">
-    <Line
-      :data="data"
-      :options="options"
-      aria-label="Line graph of how many of the cast are in each place through the show"
-    />
-  </div>
+  <template v-else-if="state.status === 'loaded'">
+    <section
+      v-for="{ place, data, options } in graphs"
+      :key="place.id"
+      class="place-graph"
+      :aria-labelledby="`place-${place.id}`"
+      data-test="place"
+    >
+      <h2 :id="`place-${place.id}`">{{ place.name }}</h2>
+      <p :id="`place-${place.id}-description`" class="place-description">
+        {{ place.description }}
+      </p>
+      <div class="graph">
+        <Line
+          :data="data"
+          :options="options"
+          :aria-label="`${place.name} graph`"
+          :aria-describedby="`place-${place.id}-description`"
+        />
+      </div>
+    </section>
+  </template>
 </template>

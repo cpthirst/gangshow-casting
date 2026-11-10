@@ -80,7 +80,7 @@ The idea comes from `docs/product/future-thinking.md` ("Backstage hotspot"). The
 
 - **Security**: Read-only, behind the existing sign-in and production-team permissions. It shows counts only, never names, and adds no new personal data and no new API data beyond what the running order, roles and cast list already return.
 - **Accessibility**: WCAG 2.2 AA. Each graph is named by its place, with its description read with it, so the graphs are told apart by more than colour. The colours meet contrast against the page. The counts at each item's start can be read without seeing the graph, for example as a table a screen reader can reach.
-- **Performance**: The graph appears within 1 second of the page's data loading for a show of 60 items and 300 cast. Hiding or showing a line responds immediately (under 100 ms). The page makes no API calls beyond those it needs to load the running order, roles and cast list.
+- **Performance**: The graph appears within 1 second of the page's data loading for a show of 60 items and 300 cast. The page makes no API calls beyond those it needs to load the running order, roles and cast list.
 - **Layout**: Usable at phone widths (320px) without the page scrolling sideways. The graph may shrink or scroll within itself.
 
 ## Constraints and assumptions

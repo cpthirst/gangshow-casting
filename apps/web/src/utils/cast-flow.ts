@@ -1,19 +1,6 @@
 import type { CastMember, Role, RunningOrder } from "@app/shared";
 import { runningClock } from "./running-order.ts";
 
-/**
- * The places someone on the cast list can be during the show (production-cast-flow FR3),
- * nearest the stage first, each with its line's colour: at least 3:1 against the page.
- */
-export const CAST_FLOW_PLACES = [
-  { id: "on-stage", name: "On-stage", colour: "#e22e12" },
-  { id: "standby", name: "Standby", colour: "#8a5a00" },
-  { id: "backstage", name: "Backstage", colour: "#1f5f8b" },
-  { id: "dressing-room", name: "Dressing Room", colour: "#6a3d9a" },
-] as const;
-
-export type CastFlowPlace = (typeof CAST_FLOW_PLACES)[number]["id"];
-
 /** How long an item with no length set is taken to run, in minutes (FR8). */
 export const UNTIMED_ITEM_MINUTES = 5;
 
@@ -21,6 +8,40 @@ export const UNTIMED_ITEM_MINUTES = 5;
 export const BACKSTAGE_CALL_MINUTES = 6;
 /** Minutes before their item the cast go to Standby (FR5), the same for everyone. */
 export const STANDBY_CALL_MINUTES = 4;
+
+/**
+ * The places someone on the cast list can be during the show (production-cast-flow FR3),
+ * nearest the stage first, each with what it means (FR13), read by the graphs' headings and
+ * Help, and its graph's colour: at least 3:1 against the page.
+ */
+export const CAST_FLOW_PLACES = [
+  {
+    id: "on-stage",
+    name: "On-stage",
+    description: "Performing in the item that's running.",
+    colour: "#e22e12",
+  },
+  {
+    id: "standby",
+    name: "Standby",
+    description: `In the wings, from ${STANDBY_CALL_MINUTES} minutes before their item.`,
+    colour: "#8a5a00",
+  },
+  {
+    id: "backstage",
+    name: "Backstage",
+    description: `In the holding area for props, mics and quick changes, from ${BACKSTAGE_CALL_MINUTES} minutes before their item.`,
+    colour: "#1f5f8b",
+  },
+  {
+    id: "dressing-room",
+    name: "Dressing Room",
+    description: "Everyone else on the cast list.",
+    colour: "#6a3d9a",
+  },
+] as const;
+
+export type CastFlowPlace = (typeof CAST_FLOW_PLACES)[number]["id"];
 
 /** How many of the cast are in each place from a moment, in minutes after midnight, until
  *  the next point. */
@@ -111,4 +132,13 @@ function joinedAtOnce(marks: CastFlowMark[]): CastFlowMark[] {
   const byTime = new Map<number, string[]>();
   for (const { at, label } of marks) byTime.set(at, [...(byTime.get(at) ?? []), label]);
   return [...byTime].map(([at, labels]) => ({ at, label: labels.join(", ") }));
+}
+
+/** The most characters of a mark's label shown on a graph; longer ones are cut, ending "…". */
+const SHORT_MARK_LENGTH = 10;
+
+/** A mark's label as a graph shows it: whole if it fits, otherwise cut short with "…". */
+export function shortMark(label: string) {
+  if (label.length <= SHORT_MARK_LENGTH) return label;
+  return `${label.slice(0, SHORT_MARK_LENGTH).trimEnd()}…`;
 }
