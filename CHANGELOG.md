@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.53.0](https://github.com/cpthirst/gangshow-casting/compare/v1.52.0...v1.53.0) (2026-11-10)
+
+
+### Features
+
+* **web:** switch department on an item (department-switch.E1.S1) ([#214](https://github.com/cpthirst/gangshow-casting/issues/214)) ([584bdea](https://github.com/cpthirst/gangshow-casting/commit/584bdea13c51d13d820d99b8fd074b12151abe4e))
+
 ## [1.52.0](https://github.com/cpthirst/gangshow-casting/compare/v1.51.0...v1.52.0) (2026-11-09)
 
 
