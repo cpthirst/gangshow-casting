@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "DATA_TABLE=GangshowCasting-DataTable447BC44E-1TSYLDJ8MDOBT FILES_BUCKET=gangshowcasting-filesbucket16450113-zkt7ydsx22ky AWS_PROFILE=default pnpm --parallel --filter web --filter api dev",
     "demo": "node tooling/src/demo.ts",
+    "api:spec": "node tooling/src/openapi.ts",
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck && pnpm typecheck:harness",
     "typecheck:harness": "tsc -p .claude/hooks",

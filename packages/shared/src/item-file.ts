@@ -12,6 +12,10 @@ const isUnsafe = (char: string) =>
 export const fileDepartments = ["scenery", "sfx", "wardrobe"] as const;
 export type FileDepartment = (typeof fileDepartments)[number];
 
+/** An id, such as an item's, that can safely name a folder or part of a key: letters, digits,
+ *  - and _ only, as the API's ids are. */
+export const FolderId = z.string().regex(/^[\w-]{1,40}$/);
+
 /**
  * A scenery file's name: the last part of its key in file storage, after
  * `<production>/<item id>/scenery/` (ADR 0030), and an SFX or Wardrobe file's, after `…/sfx/` or `…/wardrobe/`. It can't

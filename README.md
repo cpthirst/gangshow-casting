@@ -2,9 +2,9 @@
 
 **iCUE** is the **Chester Gang Show**'s online show management app. It helps the show's departments co-ordinate, with one consistent system of record that everyone works from instead of documents and spreadsheets passed around.
 
-Today iCUE covers **casting**: the production team uses it to plan the running order, keep the cast list, and record who is in which item, and when. It helps them spot clashes (such as back-to-back appearances with no time for a costume change) and see who is overused or underused, so stage time is spread fairly.
+iCUE covers **casting**: the production team uses it to plan the running order, keep the cast list, and record who is in which item, and when. It helps them spot clashes (such as back-to-back appearances with no time for a costume change) and see who is overused or underused, so stage time is spread fairly.
 
-Next, iCUE will grow to cover more of the show's departments, such as **props lists**, **sound effects for each item** and **mic plots**. Each arrives as its own feature, planned and built story by story (see [How a change flows](#how-a-change-flows)).
+It also covers the show's **Production departments**, item by item: **props lists**, **scenery**, **sound effects**, **wardrobe** and **mic plots**. Each arrived as its own feature, planned and built story by story (see [How a change flows](#how-a-change-flows)).
 
 Chester Gang Show is a volunteer-led Scouting variety show: comedy, music, dance, sketches and production numbers, created and performed by the local Scouting community for a family audience. The current production is the **70th anniversary show**.
 
@@ -33,13 +33,13 @@ iCUE is hosted on AWS and is open only to the production team. Everyone signs in
 | Page | What it's for | Product docs |
 |---|---|---|
 | **Show → Running order** | The show's items in performance order, in two halves, with timings, stage and notes. Drag to reorder, then save a new version, so everyone knows which order is current. Items left out of the printed programme still take stage time | [running-order](docs/product/running-order) |
-| **Show → Cast** | The Scouts, Explorers and Network members in this production: name, section, Scout group or Explorer unit, age band, and short Singing and Acting notes. Search and filter, add, edit and remove | [cast-management](docs/product/cast-management) |
+| **Show → Cast** | The Scouts, Explorers and Network members in this production: name, section, Scout group or Explorer unit, and short Singing and Acting notes. Search and filter, add, edit and remove | [cast-management](docs/product/cast-management) |
 | **Casting → Overview** | The whole cast at once, three ways: **By person** (who carries how many parts, and of what size, section by section), **By item** (each item's parts in show order) and **Grid** (people against items). Clashes are flagged. Export the grid to Excel and the other two views to Word | [casting/overview](docs/product/casting/overview) |
 | **Casting → Items** | Every item in running order, with how far its casting has got | [casting/items](docs/product/casting/items) |
 | **Production → Overview** | One page for every department, open to every role. It lists the show's items in running order, each with a square button for every department (Scenery, Props, SFX, Mic plot, Wardrobe), a count for each (its scenery, SFX and Wardrobe files, its props and its mics) and its scenery, props, SFX, Mic plot and Wardrobe notes, plus Generate Props List for the Word props list and Generate Mic Plot for the Excel mic plot, laid out as the sound desk prints it. Props, Scenery, SFX, Wardrobe and Mic plot are live. Props opens the item's props page, where Stage adds its props and the roles that use them, each shown with who plays it. Scenery opens the item's files, kept in a private bucket, which open in a new tab (PDFs, images, text) or download, and its scenery notes. Stage, Tech and Director can upload files of up to 100 MB, straight to the bucket, delete them and change the notes. SFX is laid out the same way, with its own files and SFX notes, which Tech and Director change; its audio files (MP3, WAV, M4A, AAC, OGG) open in a new tab to play. Wardrobe is laid out the same way too, with its own files and Wardrobe notes, which Wardrobe and Director change. Mic plot opens the item's 24 radio mic channels, Mic 1 to Mic 24, each given to a cast member in the item, or free; Tech and Director change them, and nobody is on two channels in one item | [production-props](docs/product/production/props), [production-overview](docs/product/production/overview), [production-mics](docs/product/production/mics) |
 | **An item's page** | The item's parts (lead, supporting, cameo, ensemble), who plays each, warnings about quick changes and short gaps between appearances, and the item's notes. Step to the previous or next item | [casting/item-overview](docs/product/casting/item-overview), [roles](docs/product/casting/roles), [rules](docs/product/casting/rules) |
 | **Help** | What each page is for and what its buttons do, with who can use each | [in-app-help](docs/product/in-app-help) |
-| **Accounts** (admins) | Create the team's sign-in accounts, see and change each one's access (Admin, or any mix of Casting, Stage, Tech and Wardrobe), reset passwords, and disable or enable accounts | [hosting](docs/product/hosting), [team-roles](docs/product/team-roles) |
+| **Accounts** (admins) | Create the team's sign-in accounts, see and change each one's access (Admin, or any mix of Casting, Stage, Tech, Wardrobe and Director), reset passwords, and disable or enable accounts | [hosting](docs/product/hosting), [team-roles](docs/product/team-roles) |
 | **Productions** (admins) | Every production by its year; starting a new one, which starts empty and is what everyone then opens; and deleting a past one for good | [simplify](docs/product/simplify) |
 | **Switching production** (sidebar) | Anyone can switch to an older production for the session, under the year in the sidebar. A past production is view only for everyone, admins included (the API refuses every change to it), and can't be reopened; its exports still work | [simplify](docs/product/simplify) |
 | **Usage** (admins) | Who on the team uses iCUE and how often, so admins can see who might need help getting started | [usage-tracking](docs/product/usage-tracking) |
@@ -47,11 +47,13 @@ iCUE is hosted on AWS and is open only to the production team. Everyone signs in
 **Access** ([team-roles](docs/product/team-roles), [production-props](docs/product/production/props)): an account is an Admin, or has any mix of department permissions.
 - **Admin:** everything, plus the running order, Accounts, Productions and Usage.
 - **Casting:** changes the cast and casting.
-- **Stage, Tech, Wardrobe:** change their own department's pages, as those arrive.
-- **Director:** changes every Production department's pages (Props, Scenery, SFX and Wardrobe today), but not casting or the show. Admins give it on the Accounts page ([production-scenery](docs/product/production/scenery)).
+- **Stage:** changes Props and Scenery.
+- **Tech:** changes Scenery, SFX and the Mic plot.
+- **Wardrobe:** changes Wardrobe.
+- **Director:** changes every Production department's pages (Props, Scenery, SFX, Mic plot and Wardrobe), but not casting or the show. Admins give it on the Accounts page ([production-scenery](docs/product/production/scenery)).
 - **View only** (no permissions): sees every page but changes nothing, which suits reviewers such as the director.
 
-Each change route names the permission it needs ([ADR 0026](docs/adr/0026-department-permissions-as-user-pool-groups.md)). The API checks them on every request, not just the menu.
+Each change route names the department it changes, and each department its permissions ([ADR 0026](docs/adr/0026-department-permissions-as-user-pool-groups.md), [ADR 0035](docs/adr/0035-each-department-states-its-own-refusal.md)). The API checks them on every request, not just the menu.
 
 ## The domain
 
@@ -76,8 +78,8 @@ Each change route names the permission it needs ([ADR 0026](docs/adr/0026-depart
 ### Safeguarding and data protection
 
 Most of the cast are under 18 and this is a Scouting activity, so iCUE is built with **youth safeguarding and UK GDPR** in mind:
-- **Cast data:** iCUE stores only what casting needs. That's first name, surname, section, Scout group or Explorer unit and age band ([ADR 0010](docs/adr/0010-cast-member-personal-data.md)), plus short Singing and Acting notes ([ADR 0014](docs/adr/0014-cast-singing-and-acting-notes.md)). It stores no dates of birth, addresses, contact details, photos or medical information unless there is a clear, agreed need, recorded in an ADR.
-- **Age:** iCUE uses age band or section, not exact age.
+- **Cast data:** iCUE stores only what casting needs. That's first name, surname, section and Scout group or Explorer unit ([ADR 0010](docs/adr/0010-cast-member-personal-data.md)), plus short Singing and Acting notes ([ADR 0014](docs/adr/0014-cast-singing-and-acting-notes.md)). It stores no dates of birth, addresses, contact details, photos or medical information unless there is a clear, agreed need, recorded in an ADR.
+- **Age:** iCUE uses section, not exact age. ADR 0010 allows an age band, but none is stored yet.
 - **Access:** only the production team can sign in, and casting data is never publicly reachable ([ADR 0018](docs/adr/0018-access-control-with-cognito.md)).
 - **Data about the team:** each account's username, and a record of each person's use of the app, kept for 90 days and visible only to admins ([ADR 0023](docs/adr/0023-usage-records-in-the-data-table.md)).
 - **Test data:** tests, fixtures and the demo use made-up names only.
@@ -93,7 +95,7 @@ A TypeScript monorepo, hosted on AWS in eu-west-2 ([ADR 0017](docs/adr/0017-host
 - **Sign-in:** a Cognito user pool. Every API route needs its token, and team roles and department permissions are user pool groups ([ADR 0018](docs/adr/0018-access-control-with-cognito.md), [ADR 0020](docs/adr/0020-team-roles-as-user-pool-groups.md), [ADR 0026](docs/adr/0026-department-permissions-as-user-pool-groups.md)).
 - **Infrastructure:** one AWS CDK stack. The maintainer deploys it from their own machine; CI never deploys.
 
-The API contract is defined once, as zod schemas in `packages/shared`, and both the API and the web app use it.
+The API contract is defined once, as zod schemas in `packages/shared`, and both the API and the web app use it. [The API guide](docs/api/README.md) explains the routes and sign-in, with the full [OpenAPI description](docs/api/openapi.json) generated from the code. [The architecture guide](docs/architecture/README.md) has diagrams of the system, the code, a request's path, the data, permissions and releases.
 
 ---
 
@@ -104,6 +106,7 @@ pnpm install   # Node 26, pnpm 12 (also installs the git hooks)
 pnpm demo      # iCUE on a made-up demo show (:5190), fresh each start: needs no AWS
 pnpm dev       # web on :5173 + API on :3000 (Vite proxies /api), on the real remote table: needs your AWS profile
 pnpm check     # lint + dead code + copies + typecheck + tests + cdk synth: the definition of "done"
+pnpm api:spec  # rewrites docs/api/openapi.json from the code; the gate fails if it's out of date
 ```
 
 `pnpm dev` keeps scenery, SFX and Wardrobe files in the real bucket, as it keeps the data in the real table. `pnpm demo`, and any run without `FILES_BUCKET`, keeps them in `apps/api/data/files`, which the local API serves at `/api/local-files/`, and takes uploads at, in place of the bucket's links and upload forms (ADR 0030, ADR 0032).
@@ -113,6 +116,8 @@ pnpm check     # lint + dead code + copies + typecheck + tests + cdk synth: the 
 **Guides:**
 - **The real data:** [the remote database guide](docs/guides/remote-data.md) covers setting up `pnpm dev` against it.
 - **Running the hosted app:** [the hosting guide](docs/guides/hosting.md) covers deploying, handing out accounts, releasing with `pnpm release`, rolling back, and the post-deploy check.
+- **The API:** [the API guide](docs/api/README.md) covers sign-in, who can do what and how to read the OpenAPI description.
+- **How it all fits together:** [the architecture guide](docs/architecture/README.md).
 
 **Other test suites:**
 - `pnpm test:e2e`: the browser layout tests, which check every page at phone widths.
@@ -143,8 +148,8 @@ CI runs both of these as separate jobs.
 │           ├── dev-server.ts    node:http stand-in for API Gateway, loopback only
 │           ├── show/            cast/, running-order/: handlers and stores
 │           ├── casting/         roles/, casting-grid/ (the Excel export)
-│           ├── production/      props/, item-files/ (Scenery's, SFX's and Wardrobe's files, in a bucket or a local folder)
-│           ├── item-notes/      Notes per item, for casting, props, scenery, SFX and Wardrobe
+│           ├── production/      props/, mic-plot/, item-files/ (Scenery's, SFX's and Wardrobe's files, in a bucket or a local folder)
+│           ├── item-notes/      Notes per item, for casting, props, scenery, SFX, Wardrobe and the Mic plot
 │           ├── production-list/ Which productions exist; the newest is the one everyone opens (ADR 0036)
 │           ├── accounts/        The team's accounts, on the user pool
 │           ├── usage/           Usage records
@@ -153,9 +158,11 @@ CI runs both of these as separate jobs.
 │           └── cli/             pnpm account and pnpm check:hosted
 ├── packages/shared/         zod schemas + inferred types: the API contract
 ├── infra/                   AWS CDK app: one AppStack (pages, API, functions, table, files bucket, user pool, budget)
-├── tooling/                 Repo scripts: demo.ts, release.ts + harness and README tests
+├── tooling/                 Repo scripts: demo.ts, release.ts, openapi.ts + harness and README tests
 ├── docs/
 │   ├── adr/                 Architecture decision records (see Decisions)
+│   ├── api/                 The API guide and generated openapi.json
+│   ├── architecture/        Diagrams of how iCUE fits together
 │   ├── guides/              Running the hosted app and the remote database
 │   └── product/<feature>/   PRD, story map and stories written by the planning skills
 ├── .claude/
@@ -172,6 +179,7 @@ CI runs both of these as separate jobs.
 ├── commitlint.config.js     Conventional Commits rules and allowed scopes
 ├── release-please-config.json, .release-please-manifest.json, CHANGELOG.md
 ├── biome.json               Formatter + linter
+├── knip.json, .jscpd.json   The gate's dead-code and copy checks (ADR 0038)
 └── CLAUDE.md                The agents' operating manual (useful for humans too)
 ```
 
@@ -225,7 +233,7 @@ write-prd ──► story-map ──► write-story ──► implement-story �
 | `adr` | `docs/adr/NNNN-*.md` | Proposed → Accepted by the user |
 | `batch-stories` | One feature's stories on one branch, each built by a fresh subagent so the session's context stays small, with a single PR at the end | Only the user can switch it on; their yes covers the feature's pushes and its PR |
 | `consult` | A read-only consultant's 3–4 recommended epics for simplifying the app's UX, DX and AX, respecting the ADRs, then the user's picks as questions for the next PRD, and the lines the reviewers' briefs lacked | Only the user can start it; the user picks the epics before `write-prd`, and approves any brief changes |
-| `dry-sweep` | A read-only audit of duplication and bloat, comparing siblings side by side, that reports for the user to pick from (ADR 0038). User-only |
+| `dry-sweep` | A read-only audit of duplication and bloat, comparing siblings side by side, that reports for the user to pick from (ADR 0038) | Only the user can start it |
 
 ### 3. Reviewer subagents (`.claude/agents/`)
 Subagents run in their own context and report back. Fresh context matters: the agent that wrote the code is a poor judge of it. The reviewers have **no Edit or Write tools**, so they can report problems but can't "fix" them by weakening a test, and a harness test enforces that. They run on smaller models to keep cost down.
@@ -233,7 +241,7 @@ Subagents run in their own context and report back. Fresh context matters: the a
 | Reviewer | Runs when the diff touches | Focus |
 |---|---|---|
 | `code-reviewer` | always | Correctness, scope against the story, conventions (including where web files go, ADR 0025), ADR conformance, changed or deleted tests, **one of each** (it searches beyond the diff for siblings a change copies, per CLAUDE.md's simplicity rules), **brevity and clean code** for the next human reader, and whether the README still matches |
-| `test-auditor` | a story is being implemented | Maps each acceptance criterion to the test(s) covering it, by behaviour. Would the test fail if the behaviour broke? |
+| `test-auditor` | a story is being implemented, or more than ~50 test lines change | Maps each acceptance criterion to the test(s) covering it, by behaviour. Would the test fail if the behaviour broke? |
 | `security-reviewer` | the API, the shared contract, web code touching sign-in, tokens, storage or URLs, or dependencies | Input validation, auth, secrets, data exposure, frontend injection, dependencies |
 | `infra-reviewer` | `infra/`, the release script, or how the API is packaged or deployed | IAM, public exposure, destructive replacement, removal policies, cost |
 | `ux-reviewer` | `apps/web` | UI and UX consistency across the whole app (ADR 0012). **Advisory**: the user decides what to fix |
@@ -285,7 +293,7 @@ These cover humans and agents alike, and `pnpm install` installs them.
 
 **Workflow security:** every action is **pinned to a commit SHA**, and workflows use least-privilege tokens.
 
-**Releases:** merging the release PR doesn't deploy anything. The maintainer runs `pnpm release`, which merges the release PR, waits for its tag, then diffs and deploys that tag from their own machine. It refuses a diff that would replace the table, the user pool or the scenery files bucket.
+**Releases:** merging the release PR doesn't deploy anything. The maintainer runs `pnpm release`, which merges the release PR, waits for its tag, then diffs and deploys that tag from their own machine. It refuses a diff that would replace the table, the user pool or the files bucket.
 
 **The type decides the version:**
 
@@ -407,7 +415,7 @@ Two process lessons recur throughout. First, **watch every check fail once befor
 
 This repo was created from the [dev-project-template-opinionated-harness](https://github.com/cpthirst/dev-project-template-opinionated-harness) template. "The journey so far" records how that harness was built and how the app grew on it. The first walking-skeleton story lives in `docs/product/platform/`.
 
-New features, such as props lists, sound effects or mic plots, start with the `write-prd` skill.
+New features start with the `write-prd` skill.
 
 ## Credits
 
