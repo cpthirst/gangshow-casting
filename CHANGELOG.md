@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.55.0](https://github.com/cpthirst/gangshow-casting/compare/v1.54.0...v1.55.0) (2026-11-10)
+
+
+### Features
+
+* mark each item's gang and keep its casting to that gang (junior-cast.E2) ([#219](https://github.com/cpthirst/gangshow-casting/issues/219)) ([2188ed5](https://github.com/cpthirst/gangshow-casting/commit/2188ed5416132f1c4059d189bae1cd5ae5446509))
+
 ## [1.54.0](https://github.com/cpthirst/gangshow-casting/compare/v1.53.0...v1.54.0) (2026-11-10)
 
 
