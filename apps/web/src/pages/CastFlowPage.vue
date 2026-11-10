@@ -89,6 +89,8 @@ const options = computed<ChartOptions<"line">>(() => {
         },
         ticks: {
           autoSkip: false,
+          // Names tilt, up to upright, rather than run into each other on a narrow screen.
+          maxRotation: 90,
           callback: (minutes) => marks.find(({ at }) => at === minutes)?.label ?? "",
         },
         grid: { color: "rgb(64 64 64 / 0.3)" },

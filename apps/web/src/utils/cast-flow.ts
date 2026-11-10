@@ -23,7 +23,7 @@ export interface CastFlowPoint {
   counts: Record<CastFlowPlace, number>;
 }
 
-/** A start marked on the time axis: an item's number or title, or the interval (FR11). */
+/** A start marked on the time axis: an item's number and title, or the interval (FR11). */
 export interface CastFlowMark {
   at: number;
   label: string;
@@ -60,7 +60,7 @@ export function castFlowOf(
     ...rows.map(({ item, number, startsAt }) => ({
       at: startsAt,
       onStage: onStageIn(item.id),
-      label: number === null ? item.title : String(number),
+      label: number === null ? item.title : `${number} ${item.title}`,
     })),
   ]);
   return {

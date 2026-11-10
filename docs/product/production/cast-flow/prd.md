@@ -61,7 +61,7 @@ The idea comes from `docs/product/future-thinking.md` ("Backstage hotspot"). The
 ### The graph
 - **FR9**: The page shows one line graph of the whole show. Time runs along the bottom as clock times, from the first call before curtain up to the end of the last item. The number of people runs up the side.
 - **FR10**: Each place has its own line in its own colour, all on the same scale.
-- **FR11**: The start of each item is marked on the time axis with its number, or its title where it has no number, and the start of the interval with "Interval". A faint dashed line runs up the graph from each mark. Hovering over a marker or a point on the graph, or focusing it, shows the item and each place's count at that time.
+- **FR11**: The start of each item is marked on the time axis with its number and title, or its title alone where it has no number, and the start of the interval with "Interval". A faint dashed line runs up the graph from each mark. Hovering over a marker or a point on the graph, or focusing it, shows the item and each place's count at that time.
 - **FR12**: The graph's key lists the four places, each with a tick box. Unticking a box hides that place's line and ticking it shows the line again. On-stage and Standby are ticked, and Backstage and Dressing Room unticked, whenever the page opens or reloads.
 - **FR13**: Each place in the key has a short description of what it is, beside its name:
   - **On-stage**: performing in the item that's running.

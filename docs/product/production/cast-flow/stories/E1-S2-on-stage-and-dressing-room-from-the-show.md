@@ -45,10 +45,11 @@ Given the 2027 production
 When someone opens Cast flow
 Then the time along the bottom starts at 19:00 and ends at 19:43
 
-### AC7: Each item's start is marked with its number
+### AC7: Each item's start is marked with its number and name
 Given the 2027 production
 When someone opens Cast flow
-Then the time axis marks 19:00 with "1", 19:10 with "2" and 19:35 with "1", each half numbered from 1 as the Running order page numbers it
+Then the time axis marks 19:00 with "1 Opening", 19:10 with "2 Campfire Sketch" and 19:35 with "1 Finale", each half numbered from 1 as the Running order page numbers it
+And where the names don't fit side by side, they tilt, up to upright, rather than run into each other
 And a faint dashed line runs up the graph from each mark, behind the place lines
 
 ### AC8: An item not in the printed programme is marked by its title

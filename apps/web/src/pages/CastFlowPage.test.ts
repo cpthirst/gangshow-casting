@@ -124,7 +124,11 @@ describe("the Cast flow page", () => {
     expect(scale.ticks).toEqual([{ value: 19 * 60 + 15 }, { value: 19 * 60 + 25 }]);
     const label = marks?.ticks?.callback;
     expect(label && Reflect.apply(label, undefined, [19 * 60 + 25, 1, []])).toBe("Interval");
-    expect(marks).toMatchObject({ border: { dash: [4, 4] }, ticks: { autoSkip: false } });
+    // Names tilt up to upright rather than run into each other on a narrow screen.
+    expect(marks).toMatchObject({
+      border: { dash: [4, 4] },
+      ticks: { autoSkip: false, maxRotation: 90 },
+    });
   });
 
   it("shows every count at a moment on hovering over, clicking or tapping the graph", async () => {

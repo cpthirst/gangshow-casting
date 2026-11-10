@@ -69,12 +69,12 @@ describe("castFlowOf", () => {
     });
   });
 
-  it("marks each item's start with its number in its half, and the interval's", () => {
+  it("marks each item's start with its number in its half and its name, and the interval's", () => {
     expect(flow.marks).toEqual([
-      { at: at("19:00"), label: "1" },
-      { at: at("19:10"), label: "2" },
+      { at: at("19:00"), label: "1 Opening" },
+      { at: at("19:10"), label: "2 Campfire Sketch" },
       { at: at("19:15"), label: "Interval" },
-      { at: at("19:35"), label: "1" },
+      { at: at("19:35"), label: "1 Finale" },
     ]);
   });
 
@@ -87,13 +87,16 @@ describe("castFlowOf", () => {
 
     const labels = castFlowOf(withSong, [], cast).marks.map(({ label }) => label);
 
-    expect(labels).toEqual(["1", "Scene Change Song", "2", "Interval"]);
+    expect(labels).toEqual(["1 Opening", "Scene Change Song", "2 Campfire Sketch", "Interval"]);
   });
 
   it("joins the marks of things that start at once, such as after a 0-minute item", () => {
     const quick = aRunningOrder([anItem("Opening", { minutes: 0 }), anItem("Campfire Sketch")]);
 
-    expect(castFlowOf(quick, [], cast).marks[0]).toEqual({ at: at("19:15"), label: "1, 2" });
+    expect(castFlowOf(quick, [], cast).marks[0]).toEqual({
+      at: at("19:15"),
+      label: "1 Opening, 2 Campfire Sketch",
+    });
   });
 
   it("leaves out anyone cast who is no longer on the cast list", () => {
