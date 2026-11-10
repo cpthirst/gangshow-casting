@@ -1,88 +1,72 @@
 ---
 id: production-cast-flow.E2.S1
-title: Show and hide places from the key
+title: A graph for each place, with what it means
 epic: E2
-status: draft
+status: ready
 ---
 
 ## Story
 
-As a stage manager, I want to tick places on and off in the graph's key, and see what each place means, so that I can focus on the wings and holding area without the Dressing Room line dwarfing them.
+As a stage manager, I want a separate graph for each place, stacked one above the other and each saying what it means, so that I can read the wings and the holding area at a glance without the other places' lines in the way.
 
 ## Acceptance criteria
 
-### AC1: The key lists the four places, with only On-stage and Standby ticked
-Given the 2027 production's Cast flow page
-When it opens
-Then the key lists On-stage, Standby, Backstage and Dressing Room
-And On-stage and Standby are ticked, and Backstage and Dressing Room are not
-And only the On-stage and Standby lines show
+The examples use the 2027 production from E1.S3: curtain up at 19:00, the first call at 18:54, Finale ending at 19:53, and 60 on the cast list. The Dressing Room peaks at 60, in the interval, and Standby at 40, just before Finale.
 
-### AC2: Ticking a place shows its line
-Given the page as it opens
-When someone ticks Dressing Room
-Then the Dressing Room line shows
-And the On-stage and Standby lines still show
+### AC1: Each place has its own graph, stacked in order
+Given the 2027 production
+When someone opens Cast flow
+Then they see four graphs, one above the other: On-stage, Standby, Backstage, then Dressing Room
+And each graph has one line, in its place's own colour
 
-### AC3: Unticking it again hides the line
-Given Dressing Room is ticked
-When someone unticks it
-Then the Dressing Room line is hidden
-
-### AC4: The scale fits the lines shown
-Given the Dressing Room line peaks at 50 and the others never pass 15
-When the page opens
-Then the side scale fits the lines shown, up to about 15, not 50
-And when someone ticks Dressing Room, the scale grows to fit it
-
-### AC5: With every place unticked, the key stays
-Given all four places are unticked
-When someone looks at the page
-Then the graph shows no lines and the key still lists all four places, so any can be ticked again
-
-### AC6: Each place has its description beside its name
+### AC2: Each graph is headed by its place and what it means
 Given the Cast flow page
 When it opens
-Then the key shows beside each place:
+Then each graph is headed by its place's name and its description:
 - On-stage: "Performing in the item that's running."
 - Standby: "In the wings, from 4 minutes before their item."
 - Backstage: "In the holding area for props, mics and quick changes, from 6 minutes before their item."
 - Dressing Room: "Everyone else on the cast list."
 
-### AC7: A screen reader reads the description with the tick box
-Given someone using a screen reader
-When they move to the Backstage tick box
-Then it is announced with its name and its description
-
-### AC8: The tick boxes work from the keyboard
-Given the page as it opens
-When someone tabs to Standby and presses Space
-Then the Standby line is hidden
-
-### AC9: Lines differ by more than colour
+### AC3: The graphs share one time axis
 Given the Cast flow page
 When it opens
-Then each place's line has its own line style or point marker as well as its own colour, and the key shows the same for each
+Then all four graphs run from 18:54 to 19:53, so the same time sits at the same point across the page
+And the clock times are shown once, under the Dressing Room graph
 
-### AC10: Opening the page again starts from the same ticks
-Given someone has ticked Dressing Room and unticked Standby
-When they reload the page, or leave it and open it again
-Then On-stage and Standby are ticked, and Backstage and Dressing Room are not
+### AC4: The item marks run through every graph
+Given the Cast flow page
+When it opens
+Then the item and interval marks are labelled once, above the On-stage graph
+And each mark's faint dashed line runs through all four graphs
 
-### AC11: Help describes Cast flow
+### AC5: The graphs share one people scale
+Given the Dressing Room peaks at 60 and Standby at 40
+When someone opens Cast flow
+Then every graph's side runs from 0 to the same top, at least 60, so a height means the same number of people in every graph
+
+### AC6: Hovering over a graph shows its count then
+Given the Cast flow page
+When someone hovers over, clicks or taps the Standby graph at 19:12
+Then they see 7:12 pm and Standby's count then, 13
+
+### AC7: A screen reader names each graph by its place
+Given someone using a screen reader
+When they move to the Backstage graph
+Then it is announced as the Backstage graph, with Backstage's description
+
+### AC8: Help describes Cast flow
 Given the Help page
 When someone opens it
-Then it has an entry for Cast flow describing the four places with the same descriptions as the key, the 5-minute length assumed for untimed items, and that the counts are estimates
+Then its Cast flow entry describes the four places with the same descriptions as the graphs' headings, the 5-minute length assumed for untimed items, and that the counts are estimates
 
 ## Notes
 
-- **To rewrite before building (product owner, 2026-11-10).** One graph with four lines is too cluttered. This story becomes four graphs stacked on top of each other, one per place, top to bottom On-stage, Standby, Backstage, Dressing Room, sharing the time axis and the item marks. All four use one shared people scale, so heights compare across graphs. Each graph is headed by its place's name and description (AC6), and Help reads the same list (AC11). The tick boxes, the places ticked on opening and the line styles (AC1 to AC5, AC7, AC8 to AC10) drop out, as separate graphs need neither. PRD FR10, FR12 and FR13 change with it. Refine this story with `write-story` as the first step of Epic 2.
-- FRs: FR12, FR13, FR16
-- Depends on: E1.S3
-- AC6's wording is the requirement (PRD FR13), so it's asserted exactly. The descriptions live in one list with each place's name and line style, which the key and Help both read (AC11 checks Help's structure and that it uses that list, not its wording). The 4- and 6-minute figures in the descriptions come from the same values the counting uses.
-- The key's descriptions are the page's only explanatory text (PRD FR16). This is an agreed exception to CLAUDE.md's "Let the layout explain itself".
-- The key is part of the page, not the charting library's own legend, if that's what it takes to get real, labelled tick boxes.
-- Which places are ticked isn't remembered: On-stage and Standby are ticked, and Backstage and Dressing Room unticked, whenever the page opens or reloads (FR12). The product owner chose this (2026-11-10) so the wings, where crowding matters most, aren't dwarfed by the Dressing Room on opening. Which places start ticked is said once, in the list of places.
-- Colours must meet contrast against the page in light and dark themes.
-- At phone widths the key may wrap below the graph; the page must not scroll sideways.
-- Out of scope: hover and the table (E2.S2).
+- FRs: FR10, FR13, FR16 (FR12, the tick boxes, was dropped with the stacked graphs)
+- Depends on: E1.S3 (done)
+- **Rewritten 2026-11-10 at the product owner's request.** One graph with four lines was too cluttered. A graph per place needs no tick boxes, no places ticked on opening and no line styles, so those ACs went.
+- AC2's wording is the requirement (PRD FR13), so it's asserted exactly. The descriptions live in the one list of places, with each place's name and colour, which the headings and Help both read. AC8 checks Help's structure and that it uses that list, not its wording. The 4- and 6-minute figures in the descriptions come from the same values the counting uses.
+- The headings' descriptions are the page's only explanatory text (PRD FR16), an agreed exception to CLAUDE.md's "Let the layout explain itself".
+- The four graphs are drawn from the same counts and marks as now; only the layout changes. Each graph is short enough that all four fit a laptop screen. At phone widths the page must not scroll sideways.
+- Hovering shows only that graph's place (AC6). E2.S2 widens it to every place and the item running.
+- Out of scope: the item on hover, keyboard focus on marks, and the table (E2.S2).

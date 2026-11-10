@@ -11,7 +11,7 @@ prd: ./prd.md
 | Epic | Capability | FRs |
 |---|---|---|
 | E1 | See how many of the cast are in each of the four places across the whole show, on a line graph timed from the running order | FR1–FR11, FR14, FR15 |
-| E2 | Read and focus the graph: tick places in the key on and off, see what each place means, and read the counts without the graph | FR11–FR13, FR16 |
+| E2 | Read the graphs: a graph for each place, what each place means, and the counts without the graph | FR10, FR11, FR13, FR16 |
 
 ## E1: The Cast flow graph
 
@@ -25,8 +25,8 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [production-cast-flow.E2.S1](stories/E2-S1-key-with-tick-boxes-and-descriptions.md) | The key lists the four places, each with a tick box (On-stage and Standby ticked on opening and on every reload; Backstage and Dressing Room not) that hides or shows its line, and a one-line description beside its name, read with the tick box's label. Lines differ by style as well as colour. Help describes Cast flow from the same descriptions | FR12, FR13, FR16 | E1.S3 | draft: to rewrite as four stacked graphs, see its Notes |
-| [production-cast-flow.E2.S2](stories/E2-S2-counts-on-hover-and-as-a-table.md) | Hovering over or focusing an item's marker or a point on the graph shows the item and each place's count at that time. The counts at each item's start can also be read without the graph, as a table a screen reader reaches | FR11 | E1.S3 | ready |
+| [production-cast-flow.E2.S1](stories/E2-S1-key-with-tick-boxes-and-descriptions.md) | A graph for each place, stacked top to bottom On-stage, Standby, Backstage, Dressing Room, sharing the time axis, the item marks and one people scale. Each is headed by its place's name and a one-line description, which Help reads from the same list (rewritten 2026-11-10: one graph was too cluttered, so the tick boxes went) | FR10, FR13, FR16 | E1.S3 | in-progress |
+| [production-cast-flow.E2.S2](stories/E2-S2-counts-on-hover-and-as-a-table.md) | Hovering over or focusing an item's marker or a point on any graph shows the item and each place's count at that time. The counts at each item's start can also be read without the graphs, as a table a screen reader reaches | FR11 | E2.S1 | ready |
 
 ## FR coverage
 
@@ -41,9 +41,9 @@ prd: ./prd.md
 | FR7 | E1.S2 |
 | FR8 | E1.S2, E1.S3 |
 | FR9 | E1.S1, E1.S2, E1.S3 |
-| FR10 | E1.S1, E1.S3 |
+| FR10 | E1.S1, E1.S3, E2.S1 |
 | FR11 | E1.S2, E2.S2 |
-| FR12 | E2.S1 |
+| FR12 | Dropped |
 | FR13 | E2.S1 |
 | FR14 | E1.S2 |
 | FR15 | E1.S2 |
