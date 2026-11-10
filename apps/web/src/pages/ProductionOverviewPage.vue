@@ -14,6 +14,7 @@ import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, nextTick, onMounted, ref } from "vue";
 import ClashIcon from "@/components/common/ClashIcon.vue";
 import DraftNumber from "@/components/common/DraftNumber.vue";
+import NoRunningOrder from "@/components/common/NoRunningOrder.vue";
 import PageTitle from "@/components/common/PageTitle.vue";
 import { downloadMicPlot } from "@/services/excel-export.ts";
 import { latestMicPlot, latestPropsList } from "@/services/latest-show.ts";
@@ -270,10 +271,7 @@ async function loadRunningOrder() {
 <template>
   <PageTitle title="Overview" help="production-overview" />
   <p class="visually-hidden" role="status" data-test="announcement">{{ announcement }}</p>
-  <p v-if="state.status === 'empty'">
-    There's no saved running order yet. Set one up on the
-    <RouterLink :to="{ name: 'running-order' }">Running order page</RouterLink>.
-  </p>
+  <NoRunningOrder v-if="state.status === 'empty'" />
   <p v-else-if="state.status === 'error'" role="alert">Couldn't load the items.</p>
   <template v-else-if="state.status === 'loaded'">
     <DraftNumber :version="state.order.version" />

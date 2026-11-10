@@ -11,6 +11,7 @@ import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, onMounted, ref } from "vue";
 import ClashIcon from "@/components/common/ClashIcon.vue";
 import DraftNumber from "@/components/common/DraftNumber.vue";
+import NoRunningOrder from "@/components/common/NoRunningOrder.vue";
 import PageTitle from "@/components/common/PageTitle.vue";
 import RefusalNotice from "@/components/common/RefusalNotice.vue";
 import { loadData, loadRequired } from "@/services/load-data.ts";
@@ -112,10 +113,7 @@ async function loadRunningOrder() {
 <template>
   <PageTitle title="Items" help="casting-items" />
   <RefusalNotice />
-  <p v-if="state.status === 'empty'">
-    There's no saved running order yet. Set one up on the
-    <RouterLink :to="{ name: 'running-order' }">Running order page</RouterLink>.
-  </p>
+  <NoRunningOrder v-if="state.status === 'empty'" />
   <p v-else-if="state.status === 'error'" role="alert">Couldn't load the items.</p>
   <template v-else-if="state.status === 'loaded'">
     <DraftNumber :version="state.order.version" />

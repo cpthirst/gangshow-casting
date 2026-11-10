@@ -502,7 +502,7 @@ export const pageHelp: PageHelp[] = [
     page: "cast-flow",
     title: "Cast flow",
     summary:
-      "A line graph of how many of the cast are on stage, in the wings, backstage and in the dressing rooms through the show.",
+      "A line graph of how many of the cast are on stage and in the dressing rooms through the show.",
     lines: [],
   },
   {

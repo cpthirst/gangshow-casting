@@ -3,6 +3,7 @@ import { enableAutoUnmount, flushPromises, mount, type VueWrapper } from "@vue/t
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory } from "vue-router";
 import App from "@/App.vue";
+import NoRunningOrder from "@/components/common/NoRunningOrder.vue";
 import { createAppRouter } from "@/router/index.ts";
 import {
   departmentNotesPath,
@@ -383,8 +384,7 @@ describe("Production overview", () => {
 
     const { wrapper } = await openOverview();
 
-    expect(wrapper.get("main").text()).toContain("There's no saved running order yet.");
-    expect(wrapper.get("main a[href='/running-order']").text()).toBe("Running order page");
+    expect(wrapper.findComponent(NoRunningOrder).exists()).toBe(true);
     expect(wrapper.find("main table").exists()).toBe(false);
   });
 

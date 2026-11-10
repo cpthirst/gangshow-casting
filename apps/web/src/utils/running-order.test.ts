@@ -12,6 +12,7 @@ import {
   placeOf,
   positionOf,
   replaceItem,
+  runningClock,
   sameContent,
   sectionChangeWarning,
 } from "./running-order.ts";
@@ -26,6 +27,17 @@ describe("formatTime", () => {
     [24 * 60 + 10, "12:10 am"],
   ])("shows %i minutes after midnight as %s", (minutes, expected) => {
     expect(formatTime(minutes)).toBe(expected);
+  });
+});
+
+describe("runningClock", () => {
+  const order = aRunningOrder([anItem("Opening", { minutes: null }), anItem("Finale")]);
+  const finaleStart = (clock: ReturnType<typeof runningClock>) =>
+    clock.halves[0]?.rows[1]?.startsAt;
+
+  it("gives an untimed item no time, unless told how long to count it as", () => {
+    expect(finaleStart(runningClock(order))).toBe(19 * 60 + 15);
+    expect(finaleStart(runningClock(order, 5))).toBe(19 * 60 + 20);
   });
 });
 

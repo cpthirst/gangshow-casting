@@ -2,7 +2,7 @@
 id: production-cast-flow.E1.S2
 title: Plot On-stage and Dressing Room from the show
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story
@@ -48,7 +48,7 @@ Then the time along the bottom starts at 19:00 and ends at 19:43
 ### AC7: Each item's start is marked with its number
 Given the 2027 production
 When someone opens Cast flow
-Then the time axis marks 19:00 with "1", 19:10 with "2" and 19:35 with "3"
+Then the time axis marks 19:00 with "1", 19:10 with "2" and 19:35 with "1", each half numbered from 1 as the Running order page numbers it
 And a faint dashed line runs up the graph from each mark, behind the place lines
 
 ### AC8: An item not in the printed programme is marked by its title
@@ -102,3 +102,4 @@ Then the time axis marks 19:15 with "Interval", with the same faint dashed line 
 - Uses only the running order, roles and cast list the web app already loads from the API: no new API route or data. Nothing is saved (FR14).
 - The markers' lines were asked for by the product owner (2026-11-10): faint and dashed so the place lines stay the clearest thing on the graph. Chart.js can draw them as the x-axis grid lines at the marked times, with no plugin (ADR 0039).
 - Out of scope: Standby and Backstage, and starting the graph at the first call (E1.S3); hover and the table (E2.S2).
+- Follow-up: `apps/web/src/utils/casting.fixture.ts` holds `aRole` and `aCastMember` for these tests. Older tests still build their own (`utils/clashes.test.ts`, `utils/roles.test.ts`, `utils/props.test.ts`, `utils/mic-plot.test.ts`, `utils/cast.test.ts`, `utils/overview.test.ts`, `utils/word/casting-sheets-document.test.ts`, `pages/CastingItemsPage.test.ts`, `pages/CastingItemPage.test.ts`, `pages/PropsItemPage.test.ts`, `pages/MicPlotItemPage.test.ts`, `pages/ProductionOverviewMicPlotExport.test.ts`); moving them onto it is a separate chore.

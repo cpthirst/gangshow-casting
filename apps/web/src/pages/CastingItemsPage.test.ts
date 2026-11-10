@@ -2,6 +2,7 @@ import type { CastMember, ItemNote, Role, RunningOrder } from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory } from "vue-router";
+import NoRunningOrder from "@/components/common/NoRunningOrder.vue";
 import { createAppRouter } from "@/router/index.ts";
 import { castPath, itemNotesPath, rolesPath, runningOrderPath } from "@/services/production.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
@@ -179,8 +180,7 @@ describe("Casting items page", () => {
 
     const wrapper = await openItemsPage();
 
-    expect(wrapper.text()).toContain("There's no saved running order yet.");
-    expect(wrapper.get("a[href='/running-order']").text()).toBe("Running order page");
+    expect(wrapper.findComponent(NoRunningOrder).exists()).toBe(true);
   });
 
   it("reports a failed load rather than an empty running order", async () => {

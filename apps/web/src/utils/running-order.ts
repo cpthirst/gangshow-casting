@@ -38,27 +38,28 @@ export function formatTime(minutes: number) {
 }
 
 /** Numbers and start times for one half, plus its total and end time.
- *  Printed items are numbered from 1; untimed items take no time. */
-function timeHalf(items: RunningOrderItem[], startsAt: number) {
+ *  Printed items are numbered from 1. */
+function timeHalf(items: RunningOrderItem[], startsAt: number, untimedMinutes: number) {
   let clock = startsAt;
   let nextNumber = 1;
   const rows = items.map((item) => {
     const row = { item, number: item.printed ? nextNumber++ : null, startsAt: clock };
-    clock += item.minutes ?? 0;
+    clock += item.minutes ?? untimedMinutes;
     return row;
   });
   return { rows, totalMinutes: clock - startsAt, endsAt: clock };
 }
 
-/** Programme numbers and start times for the whole show, derived from one saved version. */
-export function runningClock(order: RunningOrder) {
+/** Programme numbers and start times for the whole show, derived from one saved version.
+ *  An untimed item takes no time, unless a page that needs a length for it gives one. */
+export function runningClock(order: RunningOrder, untimedMinutes = 0) {
   const [first, second] = order.halves;
-  const firstHalf = timeHalf(first.items, minutesOf(order.startTime));
+  const firstHalf = timeHalf(first.items, minutesOf(order.startTime), untimedMinutes);
   const interval = {
     startsAt: firstHalf.endsAt,
     endsAt: firstHalf.endsAt + order.intervalMinutes,
   };
-  const secondHalf = timeHalf(second.items, interval.endsAt);
+  const secondHalf = timeHalf(second.items, interval.endsAt, untimedMinutes);
   return {
     halves: [
       { half: first, ...firstHalf },
