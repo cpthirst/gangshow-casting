@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.56.0](https://github.com/cpthirst/gangshow-casting/compare/v1.55.0...v1.56.0) (2026-11-10)
+
+
+### Features
+
+* **web:** add the Cast flow page under Production (production-cast-flow.E1) ([#223](https://github.com/cpthirst/gangshow-casting/issues/223)) ([fab335e](https://github.com/cpthirst/gangshow-casting/commit/fab335e996de3b668c5be0c0ccd954a99c3a8770))
+
 ## [1.55.0](https://github.com/cpthirst/gangshow-casting/compare/v1.54.0...v1.55.0) (2026-11-10)
 
 
