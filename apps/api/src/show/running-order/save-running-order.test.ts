@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { RunningOrder, type RunningOrderItem, type SaveRunningOrderRequest } from "@app/shared";
+import { RunningOrder, type RunningOrderItem } from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { inMemoryRoleStore } from "#/casting/roles/role-store.ts";
 import { type ItemNoteStore, inMemoryItemNoteStore } from "#/item-notes/item-note-store.ts";
@@ -24,23 +24,23 @@ const request = (body: unknown, productionId = "2027") => ({
   body: typeof body === "string" ? body : JSON.stringify(body),
 });
 
-// Saves the given titles (made-up items) in order, with any edits applied.
+// Saves the given titles (made-up items) in order, with any edits applied. An edit may
+// return unknown to send an item the contract refuses.
 const update = (
   baseVersion: number,
   first: string[],
   second: string[] = [],
-  edit: (item: RunningOrderItem) => RunningOrderItem = (item) => item,
-) =>
-  ({
-    baseVersion,
-    change: {
-      type: "update",
-      halves: [
-        { id: "first-half", items: first.map(anItem).map(edit) },
-        { id: "second-half", items: second.map(anItem).map(edit) },
-      ],
-    },
-  }) satisfies SaveRunningOrderRequest;
+  edit: (item: RunningOrderItem) => unknown = (item) => item,
+) => ({
+  baseVersion,
+  change: {
+    type: "update",
+    halves: [
+      { id: "first-half", items: first.map(anItem).map(edit) },
+      { id: "second-half", items: second.map(anItem).map(edit) },
+    ],
+  },
+});
 
 const titlesIn = (body: string | undefined) =>
   RunningOrder.parse(JSON.parse(body ?? "")).halves.map((half) =>
@@ -137,8 +137,8 @@ describe("save running order handler", () => {
 
   it("saves edited item details as the next version", async () => {
     const { handler } = setUp();
-    const twentyMinutes = (item: RunningOrderItem) =>
-      item.title === "Pirate Panic" ? { ...item, minutes: 20 } : item;
+    const twentyMinutes = (item: RunningOrderItem): RunningOrderItem =>
+      item.title === "Pirate Panic" ? { ...item, minutes: 20, gang: "junior" } : item;
 
     const res = await handler(
       request(update(6, ["Curtain Up", "Pirate Panic", "Dance One"], [], twentyMinutes)),
@@ -146,30 +146,24 @@ describe("save running order handler", () => {
 
     expect(res.statusCode).toBe(201);
     const saved = RunningOrder.parse(JSON.parse(res.body ?? ""));
-    expect(saved.halves[0].items.find((i) => i.title === "Pirate Panic")?.minutes).toBe(20);
-  });
-
-  it.each([
-    ["an empty title", (item: RunningOrderItem) => ({ ...item, title: "" })],
-    ["negative minutes", (item: RunningOrderItem) => ({ ...item, minutes: -3 })],
-  ])("rejects an edit with %s with 400, saving nothing", async (_case, edit) => {
-    const { store, handler } = setUp();
-
-    const res = await handler(
-      request(update(6, ["Curtain Up", "Pirate Panic", "Dance One"], [], edit)),
-    );
-
-    expect(res.statusCode).toBe(400);
-    expect((await store.latest("2027"))?.version).toBe(6);
+    const pirates = saved.halves[0].items.find((i) => i.title === "Pirate Panic");
+    expect(pirates).toMatchObject({ minutes: 20, gang: "junior" });
   });
 
   it.each([
     ["malformed JSON", "{not json"],
     ["an off-contract body", { baseVersion: 6, change: { type: "shuffle" } }],
-  ])("rejects %s with 400", async (_case, body) => {
-    const { handler } = setUp();
+    ["an edit with an empty title", update(6, ["Curtain Up"], [], (i) => ({ ...i, title: "" }))],
+    [
+      "an edit with negative minutes",
+      update(6, ["Curtain Up"], [], (i) => ({ ...i, minutes: -3 })),
+    ],
+    ["a gang outside the list", update(6, ["Curtain Up"], [], (i) => ({ ...i, gang: "infants" }))],
+  ])("rejects %s with 400, saving nothing", async (_case, body) => {
+    const { store, handler } = setUp();
 
     expect((await handler(request(body))).statusCode).toBe(400);
+    expect((await store.latest("2027"))?.version).toBe(6);
   });
 
   it("returns 404 for a production with nothing stored", async () => {

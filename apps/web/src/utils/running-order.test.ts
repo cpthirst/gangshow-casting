@@ -11,6 +11,7 @@ import {
   placeOf,
   positionOf,
   replaceItem,
+  sameContent,
 } from "./running-order.ts";
 
 describe("formatTime", () => {
@@ -36,6 +37,7 @@ describe("dropItem", () => {
     comments: "",
     minutes: 5,
     printed: true,
+    gang: "senior",
   });
   const order = (first: string[], second: string[]): RunningOrder => ({
     productionId: "2027",
@@ -93,6 +95,7 @@ describe("item form", () => {
     comments: "Performed to track",
     minutes: 18,
     printed: true,
+    gang: "junior",
   };
 
   it("round-trips an item through the form unchanged", () => {
@@ -128,6 +131,17 @@ describe("item form", () => {
   });
 });
 
+describe("sameContent", () => {
+  // Save and Reset are offered only when the draft differs from the saved version.
+  it("tells a draft apart from the saved version when only an item's gang changed", () => {
+    const saved = aRunningOrder([anItem("Beaver Bop")]);
+    const draft = aRunningOrder([anItem("Beaver Bop", { gang: "junior" })]);
+
+    expect(sameContent(saved, draft)).toBe(false);
+    expect(sameContent(saved, aRunningOrder([anItem("Beaver Bop")]))).toBe(true);
+  });
+});
+
 describe("replaceItem", () => {
   const item = (title: string): RunningOrderItem => ({
     id: `itm_${title}`,
@@ -138,6 +152,7 @@ describe("replaceItem", () => {
     comments: "",
     minutes: 5,
     printed: true,
+    gang: "senior",
   });
   const order: RunningOrder = {
     productionId: "2027",

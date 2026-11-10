@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { RunningOrder } from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { aRunningOrder } from "./running-order.fixture.ts";
 import { behavesAsARunningOrderStore } from "./running-order-store.contract.ts";
 import { fileRunningOrderStore, inMemoryRunningOrderStore } from "./running-order-store.ts";
 
@@ -32,6 +33,25 @@ describe("file running order store", () => {
     await expect(fileRunningOrderStore(dataDir).latest("../etc")).rejects.toThrow(
       /invalid production id/i,
     );
+  });
+
+  it("reads every item of a version saved before items had a gang as Senior", async () => {
+    const order = aRunningOrder(3, { first: ["Curtain Up", "Pirate Panic"], second: ["Encore"] });
+    const withoutGangs = {
+      ...order,
+      halves: order.halves.map((half) => ({
+        ...half,
+        items: half.items.map(({ gang: _gang, ...item }) => item),
+      })),
+    };
+    const dir = join(dataDir, "2027", "running-order");
+    await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, "v3.json"), JSON.stringify(withoutGangs));
+
+    const latest = await fileRunningOrderStore(dataDir).latest("2027");
+
+    const gangs = latest?.halves.flatMap((half) => half.items.map((item) => item.gang));
+    expect(gangs).toEqual(["senior", "senior", "senior"]);
   });
 
   it("rejects a stored file that doesn't match the running order schema", async () => {

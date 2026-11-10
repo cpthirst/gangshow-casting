@@ -15,6 +15,7 @@ export const anItem = (
   comments: "",
   minutes: 5,
   printed: true,
+  gang: "senior",
   ...details,
 });
 

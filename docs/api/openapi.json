@@ -4731,6 +4731,15 @@
                         },
                         "printed": {
                           "type": "boolean"
+                        },
+                        "gang": {
+                          "default": "senior",
+                          "type": "string",
+                          "enum": [
+                            "junior",
+                            "senior",
+                            "both"
+                          ]
                         }
                       },
                       "required": [
@@ -4741,7 +4750,8 @@
                         "leads",
                         "comments",
                         "minutes",
-                        "printed"
+                        "printed",
+                        "gang"
                       ],
                       "additionalProperties": false
                     }
@@ -4817,6 +4827,15 @@
                         },
                         "printed": {
                           "type": "boolean"
+                        },
+                        "gang": {
+                          "default": "senior",
+                          "type": "string",
+                          "enum": [
+                            "junior",
+                            "senior",
+                            "both"
+                          ]
                         }
                       },
                       "required": [
@@ -4827,7 +4846,8 @@
                         "leads",
                         "comments",
                         "minutes",
-                        "printed"
+                        "printed",
+                        "gang"
                       ],
                       "additionalProperties": false
                     }
@@ -4956,6 +4976,15 @@
                                     },
                                     "printed": {
                                       "type": "boolean"
+                                    },
+                                    "gang": {
+                                      "default": "senior",
+                                      "type": "string",
+                                      "enum": [
+                                        "junior",
+                                        "senior",
+                                        "both"
+                                      ]
                                     }
                                   },
                                   "required": [
@@ -5014,6 +5043,15 @@
                                     },
                                     "printed": {
                                       "type": "boolean"
+                                    },
+                                    "gang": {
+                                      "default": "senior",
+                                      "type": "string",
+                                      "enum": [
+                                        "junior",
+                                        "senior",
+                                        "both"
+                                      ]
                                     }
                                   },
                                   "required": [
@@ -5098,6 +5136,15 @@
                                     },
                                     "printed": {
                                       "type": "boolean"
+                                    },
+                                    "gang": {
+                                      "default": "senior",
+                                      "type": "string",
+                                      "enum": [
+                                        "junior",
+                                        "senior",
+                                        "both"
+                                      ]
                                     }
                                   },
                                   "required": [
@@ -5156,6 +5203,15 @@
                                     },
                                     "printed": {
                                       "type": "boolean"
+                                    },
+                                    "gang": {
+                                      "default": "senior",
+                                      "type": "string",
+                                      "enum": [
+                                        "junior",
+                                        "senior",
+                                        "both"
+                                      ]
                                     }
                                   },
                                   "required": [

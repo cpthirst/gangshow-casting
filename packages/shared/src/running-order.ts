@@ -5,6 +5,18 @@ export const ProductionId = z.string().regex(/^[a-z0-9-]{1,40}$/i);
 
 export const Stage = z.enum(["apron", "full"]);
 
+/** Which gang an item is for, Junior first as the Cast page's gang filter lists them, in
+ *  the order the item editor offers them (junior-cast FR2). */
+export const ItemGang = z.enum(["junior", "senior", "both"]);
+export type ItemGang = z.infer<typeof ItemGang>;
+
+/** Each item gang's label: the one list the item editor and the cast's gang labels read. */
+export const itemGangLabels = {
+  junior: "Junior",
+  senior: "Senior",
+  both: "Both",
+} as const satisfies Record<ItemGang, string>;
+
 export const RunningOrderItem = z.object({
   id: z.string().min(1).max(40),
   title: z.string().trim().min(1).max(120),
@@ -17,6 +29,9 @@ export const RunningOrderItem = z.object({
   minutes: z.number().int().min(0).max(240).nullable(),
   /** False for items left out of the printed show programme. */
   printed: z.boolean(),
+  /** Who can be cast in it. Senior unless marked otherwise, so items saved before items had a
+   *  gang read as Senior (junior-cast FR2). */
+  gang: ItemGang.default("senior"),
 });
 
 const Half = <Id extends string>(id: Id) =>

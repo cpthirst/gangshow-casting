@@ -13,6 +13,7 @@ export const anItem = (title: string): RunningOrderItem => ({
   comments: "",
   minutes: 5,
   printed: true,
+  gang: "senior",
 });
 
 export function aRunningOrder(

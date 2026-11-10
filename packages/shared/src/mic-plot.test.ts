@@ -20,6 +20,7 @@ const anItem = (id: string) => ({
   comments: "",
   minutes: 5,
   printed: true,
+  gang: "senior" as const,
 });
 const show = (first: string[], second: string[]): RunningOrder => ({
   productionId: "2027",

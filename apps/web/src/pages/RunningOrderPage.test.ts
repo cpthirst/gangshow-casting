@@ -9,6 +9,7 @@ import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
+import { anItem as aFixtureItem } from "@/utils/running-order.fixture.ts";
 import RunningOrderPage from "./RunningOrderPage.vue";
 
 // SortableJS can't drag in happy-dom, so stand in for it and fire its drop event directly.
@@ -46,17 +47,12 @@ vi.mock("sortablejs", () => ({
 enableAutoUnmount(afterEach);
 
 // Made-up data only: tests never use the real programme (CLAUDE.md safeguarding).
-const anItem = (title: string, details: Partial<RunningOrderItem> = {}): RunningOrderItem => ({
-  id: `itm_${title.toLowerCase().replaceAll(" ", "-")}`,
-  title,
-  cast: "Full Senior Gang",
-  stage: ["full"],
-  leads: "",
-  comments: "",
-  minutes: 5,
-  printed: true,
-  ...details,
-});
+const anItem = (title: string, details: Partial<RunningOrderItem> = {}) =>
+  aFixtureItem(title, {
+    id: `itm_${title.toLowerCase().replaceAll(" ", "-")}`,
+    cast: "Full Senior Gang",
+    ...details,
+  });
 
 const aRunningOrder = (
   first: RunningOrderItem[],

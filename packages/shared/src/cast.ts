@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ProductionId } from "./running-order.ts";
+import { itemGangLabels, ProductionId } from "./running-order.ts";
 
 /** Every section, youngest first: the order the filter, the form and the Overview use. */
 export const Section = z.enum(["beavers", "cubs", "scouts", "explorers", "network"]);
@@ -21,10 +21,10 @@ export const sectionLabels = {
 export const Gang = z.enum(["junior", "senior"]);
 export type Gang = z.infer<typeof Gang>;
 
-export const gangLabels = { junior: "Junior", senior: "Senior" } as const satisfies Record<
-  Gang,
-  string
->;
+export const gangLabels = {
+  junior: itemGangLabels.junior,
+  senior: itemGangLabels.senior,
+} as const satisfies Record<Gang, string>;
 
 const juniorSections: readonly Section[] = ["beavers", "cubs"];
 

@@ -1,4 +1,5 @@
 import {
+  type ItemGang,
   type ItemNoteList,
   type RoleList,
   type RunningOrder,
@@ -134,6 +135,7 @@ export const aNewItem = (): RunningOrderItem => ({
   comments: "",
   minutes: null,
   printed: true,
+  gang: "senior",
 });
 
 /** True for an item added since the last save. */
@@ -219,6 +221,7 @@ const contentOf = (order: RunningOrder) =>
         i.comments,
         i.minutes,
         i.printed,
+        i.gang,
       ]),
     ),
   );
@@ -235,6 +238,7 @@ export interface ItemForm {
   comments: string;
   minutes: string;
   printed: boolean;
+  gang: ItemGang;
 }
 
 /** Stage sequences in use; the item being edited may add its own. */
@@ -255,10 +259,11 @@ export const formFor = (item: RunningOrderItem): ItemForm => ({
   comments: item.comments,
   minutes: item.minutes === null ? "" : String(item.minutes),
   printed: item.printed,
+  gang: item.gang,
 });
 
-// Every field that can fail validation (a checkbox can't).
-const fieldMessages: Record<Exclude<keyof ItemForm, "printed">, string> = {
+// Every field that can fail validation (a checkbox or a fixed list can't).
+const fieldMessages: Record<Exclude<keyof ItemForm, "printed" | "gang">, string> = {
   title: "Enter a title (up to 120 characters).",
   cast: "Keep this to 500 characters or fewer.",
   stage: "Choose where on stage this happens.",
@@ -289,6 +294,7 @@ export function itemFrom(form: ItemForm, id: string): ItemFormResult {
     // Anything but whole digits fails the schema's integer check below.
     minutes: minutes === "" ? null : /^\d+$/.test(minutes) ? Number(minutes) : Number.NaN,
     printed: form.printed,
+    gang: form.gang,
   };
   const parsed = RunningOrderItem.safeParse(candidate);
   if (parsed.success) return { ok: true, item: parsed.data };
