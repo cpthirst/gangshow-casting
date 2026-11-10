@@ -1,6 +1,6 @@
 import { BACKUP_WINDOW_DAYS, type DepartmentId, departments } from "@app/shared";
 import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
-import { listed, permissionNamesOf, whoCanChangeLine } from "./departments.ts";
+import { departmentPages, listed, permissionNamesOf, whoCanChangeLine } from "./departments.ts";
 import { icons } from "./icons.ts";
 import {
   type FilesDepartment,
@@ -63,6 +63,17 @@ const itemNavigationLines = (backTo: string): HelpLine[] => [
   },
 ];
 
+/** A Production department's item page's way around: the show, and the other departments. */
+const productionItemNavigationLines: HelpLine[] = [
+  ...itemNavigationLines("the Production overview"),
+  {
+    icons: departmentPages.map(({ icon }) => icon),
+    name: "Departments",
+    does: "Opens another department's page for this item.",
+    access: "everyone",
+  },
+];
+
 const DOCUMENT_ICONS = [
   icons.pdfFile,
   icons.wordFile,
@@ -102,7 +113,7 @@ function fileDepartmentHelp(
     summary: `One item's ${summaryName} files and notes. Open an item's ${summaryName} from Production → Overview.`,
     reachedFrom: productionOverview,
     lines: [
-      ...itemNavigationLines("the Production overview"),
+      ...productionItemNavigationLines,
       { icons: filesIcons, name: "Files", does: filesDo, access: "everyone" },
       {
         icons: [icons.remove],
@@ -384,7 +395,7 @@ export const pageHelp: PageHelp[] = [
     summary: "One item's props and notes. Open an item's props from Production → Overview.",
     reachedFrom: productionOverview,
     lines: [
-      ...itemNavigationLines("the Production overview"),
+      ...productionItemNavigationLines,
       {
         name: "Add prop",
         does: "Adds a prop by name, quantity and roles. When there are more people than the quantity, also choose who carries it.",
@@ -425,7 +436,7 @@ export const pageHelp: PageHelp[] = [
       "One item's mics and Mic plot notes. Open an item's mic plot from Production → Overview.",
     reachedFrom: productionOverview,
     lines: [
-      ...itemNavigationLines("the Production overview"),
+      ...productionItemNavigationLines,
       {
         name: "Mic 1 to Mic 24",
         does: "All 24 mics, in order, used or not. Type a name to give a mic to only someone cast in the item, one mic each. The roles they play in it show under them, from the casting: you don't choose them. Someone without a named part shows their ensemble. It saves straight away.",

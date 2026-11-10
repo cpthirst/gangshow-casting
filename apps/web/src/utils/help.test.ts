@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { departmentPages } from "./departments.ts";
 import { accessLabel, helpFor, pageHelp, whoCanChange } from "./help.ts";
 
 // A shared list in which Tech, not Stage, shares the props with the Director.
@@ -53,5 +54,21 @@ describe("Who can change a page, in its Help", () => {
 
   it("says nothing for a page no department owns", () => {
     expect(whoCanChange(helpFor("production-overview"))).toBeUndefined();
+  });
+});
+
+describe("The department switch, in Help", () => {
+  const switchLine = (page: string) =>
+    helpFor(page).lines.find(({ name }) => name === "Departments");
+
+  it.each(departmentPages.map(({ route }) => route))(
+    "is on the %s page's Help, with every department's icon",
+    (page) => {
+      expect(switchLine(page)?.icons).toEqual(departmentPages.map(({ icon }) => icon));
+    },
+  );
+
+  it("isn't on the Casting item page's Help", () => {
+    expect(switchLine("casting-item")).toBeUndefined();
   });
 });

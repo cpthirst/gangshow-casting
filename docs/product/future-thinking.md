@@ -8,11 +8,6 @@ A separation of Senior cast (Scouts, Explorers, Network) and Junior cast (Beaver
 casting role is Ensemble, only the Junior Gang or the Senior Gang is added and shown in the
 searches, depending on the item.
 
-## Production nav
-
-Assuming it doesn't clutter the production screens, jump easily to costume, mics, SFX and so on
-for the same item, while keeping the left/right nav for moving between items in running order.
-
 ## Backstage hotspot
 
 Based on the cast parts and which item is up next, estimate how many people are likely to be in

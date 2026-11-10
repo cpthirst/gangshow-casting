@@ -22,6 +22,7 @@ import {
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
 import { replaceQuestion } from "@/utils/file-display.ts";
+import { helpFor } from "@/utils/help.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
 
 // The browser's own new tabs and downloads, which happy-dom can't follow.
@@ -286,14 +287,7 @@ describe("An item's Scenery page", () => {
     await row.get("button[aria-label='Help for this item']").trigger("click");
 
     const names = wrapper.findAll("dialog [data-test=help-name]").map((name) => name.text());
-    expect(names).toEqual([
-      "All items",
-      "Previous and Next",
-      "Files",
-      "Remove",
-      "Add a file",
-      "Scenery notes",
-    ]);
+    expect(names).toEqual(helpFor("scenery-item").lines.map(({ name }) => name));
   });
 });
 

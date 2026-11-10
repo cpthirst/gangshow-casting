@@ -11,17 +11,19 @@ import {
 } from "@/services/production.ts";
 import { canChange } from "@/services/sign-in.ts";
 import { recordDepartmentPageUse } from "@/services/usage.ts";
-import { itemRouteOf } from "@/utils/departments.ts";
+import { departmentPages, itemRouteOf } from "@/utils/departments.ts";
 import { neighboursOf, placeOf, positionOf } from "@/utils/running-order.ts";
+import DepartmentSwitch from "./DepartmentSwitch.vue";
 import ItemNotes from "./ItemNotes.vue";
 import ItemStepNav from "./ItemStepNav.vue";
 import PageTitle from "./PageTitle.vue";
 import RefusalNotice from "./RefusalNotice.vue";
 
 // The frame every page about one item shares (CLAUDE.md domain rules, simplify FR6): All
-// items, Previous and Next, a "Department: Item" title, the item's position, the page in
-// between, the department's notes, and one not-found and one error state. A visit is
-// recorded once the item is found.
+// items, Previous and Next, a "Department: Item" title, the item's position, a Production
+// department's switch to the others (department-switch FR5), the page in between, the
+// department's notes, and one not-found and one error state. A visit is recorded once the
+// item is found.
 
 const props = withDefaults(
   defineProps<{
@@ -44,6 +46,8 @@ const order = ref<RunningOrder>();
 const status = ref<"loading" | "loaded" | "error">("loading");
 
 const named = computed(() => departments[props.department]);
+// Only a Production department's pages switch between departments (department-switch FR1).
+const productionPage = computed(() => departmentPages.find(({ id }) => id === props.department));
 const itemId = computed(() =>
   typeof route.params.itemId === "string" ? route.params.itemId : undefined,
 );
@@ -121,6 +125,7 @@ watch(
       help-title="Item help"
     />
     <p class="item-position" data-test="position">{{ positionOf(place) }}</p>
+    <DepartmentSwitch v-if="productionPage" :current="productionPage.id" :item-id="place.item.id" />
     <RefusalNotice :about="department" />
     <slot :item="place.item" />
     <!-- Apart from the item's other notes. A fresh instance per item, so stepping to another
