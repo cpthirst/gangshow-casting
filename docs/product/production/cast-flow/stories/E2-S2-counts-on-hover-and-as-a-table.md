@@ -53,6 +53,7 @@ Then its row's number is blank and its title is shown
 
 - FRs: FR11
 - Depends on: E1.S3. Independent of E2.S1; either can go first.
+- E1.S1 already shows each place's count and the clock time on hovering over, clicking or tapping the graph (Chart.js's tooltip, `interaction` mode `index`). This story adds the item, keyboard focus, the markers and the table on top of it.
 - The counts on hover and in the table come from the same counting as the graph, never a second calculation.
 - If the charting library's tooltip can't be reached by keyboard (AC4), the item markers or the table rows give the same information to keyboard users; the ADR from E1.S1 should have weighed this.
 - AC5's example: at 19:15 Gang Song's 13 (its 12 plus Robin Madeup) are on stage, and no one is called yet, since Finale's calls start at 19:39.

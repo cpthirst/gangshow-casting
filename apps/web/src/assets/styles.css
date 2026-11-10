@@ -2692,3 +2692,10 @@ main a {
     max-height: 6rem;
   }
 }
+
+/* A graph fills its column and keeps its height, shrinking with the page (ADR 0039). */
+.graph {
+  position: relative;
+  height: 24rem;
+  min-width: 0;
+}

@@ -151,7 +151,7 @@ describe("Usage page", () => {
           username: "robin",
           sessions: 1,
           lastSession: "2026-10-20T18:00:00.000Z",
-          uses: { "casting-overview": 2, "casting-items": 1 },
+          uses: { "casting-overview": 2, "casting-items": 1, "cast-flow": 4 },
         },
       ],
     });
@@ -162,7 +162,7 @@ describe("Usage page", () => {
       "robin",
       "1",
       "20 October 2026",
-      ["Overview 2", "Items 1"],
+      ["Overview 2", "Items 1", "Cast flow 4"],
     ]);
   });
 

@@ -4378,6 +4378,7 @@
                   "casting-overview",
                   "casting-items",
                   "production-overview",
+                  "cast-flow",
                   "help",
                   "accounts",
                   "productions",
@@ -5468,6 +5469,7 @@
                       "casting-overview",
                       "casting-items",
                       "production-overview",
+                      "cast-flow",
                       "help",
                       "accounts",
                       "productions",
@@ -5504,7 +5506,7 @@
             }
           },
           "features": {
-            "maxItems": 24,
+            "maxItems": 25,
             "type": "array",
             "items": {
               "type": "object",
@@ -5518,6 +5520,7 @@
                     "casting-overview",
                     "casting-items",
                     "production-overview",
+                    "cast-flow",
                     "help",
                     "accounts",
                     "productions",

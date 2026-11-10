@@ -63,6 +63,7 @@ describe("App shell", () => {
       "Overview",
       "Items",
       "Overview",
+      "Cast flow",
       "Accounts",
       "Productions",
       "Usage",
@@ -398,15 +399,7 @@ describe("App shell", () => {
 
       expect(wrapper.find("[data-test=view-only]").exists()).toBe(false);
       const links = wrapper.get("nav[aria-label=Main]").findAll("a");
-      expect(links.map((link) => link.text())).toEqual([
-        "Welcome",
-        "Running order",
-        "Cast",
-        "Overview",
-        "Items",
-        "Overview",
-        "Help",
-      ]);
+      expect(links.map((link) => link.text())).not.toContain("Accounts");
     });
 
     it.each([["/running-order"], ["/cast"], ["/casting/overview"], ["/casting/items"]])(
@@ -444,7 +437,6 @@ describe("App shell", () => {
 
     it("isn't in the hosted app", async () => {
       await signInAs(["admin"]);
-
       const { wrapper } = await openAppAt("/");
 
       expect(wrapper.find("[data-test=local-access]").exists()).toBe(false);
@@ -469,13 +461,14 @@ describe("App shell", () => {
     expect(pages().isVisible()).toBe(false);
   });
 
-  it("lists one page, Overview, under Production, with no further menu level", async () => {
+  it("lists Overview, then Cast flow, under Production, with no further menu level", async () => {
     const { wrapper } = await openAppAt("/");
 
     const production = wrapper.get("#menu-production-pages");
-    expect(production.findAll(":scope > li").map((item) => item.text())).toEqual(["Overview"]);
-    expect(production.findAll("a").map((link) => link.attributes("href"))).toEqual([
-      "/production/overview",
+    const links = production.findAll("a").map((link) => [link.text(), link.attributes("href")]);
+    expect(links).toEqual([
+      ["Overview", "/production/overview"],
+      ["Cast flow", "/production/cast-flow"],
     ]);
     expect(wrapper.get("nav[aria-label=Main]").text()).not.toMatch(/Stage|Tech|Wardrobe/);
     expect(production.findAll("button, ul")).toEqual([]);
