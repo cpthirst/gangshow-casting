@@ -1,4 +1,12 @@
-import { BACKUP_WINDOW_DAYS, type DepartmentId, departments } from "@app/shared";
+import {
+  BACKUP_WINDOW_DAYS,
+  type DepartmentId,
+  departments,
+  type Gang,
+  gangOf,
+  Section,
+  sectionLabels,
+} from "@app/shared";
 import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import { departmentPages, listed, permissionNamesOf, whoCanChangeLine } from "./departments.ts";
 import { icons } from "./icons.ts";
@@ -44,6 +52,13 @@ export interface PageHelp {
   reachedFrom?: { page: string; title: string };
   lines: HelpLine[];
 }
+
+// The sections in a gang, read from the shared rule so Help can't disagree with the filter.
+// The Senior gang also takes anyone with no section.
+const gangSections = (gang: Gang) => {
+  const labels = Section.options.filter((s) => gangOf(s) === gang).map((s) => sectionLabels[s]);
+  return gangOf(null) === gang ? listed([...labels, "no section"], "or") : listed(labels);
+};
 
 const productionOverview = { page: "production-overview", title: "Production overview" };
 
@@ -201,6 +216,11 @@ export const pageHelp: PageHelp[] = [
       {
         name: "Filter",
         does: "Type a first or last name, or pick a section, to show only the people who match.",
+        access: "everyone",
+      },
+      {
+        name: "Gang",
+        does: `Pick Junior (${gangSections("junior")}) or Senior (${gangSections("senior")}) to show only that gang.`,
         access: "everyone",
       },
       {

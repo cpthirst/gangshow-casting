@@ -28,6 +28,14 @@ describe("add cast member handler", () => {
     expect((await store.list("2027"))?.members).toHaveLength(3);
   });
 
+  it("saves a Beaver", async () => {
+    const { store, handler } = setUp();
+
+    expect((await handler(request({ ...jo, section: "beavers" }))).statusCode).toBe(201);
+
+    expect((await store.list("2027"))?.members.at(-1)?.section).toBe("beavers");
+  });
+
   it("saves Singing and Acting notes with the member", async () => {
     const { store, handler } = setUp();
     const notes = { singing: "Strong alto, can solo", acting: "Comic timing" };
@@ -46,7 +54,7 @@ describe("add cast member handler", () => {
 
   it.each([
     ["an empty first name", { ...jo, firstName: "" }],
-    ["a section outside the list", { ...jo, section: "beavers" }],
+    ["a section outside the list", { ...jo, section: "squirrels" }],
     ["an extra field such as a date of birth", { ...jo, dateOfBirth: "2012-01-01" }],
     ["malformed JSON", "{not json"],
   ])("rejects %s with 400, saving nothing", async (_case, body) => {

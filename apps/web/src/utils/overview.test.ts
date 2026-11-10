@@ -26,15 +26,19 @@ const shape = (sections: ReturnType<typeof castBySection>) =>
   sections.map(({ label, members }) => [label, members.map((m) => m.firstName)]);
 
 describe("castBySection", () => {
-  it("groups people as Scouts, Explorers, Network, then Not set", () => {
+  it("groups people youngest section first: Beavers, Cubs, Scouts, Explorers, Network, then Not set", () => {
     const cast = [
       person("Jo", "Newcomer", null),
       person("Kit", "Person", "network"),
       person("Alex", "Sample", "explorers"),
       person("Sam", "Example", "scouts"),
+      person("Ollie", "Sample", "cubs"),
+      person("Poppy", "Example", "beavers"),
     ];
 
     expect(shape(castBySection(cast))).toEqual([
+      ["Beavers", ["Poppy"]],
+      ["Cubs", ["Ollie"]],
       ["Scouts", ["Sam"]],
       ["Explorers", ["Alex"]],
       ["Network", ["Kit"]],

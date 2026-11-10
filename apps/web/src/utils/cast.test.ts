@@ -1,12 +1,14 @@
-import type { CastMember } from "@app/shared";
+import { type CastMember, Gang, gangOf, Section } from "@app/shared";
 import { describe, expect, it } from "vitest";
 import {
   type CastFilters,
   type CastForm,
   detailsFrom,
   filterCast,
+  hasFilters,
   NO_FILTERS,
   searchCast,
+  sectionLabel,
 } from "./cast.ts";
 
 // Made-up names only: tests never use the real cast (CLAUDE.md safeguarding).
@@ -56,8 +58,48 @@ describe("filterCast", () => {
     expect(filter({ section: "not-set" })).toEqual(["Zoë Other"]);
   });
 
+  it("filters by a Junior section", () => {
+    const mixed = [
+      member("Poppy", "Example", "beavers"),
+      member("Ollie", "Sample", "cubs"),
+      member("Sam", "Specimen", "scouts"),
+    ];
+
+    expect(names(filterCast(mixed, { ...NO_FILTERS, section: "cubs" }))).toEqual(["Ollie Sample"]);
+  });
+
   it("combines filters", () => {
     expect(filter({ firstName: "sam", section: "scouts" })).toEqual(["Sam Example"]);
+  });
+
+  describe("by gang", () => {
+    const gangs = [
+      member("Poppy", "Example", "beavers"),
+      member("Ollie", "Sample", "cubs"),
+      member("Sam", "Specimen", "scouts"),
+      member("Jo", "Newcomer", null),
+    ];
+    const byGang = (filters: Partial<CastFilters>) =>
+      names(filterCast(gangs, { ...NO_FILTERS, ...filters }));
+
+    it("keeps everyone at All, where the filters start", () => {
+      expect(NO_FILTERS.gang).toBe("all");
+      expect(byGang({})).toHaveLength(4);
+    });
+
+    it.each(Gang.options)("keeps the members gangOf puts in the %s gang", (gang) => {
+      const inGang = gangs.filter((m) => gangOf(m.section) === gang);
+
+      expect(filterCast(gangs, { ...NO_FILTERS, gang })).toEqual(inGang);
+    });
+
+    it("combines with the other filters", () => {
+      expect(byGang({ gang: "junior", lastName: "Sample" })).toEqual(["Ollie Sample"]);
+    });
+
+    it("counts as a filter once set", () => {
+      expect(hasFilters({ ...NO_FILTERS, gang: "senior" })).toBe(true);
+    });
   });
 });
 
@@ -104,6 +146,19 @@ describe("detailsFrom", () => {
 
     expect(result.ok).toBe(false);
     expect(!result.ok && result.errors[field]).toBe(message);
+  });
+});
+
+describe("sectionLabel", () => {
+  it("names every section, the Junior ones included, and a missing one as Not set", () => {
+    expect([...Section.options, null].map(sectionLabel)).toEqual([
+      "Beavers",
+      "Cubs",
+      "Scouts",
+      "Explorers",
+      "Network",
+      "Not set",
+    ]);
   });
 });
 

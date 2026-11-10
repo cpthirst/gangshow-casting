@@ -2,7 +2,7 @@
 id: junior-cast.E1.S1
 title: Record Beavers and Cubs as sections
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story

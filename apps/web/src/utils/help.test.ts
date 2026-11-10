@@ -72,3 +72,13 @@ describe("The department switch, in Help", () => {
     expect(switchLine("casting-item")).toBeUndefined();
   });
 });
+
+describe("The Cast page's Help", () => {
+  it("describes the Junior and the Senior gang", () => {
+    const gang = helpFor("cast").lines.find(({ name }) => name === "Gang")?.does ?? "";
+
+    for (const words of ["Junior", "Beavers", "Cubs", "Senior", "Scouts", "Explorers", "Network"])
+      expect(gang).toContain(words);
+    expect(gang).toMatch(/no section/);
+  });
+});

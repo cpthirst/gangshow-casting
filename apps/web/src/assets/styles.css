@@ -918,6 +918,28 @@ main a {
   cursor: not-allowed;
 }
 
+/* Phone: a grid, so the choice filters (dropdowns) pair up side by side, while the text
+   filters and the button each take a row. A lone dropdown fills the row. */
+@media (max-width: 767px) {
+  .filter-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+  }
+
+  .filter-bar select {
+    min-width: 0;
+  }
+
+  .filter-bar .field:has(input),
+  .filter-bar button {
+    grid-column: 1 / -1;
+  }
+
+  .filter-bar button {
+    justify-self: start;
+  }
+}
+
 /* Under each half: outlined like Reset, so it doesn't compete with Save. */
 .add-item {
   margin: 0.75rem 0 0;

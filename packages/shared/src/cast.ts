@@ -1,7 +1,37 @@
 import { z } from "zod";
 import { ProductionId } from "./running-order.ts";
 
-export const Section = z.enum(["scouts", "explorers", "network"]);
+/** Every section, youngest first: the order the filter, the form and the Overview use. */
+export const Section = z.enum(["beavers", "cubs", "scouts", "explorers", "network"]);
+export type Section = z.infer<typeof Section>;
+
+/**
+ * Each section's label. With Section, the one list the cast form, the filter, the Overview
+ * and both exports read (ADR 0010, junior-cast FR9).
+ */
+export const sectionLabels = {
+  beavers: "Beavers",
+  cubs: "Cubs",
+  scouts: "Scouts",
+  explorers: "Explorers",
+  network: "Network",
+} as const satisfies Record<Section, string>;
+
+/** The two gangs, Junior first, as the Cast page's gang filter lists them (junior-cast FR1). */
+export const Gang = z.enum(["junior", "senior"]);
+export type Gang = z.infer<typeof Gang>;
+
+export const gangLabels = { junior: "Junior", senior: "Senior" } as const satisfies Record<
+  Gang,
+  string
+>;
+
+const juniorSections: readonly Section[] = ["beavers", "cubs"];
+
+/** Which gang a member is in: Beavers and Cubs are Junior; everyone else, with or without a
+ *  section, is Senior. The one rule every page reads (junior-cast FR9). */
+export const gangOf = (section: Section | null): Gang =>
+  section !== null && juniorSections.includes(section) ? "junior" : "senior";
 
 /** A short free-text note on how someone sings or acts (ADR 0014); absent when not given. */
 const SkillNote = z.string().trim().max(100).optional();
@@ -54,7 +84,6 @@ export const CastList = z.strictObject({
   members: z.array(CastMember).max(1000),
 });
 
-export type Section = z.infer<typeof Section>;
 export type CastMember = z.infer<typeof CastMember>;
 export type CastMemberDetails = z.infer<typeof CastMemberDetails>;
 export type UpdateCastMemberRequest = z.infer<typeof UpdateCastMemberRequest>;

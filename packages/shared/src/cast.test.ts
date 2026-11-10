@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { CastList, CastMember, CastMemberDetails, UpdateCastMemberRequest } from "./cast.ts";
+import {
+  CastList,
+  CastMember,
+  CastMemberDetails,
+  gangOf,
+  UpdateCastMemberRequest,
+} from "./cast.ts";
 
 // Made-up names only: tests never use the real cast (CLAUDE.md safeguarding).
 const sam = {
@@ -16,6 +22,10 @@ describe("CastMember", () => {
     expect(CastMember.parse(sam)).toEqual(sam);
   });
 
+  it.each(["beavers", "cubs"])("accepts the Junior section %s", (section) => {
+    expect(CastMember.parse({ ...sam, section }).section).toBe(section);
+  });
+
   it("accepts a member with no section and no group", () => {
     expect(CastMember.parse({ ...sam, section: null, group: "" }).section).toBeNull();
   });
@@ -25,7 +35,7 @@ describe("CastMember", () => {
     ["an empty last name", { lastName: "" }],
     ["a first name over 40 characters", { firstName: "x".repeat(41) }],
     ["a group over 60 characters", { group: "x".repeat(61) }],
-    ["a section outside the list", { section: "beavers" }],
+    ["a section outside the list", { section: "squirrels" }],
     ["a non-numeric id", { id: "1" }],
   ])("rejects %s", (_case, change) => {
     expect(CastMember.safeParse({ ...sam, ...change }).success).toBe(false);
@@ -116,4 +126,17 @@ describe("UpdateCastMemberRequest", () => {
   ])("rejects %s", (_case, change) => {
     expect(UpdateCastMemberRequest.safeParse({ ...update, ...change }).success).toBe(false);
   });
+});
+
+describe("gangOf", () => {
+  it.each(["beavers", "cubs"] as const)("puts %s in the Junior gang", (section) => {
+    expect(gangOf(section)).toBe("junior");
+  });
+
+  it.each(["scouts", "explorers", "network", null] as const)(
+    "puts %s in the Senior gang",
+    (section) => {
+      expect(gangOf(section)).toBe("senior");
+    },
+  );
 });

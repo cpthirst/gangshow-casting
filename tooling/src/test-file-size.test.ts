@@ -15,7 +15,7 @@ const overBudget = new Map([
   ["apps/web/src/pages/RunningOrderPage.test.ts", 1496],
   ["apps/web/src/pages/SceneryItemPage.test.ts", 1322],
   ["apps/web/src/App.test.ts", 1202],
-  ["apps/web/src/pages/CastPage.test.ts", 1192],
+  ["apps/web/src/pages/CastPage.test.ts", 1188],
   ["apps/web/src/pages/AccountsPage.test.ts", 1052],
   ["apps/web/src/pages/ProductionOverviewPage.test.ts", 1036],
   ["apps/api/src/show/running-order/save-running-order.test.ts", 953],

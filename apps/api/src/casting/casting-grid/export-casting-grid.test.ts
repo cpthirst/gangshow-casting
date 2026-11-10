@@ -71,6 +71,23 @@ describe("export casting grid handler", () => {
     ]);
   });
 
+  it("writes the Junior sections, Beavers and Cubs, in a row's section", async () => {
+    const juniors = {
+      items: [grid.items[0]],
+      rows: [
+        { firstName: "Poppy", lastName: "Example", section: "Beavers", cells: ["E"] },
+        { firstName: "Ollie", lastName: "Sample", section: "Cubs", cells: [null] },
+      ],
+    };
+
+    const sheet = readSheet(fileIn(await exportCastingGrid(request(juniors))));
+
+    expect(sheet.slice(1).map((row) => row.slice(0, 3))).toEqual([
+      ["Poppy", "Example", "Beavers"],
+      ["Ollie", "Sample", "Cubs"],
+    ]);
+  });
+
   it("holds the role-size letter in a filled cell and nothing in an empty one", async () => {
     const sheet = readSheet(fileIn(await exportCastingGrid(request(grid))));
 

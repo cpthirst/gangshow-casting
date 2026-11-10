@@ -226,12 +226,13 @@ describe("Cast page", () => {
       aCast([
         aMember("Sam", "Example", { section: "scouts" }),
         aMember("Samira", "Sample", { section: "explorers" }),
-        aMember("Alex", "Other", { section: "explorers" }),
+        aMember("Alex", "Other", { section: "cubs" }),
         aMember("Zoë", "Smith", { section: null }),
       ]);
     const firstName = (wrapper: Page) => wrapper.get("input[name=firstName]");
     const lastName = (wrapper: Page) => wrapper.get("input[name=lastName]");
     const section = (wrapper: Page) => wrapper.get("select[name=section]");
+    const gang = (wrapper: Page) => wrapper.get("select[name=gang]");
 
     it("filters by first name", async () => {
       serve(cast());
@@ -251,27 +252,18 @@ describe("Cast page", () => {
       expect(names(wrapper)).toEqual(["Samira Sample"]);
     });
 
-    it("matches names regardless of accents", async () => {
-      serve(cast());
-      const wrapper = await openPage();
-
-      await firstName(wrapper).setValue("zoe");
-
-      expect(names(wrapper)).toEqual(["Zoë Smith"]);
-    });
-
     it("filters by section, including members with no section", async () => {
       serve(cast());
       const wrapper = await openPage();
 
       await section(wrapper).setValue("explorers");
-      expect(names(wrapper)).toEqual(["Alex Other", "Samira Sample"]);
+      expect(names(wrapper)).toEqual(["Samira Sample"]);
 
       await section(wrapper).setValue("not-set");
       expect(names(wrapper)).toEqual(["Zoë Smith"]);
     });
 
-    it("offers All, Scouts, Explorers, Network and Not set", async () => {
+    it("offers All, every section youngest first, and Not set", async () => {
       serve(cast());
       const wrapper = await openPage();
 
@@ -279,17 +271,17 @@ describe("Cast page", () => {
         section(wrapper)
           .findAll("option")
           .map((o) => o.text()),
-      ).toEqual(["All", "Scouts", "Explorers", "Network", "Not set"]);
+      ).toEqual(["All", "Beavers", "Cubs", "Scouts", "Explorers", "Network", "Not set"]);
     });
 
     it("shows matches out of the total, in a live region for screen readers", async () => {
       serve(cast());
       const wrapper = await openPage();
 
-      await section(wrapper).setValue("explorers");
+      await gang(wrapper).setValue("junior");
 
       const count = wrapper.get("[data-test=count]");
-      expect(count.text()).toBe("2 of 4 cast members");
+      expect(count.text()).toBe("1 of 4 cast members");
       expect(count.attributes("role")).toBe("status");
     });
 
@@ -308,9 +300,11 @@ describe("Cast page", () => {
       const wrapper = await openPage();
       await firstName(wrapper).setValue("sam");
       await section(wrapper).setValue("scouts");
+      await gang(wrapper).setValue("senior");
 
       await wrapper.get("button[data-test=clear-filters]").trigger("click");
 
+      expect(gang(wrapper).element).toHaveProperty("value", "all");
       expect(firstName(wrapper).element).toHaveProperty("value", "");
       expect(lastName(wrapper).element).toHaveProperty("value", "");
       expect(section(wrapper).element).toHaveProperty("value", "all");
@@ -328,7 +322,7 @@ describe("Cast page", () => {
       expect(document.activeElement).toBe(firstName(wrapper).element);
     });
 
-    it("filters by first name, last name and section only, not by the notes", async () => {
+    it("filters by first name, last name, section and gang only, not by the notes", async () => {
       serve(cast());
       const wrapper = await openPage();
 
@@ -337,6 +331,7 @@ describe("Cast page", () => {
         "firstName",
         "lastName",
         "section",
+        "gang",
       ]);
     });
 
@@ -344,7 +339,7 @@ describe("Cast page", () => {
       serve(cast());
       const wrapper = await openPage();
 
-      for (const field of [firstName(wrapper), lastName(wrapper), section(wrapper)]) {
+      for (const field of wrapper.findAll("form.filter-bar :is(input, select)")) {
         const id = field.attributes("id");
         expect(wrapper.find(`label[for="${id}"]`).exists()).toBe(true);
       }
@@ -398,13 +393,13 @@ describe("Cast page", () => {
       await fill(form, {
         firstName: "Jo",
         lastName: "Newcomer",
-        section: "scouts",
+        section: "beavers",
         group: "1st Somewhere",
       });
       await save(wrapper);
 
       expect(names(wrapper)).toEqual(["Sam Example", "Jo Newcomer", "Alex Sample"]);
-      expect(rows(wrapper)[1]).toEqual(["Jo", "Newcomer", "Scouts", "1st Somewhere", "", ""]);
+      expect(rows(wrapper)[1]).toEqual(["Jo", "Newcomer", "Beavers", "1st Somewhere", "", ""]);
       expect(wrapper.get("[data-test=count]").text()).toBe("3 cast members");
       expect(wrapper.find("form[data-test=cast-member-form]").exists()).toBe(false);
     });
@@ -871,20 +866,20 @@ describe("Cast page", () => {
     }
 
     it("saves new details to the row", async () => {
-      api(cast());
+      api(aCast([{ ...sam(), section: null }]));
       const wrapper = await openPage();
       const edit = await openEdit(wrapper, "Sam Example");
 
-      await edit.get("[name=section]").setValue("explorers");
-      await edit.get("[name=group]").setValue("Riverside ESU");
+      await edit.get("[name=section]").setValue("cubs");
+      await edit.get("[name=group]").setValue("2nd Somewhere");
       await save(wrapper);
 
-      expect(rows(wrapper)[0]).toEqual(["Sam", "Example", "Explorers", "Riverside ESU", "", ""]);
+      expect(rows(wrapper)[0]).toEqual(["Sam", "Example", "Cubs", "2nd Somewhere", "", ""]);
       expect(puts[0]?.body).toEqual({
         firstName: "Sam",
         lastName: "Example",
-        section: "explorers",
-        group: "Riverside ESU",
+        section: "cubs",
+        group: "2nd Somewhere",
         singing: "",
         acting: "",
         revision: 3,
@@ -1169,6 +1164,7 @@ describe("Cast page", () => {
       expect(wrapper.get("dialog h2").text()).toBe("Cast help");
       expect(wrapper.findAll("dialog [data-test=help-name]").map((name) => name.text())).toEqual([
         "Filter",
+        "Gang",
         "Clear filters",
         "Add cast member",
         "Edit",

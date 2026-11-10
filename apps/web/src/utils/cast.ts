@@ -1,13 +1,15 @@
-import { type CastMember, CastMemberDetails, type GridSection, type Section } from "@app/shared";
-
-const sectionNames: Record<Section, GridSection> = {
-  scouts: "Scouts",
-  explorers: "Explorers",
-  network: "Network",
-};
+import {
+  type CastMember,
+  CastMemberDetails,
+  type Gang,
+  type GridSection,
+  gangOf,
+  type Section,
+  sectionLabels,
+} from "@app/shared";
 
 export const sectionLabel = (section: Section | null): GridSection =>
-  section === null ? "Not set" : sectionNames[section];
+  section === null ? "Not set" : sectionLabels[section];
 
 // The platform's locale-aware comparison: case and accents don't change the order.
 const byName = new Intl.Collator("en-GB", { sensitivity: "base" });
@@ -24,17 +26,21 @@ export const countLabel = (count: number) => `${count} cast member${count === 1 
 export const matchesLabel = (shown: number, total: number, filtered: boolean) =>
   filtered ? `${shown} of ${countLabel(total)}` : countLabel(total);
 
-/** What the filters can be set to. "all" and "not-set" are section choices, not sections. */
+/** What the filters can be set to. "all" and "not-set" are choices, not sections or gangs. */
 export interface CastFilters {
   firstName: string;
   lastName: string;
   section: Section | "all" | "not-set";
+  gang: Gang | "all";
 }
 
-export const NO_FILTERS: CastFilters = { firstName: "", lastName: "", section: "all" };
+export const NO_FILTERS: CastFilters = { firstName: "", lastName: "", section: "all", gang: "all" };
 
 export const hasFilters = (filters: CastFilters) =>
-  filters.firstName.trim() !== "" || filters.lastName.trim() !== "" || filters.section !== "all";
+  filters.firstName.trim() !== "" ||
+  filters.lastName.trim() !== "" ||
+  filters.section !== "all" ||
+  filters.gang !== "all";
 
 // Case- and accent-free text, so "zoe" finds "Zoë" (standard Unicode normalisation).
 const plain = (text: string) =>
@@ -55,7 +61,8 @@ export function filterCast(members: CastMember[], filters: CastFilters) {
     (m) =>
       plain(m.firstName).includes(first) &&
       plain(m.lastName).includes(last) &&
-      sectionMatches(filters.section, m.section),
+      sectionMatches(filters.section, m.section) &&
+      (filters.gang === "all" || gangOf(m.section) === filters.gang),
   );
 }
 

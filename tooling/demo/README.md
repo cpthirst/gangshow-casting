@@ -4,7 +4,7 @@
 
 - **Addresses:** the app is at http://localhost:5190 and its API at :3190. It runs alongside `pnpm dev` (:5173 and :3000) and never touches its data.
 - **Fresh each start:** each start copies `data/` to a temporary folder. Your changes last until you stop the demo (Ctrl+C), and the next start begins from this show again.
-- **The show:** 60 cast members across Scouts, Explorers, Network and no section. Two halves of 10 items, each with a length, and a 20-minute interval. Roles of every size, including ensembles of up to 30. Two people have no parts yet, and one role ("Squirrel" in Woodland Dance) is uncast. The Big Opening and Pirate Sketch have made-up scenery files.
+- **The show:** 76 cast members: 60 in the Senior cast (Scouts, Explorers, Network and no section) and 16 in the Junior cast (8 Beavers, 8 Cubs). Two halves of 10 items, each with a length, and a 20-minute interval. Roles of every size, including ensembles of up to 30. Two of the Senior cast and all of the Junior cast have no parts yet, and one role ("Squirrel" in Woodland Dance) is uncast. The Big Opening and Pirate Sketch have made-up scenery files.
 
 ## Planted clashes
 

@@ -31,8 +31,8 @@ import { isAdmin } from "@/services/sign-in.ts";
       </dt>
       <dd>
         The show itself: the <RouterLink :to="{ name: 'running-order' }">Running order</RouterLink>
-        of items, and the <RouterLink :to="{ name: 'cast' }">Cast</RouterLink> of Scouts and
-        Explorers.
+        of items, and the <RouterLink :to="{ name: 'cast' }">Cast</RouterLink>, with each member's
+        section.
       </dd>
       <dt>
         <!-- The first page in the group: the menu opens the group when it arrives. -->

@@ -17,8 +17,8 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [junior-cast.E1.S1](stories/E1-S1-beavers-and-cubs-sections.md) | A cast member's section can be Beavers or Cubs. The Cast page's form and section filter offer them, and the Casting overview and its Excel and Word exports group them in their own sections. ADR 0010 is amended for the younger cast | FR1, FR7, FR8, FR9 | (none) | ready |
-| [junior-cast.E1.S2](stories/E1-S2-filter-cast-junior-or-senior.md) | The Cast page filters the cast list to the Junior cast (Beavers, Cubs) or the Senior cast (Scouts, Explorers, Network, no section). Help describes the two casts | FR1, FR7, FR9, FR11 | E1.S1 | ready |
+| [junior-cast.E1.S1](stories/E1-S1-beavers-and-cubs-sections.md) | A cast member's section can be Beavers or Cubs. The Cast page's form and section filter offer them, and the Casting overview and its Excel and Word exports group them in their own sections. ADR 0010 is amended for the younger cast | FR1, FR7, FR8, FR9 | (none) | done |
+| [junior-cast.E1.S2](stories/E1-S2-filter-cast-junior-or-senior.md) | The Cast page filters the cast list to the Junior cast (Beavers, Cubs) or the Senior cast (Scouts, Explorers, Network, no section). Help describes the two casts | FR1, FR7, FR9, FR11 | E1.S1 | done |
 
 ## E2: Items for the Junior cast
 

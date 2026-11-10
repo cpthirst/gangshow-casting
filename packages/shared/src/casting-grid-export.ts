@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CastMember } from "./cast.ts";
+import { CastMember, sectionLabels } from "./cast.ts";
 
 /** A role size as the grid shows it: Lead, Support, Cameo or Ensemble (casting-overview-grid FR7). */
 export const GridRoleLetter = z.enum(["L", "S", "C", "E"]);
@@ -24,7 +24,7 @@ export const gridTextColour = "#404040";
 export const unprintedHeadingColour = "#b8301a";
 
 /** A section as the Overview labels it, including "Not set" for no section. */
-export const GridSection = z.enum(["Scouts", "Explorers", "Network", "Not set"]);
+export const GridSection = z.enum({ ...sectionLabels, notSet: "Not set" });
 export type GridSection = z.infer<typeof GridSection>;
 
 /**
