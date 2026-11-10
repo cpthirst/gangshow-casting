@@ -2,7 +2,7 @@
 id: production-cast-flow.E2.S1
 title: Show and hide places from the key
 epic: E2
-status: ready
+status: draft
 ---
 
 ## Story
@@ -76,6 +76,7 @@ Then it has an entry for Cast flow describing the four places with the same desc
 
 ## Notes
 
+- **To rewrite before building (product owner, 2026-11-10).** One graph with four lines is too cluttered. This story becomes four graphs stacked on top of each other, one per place, top to bottom On-stage, Standby, Backstage, Dressing Room, sharing the time axis and the item marks. All four use one shared people scale, so heights compare across graphs. Each graph is headed by its place's name and description (AC6), and Help reads the same list (AC11). The tick boxes, the places ticked on opening and the line styles (AC1 to AC5, AC7, AC8 to AC10) drop out, as separate graphs need neither. PRD FR10, FR12 and FR13 change with it. Refine this story with `write-story` as the first step of Epic 2.
 - FRs: FR12, FR13, FR16
 - Depends on: E1.S3
 - AC6's wording is the requirement (PRD FR13), so it's asserted exactly. The descriptions live in one list with each place's name and line style, which the key and Help both read (AC11 checks Help's structure and that it uses that list, not its wording). The 4- and 6-minute figures in the descriptions come from the same values the counting uses.

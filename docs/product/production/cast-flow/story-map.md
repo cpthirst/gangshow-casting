@@ -25,7 +25,7 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [production-cast-flow.E2.S1](stories/E2-S1-key-with-tick-boxes-and-descriptions.md) | The key lists the four places, each with a tick box (On-stage and Standby ticked on opening and on every reload; Backstage and Dressing Room not) that hides or shows its line, and a one-line description beside its name, read with the tick box's label. Lines differ by style as well as colour. Help describes Cast flow from the same descriptions | FR12, FR13, FR16 | E1.S3 | ready |
+| [production-cast-flow.E2.S1](stories/E2-S1-key-with-tick-boxes-and-descriptions.md) | The key lists the four places, each with a tick box (On-stage and Standby ticked on opening and on every reload; Backstage and Dressing Room not) that hides or shows its line, and a one-line description beside its name, read with the tick box's label. Lines differ by style as well as colour. Help describes Cast flow from the same descriptions | FR12, FR13, FR16 | E1.S3 | draft: to rewrite as four stacked graphs, see its Notes |
 | [production-cast-flow.E2.S2](stories/E2-S2-counts-on-hover-and-as-a-table.md) | Hovering over or focusing an item's marker or a point on the graph shows the item and each place's count at that time. The counts at each item's start can also be read without the graph, as a table a screen reader reaches | FR11 | E1.S3 | ready |
 
 ## FR coverage
