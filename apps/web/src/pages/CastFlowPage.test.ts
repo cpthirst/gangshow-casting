@@ -182,6 +182,18 @@ describe("the Cast flow page", () => {
     expect(asked.every((url) => url.includes("/2026/"))).toBe(true);
   });
 
+  it("says it's loading until the show has loaded", async () => {
+    serve();
+
+    const wrapper = mount(CastFlowPage, {
+      global: { plugins: [createAppRouter(createMemoryHistory())] },
+    });
+
+    expect(wrapper.text()).toContain("Loading…");
+    await flushPromises();
+    expect(wrapper.text()).not.toContain("Loading…");
+  });
+
   it("says there's no running order yet, rather than drawing a graph", async () => {
     serve({ order: json({}, 404) });
 

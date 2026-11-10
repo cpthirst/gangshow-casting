@@ -116,7 +116,8 @@ const options = computed<ChartOptions<"line">>(() => {
 
 <template>
   <PageTitle title="Cast flow" help="cast-flow" />
-  <NoRunningOrder v-if="state.status === 'no-running-order'" />
+  <p v-if="state.status === 'loading'">Loading…</p>
+  <NoRunningOrder v-else-if="state.status === 'no-running-order'" />
   <p v-else-if="state.status === 'no-cast'">
     There's no cast yet. Add them on the
     <RouterLink :to="{ name: 'cast' }">Cast page</RouterLink>.
