@@ -308,6 +308,7 @@ describe("Help page", () => {
       expect(names(wrapper, "props-item")).toEqual([
         "All items",
         "Previous and Next",
+        "Departments",
         "Add prop",
         "Edit",
         "Remove",
@@ -334,6 +335,7 @@ describe("Help page", () => {
       expect(names(wrapper, "scenery-item")).toEqual([
         "All items",
         "Previous and Next",
+        "Departments",
         "Files",
         "Remove",
         "Add a file",
@@ -391,6 +393,7 @@ describe("Help page", () => {
         expect(names(wrapper, page)).toEqual([
           "All items",
           "Previous and Next",
+          "Departments",
           "Files",
           "Remove",
           "Add a file",
@@ -419,6 +422,7 @@ describe("Help page", () => {
       expect(names(wrapper, page)).toEqual([
         "All items",
         "Previous and Next",
+        "Departments",
         "Mic 1 to Mic 24",
         "Used in previous item",
         "Error",

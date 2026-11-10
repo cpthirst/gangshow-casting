@@ -144,6 +144,51 @@ test("a department's page for a long-titled item fits the screen", async ({ page
   await expectNoSidewaysScroll(page);
 });
 
+/** Each department in an item page's switch: its accessible name and where it sits. */
+async function departmentsOf(page: Page) {
+  const entries = page
+    .getByRole("navigation", { name: "Departments" })
+    .locator("[data-test=department]");
+  await expect(entries).toHaveCount(5);
+  return Promise.all(
+    (await entries.all()).map(async (entry) => ({
+      name: await entry.getAttribute("data-tooltip"),
+      top: (await entry.boundingBox())?.y,
+      nameWidth: (await entry.locator(".department-name").boundingBox())?.width ?? 0,
+    })),
+  );
+}
+
+test("an item page's department switch fits on one row, as icons named for screen readers", async ({
+  page,
+}) => {
+  await page.goto("/production/items/itm-2/mic-plot");
+  await expect(page.getByRole("heading", { name: `Mic plot: ${PIRATE_SKETCH}` })).toBeVisible();
+
+  const departments = await departmentsOf(page);
+  expect(new Set(departments.map(({ top }) => top)).size, "rows the switch takes").toBe(1);
+  for (const { name, nameWidth } of departments) {
+    expect(nameWidth, `${name}'s name on screen`).toBeLessThanOrEqual(1);
+  }
+  const switcher = page.getByRole("navigation", { name: "Departments" });
+  await expect(switcher.getByRole("link", { name: "Wardrobe" })).toBeVisible();
+  await expect(switcher.locator("[aria-current=page]")).toHaveText("Mic plot");
+  await expectNoSidewaysScroll(page);
+});
+
+test.describe("on a wide screen", () => {
+  test.use({ viewport: { width: 1024, height: 768 }, isMobile: false });
+
+  test("an item page's department switch shows each department's name", async ({ page }) => {
+    await page.goto("/production/items/itm-2/sfx");
+    await expect(page.getByRole("heading", { name: `SFX: ${PIRATE_SKETCH}` })).toBeVisible();
+
+    for (const { name, nameWidth } of await departmentsOf(page)) {
+      expect(nameWidth, `${name}'s name on screen`).toBeGreaterThan(1);
+    }
+  });
+});
+
 test("an item's 24 mics, and a channel's cast member picker, fit the screen", async ({ page }) => {
   // e2e/data gives the long Pirate Sketch title's Mic 1 to the cast's longest name, who plays
   // its longest role too.
