@@ -165,10 +165,15 @@ export function createRoutes(
       runningOrders,
       cast,
     ),
-    "PUT /api/productions/{productionId}/roles/{roleId}": createUpdateRole(roles, cast, {
-      props,
-      micPlots,
-    }),
+    "PUT /api/productions/{productionId}/roles/{roleId}": createUpdateRole(
+      roles,
+      runningOrders,
+      cast,
+      {
+        props,
+        micPlots,
+      },
+    ),
     "DELETE /api/productions/{productionId}/roles/{roleId}": createRemoveRole(roles, {
       props,
       micPlots,

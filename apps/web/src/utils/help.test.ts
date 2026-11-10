@@ -73,6 +73,14 @@ describe("The department switch, in Help", () => {
   });
 });
 
+describe("The Casting item page's Help", () => {
+  it("says the cast search offers only the item's gang", () => {
+    const search = helpFor("casting-item").lines.find(({ name }) => name === "Cast member");
+
+    expect(search?.does).toMatch(/gang/);
+  });
+});
+
 describe("The Cast page's Help", () => {
   it("describes the Junior and the Senior gang", () => {
     const gang = helpFor("cast").lines.find(({ name }) => name === "Gang")?.does ?? "";

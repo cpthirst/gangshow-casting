@@ -251,6 +251,7 @@ describe("Help page", () => {
         "Add role",
         "Edit",
         "Remove",
+        "Cast member",
         "Casting notes",
       ]);
       const iconOf = (name: string) =>

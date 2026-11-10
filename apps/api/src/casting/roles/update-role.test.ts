@@ -4,6 +4,8 @@ import { inMemoryMicPlotStore } from "#/production/mic-plot/mic-plot-store.ts";
 import { inMemoryPropStore } from "#/production/props/prop-store.ts";
 import { aCastList, aCastMember } from "#/show/cast/cast.fixture.ts";
 import { inMemoryCastStore } from "#/show/cast/cast-store.ts";
+import { aRunningOrder, itemId } from "#/show/running-order/running-order.fixture.ts";
+import { inMemoryRunningOrderStore } from "#/show/running-order/running-order-store.ts";
 import { inMemoryRoleStore } from "./role-store.ts";
 import { createUpdateRole } from "./update-role.ts";
 
@@ -28,7 +30,11 @@ function setUp() {
   };
   const roles = inMemoryRoleStore([initial]);
   const cast = inMemoryCastStore([aCastList([aCastMember(12), aCastMember(13)])]);
-  return { roles, initial, handler: createUpdateRole(roles, cast, noFollowers()) };
+  return {
+    roles,
+    initial,
+    handler: createUpdateRole(roles, inMemoryRunningOrderStore(), cast, noFollowers()),
+  };
 }
 
 const noFollowers = () => ({ props: inMemoryPropStore(), micPlots: inMemoryMicPlotStore() });
@@ -102,7 +108,10 @@ describe("update role handler for ensembles", () => {
   const handlerFor = (initial: RoleList) => {
     const roles = inMemoryRoleStore([initial]);
     const cast = inMemoryCastStore([aCastList([aCastMember(12), aCastMember(13)])]);
-    return { roles, handler: createUpdateRole(roles, cast, noFollowers()) };
+    return {
+      roles,
+      handler: createUpdateRole(roles, inMemoryRunningOrderStore(), cast, noFollowers()),
+    };
   };
 
   it("refuses the same member twice, changing nothing", async () => {
@@ -139,7 +148,10 @@ describe("update role handler with props", () => {
     const props = inMemoryPropStore([{ productionId: "2027", props: [basket] }]);
     return {
       props,
-      handler: createUpdateRole(roles, cast, { props, micPlots: inMemoryMicPlotStore() }),
+      handler: createUpdateRole(roles, inMemoryRunningOrderStore(), cast, {
+        props,
+        micPlots: inMemoryMicPlotStore(),
+      }),
     };
   }
   const recast = (castMemberIds: number[], revision: number) =>
@@ -201,7 +213,10 @@ describe("update role handler with mics", () => {
     ]);
     return {
       micPlots,
-      handler: createUpdateRole(roles, cast, { props: inMemoryPropStore(), micPlots }),
+      handler: createUpdateRole(roles, inMemoryRunningOrderStore(), cast, {
+        props: inMemoryPropStore(),
+        micPlots,
+      }),
     };
   }
   const recast = (r: Role, castMemberIds: number[]) =>
@@ -234,5 +249,49 @@ describe("update role handler with mics", () => {
     expect((await handler(recast({ ...alien, revision: 5 }, []))).statusCode).toBe(409);
 
     expect(await micsIn(micPlots, "space-sketch")).toEqual([{ channel: 3, castMemberId: 12 }]);
+  });
+});
+
+describe("update role handler in a gang's item", () => {
+  // Made-up cast: Sam Example (12) is in Cubs, Sam Sample (13) in Scouts. Beaver Bop is for
+  // the Junior gang; Sam Sample was in its Dam Builders before it was.
+  const inBeaverBop = { itemId: itemId("Beaver Bop") };
+  const initial: RoleList = {
+    productionId: "2027",
+    roles: [
+      { ...role(8, "Chief Beaver"), ...inBeaverBop, size: "lead" },
+      { ...role(9, "Dam Builders"), ...inBeaverBop, size: "ensemble", castMemberIds: [13] },
+    ],
+  };
+  function setUpBeaverBop() {
+    const roles = inMemoryRoleStore([initial]);
+    const order = aRunningOrder(7, { first: ["Beaver Bop"] });
+    for (const item of order.halves[0].items) item.gang = "junior";
+    const cast = inMemoryCastStore([
+      aCastList([
+        aCastMember(12, { section: "cubs" }),
+        aCastMember(13, { lastName: "Sample", section: "scouts" }),
+      ]),
+    ]);
+    const runningOrders = inMemoryRunningOrderStore([order]);
+    return { roles, handler: createUpdateRole(roles, runningOrders, cast, noFollowers()) };
+  }
+
+  it("refuses casting someone outside the item's gang, saying so and changing nothing", async () => {
+    const { roles, handler } = setUpBeaverBop();
+    const body = { name: "Chief Beaver", size: "lead", castMemberIds: [13], revision: 1 };
+
+    const res = await handler(request("8", body));
+
+    expect(res.statusCode).toBe(400);
+    expect(JSON.parse(res.body ?? "")).toEqual({ message: "Sam Sample isn't in the Junior gang" });
+    expect(await roles.list("2027")).toEqual(initial);
+  });
+
+  it("keeps someone cast before the item was for their gang", async () => {
+    const { handler } = setUpBeaverBop();
+    const body = { name: "Dam Builders", size: "ensemble", castMemberIds: [13, 12], revision: 1 };
+
+    expect((await handler(request("9", body))).statusCode).toBe(200);
   });
 });

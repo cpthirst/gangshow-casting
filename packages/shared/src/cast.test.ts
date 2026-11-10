@@ -3,6 +3,7 @@ import {
   CastList,
   CastMember,
   CastMemberDetails,
+  castableIn,
   gangOf,
   UpdateCastMemberRequest,
 } from "./cast.ts";
@@ -139,4 +140,17 @@ describe("gangOf", () => {
       expect(gangOf(section)).toBe("senior");
     },
   );
+});
+
+describe("castableIn", () => {
+  it.each([
+    ["junior", "cubs", true],
+    ["junior", "scouts", false],
+    ["senior", null, true],
+    ["senior", "beavers", false],
+    ["both", "cubs", true],
+    ["both", null, true],
+  ] as const)("in a %s item, takes %s: %s", (gang, section, castable) => {
+    expect(castableIn(gang, section)).toBe(castable);
+  });
 });

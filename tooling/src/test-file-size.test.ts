@@ -8,7 +8,7 @@ const LIMIT = 800;
 // Older files over the limit, each at most the size shown. Lower a number when a file shrinks,
 // and take a file off once it's within the limit. Never raise one or add one.
 const overBudget = new Map([
-  ["apps/web/src/pages/CastingItemPage.test.ts", 2075],
+  ["apps/web/src/pages/CastingItemPage.test.ts", 2070],
   ["apps/web/src/pages/CastingOverviewPage.test.ts", 2018],
   ["apps/api/src/lambda.test.ts", 1841],
   ["apps/web/src/pages/PropsItemPage.test.ts", 1752],

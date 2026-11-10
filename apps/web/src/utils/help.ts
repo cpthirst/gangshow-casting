@@ -339,6 +339,11 @@ export const pageHelp: PageHelp[] = [
         access: "casting",
       },
       {
+        name: "Cast member",
+        does: `Searches the cast by name, offering only the item's gang: for a Junior item, ${gangSections("junior")}; for a Senior item, ${gangSections("senior")}; for an item for both gangs, everyone.`,
+        access: "casting",
+      },
+      {
         name: "Casting notes",
         does: "Anything the team needs to know about the item.",
         access: "everyone",

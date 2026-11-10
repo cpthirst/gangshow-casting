@@ -2,7 +2,7 @@
 id: junior-cast.E2.S2
 title: Cast each role only from the item's gang
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story

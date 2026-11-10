@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { type AddRoleRequest, type CastMember, type Role, RoleSize } from "@app/shared";
+import {
+  type AddRoleRequest,
+  type CastMember,
+  castableIn,
+  type ItemGang,
+  type Role,
+  RoleSize,
+} from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, nextTick, onMounted, ref, useId, watch } from "vue";
 import { sortCast } from "@/utils/cast.ts";
@@ -17,12 +24,14 @@ import CastMemberPicker from "./CastMemberPicker.vue";
 // taken: the item's other role names, which this one can't repeat.
 // cast: the production's cast, to choose who plays the part.
 // inOtherRoles: who's in the item's other roles, whom Add All Cast leaves out (FR11).
+// gang: the item's gang, the only people the search and Add All Cast offer (junior-cast FR4).
 const props = defineProps<{
   saving: boolean;
   error: string;
   taken: TakenNames;
   cast: CastMember[];
   inOtherRoles: number[];
+  gang: ItemGang;
   role?: Role | undefined;
   castName?: string | undefined;
 }>();
@@ -66,9 +75,14 @@ watch(
   },
 );
 
+/** Who can be added: the item's gang. Anyone already cast stays listed (junior-cast E2.S3). */
+const castable = computed(() =>
+  props.cast.filter((member) => castableIn(props.gang, member.section)),
+);
+
 /** Who Add All Cast would add: everyone not in another role in this item (FR11). */
 const remaining = computed(() =>
-  remainingCast(props.cast, props.inOtherRoles, form.value.members ?? []),
+  remainingCast(castable.value, props.inOtherRoles, form.value.members ?? []),
 );
 
 // Fills the ensemble without saving: people can still be removed, and Cancel undoes it.
@@ -83,7 +97,7 @@ const memberList = computed(() =>
 );
 /** Only people not already in the ensemble can be added (each is in it once). */
 const addable = computed(() =>
-  props.cast.filter((member) => !form.value.members?.includes(member.id)),
+  castable.value.filter((member) => !form.value.members?.includes(member.id)),
 );
 
 /** Screen-reader announcement of the last member added or removed. */
@@ -195,7 +209,7 @@ function submit() {
       </label>
       <CastMemberPicker
         v-model="form.castMember"
-        :cast="showsMembers ? addable : cast"
+        :cast="showsMembers ? addable : castable"
         :input-id="idFor('castMember')"
         :described-by="errors.castMember ? errorFor('castMember') : undefined"
       />
