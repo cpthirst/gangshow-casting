@@ -1226,12 +1226,27 @@ main a {
     margin-bottom: 0.25rem;
   }
 
-  .data-table td:not(.first-name, .last-name, .username, .actions) {
+  /* A card titled by an item (Cast flow): the title on its own line, then its number and start
+     time together, as on the Items lists. */
+  .data-table td.title {
+    flex-basis: 100%;
+    font-size: 1.0625rem;
+    font-weight: 700;
+  }
+
+  .data-table td:not(.first-name, .last-name, .username, .actions, .title) {
     order: 2;
     flex-basis: 100%;
   }
 
-  .data-table td:not(.first-name, .last-name, .username, .actions)::before {
+  .data-table td.number,
+  .data-table td.starts {
+    order: 1;
+    flex-basis: auto;
+    margin-right: 1.25rem;
+  }
+
+  .data-table td:not(.first-name, .last-name, .username, .actions, .title)::before {
     content: attr(data-label) " ";
     font-size: 0.75rem;
     font-style: normal;
