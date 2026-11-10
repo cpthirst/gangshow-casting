@@ -21,7 +21,8 @@ afterEach(() => {
   openProduction("2027");
 });
 
-// Curtain up at 19:15: Opening (10 minutes, 30 of the 50 on the cast list), then the interval.
+// Curtain up at 19:15, with Opening's calls from 19:09: Opening (10 minutes, 30 of the 50 on
+// the cast list), then the interval.
 const show: RunningOrder = aRunningOrder([anItem("Opening", { minutes: 10 })]);
 const opening: Role[] = [aRole(1, "opening", ids(1, 30))];
 const cast: CastMember[] = ids(1, 50).map((id) => aCastMember(id));
@@ -64,6 +65,14 @@ const lineOf = (wrapper: Page, place: string) =>
     .props("data")
     .datasets.find(({ label }) => label === place);
 
+/** A line's count from a time, in minutes after midnight, if it has a point there. */
+function countAt(wrapper: Page, place: string, minutes: number) {
+  const point = lineOf(wrapper, place)?.data.find(
+    (each) => typeof each === "object" && each?.x === minutes,
+  );
+  return typeof point === "object" ? point?.y : undefined;
+}
+
 describe("the Cast flow page", () => {
   it("opens from the menu for a team member with no department permissions", async () => {
     await signInAs([]);
@@ -77,7 +86,7 @@ describe("the Cast flow page", () => {
     expect(wrapper.get("h1").text()).toBe("Cast flow");
   });
 
-  it("draws the show's On-stage and Dressing Room counts, each level until the next start", async () => {
+  it("draws a line for each place, each level until the next change", async () => {
     serve();
 
     const wrapper = await openPage();
@@ -86,17 +95,13 @@ describe("the Cast flow page", () => {
       graphOf(wrapper)
         .props("data")
         .datasets.map(({ label }) => label),
-    ).toEqual(["On-stage", "Dressing Room"]);
-    expect(lineOf(wrapper, "On-stage")).toMatchObject({
-      data: [
-        { x: 19 * 60 + 15, y: 30 },
-        { x: 19 * 60 + 25, y: 0 },
-        { x: 19 * 60 + 45, y: 0 },
-      ],
-      // Chart.js's "before" holds each point's count until the next point.
-      stepped: "before",
-    });
-    expect(lineOf(wrapper, "Dressing Room")?.data[0]).toEqual({ x: 19 * 60 + 15, y: 20 });
+    ).toEqual(["On-stage", "Standby", "Backstage", "Dressing Room"]);
+    // Chart.js's "before" holds each point's count until the next point.
+    expect(lineOf(wrapper, "On-stage")).toMatchObject({ stepped: "before" });
+    expect(countAt(wrapper, "Backstage", 19 * 60 + 9)).toBe(30);
+    expect(countAt(wrapper, "Standby", 19 * 60 + 11)).toBe(30);
+    expect(countAt(wrapper, "On-stage", 19 * 60 + 15)).toBe(30);
+    expect(countAt(wrapper, "Dressing Room", 19 * 60 + 15)).toBe(20);
     expect(wrapper.get("canvas").attributes("role")).toBe("img");
   });
 
@@ -109,7 +114,7 @@ describe("the Cast flow page", () => {
     const tick = x?.ticks?.callback;
     // Chart.js calls it with its scale as `this`, which the label doesn't use.
     expect(tick && Reflect.apply(tick, undefined, [19 * 60 + 5, 0, []])).toBe("7:05 pm");
-    expect(x).toMatchObject({ position: "bottom", min: 19 * 60 + 15, max: 19 * 60 + 45 });
+    expect(x).toMatchObject({ position: "bottom", min: 19 * 60 + 9, max: 19 * 60 + 45 });
     expect(y).toMatchObject({ min: 0, title: { display: true, text: "People" } });
   });
 
@@ -162,7 +167,7 @@ describe("the Cast flow page", () => {
 
     const wrapper = await openPage();
 
-    expect(lineOf(wrapper, "On-stage")?.data[0]).toEqual({ x: 19 * 60 + 15, y: 32 });
+    expect(countAt(wrapper, "On-stage", 19 * 60 + 15)).toBe(32);
   });
 
   it("times the show afresh each time it opens, from the running order as saved then", async () => {
@@ -172,7 +177,7 @@ describe("the Cast flow page", () => {
 
     const wrapper = await openPage();
 
-    expect(lineOf(wrapper, "On-stage")?.data[1]).toEqual({ x: 19 * 60 + 27, y: 0 });
+    expect(countAt(wrapper, "On-stage", 19 * 60 + 27)).toBe(0);
   });
 
   it("shows the production that's open", async () => {
