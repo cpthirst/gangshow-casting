@@ -1,13 +1,16 @@
 import { describe, expect, it } from "vitest";
+import type { CastMember } from "./cast.ts";
 import {
   AddRoleRefusal,
   AddRoleRequest,
   normalisedRoleName,
+  outOfGang,
   Role,
   RoleList,
   sameRoleName,
   UpdateRoleRequest,
 } from "./role.ts";
+import type { ItemGang } from "./running-order.ts";
 
 const captainHook = {
   id: 1,
@@ -125,5 +128,39 @@ describe("UpdateRoleRequest", () => {
     ["an id, which comes from the URL", { ...edit, id: 7 }],
   ])("refuses %s", (_case, request) => {
     expect(UpdateRoleRequest.safeParse(request).success).toBe(false);
+  });
+});
+
+describe("outOfGang", () => {
+  const member = (id: number, section: CastMember["section"]): CastMember => ({
+    id,
+    firstName: "Made",
+    lastName: `Up ${id}`,
+    section,
+    group: "",
+    revision: 1,
+  });
+  // 1 is in Scouts, 2 has no section, 3 is in Beavers.
+  const members = [member(1, "scouts"), member(2, null), member(3, "beavers")];
+  const role = Role.parse(captainHook);
+  const captain = { ...role, castMemberIds: [1] };
+  const pirates = { ...role, id: 2, size: "ensemble" as const, castMemberIds: [2, 3] };
+  const finale = { ...role, id: 3, itemId: "finale", castMemberIds: [3] };
+  // Pirate Sketch is for the Junior gang, the Finale for both.
+  const gangOf = (itemId: string): ItemGang => (itemId === "finale" ? "both" : "junior");
+
+  it("lists who in each role isn't in its item's gang", () => {
+    expect(outOfGang([captain, pirates, finale], members, gangOf)).toEqual([
+      { role: captain, castMemberIds: [1] },
+      { role: pirates, castMemberIds: [2] },
+    ]);
+  });
+
+  it("lists no one when everyone is in their items' gang", () => {
+    expect(outOfGang([finale, { ...pirates, castMemberIds: [3] }], members, gangOf)).toEqual([]);
+  });
+
+  it("leaves alone anyone not on the cast list, whose gang isn't known", () => {
+    expect(outOfGang([{ ...captain, castMemberIds: [9] }], members, gangOf)).toEqual([]);
   });
 });

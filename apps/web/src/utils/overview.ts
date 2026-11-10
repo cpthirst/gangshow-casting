@@ -1,6 +1,7 @@
 import {
   type CastMember,
   type GridSection,
+  itemsOf,
   type Role,
   RoleSize,
   type RunningOrder,
@@ -90,7 +91,7 @@ export const spokenParts = (counts: PartCounts) =>
 
 /** The ids of the items in a saved running order: the only items whose roles count. */
 export const itemIdsInOrder = (order: RunningOrder) =>
-  new Set(order.halves.flatMap((half) => half.items.map((item) => item.id)));
+  new Set(itemsOf(order).map((item) => item.id));
 
 /** Points per role, by size: one lead (8) outweighs two supports (6) or three cameos (6),
  *  but three supports (9) outweigh one lead. Agreed in the casting-overview PRD (FR3). */

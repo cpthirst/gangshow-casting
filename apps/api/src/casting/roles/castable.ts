@@ -1,10 +1,6 @@
-import { castableIn, type ItemGang, itemGangLabels, type RunningOrder } from "@app/shared";
+import { castableIn, type ItemGang, itemGangLabels } from "@app/shared";
 import { messageResponse } from "#/http/json.ts";
 import type { CastStore } from "#/show/cast/cast-store.ts";
-
-/** The gang an item in the order is for; any gang for an item that isn't in it. */
-export const gangOfItem = (order: RunningOrder | undefined, itemId: string): ItemGang =>
-  order?.halves.flatMap((half) => half.items).find((item) => item.id === itemId)?.gang ?? "both";
 
 /**
  * Why these people can't be cast in an item for this gang, as a 400, or undefined when they

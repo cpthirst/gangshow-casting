@@ -1,7 +1,12 @@
 import { ItemNote, ItemNoteList, type SaveRunningOrderRequest } from "@app/shared";
 import { describe, expect, it } from "vitest";
 import { inMemoryRoleStore } from "#/casting/roles/role-store.ts";
-import { anItem, aRunningOrder, itemId } from "#/show/running-order/running-order.fixture.ts";
+import {
+  anItem,
+  aRunningOrder,
+  itemId,
+  noGangRemoval,
+} from "#/show/running-order/running-order.fixture.ts";
 import { inMemoryRunningOrderStore } from "#/show/running-order/running-order-store.ts";
 import { createSaveRunningOrder } from "#/show/running-order/save-running-order.ts";
 import { createGetItemNotes } from "./get-item-notes.ts";
@@ -84,20 +89,24 @@ describe("item notes across running-order versions", () => {
       aRunningOrder(7, { first: ["Opening Number", "Pirate Sketch"] }),
     ]);
     const save = createSaveItemNote(notes, runningOrders);
-    const saveOrder = createSaveRunningOrder(runningOrders, {
-      roles: inMemoryRoleStore(),
-      itemNotes: notes,
-      sceneryFiles: { keepOnlyItems: async () => {} },
-      sceneryNotes: { keepOnlyItems: async () => {} },
-      props: { keepOnlyItems: async () => {} },
-      propsNotes: { keepOnlyItems: async () => {} },
-      sfxFiles: { keepOnlyItems: async () => {} },
-      sfxNotes: { keepOnlyItems: async () => {} },
-      wardrobeFiles: { keepOnlyItems: async () => {} },
-      wardrobeNotes: { keepOnlyItems: async () => {} },
-      micPlotNotes: { keepOnlyItems: async () => {} },
-      micPlots: { keepOnlyItems: async () => {} },
-    });
+    const saveOrder = createSaveRunningOrder(
+      runningOrders,
+      {
+        roles: inMemoryRoleStore(),
+        itemNotes: notes,
+        sceneryFiles: { keepOnlyItems: async () => {} },
+        sceneryNotes: { keepOnlyItems: async () => {} },
+        props: { keepOnlyItems: async () => {} },
+        propsNotes: { keepOnlyItems: async () => {} },
+        sfxFiles: { keepOnlyItems: async () => {} },
+        sfxNotes: { keepOnlyItems: async () => {} },
+        wardrobeFiles: { keepOnlyItems: async () => {} },
+        wardrobeNotes: { keepOnlyItems: async () => {} },
+        micPlotNotes: { keepOnlyItems: async () => {} },
+        micPlots: { keepOnlyItems: async () => {} },
+      },
+      noGangRemoval,
+    );
     await save(put({ text: "Hat change", revision: 0 }));
 
     // Pirate Sketch moves to the start of the second half: version 8.

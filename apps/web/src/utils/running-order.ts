@@ -1,12 +1,19 @@
 import {
+  type CastMember,
+  gangOfItem,
   type ItemGang,
   type ItemNoteList,
+  itemsChangingGang,
+  itemsOf,
+  outOfGang,
+  type Role,
   type RoleList,
   type RunningOrder,
   RunningOrderItem,
   type Stage,
   type UpdateChange,
 } from "@app/shared";
+import { fullName } from "./roles.ts";
 
 const stageNames: Record<Stage, string> = { apron: "Apron", full: "Full" };
 
@@ -105,7 +112,7 @@ export function dropItem(
   toHalf: 0 | 1,
   toIndex: number,
 ): RunningOrder {
-  const item = order.halves.flatMap((half) => half.items).find((i) => i.id === itemId);
+  const item = itemsOf(order).find((i) => i.id === itemId);
   if (!item) return order;
   const without = (items: RunningOrderItem[]) => items.filter((i) => i.id !== itemId);
   const first = without(order.halves[0].items);
@@ -206,6 +213,41 @@ export function removeWarning(title: string, casting: ItemCasting | undefined) {
   const notes = casting.hasNotes ? "its casting notes" : undefined;
   const goes = [roles, notes].filter(Boolean).join(", and ");
   return goes ? `${question} Saving the draft also removes ${goes}.` : question;
+}
+
+const listed = (parts: string[]) => new Intl.ListFormat("en-GB").format(parts);
+
+/**
+ * The question before a save that sets items to another gang, taking out of their roles
+ * everyone not in that gang (junior-cast FR5): who leaves which roles, by item. Undefined when
+ * no one leaves. casting is the production's roles and cast now, or undefined when they
+ * couldn't be loaded.
+ */
+export function gangChangeWarning(
+  saved: RunningOrder,
+  working: RunningOrder,
+  casting: { roles: Role[]; members: CastMember[] } | undefined,
+) {
+  const changing = itemsChangingGang(saved, working);
+  if (changing.length === 0) return undefined;
+  if (!casting)
+    return "Save the draft? Saving takes anyone not in an item's gang out of its roles.";
+  const leaving = outOfGang(
+    casting.roles.filter((role) => changing.includes(role.itemId)),
+    casting.members,
+    (itemId) => gangOfItem(working, itemId),
+  );
+  if (leaving.length === 0) return undefined;
+  const names = new Map(casting.members.map((member) => [member.id, fullName(member)]));
+  const byItem = itemsOf(working).flatMap((item) => {
+    const who = leaving
+      .filter(({ role }) => role.itemId === item.id)
+      .flatMap(({ role, castMemberIds }) =>
+        castMemberIds.map((id) => `${names.get(id)} from ${role.name}`),
+      );
+    return who.length === 0 ? [] : [`${listed(who)} in ${item.title}`];
+  });
+  return `Save the draft? It removes ${byItem.join("; ")}.`;
 }
 
 // Field by field in a fixed order, so object key order never matters.
@@ -349,7 +391,7 @@ export const positionOf = ({ half, number }: NonNullable<ReturnType<typeof place
 /** The items either side of one, in performance order: across the interval too, so the
  *  item pages can be stepped through like the show. */
 export function neighboursOf(order: RunningOrder, itemId: string) {
-  const items = order.halves.flatMap((half) => half.items);
+  const items = itemsOf(order);
   const index = items.findIndex((item) => item.id === itemId);
   if (index === -1) return {};
   return { previous: items[index - 1], next: items[index + 1] };

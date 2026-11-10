@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
   AccountList,
+  itemsOf,
   type MenuPageName,
   RunningOrder,
   USAGE_RANGES,
@@ -125,9 +126,7 @@ async function loadItemTitles(): Promise<ItemTitles> {
     // No saved running order: no item is in it.
     if (!order) return new Map();
     return new Map(
-      order.halves.flatMap((half) =>
-        half.items.map((item) => [`${order.productionId}/${item.id}`, item.title] as const),
-      ),
+      itemsOf(order).map((item) => [`${order.productionId}/${item.id}`, item.title] as const),
     );
   } catch {
     return null;

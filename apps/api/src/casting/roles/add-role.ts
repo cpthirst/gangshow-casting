@@ -1,4 +1,4 @@
-import { type AddRoleRefusal, AddRoleRequest } from "@app/shared";
+import { type AddRoleRefusal, AddRoleRequest, gangOfItem } from "@app/shared";
 import { type Handler, inProduction } from "#/http/handler.ts";
 import { jsonResponse, parseJson } from "#/http/json.ts";
 import type { CastStore } from "#/show/cast/cast-store.ts";
@@ -6,7 +6,7 @@ import {
   latestOrderWith,
   type RunningOrderStore,
 } from "#/show/running-order/running-order-store.ts";
-import { castingRefusal, gangOfItem } from "./castable.ts";
+import { castingRefusal } from "./castable.ts";
 import type { RoleStore } from "./role-store.ts";
 
 // POST /api/productions/{productionId}/items/{itemId}/roles: add a role to an item,

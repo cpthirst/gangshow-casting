@@ -1,10 +1,11 @@
-import type { RunningOrder, RunningOrderItem } from "@app/shared";
+import type { CastMember, Role, RunningOrder, RunningOrderItem } from "@app/shared";
 import { describe, expect, it } from "vitest";
 import { anItem, aRunningOrder } from "./running-order.fixture.ts";
 import {
   dropItem,
   formatTime,
   formFor,
+  gangChangeWarning,
   type ItemForm,
   itemFrom,
   neighboursOf,
@@ -248,5 +249,53 @@ describe("neighboursOf", () => {
 
   it("has no neighbours for an item that isn't in the running order", () => {
     expect(titles("no-such-item")).toEqual([undefined, undefined]);
+  });
+});
+
+describe("gangChangeWarning", () => {
+  // Made-up names only (CLAUDE.md safeguarding).
+  const member = (id: number, name: string, section: CastMember["section"]): CastMember => {
+    const [firstName = "", lastName = ""] = name.split(" ");
+    return { id, firstName, lastName, section, group: "", revision: 1 };
+  };
+  const members = [
+    member(1, "Sam Sample", "scouts"),
+    member(2, "Alex Smith", null),
+    member(3, "Poppy Example", "beavers"),
+  ];
+  const role = (id: number, itemId: string, name: string, castMemberIds: number[]): Role => ({
+    id,
+    itemId,
+    name,
+    size: castMemberIds.length > 1 ? "ensemble" : "lead",
+    castMemberIds,
+    revision: 1,
+  });
+  const roles = [
+    role(1, "pirate-sketch", "Captain", [1]),
+    role(2, "pirate-sketch", "Pirates", [2, 3]),
+    role(3, "opening-number", "Chorus", [1]),
+  ];
+  const saved = aRunningOrder([anItem("Opening Number"), anItem("Pirate Sketch")]);
+  const withPirates = (gang: RunningOrderItem["gang"]) =>
+    aRunningOrder([anItem("Opening Number"), anItem("Pirate Sketch", { gang })]);
+
+  it("names who leaves which roles, and no one who stays", () => {
+    const warning = gangChangeWarning(saved, withPirates("junior"), { roles, members }) ?? "";
+
+    expect(warning).toContain(
+      "Sam Sample from Captain and Alex Smith from Pirates in Pirate Sketch",
+    );
+    expect(warning).not.toContain("Poppy");
+    expect(warning).not.toContain("Chorus");
+  });
+
+  it("asks nothing when no one leaves", () => {
+    expect(gangChangeWarning(saved, withPirates("both"), { roles, members })).toBeUndefined();
+    expect(gangChangeWarning(saved, saved, { roles, members })).toBeUndefined();
+  });
+
+  it("still warns that people leave their roles when the casting couldn't be loaded", () => {
+    expect(gangChangeWarning(saved, withPirates("junior"), undefined)).toBeDefined();
   });
 });

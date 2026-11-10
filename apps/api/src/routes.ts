@@ -2,6 +2,7 @@ import type { AccountRouteKey, RouteKey } from "@app/shared";
 import { exportCastingGrid } from "#/casting/casting-grid/export-casting-grid.ts";
 import { createAddRole } from "#/casting/roles/add-role.ts";
 import { createGetRoles } from "#/casting/roles/get-roles.ts";
+import { outOfGangRemoval } from "#/casting/roles/remove-out-of-gang.ts";
 import { createRemoveRole } from "#/casting/roles/remove-role.ts";
 import { createUpdateRole } from "#/casting/roles/update-role.ts";
 import type { Handler } from "#/http/handler.ts";
@@ -73,6 +74,7 @@ export function createRoutes(
     "POST /api/productions/{productionId}/running-order/versions": createSaveRunningOrder(
       runningOrders,
       itemCleanupOf(stores, files),
+      outOfGangRemoval(stores),
     ),
     "GET /api/productions/{productionId}/cast": createGetCast(cast),
     "POST /api/productions/{productionId}/cast": createAddCastMember(cast),

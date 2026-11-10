@@ -181,7 +181,7 @@ export const pageHelp: PageHelp[] = [
       {
         icons: [icons.edit],
         name: "Edit",
-        does: "Changes an item's details, such as its title, minutes or stage.",
+        does: "Changes an item's details, such as its title, minutes, stage or gang. Saving an item for a different gang takes anyone not in that gang out of its roles, and asks you first.",
         access: "admins",
       },
       {

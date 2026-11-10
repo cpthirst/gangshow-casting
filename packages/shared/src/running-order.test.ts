@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  gangOfItem,
+  itemsChangingGang,
   ProductionId,
   RunningOrder,
   RunningOrderItem,
@@ -159,5 +161,44 @@ describe("SaveRunningOrderRequest", () => {
     expect(SaveRunningOrderRequest.safeParse({ baseVersion: 6, change: withBad }).success).toBe(
       false,
     );
+  });
+});
+
+describe("gangOfItem", () => {
+  const order = RunningOrder.parse(runningOrder);
+
+  it("gives the gang the item is for", () => {
+    expect(gangOfItem(order, "itm_curtain-up")).toBe("senior");
+  });
+
+  it("lets any gang into an item that isn't in the order", () => {
+    expect(gangOfItem(order, "itm_cut")).toBe("both");
+    expect(gangOfItem(undefined, "itm_curtain-up")).toBe("both");
+  });
+});
+
+describe("itemsChangingGang", () => {
+  const withItems = (items: object[]) =>
+    RunningOrder.parse({
+      ...runningOrder,
+      halves: [{ ...runningOrder.halves[0], items }, runningOrder.halves[1]],
+    });
+  const pirates = { ...item, id: "itm_pirates", gang: "senior" };
+
+  it("lists the items whose gang the change sets to another", () => {
+    const before = withItems([item, pirates]);
+    const after = withItems([
+      { ...item, minutes: 9 },
+      { ...pirates, gang: "junior" },
+    ]);
+
+    expect(itemsChangingGang(before, after)).toEqual(["itm_pirates"]);
+  });
+
+  it("leaves out items added or cut, which have no casting to keep", () => {
+    const before = withItems([item]);
+    const after = withItems([{ ...pirates, gang: "junior" }]);
+
+    expect(itemsChangingGang(before, after)).toEqual([]);
   });
 });

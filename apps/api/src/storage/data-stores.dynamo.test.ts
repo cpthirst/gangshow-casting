@@ -15,7 +15,12 @@ import { createDeleteCastMember } from "#/show/cast/delete-cast-member.ts";
 import { createGetCast } from "#/show/cast/get-cast.ts";
 import { createUpdateCastMember } from "#/show/cast/update-cast-member.ts";
 import { createGetRunningOrder } from "#/show/running-order/get-running-order.ts";
-import { anItem, aRunningOrder, itemId } from "#/show/running-order/running-order.fixture.ts";
+import {
+  anItem,
+  aRunningOrder,
+  itemId,
+  noGangRemoval,
+} from "#/show/running-order/running-order.fixture.ts";
 import { inMemoryRunningOrderStore } from "#/show/running-order/running-order-store.ts";
 import { createSaveRunningOrder } from "#/show/running-order/save-running-order.ts";
 import {
@@ -120,20 +125,24 @@ describe("data stores with a remote table", () => {
       DATA_TABLE: table.tableName,
     });
     await runningOrders.save(aRunningOrder(4, { first: ["Curtain Up", "Finale"] }));
-    const save = createSaveRunningOrder(runningOrders, {
-      roles,
-      itemNotes,
-      sceneryFiles: { keepOnlyItems: async () => {} },
-      sceneryNotes: { keepOnlyItems: async () => {} },
-      props: { keepOnlyItems: async () => {} },
-      propsNotes: { keepOnlyItems: async () => {} },
-      sfxFiles: { keepOnlyItems: async () => {} },
-      sfxNotes: { keepOnlyItems: async () => {} },
-      wardrobeFiles: { keepOnlyItems: async () => {} },
-      wardrobeNotes: { keepOnlyItems: async () => {} },
-      micPlotNotes: { keepOnlyItems: async () => {} },
-      micPlots: { keepOnlyItems: async () => {} },
-    });
+    const save = createSaveRunningOrder(
+      runningOrders,
+      {
+        roles,
+        itemNotes,
+        sceneryFiles: { keepOnlyItems: async () => {} },
+        sceneryNotes: { keepOnlyItems: async () => {} },
+        props: { keepOnlyItems: async () => {} },
+        propsNotes: { keepOnlyItems: async () => {} },
+        sfxFiles: { keepOnlyItems: async () => {} },
+        sfxNotes: { keepOnlyItems: async () => {} },
+        wardrobeFiles: { keepOnlyItems: async () => {} },
+        wardrobeNotes: { keepOnlyItems: async () => {} },
+        micPlotNotes: { keepOnlyItems: async () => {} },
+        micPlots: { keepOnlyItems: async () => {} },
+      },
+      noGangRemoval,
+    );
     const saveFrom = (baseVersion: number, titles: string[]) =>
       save({
         pathParameters: { productionId: "2027" },
@@ -200,7 +209,7 @@ describe("data stores with a remote table", () => {
     await seedEveryKind(stores, folder, "2027", opening);
     await seedEveryKind(stores, folder, "2027", pirate);
     const cleanup = itemCleanupOf(stores, files);
-    const save = createSaveRunningOrder(stores.runningOrders, cleanup);
+    const save = createSaveRunningOrder(stores.runningOrders, cleanup, noGangRemoval);
 
     const res = await save({
       pathParameters: { productionId: "2027" },

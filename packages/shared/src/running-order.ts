@@ -49,6 +49,22 @@ export const RunningOrder = z.object({
   halves: z.tuple([Half("first-half"), Half("second-half")]),
 });
 
+/** Every item in the order, first half then second, in performance order. */
+export const itemsOf = (order: RunningOrder) => order.halves.flatMap((half) => half.items);
+
+/** The gang an item in the order is for; any gang for an item that isn't in it. */
+export const gangOfItem = (order: RunningOrder | undefined, itemId: string): ItemGang =>
+  (order && itemsOf(order).find((item) => item.id === itemId)?.gang) ?? "both";
+
+/** The items in both orders that are for another gang after: the ones whose roles lose anyone
+ *  not in their new gang (junior-cast FR5). An added or cut item has no casting to keep. */
+export function itemsChangingGang(before: RunningOrder, after: RunningOrder) {
+  const was = new Map(itemsOf(before).map((item) => [item.id, item.gang]));
+  return itemsOf(after)
+    .filter((item) => was.has(item.id) && was.get(item.id) !== item.gang)
+    .map((item) => item.id);
+}
+
 export type Stage = z.infer<typeof Stage>;
 export type RunningOrderItem = z.infer<typeof RunningOrderItem>;
 export type NewRunningOrderItem = z.infer<typeof NewRunningOrderItem>;

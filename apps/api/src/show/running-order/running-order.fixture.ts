@@ -1,4 +1,5 @@
 import type { RunningOrder, RunningOrderItem } from "@app/shared";
+import type { RemoveOutOfGang } from "#/casting/roles/remove-out-of-gang.ts";
 
 // Made-up data only: tests never use the real programme (CLAUDE.md safeguarding).
 
@@ -33,3 +34,6 @@ export function aRunningOrder(
     ],
   };
 }
+
+/** For a save whose test isn't about gangs: takes no one out of their roles. */
+export const noGangRemoval: RemoveOutOfGang = async () => {};

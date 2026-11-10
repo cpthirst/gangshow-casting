@@ -1,11 +1,11 @@
-import { type AddRoleRefusal, UpdateRoleRequest } from "@app/shared";
+import { type AddRoleRefusal, gangOfItem, UpdateRoleRequest } from "@app/shared";
 import { type Handler, inProduction } from "#/http/handler.ts";
 import { jsonResponse, parseJson } from "#/http/json.ts";
 import { wholeNumber } from "#/http/params.ts";
 import { type CastingFollowers, productionFollowsCasting } from "#/production/follow-casting.ts";
 import type { CastStore } from "#/show/cast/cast-store.ts";
 import type { RunningOrderStore } from "#/show/running-order/running-order-store.ts";
-import { castingRefusal, gangOfItem } from "./castable.ts";
+import { castingRefusal } from "./castable.ts";
 import type { RoleStore } from "./role-store.ts";
 
 // PUT /api/productions/{productionId}/roles/{roleId}: replace a role's name, size and cast,
