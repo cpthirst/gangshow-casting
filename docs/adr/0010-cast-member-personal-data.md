@@ -18,7 +18,9 @@ The cast-management PRD needs a cast list. The production team's starting list (
 
 ## Decision
 
-We will store, per cast member: an app-assigned ID, **first name, full surname, section** (Scouts, Explorers, Network, or not set) and **group** (Scout group or Explorer unit). Age band remains allowed but isn't stored yet. Date of birth, exact age, address, contact details, photos and medical data remain excluded.
+We will store, per cast member: an app-assigned ID, **first name, full surname, section** (Scouts, Explorers, Network, or not set) and **group** (Scout group or Explorer unit).
+
+Amended 2026-11-10 (junior-cast FR1): the section can also be **Beavers** or **Cubs**, the Junior cast, so the cast now includes younger children, from 6. No new kinds of data are stored: only the list of sections grows, and Beavers and Cubs record their Scout group in the same group field. The rules below apply to the Junior cast as they do to everyone else. Age band remains allowed but isn't stored yet. Date of birth, exact age, address, contact details, photos and medical data remain excluded.
 
 The safeguarding rule in CLAUDE.md and the README is updated to match.
 

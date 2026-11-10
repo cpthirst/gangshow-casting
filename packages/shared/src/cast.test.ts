@@ -16,6 +16,10 @@ describe("CastMember", () => {
     expect(CastMember.parse(sam)).toEqual(sam);
   });
 
+  it.each(["beavers", "cubs"])("accepts the Junior section %s", (section) => {
+    expect(CastMember.parse({ ...sam, section }).section).toBe(section);
+  });
+
   it("accepts a member with no section and no group", () => {
     expect(CastMember.parse({ ...sam, section: null, group: "" }).section).toBeNull();
   });
@@ -25,7 +29,7 @@ describe("CastMember", () => {
     ["an empty last name", { lastName: "" }],
     ["a first name over 40 characters", { firstName: "x".repeat(41) }],
     ["a group over 60 characters", { group: "x".repeat(61) }],
-    ["a section outside the list", { section: "beavers" }],
+    ["a section outside the list", { section: "squirrels" }],
     ["a non-numeric id", { id: "1" }],
   ])("rejects %s", (_case, change) => {
     expect(CastMember.safeParse({ ...sam, ...change }).success).toBe(false);

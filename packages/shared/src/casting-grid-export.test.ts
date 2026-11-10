@@ -52,8 +52,13 @@ describe("CastingGridExportRequest", () => {
     expect(CastingGridExportRequest.safeParse({ ...grid, title: "Pirates" }).success).toBe(false);
   });
 
+  it.each(["Beavers", "Cubs"])("accepts a row in the Junior section %s", (section) => {
+    const request = { ...grid, rows: [{ ...grid.rows[0], section }] };
+    expect(CastingGridExportRequest.safeParse(request).success).toBe(true);
+  });
+
   it("refuses a section that isn't one of the Overview's", () => {
-    const request = { ...grid, rows: [{ ...grid.rows[0], section: "Cubs" }] };
+    const request = { ...grid, rows: [{ ...grid.rows[0], section: "Squirrels" }] };
     expect(CastingGridExportRequest.safeParse(request).success).toBe(false);
   });
 

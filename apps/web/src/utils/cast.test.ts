@@ -1,4 +1,4 @@
-import type { CastMember } from "@app/shared";
+import { type CastMember, Section } from "@app/shared";
 import { describe, expect, it } from "vitest";
 import {
   type CastFilters,
@@ -7,6 +7,7 @@ import {
   filterCast,
   NO_FILTERS,
   searchCast,
+  sectionLabel,
 } from "./cast.ts";
 
 // Made-up names only: tests never use the real cast (CLAUDE.md safeguarding).
@@ -54,6 +55,16 @@ describe("filterCast", () => {
   it("filters by section, including members with no section", () => {
     expect(filter({ section: "explorers" })).toEqual(["Samira Sample"]);
     expect(filter({ section: "not-set" })).toEqual(["Zoë Other"]);
+  });
+
+  it("filters by a Junior section", () => {
+    const mixed = [
+      member("Poppy", "Example", "beavers"),
+      member("Ollie", "Sample", "cubs"),
+      member("Sam", "Specimen", "scouts"),
+    ];
+
+    expect(names(filterCast(mixed, { ...NO_FILTERS, section: "cubs" }))).toEqual(["Ollie Sample"]);
   });
 
   it("combines filters", () => {
@@ -104,6 +115,19 @@ describe("detailsFrom", () => {
 
     expect(result.ok).toBe(false);
     expect(!result.ok && result.errors[field]).toBe(message);
+  });
+});
+
+describe("sectionLabel", () => {
+  it("names every section, the Junior ones included, and a missing one as Not set", () => {
+    expect([...Section.options, null].map(sectionLabel)).toEqual([
+      "Beavers",
+      "Cubs",
+      "Scouts",
+      "Explorers",
+      "Network",
+      "Not set",
+    ]);
   });
 });
 

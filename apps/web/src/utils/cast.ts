@@ -1,13 +1,13 @@
-import { type CastMember, CastMemberDetails, type GridSection, type Section } from "@app/shared";
-
-const sectionNames: Record<Section, GridSection> = {
-  scouts: "Scouts",
-  explorers: "Explorers",
-  network: "Network",
-};
+import {
+  type CastMember,
+  CastMemberDetails,
+  type GridSection,
+  type Section,
+  sectionLabels,
+} from "@app/shared";
 
 export const sectionLabel = (section: Section | null): GridSection =>
-  section === null ? "Not set" : sectionNames[section];
+  section === null ? "Not set" : sectionLabels[section];
 
 // The platform's locale-aware comparison: case and accents don't change the order.
 const byName = new Intl.Collator("en-GB", { sensitivity: "base" });

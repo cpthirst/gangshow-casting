@@ -89,6 +89,14 @@ describe("the Casting Sheets document", () => {
     ]);
   });
 
+  it("lists a Beaver under Beavers, before the older sections", async () => {
+    const cast = [member("Sam", "Clark", "scouts"), member("Poppy", "Example", "beavers")];
+
+    const sheets = pages(readDocx(await sheetsOf(cast)));
+
+    expect(sheets[0]?.slice(1, 3)).toEqual(["Heading2: Poppy Example", "-: Beavers"]);
+  });
+
   it.each([
     ["no group", member("Sam", "Clark", "network"), "-: Network"],
     ["no section", member("Kit", "Person", null, "2nd Anytown"), "-: 2nd Anytown"],

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CastList, CastMember, type CastMemberDetails, RoleList } from "@app/shared";
+import { CastList, CastMember, type CastMemberDetails, RoleList, Section } from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, onMounted, ref, useId } from "vue";
 import PageTitle from "@/components/common/PageTitle.vue";
@@ -277,9 +277,9 @@ onMounted(load);
         <label :for="`${uid}-section`">Section</label>
         <select :id="`${uid}-section`" v-model="filters.section" name="section">
           <option value="all">All</option>
-          <option value="scouts">Scouts</option>
-          <option value="explorers">Explorers</option>
-          <option value="network">Network</option>
+          <option v-for="choice in Section.options" :key="choice" :value="choice">
+            {{ sectionLabel(choice) }}
+          </option>
           <option value="not-set">Not set</option>
         </select>
       </div>

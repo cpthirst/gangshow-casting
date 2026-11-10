@@ -3685,6 +3685,8 @@
               {
                 "type": "string",
                 "enum": [
+                  "beavers",
+                  "cubs",
                   "scouts",
                   "explorers",
                   "network"
@@ -3740,6 +3742,8 @@
               {
                 "type": "string",
                 "enum": [
+                  "beavers",
+                  "cubs",
                   "scouts",
                   "explorers",
                   "network"
@@ -3815,6 +3819,8 @@
                 "section": {
                   "type": "string",
                   "enum": [
+                    "Beavers",
+                    "Cubs",
                     "Scouts",
                     "Explorers",
                     "Network",
@@ -5279,6 +5285,8 @@
               {
                 "type": "string",
                 "enum": [
+                  "beavers",
+                  "cubs",
                   "scouts",
                   "explorers",
                   "network"

@@ -18,7 +18,7 @@ export interface OverviewSection {
   members: CastMember[];
 }
 
-// Scouts, Explorers, Network, then anyone with no section (casting-overview FR1).
+// Every section, youngest first, then anyone with no section (casting-overview FR1).
 const SECTION_ORDER = [...Section.options, null] as const;
 
 /** The cast grouped by section, empty sections left out. Each section is ordered by
