@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.54.0](https://github.com/cpthirst/gangshow-casting/compare/v1.53.0...v1.54.0) (2026-11-10)
+
+
+### Features
+
+* add Beavers and Cubs, and filter the cast by gang (junior-cast.E1) ([#217](https://github.com/cpthirst/gangshow-casting/issues/217)) ([a64a11c](https://github.com/cpthirst/gangshow-casting/commit/a64a11c095e884a2bb44943bb542cc750bfcbbb9))
+
 ## [1.53.0](https://github.com/cpthirst/gangshow-casting/compare/v1.52.0...v1.53.0) (2026-11-10)
 
 
