@@ -486,7 +486,150 @@
       "section": null,
       "group": "",
       "revision": 1
+    },
+    {
+      "id": 61,
+      "firstName": "Poppy",
+      "lastName": "Thistledown",
+      "section": "beavers",
+      "group": "1st Nowhere Beaver Colony",
+      "singing": "Loves to sing along",
+      "revision": 1
+    },
+    {
+      "id": 62,
+      "firstName": "Rufus",
+      "lastName": "Muddlecombe",
+      "section": "beavers",
+      "group": "1st Nowhere Beaver Colony",
+      "acting": "Fearless on stage",
+      "revision": 1
+    },
+    {
+      "id": 63,
+      "firstName": "Daisy",
+      "lastName": "Wobblebrook",
+      "section": "beavers",
+      "group": "2nd Somewhere Beaver Colony",
+      "singing": "Clear, high voice",
+      "revision": 1
+    },
+    {
+      "id": 64,
+      "firstName": "Otto",
+      "lastName": "Buttonhole",
+      "section": "beavers",
+      "group": "2nd Somewhere Beaver Colony",
+      "revision": 1
+    },
+    {
+      "id": 65,
+      "firstName": "Mabel",
+      "lastName": "Crumbleton",
+      "section": "beavers",
+      "group": "1st Make-Believe Beaver Colony",
+      "singing": "Knows every word",
+      "revision": 1
+    },
+    {
+      "id": 66,
+      "firstName": "Sid",
+      "lastName": "Paddlefoot",
+      "section": "beavers",
+      "group": "1st Make-Believe Beaver Colony",
+      "acting": "Great at funny faces",
+      "revision": 1
+    },
+    {
+      "id": 67,
+      "firstName": "Ivy",
+      "lastName": "Teacosy",
+      "section": "beavers",
+      "group": "3rd Elsewhere Beaver Colony",
+      "revision": 1
+    },
+    {
+      "id": 68,
+      "firstName": "Bertie",
+      "lastName": "Snufflewick",
+      "section": "beavers",
+      "group": "3rd Elsewhere Beaver Colony",
+      "singing": "Shy but sings in tune",
+      "revision": 1
+    },
+    {
+      "id": 69,
+      "firstName": "Hazel",
+      "lastName": "Puddingstone",
+      "section": "cubs",
+      "group": "1st Nowhere Cub Pack",
+      "singing": "Strong, steady voice",
+      "acting": "Remembers lines quickly",
+      "revision": 1
+    },
+    {
+      "id": 70,
+      "firstName": "Monty",
+      "lastName": "Fiddlesticks",
+      "section": "cubs",
+      "group": "1st Nowhere Cub Pack",
+      "acting": "Natural show-off",
+      "revision": 1
+    },
+    {
+      "id": 71,
+      "firstName": "Wren",
+      "lastName": "Bumblethorpe",
+      "section": "cubs",
+      "group": "2nd Somewhere Cub Pack",
+      "singing": "Can hold a harmony",
+      "revision": 1
+    },
+    {
+      "id": 72,
+      "firstName": "Kit",
+      "lastName": "Gravelpit",
+      "section": "cubs",
+      "group": "2nd Somewhere Cub Pack",
+      "revision": 1
+    },
+    {
+      "id": 73,
+      "firstName": "Nell",
+      "lastName": "Picklewood",
+      "section": "cubs",
+      "group": "1st Make-Believe Cub Pack",
+      "singing": "Loud and confident",
+      "acting": "Good with props",
+      "revision": 1
+    },
+    {
+      "id": 74,
+      "firstName": "Arlo",
+      "lastName": "Toffeeapple",
+      "section": "cubs",
+      "group": "1st Make-Believe Cub Pack",
+      "acting": "Happy in the back row",
+      "revision": 1
+    },
+    {
+      "id": 75,
+      "firstName": "Tilly",
+      "lastName": "Sprocket",
+      "section": "cubs",
+      "group": "3rd Elsewhere Cub Pack",
+      "singing": "Sweet tone, quiet",
+      "revision": 1
+    },
+    {
+      "id": 76,
+      "firstName": "Jago",
+      "lastName": "Windlebury",
+      "section": "cubs",
+      "group": "3rd Elsewhere Cub Pack",
+      "acting": "Keen to have a line",
+      "revision": 1
     }
   ],
-  "nextId": 61
+  "nextId": 77
 }

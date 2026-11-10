@@ -43,10 +43,10 @@ describe("the demo show", () => {
     expect(items.every((item) => item.minutes !== null && item.minutes > 0)).toBe(true);
   });
 
-  it("has about 60 cast members across every section, and some with none", () => {
-    expect(cast).toHaveLength(60);
+  it("has about 76 cast members across every section, Junior and Senior, and some with none", () => {
+    expect(cast).toHaveLength(76);
     expect(new Set(cast.map((member) => member.section))).toEqual(
-      new Set(["scouts", "explorers", "network", null]),
+      new Set(["beavers", "cubs", "scouts", "explorers", "network", null]),
     );
   });
 
@@ -170,7 +170,7 @@ describe("the demo API", () => {
   it("serves the demo show's cast", async () => {
     const body = CastList.parse(await (await fetch(api)).json());
 
-    expect(body.members).toHaveLength(60);
+    expect(body.members).toHaveLength(76);
   });
 
   it("keeps changes while it runs, without touching the committed show", async () => {
@@ -183,7 +183,7 @@ describe("the demo API", () => {
 
     const body = CastList.parse(await (await fetch(api)).json());
     expect(body.members.map((member) => member.lastName)).toContain("Person");
-    expect(committed("cast.json").members).toHaveLength(60);
+    expect(committed("cast.json").members).toHaveLength(76);
   });
 
   it("has scenery files on The Big Opening, some that open and some that download", async () => {
