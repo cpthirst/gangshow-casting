@@ -1,5 +1,13 @@
 <script setup lang="ts">
-import { CastList, CastMember, type CastMemberDetails, RoleList, Section } from "@app/shared";
+import {
+  CastList,
+  CastMember,
+  type CastMemberDetails,
+  Gang,
+  gangLabels,
+  RoleList,
+  Section,
+} from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, onMounted, ref, useId } from "vue";
 import PageTitle from "@/components/common/PageTitle.vue";
@@ -281,6 +289,15 @@ onMounted(load);
             {{ sectionLabel(choice) }}
           </option>
           <option value="not-set">Not set</option>
+        </select>
+      </div>
+      <div class="field">
+        <label :for="`${uid}-gang`">Gang</label>
+        <select :id="`${uid}-gang`" v-model="filters.gang" name="gang">
+          <option value="all">All</option>
+          <option v-for="choice in Gang.options" :key="choice" :value="choice">
+            {{ gangLabels[choice] }}
+          </option>
         </select>
       </div>
       <button type="button" data-test="clear-filters" :disabled="!filtered" @click="clearFilters">

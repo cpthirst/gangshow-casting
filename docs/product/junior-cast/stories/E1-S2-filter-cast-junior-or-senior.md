@@ -2,7 +2,7 @@
 id: junior-cast.E1.S2
 title: Filter the cast list to the Junior or Senior gang
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story

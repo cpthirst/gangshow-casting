@@ -158,7 +158,7 @@ describe("Help page", () => {
 
       expect(
         lines(wrapper, "cast").map((line) => line.get("[data-test=help-name]").text()),
-      ).toEqual(["Filter", "Clear filters", "Add cast member", "Edit", "Delete"]);
+      ).toEqual(["Filter", "Gang", "Clear filters", "Add cast member", "Edit", "Delete"]);
       expect(lineNamed(wrapper, "Edit", "cast").get("svg").attributes("data-icon")).toBe(
         icons.edit.iconName,
       );
@@ -166,10 +166,11 @@ describe("Help page", () => {
         icons.remove.iconName,
       );
       expect(
-        ["Filter", "Clear filters", "Add cast member", "Edit", "Delete"].map((name) =>
+        ["Filter", "Gang", "Clear filters", "Add cast member", "Edit", "Delete"].map((name) =>
           accessOf(wrapper, name, "cast"),
         ),
       ).toEqual([
+        "Everyone",
         "Everyone",
         "Everyone",
         "Accounts with Casting, and admins",

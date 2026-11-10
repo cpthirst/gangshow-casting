@@ -17,6 +17,22 @@ export const sectionLabels = {
   network: "Network",
 } as const satisfies Record<Section, string>;
 
+/** The two gangs, Junior first, as the Cast page's gang filter lists them (junior-cast FR1). */
+export const Gang = z.enum(["junior", "senior"]);
+export type Gang = z.infer<typeof Gang>;
+
+export const gangLabels = { junior: "Junior", senior: "Senior" } as const satisfies Record<
+  Gang,
+  string
+>;
+
+const juniorSections: readonly Section[] = ["beavers", "cubs"];
+
+/** Which gang a member is in: Beavers and Cubs are Junior; everyone else, with or without a
+ *  section, is Senior. The one rule every page reads (junior-cast FR9). */
+export const gangOf = (section: Section | null): Gang =>
+  section !== null && juniorSections.includes(section) ? "junior" : "senior";
+
 /** A short free-text note on how someone sings or acts (ADR 0014); absent when not given. */
 const SkillNote = z.string().trim().max(100).optional();
 

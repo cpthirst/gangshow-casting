@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { CastList, CastMember, CastMemberDetails, UpdateCastMemberRequest } from "./cast.ts";
+import {
+  CastList,
+  CastMember,
+  CastMemberDetails,
+  gangOf,
+  UpdateCastMemberRequest,
+} from "./cast.ts";
 
 // Made-up names only: tests never use the real cast (CLAUDE.md safeguarding).
 const sam = {
@@ -120,4 +126,17 @@ describe("UpdateCastMemberRequest", () => {
   ])("rejects %s", (_case, change) => {
     expect(UpdateCastMemberRequest.safeParse({ ...update, ...change }).success).toBe(false);
   });
+});
+
+describe("gangOf", () => {
+  it.each(["beavers", "cubs"] as const)("puts %s in the Junior gang", (section) => {
+    expect(gangOf(section)).toBe("junior");
+  });
+
+  it.each(["scouts", "explorers", "network", null] as const)(
+    "puts %s in the Senior gang",
+    (section) => {
+      expect(gangOf(section)).toBe("senior");
+    },
+  );
 });
