@@ -3,7 +3,7 @@
   "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**", "!.release-please-manifest.json", "!CHANGELOG.md"]
+    "includes": ["**", "!.release-please-manifest.json", "!CHANGELOG.md", "!docs/api/openapi.json"]
   },
   "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2, "lineWidth": 100 },
   "linter": {

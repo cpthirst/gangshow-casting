@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   browserTypeOf,
+  FolderId,
   fileDepartments,
   fileTypeOf,
   ItemFileCounts,
@@ -11,6 +12,22 @@ import {
   ItemFileUploadRequest,
   MAX_ITEM_FILE_BYTES,
 } from "./item-file.ts";
+
+describe("FolderId", () => {
+  it.each(["itm_pirate-sketch", "Finale_2", "x".repeat(40)])("accepts %s", (id) => {
+    expect(FolderId.safeParse(id).success).toBe(true);
+  });
+
+  it.each([
+    ["an empty id", ""],
+    ["an id over 40 characters", "x".repeat(41)],
+    ["a slash", "itm/other"],
+    ["a dot, as in ..", ".."],
+    ["a space", "pirate sketch"],
+  ])("refuses %s", (_, id) => {
+    expect(FolderId.safeParse(id).success).toBe(false);
+  });
+});
 
 describe("ItemFileName", () => {
   it.each(["set-plan.pdf", "Backdrop v2 (final).png", "<b>plan.pdf", "x".repeat(255)])(

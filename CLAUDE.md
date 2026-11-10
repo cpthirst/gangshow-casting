@@ -1,15 +1,15 @@
 # CLAUDE.md
 
-**iCUE**, the **Chester Gang Show**'s online show management app: one consistent system of record that helps the show's departments co-ordinate. Today it covers casting for the production team, showing which Scouts and Explorers are in which show items, and when. Props lists, sound effects per item and mic plots are planned, each as its own feature. TypeScript monorepo: Vue SPA, a framework-free API of Lambda-shaped handlers, and an AWS CDK app. Domain background is in `README.md` → "The domain".
+**iCUE**, the **Chester Gang Show**'s online show management app: one consistent system of record that helps the show's departments co-ordinate. It covers casting for the production team, showing which Scouts and Explorers are in which show items, and when, and each Production department's per-item data: props, scenery, SFX, wardrobe and the mic plot. TypeScript monorepo: Vue SPA, a framework-free API of Lambda-shaped handlers, and an AWS CDK app. Domain background is in `README.md` → "The domain".
 
 ## Domain rules
 
 - **Casting is per item.** A show is an ordered sequence of items (production numbers, sketches, songs, dances). A cast member appears in many items, sometimes in a named or featured part. Model "who is in which item", not one role per person.
 - **Running order matters.** Back-to-back appearances (no time for a costume change) and uneven stage time are the core things users need to see.
 - **Each production is self-contained.** Items and casting never carry over between years, even when cast members return. Scope data to a production, and take the production from one place, never a hard-coded id: there will be more than one.
-- **Safeguarding and UK GDPR: most of the cast are under 18.** Store only first name, surname, section (Scouts, Explorers, Network), Scout group or Explorer unit, and age band (ADR 0010), plus short Singing and Acting casting notes (ADR 0014). Never add date of birth, exact age, address, contact details, photos or medical data without a story and an ADR that justify it. Casting data is for the production team only and must never be publicly reachable. The only data about the team is the username an admin chooses for each adult volunteer's account (ADR 0018). Don't put real cast data in tests, fixtures or seed data; use made-up names.
+- **Safeguarding and UK GDPR: most of the cast are under 18.** Store only first name, surname, section (Scouts, Explorers, Network), Scout group or Explorer unit, and age band (ADR 0010), plus short Singing and Acting casting notes (ADR 0014). Never add date of birth, exact age, address, contact details, photos or medical data without a story and an ADR that justify it. Casting data is for the production team only and must never be publicly reachable. The only data about the team is the username an admin chooses for each adult volunteer's account (ADR 0018), and a record of each account's use of the app, kept for 90 days and visible only to admins (ADR 0023). Don't put real cast data in tests, fixtures or seed data; use made-up names.
 - **Users are non-technical volunteers**, often updating during or after a rehearsal. Prefer UI that is clear at a glance and quick to edit.
-- **Every page about one item** (its casting, its props, and later its scenery, mic plot or SFX) has a link back to its list, and Previous and Next links to the neighbouring items in running order, as the casting item page does. All of them share one frame: a "Department: Item" title, the item's position, notes headed by the department ("Casting notes"), the same not-found and error states, and a visit recorded for the Usage page.
+- **Every page about one item** (its casting, props, scenery, SFX, wardrobe or mic plot) has a link back to its list, and Previous and Next links to the neighbouring items in running order, as the casting item page does. All of them share one frame: a "Department: Item" title, the item's position, notes headed by the department ("Casting notes"), the same not-found and error states, and a visit recorded for the Usage page.
 - **Cutting an item takes all its data with it.** When a saved running order drops an item, every kind of data kept per item goes too. A new kind of per-item data joins that clean-up in the same story.
 
 ## Simplicity: one of each, and a layout that explains itself
@@ -37,6 +37,7 @@ pnpm dev                         # web (vite :5173) + api (:3000) on the real re
 pnpm check                       # lint + dead code + copies + typecheck + test + cdk synth — the definition of done
 pnpm demo                        # the app on a made-up demo show (:5190), fresh each start; see tooling/demo. Dev and demo start as an admin; the sidebar's "Local role" switch tries the others
 pnpm format                      # biome autofix (format + lint + import order)
+pnpm api:spec                    # regenerate docs/api/openapi.json from the routes and schemas; check fails if it's stale
 pnpm test:e2e                    # browser layout tests at phone widths (CI job, not in check)
 pnpm test:dynamo                 # API database tests against DynamoDB Local on :8000 (CI job, not in check; ADR 0016)
 ALERT_EMAIL=… AWS_PROFILE=… pnpm infra:deploy   # deploy the stack (ask first); `infra:diff` previews. Never `pnpm deploy`: pnpm's own command
@@ -51,8 +52,8 @@ pnpm --filter <pkg> exec vitest run <file> -t "<name>"   # one test
 
 | Path | What | Notes |
 |---|---|---|
-| `apps/web` | Vue 3 + Vite SPA | `src/` by kind (ADR 0025): `pages/` (one per route), `components/{app,common,show,casting}`, `services/` (calls the API or browser), `utils/` (plain logic), `router/`, `assets/`, `composables/`, `directives/`. Vitest + `@vue/test-utils` + happy-dom; Playwright layout tests in `e2e/` |
-| `apps/api` | Lambda-shaped handlers, no framework | One handler per route, listed in `routes.ts`; `dev-server.ts` (node:http) runs them locally (ADR 0006). `src/` by area (ADR 0028): `show/{cast,running-order}`, `casting/{roles,casting-grid}`, `production/props`, `item-notes`, `production-list`, `accounts`, `usage`, plus `http/`, `storage/` and `cli/` |
+| `apps/web` | Vue 3 + Vite SPA | `src/` by kind (ADR 0025): `pages/` (one per route), `components/{app,common,show,casting,production}`, `services/` (calls the API or browser), `utils/` (plain logic), `router/`, `assets/`, `composables/`, `directives/`. Vitest + `@vue/test-utils` + happy-dom; Playwright layout tests in `e2e/` |
+| `apps/api` | Lambda-shaped handlers, no framework | One handler per route, listed in `routes.ts`; `dev-server.ts` (node:http) runs them locally (ADR 0006). `src/` by area (ADR 0028): `show/{cast,running-order}`, `casting/{roles,casting-grid}`, `production/{props,item-files,mic-plot}`, `item-notes`, `production-list`, `accounts`, `usage`, plus `http/`, `storage/` and `cli/` |
 | `packages/shared` | zod schemas + inferred types | The API contract. Imported from source, no build step |
 | `infra` | CDK v2 app, one `AppStack` | Run directly by Node (`cdk.json`); add resources as stories need them |
 | `tooling` | Repo scripts | `demo.ts` runs `pnpm demo`; `release.ts` runs `pnpm release`; harness tests |
@@ -116,13 +117,13 @@ Run after the gate is green, before a story is `done` or a PR is opened. **Skip 
 - In `apps/web`, import across `src/` folders with the `@/` alias (`@/utils/cast.ts`), and within a folder relatively (`./cast.ts`).
 - In `apps/web/src`, put each new file in the folder for its kind (ADR 0025):
   - `pages/` holds route components (`*Page.vue`) and their tests, nothing else.
-  - A component goes in `components/<area>/`: `app` for the sidebar, `common` if more than one area uses it, otherwise `show` or `casting` (and Props, SFX and the Mic plot will share `production`).
+  - A component goes in `components/<area>/`: `app` for the sidebar, `common` if more than one area uses it, otherwise `show`, `casting` or `production` (the Production departments share it).
   - Code that calls `fetch`, browser storage or a download goes in `services/`. Plain logic goes in `utils/`, which may import types from `services/` but never its code or `components/`.
   - `use…` functions go in `composables/`, and Vue directives in `directives/`.
   - A new top-level folder (`stores/`, `types/`, `layouts/`) needs an ADR.
 - In `apps/api`, import across `src/` folders with the `#/` alias (`#/http/json.ts`, from `package.json` `imports`), and within a folder relatively (`./cast-store.ts`).
 - In `apps/api/src`, put each new file in its area's folder (ADR 0028), keeping its name unique across the API, so searching by file name finds it:
-  - A route's handler, its store's contract, both stores (file and `dynamo-`) and their tests share one folder, under the web area that shows them: `show/`, `casting/` or `production/` (Props now; SFX and the Mic plot later).
+  - A route's handler, its store's contract, both stores (file and `dynamo-`) and their tests share one folder, under the web area that shows them: `show/`, `casting/` or `production/` (Props, item files and the Mic plot).
   - Something more than one area uses goes outside the areas: `item-notes/`, requests and responses in `http/`, store set-up and helpers in `storage/`.
   - Entry points (`lambda.ts`, `accounts-lambda.ts`, `dev-server.ts`) and the route table stay at the top; the maintainer's commands go in `cli/`.
 - When a change adds or renames something the README describes (a command, page, package, folder, ADR, skill, reviewer, hook or workflow), update `README.md` in the same PR. `tooling/src/readme.test.ts` checks the names, and `code-reviewer` checks the rest.

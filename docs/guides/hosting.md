@@ -37,7 +37,7 @@ pnpm infra:diff
 pnpm infra:deploy
 ```
 
-`pnpm infra:diff` shows what the deploy will change. Read it before you deploy: the table (`DataTable`), the user pool (`UserPool`) and the files bucket (`FilesBucket`) hold the show, the accounts and the scenery files, and a deploy should never replace or remove any of them. If the diff says it would, stop and ask for help. Use `pnpm infra:deploy`, never `pnpm deploy`, which is one of pnpm's own commands and never reaches AWS.
+`pnpm infra:diff` shows what the deploy will change. Read it before you deploy: the table (`DataTable`), the user pool (`UserPool`) and the files bucket (`FilesBucket`) hold the show, the accounts and each item's files, and a deploy should never replace or remove any of them. If the diff says it would, stop and ask for help. Use `pnpm infra:deploy`, never `pnpm deploy`, which is one of pnpm's own commands and never reaches AWS.
 
 The deploy builds the pages and the API on your machine, then uploads them. The first one takes about 15 minutes, as CloudFront sets up; later ones take a few. At the end it prints the stack's outputs:
 
@@ -54,7 +54,7 @@ aws cloudformation describe-stacks --stack-name GangshowCasting --region eu-west
 
 ## 2. Run the post-deploy check
 
-After every deploy, check the app refuses anyone not signed in, lets an admin in, keeps the admin-only actions from everyone else, and lets a Read-Only Team Member read but change nothing. The check signs in as three accounts kept for it: an Admin, a Casting Team Member and a Read-Only Team Member. This command creates them, or gives them fresh passwords, their roles, and enables them if they already exist. The three usernames must differ:
+After every deploy, check the app refuses anyone not signed in, lets an admin in, keeps the admin-only actions from everyone else, and lets an account with no permissions read but change nothing. The check signs in as three accounts kept for it: an Admin, an account with the Casting permission, and one with no permissions. This command creates them, or gives them fresh passwords and their access, and enables them if they already exist. The three usernames must differ:
 
 ```bash
 export AWS_PROFILE=gangshow-admin USER_POOL_ID=<user pool id> CHECK_CLIENT_ID=<check client id>
@@ -88,18 +88,18 @@ It prints a temporary password once. Then:
 1. Open `<app address>` in your browser. It takes you to the sign-in page.
 2. Sign in with your username and the temporary password.
 3. Choose your own password when asked. You'll use it from now on.
-4. Open **Accounts**, choose **Add account**, type a username, choose their role and choose **Save**. The role starts at **Read-Only Team Member**: choose **Casting Team Member** for anyone who changes the cast and casting. The app shows a temporary password once. Pass it to that person yourself, in person or by message, never in the same message as their username, and never in the app's notes. They choose their own password when they first sign in.
-5. Do the same for everyone on the team. Make one other person you trust an admin too, by choosing **Admin** in their **Role** column, so the team isn't stuck if you're away.
+4. Open **Accounts**, choose **Add account**, type a username, tick their **Access** and choose **Save**: Admin, or any mix of Casting, Stage, Tech, Wardrobe and Director. With nothing ticked, the account is view only. The app shows a temporary password once. Pass it to that person yourself, in person or by message, never in the same message as their username, and never in the app's notes. They choose their own password when they first sign in.
+5. Do the same for everyone on the team. Make one other person you trust an admin too, by ticking **Admin** when you change their access, so the team isn't stuck if you're away.
 
 A username is all the app holds about each adult volunteer ([ADR 0018](../adr/0018-access-control-with-cognito.md)), so choose one that doesn't need anything else, such as a first name and an initial.
 
-On the **Accounts** page, any admin can also reset a forgotten password, disable the account of someone who's left, and change anyone else's role. An admin can't disable their own account or change their own role, and the only enabled admin stays an admin, so there's always at least one.
+On the **Accounts** page, any admin can also reset a forgotten password, disable the account of someone who's left, and change anyone else's access. An admin can't disable their own account or change their own access, and the only enabled admin stays an admin, so there's always at least one.
 
-### Team roles
+### Team access
 
-Every account has a role: Admin, Casting Team Member or Read-Only Team Member. Behind the scenes an account is an Admin, or has any mix of the department permissions Casting, Stage, Tech and Wardrobe, each a user pool group of the same name ([ADR 0026](../adr/0026-department-permissions-as-user-pool-groups.md)). Casting makes a Casting Team Member; an account with no permission, or only groups the app doesn't know, may only read. Stage, Tech and Wardrobe allow no change yet. Wardrobe used to be called Costume: anyone who had Costume ticked needs Wardrobe ticking ([ADR 0027](../adr/0027-costume-group-renamed-wardrobe.md)). An admin chooses each new account's role when adding it. Changing someone's role signs them out on every device within 5 minutes, and the new role applies when they sign back in.
+An account is an Admin, or has any mix of the department permissions Casting, Stage, Tech, Wardrobe and Director, each a user pool group of the same name ([ADR 0026](../adr/0026-department-permissions-as-user-pool-groups.md), [ADR 0029](../adr/0029-director-permission-and-routes-naming-any-of-several.md)). [The architecture guide](../architecture/README.md#roles-and-department-permissions) shows what each one changes. An account with no permission, or only groups the app doesn't know, may only read. An admin chooses each new account's access when adding it. Changing someone's access signs them out on every device within 5 minutes, and the new access applies when they sign back in.
 
-**Once, straight after the first deploy that brings department permissions**, move every account out of the retiring `read-only` group:
+**On a deployment from before department permissions**, move every account out of the retiring `read-only` group, once:
 
 ```bash
 export AWS_PROFILE=gangshow-admin USER_POOL_ID=<user pool id>
@@ -143,7 +143,7 @@ People already using the app pick up the new pages the next time they load it. A
 
 ## 5. Go back to the previous version
 
-If a release goes wrong, deploy the previous one: `pnpm release <previous version>` (for example `pnpm release v0.8.0`) does the steps below and merges nothing. Going back changes only the pages and the API's code. The show's data, the team's accounts and the scenery files stay as they are: the table, the user pool and the files bucket outlive even a deleted stack, and a deploy doesn't change what's in them.
+If a release goes wrong, deploy the previous one: `pnpm release <previous version>` (for example `pnpm release v0.8.0`) does the steps below and merges nothing. Going back changes only the pages and the API's code. The show's data, the team's accounts and each item's files stay as they are: the table, the user pool and the files bucket outlive even a deleted stack, and a deploy doesn't change what's in them.
 
 ```bash
 git fetch --tags
@@ -154,7 +154,7 @@ pnpm infra:diff
 pnpm infra:deploy
 ```
 
-Read the diff first, as for any deploy. If it would change the table or the user pool, the release you're leaving changed them, and going back needs more than a deploy: stop and ask for help.
+Read the diff first, as for any deploy. If it would change the table, the user pool or the files bucket, the release you're leaving changed them, and going back needs more than a deploy: stop and ask for help.
 
 Then run the post-deploy check (section 2) and go back to `main` with `git switch main`. Fix the problem on `main` and release again; don't change the old release.
 

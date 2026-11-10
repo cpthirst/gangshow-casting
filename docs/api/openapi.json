@@ -1,0 +1,5534 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "iCUE API",
+    "version": "see GET /api/health",
+    "description": "The Chester Gang Show's show management API. Generated from the code by `pnpm api:spec`: see docs/api/README.md. Every /api route needs the team's sign-in token."
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "The app's own address"
+    }
+  ],
+  "security": [
+    {
+      "teamSignIn": []
+    }
+  ],
+  "paths": {
+    "/api/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Whether the API is up, and its version",
+        "description": "**Needs:** anyone signed in.",
+        "x-permission": {
+          "who": "anyone signed in"
+        },
+        "responses": {
+          "200": {
+            "description": "The API is up.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/accounts": {
+      "get": {
+        "tags": [
+          "Accounts"
+        ],
+        "summary": "Every account in the team",
+        "description": "**Needs:** admins.",
+        "x-permission": {
+          "who": "admins"
+        },
+        "responses": {
+          "200": {
+            "description": "The accounts.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountList"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "Only admins can do this.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Accounts"
+        ],
+        "summary": "Create an account with a temporary password",
+        "description": "**Needs:** admins. The temporary password is answered once, and never stored.",
+        "x-permission": {
+          "who": "admins"
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewAccount"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The account, and its temporary password.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedAccount"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The body doesn't fit the schema. Only a bad username carries a message; anything else has no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "Only admins can do this.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "That username is already taken.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/{username}/password": {
+      "post": {
+        "tags": [
+          "Accounts"
+        ],
+        "summary": "Reset a password, and sign the account out everywhere",
+        "description": "**Needs:** admins.",
+        "x-permission": {
+          "who": "admins"
+        },
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._-]{1,32}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The account, and its new temporary password.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedAccount"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "Only admins can do this.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "There's no account with that username."
+          }
+        }
+      }
+    },
+    "/api/accounts/{username}/enabled": {
+      "put": {
+        "tags": [
+          "Accounts"
+        ],
+        "summary": "Disable or enable an account",
+        "description": "**Needs:** admins. Disabling signs the account out everywhere.",
+        "x-permission": {
+          "who": "admins"
+        },
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._-]{1,32}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetEnabled"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The account as it is now.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The body doesn't fit the schema."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "Only admins can do this. Or: Disabling, with a token that names no username. Some have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "There's no account with that username."
+          },
+          "409": {
+            "description": "An admin can't disable their own account.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/{username}/access": {
+      "put": {
+        "tags": [
+          "Accounts"
+        ],
+        "summary": "Change what an account may do",
+        "description": "**Needs:** admins. Signs the account out everywhere, so it applies at their next sign-in.",
+        "x-permission": {
+          "who": "admins"
+        },
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._-]{1,32}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetAccess"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The account as it is now.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The body doesn't fit the schema."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "Only admins can do this. Or: A token that names no username. Some have no body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "There's no account with that username."
+          },
+          "409": {
+            "description": "An admin can't change their own access, and the only enabled admin stays one.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/productions": {
+      "get": {
+        "tags": [
+          "Productions"
+        ],
+        "summary": "Every production, by year",
+        "description": "**Needs:** anyone signed in. The newest year is the one everyone opens, and the only one that can change.",
+        "x-permission": {
+          "who": "anyone signed in"
+        },
+        "responses": {
+          "200": {
+            "description": "The productions.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductionList"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Productions"
+        ],
+        "summary": "Start a new, empty production",
+        "description": "**Needs:** admins.",
+        "x-permission": {
+          "who": "admins"
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewProduction"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The updated list.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductionList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The body doesn't fit the schema (no body), or the year isn't four digits later than the newest (with a message).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "Only admins can do this.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/productions/{productionId}": {
+      "delete": {
+        "tags": [
+          "Productions"
+        ],
+        "summary": "Delete a past production for good",
+        "description": "**Needs:** admins. Marks it first, then deletes its files and data, then its place in the list. Repeat the request to finish one that stopped part way.",
+        "x-permission": {
+          "who": "admins"
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The updated list.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductionList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The newest production can't be deleted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "Only admins can do this.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The production id isn't well formed. Or: No such production."
+          }
+        }
+      }
+    },
+    "/api/productions/{productionId}/running-order": {
+      "get": {
+        "tags": [
+          "Running order"
+        ],
+        "summary": "The latest saved running order",
+        "description": "**Needs:** anyone signed in.",
+        "x-permission": {
+          "who": "anyone signed in"
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The latest version.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunningOrder"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "The production id isn't well formed. Or: The production has no running order."
+          }
+        }
+      }
+    },
+    "/api/productions/{productionId}/running-order/versions": {
+      "post": {
+        "tags": [
+          "Running order"
+        ],
+        "summary": "Apply one change and save the next version",
+        "description": "**Needs:** admins. Every kept item must be listed once, and any item left out is removed, with everything kept for it: its roles, notes, props, mics and files.",
+        "x-permission": {
+          "who": "admins"
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveRunningOrderRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The new version.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunningOrder"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The body doesn't fit the schema, or the change doesn't fit the latest version."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "The production isn't the newest. Past productions are view only, for admins too. Or: Only admins can do this.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/PastProductionRefusal"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Message"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The production id isn't well formed. Or: The production has no running order."
+          },
+          "409": {
+            "description": "Someone else saved first: this is the latest version.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunningOrder"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/productions/{productionId}/cast": {
+      "get": {
+        "tags": [
+          "Cast"
+        ],
+        "summary": "The production's cast list",
+        "description": "**Needs:** anyone signed in.",
+        "x-permission": {
+          "who": "anyone signed in"
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The cast.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CastList"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "The production id isn't well formed. Or: The production has no cast list."
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Cast"
+        ],
+        "summary": "Add a cast member",
+        "description": "**Needs:** admins, or any of these permissions: casting. Strict: any field the schema doesn't name is refused, not dropped.",
+        "x-permission": {
+          "who": "admins, or any of these permissions",
+          "anyOf": [
+            "casting"
+          ]
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CastMemberDetails"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The new cast member.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CastMember"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The body doesn't fit the schema."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "The production isn't the newest. Past productions are view only, for admins too. Or: The caller has no permission for this department.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/PastProductionRefusal"
+                    },
+                    {
+                      "$ref": "#/components/schemas/DepartmentRefusal"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The production id isn't well formed. Or: The production has no cast list."
+          }
+        }
+      }
+    },
+    "/api/productions/{productionId}/cast/{castId}": {
+      "put": {
+        "tags": [
+          "Cast"
+        ],
+        "summary": "Replace a cast member's details",
+        "description": "**Needs:** admins, or any of these permissions: casting.",
+        "x-permission": {
+          "who": "admins, or any of these permissions",
+          "anyOf": [
+            "casting"
+          ]
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          },
+          {
+            "name": "castId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCastMemberRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated cast member.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CastMember"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The id isn't a positive whole number, or the body doesn't fit the schema."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "The production isn't the newest. Past productions are view only, for admins too. Or: The caller has no permission for this department.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/PastProductionRefusal"
+                    },
+                    {
+                      "$ref": "#/components/schemas/DepartmentRefusal"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The production id isn't well formed. Or: No such cast member."
+          },
+          "409": {
+            "description": "Someone else saved first: the revision sent is out of date."
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Cast"
+        ],
+        "summary": "Remove a cast member for good",
+        "description": "**Needs:** admins. Takes them out of every role, every prop they carried and every mic they had.",
+        "x-permission": {
+          "who": "admins"
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          },
+          {
+            "name": "castId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            }
+          },
+          {
+            "name": "revision",
+            "in": "query",
+            "required": true,
+            "description": "The revision the removal is based on.",
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed."
+          },
+          "400": {
+            "description": "The id or revision isn't a positive whole number."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "The production isn't the newest. Past productions are view only, for admins too. Or: Only admins can do this.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/PastProductionRefusal"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Message"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The production id isn't well formed. Or: No such cast member."
+          },
+          "409": {
+            "description": "Someone else saved first: the revision sent is out of date."
+          }
+        }
+      }
+    },
+    "/api/productions/{productionId}/roles": {
+      "get": {
+        "tags": [
+          "Casting"
+        ],
+        "summary": "Every role in the production",
+        "description": "**Needs:** anyone signed in.",
+        "x-permission": {
+          "who": "anyone signed in"
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The roles.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleList"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "The production id isn't well formed."
+          }
+        }
+      }
+    },
+    "/api/productions/{productionId}/item-notes": {
+      "get": {
+        "tags": [
+          "Item notes"
+        ],
+        "summary": "Every item's casting notes",
+        "description": "**Needs:** anyone signed in.",
+        "x-permission": {
+          "who": "anyone signed in"
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The notes. An item with none may be left out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemNoteList"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "The production id isn't well formed."
+          }
+        }
+      }
+    },
+    "/api/productions/{productionId}/props": {
+      "get": {
+        "tags": [
+          "Props"
+        ],
+        "summary": "Every item's props",
+        "description": "**Needs:** anyone signed in.",
+        "x-permission": {
+          "who": "anyone signed in"
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The props, in no particular order.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropList"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "The production id isn't well formed."
+          }
+        }
+      }
+    },
+    "/api/productions/{productionId}/items/{itemId}/props": {
+      "post": {
+        "tags": [
+          "Props"
+        ],
+        "summary": "Add a prop to an item",
+        "description": "**Needs:** admins, or any of these permissions: stage, director. Each role must be one of the item's, each carrier in one of those roles, and there can be no more carriers than the quantity.",
+        "x-permission": {
+          "who": "admins, or any of these permissions",
+          "anyOf": [
+            "stage",
+            "director"
+          ]
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PropDetails"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The new prop.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Prop"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The body doesn't fit the schema, or names a role or carrier not in the item."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "The production isn't the newest. Past productions are view only, for admins too. Or: The caller has no permission for this department.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/PastProductionRefusal"
+                    },
+                    {
+                      "$ref": "#/components/schemas/DepartmentRefusal"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The production id isn't well formed. Or: The item id isn't well formed. Or: The item isn't in the latest saved running order."
+          }
+        }
+      }
+    },
+    "/api/productions/{productionId}/props/{propId}": {
+      "put": {
+        "tags": [
+          "Props"
+        ],
+        "summary": "Replace a prop's name, quantity, roles and carriers",
+        "description": "**Needs:** admins, or any of these permissions: stage, director.",
+        "x-permission": {
+          "who": "admins, or any of these permissions",
+          "anyOf": [
+            "stage",
+            "director"
+          ]
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          },
+          {
+            "name": "propId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PropDetails"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated prop.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Prop"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The body doesn't fit the schema, or names a role or carrier not in the item."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "The production isn't the newest. Past productions are view only, for admins too. Or: The caller has no permission for this department.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/PastProductionRefusal"
+                    },
+                    {
+                      "$ref": "#/components/schemas/DepartmentRefusal"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The production id isn't well formed. Or: No such prop."
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Props"
+        ],
+        "summary": "Remove a prop for good",
+        "description": "**Needs:** admins, or any of these permissions: stage, director.",
+        "x-permission": {
+          "who": "admins, or any of these permissions",
+          "anyOf": [
+            "stage",
+            "director"
+          ]
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          },
+          {
+            "name": "propId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "The production isn't the newest. Past productions are view only, for admins too. Or: The caller has no permission for this department.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/PastProductionRefusal"
+                    },
+                    {
+                      "$ref": "#/components/schemas/DepartmentRefusal"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The production id isn't well formed. Or: No such prop."
+          }
+        }
+      }
+    },
+    "/api/productions/{productionId}/props-notes": {
+      "get": {
+        "tags": [
+          "Item notes"
+        ],
+        "summary": "Every item's props notes",
+        "description": "**Needs:** anyone signed in.",
+        "x-permission": {
+          "who": "anyone signed in"
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The notes. An item with none may be left out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemNoteList"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "The production id isn't well formed."
+          }
+        }
+      }
+    },
+    "/api/productions/{productionId}/items/{itemId}/props-notes": {
+      "put": {
+        "tags": [
+          "Item notes"
+        ],
+        "summary": "Save one item's props notes",
+        "description": "**Needs:** admins, or any of these permissions: stage, director. The text is trimmed, and \"\" clears the notes. Send revision 0 for a first save.",
+        "x-permission": {
+          "who": "admins, or any of these permissions",
+          "anyOf": [
+            "stage",
+            "director"
+          ]
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveItemNoteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The saved notes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemNote"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The body doesn't fit the schema."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "The production isn't the newest. Past productions are view only, for admins too. Or: The caller has no permission for this department.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/PastProductionRefusal"
+                    },
+                    {
+                      "$ref": "#/components/schemas/DepartmentRefusal"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The production id isn't well formed. Or: The item id isn't well formed. Or: The item isn't in the latest saved running order."
+          },
+          "409": {
+            "description": "Someone else saved first: the revision sent is out of date."
+          }
+        }
+      }
+    },
+    "/api/productions/{productionId}/items/{itemId}/scenery-files": {
+      "get": {
+        "tags": [
+          "Item files"
+        ],
+        "summary": "List an item's scenery files",
+        "description": "**Needs:** anyone signed in.",
+        "x-permission": {
+          "who": "anyone signed in"
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[\\w-]{1,40}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The files, as file storage holds them now.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemFileList"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "The production id isn't well formed. Or: The item id isn't well formed."
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Item files"
+        ],
+        "summary": "Delete one scenery file for good",
+        "description": "**Needs:** admins, or any of these permissions: stage, tech, director.",
+        "x-permission": {
+          "who": "admins, or any of these permissions",
+          "anyOf": [
+            "stage",
+            "tech",
+            "director"
+          ]
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[\\w-]{1,40}$"
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "description": "The file to delete.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted."
+          },
+          "400": {
+            "description": "The name isn't one a file can have."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "The production isn't the newest. Past productions are view only, for admins too. Or: The caller has no permission for this department.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/PastProductionRefusal"
+                    },
+                    {
+                      "$ref": "#/components/schemas/DepartmentRefusal"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The production id isn't well formed. Or: The item id isn't well formed. Or: The file is already gone."
+          }
+        }
+      }
+    },
+    "/api/productions/{productionId}/items/{itemId}/scenery-file-link": {
+      "get": {
+        "tags": [
+          "Item files"
+        ],
+        "summary": "A short-lived link to one scenery file",
+        "description": "**Needs:** anyone signed in. The link lasts 5 minutes and needs no token, so never share or store it.",
+        "x-permission": {
+          "who": "anyone signed in"
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[\\w-]{1,40}$"
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "description": "The file to link to.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The link.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemFileLink"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The name isn't one a file can have."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "The production id isn't well formed. Or: The item id isn't well formed. Or: The file isn't there."
+          }
+        }
+      }
+    },
+    "/api/productions/{productionId}/items/{itemId}/scenery-uploads": {
+      "post": {
+        "tags": [
+          "Item files"
+        ],
+        "summary": "Get a form for uploading one scenery file",
+        "description": "**Needs:** admins, or any of these permissions: stage, tech, director. Answers with where to POST the file: send the fields, then the file, as multipart/form-data. The file goes straight to file storage, up to 100 MB, within 5 minutes.",
+        "x-permission": {
+          "who": "admins, or any of these permissions",
+          "anyOf": [
+            "stage",
+            "tech",
+            "director"
+          ]
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[\\w-]{1,40}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ItemFileUploadRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Where to send the file.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemFileUpload"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The body doesn't fit the schema."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "The production isn't the newest. Past productions are view only, for admins too. Or: The caller has no permission for this department.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/PastProductionRefusal"
+                    },
+                    {
+                      "$ref": "#/components/schemas/DepartmentRefusal"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The production id isn't well formed. Or: The item id isn't well formed. Or: The item isn't in the latest saved running order."
+          },
+          "409": {
+            "description": "The item has a file of that name, and replace wasn't true."
+          }
+        }
+      }
+    },
+    "/api/productions/{productionId}/scenery-file-counts": {
+      "get": {
+        "tags": [
+          "Item files"
+        ],
+        "summary": "How many scenery files each item has",
+        "description": "**Needs:** anyone signed in.",
+        "x-permission": {
+          "who": "anyone signed in"
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The counts, by item id. An item with none may be left out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemFileCounts"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "The production id isn't well formed."
+          }
+        }
+      }
+    },
+    "/api/productions/{productionId}/scenery-notes": {
+      "get": {
+        "tags": [
+          "Item notes"
+        ],
+        "summary": "Every item's scenery notes",
+        "description": "**Needs:** anyone signed in.",
+        "x-permission": {
+          "who": "anyone signed in"
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The notes. An item with none may be left out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemNoteList"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "The production id isn't well formed."
+          }
+        }
+      }
+    },
+    "/api/productions/{productionId}/items/{itemId}/scenery-notes": {
+      "put": {
+        "tags": [
+          "Item notes"
+        ],
+        "summary": "Save one item's scenery notes",
+        "description": "**Needs:** admins, or any of these permissions: stage, tech, director. The text is trimmed, and \"\" clears the notes. Send revision 0 for a first save.",
+        "x-permission": {
+          "who": "admins, or any of these permissions",
+          "anyOf": [
+            "stage",
+            "tech",
+            "director"
+          ]
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveItemNoteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The saved notes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemNote"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The body doesn't fit the schema."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "The production isn't the newest. Past productions are view only, for admins too. Or: The caller has no permission for this department.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/PastProductionRefusal"
+                    },
+                    {
+                      "$ref": "#/components/schemas/DepartmentRefusal"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The production id isn't well formed. Or: The item id isn't well formed. Or: The item isn't in the latest saved running order."
+          },
+          "409": {
+            "description": "Someone else saved first: the revision sent is out of date."
+          }
+        }
+      }
+    },
+    "/api/productions/{productionId}/items/{itemId}/sfx-files": {
+      "get": {
+        "tags": [
+          "Item files"
+        ],
+        "summary": "List an item's SFX files",
+        "description": "**Needs:** anyone signed in.",
+        "x-permission": {
+          "who": "anyone signed in"
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[\\w-]{1,40}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The files, as file storage holds them now.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemFileList"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "The production id isn't well formed. Or: The item id isn't well formed."
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Item files"
+        ],
+        "summary": "Delete one SFX file for good",
+        "description": "**Needs:** admins, or any of these permissions: tech, director.",
+        "x-permission": {
+          "who": "admins, or any of these permissions",
+          "anyOf": [
+            "tech",
+            "director"
+          ]
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[\\w-]{1,40}$"
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "description": "The file to delete.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted."
+          },
+          "400": {
+            "description": "The name isn't one a file can have."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "The production isn't the newest. Past productions are view only, for admins too. Or: The caller has no permission for this department.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/PastProductionRefusal"
+                    },
+                    {
+                      "$ref": "#/components/schemas/DepartmentRefusal"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The production id isn't well formed. Or: The item id isn't well formed. Or: The file is already gone."
+          }
+        }
+      }
+    },
+    "/api/productions/{productionId}/items/{itemId}/sfx-file-link": {
+      "get": {
+        "tags": [
+          "Item files"
+        ],
+        "summary": "A short-lived link to one SFX file",
+        "description": "**Needs:** anyone signed in. The link lasts 5 minutes and needs no token, so never share or store it.",
+        "x-permission": {
+          "who": "anyone signed in"
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[\\w-]{1,40}$"
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "description": "The file to link to.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The link.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemFileLink"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The name isn't one a file can have."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "The production id isn't well formed. Or: The item id isn't well formed. Or: The file isn't there."
+          }
+        }
+      }
+    },
+    "/api/productions/{productionId}/items/{itemId}/sfx-uploads": {
+      "post": {
+        "tags": [
+          "Item files"
+        ],
+        "summary": "Get a form for uploading one SFX file",
+        "description": "**Needs:** admins, or any of these permissions: tech, director. Answers with where to POST the file: send the fields, then the file, as multipart/form-data. The file goes straight to file storage, up to 100 MB, within 5 minutes.",
+        "x-permission": {
+          "who": "admins, or any of these permissions",
+          "anyOf": [
+            "tech",
+            "director"
+          ]
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[\\w-]{1,40}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ItemFileUploadRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Where to send the file.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemFileUpload"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The body doesn't fit the schema."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "The production isn't the newest. Past productions are view only, for admins too. Or: The caller has no permission for this department.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/PastProductionRefusal"
+                    },
+                    {
+                      "$ref": "#/components/schemas/DepartmentRefusal"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The production id isn't well formed. Or: The item id isn't well formed. Or: The item isn't in the latest saved running order."
+          },
+          "409": {
+            "description": "The item has a file of that name, and replace wasn't true."
+          }
+        }
+      }
+    },
+    "/api/productions/{productionId}/sfx-file-counts": {
+      "get": {
+        "tags": [
+          "Item files"
+        ],
+        "summary": "How many SFX files each item has",
+        "description": "**Needs:** anyone signed in.",
+        "x-permission": {
+          "who": "anyone signed in"
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The counts, by item id. An item with none may be left out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemFileCounts"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "The production id isn't well formed."
+          }
+        }
+      }
+    },
+    "/api/productions/{productionId}/sfx-notes": {
+      "get": {
+        "tags": [
+          "Item notes"
+        ],
+        "summary": "Every item's SFX notes",
+        "description": "**Needs:** anyone signed in.",
+        "x-permission": {
+          "who": "anyone signed in"
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The notes. An item with none may be left out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemNoteList"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "The production id isn't well formed."
+          }
+        }
+      }
+    },
+    "/api/productions/{productionId}/items/{itemId}/sfx-notes": {
+      "put": {
+        "tags": [
+          "Item notes"
+        ],
+        "summary": "Save one item's SFX notes",
+        "description": "**Needs:** admins, or any of these permissions: tech, director. The text is trimmed, and \"\" clears the notes. Send revision 0 for a first save.",
+        "x-permission": {
+          "who": "admins, or any of these permissions",
+          "anyOf": [
+            "tech",
+            "director"
+          ]
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveItemNoteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The saved notes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemNote"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The body doesn't fit the schema."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "The production isn't the newest. Past productions are view only, for admins too. Or: The caller has no permission for this department.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/PastProductionRefusal"
+                    },
+                    {
+                      "$ref": "#/components/schemas/DepartmentRefusal"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The production id isn't well formed. Or: The item id isn't well formed. Or: The item isn't in the latest saved running order."
+          },
+          "409": {
+            "description": "Someone else saved first: the revision sent is out of date."
+          }
+        }
+      }
+    },
+    "/api/productions/{productionId}/items/{itemId}/wardrobe-files": {
+      "get": {
+        "tags": [
+          "Item files"
+        ],
+        "summary": "List an item's wardrobe files",
+        "description": "**Needs:** anyone signed in.",
+        "x-permission": {
+          "who": "anyone signed in"
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[\\w-]{1,40}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The files, as file storage holds them now.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemFileList"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "The production id isn't well formed. Or: The item id isn't well formed."
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Item files"
+        ],
+        "summary": "Delete one wardrobe file for good",
+        "description": "**Needs:** admins, or any of these permissions: wardrobe, director.",
+        "x-permission": {
+          "who": "admins, or any of these permissions",
+          "anyOf": [
+            "wardrobe",
+            "director"
+          ]
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[\\w-]{1,40}$"
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "description": "The file to delete.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted."
+          },
+          "400": {
+            "description": "The name isn't one a file can have."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "The production isn't the newest. Past productions are view only, for admins too. Or: The caller has no permission for this department.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/PastProductionRefusal"
+                    },
+                    {
+                      "$ref": "#/components/schemas/DepartmentRefusal"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The production id isn't well formed. Or: The item id isn't well formed. Or: The file is already gone."
+          }
+        }
+      }
+    },
+    "/api/productions/{productionId}/items/{itemId}/wardrobe-file-link": {
+      "get": {
+        "tags": [
+          "Item files"
+        ],
+        "summary": "A short-lived link to one wardrobe file",
+        "description": "**Needs:** anyone signed in. The link lasts 5 minutes and needs no token, so never share or store it.",
+        "x-permission": {
+          "who": "anyone signed in"
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[\\w-]{1,40}$"
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "description": "The file to link to.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The link.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemFileLink"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The name isn't one a file can have."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "The production id isn't well formed. Or: The item id isn't well formed. Or: The file isn't there."
+          }
+        }
+      }
+    },
+    "/api/productions/{productionId}/items/{itemId}/wardrobe-uploads": {
+      "post": {
+        "tags": [
+          "Item files"
+        ],
+        "summary": "Get a form for uploading one wardrobe file",
+        "description": "**Needs:** admins, or any of these permissions: wardrobe, director. Answers with where to POST the file: send the fields, then the file, as multipart/form-data. The file goes straight to file storage, up to 100 MB, within 5 minutes.",
+        "x-permission": {
+          "who": "admins, or any of these permissions",
+          "anyOf": [
+            "wardrobe",
+            "director"
+          ]
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[\\w-]{1,40}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ItemFileUploadRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Where to send the file.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemFileUpload"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The body doesn't fit the schema."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "The production isn't the newest. Past productions are view only, for admins too. Or: The caller has no permission for this department.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/PastProductionRefusal"
+                    },
+                    {
+                      "$ref": "#/components/schemas/DepartmentRefusal"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The production id isn't well formed. Or: The item id isn't well formed. Or: The item isn't in the latest saved running order."
+          },
+          "409": {
+            "description": "The item has a file of that name, and replace wasn't true."
+          }
+        }
+      }
+    },
+    "/api/productions/{productionId}/wardrobe-file-counts": {
+      "get": {
+        "tags": [
+          "Item files"
+        ],
+        "summary": "How many wardrobe files each item has",
+        "description": "**Needs:** anyone signed in.",
+        "x-permission": {
+          "who": "anyone signed in"
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The counts, by item id. An item with none may be left out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemFileCounts"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "The production id isn't well formed."
+          }
+        }
+      }
+    },
+    "/api/productions/{productionId}/wardrobe-notes": {
+      "get": {
+        "tags": [
+          "Item notes"
+        ],
+        "summary": "Every item's wardrobe notes",
+        "description": "**Needs:** anyone signed in.",
+        "x-permission": {
+          "who": "anyone signed in"
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The notes. An item with none may be left out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemNoteList"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "The production id isn't well formed."
+          }
+        }
+      }
+    },
+    "/api/productions/{productionId}/items/{itemId}/wardrobe-notes": {
+      "put": {
+        "tags": [
+          "Item notes"
+        ],
+        "summary": "Save one item's wardrobe notes",
+        "description": "**Needs:** admins, or any of these permissions: wardrobe, director. The text is trimmed, and \"\" clears the notes. Send revision 0 for a first save.",
+        "x-permission": {
+          "who": "admins, or any of these permissions",
+          "anyOf": [
+            "wardrobe",
+            "director"
+          ]
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveItemNoteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The saved notes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemNote"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The body doesn't fit the schema."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "The production isn't the newest. Past productions are view only, for admins too. Or: The caller has no permission for this department.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/PastProductionRefusal"
+                    },
+                    {
+                      "$ref": "#/components/schemas/DepartmentRefusal"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The production id isn't well formed. Or: The item id isn't well formed. Or: The item isn't in the latest saved running order."
+          },
+          "409": {
+            "description": "Someone else saved first: the revision sent is out of date."
+          }
+        }
+      }
+    },
+    "/api/productions/{productionId}/mic-plot": {
+      "get": {
+        "tags": [
+          "Mic plot"
+        ],
+        "summary": "Every item's mic channels",
+        "description": "**Needs:** anyone signed in.",
+        "x-permission": {
+          "who": "anyone signed in"
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The mic plot. An item with no channels given out may be left out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MicPlotList"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "The production id isn't well formed."
+          }
+        }
+      }
+    },
+    "/api/productions/{productionId}/items/{itemId}/mic-plot": {
+      "put": {
+        "tags": [
+          "Mic plot"
+        ],
+        "summary": "Give a channel to someone cast in the item, or free it",
+        "description": "**Needs:** admins, or any of these permissions: tech, director. Send castMemberId null to free the channel.",
+        "x-permission": {
+          "who": "admins, or any of these permissions",
+          "anyOf": [
+            "tech",
+            "director"
+          ]
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AllocateMicRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The item's mic plot.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemMicPlot"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The body doesn't fit the schema, the person isn't cast in the item, or the channel can't be given to them: someone else had it in the item before, in the same half, or it was kept against that rule and can only be cleared."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "The production isn't the newest. Past productions are view only, for admins too. Or: The caller has no permission for this department.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/PastProductionRefusal"
+                    },
+                    {
+                      "$ref": "#/components/schemas/DepartmentRefusal"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The production id isn't well formed. Or: The item id isn't well formed. Or: The item isn't in the latest saved running order."
+          },
+          "409": {
+            "description": "They're already on another of the item's channels: the plot as it is now.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemMicPlot"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/productions/{productionId}/mic-plot-notes": {
+      "get": {
+        "tags": [
+          "Item notes"
+        ],
+        "summary": "Every item's mic plot notes",
+        "description": "**Needs:** anyone signed in.",
+        "x-permission": {
+          "who": "anyone signed in"
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The notes. An item with none may be left out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemNoteList"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "The production id isn't well formed."
+          }
+        }
+      }
+    },
+    "/api/productions/{productionId}/items/{itemId}/mic-plot-notes": {
+      "put": {
+        "tags": [
+          "Item notes"
+        ],
+        "summary": "Save one item's mic plot notes",
+        "description": "**Needs:** admins, or any of these permissions: tech, director. The text is trimmed, and \"\" clears the notes. Send revision 0 for a first save.",
+        "x-permission": {
+          "who": "admins, or any of these permissions",
+          "anyOf": [
+            "tech",
+            "director"
+          ]
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveItemNoteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The saved notes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemNote"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The body doesn't fit the schema."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "The production isn't the newest. Past productions are view only, for admins too. Or: The caller has no permission for this department.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/PastProductionRefusal"
+                    },
+                    {
+                      "$ref": "#/components/schemas/DepartmentRefusal"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The production id isn't well formed. Or: The item id isn't well formed. Or: The item isn't in the latest saved running order."
+          },
+          "409": {
+            "description": "Someone else saved first: the revision sent is out of date."
+          }
+        }
+      }
+    },
+    "/api/productions/{productionId}/casting-grid/export": {
+      "post": {
+        "tags": [
+          "Casting"
+        ],
+        "summary": "Turn the grid sent into an Excel file",
+        "description": "**Needs:** anyone signed in. Changes nothing stored, so every role may use it, on any production. Every row needs one cell per item.",
+        "x-permission": {
+          "who": "anyone signed in"
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CastingGridExportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The Excel file.",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The body doesn't fit the schema."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "The production id isn't well formed."
+          }
+        }
+      }
+    },
+    "/api/productions/{productionId}/items/{itemId}/notes": {
+      "put": {
+        "tags": [
+          "Item notes"
+        ],
+        "summary": "Save one item's casting notes",
+        "description": "**Needs:** admins, or any of these permissions: casting. The text is trimmed, and \"\" clears the notes. Send revision 0 for a first save.",
+        "x-permission": {
+          "who": "admins, or any of these permissions",
+          "anyOf": [
+            "casting"
+          ]
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveItemNoteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The saved notes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemNote"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The body doesn't fit the schema."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "The production isn't the newest. Past productions are view only, for admins too. Or: The caller has no permission for this department.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/PastProductionRefusal"
+                    },
+                    {
+                      "$ref": "#/components/schemas/DepartmentRefusal"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The production id isn't well formed. Or: The item id isn't well formed. Or: The item isn't in the latest saved running order."
+          },
+          "409": {
+            "description": "Someone else saved first: the revision sent is out of date."
+          }
+        }
+      }
+    },
+    "/api/productions/{productionId}/items/{itemId}/roles": {
+      "post": {
+        "tags": [
+          "Casting"
+        ],
+        "summary": "Add a role to an item",
+        "description": "**Needs:** admins, or any of these permissions: casting. Only an ensemble can have several people. Nobody can be listed twice, and everyone must be in this production's cast.",
+        "x-permission": {
+          "who": "admins, or any of these permissions",
+          "anyOf": [
+            "casting"
+          ]
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddRoleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The new role.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Role"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The body doesn't fit the schema, or names someone not in the cast (no body), or the item already has a role of that name (with the refusal).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddRoleRefusal"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "The production isn't the newest. Past productions are view only, for admins too. Or: The caller has no permission for this department.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/PastProductionRefusal"
+                    },
+                    {
+                      "$ref": "#/components/schemas/DepartmentRefusal"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The production id isn't well formed. Or: The item id isn't well formed. Or: The item isn't in the latest saved running order."
+          }
+        }
+      }
+    },
+    "/api/productions/{productionId}/roles/{roleId}": {
+      "put": {
+        "tags": [
+          "Casting"
+        ],
+        "summary": "Replace a role's name, size and cast",
+        "description": "**Needs:** admins, or any of these permissions: casting. Only an ensemble can have several people. Anyone taken out stops carrying its props, and loses their mic in the item if they're in no other role there.",
+        "x-permission": {
+          "who": "admins, or any of these permissions",
+          "anyOf": [
+            "casting"
+          ]
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          },
+          {
+            "name": "roleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRoleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated role.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Role"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The body doesn't fit the schema, or names someone not in the cast (no body), or the item already has a role of that name (with the refusal).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddRoleRefusal"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "The production isn't the newest. Past productions are view only, for admins too. Or: The caller has no permission for this department.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/PastProductionRefusal"
+                    },
+                    {
+                      "$ref": "#/components/schemas/DepartmentRefusal"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The production id isn't well formed. Or: No such role."
+          },
+          "409": {
+            "description": "Someone else saved first: the revision sent is out of date."
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Casting"
+        ],
+        "summary": "Remove a role for good",
+        "description": "**Needs:** admins, or any of these permissions: casting.",
+        "x-permission": {
+          "who": "admins, or any of these permissions",
+          "anyOf": [
+            "casting"
+          ]
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          },
+          {
+            "name": "roleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            }
+          },
+          {
+            "name": "revision",
+            "in": "query",
+            "required": true,
+            "description": "The revision the removal is based on.",
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed."
+          },
+          "400": {
+            "description": "The revision isn't a positive whole number."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "The production isn't the newest. Past productions are view only, for admins too. Or: The caller has no permission for this department.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/PastProductionRefusal"
+                    },
+                    {
+                      "$ref": "#/components/schemas/DepartmentRefusal"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The production id isn't well formed. Or: No such role."
+          },
+          "409": {
+            "description": "Someone else saved first: the revision sent is out of date."
+          }
+        }
+      }
+    },
+    "/api/usage": {
+      "post": {
+        "tags": [
+          "Usage"
+        ],
+        "summary": "Record one thing the caller did",
+        "description": "**Needs:** anyone signed in. Who comes from the sign-in, never the body.",
+        "x-permission": {
+          "who": "anyone signed in"
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordUsageRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Recorded."
+          },
+          "400": {
+            "description": "The body doesn't fit the schema."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "The token names no username."
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Usage"
+        ],
+        "summary": "Who has used the app, and how, in a period",
+        "description": "**Needs:** admins.",
+        "x-permission": {
+          "who": "admins"
+        },
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "description": "How many days back.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "7",
+                "30",
+                "90"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The summary.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "days isn't 7, 30 or 90."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "Only admins can do this.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/config.json": {
+      "get": {
+        "tags": [
+          "Sign-in"
+        ],
+        "summary": "The public settings the pages need to start signing in",
+        "description": "A static file written by the deploy, beside the pages. It needs no token.",
+        "security": [],
+        "x-permission": {
+          "who": "anyone"
+        },
+        "responses": {
+          "200": {
+            "description": "The settings.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignInConfig"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "teamSignIn": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "An access token from the team's Cognito user pool, sent as `Authorization: Bearer <token>`. It lasts 5 minutes. Its `cognito:groups` claim says what the account may do, and its `username` claim who they are."
+      }
+    },
+    "responses": {
+      "Unauthorized": {
+        "description": "No valid token. Answered by API Gateway, before the API runs.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Message"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "AccountList": {
+        "type": "object",
+        "properties": {
+          "accounts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AccountSummary"
+            }
+          }
+        },
+        "required": [
+          "accounts"
+        ],
+        "additionalProperties": false
+      },
+      "AccountSummary": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._-]{1,32}$"
+          },
+          "access": {
+            "anyOf": [
+              {
+                "type": "string",
+                "const": "admin"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "casting",
+                    "stage",
+                    "tech",
+                    "wardrobe",
+                    "director"
+                  ]
+                }
+              }
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "username",
+          "access",
+          "enabled"
+        ],
+        "additionalProperties": false
+      },
+      "AddRoleRefusal": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "const": "name-taken"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "additionalProperties": false
+      },
+      "AddRoleRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "size": {
+            "type": "string",
+            "enum": [
+              "lead",
+              "support",
+              "cameo",
+              "ensemble"
+            ]
+          },
+          "castMemberIds": {
+            "default": [],
+            "maxItems": 200,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            }
+          }
+        },
+        "required": [
+          "name",
+          "size"
+        ],
+        "additionalProperties": false
+      },
+      "AllocateMicRequest": {
+        "type": "object",
+        "properties": {
+          "channel": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 24
+          },
+          "castMemberId": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "channel",
+          "castMemberId"
+        ],
+        "additionalProperties": false
+      },
+      "CastList": {
+        "type": "object",
+        "properties": {
+          "productionId": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]{1,40}$"
+          },
+          "members": {
+            "maxItems": 1000,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CastMember"
+            }
+          }
+        },
+        "required": [
+          "productionId",
+          "members"
+        ],
+        "additionalProperties": false
+      },
+      "CastMember": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "firstName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "lastName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "section": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "scouts",
+                  "explorers",
+                  "network"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "group": {
+            "type": "string",
+            "maxLength": 60
+          },
+          "singing": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "acting": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "revision": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          }
+        },
+        "required": [
+          "id",
+          "firstName",
+          "lastName",
+          "section",
+          "group",
+          "revision"
+        ],
+        "additionalProperties": false
+      },
+      "CastMemberDetails": {
+        "type": "object",
+        "properties": {
+          "firstName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "lastName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "section": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "scouts",
+                  "explorers",
+                  "network"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "group": {
+            "type": "string",
+            "maxLength": 60
+          },
+          "singing": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "acting": {
+            "type": "string",
+            "maxLength": 100
+          }
+        },
+        "required": [
+          "firstName",
+          "lastName",
+          "section",
+          "group"
+        ],
+        "additionalProperties": false
+      },
+      "CastingGridExportRequest": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "maxItems": 200,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "heading": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 130
+                },
+                "printed": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "heading",
+                "printed"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "rows": {
+            "maxItems": 1000,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "firstName": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 40
+                },
+                "lastName": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 40
+                },
+                "section": {
+                  "type": "string",
+                  "enum": [
+                    "Scouts",
+                    "Explorers",
+                    "Network",
+                    "Not set"
+                  ]
+                },
+                "cells": {
+                  "maxItems": 200,
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "L",
+                          "S",
+                          "C",
+                          "E"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "firstName",
+                "lastName",
+                "section",
+                "cells"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "items",
+          "rows"
+        ],
+        "additionalProperties": false
+      },
+      "CreatedAccount": {
+        "type": "object",
+        "properties": {
+          "account": {
+            "$ref": "#/components/schemas/AccountSummary"
+          },
+          "temporaryPassword": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "account",
+          "temporaryPassword"
+        ],
+        "additionalProperties": false
+      },
+      "DepartmentRefusal": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "department": {
+            "type": "string",
+            "enum": [
+              "casting",
+              "props",
+              "scenery",
+              "sfx",
+              "mic-plot",
+              "wardrobe"
+            ]
+          }
+        },
+        "required": [
+          "message",
+          "department"
+        ],
+        "additionalProperties": false
+      },
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ok"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "version"
+        ],
+        "additionalProperties": false
+      },
+      "ItemFileCounts": {
+        "type": "object",
+        "properties": {
+          "counts": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "required": [
+          "counts"
+        ],
+        "additionalProperties": false
+      },
+      "ItemFileLink": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "additionalProperties": false
+      },
+      "ItemFileList": {
+        "type": "object",
+        "properties": {
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 255
+                },
+                "size": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "name",
+                "size"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "files"
+        ],
+        "additionalProperties": false
+      },
+      "ItemFileUpload": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "url",
+          "fields"
+        ],
+        "additionalProperties": false
+      },
+      "ItemFileUploadRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100000000
+          },
+          "replace": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "size"
+        ],
+        "additionalProperties": false
+      },
+      "ItemMicPlot": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "mics": {
+            "maxItems": 24,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "channel": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 24
+                },
+                "castMemberId": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0
+                }
+              },
+              "required": [
+                "channel",
+                "castMemberId"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "itemId",
+          "mics"
+        ],
+        "additionalProperties": false
+      },
+      "ItemNote": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "itemId",
+          "text",
+          "revision"
+        ],
+        "additionalProperties": false
+      },
+      "ItemNoteList": {
+        "type": "object",
+        "properties": {
+          "productionId": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]{1,40}$"
+          },
+          "notes": {
+            "maxItems": 1000,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ItemNote"
+            }
+          }
+        },
+        "required": [
+          "productionId",
+          "notes"
+        ],
+        "additionalProperties": false
+      },
+      "Message": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "MicPlotList": {
+        "type": "object",
+        "properties": {
+          "productionId": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]{1,40}$"
+          },
+          "items": {
+            "maxItems": 1000,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ItemMicPlot"
+            }
+          }
+        },
+        "required": [
+          "productionId",
+          "items"
+        ],
+        "additionalProperties": false
+      },
+      "NewAccount": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._-]{1,32}$"
+          },
+          "access": {
+            "anyOf": [
+              {
+                "type": "string",
+                "const": "admin"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "casting",
+                    "stage",
+                    "tech",
+                    "wardrobe",
+                    "director"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "required": [
+          "username",
+          "access"
+        ],
+        "additionalProperties": false
+      },
+      "NewProduction": {
+        "type": "object",
+        "properties": {
+          "year": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "year"
+        ],
+        "additionalProperties": false
+      },
+      "PastProductionRefusal": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "productions": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^\\d{4}$"
+            }
+          }
+        },
+        "required": [
+          "message",
+          "productions"
+        ],
+        "additionalProperties": false
+      },
+      "ProductionList": {
+        "type": "object",
+        "properties": {
+          "productions": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^\\d{4}$"
+            }
+          },
+          "deleting": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^\\d{4}$"
+            }
+          }
+        },
+        "required": [
+          "productions"
+        ],
+        "additionalProperties": false
+      },
+      "Prop": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "itemId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "quantity": {
+            "default": 1,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 99
+          },
+          "roleIds": {
+            "default": [],
+            "maxItems": 200,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            }
+          },
+          "carrierIds": {
+            "default": [],
+            "maxItems": 99,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            }
+          }
+        },
+        "required": [
+          "id",
+          "itemId",
+          "name",
+          "quantity",
+          "roleIds",
+          "carrierIds"
+        ],
+        "additionalProperties": false
+      },
+      "PropDetails": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "quantity": {
+            "default": 1,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 99
+          },
+          "roleIds": {
+            "default": [],
+            "maxItems": 200,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            }
+          },
+          "carrierIds": {
+            "default": [],
+            "maxItems": 99,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            }
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "PropList": {
+        "type": "object",
+        "properties": {
+          "productionId": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]{1,40}$"
+          },
+          "props": {
+            "maxItems": 5000,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Prop"
+            }
+          }
+        },
+        "required": [
+          "productionId",
+          "props"
+        ],
+        "additionalProperties": false
+      },
+      "RecordUsageRequest": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "event": {
+                "type": "string",
+                "const": "session"
+              }
+            },
+            "required": [
+              "event"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "event": {
+                "type": "string",
+                "const": "page"
+              },
+              "page": {
+                "type": "string",
+                "enum": [
+                  "welcome",
+                  "running-order",
+                  "cast",
+                  "casting-overview",
+                  "casting-items",
+                  "production-overview",
+                  "help",
+                  "accounts",
+                  "productions",
+                  "usage"
+                ]
+              }
+            },
+            "required": [
+              "event",
+              "page"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "event": {
+                "type": "string",
+                "const": "view"
+              },
+              "view": {
+                "type": "string",
+                "enum": [
+                  "by-person",
+                  "by-item",
+                  "grid"
+                ]
+              }
+            },
+            "required": [
+              "event",
+              "view"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "event": {
+                "type": "string",
+                "const": "item"
+              },
+              "productionId": {
+                "type": "string",
+                "pattern": "^[a-z0-9-]{1,40}$"
+              },
+              "itemId": {
+                "type": "string",
+                "pattern": "^[a-z0-9-]{1,40}$"
+              }
+            },
+            "required": [
+              "event",
+              "productionId",
+              "itemId"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "event": {
+                "type": "string",
+                "const": "props"
+              },
+              "productionId": {
+                "type": "string",
+                "pattern": "^[a-z0-9-]{1,40}$"
+              },
+              "itemId": {
+                "type": "string",
+                "pattern": "^[a-z0-9-]{1,40}$"
+              }
+            },
+            "required": [
+              "event",
+              "productionId",
+              "itemId"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "event": {
+                "type": "string",
+                "const": "scenery"
+              },
+              "productionId": {
+                "type": "string",
+                "pattern": "^[a-z0-9-]{1,40}$"
+              },
+              "itemId": {
+                "type": "string",
+                "pattern": "^[a-z0-9-]{1,40}$"
+              }
+            },
+            "required": [
+              "event",
+              "productionId",
+              "itemId"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "event": {
+                "type": "string",
+                "const": "sfx"
+              },
+              "productionId": {
+                "type": "string",
+                "pattern": "^[a-z0-9-]{1,40}$"
+              },
+              "itemId": {
+                "type": "string",
+                "pattern": "^[a-z0-9-]{1,40}$"
+              }
+            },
+            "required": [
+              "event",
+              "productionId",
+              "itemId"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "event": {
+                "type": "string",
+                "const": "wardrobe"
+              },
+              "productionId": {
+                "type": "string",
+                "pattern": "^[a-z0-9-]{1,40}$"
+              },
+              "itemId": {
+                "type": "string",
+                "pattern": "^[a-z0-9-]{1,40}$"
+              }
+            },
+            "required": [
+              "event",
+              "productionId",
+              "itemId"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "event": {
+                "type": "string",
+                "const": "mic-plot"
+              },
+              "productionId": {
+                "type": "string",
+                "pattern": "^[a-z0-9-]{1,40}$"
+              },
+              "itemId": {
+                "type": "string",
+                "pattern": "^[a-z0-9-]{1,40}$"
+              }
+            },
+            "required": [
+              "event",
+              "productionId",
+              "itemId"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "event": {
+                "type": "string",
+                "const": "export"
+              },
+              "export": {
+                "type": "string",
+                "enum": [
+                  "excel-grid",
+                  "word-casting-sheets",
+                  "word-item-overview",
+                  "word-props-list",
+                  "excel-mic-plot"
+                ]
+              }
+            },
+            "required": [
+              "event",
+              "export"
+            ]
+          }
+        ]
+      },
+      "Role": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "itemId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "size": {
+            "type": "string",
+            "enum": [
+              "lead",
+              "support",
+              "cameo",
+              "ensemble"
+            ]
+          },
+          "castMemberIds": {
+            "maxItems": 200,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            }
+          },
+          "revision": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          }
+        },
+        "required": [
+          "id",
+          "itemId",
+          "name",
+          "size",
+          "castMemberIds",
+          "revision"
+        ],
+        "additionalProperties": false
+      },
+      "RoleList": {
+        "type": "object",
+        "properties": {
+          "productionId": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]{1,40}$"
+          },
+          "roles": {
+            "maxItems": 2000,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Role"
+            }
+          }
+        },
+        "required": [
+          "productionId",
+          "roles"
+        ],
+        "additionalProperties": false
+      },
+      "RunningOrder": {
+        "type": "object",
+        "properties": {
+          "productionId": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]{1,40}$"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "version": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "savedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "startTime": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+          },
+          "intervalMinutes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "halves": {
+            "type": "array",
+            "prefixItems": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "const": "first-half"
+                  },
+                  "name": {
+                    "type": "string",
+                    "maxLength": 60
+                  },
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 40
+                        },
+                        "title": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 120
+                        },
+                        "cast": {
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "stage": {
+                          "maxItems": 10,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "apron",
+                              "full"
+                            ]
+                          }
+                        },
+                        "leads": {
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "comments": {
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "minutes": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 240
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "printed": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "title",
+                        "cast",
+                        "stage",
+                        "leads",
+                        "comments",
+                        "minutes",
+                        "printed"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "id",
+                  "name",
+                  "items"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "const": "second-half"
+                  },
+                  "name": {
+                    "type": "string",
+                    "maxLength": 60
+                  },
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 40
+                        },
+                        "title": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 120
+                        },
+                        "cast": {
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "stage": {
+                          "maxItems": 10,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "apron",
+                              "full"
+                            ]
+                          }
+                        },
+                        "leads": {
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "comments": {
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "minutes": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 240
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "printed": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "title",
+                        "cast",
+                        "stage",
+                        "leads",
+                        "comments",
+                        "minutes",
+                        "printed"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "id",
+                  "name",
+                  "items"
+                ],
+                "additionalProperties": false
+              }
+            ],
+            "items": false,
+            "minItems": 2,
+            "maxItems": 2
+          }
+        },
+        "required": [
+          "productionId",
+          "title",
+          "version",
+          "savedAt",
+          "startTime",
+          "intervalMinutes",
+          "halves"
+        ],
+        "additionalProperties": false
+      },
+      "SaveItemNoteRequest": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "text",
+          "revision"
+        ],
+        "additionalProperties": false
+      },
+      "SaveRunningOrderRequest": {
+        "type": "object",
+        "properties": {
+          "baseVersion": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "change": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "update"
+                  },
+                  "halves": {
+                    "type": "array",
+                    "prefixItems": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "const": "first-half"
+                          },
+                          "items": {
+                            "maxItems": 100,
+                            "type": "array",
+                            "items": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 40
+                                    },
+                                    "title": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 120
+                                    },
+                                    "cast": {
+                                      "type": "string",
+                                      "maxLength": 500
+                                    },
+                                    "stage": {
+                                      "maxItems": 10,
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string",
+                                        "enum": [
+                                          "apron",
+                                          "full"
+                                        ]
+                                      }
+                                    },
+                                    "leads": {
+                                      "type": "string",
+                                      "maxLength": 500
+                                    },
+                                    "comments": {
+                                      "type": "string",
+                                      "maxLength": 500
+                                    },
+                                    "minutes": {
+                                      "anyOf": [
+                                        {
+                                          "type": "integer",
+                                          "minimum": 0,
+                                          "maximum": 240
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "printed": {
+                                      "type": "boolean"
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "title",
+                                    "cast",
+                                    "stage",
+                                    "leads",
+                                    "comments",
+                                    "minutes",
+                                    "printed"
+                                  ]
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "title": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 120
+                                    },
+                                    "cast": {
+                                      "type": "string",
+                                      "maxLength": 500
+                                    },
+                                    "stage": {
+                                      "maxItems": 10,
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string",
+                                        "enum": [
+                                          "apron",
+                                          "full"
+                                        ]
+                                      }
+                                    },
+                                    "leads": {
+                                      "type": "string",
+                                      "maxLength": 500
+                                    },
+                                    "comments": {
+                                      "type": "string",
+                                      "maxLength": 500
+                                    },
+                                    "minutes": {
+                                      "anyOf": [
+                                        {
+                                          "type": "integer",
+                                          "minimum": 0,
+                                          "maximum": 240
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "printed": {
+                                      "type": "boolean"
+                                    }
+                                  },
+                                  "required": [
+                                    "title",
+                                    "cast",
+                                    "stage",
+                                    "leads",
+                                    "comments",
+                                    "minutes",
+                                    "printed"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "items"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "const": "second-half"
+                          },
+                          "items": {
+                            "maxItems": 100,
+                            "type": "array",
+                            "items": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 40
+                                    },
+                                    "title": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 120
+                                    },
+                                    "cast": {
+                                      "type": "string",
+                                      "maxLength": 500
+                                    },
+                                    "stage": {
+                                      "maxItems": 10,
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string",
+                                        "enum": [
+                                          "apron",
+                                          "full"
+                                        ]
+                                      }
+                                    },
+                                    "leads": {
+                                      "type": "string",
+                                      "maxLength": 500
+                                    },
+                                    "comments": {
+                                      "type": "string",
+                                      "maxLength": 500
+                                    },
+                                    "minutes": {
+                                      "anyOf": [
+                                        {
+                                          "type": "integer",
+                                          "minimum": 0,
+                                          "maximum": 240
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "printed": {
+                                      "type": "boolean"
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "title",
+                                    "cast",
+                                    "stage",
+                                    "leads",
+                                    "comments",
+                                    "minutes",
+                                    "printed"
+                                  ]
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "title": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 120
+                                    },
+                                    "cast": {
+                                      "type": "string",
+                                      "maxLength": 500
+                                    },
+                                    "stage": {
+                                      "maxItems": 10,
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string",
+                                        "enum": [
+                                          "apron",
+                                          "full"
+                                        ]
+                                      }
+                                    },
+                                    "leads": {
+                                      "type": "string",
+                                      "maxLength": 500
+                                    },
+                                    "comments": {
+                                      "type": "string",
+                                      "maxLength": 500
+                                    },
+                                    "minutes": {
+                                      "anyOf": [
+                                        {
+                                          "type": "integer",
+                                          "minimum": 0,
+                                          "maximum": 240
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "printed": {
+                                      "type": "boolean"
+                                    }
+                                  },
+                                  "required": [
+                                    "title",
+                                    "cast",
+                                    "stage",
+                                    "leads",
+                                    "comments",
+                                    "minutes",
+                                    "printed"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "items"
+                        ]
+                      }
+                    ],
+                    "items": false,
+                    "minItems": 2,
+                    "maxItems": 2
+                  }
+                },
+                "required": [
+                  "type",
+                  "halves"
+                ]
+              }
+            ]
+          }
+        },
+        "required": [
+          "baseVersion",
+          "change"
+        ]
+      },
+      "SetAccess": {
+        "type": "object",
+        "properties": {
+          "access": {
+            "anyOf": [
+              {
+                "type": "string",
+                "const": "admin"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "casting",
+                    "stage",
+                    "tech",
+                    "wardrobe",
+                    "director"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "required": [
+          "access"
+        ],
+        "additionalProperties": false
+      },
+      "SetEnabled": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "additionalProperties": false
+      },
+      "SignInConfig": {
+        "type": "object",
+        "properties": {
+          "clientId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "issuer": {
+            "type": "string",
+            "format": "uri"
+          },
+          "loginUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "appUrl": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "required": [
+          "clientId",
+          "issuer",
+          "loginUrl",
+          "appUrl"
+        ],
+        "additionalProperties": false
+      },
+      "UpdateCastMemberRequest": {
+        "type": "object",
+        "properties": {
+          "firstName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "lastName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "section": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "scouts",
+                  "explorers",
+                  "network"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "group": {
+            "type": "string",
+            "maxLength": 60
+          },
+          "singing": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "acting": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "revision": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          }
+        },
+        "required": [
+          "firstName",
+          "lastName",
+          "section",
+          "group",
+          "revision"
+        ],
+        "additionalProperties": false
+      },
+      "UpdateRoleRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "size": {
+            "type": "string",
+            "enum": [
+              "lead",
+              "support",
+              "cameo",
+              "ensemble"
+            ]
+          },
+          "castMemberIds": {
+            "default": [],
+            "maxItems": 200,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            }
+          },
+          "revision": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          }
+        },
+        "required": [
+          "name",
+          "size",
+          "revision"
+        ],
+        "additionalProperties": false
+      },
+      "UsageSummary": {
+        "type": "object",
+        "properties": {
+          "recordedSince": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "people": {
+            "maxItems": 1000,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "username": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                "sessions": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "lastSession": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "uses": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string",
+                    "enum": [
+                      "welcome",
+                      "running-order",
+                      "cast",
+                      "casting-overview",
+                      "casting-items",
+                      "production-overview",
+                      "help",
+                      "accounts",
+                      "productions",
+                      "usage",
+                      "overview-by-person",
+                      "overview-by-item",
+                      "overview-grid",
+                      "item-page",
+                      "props-page",
+                      "scenery-page",
+                      "sfx-page",
+                      "mic-plot-page",
+                      "wardrobe-page",
+                      "export-excel-grid",
+                      "export-word-casting-sheets",
+                      "export-word-item-overview",
+                      "export-word-props-list",
+                      "export-excel-mic-plot"
+                    ]
+                  },
+                  "additionalProperties": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              },
+              "required": [
+                "username",
+                "sessions",
+                "lastSession",
+                "uses"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "features": {
+            "maxItems": 24,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "feature": {
+                  "type": "string",
+                  "enum": [
+                    "welcome",
+                    "running-order",
+                    "cast",
+                    "casting-overview",
+                    "casting-items",
+                    "production-overview",
+                    "help",
+                    "accounts",
+                    "productions",
+                    "usage",
+                    "overview-by-person",
+                    "overview-by-item",
+                    "overview-grid",
+                    "item-page",
+                    "props-page",
+                    "scenery-page",
+                    "sfx-page",
+                    "mic-plot-page",
+                    "wardrobe-page",
+                    "export-excel-grid",
+                    "export-word-casting-sheets",
+                    "export-word-item-overview",
+                    "export-word-props-list",
+                    "export-excel-mic-plot"
+                  ]
+                },
+                "uses": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "people": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "feature",
+                "uses",
+                "people"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "activity": {
+            "maxItems": 1000,
+            "type": "array",
+            "items": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/RecordUsageRequest"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "username": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
+                    "at": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "username",
+                    "at"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "recordedSince",
+          "people",
+          "features",
+          "activity"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}

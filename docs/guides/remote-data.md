@@ -25,7 +25,7 @@ aws configure --profile gangshow-admin   # paste the key; region eu-west-2
 
 Keys live in `~/.aws/credentials` on your machine only. Never put them in the repository, a `.env` file or a chat message. If a key leaks, or the laptop is lost, delete it in IAM straight away. MFA protects the console, not this key, so step 3 ends by deleting it.
 
-## 3. Deploy the table and the budget alert
+## 3. Deploy the stack
 
 From the repository's root, prepare the account for CDK (the first time only), then deploy:
 
@@ -37,13 +37,14 @@ pnpm infra:deploy
 
 Use `pnpm infra:deploy`, not `pnpm deploy`: that's one of pnpm's own commands and never reaches CDK. To set the address once for every shell, add the `export ALERT_EMAIL=…` line to your shell profile (such as `~/.zshrc`), not to the repository.
 
-The deploy prints `GangshowCasting.DataTableName = <table>`. Keep that name. It creates:
+The deploy creates the whole stack, including the hosting covered in [the hosting guide](hosting.md). It prints `GangshowCasting.DataTableName = <table>` and `GangshowCasting.FilesBucketName = <files bucket>`. Keep both. This guide cares about:
 - the table, with 7-day point-in-time recovery and deletion protection, kept even if the stack is deleted;
+- the files bucket, for each item's scenery, SFX and Wardrobe files, also kept;
 - a monthly budget that emails you if AWS spend is forecast to pass about £5, or does. The budget covers the whole account.
 
 To see what a later change would do before deploying it, run `pnpm infra:diff` with the same two variables set.
 
-Then create the profile the app will use: an IAM user, `gangshow-data`, with no console access, that can only read and write this one table. Attach this inline policy, filled in with your account id and table name:
+Then create the profile the app will use: an IAM user, `gangshow-data`, with no console access, limited to this one table and the three departments' files. Attach this inline policy, filled in with your account id and table name:
 
 ```json
 {
@@ -57,7 +58,8 @@ Then create the profile the app will use: an IAM user, `gangshow-data`, with no 
         "dynamodb:UpdateItem",
         "dynamodb:DeleteItem",
         "dynamodb:Query",
-        "dynamodb:ConditionCheckItem"
+        "dynamodb:ConditionCheckItem",
+        "dynamodb:BatchWriteItem"
       ],
       "Resource": "arn:aws:dynamodb:eu-west-2:<account-id>:table/<table>"
     },
@@ -68,26 +70,30 @@ Then create the profile the app will use: an IAM user, `gangshow-data`, with no 
     },
     {
       "Effect": "Allow",
-      "Action": "s3:GetObject",
-      "Resource": "arn:aws:s3:::<files bucket>/*/*/scenery/*"
+      "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+      "Resource": [
+        "arn:aws:s3:::<files bucket>/*/*/scenery/*",
+        "arn:aws:s3:::<files bucket>/*/*/sfx/*",
+        "arn:aws:s3:::<files bucket>/*/*/wardrobe/*"
+      ]
     }
   ]
 }
 ```
 
-Give it an access key, and run `aws configure --profile gangshow-data`. It can't delete or change the table itself, only the rows in it, and it can only list the scenery files and read them, to sign the links that open or download them.
+Give it an access key, and run `aws configure --profile gangshow-data`. It can't delete or change the table itself, only the rows in it. It can list the files and, for the three departments' folders only, read, upload and delete them: the same reach as the hosted API, as the local API signs the same links and upload forms. Its key can overwrite and delete production files, so keep it off shared machines.
 
 Finally, delete the `gangshow-admin` access key in IAM. Make a new one when you next need to deploy, and delete that afterwards too.
 
 ## 4. Use the table
 
-Run the app against the table:
+`pnpm dev` runs the app against the deployed table and bucket, using the AWS profile `default`. It sets all three itself, in the root `package.json`, so setting them in your shell has no effect. To use the `gangshow-data` profile, or a different table:
 
 ```bash
-DATA_TABLE=<table> FILES_BUCKET=<files bucket> AWS_PROFILE=gangshow-data pnpm dev
+DATA_TABLE=<table> FILES_BUCKET=<files bucket> AWS_PROFILE=gangshow-data pnpm --parallel --filter web --filter api dev
 ```
 
-`<files bucket>` is the stack's `FilesBucketName` output, where the scenery files are kept (ADR 0030). On start, the API says `data: everything in table <table> (eu-west-2); scenery files in bucket <files bucket> (eu-west-2)`. `pnpm demo`, or the API run without `DATA_TABLE` and `FILES_BUCKET`, uses the files in `apps/api/data` instead: the two never mix, and nothing copies one into the other. Starting a new production in the table needs a story first: the one-off copy that moved 2027 there was removed, and is in git history at PR #45.
+On start, the API says `data: everything in table <table> (eu-west-2); scenery, SFX and Wardrobe files in bucket <files bucket> (eu-west-2)`. `pnpm demo`, or the API run without `DATA_TABLE` and `FILES_BUCKET`, uses the files in `apps/api/data` instead: the two never mix, and nothing copies one into the other. An admin starts a new production on the **Productions** page ([ADR 0036](../adr/0036-list-of-productions-as-rows-in-the-data-table.md)).
 
 ### Old copies from the 2027 move
 
