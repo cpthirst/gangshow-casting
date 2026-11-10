@@ -2,12 +2,6 @@
 
 High-level ideas that aren't planned yet. Each would start with `write-prd` when its time comes.
 
-## Junior cast
-
-A separation of Senior cast (Scouts, Explorers, Network) and Junior cast (Beavers, Cubs). When a
-casting role is Ensemble, only the Junior Gang or the Senior Gang is added and shown in the
-searches, depending on the item.
-
 ## Backstage hotspot
 
 Based on the cast parts and which item is up next, estimate how many people are likely to be in
