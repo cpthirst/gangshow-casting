@@ -78,4 +78,13 @@ describe("the Cast flow page", () => {
     const hovered = [{ parsed: { x: 19 * 60 + 5 } }];
     expect(title && Reflect.apply(title, undefined, [hovered])).toBe("7:05 pm");
   });
+
+  it("writes the graph's text in the app's font", async () => {
+    document.body.style.fontFamily = '"Made-up Sans", sans-serif';
+
+    await openPage();
+    document.body.style.fontFamily = "";
+
+    expect(Chart.defaults.font.family).toBe('"Made-up Sans", sans-serif');
+  });
 });

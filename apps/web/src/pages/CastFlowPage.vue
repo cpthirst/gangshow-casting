@@ -16,6 +16,8 @@ import { formatTime } from "@/utils/running-order.ts";
 
 // Only the parts a line graph uses, so the rest of Chart.js stays out of the bundle (ADR 0039).
 ChartJS.register(LinearScale, LineElement, PointElement, Legend, Tooltip);
+// A canvas can't inherit CSS, so the graph's text takes the page's font from the stylesheet.
+ChartJS.defaults.font.family = getComputedStyle(document.body).fontFamily;
 
 const data: ChartData<"line", { x: number; y: number }[]> = {
   datasets: CAST_FLOW_PLACES.map(({ id, name, colour }) => ({
