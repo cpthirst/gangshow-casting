@@ -181,21 +181,73 @@ describe("the Cast flow page", () => {
     }
   });
 
-  it("shows a graph's count at a moment on hovering over, clicking or tapping it", async () => {
+  it.each(PLACES)(
+    "shows the time, what's running and every count on hovering over, clicking or tapping the %s graph",
+    async (place) => {
+      serve();
+
+      const wrapper = await openPage();
+
+      const options = optionsOf(wrapper, place);
+      expect(Chart.registry.getPlugin("tooltip")).toBeDefined();
+      expect(options?.interaction).toMatchObject({ mode: "index", intersect: false });
+      expect(options?.events).toEqual(expect.arrayContaining(["mousemove", "click", "touchstart"]));
+      const { title, label } = options?.plugins?.tooltip?.callbacks ?? {};
+      const hovered = { parsed: { x: 19 * 60 + 15 } };
+      expect(title && Reflect.apply(title, undefined, [[hovered]])).toEqual([
+        "7:15 pm",
+        "1 Opening Number",
+      ]);
+      expect(label && Reflect.apply(label, undefined, [hovered])).toEqual([
+        "On-stage: 30",
+        "Standby: 0",
+        "Backstage: 0",
+        "Dressing Room: 20",
+      ]);
+    },
+  );
+
+  it("has a point every minute, drawn without dots, so hovering reads the minute pointed at", async () => {
     serve();
 
     const wrapper = await openPage();
 
-    const options = optionsOf(wrapper, "Standby");
-    expect(Chart.registry.getPlugin("tooltip")).toBeDefined();
-    expect(options?.interaction).toMatchObject({ mode: "index", intersect: false });
-    expect(options?.events).toEqual(expect.arrayContaining(["mousemove", "click", "touchstart"]));
-    const title = options?.plugins?.tooltip?.callbacks?.title;
-    const hovered = [{ parsed: { x: 19 * 60 + 12 } }];
-    expect(title && Reflect.apply(title, undefined, [hovered])).toBe("7:12 pm");
-    // The graph's one line, whose point from 19:11 holds Standby's count at 19:12.
-    expect(graphOf(wrapper, "Standby").props("data").datasets).toHaveLength(1);
-    expect(countAt(wrapper, "Standby", 19 * 60 + 11)).toBe(30);
+    expect(lineOf(wrapper, "Standby")).toMatchObject({ pointRadius: 0 });
+    expect(countAt(wrapper, "Standby", 19 * 60 + 12)).toBe(30);
+  });
+
+  it("lists every item's start time and counts in a table a keyboard can reach", async () => {
+    serve();
+
+    const wrapper = await openPage();
+
+    const region = wrapper.get("[role=region][tabindex='0']");
+    const rows = region
+      .findAll("tbody tr")
+      .map((row) => row.findAll("th, td").map((cell) => cell.text()));
+    expect(rows).toEqual([["1", "Opening Number", "7:15 pm", "30", "0", "0", "20"]]);
+    expect(region.findAll("thead th").map((cell) => cell.text())).toEqual([
+      "#",
+      "Item",
+      "Starts",
+      ...PLACES,
+    ]);
+  });
+
+  it("leaves the number blank for an item not in the printed programme", async () => {
+    serve({
+      order: aRunningOrder([
+        anItem("Opening Number", { id: "opening", minutes: 10, printed: false }),
+      ]),
+    });
+
+    const wrapper = await openPage();
+
+    const cells = wrapper
+      .findAll("tbody tr")[0]
+      ?.findAll("th, td")
+      .map((cell) => cell.text());
+    expect(cells?.slice(0, 2)).toEqual(["", "Opening Number"]);
   });
 
   it("names each graph by its place, with its description, for a screen reader", async () => {

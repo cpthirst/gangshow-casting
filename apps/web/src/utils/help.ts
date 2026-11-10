@@ -514,6 +514,11 @@ export const pageHelp: PageHelp[] = [
         access: "everyone",
       },
       {
+        name: "Counts at a time",
+        does: "Hover over, click or tap a graph to see the time, what's running and every place's count then. The table below the graphs gives the counts at each item's start.",
+        access: "everyone",
+      },
+      {
         name: "Counts",
         does: "Estimates of where everyone is, from the call times and who is cast in each item, not where anyone actually is.",
         access: "everyone",

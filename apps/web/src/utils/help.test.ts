@@ -124,4 +124,10 @@ describe("Cast flow's Help", () => {
     expect(rest.some((line) => line.includes(`${UNTIMED_ITEM_MINUTES} minutes`))).toBe(true);
     expect(rest.some((line) => /estimate/i.test(line))).toBe(true);
   });
+
+  it("says where to read the counts at a moment and at each item's start", () => {
+    expect(
+      lines.map(({ does }) => does).some((line) => /hover/i.test(line) && /table/i.test(line)),
+    ).toBe(true);
+  });
 });

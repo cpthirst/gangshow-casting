@@ -43,11 +43,19 @@ export const CAST_FLOW_PLACES = [
 
 export type CastFlowPlace = (typeof CAST_FLOW_PLACES)[number]["id"];
 
-/** How many of the cast are in each place from a moment, in minutes after midnight, until
- *  the next point. */
+/** How many of the cast are in each place at a minute, in minutes after midnight, and what's
+ *  running then: an item, "Before curtain up" or "Interval"; nothing at the end. */
 export interface CastFlowPoint {
   at: number;
   counts: Record<CastFlowPlace, number>;
+  running?: string;
+}
+
+/** An item and when it starts, for reading the counts at its start. */
+export interface CastFlowItem {
+  number: number | null;
+  title: string;
+  at: number;
 }
 
 /** A start marked on the time axis: an item's number and title, or the interval (FR11). */
@@ -64,19 +72,23 @@ interface Appearance {
 
 /**
  * Who is where through the show (FR3–FR8), from the latest saved running order, its roles
- * and the cast list: a point wherever an item starts or ends or a call comes, from the first
- * call to the end of the show. Someone in several roles of one item counts once, and anyone
- * cast who is no longer on the cast list not at all, so every point adds up to the cast list.
+ * and the cast list: a point for every minute from the first call to the end of the show, so
+ * hovering at any minute reads that minute's counts. Someone in several roles of one item
+ * counts once, and anyone cast who is no longer on the cast list not at all, so every point
+ * adds up to the cast list.
  */
 export function castFlowOf(
   order: RunningOrder,
   roles: Role[],
   cast: CastMember[],
-): { points: CastFlowPoint[]; marks: CastFlowMark[] } {
+): { points: CastFlowPoint[]; marks: CastFlowMark[]; items: CastFlowItem[] } {
   const { halves, interval, finish } = runningClock(order, UNTIMED_ITEM_MINUTES);
-  const items = halves.flatMap(({ rows, endsAt }) =>
-    rows.map(({ item, startsAt }, row) => ({
+  const items = halves.flatMap(({ rows, endsAt }, half) =>
+    rows.map(({ item, number, startsAt }, row) => ({
+      half,
       item,
+      number,
+      label: number === null ? item.title : `${number} ${item.title}`,
       starts: startsAt,
       ends: rows[row + 1]?.startsAt ?? endsAt,
     })),
@@ -90,30 +102,35 @@ export function castFlowOf(
     for (const id of new Set(castIn)) appearances.get(id)?.push(shown);
   }
 
-  // Where anyone is changes only when an item starts or ends, or a call comes.
-  const changes = items.flatMap(({ starts, ends }) => [
-    starts - BACKSTAGE_CALL_MINUTES,
-    starts - STANDBY_CALL_MINUTES,
-    starts,
-    ends,
-  ]);
-  const times = [...new Set([...changes, interval.startsAt, finish])].sort((a, b) => a - b);
-  const points = times.map((at) => {
+  const curtainUp = items[0]?.starts ?? interval.startsAt;
+  const firstCall = Math.min(
+    curtainUp,
+    ...items.map(({ starts }) => starts - BACKSTAGE_CALL_MINUTES),
+  );
+  const runningAt = (at: number) => {
+    if (at < curtainUp) return "Before curtain up";
+    if (interval.startsAt <= at && at < interval.endsAt) return "Interval";
+    return items.find(({ starts, ends }) => starts <= at && at < ends)?.label;
+  };
+  const points = Array.from({ length: finish - firstCall + 1 }, (_, minute) => {
+    const at = firstCall + minute;
     const counts = { "on-stage": 0, standby: 0, backstage: 0, "dressing-room": 0 };
     for (const shows of appearances.values()) counts[placeAt(shows, at)] += 1;
-    return { at, counts };
+    const running = runningAt(at);
+    return running === undefined ? { at, counts } : { at, counts, running };
   });
 
-  const intervalMark = { at: interval.startsAt, label: "Interval" };
-  // Each half's items, with the interval before the second.
-  const marks = halves.flatMap(({ rows }, half) => [
-    ...(half > 0 ? [intervalMark] : []),
-    ...rows.map(({ item, number, startsAt }) => ({
-      at: startsAt,
-      label: number === null ? item.title : `${number} ${item.title}`,
-    })),
-  ]);
-  return { points, marks: joinedAtOnce(marks) };
+  // Each half's items, with the interval between them.
+  const marks = [
+    ...items.filter(({ half }) => half === 0),
+    { label: "Interval", starts: interval.startsAt },
+    ...items.filter(({ half }) => half > 0),
+  ].map(({ label, starts }) => ({ at: starts, label }));
+  return {
+    points,
+    marks: joinedAtOnce(marks),
+    items: items.map(({ item, number, starts }) => ({ number, title: item.title, at: starts })),
+  };
 }
 
 /** Where someone is at a moment: the place nearest the stage that any of their items puts

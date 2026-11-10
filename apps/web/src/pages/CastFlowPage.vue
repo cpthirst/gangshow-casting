@@ -87,10 +87,23 @@ function dataFor(
         backgroundColor: colour,
         // Each count holds from its point until the next.
         stepped: "before",
+        // A point every minute, so hovering reads the minute pointed at; dots would crowd it.
+        pointRadius: 0,
       },
     ],
   };
 }
+
+const pointAt = (points: CastFlowPoint[], minutes: number | null | undefined) =>
+  points.find(({ at }) => at === minutes);
+
+// The counts at each item's start, for reading without the graphs (FR11).
+const startRows = computed(() =>
+  (flow.value?.items ?? []).map((item) => ({
+    ...item,
+    counts: pointAt(flow.value?.points ?? [], item.at)?.counts,
+  })),
+);
 
 function optionsFor({
   points,
@@ -142,11 +155,18 @@ function optionsFor({
     interaction: { mode: "index", intersect: false },
     events: ["mousemove", "mouseout", "click", "touchstart", "touchmove"],
     plugins: {
+      // Whichever graph is hovered, the time, what's running and every place's count then,
+      // from the same points the graphs draw.
       tooltip: {
+        displayColors: false,
         callbacks: {
-          title: ([point]) => {
-            const minutes = point?.parsed.x;
-            return minutes == null ? "" : formatTime(minutes);
+          title: ([hovered]) => {
+            const point = pointAt(points, hovered?.parsed.x);
+            return point ? [formatTime(point.at), ...(point.running ? [point.running] : [])] : "";
+          },
+          label: (hovered) => {
+            const counts = pointAt(points, hovered.parsed.x)?.counts;
+            return counts ? CAST_FLOW_PLACES.map(({ id, name }) => `${name}: ${counts[id]}`) : "";
           },
         },
       },
@@ -168,7 +188,7 @@ function optionsFor({
     <section
       v-for="{ place, data, options } in graphs"
       :key="place.id"
-      class="place-graph"
+      class="flow-section"
       :aria-labelledby="`place-${place.id}`"
       data-test="place"
     >
@@ -184,6 +204,36 @@ function optionsFor({
           :aria-describedby="`place-${place.id}-description`"
         />
       </div>
+    </section>
+    <section class="flow-section" aria-labelledby="item-starts">
+      <h2 id="item-starts">At each item's start</h2>
+      <div
+      class="table-scroll data-table-box"
+      tabindex="0"
+      role="region"
+      aria-label="Counts at each item's start"
+    >
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">Item</th>
+            <th scope="col">Starts</th>
+            <th v-for="{ id, name } in CAST_FLOW_PLACES" :key="id" scope="col">{{ name }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(row, index) in startRows" :key="index">
+            <td data-label="#">{{ row.number }}</td>
+            <th scope="row" data-label="Item">{{ row.title }}</th>
+            <td data-label="Starts">{{ formatTime(row.at) }}</td>
+            <td v-for="{ id, name } in CAST_FLOW_PLACES" :key="id" :data-label="name">
+              {{ row.counts?.[id] }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
     </section>
   </template>
 </template>
