@@ -866,7 +866,7 @@ describe("Cast page", () => {
     }
 
     it("saves new details to the row", async () => {
-      api(aCast([{ ...sam(), section: null }]));
+      api(aCast([{ ...sam(), section: "beavers" }]));
       const wrapper = await openPage();
       const edit = await openEdit(wrapper, "Sam Example");
 

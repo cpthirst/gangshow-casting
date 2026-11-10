@@ -64,6 +64,7 @@ export function createRoutes(
     micPlotNotes,
     productions,
   } = stores;
+  const removeOutOfGang = outOfGangRemoval(stores);
   const { scenery: sceneryFiles, sfx: sfxFiles, wardrobe: wardrobeFiles } = files;
   return {
     "GET /api/health": health,
@@ -74,11 +75,14 @@ export function createRoutes(
     "POST /api/productions/{productionId}/running-order/versions": createSaveRunningOrder(
       runningOrders,
       itemCleanupOf(stores, files),
-      outOfGangRemoval(stores),
+      removeOutOfGang,
     ),
     "GET /api/productions/{productionId}/cast": createGetCast(cast),
     "POST /api/productions/{productionId}/cast": createAddCastMember(cast),
-    "PUT /api/productions/{productionId}/cast/{castId}": createUpdateCastMember(cast),
+    "PUT /api/productions/{productionId}/cast/{castId}": createUpdateCastMember(
+      cast,
+      removeOutOfGang,
+    ),
     "DELETE /api/productions/{productionId}/cast/{castId}": createDeleteCastMember(
       removeCastMember,
       roles,

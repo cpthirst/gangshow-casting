@@ -63,7 +63,10 @@ describe("data stores with a remote table", () => {
       pathParameters: { productionId: "2027" },
       body: JSON.stringify({ ...jo, singing: "Alto" }),
     });
-    const edited = await createUpdateCastMember(cast)({
+    const edited = await createUpdateCastMember(
+      cast,
+      noGangRemoval,
+    )({
       pathParameters: { productionId: "2027", castId: "1" },
       body: JSON.stringify({ ...jo, firstName: "Sam", revision: 1 }),
     });

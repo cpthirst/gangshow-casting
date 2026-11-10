@@ -13,6 +13,7 @@ import {
   positionOf,
   replaceItem,
   sameContent,
+  sectionChangeWarning,
 } from "./running-order.ts";
 
 describe("formatTime", () => {
@@ -297,5 +298,59 @@ describe("gangChangeWarning", () => {
 
   it("still warns that people leave their roles when the casting couldn't be loaded", () => {
     expect(gangChangeWarning(saved, withPirates("junior"), undefined)).toBeDefined();
+  });
+});
+
+describe("sectionChangeWarning", () => {
+  // Made-up names only (CLAUDE.md safeguarding). Ollie Sample is in Cubs.
+  const ollie: CastMember = {
+    id: 1,
+    firstName: "Ollie",
+    lastName: "Sample",
+    section: "cubs",
+    group: "",
+    revision: 1,
+  };
+  const role = (id: number, itemId: string, name: string): Role => ({
+    id,
+    itemId,
+    name,
+    size: "ensemble",
+    castMemberIds: [ollie.id],
+    revision: 1,
+  });
+  const order = aRunningOrder([
+    anItem("Beaver Bop", { gang: "junior" }),
+    anItem("Grand Finale", { gang: "both" }),
+  ]);
+  const roles = [
+    role(1, "beaver-bop", "Chief Beaver"),
+    role(2, "beaver-bop", "Dam Builders"),
+    role(3, "grand-finale", "Finale Chorus"),
+  ];
+
+  it("names the roles they leave, by item, and none they keep", () => {
+    const warning = sectionChangeWarning(ollie, "scouts", { order, roles }) ?? "";
+
+    expect(warning).toContain("Ollie Sample from Chief Beaver and Dam Builders in Beaver Bop");
+    expect(warning).not.toContain("Finale");
+  });
+
+  it("counts a cleared section as Senior", () => {
+    expect(sectionChangeWarning(ollie, null, { order, roles })).toContain("Beaver Bop");
+  });
+
+  it("asks nothing when no item is affected", () => {
+    expect(sectionChangeWarning(ollie, "beavers", { order, roles })).toBeUndefined();
+    expect(
+      sectionChangeWarning({ ...ollie, section: "scouts" }, "explorers", {
+        order,
+        roles: [role(3, "grand-finale", "Finale Chorus")],
+      }),
+    ).toBeUndefined();
+  });
+
+  it("still warns that they leave roles when the casting couldn't be loaded", () => {
+    expect(sectionChangeWarning(ollie, "scouts", undefined)).toBeDefined();
   });
 });

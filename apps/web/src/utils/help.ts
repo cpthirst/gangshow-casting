@@ -236,7 +236,7 @@ export const pageHelp: PageHelp[] = [
       {
         icons: [icons.edit],
         name: "Edit",
-        does: "Changes someone's name, section, group or casting notes.",
+        does: "Changes someone's name, section, group or casting notes. Moving them to the other gang asks first, then takes them out of roles in items not for it.",
         access: "casting",
       },
       {

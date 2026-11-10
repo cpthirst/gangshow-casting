@@ -4,9 +4,13 @@ import {
   type RunningOrder,
   SaveRunningOrderRequest,
 } from "@app/shared";
-import type { RemoveOutOfGang } from "#/casting/roles/remove-out-of-gang.ts";
+import {
+  type RemoveOutOfGang,
+  removeOutOfGangAfterSave,
+} from "#/casting/roles/remove-out-of-gang.ts";
 import { type Handler, inProduction } from "#/http/handler.ts";
 import { jsonResponse, parseJson } from "#/http/json.ts";
+import { errorName } from "#/storage/error-name.ts";
 import { applyChange } from "./running-order-changes.ts";
 import type { RunningOrderStore } from "./running-order-store.ts";
 
@@ -49,24 +53,16 @@ export function createSaveRunningOrder(
   });
 }
 
-// Only the error's name: a store's message can quote stored casting (ADR 0010).
-const nameOf = (error: unknown) => (error instanceof Error ? error.name : "unknown error");
-
-/** After the version is saved, like the clean-up. The version is saved either way, so a
- *  failure is logged rather than reported as a failed save. */
+/** After the version is saved, like the clean-up. */
 async function removeWhoLeftTheirGang(
   removeOutOfGang: RemoveOutOfGang,
   productionId: string,
   itemIds: string[],
 ) {
   if (itemIds.length === 0) return;
-  try {
-    await removeOutOfGang(productionId, (role) => itemIds.includes(role.itemId));
-  } catch (error) {
-    console.error(
-      `Couldn't remove those not in their item's gang in production ${productionId}: ${nameOf(error)}`,
-    );
-  }
+  await removeOutOfGangAfterSave(removeOutOfGang, productionId, (role) =>
+    itemIds.includes(role.itemId),
+  );
 }
 
 /**
@@ -84,7 +80,7 @@ async function removeWhatDroppedItemsKept(
 ) {
   const couldNot = (what: string, error: unknown) =>
     console.error(
-      `Couldn't remove dropped items' ${what} in production ${productionId}: ${nameOf(error)}`,
+      `Couldn't remove dropped items' ${what} in production ${productionId}: ${errorName(error)}`,
     );
   let newest: RunningOrder;
   try {

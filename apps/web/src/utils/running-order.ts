@@ -5,11 +5,13 @@ import {
   type ItemNoteList,
   itemsChangingGang,
   itemsOf,
+  type Leaving,
   outOfGang,
   type Role,
   type RoleList,
   type RunningOrder,
   RunningOrderItem,
+  type Section,
   type Stage,
   type UpdateChange,
 } from "@app/shared";
@@ -238,16 +240,50 @@ export function gangChangeWarning(
     (itemId) => gangOfItem(working, itemId),
   );
   if (leaving.length === 0) return undefined;
-  const names = new Map(casting.members.map((member) => [member.id, fullName(member)]));
-  const byItem = itemsOf(working).flatMap((item) => {
-    const who = leaving
-      .filter(({ role }) => role.itemId === item.id)
-      .flatMap(({ role, castMemberIds }) =>
-        castMemberIds.map((id) => `${names.get(id)} from ${role.name}`),
-      );
-    return who.length === 0 ? [] : [`${listed(who)} in ${item.title}`];
-  });
-  return `Save the draft? It removes ${byItem.join("; ")}.`;
+  return `Save the draft? It removes ${whoLeaves(leaving, casting.members, working)}.`;
+}
+
+/**
+ * The question before saving a member's section, when the new one is for another gang: the
+ * roles they leave, by item, in items not for it (junior-cast FR12). Undefined when they
+ * leave none. casting is the running order and roles now, or undefined when they couldn't be
+ * loaded.
+ */
+export function sectionChangeWarning(
+  member: CastMember,
+  section: Section | null,
+  casting: { order: RunningOrder | undefined; roles: Role[] } | undefined,
+) {
+  const name = fullName(member);
+  if (!casting)
+    return `Save ${name}? It takes them out of any roles in items not for their new gang.`;
+  const { order, roles } = casting;
+  const moved = { ...member, section };
+  const leaving = outOfGang(
+    roles.filter((role) => role.castMemberIds.includes(member.id)),
+    [moved],
+    (itemId) => gangOfItem(order, itemId),
+  );
+  // With no running order, no item is for one gang, so no one leaves.
+  if (leaving.length === 0 || !order) return undefined;
+  return `Save ${name}? It removes ${whoLeaves(leaving, [moved], order)}.`;
+}
+
+/** "Sam Sample from Captain and Pirates in Pirate Sketch; …": who leaves which roles, by item
+ *  in running order. */
+function whoLeaves(leaving: Leaving[], members: CastMember[], order: RunningOrder) {
+  return itemsOf(order)
+    .flatMap((item) => {
+      const inItem = leaving.filter(({ role }) => role.itemId === item.id);
+      const who = members.flatMap((member) => {
+        const roles = inItem
+          .filter(({ castMemberIds }) => castMemberIds.includes(member.id))
+          .map(({ role }) => role.name);
+        return roles.length === 0 ? [] : [`${fullName(member)} from ${listed(roles)}`];
+      });
+      return who.length === 0 ? [] : [`${listed(who)} in ${item.title}`];
+    })
+    .join("; ");
 }
 
 // Field by field in a fixed order, so object key order never matters.

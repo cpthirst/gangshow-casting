@@ -2,6 +2,7 @@ import { gangOfItem, outOfGang, type Role } from "@app/shared";
 import { type CastingFollowers, productionFollowsCasting } from "#/production/follow-casting.ts";
 import type { CastStore } from "#/show/cast/cast-store.ts";
 import type { RunningOrderStore } from "#/show/running-order/running-order-store.ts";
+import { errorName } from "#/storage/error-name.ts";
 import type { RoleStore } from "./role-store.ts";
 
 /** What a removal reads and changes. */
@@ -58,4 +59,19 @@ export function outOfGangRemoval(stores: GangCasting): RemoveOutOfGang {
       throw new Error("Couldn't remove everyone not in their item's gang: the roles kept changing");
     }
   };
+}
+
+/** For a save that stands either way: a failed removal is logged rather than failing it. */
+export async function removeOutOfGangAfterSave(
+  removeOutOfGang: RemoveOutOfGang,
+  productionId: string,
+  among: (role: Role) => boolean,
+) {
+  try {
+    await removeOutOfGang(productionId, among);
+  } catch (error) {
+    console.error(
+      `Couldn't remove those not in their item's gang in production ${productionId}: ${errorName(error)}`,
+    );
+  }
 }

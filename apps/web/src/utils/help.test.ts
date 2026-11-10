@@ -73,6 +73,14 @@ describe("The department switch, in Help", () => {
   });
 });
 
+describe("The Cast page's Help", () => {
+  it("says moving someone to another gang takes them out of roles in items not for it", () => {
+    const edit = helpFor("cast").lines.find(({ name }) => name === "Edit");
+
+    expect(edit?.does).toMatch(/gang[^.]*roles/);
+  });
+});
+
 describe("The Running order page's Help", () => {
   it("says saving an item for another gang takes anyone not in it out of its roles", () => {
     const edit = helpFor("running-order").lines.find(({ name }) => name === "Edit");
