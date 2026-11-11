@@ -109,3 +109,10 @@ describe("harness: consult", () => {
     expect(read("skills/consult/SKILL.md")["disable-model-invocation"]).toBe("true");
   });
 });
+
+// Each builds a throwaway page only the person working on the visuals knows they want (ADR 0040).
+describe.each(["states", "variant"])("harness: %s", (skill) => {
+  it("can only be started by the user, never by the model on its own", () => {
+    expect(read(`skills/${skill}/SKILL.md`)["disable-model-invocation"]).toBe("true");
+  });
+});

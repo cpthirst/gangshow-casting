@@ -169,7 +169,7 @@ CI runs both of these as separate jobs.
 ├── .claude/
 │   ├── settings.json        Permissions (allow / ask / deny) + hook registration
 │   ├── hooks/               guard, post-edit and stop-gate hooks (TypeScript; logic unit-tested)
-│   ├── skills/              Delivery workflows: write-prd … open-pr, adr, batch-stories, consult, dry-sweep
+│   ├── skills/              Delivery workflows: write-prd … open-pr, adr, batch-stories, consult, dry-sweep, states, variant
 │   └── agents/              Reviewer subagents (code, test, security, infra, UX) + screenshot-checker
 ├── .github/
 │   ├── workflows/           ci.yml, pr-title.yml, release-please.yml
@@ -235,6 +235,8 @@ write-prd ──► story-map ──► write-story ──► implement-story �
 | `batch-stories` | One feature's stories on one branch, each built by a fresh subagent so the session's context stays small, with a single PR at the end | Only the user can switch it on; their yes covers the feature's pushes and its PR |
 | `consult` | A read-only consultant's 3–4 recommended epics for simplifying the app's UX, DX and AX, respecting the ADRs, then the user's picks as questions for the next PRD, and the lines the reviewers' briefs lacked | Only the user can start it; the user picks the epics before `write-prd`, and approves any brief changes |
 | `dry-sweep` | A read-only audit of duplication and bloat, comparing siblings side by side, that reports for the user to pick from (ADR 0038) | Only the user can start it |
+| `states` | Every state of one component (loading, empty, error, each permission) on a throwaway page with a switcher, in a worktree, with the demo show's made-up data (ADR 0040) | Only the user can start it; never committed |
+| `variant` | Three throwaway designs of one piece of UI behind a picker on the real page, for the user to choose before its story is written (ADR 0040) | Only the user can start it; the choice becomes the story's ACs |
 
 ### 3. Reviewer subagents (`.claude/agents/`)
 Subagents run in their own context and report back. Fresh context matters: the agent that wrote the code is a poor judge of it. The reviewers have **no Edit or Write tools**, so they can report problems but can't "fix" them by weakening a test, and a harness test enforces that. They run on smaller models to keep cost down.
@@ -376,6 +378,7 @@ These cover humans and agents alike, and `pnpm install` installs them.
 | [0037](docs/adr/0037-delete-a-past-production-marked-then-repeatable.md) | A past production is deleted in the request: marked first so it can't look complete, then its files, its partition and last its list row; any stop can be repeated, and the confirmation names the table's 7-day backup window |
 | [0038](docs/adr/0038-dead-code-copies-and-test-size-in-the-gate.md) | The gate fails on dead exports, app code over 1% copied, and test files over a size budget |
 | [0039](docs/adr/0039-chart-js-for-graphs.md) | Graphs are drawn with Chart.js and vue-chartjs, registering only the parts used; each line's colour sits beside its place in code, and tests check the data and options passed to the chart |
+| [0040](docs/adr/0040-interface-review-ideas-from-the-interfaces-skills.md) | Ideas adapted from the interfaces skills: `ux-reviewer` reads removed lines and checks siblings and states, and two user-only skills, `states` and `variant`, build throwaway pages in a worktree |
 
 ---
 
