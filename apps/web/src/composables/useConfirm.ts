@@ -28,6 +28,14 @@ export function useConfirm() {
     });
 }
 
+/** The control that asks, to pass as useConfirm's `from`: the button a form was submitted
+ *  with, or else the one clicked. Read it before any await: the event forgets it once it has
+ *  been handled. */
+export function controlOf(event: Event) {
+  const control = "submitter" in event ? event.submitter : event.currentTarget;
+  return control instanceof HTMLElement ? control : undefined;
+}
+
 /** For the dialog: what it's asked, and how to answer. */
 export function useConfirmation() {
   return {

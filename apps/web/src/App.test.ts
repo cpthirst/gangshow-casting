@@ -2,6 +2,7 @@ import { enableAutoUnmount, flushPromises } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Router } from "vue-router";
 import { openAppAt } from "@/app.fixture.ts";
+import * as confirmDialog from "@/components/common/ConfirmDialog.fixture.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import {
   SignInEnded,
@@ -594,7 +595,7 @@ describe("App shell", () => {
     expect(wrapper.get("main").text()).toContain("No running order yet");
   });
 
-  it("asks before leaving the running order with unsaved changes", async () => {
+  it("asks in the dialog before leaving the running order with unsaved changes", async () => {
     const order = {
       productionId: "2027",
       title: "Gang Show 2027",
@@ -624,15 +625,17 @@ describe("App shell", () => {
       "fetch",
       vi.fn(async () => new Response(JSON.stringify(order))),
     );
-    const confirm = vi.fn().mockReturnValue(false);
-    vi.stubGlobal("confirm", confirm);
     const { wrapper, router } = await openAppAt("/running-order");
     await wrapper.get("button[aria-label='Move Curtain Up down']").trigger("click");
 
     await wrapper.get("nav a[href='/cast']").trigger("click");
     await flushPromises();
 
-    expect(confirm).toHaveBeenCalledWith("Discard unsaved changes?");
+    expect(confirmDialog.confirmation()).toEqual({
+      question: "Discard unsaved changes?",
+      buttons: ["Discard changes", "Cancel"],
+    });
+    await confirmDialog.cancelConfirmation();
     expect(router.currentRoute.value.fullPath).toBe("/running-order");
     expect(wrapper.find("[data-test=unsaved]").exists()).toBe(true);
     expect(wrapper.findAll("main tbody [data-test=title]").map((cell) => cell.text())).toEqual([
@@ -640,9 +643,9 @@ describe("App shell", () => {
       "Curtain Up",
     ]);
 
-    confirm.mockReturnValue(true);
     await wrapper.get("nav a[href='/cast']").trigger("click");
     await flushPromises();
+    await confirmDialog.goAhead();
     expect(router.currentRoute.value.fullPath).toBe("/cast");
   });
 

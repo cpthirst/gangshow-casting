@@ -2,7 +2,7 @@
 id: confirm-and-loading.E1.S2
 title: The Running order and Cast pages confirm in the dialog
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story

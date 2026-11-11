@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory } from "vue-router";
 import App from "@/App.vue";
 import { json } from "@/app.fixture.ts";
+import * as confirmDialog from "@/components/common/ConfirmDialog.fixture.ts";
 import { createAppRouter } from "@/router/index.ts";
 import { openProduction } from "@/services/production.ts";
 import { chooseLocalAccess, useLocalSignIn } from "@/services/sign-in.ts";
@@ -201,12 +202,12 @@ describe("switching production", () => {
 
   it("stays put if they decide to keep unsaved changes", async () => {
     const { requests } = serveProductions();
-    vi.stubGlobal("confirm", () => false);
     const { wrapper } = await open("/running-order");
     await wrapper.get("button[data-move=down]").trigger("click");
     requests.length = 0;
 
     await switchTo(wrapper, "2027");
+    await confirmDialog.cancelConfirmation();
 
     expect(yearShown(wrapper)).toBe("Gang Show 2028");
     expect(wrapper.find("[data-test=unsaved]").exists()).toBe(true);

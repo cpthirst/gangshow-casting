@@ -5,7 +5,6 @@ import { h } from "vue";
 import { createMemoryHistory, createRouter, RouterView } from "vue-router";
 import { json } from "@/app.fixture.ts";
 import * as confirmDialog from "./ConfirmDialog.fixture.ts";
-import ConfirmDialog from "./ConfirmDialog.vue";
 import ItemNotes from "./ItemNotes.vue";
 
 enableAutoUnmount(afterEach);
@@ -46,10 +45,10 @@ async function openNotes(canChange = true) {
     ],
   });
   await router.push("/items/pirate-sketch");
-  const wrapper = mount(
-    { render: () => [h(RouterView), h(ConfirmDialog)] },
-    { global: { plugins: [router] }, attachTo: document.body },
-  );
+  const wrapper = mount(confirmDialog.withConfirmDialog(RouterView), {
+    global: { plugins: [router] },
+    attachTo: document.body,
+  });
   await flushPromises();
   return Object.assign(wrapper, { router });
 }

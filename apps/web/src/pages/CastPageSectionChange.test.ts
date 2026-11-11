@@ -1,6 +1,7 @@
 import type { CastList, CastMember, Role, RoleList } from "@app/shared";
-import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
+import { enableAutoUnmount, flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import * as confirmDialog from "@/components/common/ConfirmDialog.fixture.ts";
 import { castPath, rolesPath, runningOrderPath } from "@/services/production.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
@@ -34,13 +35,13 @@ const order = aRunningOrder([
 ]);
 
 let puts: unknown[];
-let confirm: ReturnType<typeof vi.fn>;
+let goAhead: boolean;
+let asked: ReturnType<typeof confirmDialog.confirmation>;
 
 /** The stand-in API: Ollie's cast list, their role and the running order, and saves. */
 function serve(confirmed: boolean, ollieIn: Role[] = [chiefBeaver]) {
   puts = [];
-  confirm = vi.fn().mockReturnValue(confirmed);
-  vi.stubGlobal("confirm", confirm);
+  goAhead = confirmed;
   const cast: CastList = { productionId: "2027", members: [ollie] };
   const roles: RoleList = { productionId: "2027", roles: ollieIn };
   const answers = new Map<string, unknown>([
@@ -59,14 +60,20 @@ function serve(confirmed: boolean, ollieIn: Role[] = [chiefBeaver]) {
   );
 }
 
+const saveButton = (wrapper: VueWrapper) =>
+  wrapper.get("form[data-test=cast-member-form] button[type=submit]");
+
 async function saveSection(section: string) {
-  const wrapper = mount(CastPage, { attachTo: document.body });
+  const wrapper = mount(confirmDialog.withConfirmDialog(CastPage), { attachTo: document.body });
   await flushPromises();
   await wrapper.get('button[aria-label="Edit Ollie Sample"]').trigger("click");
   await flushPromises();
   await wrapper.get("[name=section]").setValue(section);
-  await wrapper.get("form[data-test=cast-member-form]").trigger("submit");
+  // A tap on Save, which doesn't focus it on every phone (iOS Safari).
+  await saveButton(wrapper).trigger("click");
   await flushPromises();
+  asked = confirmDialog.confirmation();
+  if (asked) await confirmDialog.answerConfirmation(goAhead);
   return wrapper;
 }
 
@@ -74,14 +81,16 @@ describe("Cast page, changing a member's section", () => {
   beforeEach(useLocalSignIn);
   afterEach(() => vi.unstubAllGlobals());
 
-  it("asks first, naming the roles they'd leave, and saves nothing on going back", async () => {
+  it("asks first in the dialog, naming the roles they'd leave, and saves nothing on Cancel", async () => {
     serve(false);
 
     const wrapper = await saveSection("scouts");
 
-    expect(confirm).toHaveBeenCalledWith(expect.stringContaining("Chief Beaver in Beaver Bop"));
+    expect(asked?.question).toContain("Chief Beaver in Beaver Bop");
+    expect(asked?.buttons).toEqual(["Save", "Cancel"]);
     expect(puts).toEqual([]);
-    expect(wrapper.find("form[data-test=cast-member-form]").exists()).toBe(true);
+    expect(wrapper.get<HTMLSelectElement>("[name=section]").element.value).toBe("scouts");
+    expect(document.activeElement).toBe(saveButton(wrapper).element);
   });
 
   it("saves the new section once confirmed", async () => {
@@ -97,7 +106,7 @@ describe("Cast page, changing a member's section", () => {
 
     await saveSection("scouts");
 
-    expect(confirm).not.toHaveBeenCalled();
+    expect(asked).toBeUndefined();
     expect(puts).toEqual([expect.objectContaining({ section: "scouts" })]);
   });
 
@@ -106,7 +115,7 @@ describe("Cast page, changing a member's section", () => {
 
     await saveSection("beavers");
 
-    expect(confirm).not.toHaveBeenCalled();
+    expect(asked).toBeUndefined();
     expect(puts).toEqual([expect.objectContaining({ section: "beavers" })]);
   });
 });

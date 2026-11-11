@@ -1,11 +1,18 @@
 import { flushPromises } from "@vue/test-utils";
 import { afterEach } from "vitest";
+import { type Component, h } from "vue";
 import { useConfirmation } from "@/composables/useConfirm.ts";
+import ConfirmDialog from "./ConfirmDialog.vue";
 
 // Answers the app's one confirmation dialog (ConfirmDialog.vue), as someone tapping it would.
 
 // The question lives outside any component, so one a test left open mustn't reach the next.
 afterEach(() => useConfirmation().answer(false));
+
+/** A page with the dialog App mounts beside it, for a test that mounts the page alone. */
+export const withConfirmDialog = (page: Component) => ({
+  render: () => [h(page), h(ConfirmDialog)],
+});
 
 const openDialog = () =>
   document.querySelector<HTMLDialogElement>("dialog.confirm-dialog[open]") ?? undefined;
@@ -36,3 +43,6 @@ export const goAhead = () =>
 /** Chooses Cancel. */
 export const cancelConfirmation = () =>
   choose((dialog) => buttonsOf(dialog).find((button) => button.textContent?.trim() === "Cancel"));
+
+/** Chooses the go-ahead button for yes, or Cancel for no. */
+export const answerConfirmation = (yes: boolean) => (yes ? goAhead() : cancelConfirmation());

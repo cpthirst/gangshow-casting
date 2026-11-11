@@ -13,7 +13,7 @@ import { computed, ref } from "vue";
 import RoleForm from "@/components/casting/RoleForm.vue";
 import ClashIcon from "@/components/common/ClashIcon.vue";
 import ItemPageFrame from "@/components/common/ItemPageFrame.vue";
-import { useConfirm } from "@/composables/useConfirm.ts";
+import { controlOf, useConfirm } from "@/composables/useConfirm.ts";
 import { useItemPlace } from "@/composables/useItemPlace.ts";
 import { useListEditing } from "@/composables/useListEditing.ts";
 import { loadData } from "@/services/load-data.ts";
@@ -149,8 +149,7 @@ async function showConflict() {
 async function removeRole(role: Role, event: MouseEvent) {
   if (busy.value || !place.value) return;
   const question = `Remove the role ${role.name} from ${place.value.item.title}? Anyone cast in it will be uncast.`;
-  const removeButton = event.currentTarget instanceof HTMLElement ? event.currentTarget : undefined;
-  if (!(await askToConfirm(question, "Remove role", removeButton))) return;
+  if (!(await askToConfirm(question, "Remove role", controlOf(event)))) return;
   saving.value = true;
   notice.value = "";
   const status = await deleteStatus(removeRolePath(role));

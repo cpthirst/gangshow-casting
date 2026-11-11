@@ -15,6 +15,7 @@ import { computed, onMounted, ref, useId } from "vue";
 import PageTitle from "@/components/common/PageTitle.vue";
 import RefusalNotice from "@/components/common/RefusalNotice.vue";
 import CastMemberForm from "@/components/show/CastMemberForm.vue";
+import { controlOf, useConfirm } from "@/composables/useConfirm.ts";
 import { useListEditing } from "@/composables/useListEditing.ts";
 import { loadData } from "@/services/load-data.ts";
 import { castPath, rolesPath, runningOrderPath } from "@/services/production.ts";
@@ -39,6 +40,7 @@ type State =
   | { status: "loaded"; list: CastList };
 
 const state = ref<State>({ status: "loading" });
+const askToConfirm = useConfirm();
 
 const members = computed(() =>
   state.value.status === "loaded" ? sortCast(state.value.list.members) : [],
@@ -107,20 +109,23 @@ async function showConflict() {
   await focusAddButton();
 }
 
-const saveEdit = (details: CastMemberDetails) => editing.value && update(editing.value, details);
+const saveEdit = (details: CastMemberDetails, saveButton: HTMLElement | undefined) =>
+  editing.value && update(editing.value, details, saveButton);
 const cancelEdit = () => editing.value && stopEditing(editing.value.id);
 
 // Saves straight away (PRD FR7); refused if someone else changed the member first.
-async function update(member: CastMember, details: CastMemberDetails) {
+async function update(
+  member: CastMember,
+  details: CastMemberDetails,
+  saveButton: HTMLElement | undefined,
+) {
   if (saving.value) return;
-  saving.value = true;
   formError.value = "";
   // Going back saves nothing and keeps the form as it is.
-  const result = (await confirmSectionChange(member, details))
-    ? await putMember(member, details)
-    : undefined;
+  if (!(await confirmSectionChange(member, details, saveButton))) return;
+  saving.value = true;
+  const result = await putMember(member, details);
   saving.value = false;
-  if (!result) return;
 
   if (result === "failed") {
     formError.value = "Couldn't save the changes. Try again.";
@@ -145,10 +150,19 @@ async function update(member: CastMember, details: CastMemberDetails) {
 
 /** Whether to go ahead with a save that moves them to another gang, taking them out of the
  *  roles of items not for it (junior-cast FR12). Nothing to ask unless they leave a role. */
-async function confirmSectionChange(member: CastMember, details: CastMemberDetails) {
+async function confirmSectionChange(
+  member: CastMember,
+  details: CastMemberDetails,
+  saveButton: HTMLElement | undefined,
+) {
   if (gangOf(member.section) === gangOf(details.section)) return true;
-  const warning = sectionChangeWarning(member, details.section, await roleCastingNow());
-  return warning === undefined || window.confirm(warning);
+  // Saving while the roles are counted, so a second Save waits, but not while asking:
+  // the dialog gives focus back to Save, which saving disables.
+  saving.value = true;
+  const casting = await roleCastingNow();
+  saving.value = false;
+  const warning = sectionChangeWarning(member, details.section, casting);
+  return warning === undefined || askToConfirm(warning, "Save", saveButton);
 }
 
 /** The running order and roles now, or undefined if they can't be loaded. */
@@ -186,15 +200,16 @@ async function putMember(
 
 // Permanent by design (PRD FR5, ADR 0010), so always confirm first, naming the person and
 // how many roles they'll leave (casting-roles FR9).
-async function deleteMember(member: CastMember) {
+async function deleteMember(member: CastMember, event: MouseEvent) {
   if (busy.value) return;
-  // Busy while the roles are counted, so a second click can't open a second confirmation.
+  const deleteButton = controlOf(event);
+  // Busy while the roles are counted, so a second click can't open a second confirmation,
+  // but not while asking: the dialog gives focus back to this button, which busy disables.
   saving.value = true;
   const warning = deleteWarning(fullName(member), await rolesOf(member));
-  if (!window.confirm(warning)) {
-    saving.value = false;
-    return;
-  }
+  saving.value = false;
+  if (!(await askToConfirm(warning, "Delete cast member", deleteButton))) return;
+  saving.value = true;
   notice.value = "";
   const status = await sendDelete(member);
   saving.value = false;
@@ -379,7 +394,7 @@ onMounted(load);
                 :aria-label="`Delete ${fullName(member)}`"
                 data-tooltip="Delete from the cast"
                 :disabled="busy"
-                @click="deleteMember(member)"
+                @click="deleteMember(member, $event)"
               >
                 <FontAwesomeIcon :icon="icons.remove" />
               </button>
