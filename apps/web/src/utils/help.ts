@@ -8,6 +8,7 @@ import {
   sectionLabels,
 } from "@app/shared";
 import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
+import { CAST_FLOW_PLACES, UNTIMED_ITEM_MINUTES } from "./cast-flow.ts";
 import { departmentPages, listed, permissionNamesOf, whoCanChangeLine } from "./departments.ts";
 import { icons } from "./icons.ts";
 import {
@@ -497,13 +498,32 @@ export const pageHelp: PageHelp[] = [
     summaryName: "Wardrobe",
     notesAreFor: "the wardrobe team needs to know about what the cast wear in the item",
   }),
-  // The places and how they're timed join it with the graph's key (production-cast-flow E2.S1).
+  // Each place described as its graph's heading describes it (production-cast-flow FR16).
   {
     page: "cast-flow",
     title: "Cast flow",
     summary:
-      "A line graph of how many of the cast are on stage, on standby, backstage and in the dressing rooms through the show.",
-    lines: [],
+      "A graph for each place the cast can be during the show, showing how many are there from the first call to the end.",
+    lines: [
+      ...CAST_FLOW_PLACES.map(
+        ({ name, description }): HelpLine => ({ name, does: description, access: "everyone" }),
+      ),
+      {
+        name: "Item lengths",
+        does: `The times come from the latest saved running order. An item with no length set counts as ${UNTIMED_ITEM_MINUTES} minutes.`,
+        access: "everyone",
+      },
+      {
+        name: "Counts at a time",
+        does: "Hover over, click or tap a graph to see the time, what's running and every place's count then. The table below the graphs gives the counts at each item's start.",
+        access: "everyone",
+      },
+      {
+        name: "Counts",
+        does: "Estimates of where everyone is, from the call times and who is cast in each item, not where anyone actually is.",
+        access: "everyone",
+      },
+    ],
   },
   {
     page: "productions",

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type CastFlowPlace, castFlowOf } from "./cast-flow.ts";
+import { type CastFlowPlace, castFlowOf, shortMark } from "./cast-flow.ts";
 import { aCastMember, aRole, ids } from "./casting.fixture.ts";
 import { anItem, aRunningOrder } from "./running-order.fixture.ts";
 
@@ -80,9 +80,15 @@ describe("castFlowOf", () => {
       anItem("Campfire Sketch"),
     ]);
 
-    const labels = castFlowOf(withSong, [], cast).marks.map(({ label }) => label);
+    const songFlow = castFlowOf(withSong, [], cast);
 
-    expect(labels).toEqual(["1 Opening", "Scene Change Song", "2 Campfire Sketch", "Interval"]);
+    expect(songFlow.marks.map(({ label }) => label)).toEqual([
+      "1 Opening",
+      "Scene Change Song",
+      "2 Campfire Sketch",
+      "Interval",
+    ]);
+    expect(songFlow.items[1]).toMatchObject({ number: null, title: "Scene Change Song" });
   });
 
   it("joins the marks of things that start at once, such as after a 0-minute item", () => {
@@ -188,9 +194,60 @@ describe("castFlowOf, calling the cast before their items", () => {
     expect(countAt(flow, "19:45", "on-stage")).toBe(40);
   });
 
+  it("has a point for every minute, saying what's running then", () => {
+    expect(flow.points.find(({ at: minute }) => minute === at("19:12"))).toEqual({
+      at: at("19:12"),
+      running: "2 Campfire Sketch",
+      counts: { "on-stage": 4, standby: 13, backstage: 0, "dressing-room": 43 },
+    });
+  });
+
+  it("names the time before curtain up and the interval in place of an item", () => {
+    const runningAt = (time: string) =>
+      flow.points.find(({ at: minute }) => minute === at(time))?.running;
+
+    expect(runningAt("18:58")).toBe("Before curtain up");
+    expect(runningAt("19:15")).toBe("3 Gang Song");
+    expect(runningAt("19:30")).toBe("Interval");
+    expect(runningAt("19:53")).toBeUndefined();
+  });
+
+  it("lists each item's number, title and start, for reading the counts at its start", () => {
+    expect(flow.items).toEqual([
+      { number: 1, title: "Opening", at: at("19:00") },
+      { number: 2, title: "Campfire Sketch", at: at("19:10") },
+      { number: 3, title: "Gang Song", at: at("19:15") },
+      { number: 1, title: "Finale", at: at("19:45") },
+    ]);
+    // Gang Song's row: its 12 and Robin on stage, no one called, the rest in the Dressing Room.
+    expect(flow.points.find(({ at: minute }) => minute === at("19:15"))?.counts).toEqual({
+      "on-stage": 13,
+      standby: 0,
+      backstage: 0,
+      "dressing-room": 47,
+    });
+  });
+
   it("always adds the four places up to the cast list", () => {
     for (const { counts } of flow.points) {
       expect(Object.values(counts).reduce((sum, count) => sum + count, 0)).toBe(60);
     }
+  });
+});
+
+describe("shortMark", () => {
+  it("cuts a long mark label to 10 characters, ended with an ellipsis", () => {
+    expect(shortMark("2 Campfire Sketch")).toBe("2 Campfire…");
+    expect(shortMark("Scene Change Song")).toBe("Scene Chan…");
+  });
+
+  it("leaves a label that fits whole", () => {
+    expect(shortMark("1 Opening")).toBe("1 Opening");
+    expect(shortMark("Interval")).toBe("Interval");
+    expect(shortMark("10 Finales")).toBe("10 Finales");
+  });
+
+  it("doesn't leave a space before the ellipsis", () => {
+    expect(shortMark("4 The Big Show")).toBe("4 The Big…");
   });
 });

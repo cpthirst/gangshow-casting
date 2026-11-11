@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { CAST_FLOW_PLACES, UNTIMED_ITEM_MINUTES } from "./cast-flow.ts";
 import { departmentPages } from "./departments.ts";
 import { accessLabel, helpFor, pageHelp, whoCanChange } from "./help.ts";
 
@@ -104,5 +105,29 @@ describe("The Cast page's Help", () => {
     for (const words of ["Junior", "Beavers", "Cubs", "Senior", "Scouts", "Explorers", "Network"])
       expect(gang).toContain(words);
     expect(gang).toMatch(/no section/);
+  });
+});
+
+describe("Cast flow's Help", () => {
+  const { lines } = helpFor("cast-flow");
+
+  it("describes each place as its graph's heading does, from the same list", () => {
+    for (const { name, description } of CAST_FLOW_PLACES) {
+      expect(lines).toContainEqual(expect.objectContaining({ name, does: description }));
+    }
+  });
+
+  it("gives the length taken for an untimed item, and says the counts are estimates", () => {
+    const isPlace = (name: string) => CAST_FLOW_PLACES.some((place) => place.name === name);
+    const rest = lines.filter(({ name }) => !isPlace(name)).map(({ does }) => does);
+
+    expect(rest.some((line) => line.includes(`${UNTIMED_ITEM_MINUTES} minutes`))).toBe(true);
+    expect(rest.some((line) => /estimate/i.test(line))).toBe(true);
+  });
+
+  it("says where to read the counts at a moment and at each item's start", () => {
+    expect(
+      lines.map(({ does }) => does).some((line) => /hover/i.test(line) && /table/i.test(line)),
+    ).toBe(true);
   });
 });

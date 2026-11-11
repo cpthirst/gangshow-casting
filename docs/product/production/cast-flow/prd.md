@@ -30,7 +30,7 @@ The idea comes from `docs/product/future-thinking.md` ("Backstage hotspot"). The
 |---|---|---|
 | See backstage crowding before the show | Clicks from the menu to the graph of the whole show | 1 |
 | The graph matches the show as it stands | Changes to the running order, timings, casting or cast list that the graph doesn't reflect the next time it's opened | 0 |
-| Spot the peak quickly | Clicks to compare one or more places on their own | 1 per place hidden or shown |
+| Spot the peak quickly | Clicks to see any one place's count over the show on its own | 0: each place has its own graph |
 | Every person is somewhere | Moments where the four places' counts don't add up to the whole cast list | 0 |
 
 ## Non-goals
@@ -59,28 +59,28 @@ The idea comes from `docs/product/future-thinking.md` ("Backstage hotspot"). The
 - **FR8**: Times come from the latest saved running order: its start time, each item's length in order, and the interval between the halves. An item with no length set counts as 5 minutes long. The calls for the first item after the interval begin during the interval, as they would on the night.
 
 ### The graph
-- **FR9**: The page shows one line graph of the whole show. Time runs along the bottom as clock times, from the first call before curtain up to the end of the last item. The number of people runs up the side.
-- **FR10**: Each place has its own line in its own colour, all on the same scale.
+- **FR9**: The page shows the whole show as line graphs, one per place (FR10). Time runs along the bottom as clock times, from the first call before curtain up to the end of the last item. The number of people runs up the side.
+- **FR10**: Each place has its own graph, in its own colour, stacked top to bottom On-stage, Standby, Backstage, Dressing Room. The four share the time axis, the item marks (FR11) and one people scale, so heights compare across graphs. (Changed 2026-11-10 by the product owner: one graph with four lines was too cluttered.)
 - **FR11**: The start of each item is marked on the time axis with its number and title, or its title alone where it has no number, and the start of the interval with "Interval". A faint dashed line runs up the graph from each mark. Hovering over a marker or a point on the graph, or focusing it, shows the item and each place's count at that time.
-- **FR12**: The graph's key lists the four places, each with a tick box. Unticking a box hides that place's line and ticking it shows the line again. On-stage and Standby are ticked, and Backstage and Dressing Room unticked, whenever the page opens or reloads.
-- **FR13**: Each place in the key has a short description of what it is, beside its name:
+- **FR12**: Dropped (2026-11-10). With a graph per place there's no line to hide or show, so there are no tick boxes.
+- **FR13**: Each place's graph is headed by its name and a short description of what it is:
   - **On-stage**: performing in the item that's running.
   - **Standby**: in the wings, from 4 minutes before their item.
   - **Backstage**: in the holding area for props, mics and quick changes, from 6 minutes before their item.
   - **Dressing Room**: everyone else on the cast list.
 
-  The descriptions are part of the key, the one place the graph's places are named, so the page and Help read them from the same list.
+  The descriptions live with the places' names in one list, so the graphs' headings and Help read them from the same place.
 - **FR14**: The graph is worked out from the current running order, roles and cast list every time the page is opened. No copy of times or counts is saved, so a change to any of them shows next time.
 - **FR15**: With no saved running order, or no cast, the page shows the empty state the other Production pages show in that case, instead of a graph.
 
 ### Help
-- **FR16**: Help describes Cast flow: the four places (with the same descriptions as the key, FR13), the 5-minute length assumed for untimed items, and that the counts are estimates. Apart from the key's descriptions, the page adds no explanatory line.
+- **FR16**: Help describes Cast flow: the four places (with the same descriptions as the graphs' headings, FR13), the 5-minute length assumed for untimed items, and that the counts are estimates. Apart from the headings' descriptions, the page adds no explanatory line.
 
 ## Non-functional requirements
 
 - **Security**: Read-only, behind the existing sign-in and production-team permissions. It shows counts only, never names, and adds no new personal data and no new API data beyond what the running order, roles and cast list already return.
-- **Accessibility**: WCAG 2.2 AA. The tick boxes in the key are labelled and keyboard-operable, and each one's description is read with its label. Lines are told apart by more than colour (for example line style or markers), and the colours meet contrast against the page in light and dark themes. The counts at each item's start can be read without seeing the graph, for example as a table a screen reader can reach.
-- **Performance**: The graph appears within 1 second of the page's data loading for a show of 60 items and 300 cast. Hiding or showing a line responds immediately (under 100 ms). The page makes no API calls beyond those it needs to load the running order, roles and cast list.
+- **Accessibility**: WCAG 2.2 AA. Each graph is named by its place, with its description read with it, so the graphs are told apart by more than colour. The colours meet contrast against the page. The counts at each item's start can be read without seeing the graph, for example as a table a screen reader can reach.
+- **Performance**: The graph appears within 1 second of the page's data loading for a show of 60 items and 300 cast. The page makes no API calls beyond those it needs to load the running order, roles and cast list.
 - **Layout**: Usable at phone widths (320px) without the page scrolling sideways. The graph may shrink or scroll within itself.
 
 ## Constraints and assumptions
@@ -95,11 +95,11 @@ The idea comes from `docs/product/future-thinking.md` ("Backstage hotspot"). The
 
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
-| Counts are taken as exact and plans rely on them | M | M | The key gives each place's call time (FR13); Help says they're estimates (FR16) |
-| The key's descriptions crowd the graph at phone widths | M | L | Descriptions are one short line each and sit with the key, which may wrap below the graph |
+| Counts are taken as exact and plans rely on them | M | M | Each graph's heading gives its place's call time (FR13); Help says they're estimates (FR16) |
+| Four graphs make the page long on a phone | M | L | Each graph is short, its description one line, and the time axis is shown once, under the lowest |
 | Many untimed items make the graph misleading | M | M | The 5-minute assumption is in Help; timing items in the running order fixes it |
 | The charting library is heavy or hard to make accessible | M | M | The ADR compares candidates on size and accessibility; a readable table backs up the graph |
-| Four colours are hard to tell apart, or clash with the theme | L | M | Distinct line styles as well as colours, checked in both themes |
+| Four colours are hard to tell apart, or clash with the theme | L | M | Each place has its own named graph, so colour is never the only way to tell them apart |
 
 ## Open questions
 
