@@ -27,7 +27,7 @@ PRD: [prd.md](prd.md)
 
 | Story | Summary | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [confirm-and-loading.E2.S1](stories/E2-S1-item-pages-show-they-are-loading.md) | The item page frame shows it's loading until the item, not-found or error state shows, on all six item pages at once | FR6 | (none) | ready |
+| [confirm-and-loading.E2.S1](stories/E2-S1-item-pages-show-they-are-loading.md) | The item page frame shows it's loading until the item, not-found or error state shows, on all six item pages at once | FR6 | (none) | done |
 
 ## Order
 

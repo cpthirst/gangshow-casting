@@ -1486,6 +1486,11 @@ main a {
   display: none;
 }
 
+/* While an item page loads; kept on the page, empty, so it's announced each time it fills. */
+.loading-status:empty {
+  display: none;
+}
+
 .item-position {
   margin-top: 0;
   font-weight: 700;

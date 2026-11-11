@@ -2,7 +2,7 @@
 id: confirm-and-loading.E2.S1
 title: Item pages show they're loading
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story
