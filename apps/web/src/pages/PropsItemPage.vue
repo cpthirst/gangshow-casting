@@ -14,6 +14,7 @@ import { useRoute } from "vue-router";
 import ItemPageFrame from "@/components/common/ItemPageFrame.vue";
 import PropCard from "@/components/production/PropCard.vue";
 import PropForm from "@/components/production/PropForm.vue";
+import { controlOf, useConfirm } from "@/composables/useConfirm.ts";
 import { useItemPlace } from "@/composables/useItemPlace.ts";
 import { useListEditing } from "@/composables/useListEditing.ts";
 import { loadData } from "@/services/load-data.ts";
@@ -33,6 +34,7 @@ const roles = ref<Role[]>([]);
 const cast = ref<CastMember[]>([]);
 
 const place = useItemPlace(order);
+const askToConfirm = useConfirm();
 
 const itemProps = computed(() =>
   sortProps(props.value.filter((prop) => prop.itemId === place.value?.item.id)),
@@ -116,9 +118,10 @@ async function putProp(id: number, details: PropDetails) {
 }
 
 // Permanent (production-props FR19), so confirm first.
-async function removeProp(prop: Prop) {
+async function removeProp(prop: Prop, event: MouseEvent) {
   if (busy.value || !place.value) return;
-  if (!window.confirm(`Remove the prop ${prop.name} from ${place.value.item.title}?`)) return;
+  const question = `Remove the prop ${prop.name} from ${place.value.item.title}?`;
+  if (!(await askToConfirm(question, "Remove prop", controlOf(event)))) return;
   saving.value = true;
   notice.value = "";
   const status = await deleteStatus(propPath(prop.id));
@@ -222,7 +225,7 @@ async function postProp(itemId: string, details: PropDetails) {
           :can-change="canChange('props')"
           :busy="busy"
           @edit="startEditing(prop)"
-          @remove="removeProp(prop)"
+          @remove="removeProp(prop, $event)"
         />
       </template>
     </ul>

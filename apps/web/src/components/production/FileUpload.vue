@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { nextTick, ref, shallowRef } from "vue";
+import { useConfirm } from "@/composables/useConfirm.ts";
 import { uploadItemFile } from "@/services/file-upload.ts";
 import { fileSize, replaceQuestion, uploadRefusal } from "@/utils/file-display.ts";
 import type { FilesDepartment } from "@/utils/item-files.ts";
@@ -11,6 +12,7 @@ import type { FilesDepartment } from "@/utils/item-files.ts";
 
 const props = defineProps<{ department: FilesDepartment; itemId: string; names: string[] }>();
 const emit = defineEmits<{ changed: []; problem: [message: string | undefined] }>();
+const askToConfirm = useConfirm();
 
 const button = ref<HTMLButtonElement>();
 const picker = ref<HTMLInputElement>();
@@ -69,9 +71,13 @@ async function take(file: File) {
   if (refused) return;
   // Compared exactly, as file storage compares names.
   const replace = props.names.includes(file.name);
-  if (replace && !window.confirm(replaceQuestion(file.name))) return;
+  if (replace && !(await confirmReplace(file))) return;
   await upload(file, replace);
 }
+
+// Asked from the button, whether the file was chosen or dropped: focus goes back there.
+const confirmReplace = (file: File) =>
+  askToConfirm(replaceQuestion(file.name), "Replace file", button.value);
 
 async function upload(file: File, replace: boolean) {
   emit("problem", undefined);
@@ -96,7 +102,7 @@ async function upload(file: File, replace: boolean) {
   announced.value = "";
   if (result === "taken") {
     // Added in another browser since the page loaded: ask, as for a name the page showed.
-    if (window.confirm(replaceQuestion(file.name))) await upload(file, true);
+    if (await confirmReplace(file)) await upload(file, true);
     else emit("changed");
     return;
   }

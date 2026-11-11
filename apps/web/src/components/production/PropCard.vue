@@ -17,7 +17,7 @@ const props = defineProps<{
   canChange: boolean;
   busy: boolean;
 }>();
-const emit = defineEmits<{ edit: []; remove: [] }>();
+const emit = defineEmits<{ edit: []; remove: [event: MouseEvent] }>();
 
 const carrying = computed(() => carryingOf(props.prop, props.roles, props.cast));
 </script>
@@ -44,7 +44,7 @@ const carrying = computed(() => carryingOf(props.prop, props.roles, props.cast))
         :aria-label="`Remove ${prop.name}`"
         data-tooltip="Remove prop"
         :disabled="busy"
-        @click="emit('remove')"
+        @click="emit('remove', $event)"
       >
         <FontAwesomeIcon :icon="icons.remove" />
       </button>

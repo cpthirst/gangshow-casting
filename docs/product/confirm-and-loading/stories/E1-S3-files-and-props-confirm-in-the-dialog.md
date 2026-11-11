@@ -2,7 +2,7 @@
 id: confirm-and-loading.E1.S3
 title: Files and props confirm in the dialog
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story

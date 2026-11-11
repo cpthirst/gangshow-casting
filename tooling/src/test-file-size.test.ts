@@ -13,7 +13,7 @@ const overBudget = new Map([
   ["apps/api/src/lambda.test.ts", 1841],
   ["apps/web/src/pages/PropsItemPage.test.ts", 1752],
   ["apps/web/src/pages/RunningOrderPage.test.ts", 1491],
-  ["apps/web/src/pages/SceneryItemPage.test.ts", 1322],
+  ["apps/web/src/pages/SceneryItemPage.test.ts", 1318],
   ["apps/web/src/App.test.ts", 1198],
   ["apps/web/src/pages/CastPage.test.ts", 1174],
   ["apps/web/src/pages/AccountsPage.test.ts", 1052],

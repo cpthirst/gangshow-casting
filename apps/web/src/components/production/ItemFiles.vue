@@ -4,6 +4,7 @@ import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, ref, useTemplateRef, watch } from "vue";
 import { useRoute } from "vue-router";
 import ItemPageFrame from "@/components/common/ItemPageFrame.vue";
+import { controlOf, useConfirm } from "@/composables/useConfirm.ts";
 import { downloadFrom, openFileTab } from "@/services/file-link.ts";
 import { loadData } from "@/services/load-data.ts";
 import { itemFileLinkPath, itemFilePath, itemFilesPath } from "@/services/production.ts";
@@ -30,6 +31,7 @@ const key = computed(() => props.department.key);
 // Named as the shared list says (ADR 0035).
 const named = computed(() => departments[props.department.key]);
 const mayChange = computed(() => canChange(props.department.key));
+const askToConfirm = useConfirm();
 const files = ref<ItemFile[]>([]);
 // Why the last file chosen didn't open, download, delete or upload, if it didn't.
 const fileProblem = ref<string>();
@@ -69,9 +71,10 @@ async function choose({ name }: ItemFile, id: string) {
 }
 
 // For everyone, for good (FR11): there's no history to bring it back, so confirm first.
-async function remove({ name }: ItemFile, id: string) {
+async function remove({ name }: ItemFile, id: string, event: MouseEvent) {
   if (deleting.value) return;
-  if (!window.confirm(`Remove ${name}? This can't be undone.`)) return;
+  const question = `Remove ${name}? This can't be undone.`;
+  if (!(await askToConfirm(question, "Remove file", controlOf(event)))) return;
   fileProblem.value = undefined;
   deleting.value = true;
   const code = await sendDelete(id, name);
@@ -135,7 +138,7 @@ watch(
             :aria-label="`Remove ${file.name}`"
             data-tooltip="Remove file"
             :disabled="deleting"
-            @click="remove(file, item.id)"
+            @click="remove(file, item.id, $event)"
           >
             <FontAwesomeIcon :icon="icons.remove" />
           </button>
