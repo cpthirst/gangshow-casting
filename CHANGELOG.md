@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.57.0](https://github.com/cpthirst/gangshow-casting/compare/v1.56.0...v1.57.0) (2026-11-11)
+
+
+### Features
+
+* **web:** a graph per place, with counts on hover and in a table (production-cast-flow.E2) ([#226](https://github.com/cpthirst/gangshow-casting/issues/226)) ([888ccb3](https://github.com/cpthirst/gangshow-casting/commit/888ccb3d11ff281b74d260263c01dc7d84634eb8))
+
 ## [1.56.0](https://github.com/cpthirst/gangshow-casting/compare/v1.55.0...v1.56.0) (2026-11-10)
 
 
