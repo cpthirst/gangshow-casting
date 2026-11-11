@@ -1,4 +1,4 @@
-# 0040. Cognito's newer managed login, branded in code
+# 0041. Cognito's newer managed login, branded in code
 
 - **Status**: Accepted. Amends [ADR 0018](0018-access-control-with-cognito.md)'s sign-in screens
 - **Date**: 2026-11-11

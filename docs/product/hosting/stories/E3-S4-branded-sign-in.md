@@ -47,7 +47,7 @@ And signing out and in again still asks for their password
   - Branding applies to every managed login page, so AC2 comes free with AC1.
   - The sign-in flow, `oidc-client-ts`, the CSP's login domain and the API don't change.
 - Cost: managed login branding needs the Essentials feature plan, which is free for up to 10,000 monthly active users. The pool is already on Essentials, because it's CDK's default for a new pool. Set the plan explicitly so it can't drift.
-- [ADR 0040](../../../adr/0040-branded-managed-login.md) amends ADR 0018: the newer managed login, with branding in CDK, on the Essentials plan.
+- [ADR 0041](../../../adr/0041-branded-managed-login.md) amends ADR 0018: the newer managed login, with branding in CDK, on the Essentials plan.
 - How each AC is verified:
   - An infra assertion that the domain uses the newer managed login.
   - An infra assertion that the web client has branding with the logo and colours, light mode only.

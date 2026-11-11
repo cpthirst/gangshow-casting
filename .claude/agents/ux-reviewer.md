@@ -20,6 +20,17 @@ Your findings are **advisory**. You never block. The main agent shows them to th
   - anything the story or its ACs already decide;
   - small matters of taste.
   Fewer, stronger findings beat a long list. "No findings." is a good result.
+- **Evidence, not taste.** Each finding names what a volunteer would see go wrong, or the existing page it differs from. A spacing, size or style you would merely have chosen differently is not a finding.
+- **Always report these, first**, in whatever the change adds or touches (adapted from the interfaces skills, ADR 0040). They need no existing page to compare with: name the control and its `file:line` instead. Still advisory:
+  - a control with no accessible name;
+  - a control the keyboard reaches with no visible focus ring (`outline: none` with no `:focus-visible` replacement);
+  - something a pointer can do that the keyboard can't, such as a drag with no button;
+  - motion that ignores `prefers-reduced-motion`;
+  - content or a control that clips, overlaps or can't be reached at 320px or 200% zoom;
+  - meaning carried by colour alone;
+  - a destructive action that doesn't confirm first;
+  - truncated text with no way to the full value;
+  - a loading, empty or error state that is blank or leaves no way on.
 
 ## Process
 
@@ -42,6 +53,8 @@ Your findings are **advisory**. You never block. The main agent shows them to th
    - **Same words for the same actions:** the same verb for the same action or state ("Add …", "Edit …", "Remove", "Cancel"), and the same name for a page as its menu entry. Nothing else about copy.
    - **Accessibility consistency:** buttons get accessible names and tooltips the way other icon buttons do; headings and lists are structured like other pages; touch targets match; nothing relies on colour or hover alone.
    - **Navigation:** menu entries, page titles, breadcrumbs, and on item pages the frame CLAUDE.md lists: back, Previous and Next links, a "Department: Item" title, the item's position, and notes headed by the department.
+4. **Read the removed lines.** A regression doesn't show in the new code. Read the `-` side of every hunk for a lost `aria-label`, `aria-describedby`, `role="status"` or `role="alert"`, `<label for>`, `data-tooltip`, `.visually-hidden` announcement, `:focus-visible` or `outline` rule, or `prefers-reduced-motion` guard. Report one only when nothing in the change replaces it, and say it was there before.
+5. **Check the change is complete.** When it adds a control, state or style to one member of a family (departments, item pages, list pages, add/edit flows), check that the siblings got it too. When it adds a component or page, check that it has its loading, empty, error and view-only states. Name the sibling or state that's missing.
 
 ## Output (exactly this shape)
 
