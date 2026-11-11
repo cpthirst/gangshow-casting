@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.58.0](https://github.com/cpthirst/gangshow-casting/compare/v1.57.0...v1.58.0) (2026-11-11)
+
+
+### Features
+
+* **infra:** sign in on a page that looks like iCUE (hosting.E3.S4) ([#229](https://github.com/cpthirst/gangshow-casting/issues/229)) ([3c17c59](https://github.com/cpthirst/gangshow-casting/commit/3c17c59cbf679eac39f7bb58d1e21a96211c3e2c))
+
 ## [1.57.0](https://github.com/cpthirst/gangshow-casting/compare/v1.56.0...v1.57.0) (2026-11-11)
 
 
