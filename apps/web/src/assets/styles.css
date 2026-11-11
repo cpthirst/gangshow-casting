@@ -1171,6 +1171,13 @@ main a {
   letter-spacing: 0.05em;
 }
 
+/* A row's own header (Cast flow's item) reads as its row, not as a column heading. */
+.data-table tbody th {
+  font-size: inherit;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
 .data-table .actions {
   width: 1%;
   white-space: nowrap;
@@ -1186,7 +1193,8 @@ main a {
   .data-table,
   .data-table tbody,
   .data-table tr,
-  .data-table td {
+  .data-table td,
+  .data-table tbody th {
     display: block;
   }
 
@@ -1207,7 +1215,8 @@ main a {
     border-bottom: 4px solid var(--surface);
   }
 
-  .data-table td {
+  .data-table td,
+  .data-table tbody th {
     padding: 0;
     border: none;
   }
@@ -1228,7 +1237,7 @@ main a {
 
   /* A card titled by an item (Cast flow): the title on its own line, then its number and start
      time together, as on the Items lists. */
-  .data-table td.title {
+  .data-table .title {
     flex-basis: 100%;
     font-size: 1.0625rem;
     font-weight: 700;

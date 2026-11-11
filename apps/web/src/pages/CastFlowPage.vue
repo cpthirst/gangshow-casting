@@ -225,7 +225,7 @@ function optionsFor({
         <tbody>
           <tr v-for="(row, index) in startRows" :key="index">
             <td class="number" data-label="#">{{ row.number }}</td>
-            <td class="title" data-label="Item">{{ row.title }}</td>
+            <th scope="row" class="title" data-label="Item">{{ row.title }}</th>
             <td class="starts" data-label="Starts">{{ formatTime(row.at) }}</td>
             <td v-for="{ id, name } in CAST_FLOW_PLACES" :key="id" :data-label="name">
               {{ row.counts?.[id] }}
