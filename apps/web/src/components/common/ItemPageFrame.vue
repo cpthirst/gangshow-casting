@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { type DepartmentId, departments, RunningOrder, type RunningOrderItem } from "@app/shared";
-import { computed, ref, watch, watchEffect } from "vue";
+import { computed, onMounted, ref, watch, watchEffect } from "vue";
 import { type RouteLocationRaw, useRoute } from "vue-router";
 import { showPageTitle } from "@/router/index.ts";
 import { loadData } from "@/services/load-data.ts";
@@ -57,6 +57,13 @@ const place = computed(() =>
 const neighbours = computed(() =>
   order.value && place.value ? neighboursOf(order.value, place.value.item.id) : {},
 );
+// Filled only once the empty region is on the page, so a screen reader announces it, once
+// per load (an AT ignores a live region that arrives already holding its text).
+const mounted = ref(false);
+onMounted(() => {
+  mounted.value = true;
+});
+const loadingText = computed(() => (mounted.value && status.value === "loading" ? "Loading…" : ""));
 // Loaded, but the item isn't in the latest saved running order.
 const notFound = computed(() => status.value === "loaded" && !place.value);
 const title = computed(() => (place.value ? `${named.value.name}: ${place.value.item.title}` : ""));
@@ -75,8 +82,11 @@ watchEffect(() => {
   else if (notFound.value) showPageTitle("Item not found");
 });
 
+// The item whose page is showing, so reloading it to catch up keeps it on show.
+let shownId: string | undefined;
+
 async function open(id: string) {
-  status.value = "loading";
+  if (id !== shownId) status.value = "loading";
   try {
     // No saved running order at all: no item can be in it.
     const [loadedOrder, showData] = await Promise.all([
@@ -87,10 +97,13 @@ async function open(id: string) {
     if (id !== itemId.value) return;
     order.value = loadedOrder;
     if (loadedOrder) showData(loadedOrder);
+    shownId = id;
     status.value = "loaded";
   } catch {
     // A failed load must never look like "not found" or an empty page.
-    if (id === itemId.value) status.value = "error";
+    if (id !== itemId.value) return;
+    shownId = undefined;
+    status.value = "error";
   }
 }
 
@@ -116,8 +129,11 @@ watch(
     :previous="neighbours.previous"
     :next="neighbours.next"
   />
+  <p class="loading-status" role="status" data-test="loading">{{ loadingText }}</p>
   <p v-if="status === 'error'" role="alert">Couldn't load the item.</p>
-  <template v-else-if="place">
+  <!-- Only once loaded: stepping on keeps the last running order, which would otherwise show
+       the next item with the last one's data until its own arrives. -->
+  <template v-else-if="status === 'loaded' && place">
     <PageTitle
       :title="title"
       :help="itemRouteOf(department)"

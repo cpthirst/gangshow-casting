@@ -123,7 +123,7 @@ describe("Casting items page", () => {
     // The page's help is for everyone, so it isn't a running-order control.
     const buttons = wrapper
       .findAll("button")
-      .filter((button) => !button.element.closest(".help-button, .help-dialog"));
+      .filter((button) => !button.element.closest(".help-button, .dialog"));
     expect(buttons).toEqual([]);
   });
 

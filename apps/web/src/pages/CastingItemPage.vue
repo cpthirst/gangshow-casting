@@ -13,6 +13,7 @@ import { computed, ref } from "vue";
 import RoleForm from "@/components/casting/RoleForm.vue";
 import ClashIcon from "@/components/common/ClashIcon.vue";
 import ItemPageFrame from "@/components/common/ItemPageFrame.vue";
+import { controlOf, useConfirm } from "@/composables/useConfirm.ts";
 import { useItemPlace } from "@/composables/useItemPlace.ts";
 import { useListEditing } from "@/composables/useListEditing.ts";
 import { loadData } from "@/services/load-data.ts";
@@ -43,6 +44,7 @@ const roles = ref<Role[]>([]);
 const cast = ref<CastMember[]>([]);
 
 const place = useItemPlace(order);
+const askToConfirm = useConfirm();
 
 // Worked out from the saved running order and every role, so other items count too
 // (casting-rules FR1).
@@ -144,10 +146,10 @@ async function showConflict() {
 }
 
 // Permanent (no history: roles link children to parts, ADR 0010), so confirm first.
-async function removeRole(role: Role) {
+async function removeRole(role: Role, event: MouseEvent) {
   if (busy.value || !place.value) return;
   const question = `Remove the role ${role.name} from ${place.value.item.title}? Anyone cast in it will be uncast.`;
-  if (!window.confirm(question)) return;
+  if (!(await askToConfirm(question, "Remove role", controlOf(event)))) return;
   saving.value = true;
   notice.value = "";
   const status = await deleteStatus(removeRolePath(role));
@@ -282,7 +284,7 @@ async function postRole(itemId: string, details: AddRoleRequest) {
               :aria-label="`Remove ${role.name}`"
               data-tooltip="Remove role"
               :disabled="busy"
-              @click="removeRole(role)"
+              @click="removeRole(role, $event)"
             >
               <FontAwesomeIcon :icon="icons.remove" />
             </button>

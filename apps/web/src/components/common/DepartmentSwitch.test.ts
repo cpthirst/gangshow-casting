@@ -114,23 +114,6 @@ describe("The department switch", () => {
     expect(switchOf(wrapper).exists()).toBe(false);
   });
 
-  it("asks before leaving unsaved notes, and stays put if told no", async () => {
-    apiHolds();
-    const confirm = vi.fn(() => false);
-    vi.stubGlobal("confirm", confirm);
-    const { wrapper, router } = await openAppAt(pageOf("props"));
-    await wrapper.get("textarea[name=notes]").setValue("Spare cutlass");
-
-    await switchOf(wrapper).get("a[data-tooltip=SFX]").trigger("click");
-    await flushPromises();
-
-    expect(confirm).toHaveBeenCalledWith("Discard your unsaved notes?");
-    expect(router.currentRoute.value.fullPath).toBe(pageOf("props"));
-    expect(wrapper.get<HTMLTextAreaElement>("textarea[name=notes]").element.value).toBe(
-      "Spare cutlass",
-    );
-  });
-
   it("records a visit to the department it opens", async () => {
     const fetch = apiHolds();
     const { wrapper } = await openAppAt(pageOf("props"));

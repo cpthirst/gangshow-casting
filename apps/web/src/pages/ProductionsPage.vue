@@ -10,6 +10,7 @@ import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, nextTick, onMounted, ref, useId } from "vue";
 import PageTitle from "@/components/common/PageTitle.vue";
 import { useAddForm } from "@/composables/useAddForm.ts";
+import { controlOf, useConfirm } from "@/composables/useConfirm.ts";
 import { loadRequired, refusalMessage } from "@/services/load-data.ts";
 import { listProductions, openNewestOf, PRODUCTIONS_PATH } from "@/services/production.ts";
 import { apiFetch, isAdmin, sendJson } from "@/services/sign-in.ts";
@@ -36,6 +37,7 @@ const mayDelete = (production: string) =>
   state.value.status === "loaded" && mayDeleteProduction(production, state.value.list.productions);
 
 const uid = useId();
+const askToConfirm = useConfirm();
 const { adding, addButton, stopAdding } = useAddForm();
 const year = ref("");
 const yearError = ref("");
@@ -95,13 +97,14 @@ async function postYear(asked: string): Promise<Posted> {
 }
 
 // The admin who starts it moves to it now; everyone else does at their next page load.
-async function start() {
+async function start(event: Event) {
   if (saving.value || state.value.status !== "loaded") return;
+  const saveButton = controlOf(event);
   const asked = year.value.trim();
   const held = state.value.list.productions;
   formError.value = "";
   yearError.value = mayStartProduction(asked, held) ? "" : startRefusal(held);
-  if (yearError.value || !window.confirm(startWarning(asked))) return;
+  if (yearError.value || !(await askToConfirm(startWarning(asked), "Save", saveButton))) return;
 
   saving.value = true;
   const result = await postYear(asked);
@@ -138,8 +141,10 @@ async function sendDelete(production: string): Promise<Deleted> {
   }
 }
 
-async function deleteProduction(production: string) {
-  if (isDeleting.value || !window.confirm(deleteWarning(production))) return;
+async function deleteProduction(production: string, event: Event) {
+  if (isDeleting.value) return;
+  const from = controlOf(event);
+  if (!(await askToConfirm(deleteWarning(production), "Delete production", from))) return;
   isDeleting.value = true;
   deleteError.value = "";
   const result = await sendDelete(production);
@@ -233,7 +238,7 @@ onMounted(load);
                 :aria-label="`Delete production ${production}${isUnfinished(production) ? ' again' : ''}`"
                 :data-tooltip="isUnfinished(production) ? 'Delete again' : 'Delete production'"
                 :disabled="isDeleting"
-                @click="deleteProduction(production)"
+                @click="deleteProduction(production, $event)"
               >
                 <FontAwesomeIcon :icon="icons.remove" />
               </button>

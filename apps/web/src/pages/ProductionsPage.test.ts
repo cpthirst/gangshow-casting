@@ -1,6 +1,7 @@
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { json } from "@/app.fixture.ts";
+import * as confirmDialog from "@/components/common/ConfirmDialog.fixture.ts";
 import { openProduction, openProductionYear, PRODUCTIONS_PATH } from "@/services/production.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
@@ -18,7 +19,7 @@ function serve(productions: string[], started: () => Response = () => json({}, 5
 }
 
 async function openPage() {
-  const wrapper = mount(ProductionsPage, {
+  const wrapper = mount(confirmDialog.withConfirmDialog(ProductionsPage), {
     attachTo: document.body,
     global: { stubs: { HelpButton: true } },
   });
@@ -30,22 +31,19 @@ type Page = Awaited<ReturnType<typeof openPage>>;
 
 const years = (wrapper: Page) => wrapper.findAll("tbody tr").map((row) => row.text());
 
-const confirmWith = (answer: boolean) => {
-  const confirm = vi.fn().mockReturnValue(answer);
-  vi.stubGlobal("confirm", confirm);
-  return confirm;
-};
-
 const posts = (fetchMock: ReturnType<typeof serve>) =>
   fetchMock.mock.calls.filter(([, init]) => init?.method === "POST");
 
 const openForm = (wrapper: Page) => wrapper.get("[data-test=add-production]").trigger("click");
 
-async function start(wrapper: Page, year: string) {
+const saveButton = (wrapper: Page) => wrapper.get("[data-test=start-production] [type=submit]");
+
+/** Enters the year and chooses Save, as a tap that doesn't focus it, answering if it asks. */
+async function start(wrapper: Page, year: string, goAhead = true) {
   await openForm(wrapper);
   await wrapper.get("input[name=year]").setValue(year);
-  await wrapper.get("[data-test=start-production]").trigger("submit");
-  await flushPromises();
+  await saveButton(wrapper).trigger("click");
+  return confirmDialog.answerIfAsked(goAhead);
 }
 
 describe("Productions page", () => {
@@ -65,7 +63,6 @@ describe("Productions page", () => {
   });
 
   it("starts the year typed, lists it and opens it", async () => {
-    confirmWith(true);
     const fetchMock = serve(["2027", "2028"], () =>
       json({ productions: ["2027", "2028", "2029"] }, 201),
     );
@@ -83,51 +80,49 @@ describe("Productions page", () => {
     expect(wrapper.get("[data-test=announcement]").text()).toBe("Production 2029 started.");
   });
 
-  it("asks first, naming the year, saying everyone moves to it and it can't be undone", async () => {
-    const confirm = confirmWith(true);
+  it("asks first in the dialog, naming the year, saying everyone moves to it and it can't be undone", async () => {
     serve(["2027", "2028"], () => json({ productions: ["2027", "2028", "2029"] }, 201));
     const wrapper = await openPage();
 
-    await start(wrapper, "2029");
+    const asked = await start(wrapper, "2029");
 
-    expect(confirm).toHaveBeenCalledWith(
-      "Start production 2029? Everyone will move to 2029, and this can't be undone.",
-    );
+    expect(asked).toEqual({
+      question: "Start production 2029? Everyone will move to 2029, and this can't be undone.",
+      buttons: ["Save", "Cancel"],
+    });
   });
 
-  it("starts nothing and keeps the open production when the admin cancels", async () => {
-    confirmWith(false);
+  it("starts nothing and keeps the open production on Cancel, with focus back on Save", async () => {
     const fetchMock = serve(["2027", "2028"]);
     const wrapper = await openPage();
 
-    await start(wrapper, "2029");
+    await start(wrapper, "2029", false);
 
     expect(posts(fetchMock)).toEqual([]);
     expect(years(wrapper)).toEqual(["2028", "2027"]);
     expect(openProductionYear()).toBe("2028");
     expect(wrapper.get<HTMLInputElement>("input[name=year]").element.value).toBe("2029");
+    expect(document.activeElement).toBe(saveButton(wrapper).element);
   });
 
   it.each(["2028", "2026", "next year"])(
     "tells the admin what would do for %j, without asking or sending it",
     async (year) => {
-      const confirm = confirmWith(true);
       const fetchMock = serve(["2027", "2028"]);
       const wrapper = await openPage();
 
-      await start(wrapper, year);
+      const asked = await start(wrapper, year);
 
       expect(wrapper.get(`[id$="-year-error"]`).text()).toBe(
         "The year must be a four-digit year later than 2028.",
       );
       expect(wrapper.get("input[name=year]").attributes("aria-invalid")).toBe("true");
-      expect(confirm).not.toHaveBeenCalled();
+      expect(asked).toBeUndefined();
       expect(posts(fetchMock)).toEqual([]);
     },
   );
 
   it("shows the API's refusal and keeps the list and the open production as they were", async () => {
-    confirmWith(true);
     const message = "The year must be a four-digit year later than 2029.";
     serve(["2027", "2028"], () => json({ message }, 400));
     const wrapper = await openPage();
@@ -141,7 +136,6 @@ describe("Productions page", () => {
   });
 
   it("says it couldn't start the production when the request fails", async () => {
-    confirmWith(true);
     serve(["2027", "2028"], () => json({}, 500));
     const wrapper = await openPage();
 
@@ -222,25 +216,26 @@ describe("Productions page", () => {
       fetchMock.mock.calls.filter(([, init]) => init?.method === "DELETE");
     const deleteButton = (wrapper: Page, year: string) =>
       wrapper.find(`tr[data-year="${year}"] [data-test=delete-production]`);
-    async function askToDelete(wrapper: Page, year: string) {
+    /** Chooses Delete, as a tap that doesn't focus it, answering the dialog. */
+    async function askToDelete(wrapper: Page, year: string, goAhead = true) {
       await deleteButton(wrapper, year).trigger("click");
-      await flushPromises();
+      return confirmDialog.answerIfAsked(goAhead);
     }
 
-    it("confirms, naming the year, that it can't be undone, and how long backups last", async () => {
-      const confirm = confirmWith(true);
+    it("confirms in the dialog, naming the year, that it can't be undone, and how long backups last", async () => {
       serveDelete({ productions: ["2027", "2028"] }, () => json({ productions: ["2028"] }));
       const wrapper = await openPage();
 
-      await askToDelete(wrapper, "2027");
+      const asked = await askToDelete(wrapper, "2027");
 
-      expect(confirm).toHaveBeenCalledWith(
-        "Delete production 2027? This can't be undone. Copies stay in backups for up to 7 days.",
-      );
+      expect(asked).toEqual({
+        question:
+          "Delete production 2027? This can't be undone. Copies stay in backups for up to 7 days.",
+        buttons: ["Delete production", "Cancel"],
+      });
     });
 
     it("deletes the production and stops listing it", async () => {
-      confirmWith(true);
       const fetchMock = serveDelete({ productions: ["2027", "2028"] }, () =>
         json({ productions: ["2028"] }),
       );
@@ -254,15 +249,15 @@ describe("Productions page", () => {
       expect(document.activeElement).toBe(wrapper.get("[data-test=add-production]").element);
     });
 
-    it("keeps the production when the admin cancels", async () => {
-      confirmWith(false);
+    it("keeps the production on Cancel, with focus back on Delete", async () => {
       const fetchMock = serveDelete({ productions: ["2027", "2028"] }, () => json({}, 500));
       const wrapper = await openPage();
 
-      await askToDelete(wrapper, "2027");
+      await askToDelete(wrapper, "2027", false);
 
       expect(deletes(fetchMock)).toEqual([]);
       expect(years(wrapper)).toEqual(["2028", "2027"]);
+      expect(document.activeElement).toBe(deleteButton(wrapper, "2027").element);
     });
 
     it("offers no Delete for the newest", async () => {
@@ -305,21 +300,19 @@ describe("Productions page", () => {
     });
 
     it("finishes a delete that stopped part way when it's confirmed again", async () => {
-      const confirm = confirmWith(true);
       const fetchMock = serveDelete({ productions: ["2028"], deleting: ["2027"] }, () =>
         json({ productions: ["2028"] }),
       );
       const wrapper = await openPage();
 
-      await askToDelete(wrapper, "2027");
+      const asked = await askToDelete(wrapper, "2027");
 
-      expect(confirm).toHaveBeenCalledWith(expect.stringContaining("Delete production 2027?"));
+      expect(asked?.question).toContain("Delete production 2027?");
       expect(deletes(fetchMock)).toHaveLength(1);
       expect(wrapper.find('tr[data-year="2027"]').exists()).toBe(false);
     });
 
     it("says it didn't finish and shows it as not finished when the delete fails", async () => {
-      confirmWith(true);
       serveDelete({ productions: ["2027", "2028"] }, () => json({}, 500), {
         productions: ["2028"],
         deleting: ["2027"],
@@ -333,7 +326,6 @@ describe("Productions page", () => {
     });
 
     it("shows the API's refusal in its own words", async () => {
-      confirmWith(true);
       const message = "The newest production can't be deleted.";
       serveDelete({ productions: ["2027", "2028"] }, () => json({ message }, 400));
       const wrapper = await openPage();
@@ -345,7 +337,6 @@ describe("Productions page", () => {
 
     it("moves the admin to the newest when they delete the production they had open", async () => {
       openProduction("2027");
-      confirmWith(true);
       serveDelete({ productions: ["2027", "2028"] }, () => json({ productions: ["2028"] }));
       const wrapper = await openPage();
 

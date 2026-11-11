@@ -1486,6 +1486,11 @@ main a {
   display: none;
 }
 
+/* While an item page loads; kept on the page, empty, so it's announced each time it fills. */
+.loading-status:empty {
+  display: none;
+}
+
 .item-position {
   margin-top: 0;
   font-weight: 700;
@@ -2653,10 +2658,10 @@ main a {
   color: var(--red-darker);
 }
 
-/* No padding or scrollbar of its own: the content fills it and scrolls, so a click on the
-   backdrop is the only one that lands on the dialog itself. Never wider than a 320px phone,
-   less a 1rem gutter each side. */
-.help-dialog {
+/* A modal dialog (Help's, and the confirmation's). No padding or scrollbar of its own: the
+   content fills it and scrolls, so a click on the backdrop is the only one that lands on the
+   dialog itself. Never wider than a 320px phone, less a 1rem gutter each side. */
+.dialog {
   width: min(40rem, calc(100vw - 2rem));
   max-height: calc(100vh - 2rem);
   overflow: hidden;
@@ -2667,14 +2672,23 @@ main a {
   color: var(--text);
 }
 
-.help-dialog::backdrop {
+.dialog::backdrop {
   background: rgb(0 0 0 / 0.5);
 }
 
-.help-dialog-content {
+.dialog-content {
   max-height: calc(100vh - 2rem);
   overflow-y: auto;
   padding: 1rem 1.25rem;
+}
+
+/* A question and two buttons need less room than Help's pages of text. */
+.confirm-dialog {
+  width: min(28rem, calc(100vw - 2rem));
+}
+
+.confirm-dialog p {
+  margin: 0 0 1rem;
 }
 
 .help-dialog-title {

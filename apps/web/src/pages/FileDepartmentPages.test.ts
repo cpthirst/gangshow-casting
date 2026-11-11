@@ -8,6 +8,7 @@ import {
 import { enableAutoUnmount, flushPromises, type VueWrapper } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { json, openAppAt } from "@/app.fixture.ts";
+import * as confirmDialog from "@/components/common/ConfirmDialog.fixture.ts";
 import { downloadFrom, openFileTab } from "@/services/file-link.ts";
 import { StandInXhr } from "@/services/file-upload.fixture.ts";
 import { runningOrderPath } from "@/services/production.ts";
@@ -193,13 +194,10 @@ describe.each([
       const held: Held = { [key]: itemFiles() };
       apiHolds(held);
       const { wrapper } = await openAppAt(pageOf(key));
-      vi.stubGlobal(
-        "confirm",
-        vi.fn(() => true),
-      );
 
       await rowFor(wrapper, file).get("[data-test=delete]").trigger("click");
       await flushPromises();
+      await confirmDialog.goAhead();
 
       expect(requests((_, init) => init?.method === "DELETE")).toEqual([
         `${route}-files?${new URLSearchParams({ name: file })}`,

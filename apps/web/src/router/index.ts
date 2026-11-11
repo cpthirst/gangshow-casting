@@ -1,5 +1,6 @@
 import type { Component } from "vue";
 import { createRouter, createWebHistory, type RouterHistory } from "vue-router";
+import { cancelQuestion } from "@/composables/useConfirm.ts";
 import AccountsPage from "@/pages/AccountsPage.vue";
 import CastFlowPage from "@/pages/CastFlowPage.vue";
 import CastingItemPage from "@/pages/CastingItemPage.vue";
@@ -257,6 +258,10 @@ export function createAppRouter(history: RouterHistory = createWebHistory()) {
     ],
   });
 
+  // A question belongs to the page that asked it: once someone moves on (Back, or a link),
+  // a yes mustn't act on a page they've left. A leaving page's own question about unsaved
+  // changes is answered before this runs; an item's, on stepping to the next, after it.
+  router.beforeEach(cancelQuestion);
   router.afterEach((to) => showPageTitle(to.meta.title));
 
   return router;

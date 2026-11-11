@@ -53,13 +53,13 @@ function closeIfOutside(event: MouseEvent) {
   <!-- Escape is handled here too, so focus goes back to the help button however it closes. -->
   <dialog
     ref="dialog"
-    class="help-dialog"
+    class="dialog"
     :aria-labelledby="titleId"
     @click="closeIfOutside"
     @keydown.esc.prevent="close"
     @cancel.prevent="close"
   >
-    <div class="help-dialog-content">
+    <div class="dialog-content">
       <div class="help-dialog-title">
         <h2 :id="titleId">{{ title ?? `${help.title} help` }}</h2>
         <button ref="closeButton" type="button" @click="close">Close</button>

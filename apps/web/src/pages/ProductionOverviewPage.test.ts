@@ -187,7 +187,7 @@ describe("Production overview", () => {
       .get(".page-title-row button[aria-label='Help for Production overview']")
       .trigger("click");
 
-    const dialog = wrapper.get("dialog.help-dialog");
+    const dialog = wrapper.get(".page-title-row dialog");
     expect(dialog.get("h2").text()).toBe("Production overview help");
     expect(dialog.get("p").text()).toContain("The show's items in running order");
     expect(dialog.findAll("[data-test=help-name]").map((name) => name.text())).toEqual([

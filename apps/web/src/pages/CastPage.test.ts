@@ -7,6 +7,7 @@ import {
 } from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import * as confirmDialog from "@/components/common/ConfirmDialog.fixture.ts";
 import { rolesPath } from "@/services/production.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
@@ -38,7 +39,7 @@ function serve(list: CastList) {
 }
 
 async function openPage() {
-  const wrapper = mount(CastPage, { attachTo: document.body });
+  const wrapper = mount(confirmDialog.withConfirmDialog(CastPage), { attachTo: document.body });
   await flushPromises();
   return wrapper;
 }
@@ -586,22 +587,24 @@ describe("Cast page", () => {
     const cast = (members: CastMember[] = [sam(), aMember("Alex", "Sample")]) => aCast(members);
     const deleteButton = (wrapper: Page, name: string) =>
       wrapper.get(`button[aria-label="Delete ${name}"]`);
-    async function deleteMember(wrapper: Page, name: string) {
+    async function deleteMember(wrapper: Page, name: string, answer = true) {
       await deleteButton(wrapper, name).trigger("click");
       await flushPromises();
+      const asked = confirmDialog.confirmation();
+      await confirmDialog.answerConfirmation(answer);
+      return asked;
     }
 
-    it("asks first, naming the person", async () => {
+    it("asks first in the dialog, naming the person", async () => {
       api(cast());
-      const confirm = vi.fn().mockReturnValue(false);
-      vi.stubGlobal("confirm", confirm);
       const wrapper = await openPage();
 
-      await deleteMember(wrapper, "Sam Example");
+      const asked = await deleteMember(wrapper, "Sam Example", false);
 
-      expect(confirm).toHaveBeenCalledWith(
-        "Delete Sam Example from the cast? This can't be undone.",
-      );
+      expect(asked).toEqual({
+        question: "Delete Sam Example from the cast? This can't be undone.",
+        buttons: ["Delete cast member", "Cancel"],
+      });
     });
 
     const castIn = (memberId: number, count: number): Role[] =>
@@ -620,13 +623,11 @@ describe("Cast page", () => {
     ])("says how many roles they'll be removed from (%i)", async (count, sentence) => {
       const member = sam();
       api(cast([member, aMember("Alex", "Sample")]), castIn(member.id, count));
-      const confirm = vi.fn().mockReturnValue(false);
-      vi.stubGlobal("confirm", confirm);
       const wrapper = await openPage();
 
-      await deleteMember(wrapper, "Sam Example");
+      const asked = await deleteMember(wrapper, "Sam Example", false);
 
-      expect(confirm).toHaveBeenCalledWith(
+      expect(asked?.question).toBe(
         `Delete Sam Example from the cast? ${sentence} This can't be undone.`,
       );
     });
@@ -634,15 +635,11 @@ describe("Cast page", () => {
     it("doesn't count other people's roles", async () => {
       const member = sam();
       api(cast([member, aMember("Alex", "Sample")]), castIn(member.id + 1000, 2));
-      const confirm = vi.fn().mockReturnValue(false);
-      vi.stubGlobal("confirm", confirm);
       const wrapper = await openPage();
 
-      await deleteMember(wrapper, "Sam Example");
+      const asked = await deleteMember(wrapper, "Sam Example", false);
 
-      expect(confirm).toHaveBeenCalledWith(
-        "Delete Sam Example from the cast? This can't be undone.",
-      );
+      expect(asked?.question).toBe("Delete Sam Example from the cast? This can't be undone.");
     });
 
     it("still warns about roles when they can't be counted", async () => {
@@ -653,13 +650,11 @@ describe("Cast page", () => {
           ? new Response(null, { status: 500 })
           : (answer?.(url, init) ?? new Response(null)),
       );
-      const confirm = vi.fn().mockReturnValue(false);
-      vi.stubGlobal("confirm", confirm);
       const wrapper = await openPage();
 
-      await deleteMember(wrapper, "Sam Example");
+      const asked = await deleteMember(wrapper, "Sam Example", false);
 
-      expect(confirm).toHaveBeenCalledWith(
+      expect(asked?.question).toBe(
         "Delete Sam Example from the cast? They'll be removed from any roles they're in. This can't be undone.",
       );
     });
@@ -667,7 +662,6 @@ describe("Cast page", () => {
     it("removes them for good once confirmed", async () => {
       const member = sam();
       api(cast([member, aMember("Alex", "Sample")]));
-      vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
       const wrapper = await openPage();
 
       await deleteMember(wrapper, "Sam Example");
@@ -683,18 +677,17 @@ describe("Cast page", () => {
 
     it("keeps them when the confirmation is cancelled", async () => {
       api(cast());
-      vi.stubGlobal("confirm", vi.fn().mockReturnValue(false));
       const wrapper = await openPage();
 
-      await deleteMember(wrapper, "Sam Example");
+      await deleteMember(wrapper, "Sam Example", false);
 
       expect(names(wrapper)).toEqual(["Sam Example", "Alex Sample"]);
       expect(deletes).toHaveLength(0);
+      expect(document.activeElement).toBe(deleteButton(wrapper, "Sam Example").element);
     });
 
     it("shows the latest list when someone else changed them first", async () => {
       const list = api(cast());
-      vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
       const wrapper = await openPage();
       // Someone else edits Sam after the page loaded.
       list.members = list.members.map((m) =>
@@ -711,7 +704,6 @@ describe("Cast page", () => {
 
     it("shows the latest list when someone else already deleted them", async () => {
       const list = api(cast());
-      vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
       const wrapper = await openPage();
       list.members = list.members.filter((m) => m.firstName !== "Sam");
 
@@ -725,7 +717,6 @@ describe("Cast page", () => {
 
     it("still explains the conflict when the latest list turns out to be empty", async () => {
       const list = api(cast([sam()]));
-      vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
       const wrapper = await openPage();
       list.members = [];
       vi.mocked(fetch).mockImplementation(async (_url, init) =>
@@ -744,7 +735,6 @@ describe("Cast page", () => {
 
     it("clears an old message once a later change succeeds", async () => {
       const list = api(cast());
-      vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
       const wrapper = await openPage();
       list.members = list.members.filter((m) => m.firstName !== "Sam");
       await deleteMember(wrapper, "Sam Example");
@@ -773,7 +763,6 @@ describe("Cast page", () => {
       it("lets an admin delete as before", async () => {
         await signInAs(["admin"]);
         api(cast());
-        vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
         const wrapper = await openPage();
 
         expect(deleteButton(wrapper, "Sam Example").attributes("data-tooltip")).toBe(
@@ -788,7 +777,6 @@ describe("Cast page", () => {
       it("explains a refusal for not being an admin, changing nothing", async () => {
         await signInAs(["admin"]);
         api(cast());
-        vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
         const wrapper = await openPage();
         vi.stubGlobal(
           "fetch",
@@ -804,7 +792,6 @@ describe("Cast page", () => {
 
     it("says so when the delete fails, keeping them on the list", async () => {
       api(cast());
-      vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
       const wrapper = await openPage();
       vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
 
@@ -816,7 +803,6 @@ describe("Cast page", () => {
 
     it("announces the deletion and keeps keyboard focus on the page", async () => {
       api(cast());
-      vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
       const wrapper = await openPage();
 
       await deleteMember(wrapper, "Sam Example");

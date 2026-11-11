@@ -1,11 +1,16 @@
 <script setup lang="ts">
 import { type CastMember, type CastMemberDetails, Section } from "@app/shared";
 import { onMounted, ref, useId } from "vue";
+import { controlOf } from "@/composables/useConfirm.ts";
 import { type CastForm, castFormFor, detailsFrom, sectionLabel } from "@/utils/cast.ts";
 
 // Adds a cast member (no member given) or edits one (member given; its ID is fixed).
 const props = defineProps<{ member?: CastMember; saving: boolean; error: string }>();
-const emit = defineEmits<{ save: [details: CastMemberDetails]; cancel: [] }>();
+// Save comes with the button it was submitted with, for a confirmation to give focus back to.
+const emit = defineEmits<{
+  save: [details: CastMemberDetails, saveButton: HTMLElement | undefined];
+  cancel: [];
+}>();
 
 const form = ref<CastForm>(castFormFor(props.member));
 const errors = ref<Partial<Record<keyof CastForm, string>>>({});
@@ -25,10 +30,10 @@ function onEscape(event: KeyboardEvent) {
   if (!(event.target instanceof HTMLSelectElement)) emit("cancel");
 }
 
-function submit() {
+function submit(event: Event) {
   const result = detailsFrom(form.value);
   errors.value = result.ok ? {} : result.errors;
-  if (result.ok) emit("save", result.details);
+  if (result.ok) emit("save", result.details, controlOf(event));
 }
 </script>
 

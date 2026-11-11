@@ -10,6 +10,7 @@ import {
 } from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import * as confirmDialog from "@/components/common/ConfirmDialog.fixture.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
 import { anItem as aFixtureItem } from "@/utils/running-order.fixture.ts";
@@ -135,7 +136,9 @@ function fakeApi(initial: RunningOrder, { roles = [], notes = [], members = [] }
 }
 
 async function openPage() {
-  const wrapper = mount(RunningOrderPage, { attachTo: document.body });
+  const wrapper = mount(confirmDialog.withConfirmDialog(RunningOrderPage), {
+    attachTo: document.body,
+  });
   await flushPromises();
   return wrapper;
 }
@@ -880,20 +883,19 @@ describe("Running order page", () => {
           roles: [aRole(1, anItem("Pirate Panic").id, "Captain", [1])],
           members: [{ ...sam, section: "scouts" }],
         });
-        const confirm = vi.fn(() => answer);
-        vi.stubGlobal("confirm", confirm);
         const wrapper = await openPage();
         await (await openEditor(wrapper, "Pirate Panic")).get("select[name=gang]").setValue(gang);
         await apply(wrapper);
         await wrapper.get("button[data-test=save]").trigger("click");
-        await flushPromises();
-        return { wrapper, confirm };
+        const asked = await confirmDialog.answerIfAsked(answer);
+        return { wrapper, asked };
       }
 
-      it("asks before saving, naming who leaves which roles, and saves once confirmed", async () => {
-        const { confirm } = await saveAs("junior", true);
+      it("asks in the dialog before saving, naming who leaves which roles, and saves once confirmed", async () => {
+        const { asked } = await saveAs("junior", true);
 
-        expect(confirm).toHaveBeenCalledWith(expect.stringContaining("Sam Sample from Captain"));
+        expect(asked?.question).toContain("Sam Sample from Captain");
+        expect(asked?.buttons).toEqual(["Save as Draft 7", "Cancel"]);
         expect(saves).toHaveLength(1);
       });
 
@@ -901,15 +903,16 @@ describe("Running order page", () => {
         const { wrapper } = await saveAs("junior", false);
 
         expect(saves).toEqual([]);
+        expect(document.activeElement).toBe(wrapper.get("button[data-test=save]").element);
         expect(unsaved(wrapper)).toBe(true);
         const form = await openEditor(wrapper, "Pirate Panic");
         expect(form.get<HTMLSelectElement>("select[name=gang]").element.value).toBe("junior");
       });
 
       it("saves without asking when no one leaves", async () => {
-        const { confirm } = await saveAs("both", true);
+        const { asked } = await saveAs("both", true);
 
-        expect(confirm).not.toHaveBeenCalled();
+        expect(asked).toBeUndefined();
         expect(saves).toHaveLength(1);
       });
     });
@@ -1097,11 +1100,11 @@ describe("Running order page", () => {
     const removeButton = (wrapper: Page, title: string) =>
       wrapper.get(`button[aria-label="Remove ${title}"]`);
     async function remove(wrapper: Page, title: string, answer: boolean) {
-      const confirm = vi.fn(() => answer);
-      vi.stubGlobal("confirm", confirm);
       await removeButton(wrapper, title).trigger("click");
       await flushPromises();
-      return confirm;
+      const asked = confirmDialog.confirmation();
+      await confirmDialog.answerConfirmation(answer);
+      return asked;
     }
     const unsaved = (wrapper: Page) => wrapper.find("[data-test=unsaved]").exists();
     const saveButton = (wrapper: Page) => wrapper.get("button[data-test=save]");
@@ -1204,20 +1207,28 @@ describe("Running order page", () => {
       );
       const wrapper = await openPage();
 
-      const confirm = await remove(wrapper, "Dance One", false);
+      const asked = await remove(wrapper, "Dance One", false);
 
-      expect(confirm).toHaveBeenCalledWith(
-        "Remove Dance One from the running order? Saving the draft also removes its 2 roles, with who is cast in them, and its casting notes.",
-      );
+      expect(asked).toEqual({
+        question:
+          "Remove Dance One from the running order? Saving the draft also removes its 2 roles, with who is cast in them, and its casting notes.",
+        buttons: ["Remove item", "Cancel"],
+      });
     });
 
-    it("asks plainly when the item has no casting", async () => {
+    it("asks plainly when the item has no casting, and keeps it when cancelled", async () => {
       api(order());
       const wrapper = await openPage();
 
-      const confirm = await remove(wrapper, "Dance One", false);
+      const asked = await remove(wrapper, "Dance One", false);
 
-      expect(confirm).toHaveBeenCalledWith("Remove Dance One from the running order?");
+      expect(asked?.question).toBe("Remove Dance One from the running order?");
+      expect(titlesIn(half(wrapper, "first-half"))).toEqual([
+        "Curtain Up",
+        "Pirate Panic",
+        "Dance One",
+      ]);
+      expect(unsaved(wrapper)).toBe(false);
     });
 
     it("still warns about casting when it can't be counted", async () => {
@@ -1231,9 +1242,9 @@ describe("Running order page", () => {
         ),
       );
 
-      const confirm = await remove(wrapper, "Dance One", false);
+      const asked = await remove(wrapper, "Dance One", false);
 
-      expect(confirm).toHaveBeenCalledWith(
+      expect(asked?.question).toBe(
         "Remove Dance One from the running order? Saving the draft also removes any roles it has, with who is cast in them, and its casting notes.",
       );
     });
@@ -1247,20 +1258,6 @@ describe("Running order page", () => {
       expect(titlesIn(half(wrapper, "first-half"))).toEqual(["Curtain Up", "Pirate Panic"]);
       expect(unsaved(wrapper)).toBe(true);
       expect(saveButton(wrapper).text()).toBe("Save as Draft 7");
-    });
-
-    it("keeps the item when removal is cancelled", async () => {
-      api(order());
-      const wrapper = await openPage();
-
-      await remove(wrapper, "Dance One", false);
-
-      expect(titlesIn(half(wrapper, "first-half"))).toEqual([
-        "Curtain Up",
-        "Pirate Panic",
-        "Dance One",
-      ]);
-      expect(unsaved(wrapper)).toBe(false);
     });
 
     it("shows a half emptied by a removal as empty, with its interval and total", async () => {
@@ -1338,7 +1335,7 @@ describe("Running order page", () => {
     const controls = (wrapper: Page) =>
       wrapper
         .findAll("button, .drag-handle, [data-move], [data-edit], [data-remove], [data-add-to]")
-        .filter((control) => !control.element.closest(".help-button, .help-dialog"));
+        .filter((control) => !control.element.closest(".help-button, .dialog"));
 
     it("shows the whole running order, as everyone sees it", async () => {
       serve(order());
@@ -1483,7 +1480,7 @@ describe("Running order page", () => {
 
       await helpButton(wrapper).trigger("click");
 
-      expect(wrapper.get("dialog").element.open).toBe(true);
+      expect(wrapper.get<HTMLDialogElement>("dialog:not(.confirm-dialog)").element.open).toBe(true);
       expect(wrapper.findAll("dialog [data-test=help-name]").map((name) => name.text())).toContain(
         "Save as Draft",
       );

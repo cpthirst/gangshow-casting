@@ -94,14 +94,13 @@ test("the productions list, its start form and its confirmation fit the screen",
   await expectNoSidewaysScroll(page);
 
   // Cancelled, as every walk shares one API and the others need 2027 to stay the newest.
-  let question = "";
-  page.once("dialog", (dialog) => {
-    question = dialog.message();
-    return dialog.dismiss();
-  });
   await page.getByLabel("Year").fill("2028");
   await page.getByRole("button", { name: "Save" }).click();
-  await expect.poll(() => question).toContain("Start production 2028?");
+  const confirmation = page.getByRole("dialog", { name: /Start production 2028\?/ });
+  await expect(confirmation).toBeVisible();
+  await expectNoSidewaysScroll(page);
+  await confirmation.getByRole("button", { name: "Cancel" }).click();
+  await expect(confirmation).toBeHidden();
   await expect(list.getByText("2028", { exact: true })).toBeHidden();
   await expectNoSidewaysScroll(page);
 });

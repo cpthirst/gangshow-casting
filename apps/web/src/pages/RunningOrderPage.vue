@@ -15,6 +15,7 @@ import DraftNumber from "@/components/common/DraftNumber.vue";
 import PageTitle from "@/components/common/PageTitle.vue";
 import RefusalNotice from "@/components/common/RefusalNotice.vue";
 import ItemEditor from "@/components/show/ItemEditor.vue";
+import { controlOf, useConfirm } from "@/composables/useConfirm.ts";
 import { type RowDrop, vSortableRows } from "@/directives/sortable-rows.ts";
 import { loadData } from "@/services/load-data.ts";
 import {
@@ -56,6 +57,7 @@ type State =
   | { status: "loaded"; saved: RunningOrder; working: RunningOrder };
 
 const state = ref<State>({ status: "loading" });
+const askToConfirm = useConfirm();
 
 const loaded = computed(() => {
   if (state.value.status !== "loaded") return undefined;
@@ -171,14 +173,16 @@ async function endAdding() {
 
 // Always asked first. Nothing is deleted until the draft is saved, when the item's roles
 // and notes go too (ADR 0010), so the question says what goes and Reset undoes it.
-async function confirmRemove(item: RunningOrderItem) {
+async function confirmRemove(item: RunningOrderItem, event: MouseEvent) {
   if (state.value.status !== "loaded" || busy.value || !canChange("admins")) return;
+  const removeButton = controlOf(event);
   const place = locate(state.value.working, item.id);
   counting.value = true;
   // An item added since the last save can't have any casting yet.
   const casting = isUnsaved(item.id) ? { roles: 0, hasNotes: false } : await castingFor(item.id);
   counting.value = false;
-  if (!window.confirm(removeWarning(item.title, casting))) return;
+  const question = removeWarning(item.title, casting);
+  if (!(await askToConfirm(question, "Remove item", removeButton))) return;
   // Re-checked after the awaits: a reload could have replaced the page meanwhile.
   if (state.value.status !== "loaded" || !locate(state.value.working, item.id)) return;
   state.value = { ...state.value, working: removeItem(state.value.working, item.id) };
@@ -222,15 +226,15 @@ function changeWorking(changed: RunningOrder, itemId: string) {
 // they signed in.
 const ONLY_ADMINS_SAVE = whoCanChange(helpFor("running-order")) ?? "";
 
-async function save() {
+async function save(event: MouseEvent) {
   if (state.value.status !== "loaded" || busy.value || !loaded.value?.unsaved) return;
+  const saveButton = controlOf(event);
   const { saved, working } = state.value;
-  saving.value = true;
-  const goAhead = await confirmGangChanges(saved, working);
-  const result = goAhead ? await saveDraft(saved.version, working) : undefined;
-  saving.value = false;
   // Going back saves nothing and keeps the draft as it is.
-  if (!result) return;
+  if (!(await confirmGangChanges(saved, working, saveButton))) return;
+  saving.value = true;
+  const result = await saveDraft(saved.version, working);
+  saving.value = false;
 
   if (result.outcome === "refused") {
     notice.value = isOpenProductionChangeable() ? ONLY_ADMINS_SAVE : PAST_PRODUCTION_REFUSAL;
@@ -252,10 +256,21 @@ async function save() {
 
 /** Whether to go ahead with a save that may take people out of roles for not being in their
  *  item's new gang (junior-cast FR5). Nothing to ask unless someone leaves. */
-async function confirmGangChanges(saved: RunningOrder, working: RunningOrder) {
+async function confirmGangChanges(
+  saved: RunningOrder,
+  working: RunningOrder,
+  saveButton: HTMLElement | undefined,
+) {
   if (itemsChangingGang(saved, working).length === 0) return true;
-  const warning = gangChangeWarning(saved, working, await castingNow());
-  return warning === undefined || window.confirm(warning);
+  // Busy while the casting is counted, as for a removal, but not while asking: the dialog
+  // gives focus back to Save, which busy disables.
+  counting.value = true;
+  const casting = await castingNow();
+  counting.value = false;
+  const warning = gangChangeWarning(saved, working, casting);
+  // The go-ahead is the Save button's own label.
+  const goAhead = `Save as Draft ${saved.version + 1}`;
+  return warning === undefined || askToConfirm(warning, goAhead, saveButton);
 }
 
 /** The production's roles and cast, or undefined if they can't be loaded. */
@@ -301,7 +316,9 @@ async function saveDraft(baseVersion: number, working: RunningOrder): Promise<Sa
 }
 
 // Unsaved changes live only in this page, so ask before they're thrown away.
-onBeforeRouteLeave(() => !loaded.value?.unsaved || window.confirm("Discard unsaved changes?"));
+onBeforeRouteLeave(
+  () => !loaded.value?.unsaved || askToConfirm("Discard unsaved changes?", "Discard changes"),
+);
 
 function warnBeforeUnload(event: BeforeUnloadEvent) {
   if (loaded.value?.unsaved) event.preventDefault();
@@ -460,7 +477,7 @@ function refocus(itemId: string, direction: Move) {
                       :disabled="busy"
                       :aria-label="`Remove ${item.title}`"
                       data-tooltip="Remove from the running order"
-                      @click="confirmRemove(item)"
+                      @click="confirmRemove(item, $event)"
                     >
                       <FontAwesomeIcon :icon="icons.remove" />
                     </button>

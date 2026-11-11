@@ -6,6 +6,7 @@ import HealthStatus from "@/components/app/HealthStatus.vue";
 import LocalAccessSwitch from "@/components/app/LocalAccessSwitch.vue";
 import MainMenu from "@/components/app/MainMenu.vue";
 import ProductionSwitch from "@/components/app/ProductionSwitch.vue";
+import ConfirmDialog from "@/components/common/ConfirmDialog.vue";
 import { useMediaQuery } from "@/composables/useMediaQuery.ts";
 import { useOpenProduction } from "@/composables/useOpenProduction.ts";
 import { showPageTitle } from "@/router/index.ts";
@@ -190,4 +191,5 @@ function onEscape() {
       </template>
     </main>
   </div>
+  <ConfirmDialog />
 </template>

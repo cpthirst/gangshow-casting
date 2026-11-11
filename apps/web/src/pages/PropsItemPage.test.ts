@@ -11,6 +11,7 @@ import {
 import { enableAutoUnmount, flushPromises, type VueWrapper } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { json, openAppAt } from "@/app.fixture.ts";
+import * as confirmDialog from "@/components/common/ConfirmDialog.fixture.ts";
 import {
   castPath,
   departmentNotesPath,
@@ -810,9 +811,12 @@ describe("Editing and removing a prop", () => {
     await flushPromises();
   }
 
-  async function remove(wrapper: VueWrapper, name: string) {
+  async function remove(wrapper: VueWrapper, name: string, confirmed = true) {
     await wrapper.get(`button[aria-label='Remove ${name}']`).trigger("click");
     await flushPromises();
+    const asked = confirmDialog.confirmation();
+    await confirmDialog.answerConfirmation(confirmed);
+    return asked;
   }
 
   /** Makes every edit and removal fail, as when the API can't be reached. */
@@ -891,18 +895,17 @@ describe("Editing and removing a prop", () => {
     expect(stored).toEqual([telescope()]);
   });
 
-  it("removes a prop after asking, naming the prop and the item, counted on the Overview", async () => {
+  it("removes a prop after asking in iCUE's own dialog, naming the prop and the item, counted on the Overview", async () => {
     const stored = savedShowIs(show, [telescope(), aProp(2, "pirate-sketch", "Parrot")], {
       roles,
       cast,
     });
-    const confirm = vi.fn().mockReturnValue(true);
-    vi.stubGlobal("confirm", confirm);
     const { wrapper, router } = await openAppAt(PIRATE_PROPS);
 
-    await remove(wrapper, "Telescope");
+    const asked = await remove(wrapper, "Telescope");
 
-    expect(confirm).toHaveBeenCalledWith("Remove the prop Telescope from Pirate Sketch?");
+    expect(asked?.question).toBe("Remove the prop Telescope from Pirate Sketch?");
+    expect(asked?.buttons).toEqual(["Remove prop", "Cancel"]);
     expect(propsShown(wrapper)).toEqual(["Parrot"]);
     expect(stored.map((prop) => prop.name)).toEqual(["Parrot"]);
     await wrapper.get("main nav[aria-label='Item navigation'] a").trigger("click");
@@ -914,15 +917,15 @@ describe("Editing and removing a prop", () => {
     );
   });
 
-  it("keeps a prop when its removal is cancelled", async () => {
+  it("keeps a prop when its removal is cancelled, with focus back on its trash can", async () => {
     const stored = savedShowIs(show, [telescope()], { roles, cast });
-    vi.stubGlobal("confirm", vi.fn().mockReturnValue(false));
     const { wrapper } = await openAppAt(PIRATE_PROPS);
 
-    await remove(wrapper, "Telescope");
+    await remove(wrapper, "Telescope", false); // a tap that never focused it, as on iOS
 
     expect(propsShown(wrapper)).toEqual(["Telescope"]);
     expect(stored).toEqual([telescope()]);
+    expect(document.activeElement?.getAttribute("aria-label")).toBe("Remove Telescope");
   });
 
   it("shows the props without a pencil or trash can to someone without Stage", async () => {
@@ -961,7 +964,6 @@ describe("Editing and removing a prop", () => {
       roles,
       cast,
     });
-    vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
     const { wrapper } = await openAppAt(PIRATE_PROPS);
     stored.splice(0, 1);
 
@@ -992,7 +994,6 @@ describe("Editing and removing a prop", () => {
       roles,
       cast,
     });
-    vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
     const { wrapper } = await openAppAt(PIRATE_PROPS);
     stored.splice(0, 1);
     const fetch = vi.mocked(globalThis.fetch);
@@ -1031,7 +1032,6 @@ describe("Editing and removing a prop", () => {
 
   it("says when a prop couldn't be removed, keeping it", async () => {
     savedShowIs(show, [telescope()], { roles, cast });
-    vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
     const { wrapper } = await openAppAt(PIRATE_PROPS);
     changesFail();
 
@@ -1175,11 +1175,11 @@ describe("A prop's quantity", () => {
 
   it("takes a removed prop's whole quantity off the Overview's count", async () => {
     savedShowIs(village, [umbrellas(), aProp(2, "village-square", "Telescope")]);
-    vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
     const { wrapper } = await openAppAt(VILLAGE_PROPS);
 
     await wrapper.get("button[aria-label='Remove Umbrella']").trigger("click");
     await flushPromises();
+    await confirmDialog.goAhead();
 
     expect(propsShown(wrapper)).toEqual(["Telescope"]);
     expect((await openOverviewFrom(wrapper)).get("[aria-hidden=true]").text()).toBe("1");

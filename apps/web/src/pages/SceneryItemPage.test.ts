@@ -9,6 +9,7 @@ import {
 import { enableAutoUnmount, flushPromises, type VueWrapper } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { json, openAppAt } from "@/app.fixture.ts";
+import * as confirmDialog from "@/components/common/ConfirmDialog.fixture.ts";
 import { downloadFrom, openFileTab } from "@/services/file-link.ts";
 import { StandInXhr } from "@/services/file-upload.fixture.ts";
 import {
@@ -505,11 +506,11 @@ describe("Deleting a scenery file", () => {
   };
 
   async function trash(wrapper: VueWrapper, name: string, confirmed: boolean) {
-    const confirm = vi.fn(() => confirmed);
-    vi.stubGlobal("confirm", confirm);
     await trashFor(wrapper, name).trigger("click");
     await flushPromises();
-    return confirm;
+    const asked = confirmDialog.confirmation();
+    await confirmDialog.answerConfirmation(confirmed);
+    return asked;
   }
 
   const deletes = () =>
@@ -546,30 +547,31 @@ describe("Deleting a scenery file", () => {
     ]);
   });
 
-  it("asks to confirm, then deletes the file and its row for pat, with Stage", async () => {
+  it("asks to confirm in iCUE's own dialog, then deletes the file and its row for pat, with Stage", async () => {
     await signInAs(["stage"], "pat");
     const held = heldFiles();
     apiHolds(show, held);
     const { wrapper } = await openAppAt(OPENING_NUMBER);
 
-    const confirm = await trash(wrapper, "set-plan.pdf", true);
+    const asked = await trash(wrapper, "set-plan.pdf", true);
 
-    expect(confirm).toHaveBeenCalledWith(QUESTION);
+    expect(asked).toEqual({ question: QUESTION, buttons: ["Remove file", "Cancel"] });
     expect(deletes()).toEqual([itemFilePath("scenery", "opening-number", "set-plan.pdf")]);
     expect(rows(wrapper).map((row) => row.name)).toEqual(["Backdrop.png", "build-list.xlsx"]);
     expect(held["opening-number"].map((file) => file.name)).not.toContain("set-plan.pdf");
   });
 
-  it("keeps the file when pat cancels", async () => {
+  it("keeps the file when pat cancels, with focus back on its trash icon", async () => {
     await signInAs(["stage"], "pat");
     apiHolds(show, heldFiles());
     const { wrapper } = await openAppAt(OPENING_NUMBER);
 
-    const confirm = await trash(wrapper, "set-plan.pdf", false);
+    // A tap that never focused the icon, as on iOS Safari.
+    await trash(wrapper, "set-plan.pdf", false);
 
-    expect(confirm).toHaveBeenCalledWith(QUESTION);
     expect(deletes()).toEqual([]);
     expect(rows(wrapper).map((row) => row.name)).toContain("set-plan.pdf");
+    expect(document.activeElement).toBe(trashFor(wrapper, "set-plan.pdf").element);
   });
 
   it("gives sam, with Casting only, no trash icon", async () => {
@@ -673,13 +675,6 @@ function failStorageOnce() {
     }
     return stand?.(url, init) ?? new Response(null, { status: 500 });
   });
-}
-
-/** Answers the replace confirm as pat would. */
-function answerReplace(confirmed: boolean) {
-  const confirm = vi.fn(() => confirmed);
-  vi.stubGlobal("confirm", confirm);
-  return confirm;
 }
 
 describe("Uploading a scenery file", () => {
@@ -878,14 +873,14 @@ describe("Uploading a scenery file", () => {
     const held = { "opening-number": [{ name: "set-plan.pdf", size: 2_400_000 }] };
     apiHolds(show, held);
     const { wrapper } = await openAppAt(OPENING_NUMBER);
-    const confirm = answerReplace(true);
     failStorageOnce();
     await choose(wrapper, aFile("set-plan.pdf", 5_000));
+    await confirmDialog.goAhead();
 
     await wrapper.get("main [data-test=try-again]").trigger("click");
     await flushPromises();
 
-    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(confirmDialog.confirmation()).toBeUndefined();
     expect(uploadRequests().map(([, init]) => JSON.parse(String(init?.body)))).toEqual([
       { name: "set-plan.pdf", size: 5_000, replace: true },
       { name: "set-plan.pdf", size: 5_000, replace: true },
@@ -981,18 +976,20 @@ describe("Upload progress", () => {
 
 describe("Replacing a scenery file", () => {
   const REPLACE = "Replace set-plan.pdf? The old copy can't be brought back.";
+  const REPLACE_BUTTONS = ["Replace file", "Cancel"];
   const heldSetPlan = () => ({ "opening-number": [{ name: "set-plan.pdf", size: 2_400_000 }] });
 
-  it("asks to replace a file of the same name, then keeps the new one in its place", async () => {
+  it("asks in iCUE's own dialog to replace a file of the same name, then keeps the new one in its place", async () => {
     await signInAs(["stage"], "pat");
     const held = heldSetPlan();
     apiHolds(show, held);
     const { wrapper } = await openAppAt(OPENING_NUMBER);
-    const confirm = answerReplace(true);
 
     await choose(wrapper, aFile("set-plan.pdf", 5_000));
 
-    expect(confirm).toHaveBeenCalledWith(REPLACE);
+    expect(confirmDialog.confirmation()).toEqual({ question: REPLACE, buttons: REPLACE_BUTTONS });
+    expect(uploadRequests()).toEqual([]);
+    await confirmDialog.goAhead();
     const [[, init] = []] = uploadRequests();
     expect(JSON.parse(String(init?.body))).toEqual({
       name: "set-plan.pdf",
@@ -1003,16 +1000,16 @@ describe("Replacing a scenery file", () => {
     expect(rows(wrapper)).toEqual([{ name: "set-plan.pdf", size: "5 KB" }]);
   });
 
-  it("uploads nothing when pat cancels the replace, keeping the old file", async () => {
+  it("uploads nothing when pat cancels the replace, keeping the old file, with focus back on Add a file", async () => {
     await signInAs(["stage"], "pat");
     const held = heldSetPlan();
     apiHolds(show, held);
     const { wrapper } = await openAppAt(OPENING_NUMBER);
-    const confirm = answerReplace(false);
 
     await choose(wrapper, aFile("set-plan.pdf", 5_000));
+    await confirmDialog.cancelConfirmation();
 
-    expect(confirm).toHaveBeenCalledWith(REPLACE);
+    expect(document.activeElement).toBe(wrapper.get("main [data-test=upload]").element);
     expect(uploadRequests()).toEqual([]);
     expect(storageRequests()).toEqual([]);
     expect(held["opening-number"]).toEqual([{ name: "set-plan.pdf", size: 2_400_000 }]);
@@ -1024,11 +1021,9 @@ describe("Replacing a scenery file", () => {
     const held = heldSetPlan();
     apiHolds(show, held);
     const { wrapper } = await openAppAt(OPENING_NUMBER);
-    const confirm = answerReplace(true);
-
     await choose(wrapper, aFile("Set-Plan.pdf", 5_000));
 
-    expect(confirm).not.toHaveBeenCalled();
+    expect(confirmDialog.confirmation()).toBeUndefined();
     expect(held["opening-number"]).toEqual([
       { name: "set-plan.pdf", size: 2_400_000 },
       { name: "Set-Plan.pdf", size: 5_000 },
@@ -1042,24 +1037,26 @@ describe("Replacing a scenery file", () => {
     apiHolds(show, held);
     const { wrapper } = await openAppAt(OPENING_NUMBER);
     held["opening-number"] = [{ name: "set-plan.pdf", size: 2_400_000 }];
-    const confirm = answerReplace(true);
 
     await choose(wrapper, aFile("set-plan.pdf", 5_000));
 
-    expect(confirm).toHaveBeenCalledWith(REPLACE);
+    expect(confirmDialog.confirmation()).toEqual({ question: REPLACE, buttons: REPLACE_BUTTONS });
+    await confirmDialog.goAhead();
     expect(held["opening-number"]).toEqual([{ name: "set-plan.pdf", size: 5_000 }]);
     expect(rows(wrapper)).toEqual([{ name: "set-plan.pdf", size: "5 KB" }]);
   });
 
-  it("lists another browser's file and keeps it when pat cancels the replace", async () => {
+  it("lists another browser's file and keeps it when pat cancels the replace, with focus back on Add a file", async () => {
     await signInAs(["stage"], "pat");
     const held: Record<string, ItemFile[]> = { "opening-number": [] };
     apiHolds(show, held);
     const { wrapper } = await openAppAt(OPENING_NUMBER);
     held["opening-number"] = [{ name: "set-plan.pdf", size: 2_400_000 }];
-    answerReplace(false);
 
     await choose(wrapper, aFile("set-plan.pdf", 5_000));
+    await confirmDialog.cancelConfirmation();
+
+    expect(document.activeElement).toBe(wrapper.get("main [data-test=upload]").element);
 
     expect(storageRequests()).toEqual([]);
     expect(held["opening-number"]).toEqual([{ name: "set-plan.pdf", size: 2_400_000 }]);
@@ -1123,11 +1120,10 @@ describe("Dragging a file to upload", () => {
     const held = { "opening-number": [{ name: "set-plan.pdf", size: 2_400_000 }] };
     apiHolds(show, held);
     const { wrapper } = await openAppAt(OPENING_NUMBER);
-    const confirm = answerReplace(true);
-
     await dropOnto(wrapper, aFile("set-plan.pdf", 5_000));
 
-    expect(confirm).toHaveBeenCalledWith(replaceQuestion("set-plan.pdf"));
+    expect(confirmDialog.confirmation()?.question).toBe(replaceQuestion("set-plan.pdf"));
+    await confirmDialog.goAhead();
     expect(held["opening-number"]).toEqual([{ name: "set-plan.pdf", size: 5_000 }]);
   });
 
@@ -1266,9 +1262,9 @@ describe("Recording a visit to an item's Scenery page (production-scenery FR15)"
     await choose(wrapper, aFile("set-plan.pdf"));
     await wrapper.get("main [data-test=file] .file-open").trigger("click");
     await flushPromises();
-    vi.stubGlobal("confirm", () => true);
     await wrapper.get("main [data-test=file] [data-test=delete]").trigger("click");
     await flushPromises();
+    await confirmDialog.goAhead();
 
     expect(downloadFrom).toHaveBeenCalled();
     expect(rows(wrapper)).toHaveLength(1);

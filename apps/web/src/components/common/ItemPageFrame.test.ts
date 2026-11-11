@@ -221,3 +221,101 @@ describe("The item page frame", () => {
     expect(shown).toEqual(["opening-number", "finale"]);
   });
 });
+
+describe("The item page frame while it loads", () => {
+  /** A page whose data for the given item arrives only when finished. */
+  function holdsBack(heldId: string) {
+    const held = { finish: () => {} };
+    const load = (id: string) =>
+      id === heldId
+        ? new Promise<() => void>((resolve) => {
+            held.finish = () => resolve(() => shown.push(id));
+          })
+        : loadsAt(id)();
+    return { held, load };
+  }
+
+  it("shows Loading… under All items, Previous and Next until the item's data arrives", async () => {
+    apiHolds(show);
+    const { held, load } = holdsBack("pirate-sketch");
+    const { wrapper } = await openFrame("props", "pirate-sketch", load);
+
+    const status = wrapper.get("[data-test=loading]");
+    expect(status.text()).toBe("Loading…");
+    const nav = wrapper.get("a.back-link").element;
+    expect(nav.compareDocumentPosition(status.element) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(wrapper.find("h1").exists()).toBe(false);
+
+    held.finish();
+    await flushPromises();
+
+    expect(wrapper.text()).not.toContain("Loading…");
+    expect(wrapper.get("h1").text()).toBe("Props: Pirate Sketch");
+    expect(wrapper.find("[data-test=position]").exists()).toBe(true);
+    expect(wrapper.get("[data-test=page]").text()).toBe("Pirate Sketch's props");
+  });
+
+  it.each([
+    ["the item isn't in the running order", show, "no-such-item", "Item not found"],
+    ["the data fails to load", "fails" as const, "pirate-sketch", "Couldn't load the item."],
+  ])("swaps Loading… for what went wrong when %s", async (_, order, itemId, message) => {
+    apiHolds(order);
+    const { wrapper } = await openFrame("props", itemId);
+
+    expect(wrapper.text()).not.toContain("Loading…");
+    expect(wrapper.text()).toContain(message);
+  });
+
+  it("shows Loading… again, not the last item's page, when Next is chosen", async () => {
+    apiHolds(show);
+    const { load } = holdsBack("finale");
+    const { wrapper } = await openFrame("props", "pirate-sketch", load);
+    expect(wrapper.get("[data-test=page]").text()).toBe("Pirate Sketch's props");
+
+    await wrapper.get("a[rel=next]").trigger("click");
+    await flushPromises();
+
+    expect(wrapper.get("[data-test=loading]").text()).toBe("Loading…");
+    expect(wrapper.find("[data-test=page]").exists()).toBe(false);
+    expect(wrapper.find("h1").exists()).toBe(false);
+    expect(wrapper.find("#notes-heading").exists()).toBe(false);
+  });
+
+  it("keeps the item's page, without Loading…, while it reloads to catch up", async () => {
+    apiHolds(show);
+    let reloading = false;
+    const { held, load } = holdsBack("pirate-sketch");
+    const { wrapper } = await openFrame("props", "pirate-sketch", (id) =>
+      reloading ? load(id) : loadsAt(id)(),
+    );
+    const page = wrapper.get("[data-test=page]").element;
+
+    reloading = true;
+    const reload = wrapper.vm.reload();
+    await flushPromises();
+
+    expect(wrapper.get("[data-test=page]").element).toBe(page);
+    expect(wrapper.get("[data-test=loading]").text()).toBe("");
+    held.finish();
+    await reload;
+  });
+
+  it("announces Loading… politely, in one status region kept on the page", async () => {
+    apiHolds(show);
+    const { held, load } = holdsBack("pirate-sketch");
+    const { wrapper } = await openFrame("props", "pirate-sketch", load);
+    const region = wrapper.get("[data-test=loading]");
+    expect(region.attributes("role")).toBe("status");
+    expect(region.text()).toBe("Loading…");
+
+    held.finish();
+    await flushPromises();
+
+    // Kept and emptied, not removed: a region added already holding its text may not be
+    // announced, and one added again would announce again.
+    expect(wrapper.get("[data-test=loading]").element).toBe(region.element);
+    expect(region.text()).toBe("");
+  });
+});
