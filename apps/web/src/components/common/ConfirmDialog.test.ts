@@ -1,6 +1,6 @@
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { useConfirm } from "@/composables/useConfirm.ts";
+import { cancelQuestion, useConfirm } from "@/composables/useConfirm.ts";
 import { cancelConfirmation, confirmation, goAhead } from "./ConfirmDialog.fixture.ts";
 import ConfirmDialog from "./ConfirmDialog.vue";
 
@@ -116,6 +116,30 @@ describe("Confirmation dialog", () => {
 
     // A click on the backdrop lands on the dialog itself, outside its content.
     await wrapper.get("dialog").trigger("click");
+    await expect(answer).resolves.toBe(false);
+    expect(dialog()?.open).toBe(false);
+  });
+
+  it("returns focus to the control a newer question was asked from, when it replaces one", async () => {
+    const { answer: first } = await askFromAButton();
+    const second = document.createElement("button");
+    document.body.append(second);
+    const answer = useConfirm()("Remove the role Smee?", "Remove role", second);
+    await flushPromises();
+
+    await cancelConfirmation();
+
+    await expect(first).resolves.toBe(false);
+    await expect(answer).resolves.toBe(false);
+    expect(document.activeElement).toBe(second);
+  });
+
+  it("closes when its question is cancelled elsewhere, as on leaving the page", async () => {
+    const { answer } = await askFromAButton();
+
+    cancelQuestion();
+    await flushPromises();
+
     await expect(answer).resolves.toBe(false);
     expect(dialog()?.open).toBe(false);
   });

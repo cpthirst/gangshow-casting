@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createMemoryHistory } from "vue-router";
+import { useConfirm } from "@/composables/useConfirm.ts";
 import { createAppRouter, isAdminOnlyPage, isMenuGroup, menuFor, menuPages } from "./index.ts";
 
 const page = (name: string, adminOnly?: true) => ({
@@ -124,5 +125,21 @@ describe("addresses", () => {
 
   it("has no old address for Productions, which was never released there", async () => {
     expect((await arrivingAt("/productions")).name).toBe("not-found");
+  });
+});
+
+describe("a question left open", () => {
+  it("is cancelled when the page changes, so a yes never acts on the page that's gone", async () => {
+    const router = createAppRouter(createMemoryHistory());
+    await router.push("/admin/productions");
+    const deleteProduction = vi.fn();
+    const answered = useConfirm()("Delete production 2027?", "Delete production").then(
+      (yes) => yes && deleteProduction(),
+    );
+
+    await router.push("/cast");
+
+    await expect(answered).resolves.toBe(false);
+    expect(deleteProduction).not.toHaveBeenCalled();
   });
 });

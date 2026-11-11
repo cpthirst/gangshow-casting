@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory } from "vue-router";
 import App from "@/App.vue";
 import { json } from "@/app.fixture.ts";
+import * as confirmDialog from "@/components/common/ConfirmDialog.fixture.ts";
 import { createAppRouter } from "@/router/index.ts";
 import { openProduction } from "@/services/production.ts";
 import { chooseLocalAccess, signInNeeded, useLocalSignIn } from "@/services/sign-in.ts";
@@ -128,13 +129,13 @@ describe("the app with productions 2027 and 2028", () => {
 
   it("opens a production for the admin who starts it, in the sidebar and on every page after", async () => {
     const requests = serveProductions();
-    vi.stubGlobal("confirm", () => true);
     const wrapper = await open("/admin/productions");
 
     await wrapper.get("[data-test=add-production]").trigger("click");
     await wrapper.get("input[name=year]").setValue("2029");
-    await wrapper.get("[data-test=start-production]").trigger("submit");
+    await wrapper.get("[data-test=start-production] [type=submit]").trigger("click");
     await flushPromises();
+    await confirmDialog.goAhead();
 
     expect(wrapper.get("[data-test=production-year]").text()).toBe("Gang Show 2029");
     await wrapper.get("nav[aria-label=Main] a[href='/cast']").trigger("click");

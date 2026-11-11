@@ -11,6 +11,7 @@ import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, nextTick, onMounted, ref, useId } from "vue";
 import AccessChoice from "@/components/common/AccessChoice.vue";
 import { useAddForm } from "@/composables/useAddForm.ts";
+import { controlOf, useConfirm } from "@/composables/useConfirm.ts";
 import { AccessRefused, loadRequired, refusalMessage } from "@/services/load-data.ts";
 import { apiFetch, sendJson, signedInUsername } from "@/services/sign-in.ts";
 import {
@@ -38,6 +39,7 @@ const accounts = computed(() =>
 );
 
 const uid = useId();
+const askToConfirm = useConfirm();
 const { adding, addButton, stopAdding } = useAddForm();
 const username = ref("");
 /** What the tick boxes say: Admin, or the permissions ticked. */
@@ -194,9 +196,10 @@ async function change(
 }
 
 // Ends their sign-ins everywhere, so it's always confirmed first.
-async function resetPassword(account: AccountSummary) {
+async function resetPassword(account: AccountSummary, event: Event) {
   const { username: name } = account;
-  if (busy.value || !window.confirm(resetWarning(name))) return;
+  if (busy.value) return;
+  if (!(await askToConfirm(resetWarning(name), "Reset password", controlOf(event)))) return;
   const failed = `Couldn't reset ${name}'s password. Try again.`;
   const reply = await change(
     account,
@@ -256,9 +259,11 @@ async function putAccess(account: AccountSummary, put: AccessChange) {
 }
 
 // Disabling ends their access everywhere, so it's confirmed first (hosting FR12).
-async function setEnabled(account: AccountSummary, enabled: boolean) {
+async function setEnabled(account: AccountSummary, enabled: boolean, event: Event) {
   const { username: name } = account;
-  if (busy.value || (!enabled && !window.confirm(disableWarning(name)))) return;
+  if (busy.value) return;
+  const from = controlOf(event);
+  if (!enabled && !(await askToConfirm(disableWarning(name), "Disable account", from))) return;
   await putAccess(account, {
     field: "enabled",
     body: { enabled },
@@ -291,9 +296,10 @@ async function stopEditing() {
 
 // It changes what they can do and signs them out, so it's confirmed first (production-props FR6).
 // Cancelling the confirmation leaves the tick boxes open, to change or cancel.
-async function saveAccess(account: AccountSummary) {
+async function saveAccess(account: AccountSummary, event: Event) {
   const ticked = editing.value;
   if (!ticked || saving.value) return;
+  const saveButton = controlOf(event);
   const { username: name } = account;
   const access = accessOf(ticked);
   // Nothing to change, so no one need be asked, or signed out.
@@ -301,7 +307,7 @@ async function saveAccess(account: AccountSummary) {
     await stopEditing();
     return;
   }
-  if (!window.confirm(accessWarning(name, access))) return;
+  if (!(await askToConfirm(accessWarning(name, access), "Save", saveButton))) return;
   editing.value = null;
   await putAccess(account, {
     field: "access",
@@ -452,7 +458,7 @@ onMounted(load);
                   data-test="reset-password"
                   data-tooltip="Reset password"
                   :disabled="busy"
-                  @click="resetPassword(account)"
+                  @click="resetPassword(account, $event)"
                 >
                   <FontAwesomeIcon :icon="icons.resetPassword" />
                 </button>
@@ -465,7 +471,7 @@ onMounted(load);
                     data-test="disable"
                     data-tooltip="Disable account"
                     :disabled="busy"
-                    @click="setEnabled(account, false)"
+                    @click="setEnabled(account, false, $event)"
                   >
                     <FontAwesomeIcon :icon="icons.disable" />
                   </button>
@@ -477,7 +483,7 @@ onMounted(load);
                     data-test="enable"
                     data-tooltip="Enable account"
                     :disabled="busy"
-                    @click="setEnabled(account, true)"
+                    @click="setEnabled(account, true, $event)"
                   >
                     <FontAwesomeIcon :icon="icons.enable" />
                   </button>
@@ -506,7 +512,7 @@ onMounted(load);
                 <form
                   data-test="access-form"
                   novalidate
-                  @submit.prevent="saveAccess(account)"
+                  @submit.prevent="saveAccess(account, $event)"
                   @keydown.esc="stopEditing"
                 >
                   <AccessChoice

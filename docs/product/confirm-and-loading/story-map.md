@@ -21,7 +21,7 @@ PRD: [prd.md](prd.md)
 | [confirm-and-loading.E1.S1](stories/E1-S1-confirm-dialog-on-item-pages.md) | Walking skeleton: the shared confirmation dialog and its test helper. Removing a role on a Casting item page, and leaving any item page or stepping to another item with unsaved notes, ask in it | FR1, FR2, FR3, FR4, FR5 | (none) | done |
 | [confirm-and-loading.E1.S2](stories/E1-S2-running-order-and-cast-confirm-in-the-dialog.md) | The Running order (removing an item, saving gang changes, leaving with unsaved changes) and the Cast page (deleting a member, a section change) ask in the dialog | FR1, FR2, FR5 | E1.S1 | done |
 | [confirm-and-loading.E1.S3](stories/E1-S3-files-and-props-confirm-in-the-dialog.md) | Replacing or removing an item file and removing a prop ask in the dialog | FR1, FR2 | E1.S1 | done |
-| [confirm-and-loading.E1.S4](stories/E1-S4-accounts-and-productions-confirm-in-the-dialog.md) | The Accounts page (resetting, disabling, changing access) and the Productions page (starting, deleting) ask in the dialog. A test fails if anything calls the browser's confirm box | FR1, FR2 | E1.S1 | ready |
+| [confirm-and-loading.E1.S4](stories/E1-S4-accounts-and-productions-confirm-in-the-dialog.md) | The Accounts page (resetting, disabling, changing access) and the Productions page (starting, deleting) ask in the dialog. A test fails if anything calls the browser's confirm box | FR1, FR2 | E1.S1 | done |
 
 ## E2: Item pages show they're loading
 

@@ -985,8 +985,6 @@ describe("Removing a role", () => {
 
   it("asks first in iCUE's own dialog, naming the role and the item", async () => {
     savedRunningOrderIs(show, [smee(), parrot()]);
-    const browserConfirm = vi.fn();
-    vi.stubGlobal("confirm", browserConfirm);
     const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
 
     await remove(wrapper, "Parrot");
@@ -995,7 +993,6 @@ describe("Removing a role", () => {
       question: "Remove the role Parrot from Pirate Sketch? Anyone cast in it will be uncast.",
       buttons: ["Remove role", "Cancel"],
     });
-    expect(browserConfirm).not.toHaveBeenCalled();
   });
 
   it("removes the role for good once confirmed", async () => {

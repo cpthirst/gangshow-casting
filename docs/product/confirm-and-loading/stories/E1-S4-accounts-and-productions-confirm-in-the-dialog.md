@@ -2,7 +2,7 @@
 id: confirm-and-loading.E1.S4
 title: Accounts and Productions confirm in the dialog, and nothing uses the browser's box
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story

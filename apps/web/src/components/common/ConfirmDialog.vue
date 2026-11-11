@@ -12,9 +12,18 @@ const cancelButton = ref<HTMLButtonElement>();
 let askedFrom: HTMLElement | undefined;
 
 watch(asking, async (asked) => {
-  if (!asked || dialog.value?.open) return;
+  // Answered elsewhere, as when the page that asked is left: nothing to give focus back to.
+  if (!asked) {
+    dialog.value?.close();
+    return;
+  }
   const focused = document.activeElement;
-  askedFrom = asked.from ?? (focused instanceof HTMLElement ? focused : undefined);
+  const isOpen = dialog.value?.open === true;
+  // A newer question that replaces one gives focus back to its own control; without one, to
+  // whatever had it before the dialog opened, never into the dialog.
+  if (asked.from) askedFrom = asked.from;
+  else if (!isOpen) askedFrom = focused instanceof HTMLElement ? focused : undefined;
+  if (isOpen) return;
   dialog.value?.showModal();
   // Cancel first, so a stray Enter never goes ahead.
   await nextTick();

@@ -46,3 +46,11 @@ export const cancelConfirmation = () =>
 
 /** Chooses the go-ahead button for yes, or Cancel for no. */
 export const answerConfirmation = (yes: boolean) => (yes ? goAhead() : cancelConfirmation());
+
+/** Answers the dialog, if something asked: what it asked, or undefined if nothing did. */
+export async function answerIfAsked(yes: boolean) {
+  await flushPromises();
+  const asked = confirmation();
+  if (asked) await answerConfirmation(yes);
+  return asked;
+}

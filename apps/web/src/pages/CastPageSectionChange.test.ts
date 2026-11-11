@@ -71,9 +71,7 @@ async function saveSection(section: string) {
   await wrapper.get("[name=section]").setValue(section);
   // A tap on Save, which doesn't focus it on every phone (iOS Safari).
   await saveButton(wrapper).trigger("click");
-  await flushPromises();
-  asked = confirmDialog.confirmation();
-  if (asked) await confirmDialog.answerConfirmation(goAhead);
+  asked = await confirmDialog.answerIfAsked(goAhead);
   return wrapper;
 }
 

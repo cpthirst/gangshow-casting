@@ -887,9 +887,7 @@ describe("Running order page", () => {
         await (await openEditor(wrapper, "Pirate Panic")).get("select[name=gang]").setValue(gang);
         await apply(wrapper);
         await wrapper.get("button[data-test=save]").trigger("click");
-        await flushPromises();
-        const asked = confirmDialog.confirmation();
-        if (asked) await confirmDialog.answerConfirmation(answer);
+        const asked = await confirmDialog.answerIfAsked(answer);
         return { wrapper, asked };
       }
 

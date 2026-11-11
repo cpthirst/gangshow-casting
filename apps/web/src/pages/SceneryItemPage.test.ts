@@ -552,13 +552,10 @@ describe("Deleting a scenery file", () => {
     const held = heldFiles();
     apiHolds(show, held);
     const { wrapper } = await openAppAt(OPENING_NUMBER);
-    const browserConfirm = vi.fn();
-    vi.stubGlobal("confirm", browserConfirm);
 
     const asked = await trash(wrapper, "set-plan.pdf", true);
 
     expect(asked).toEqual({ question: QUESTION, buttons: ["Remove file", "Cancel"] });
-    expect(browserConfirm).not.toHaveBeenCalled();
     expect(deletes()).toEqual([itemFilePath("scenery", "opening-number", "set-plan.pdf")]);
     expect(rows(wrapper).map((row) => row.name)).toEqual(["Backdrop.png", "build-list.xlsx"]);
     expect(held["opening-number"].map((file) => file.name)).not.toContain("set-plan.pdf");
@@ -987,15 +984,12 @@ describe("Replacing a scenery file", () => {
     const held = heldSetPlan();
     apiHolds(show, held);
     const { wrapper } = await openAppAt(OPENING_NUMBER);
-    const browserConfirm = vi.fn();
-    vi.stubGlobal("confirm", browserConfirm);
 
     await choose(wrapper, aFile("set-plan.pdf", 5_000));
 
     expect(confirmDialog.confirmation()).toEqual({ question: REPLACE, buttons: REPLACE_BUTTONS });
     expect(uploadRequests()).toEqual([]);
     await confirmDialog.goAhead();
-    expect(browserConfirm).not.toHaveBeenCalled();
     const [[, init] = []] = uploadRequests();
     expect(JSON.parse(String(init?.body))).toEqual({
       name: "set-plan.pdf",

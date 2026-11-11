@@ -36,6 +36,9 @@ export function controlOf(event: Event) {
   return control instanceof HTMLElement ? control : undefined;
 }
 
+/** Answers any open question no, as if cancelled; for when the page that asked is left. */
+export const cancelQuestion = () => useConfirmation().answer(false);
+
 /** For the dialog: what it's asked, and how to answer. */
 export function useConfirmation() {
   return {
