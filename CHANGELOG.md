@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.59.0](https://github.com/cpthirst/gangshow-casting/compare/v1.58.0...v1.59.0) (2026-11-11)
+
+
+### Features
+
+* **web:** confirm in iCUE's own dialog, and show item pages loading (confirm-and-loading) ([#231](https://github.com/cpthirst/gangshow-casting/issues/231)) ([9934909](https://github.com/cpthirst/gangshow-casting/commit/9934909d02a77f086f5ae36d5921245529fcb76b))
+
 ## [1.58.0](https://github.com/cpthirst/gangshow-casting/compare/v1.57.0...v1.58.0) (2026-11-11)
 
 
