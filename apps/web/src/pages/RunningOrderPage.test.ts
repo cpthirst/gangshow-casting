@@ -1338,7 +1338,7 @@ describe("Running order page", () => {
     const controls = (wrapper: Page) =>
       wrapper
         .findAll("button, .drag-handle, [data-move], [data-edit], [data-remove], [data-add-to]")
-        .filter((control) => !control.element.closest(".help-button, .help-dialog"));
+        .filter((control) => !control.element.closest(".help-button, .dialog"));
 
     it("shows the whole running order, as everyone sees it", async () => {
       serve(order());

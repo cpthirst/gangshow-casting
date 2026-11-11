@@ -12,6 +12,7 @@ import {
 import { enableAutoUnmount, flushPromises } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { json, openAppAt } from "@/app.fixture.ts";
+import * as confirmDialog from "@/components/common/ConfirmDialog.fixture.ts";
 import { castPath, itemNotesPath, rolesPath } from "@/services/production.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
@@ -982,59 +983,65 @@ describe("Removing a role", () => {
     await flushPromises();
   }
 
-  it("asks first, naming the role and the item", async () => {
+  it("asks first in iCUE's own dialog, naming the role and the item", async () => {
     savedRunningOrderIs(show, [smee(), parrot()]);
-    const confirm = vi.fn().mockReturnValue(false);
-    vi.stubGlobal("confirm", confirm);
+    const browserConfirm = vi.fn();
+    vi.stubGlobal("confirm", browserConfirm);
     const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
 
     await remove(wrapper, "Parrot");
 
-    expect(confirm).toHaveBeenCalledWith(
-      "Remove the role Parrot from Pirate Sketch? Anyone cast in it will be uncast.",
-    );
+    expect(confirmDialog.confirmation()).toEqual({
+      question: "Remove the role Parrot from Pirate Sketch? Anyone cast in it will be uncast.",
+      buttons: ["Remove role", "Cancel"],
+    });
+    expect(browserConfirm).not.toHaveBeenCalled();
   });
 
   it("removes the role for good once confirmed", async () => {
     savedRunningOrderIs(show, [smee(), parrot()]);
-    vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
     const first = await openAppAt("/casting/items/pirate-sketch");
 
     await remove(first.wrapper, "Parrot");
+    await confirmDialog.goAhead();
 
+    expect(confirmDialog.confirmation()).toBeUndefined();
     expect(cardNames(first.wrapper)).toEqual(["Smee"]);
     first.wrapper.unmount();
     const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
     expect(cardNames(wrapper)).toEqual(["Smee"]);
   });
 
-  it("keeps the role when cancelled", async () => {
+  it("keeps the role and its cast when cancelled, with focus back on its Remove button", async () => {
     savedRunningOrderIs(show, [smee(), parrot()]);
-    vi.stubGlobal("confirm", vi.fn().mockReturnValue(false));
     const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
 
+    // A tap that never focused the button, as on iOS Safari.
     await remove(wrapper, "Parrot");
+    await confirmDialog.cancelConfirmation();
 
     expect(cardNames(wrapper)).toEqual(["Smee", "Parrot"]);
+    expect(wrapper.get("[data-role-id='3']").text()).toContain("Sam Example");
+    expect(document.activeElement?.getAttribute("aria-label")).toBe("Remove Parrot");
   });
 
   it("shows the empty state when the last role is removed", async () => {
     savedRunningOrderIs(show, [parrot()]);
-    vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
     const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
 
     await remove(wrapper, "Parrot");
+    await confirmDialog.goAhead();
 
     expect(wrapper.text()).toContain("No roles have been added yet.");
   });
 
   it("refuses to remove a role someone else edited, showing it as they left it", async () => {
     const stored = savedRunningOrderIs(show, [smee(), parrot()]);
-    vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
     const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
     stored[1] = { ...parrot(), name: "Polly", revision: 2 };
 
     await remove(wrapper, "Parrot");
+    await confirmDialog.goAhead();
 
     expect(wrapper.get("main [role=alert]").text()).toBe(
       "Someone else changed this role. Showing the latest roles.",
@@ -1044,11 +1051,11 @@ describe("Removing a role", () => {
 
   it("explains when someone else already removed the role", async () => {
     const stored = savedRunningOrderIs(show, [smee(), parrot()]);
-    vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
     const { wrapper } = await openAppAt("/casting/items/pirate-sketch");
     stored.splice(1, 1);
 
     await remove(wrapper, "Parrot");
+    await confirmDialog.goAhead();
 
     expect(wrapper.get("main [role=alert]").text()).toBe(
       "Someone else changed this role. Showing the latest roles.",
@@ -1351,7 +1358,6 @@ describe("Clashes on an item's page", () => {
   });
 
   it("clears the error once the clashing role is removed", async () => {
-    vi.stubGlobal("confirm", () => true);
     savedRunningOrderIs(clashShow, [
       cast("opening-number", "lead", [SAM]),
       cast("pirate-sketch", "support", [SAM], "First Mate"),
@@ -1359,6 +1365,7 @@ describe("Clashes on an item's page", () => {
     const { wrapper, router } = await openAppAt("/casting/items/pirate-sketch");
     await wrapper.get("button[aria-label='Remove First Mate']").trigger("click");
     await flushPromises();
+    await confirmDialog.goAhead();
 
     await router.push("/casting/items/opening-number");
     await flushPromises();
@@ -1808,49 +1815,6 @@ describe("Item notes", () => {
     await notesSection(wrapper).get("form").trigger("submit");
     await flushPromises();
   }
-
-  it("asks before stepping to another item with unsaved notes", async () => {
-    savedRunningOrderIs(show);
-    const confirm = vi.fn(() => false);
-    vi.stubGlobal("confirm", confirm);
-    const { wrapper, router } = await openAppAt("/casting/items/pirate-sketch");
-    await field(wrapper).setValue("Not saved yet");
-
-    await wrapper.get("main a[rel=next]").trigger("click");
-    await flushPromises();
-
-    expect(confirm).toHaveBeenCalledWith("Discard your unsaved notes?");
-    expect(router.currentRoute.value.fullPath).toBe("/casting/items/pirate-sketch");
-    expect(field(wrapper).element.value).toBe("Not saved yet");
-  });
-
-  it("asks before leaving the page with unsaved notes", async () => {
-    savedRunningOrderIs(show);
-    const confirm = vi.fn(() => true);
-    vi.stubGlobal("confirm", confirm);
-    const { wrapper, router } = await openAppAt("/casting/items/pirate-sketch");
-    await field(wrapper).setValue("Not saved yet");
-
-    await router.push("/casting/items");
-    await flushPromises();
-
-    expect(confirm).toHaveBeenCalledWith("Discard your unsaved notes?");
-    expect(router.currentRoute.value.fullPath).toBe("/casting/items");
-  });
-
-  it("doesn't ask once the notes are saved", async () => {
-    savedRunningOrderIs(show);
-    const confirm = vi.fn(() => false);
-    vi.stubGlobal("confirm", confirm);
-    const { wrapper, router } = await openAppAt("/casting/items/pirate-sketch");
-    await saveNotes(wrapper, "Hat change");
-
-    await router.push("/casting/items/opening-number");
-    await flushPromises();
-
-    expect(confirm).not.toHaveBeenCalled();
-    expect(router.currentRoute.value.fullPath).toBe("/casting/items/opening-number");
-  });
 
   it("keeps saved notes for the next visit", async () => {
     savedRunningOrderIs(show);

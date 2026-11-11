@@ -2,6 +2,7 @@
 import { ItemNote, ItemNoteList, MAX_NOTE_LENGTH } from "@app/shared";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { onBeforeRouteLeave, onBeforeRouteUpdate } from "vue-router";
+import { useConfirm } from "@/composables/useConfirm.ts";
 import { loadData } from "@/services/load-data.ts";
 import { sendJson } from "@/services/sign-in.ts";
 
@@ -100,7 +101,9 @@ async function save() {
 
 // Unsaved notes aren't lost without asking: stepping to another item, leaving the page or
 // closing the tab.
-const discardUnsaved = () => !unsaved.value || window.confirm("Discard your unsaved notes?");
+const askToConfirm = useConfirm();
+const discardUnsaved = () =>
+  !unsaved.value || askToConfirm("Discard your unsaved notes?", "Discard changes");
 onBeforeRouteUpdate(discardUnsaved);
 onBeforeRouteLeave(discardUnsaved);
 function warnBeforeUnload(event: BeforeUnloadEvent) {

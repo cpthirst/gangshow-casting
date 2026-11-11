@@ -2,7 +2,7 @@
 id: confirm-and-loading.E1.S1
 title: Confirm on item pages in iCUE's own dialog
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story

@@ -1,16 +1,12 @@
 import { type ItemNote, MAX_NOTE_LENGTH, SaveItemNoteRequest } from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { h } from "vue";
+import { createMemoryHistory, createRouter, RouterView } from "vue-router";
 import { json } from "@/app.fixture.ts";
+import * as confirmDialog from "./ConfirmDialog.fixture.ts";
+import ConfirmDialog from "./ConfirmDialog.vue";
 import ItemNotes from "./ItemNotes.vue";
-
-// Asking before leaving with unsaved notes needs a real page to leave: CastingItemPage.test.ts
-// has those. Here there's no route for the guards to join.
-vi.mock("vue-router", async (original) => ({
-  ...(await original<typeof import("vue-router")>()),
-  onBeforeRouteLeave: vi.fn(),
-  onBeforeRouteUpdate: vi.fn(),
-}));
 
 enableAutoUnmount(afterEach);
 afterEach(() => vi.unstubAllGlobals());
@@ -32,19 +28,30 @@ function apiHolds(notes: ItemNote[] = [], answerSave?: () => Response) {
   return fetch;
 }
 
+/** The notes on an item page, as every item page has them, with the app's one dialog. */
 async function openNotes(canChange = true) {
-  const wrapper = mount(ItemNotes, {
-    props: {
+  const notes = () =>
+    h(ItemNotes, {
       itemId: "pirate-sketch",
       heading: "Casting notes",
       listPath: LIST,
       savePath: SAVE,
       canChange,
-    },
-    attachTo: document.body,
+    });
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      { path: "/items/:itemId", component: { render: notes } },
+      { path: "/elsewhere", component: { render: () => null } },
+    ],
   });
+  await router.push("/items/pirate-sketch");
+  const wrapper = mount(
+    { render: () => [h(RouterView), h(ConfirmDialog)] },
+    { global: { plugins: [router] }, attachTo: document.body },
+  );
   await flushPromises();
-  return wrapper;
+  return Object.assign(wrapper, { router });
 }
 
 const field = (wrapper: VueWrapper) => wrapper.get<HTMLTextAreaElement>("textarea");
@@ -172,6 +179,53 @@ describe("An item's notes", () => {
 
     expect(wrapper.get("[role=alert]").text()).toBe("Couldn't load the notes.");
     expect(wrapper.find("textarea").exists()).toBe(false);
+  });
+});
+
+describe("Leaving an item's notes unsaved", () => {
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it.each([
+    ["stepping to another item", "/items/finale"],
+    ["leaving the page", "/elsewhere"],
+  ])("asks before %s, staying with the typing intact if cancelled", async (_, destination) => {
+    apiHolds();
+    const wrapper = await openNotes();
+    await field(wrapper).setValue("Not saved yet");
+    // Leaving waits for the answer, so it's answered before the wait.
+    const leave = async (answer: () => Promise<void>) => {
+      const leaving = wrapper.router.push(destination);
+      await flushPromises();
+      await answer();
+      await leaving;
+    };
+
+    await leave(async () => {
+      expect(confirmDialog.confirmation()).toEqual({
+        question: "Discard your unsaved notes?",
+        buttons: ["Discard changes", "Cancel"],
+      });
+      await confirmDialog.cancelConfirmation();
+    });
+    expect(wrapper.router.currentRoute.value.fullPath).toBe("/items/pirate-sketch");
+    expect(field(wrapper).element.value).toBe("Not saved yet");
+
+    await leave(confirmDialog.goAhead);
+    expect(wrapper.router.currentRoute.value.fullPath).toBe(destination);
+  });
+
+  it("doesn't ask once the notes are saved", async () => {
+    apiHolds();
+    const wrapper = await openNotes();
+    await saveAs(wrapper, "Hat change");
+
+    await wrapper.router.push("/elsewhere");
+    await flushPromises();
+
+    expect(confirmDialog.confirmation()).toBeUndefined();
+    expect(wrapper.router.currentRoute.value.fullPath).toBe("/elsewhere");
   });
 });
 
