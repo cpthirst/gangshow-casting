@@ -376,6 +376,7 @@ These cover humans and agents alike, and `pnpm install` installs them.
 | [0037](docs/adr/0037-delete-a-past-production-marked-then-repeatable.md) | A past production is deleted in the request: marked first so it can't look complete, then its files, its partition and last its list row; any stop can be repeated, and the confirmation names the table's 7-day backup window |
 | [0038](docs/adr/0038-dead-code-copies-and-test-size-in-the-gate.md) | The gate fails on dead exports, app code over 1% copied, and test files over a size budget |
 | [0039](docs/adr/0039-chart-js-for-graphs.md) | Graphs are drawn with Chart.js and vue-chartjs, registering only the parts used; each line's colour sits beside its place in code, and tests check the data and options passed to the chart |
+| [0040](docs/adr/0040-branded-managed-login.md) | Cognito's sign-in pages use its newer managed login, branded for iCUE in the CDK app (the app's small logo, and colours read from its stylesheet, light only) on the Essentials plan; the branding is never edited in the console |
 
 ---
 

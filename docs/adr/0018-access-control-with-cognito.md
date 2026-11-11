@@ -1,6 +1,6 @@
 # 0018. Access control with Cognito: assigned usernames and an admin group
 
-- **Status**: Accepted. Amended by [ADR 0020](0020-team-roles-as-user-pool-groups.md): its groups, and access and ID tokens of 5 minutes (team-roles.E4.S1). Amended by [ADR 0023](0023-usage-records-in-the-data-table.md): usage records about each account, kept 90 days, admins only
+- **Status**: Accepted. Amended by [ADR 0020](0020-team-roles-as-user-pool-groups.md): its groups, and access and ID tokens of 5 minutes (team-roles.E4.S1). Amended by [ADR 0023](0023-usage-records-in-the-data-table.md): usage records about each account, kept 90 days, admins only. Amended by [ADR 0040](0040-branded-managed-login.md): the newer managed login, branded in code.
 - **Date**: 2026-10-17
 - **Deciders**: Nick Hirst
 

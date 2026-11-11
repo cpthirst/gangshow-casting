@@ -29,6 +29,8 @@ import { CfnBudget } from "aws-cdk-lib/aws-budgets";
 import {
   AccountRecovery,
   CfnUserPoolClient,
+  FeaturePlan,
+  ManagedLoginVersion,
   OAuthScope,
   UserPool,
   UserPoolClientIdentityProvider,
@@ -40,6 +42,7 @@ import { NodejsFunction, OutputFormat } from "aws-cdk-lib/aws-lambda-nodejs";
 import { LogGroup, RetentionDays } from "aws-cdk-lib/aws-logs";
 import { BlockPublicAccess, Bucket, BucketEncryption, HttpMethods } from "aws-cdk-lib/aws-s3";
 import type { Construct } from "constructs";
+import { addLoginBranding } from "./login-branding.ts";
 import { Pages } from "./pages.ts";
 
 /** The version release-please keeps in the root package.json, which the API's health route
@@ -155,12 +158,16 @@ export class AppStack extends Stack {
       accountRecovery: AccountRecovery.NONE,
       removalPolicy: RemovalPolicy.RETAIN,
       deletionProtection: true,
+      // Needed for the sign-in pages' branding, and free for up to 10,000 people a month.
+      featurePlan: FeaturePlan.ESSENTIALS,
     });
     // Cognito's own sign-in pages, at <prefix>.auth.eu-west-2.amazoncognito.com. The prefix
     // must be unique in the region, and comes from this stack's construct path: renaming the
     // stack or "UserPool" changes it, replacing the domain.
     const loginDomain = userPool.addDomain("LoginDomain", {
       cognitoDomain: { domainPrefix: `gangshow-casting-${this.node.addr.slice(0, 8)}` },
+      // The newer pages, which can carry the app's look (login-branding.ts).
+      managedLoginVersion: ManagedLoginVersion.NEWER_MANAGED_LOGIN,
     });
     // The pages' sign-in client: Cognito's sign-in pages by the code flow, which the pages
     // run with PKCE as a public client (ADR 0018). Its return addresses are set once the
@@ -181,6 +188,7 @@ export class AppStack extends Stack {
       // The PRD's 1-day sign-in.
       refreshTokenValidity: Duration.days(1),
     });
+    addLoginBranding(this, { userPool, client: webClient, domain: loginDomain });
     // The post-deploy check's sign-in (hosting FR17). Admin-initiated password sign-in needs
     // the maintainer's AWS credentials, so this client is no way in for anyone else.
     const checkClient = userPool.addClient("CheckClient", {

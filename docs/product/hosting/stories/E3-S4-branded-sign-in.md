@@ -2,7 +2,7 @@
 id: hosting.E3.S4
 title: Sign in on a page that looks like iCUE
 epic: E3
-status: ready
+status: done
 ---
 
 ## Story
@@ -40,14 +40,14 @@ And signing out and in again still asks for their password
 - How it's built:
   - The login domain moves from Cognito's classic Hosted UI to its newer managed login (`managedLoginVersion: NEWER_MANAGED_LOGIN` on the domain).
   - A managed-login branding resource for the web client sets the look, kept in the CDK app so it's in code, not the console.
-  - Use the existing `logo.jpg` and the colours in `apps/web/src/assets/styles.css`:
+  - Use the existing `logo-small.jpg` (the sidebar's) and the colours in `apps/web/src/assets/styles.css`:
     - `--red-deep` for the button, because white text on it passes contrast
     - `--surface` for the page background
     - `--text` for the text
   - Branding applies to every managed login page, so AC2 comes free with AC1.
   - The sign-in flow, `oidc-client-ts`, the CSP's login domain and the API don't change.
 - Cost: managed login branding needs the Essentials feature plan, which is free for up to 10,000 monthly active users. The pool is already on Essentials, because it's CDK's default for a new pool. Set the plan explicitly so it can't drift.
-- ADR 0018 amendment: managed login (the newer version) with branding in CDK, on the Essentials plan. Use the `adr` skill.
+- [ADR 0040](../../../adr/0040-branded-managed-login.md) amends ADR 0018: the newer managed login, with branding in CDK, on the Essentials plan.
 - How each AC is verified:
   - An infra assertion that the domain uses the newer managed login.
   - An infra assertion that the web client has branding with the logo and colours, light mode only.
