@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.60.0](https://github.com/cpthirst/gangshow-casting/compare/v1.59.0...v1.60.0) (2026-11-12)
+
+
+### Features
+
+* **api,web:** record and show what each cast member wears (production-costume-sheets.E1) ([#234](https://github.com/cpthirst/gangshow-casting/issues/234)) ([3c8bc18](https://github.com/cpthirst/gangshow-casting/commit/3c8bc1821386f7842363613b4957ce8ed1041856))
+
 ## [1.59.0](https://github.com/cpthirst/gangshow-casting/compare/v1.58.0...v1.59.0) (2026-11-11)
 
 
