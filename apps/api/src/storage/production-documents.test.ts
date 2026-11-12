@@ -2,7 +2,12 @@ import { mkdir, mkdtemp, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { documentsInFiles, documentsInMemory, saveRevised } from "./production-documents.ts";
+import {
+  documentsInFiles,
+  documentsInMemory,
+  keepOnlyRowsOfItems,
+  saveRevised,
+} from "./production-documents.ts";
 
 interface Tally {
   productionId: string;
@@ -111,5 +116,37 @@ describe("documents in memory", () => {
 
     expect(await tallies.read("2026")).toEqual({ productionId: "2026", count: 5 });
     expect(await tallies.read("2027")).toEqual({ productionId: "2027", count: 1 });
+  });
+});
+
+describe("keepOnlyRowsOfItems", () => {
+  interface Shelf {
+    productionId: string;
+    rows: { itemId: string }[];
+  }
+  const shelf = (...itemIds: string[]): Shelf => ({
+    productionId: "2027",
+    rows: itemIds.map((itemId) => ({ itemId })),
+  });
+  const keepOnly = async (saved: Shelf, itemIds: string[]) => {
+    const shelves = documentsInMemory<Shelf>([saved], (productionId) => ({
+      productionId,
+      rows: [],
+    }));
+    const withRows = (document: Shelf, rows: Shelf["rows"]) => ({ ...document, rows });
+    await keepOnlyRowsOfItems(shelves, "2027", itemIds, (document) => document.rows, withRows);
+    return shelves.read("2027");
+  };
+
+  it("saves the document with only the rows of the items kept", async () => {
+    expect(await keepOnly(shelf("finale", "cut-sketch", "finale"), ["finale"])).toEqual(
+      shelf("finale", "finale"),
+    );
+  });
+
+  it("saves nothing when every row's item stays", async () => {
+    const saved = shelf("finale");
+
+    expect(await keepOnly(saved, ["finale", "opening"])).toBe(saved);
   });
 });

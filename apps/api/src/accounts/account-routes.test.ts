@@ -2,19 +2,14 @@ import { AccountList, accountRouteKeys } from "@app/shared";
 import { describe, expect, it } from "vitest";
 import { noProductions } from "#/http/access.ts";
 import { lambdaEntry } from "#/http/lambda-entry.ts";
+import { request, requestAs } from "#/http/request.fixture.ts";
 import { aTeamDirectory } from "./account.fixture.ts";
 import { createAccountRoutes } from "./account-routes.ts";
 import { memoryUserDirectory } from "./user-directory.ts";
 
-// A signed-in request, with the token's groups as API Gateway's JWT authorizer passes them on.
-const signedIn = (method: string, groups: string, body?: string) => ({
-  rawPath: "/api/accounts",
-  requestContext: {
-    http: { method },
-    authorizer: { jwt: { claims: { sub: "made-up", "cognito:groups": groups } } },
-  },
-  ...(body === undefined ? {} : { body }),
-});
+// A signed-in request for the accounts list, or to add one, with the token's groups.
+const signedIn = (method: string, groups: string, body?: string) =>
+  request(method, "/api/accounts", body === undefined ? {} : { body }, groups);
 
 function setUp() {
   const { directory, accounts } = memoryUserDirectory();
@@ -70,21 +65,6 @@ describe("the account routes", () => {
 });
 
 describe("changing an account through the account routes", () => {
-  // Signed in as `username`, in `groups`, as API Gateway's JWT authorizer passes them on.
-  const request = (
-    method: string,
-    rawPath: string,
-    username: string,
-    groups: string,
-    body: unknown,
-  ) => ({
-    rawPath,
-    requestContext: {
-      http: { method },
-      authorizer: { jwt: { claims: { username, "cognito:groups": groups } } },
-    },
-    body: JSON.stringify(body),
-  });
   const setUp = () => {
     const { directory, accounts } = aTeamDirectory();
     return {
@@ -105,7 +85,7 @@ describe("changing an account through the account routes", () => {
       ["PUT", "/api/accounts/pat/enabled", { enabled: false }],
       ["PUT", "/api/accounts/pat/enabled", { enabled: true }],
     ] as const) {
-      expect((await api(request(method, path, "sam", "[]", body))).statusCode).toBe(403);
+      expect((await api(requestAs("sam", "[]", method, path, body))).statusCode).toBe(403);
     }
     expect(accounts()).toEqual(before);
   });
@@ -114,7 +94,7 @@ describe("changing an account through the account routes", () => {
     const { api, accounts } = setUp();
 
     const res = await api(
-      request("PUT", "/api/accounts/pat/enabled", "pat", "[admin]", { enabled: false }),
+      requestAs("pat", "[admin]", "PUT", "/api/accounts/pat/enabled", { enabled: false }),
     );
 
     expect(res.statusCode).toBe(409);
@@ -127,7 +107,7 @@ describe("changing an account through the account routes", () => {
 
     for (const target of ["sam", "pat"]) {
       const res = await api(
-        request("PUT", `/api/accounts/${target}/access`, "sam", "[casting]", { access: "admin" }),
+        requestAs("sam", "[casting]", "PUT", `/api/accounts/${target}/access`, { access: "admin" }),
       );
 
       expect(res.statusCode).toBe(403);
@@ -139,10 +119,10 @@ describe("changing an account through the account routes", () => {
     const { api, accounts } = setUp();
 
     const demote = await api(
-      request("PUT", "/api/accounts/pat/access", "pat", "[admin]", { access: ["casting"] }),
+      requestAs("pat", "[admin]", "PUT", "/api/accounts/pat/access", { access: ["casting"] }),
     );
     const disable = await api(
-      request("PUT", "/api/accounts/pat/enabled", "pat", "[admin]", { enabled: false }),
+      requestAs("pat", "[admin]", "PUT", "/api/accounts/pat/enabled", { enabled: false }),
     );
 
     expect([demote.statusCode, disable.statusCode]).toEqual([409, 409]);
@@ -156,7 +136,7 @@ describe("changing an account through the account routes", () => {
     const { api, accounts } = setUp();
 
     const res = await api(
-      request("PUT", "/api/accounts/sam/enabled", "pat", "[admin]", { enabled: false }),
+      requestAs("pat", "[admin]", "PUT", "/api/accounts/sam/enabled", { enabled: false }),
     );
 
     expect(res.statusCode).toBe(200);

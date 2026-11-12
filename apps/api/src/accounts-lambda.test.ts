@@ -8,16 +8,11 @@ import {
 } from "@aws-sdk/client-cognito-identity-provider";
 import { mockClient } from "aws-sdk-client-mock";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { request } from "#/http/request.fixture.ts";
 
 const POOL = "eu-west-2_madeup";
 const cognito = mockClient(CognitoIdentityProviderClient);
-const listAccounts = (groups: string) => ({
-  rawPath: "/api/accounts",
-  requestContext: {
-    http: { method: "GET" },
-    authorizer: { jwt: { claims: { sub: "made-up", "cognito:groups": groups } } },
-  },
-});
+const listAccounts = (groups: string) => request("GET", "/api/accounts", {}, groups);
 
 beforeEach(() => {
   cognito.reset();
@@ -54,11 +49,14 @@ describe("the accounts function's entry point", () => {
       .rejects(new UsernameExistsException({ message: "User already exists", $metadata: {} }));
     const { handler } = await import("./accounts-lambda.ts");
 
-    const res = await handler({
-      ...listAccounts("[admin]"),
-      requestContext: { ...listAccounts("[admin]").requestContext, http: { method: "POST" } },
-      body: JSON.stringify({ username: "Sam", access: ["casting"] }),
-    });
+    const res = await handler(
+      request(
+        "POST",
+        "/api/accounts",
+        { body: JSON.stringify({ username: "Sam", access: ["casting"] }) },
+        "[admin]",
+      ),
+    );
 
     expect(res.statusCode).toBe(409);
     expect(cognito.commandCalls(AdminCreateUserCommand)[0]?.args[0].input).toMatchObject({
@@ -71,11 +69,14 @@ describe("the accounts function's entry point", () => {
     vi.stubEnv("USER_POOL_ID", POOL);
     const { handler } = await import("./accounts-lambda.ts");
 
-    const res = await handler({
-      ...listAccounts("[admin]"),
-      requestContext: { ...listAccounts("[admin]").requestContext, http: { method: "POST" } },
-      body: JSON.stringify({ username: "pat", access: ["stage"] }),
-    });
+    const res = await handler(
+      request(
+        "POST",
+        "/api/accounts",
+        { body: JSON.stringify({ username: "pat", access: ["stage"] }) },
+        "[admin]",
+      ),
+    );
 
     expect(res.statusCode).toBe(201);
     // Pat must choose a new password at first sign-in.

@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { type CastMember, type CastMemberDetails, Section } from "@app/shared";
-import { onMounted, ref, useId } from "vue";
+import { onMounted, ref } from "vue";
+import FormActions from "@/components/common/FormActions.vue";
 import { controlOf } from "@/composables/useConfirm.ts";
+import { useFieldIds } from "@/composables/useFieldIds.ts";
 import { type CastForm, castFormFor, detailsFrom, sectionLabel } from "@/utils/cast.ts";
 
 // Adds a cast member (no member given) or edits one (member given; its ID is fixed).
@@ -15,12 +17,7 @@ const emit = defineEmits<{
 const form = ref<CastForm>(castFormFor(props.member));
 const errors = ref<Partial<Record<keyof CastForm, string>>>({});
 
-const uid = useId();
-const idFor = (field: keyof CastForm) => `${uid}-${field}`;
-const errorFor = (field: keyof CastForm) => `${uid}-${field}-error`;
-// Wires a field to its error message, if it has one.
-const invalid = (field: keyof CastForm) =>
-  errors.value[field] ? { "aria-invalid": true, "aria-describedby": errorFor(field) } : {};
+const { idFor, errorFor, invalid } = useFieldIds(errors);
 
 const firstNameInput = ref<HTMLInputElement>();
 onMounted(() => firstNameInput.value?.focus());
@@ -116,12 +113,6 @@ function submit(event: Event) {
       />
       <p v-if="errors.acting" :id="errorFor('acting')" class="field-error">{{ errors.acting }}</p>
     </div>
-    <p v-if="error" class="field-error form-error" role="alert">{{ error }}</p>
-    <div class="editor-actions">
-      <button type="submit" class="primary" :disabled="saving">Save</button>
-      <button type="button" data-test="cancel" :disabled="saving" @click="emit('cancel')">
-        Cancel
-      </button>
-    </div>
+    <FormActions :saving="saving" :error="error" @cancel="emit('cancel')" />
   </form>
 </template>

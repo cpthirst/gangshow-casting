@@ -1,13 +1,9 @@
 <script setup lang="ts">
 import {
-  CastList,
-  type CastMember,
   channelsHeldBefore,
   channelsKeptAgainstTheRule,
   ItemMicPlot,
   MicPlotList,
-  type Role,
-  RoleList,
   type RunningOrder,
 } from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
@@ -16,9 +12,10 @@ import { useRoute } from "vue-router";
 import CastMemberPicker from "@/components/casting/CastMemberPicker.vue";
 import ClashIcon from "@/components/common/ClashIcon.vue";
 import ItemPageFrame from "@/components/common/ItemPageFrame.vue";
+import { useCasting } from "@/composables/useCasting.ts";
 import { useItemPlace } from "@/composables/useItemPlace.ts";
 import { loadData } from "@/services/load-data.ts";
-import { allocateMicPath, castPath, micPlotPath, rolesPath } from "@/services/production.ts";
+import { allocateMicPath, micPlotPath } from "@/services/production.ts";
 import { canChange, sendJson } from "@/services/sign-in.ts";
 import { icons } from "@/utils/icons.ts";
 import {
@@ -41,8 +38,7 @@ const route = useRoute();
 const order = ref<RunningOrder>();
 const plots = ref<ItemMicPlot[]>([]);
 // The casting, for who can be given a mic (FR3), and everyone's names.
-const roles = ref<Role[]>([]);
-const cast = ref<CastMember[]>([]);
+const { roles, cast, load: loadCasting } = useCasting();
 /** The channel being saved, which shows the choice made until the API answers. */
 const saving = ref<{ channel: number; castMemberId: number | null }>();
 /** What's typed in a channel's picker before anyone is chosen from it, by channel. */
@@ -121,18 +117,16 @@ watch(
 );
 
 // Every item's mics and the casting, loaded with the running order the frame shows; no mic
-// plot, casting or cast list yet just means nobody is on a mic or cast.
+// plot yet just means nobody is on a mic.
 async function loadMics() {
-  const [loadedPlots, loadedRoles, loadedCast] = await Promise.all([
+  const [loadedPlots, showCasting] = await Promise.all([
     loadData(micPlotPath(), MicPlotList),
-    loadData(rolesPath(), RoleList),
-    loadData(castPath(), CastList),
+    loadCasting(),
   ]);
   return (loadedOrder: RunningOrder) => {
     order.value = loadedOrder;
     plots.value = loadedPlots?.items ?? [];
-    roles.value = loadedRoles?.roles ?? [];
-    cast.value = loadedCast?.members ?? [];
+    showCasting();
   };
 }
 

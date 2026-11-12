@@ -7,10 +7,12 @@ import {
   startRefusal,
 } from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-import { computed, nextTick, onMounted, ref, useId } from "vue";
+import { computed, nextTick, onMounted, ref } from "vue";
+import FormActions from "@/components/common/FormActions.vue";
 import PageTitle from "@/components/common/PageTitle.vue";
 import { useAddForm } from "@/composables/useAddForm.ts";
 import { controlOf, useConfirm } from "@/composables/useConfirm.ts";
+import { useFieldIds } from "@/composables/useFieldIds.ts";
 import { loadRequired, refusalMessage } from "@/services/load-data.ts";
 import { listProductions, openNewestOf, PRODUCTIONS_PATH } from "@/services/production.ts";
 import { apiFetch, isAdmin, sendJson } from "@/services/sign-in.ts";
@@ -36,11 +38,11 @@ const isUnfinished = (production: string) => unfinished.value.includes(productio
 const mayDelete = (production: string) =>
   state.value.status === "loaded" && mayDeleteProduction(production, state.value.list.productions);
 
-const uid = useId();
 const askToConfirm = useConfirm();
 const { adding, addButton, stopAdding } = useAddForm();
 const year = ref("");
 const yearError = ref("");
+const { idFor, errorFor, invalid } = useFieldIds(computed(() => ({ year: yearError.value })));
 const formError = ref("");
 const saving = ref(false);
 const yearInput = ref<HTMLInputElement>();
@@ -193,29 +195,21 @@ onMounted(load);
       @keydown.esc="stopAdding"
     >
       <div class="field">
-        <label :for="`${uid}-year`">Year</label>
+        <label :for="idFor('year')">Year</label>
         <input
-          :id="`${uid}-year`"
+          :id="idFor('year')"
           ref="yearInput"
           v-model="year"
           name="year"
           inputmode="numeric"
           autocomplete="off"
-          v-bind="
-            yearError ? { 'aria-invalid': true, 'aria-describedby': `${uid}-year-error` } : {}
-          "
+          v-bind="invalid('year')"
         />
-        <p v-if="yearError" :id="`${uid}-year-error`" class="field-error" role="alert">
+        <p v-if="yearError" :id="errorFor('year')" class="field-error" role="alert">
           {{ yearError }}
         </p>
       </div>
-      <p v-if="formError" class="field-error form-error" role="alert">{{ formError }}</p>
-      <div class="editor-actions">
-        <button type="submit" class="primary" :disabled="saving">Save</button>
-        <button type="button" data-test="cancel" :disabled="saving" @click="stopAdding">
-          Cancel
-        </button>
-      </div>
+      <FormActions :saving="saving" :error="formError" @cancel="stopAdding" />
     </form>
     <p v-if="deleteError" class="field-error form-error" role="alert">{{ deleteError }}</p>
     <div class="table-scroll data-table-box" tabindex="0" role="region" aria-label="Productions">

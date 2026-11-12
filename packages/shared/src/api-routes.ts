@@ -48,6 +48,8 @@ export const routeKeys = [
   "GET /api/productions/{productionId}/wardrobe-file-counts",
   "GET /api/productions/{productionId}/wardrobe-notes",
   "PUT /api/productions/{productionId}/items/{itemId}/wardrobe-notes",
+  "GET /api/productions/{productionId}/costumes",
+  "PUT /api/productions/{productionId}/items/{itemId}/costumes",
   "GET /api/productions/{productionId}/mic-plot",
   "PUT /api/productions/{productionId}/items/{itemId}/mic-plot",
   "GET /api/productions/{productionId}/mic-plot-notes",
@@ -302,6 +304,7 @@ export const routeNeeds: RouteNeeds = {
   "DELETE /api/productions/{productionId}/items/{itemId}/wardrobe-files": "wardrobe",
   "POST /api/productions/{productionId}/items/{itemId}/wardrobe-uploads": "wardrobe",
   "PUT /api/productions/{productionId}/items/{itemId}/wardrobe-notes": "wardrobe",
+  "PUT /api/productions/{productionId}/items/{itemId}/costumes": "wardrobe",
   "PUT /api/productions/{productionId}/items/{itemId}/mic-plot": "mic-plot",
   "PUT /api/productions/{productionId}/items/{itemId}/mic-plot-notes": "mic-plot",
   // Usage is about the team, so only admins read it (usage-tracking FR4).

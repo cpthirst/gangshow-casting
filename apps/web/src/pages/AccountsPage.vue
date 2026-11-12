@@ -8,10 +8,13 @@ import {
   Username,
 } from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-import { computed, nextTick, onMounted, ref, useId } from "vue";
+import { computed, nextTick, onMounted, ref } from "vue";
 import AccessChoice from "@/components/common/AccessChoice.vue";
+import EditButton from "@/components/common/EditButton.vue";
+import FormActions from "@/components/common/FormActions.vue";
 import { useAddForm } from "@/composables/useAddForm.ts";
 import { controlOf, useConfirm } from "@/composables/useConfirm.ts";
+import { useFieldIds } from "@/composables/useFieldIds.ts";
 import { AccessRefused, loadRequired, refusalMessage } from "@/services/load-data.ts";
 import { apiFetch, sendJson, signedInUsername } from "@/services/sign-in.ts";
 import {
@@ -38,7 +41,6 @@ const accounts = computed(() =>
   state.value.status === "loaded" ? sortAccounts(state.value.list.accounts) : [],
 );
 
-const uid = useId();
 const askToConfirm = useConfirm();
 const { adding, addButton, stopAdding } = useAddForm();
 const username = ref("");
@@ -48,6 +50,9 @@ type Ticked = { admin: boolean; permissions: Permission[] };
 const nothingTicked = (): Ticked => ({ admin: false, permissions: [] });
 const newAccess = ref<Ticked>(nothingTicked());
 const usernameError = ref("");
+const { idFor, errorFor, invalid } = useFieldIds(
+  computed(() => ({ username: usernameError.value })),
+);
 const formError = ref("");
 const saving = ref(false);
 /** The account whose tick boxes are open, and what they're ticked as. */
@@ -218,7 +223,7 @@ async function resetPassword(account: AccountSummary, event: Event) {
   await focusRowButton(name, "reset-password");
 }
 
-type RowAction = "reset-password" | "disable" | "enable" | "change-access";
+type RowAction = "reset-password" | "disable" | "enable" | "edit";
 
 interface AccessChange {
   /** The account's address after its own, and the change to send it. */
@@ -291,7 +296,7 @@ async function startEditing(account: AccountSummary) {
 async function stopEditing() {
   const name = editing.value?.username;
   editing.value = null;
-  if (name) await focusRowButton(name, "change-access");
+  if (name) await focusRowButton(name, "edit");
 }
 
 // It changes what they can do and signs them out, so it's confirmed first (production-props FR6).
@@ -315,8 +320,8 @@ async function saveAccess(account: AccountSummary, event: Event) {
     failed: `Couldn't change ${name}'s access. Try again.`,
     conflict: "You can't change your own access.",
     done: accessChanged(name, access),
-    focusWhenDone: "change-access",
-    focusWhenFailed: "change-access",
+    focusWhenDone: "edit",
+    focusWhenFailed: "edit",
   });
 }
 
@@ -358,22 +363,18 @@ onMounted(load);
       @keydown.esc="stopAdding"
     >
       <div class="field">
-        <label :for="`${uid}-username`">Username</label>
+        <label :for="idFor('username')">Username</label>
         <input
-          :id="`${uid}-username`"
+          :id="idFor('username')"
           ref="usernameInput"
           v-model="username"
           name="username"
           autocomplete="off"
           autocapitalize="none"
           spellcheck="false"
-          v-bind="
-            usernameError
-              ? { 'aria-invalid': true, 'aria-describedby': `${uid}-username-error` }
-              : {}
-          "
+          v-bind="invalid('username')"
         />
-        <p v-if="usernameError" :id="`${uid}-username-error`" class="field-error">
+        <p v-if="usernameError" :id="errorFor('username')" class="field-error">
           {{ usernameError }}
         </p>
       </div>
@@ -382,13 +383,7 @@ onMounted(load);
         v-model:permissions="newAccess.permissions"
         legend="Access"
       />
-      <p v-if="formError" class="field-error form-error" role="alert">{{ formError }}</p>
-      <div class="editor-actions">
-        <button type="submit" class="primary" :disabled="saving">Save</button>
-        <button type="button" data-test="cancel" :disabled="saving" @click="stopAdding">
-          Cancel
-        </button>
-      </div>
+      <FormActions :saving="saving" :error="formError" @cancel="stopAdding" />
     </form>
     <div
       v-if="issued"
@@ -439,18 +434,13 @@ onMounted(load);
           <template v-for="account in accounts" :key="account.username">
             <tr :data-username="account.username">
               <td class="actions row-icons" data-label="Actions">
-                <button
+                <EditButton
                   v-if="!isOwn(account)"
-                  type="button"
-                  class="icon-button"
-                  :aria-label="`Change ${account.username}'s access`"
-                  data-test="change-access"
-                  data-tooltip="Change access"
+                  :label="`Change ${account.username}'s access`"
+                  tooltip="Change access"
                   :disabled="busy"
                   @click="startEditing(account)"
-                >
-                  <FontAwesomeIcon :icon="icons.edit" />
-                </button>
+                />
                 <button
                   type="button"
                   class="icon-button"
@@ -520,17 +510,7 @@ onMounted(load);
                     v-model:permissions="editing.permissions"
                     :legend="`Access for ${account.username}`"
                   />
-                  <div class="editor-actions">
-                    <button type="submit" class="primary" :disabled="saving">Save</button>
-                    <button
-                      type="button"
-                      data-test="cancel-access"
-                      :disabled="saving"
-                      @click="stopEditing"
-                    >
-                      Cancel
-                    </button>
-                  </div>
+                  <FormActions :saving="saving" error="" @cancel="stopEditing" />
                 </form>
               </td>
             </tr>

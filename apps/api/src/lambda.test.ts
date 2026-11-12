@@ -23,6 +23,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { inMemoryRoleStore } from "#/casting/roles/role-store.ts";
 import type { Handler } from "#/http/handler.ts";
 import { lambdaEntry } from "#/http/lambda-entry.ts";
+import { request, requestAs } from "#/http/request.fixture.ts";
 import { inMemoryItemNoteStore } from "#/item-notes/item-note-store.ts";
 import { folderItemFileStore } from "#/production/item-files/item-file-store.ts";
 import { inMemoryPropStore } from "#/production/props/prop-store.ts";
@@ -35,17 +36,6 @@ import { inMemoryStores, noFiles, noItemFiles } from "#/storage/stores.fixture.t
 import { inMemoryUsageStore } from "#/usage/usage-store.ts";
 import { handler } from "./lambda.ts";
 import { createRoutes } from "./routes.ts";
-
-// The parts of an API Gateway HTTP API (payload v2) event that the entry point reads, signed
-// in as a Casting Team Member unless a test says otherwise.
-const request = (method: string, rawPath: string, extra = {}, groups = "[casting]") => ({
-  rawPath,
-  requestContext: {
-    http: { method },
-    authorizer: { jwt: { claims: { sub: "made-up", "cognito:groups": groups } } },
-  },
-  ...extra,
-});
 
 describe("Lambda entry point", () => {
   it("runs the health handler for GET /api/health", async () => {
@@ -932,14 +922,9 @@ describe("Lambda entry point", () => {
           rows: [{ firstName: "Sam", lastName: "Example", section: "Scouts", cells: ["L"] }],
         }),
       );
-      const visited = await api({
-        rawPath: "/api/usage",
-        requestContext: {
-          http: { method: "POST" },
-          authorizer: { jwt: { claims: { username: "pat", "cognito:groups": "[stage]" } } },
-        },
-        body: JSON.stringify({ event: "session" }),
-      });
+      const visited = await api(
+        requestAs("pat", "[stage]", "POST", "/api/usage", { event: "session" }),
+      );
 
       expect(exported.statusCode).toBe(200);
       expect(visited.statusCode).toBe(204);
@@ -1794,16 +1779,8 @@ describe("Lambda entry point", () => {
         inMemoryProductionListStore(),
       );
     };
-    const signedInAs = (username: string, groups: string, method: string, body?: unknown) => ({
-      rawPath: "/api/usage",
-      requestContext: {
-        http: { method },
-        authorizer: { jwt: { claims: { username, "cognito:groups": groups } } },
-      },
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-    });
     const usageSeenByAdmin = async (api: ReturnType<typeof setUp>) => {
-      const res = await api(signedInAs("alex", "[admin]", "GET"));
+      const res = await api(requestAs("alex", "[admin]", "GET", "/api/usage"));
       expect(res.statusCode).toBe(200);
       return UsageSummary.parse(JSON.parse(res.body ?? "")).people;
     };
@@ -1811,7 +1788,9 @@ describe("Lambda entry point", () => {
     it("records a read-only member's session, though they can change nothing else", async () => {
       const api = setUp();
 
-      const res = await api(signedInAs("sky", "[read-only]", "POST", { event: "session" }));
+      const res = await api(
+        requestAs("sky", "[read-only]", "POST", "/api/usage", { event: "session" }),
+      );
 
       expect(res.statusCode).toBe(204);
       expect((await usageSeenByAdmin(api)).map((person) => person.username)).toEqual(["sky"]);
@@ -1820,7 +1799,12 @@ describe("Lambda entry point", () => {
     it("records the session for the account signed in, not one the request names", async () => {
       const api = setUp();
 
-      await api(signedInAs("robin", "[casting]", "POST", { event: "session", username: "alex" }));
+      await api(
+        requestAs("robin", "[casting]", "POST", "/api/usage", {
+          event: "session",
+          username: "alex",
+        }),
+      );
 
       expect((await usageSeenByAdmin(api)).map((person) => person.username)).toEqual(["robin"]);
     });
@@ -1830,9 +1814,9 @@ describe("Lambda entry point", () => {
       ["a Read-Only Team Member", "[read-only]"],
     ])("refuses usage to %s, sending none of it", async (_who, groups) => {
       const api = setUp();
-      await api(signedInAs("robin", "[casting]", "POST", { event: "session" }));
+      await api(requestAs("robin", "[casting]", "POST", "/api/usage", { event: "session" }));
 
-      const res = await api(signedInAs("sky", groups, "GET"));
+      const res = await api(requestAs("sky", groups, "GET", "/api/usage"));
 
       expect(res.statusCode).toBe(403);
       expect(JSON.parse(res.body ?? "")).toEqual({ message: "Only admins can do this." });

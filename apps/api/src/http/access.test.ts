@@ -6,16 +6,9 @@ import { handler as hosted } from "#/lambda.ts";
 import { inMemoryProductionListStore } from "#/production-list/production-list-store.ts";
 import { noProductions } from "./access.ts";
 import { lambdaEntry } from "./lambda-entry.ts";
+import { request } from "./request.fixture.ts";
 
 const REFUSAL = pastProductionRefusal(["2027", "2028"]);
-
-const request = (method: string, rawPath: string, groups: string) => ({
-  rawPath,
-  requestContext: {
-    http: { method },
-    authorizer: { jwt: { claims: { sub: "made-up", "cognito:groups": groups } } },
-  },
-});
 
 /** Every route, each with a stand-in handler, on productions 2027 and 2028. */
 function everyRoute() {
@@ -28,7 +21,7 @@ function everyRoute() {
     reached.mockClear();
     const [method = "", path = ""] = key.split(" ");
     const address = path.replaceAll("{productionId}", year).replaceAll(/\{\w+\}/g, "x");
-    const res = await api(request(method, address, groups));
+    const res = await api(request(method, address, {}, groups));
     return { res, ran: reached.mock.calls.length > 0 };
   };
   return send;
@@ -96,12 +89,14 @@ describe("a past production", () => {
     const key = "POST /api/productions/{productionId}/cast";
     const api = lambdaEntry({ [key]: reached }, noProductions);
 
-    await expect(api(request("POST", "/api/productions/2027/cast", "[admin]"))).rejects.toThrow();
+    await expect(
+      api(request("POST", "/api/productions/2027/cast", {}, "[admin]")),
+    ).rejects.toThrow();
     expect(reached).not.toHaveBeenCalled();
   });
 
   it("is refused by the hosted API, on its real list", async () => {
-    const res = await hosted(request("POST", "/api/productions/1999/cast", "[admin]"));
+    const res = await hosted(request("POST", "/api/productions/1999/cast", {}, "[admin]"));
 
     expect(res.statusCode).toBe(403);
     expect(JSON.parse(res.body ?? "")).toMatchObject({ message: REFUSAL.message });

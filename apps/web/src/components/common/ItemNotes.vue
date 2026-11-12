@@ -5,6 +5,7 @@ import { onBeforeRouteLeave, onBeforeRouteUpdate } from "vue-router";
 import { useConfirm } from "@/composables/useConfirm.ts";
 import { loadData } from "@/services/load-data.ts";
 import { sendJson } from "@/services/sign-in.ts";
+import { charactersLeft } from "@/utils/characters-left.ts";
 
 // An item's notes: one free-text field, saved on its own, apart from the running order
 // (casting-item-overview FR8, FR10). The casting notes and the props notes (production-props
@@ -32,16 +33,7 @@ const error = ref("");
 const announcement = ref("");
 
 const unsaved = computed(() => status.value === "ready" && text.value !== saved.value.text);
-/**
- * How many characters are left, said only near the limit: volunteers rarely get close, so the
- * box carries no permanent hint line.
- */
-const COUNT_FROM_REMAINING = 50;
-const countLeft = computed(() => {
-  const left = MAX_NOTE_LENGTH - text.value.length;
-  if (left >= COUNT_FROM_REMAINING) return "";
-  return left === 1 ? "1 character left" : `${left} characters left`;
-});
+const countLeft = computed(() => charactersLeft(text.value));
 /** The field's description: the count and any error, whichever show. */
 const describedBy = computed(() => {
   const ids: string[] = [];
@@ -141,7 +133,7 @@ onUnmounted(() => window.removeEventListener("beforeunload", warnBeforeUnload));
         :aria-invalid="error ? true : undefined"
         :disabled="status === 'loading'"
       />
-      <p v-if="countLeft" id="notes-count" class="notes-count" data-test="notes-count">
+      <p v-if="countLeft" id="notes-count" class="characters-left" data-test="notes-count">
         {{ countLeft }}
       </p>
       <p

@@ -8,7 +8,9 @@ import {
   RoleSize,
 } from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-import { computed, nextTick, onMounted, ref, useId, watch } from "vue";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
+import FormActions from "@/components/common/FormActions.vue";
+import { useFieldIds } from "@/composables/useFieldIds.ts";
 import { sortCast } from "@/utils/cast.ts";
 import { icons } from "@/utils/icons.ts";
 import {
@@ -129,13 +131,8 @@ async function removeMember(id: number) {
 }
 const errors = ref<Partial<Record<keyof RoleForm, string>>>({});
 
-const uid = useId();
-const idFor = (field: keyof RoleForm) => `${uid}-${field}`;
+const { uid, idFor, errorFor, invalid } = useFieldIds(errors);
 const addAllHintId = `${uid}-add-all-hint`;
-const errorFor = (field: keyof RoleForm) => `${uid}-${field}-error`;
-// Wires a field to its error message, if it has one.
-const invalid = (field: keyof RoleForm) =>
-  errors.value[field] ? { "aria-invalid": true, "aria-describedby": errorFor(field) } : {};
 
 const nameInput = ref<HTMLInputElement>();
 onMounted(() => nameInput.value?.focus());
@@ -236,12 +233,6 @@ function submit() {
         <p class="visually-hidden" role="status">{{ announcement }}</p>
       </div>
     </div>
-    <p v-if="error" class="field-error form-error" role="alert">{{ error }}</p>
-    <div class="editor-actions">
-      <button type="submit" class="primary" :disabled="saving">Save</button>
-      <button type="button" data-test="cancel" :disabled="saving" @click="emit('cancel')">
-        Cancel
-      </button>
-    </div>
+    <FormActions :saving="saving" :error="error" @cancel="emit('cancel')" />
   </form>
 </template>

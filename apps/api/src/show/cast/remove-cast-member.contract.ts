@@ -2,6 +2,8 @@ import type { CastList, RoleList } from "@app/shared";
 import { expect, it } from "vitest";
 import { aRole } from "#/casting/roles/role-store.contract.ts";
 import type { RoleStore } from "#/casting/roles/role-store.ts";
+import { aCostume } from "#/production/costumes/costume-store.contract.ts";
+import type { CostumeStore } from "#/production/costumes/costume-store.ts";
 import { aCastList, aCastMember } from "./cast.fixture.ts";
 import type { CastStore } from "./cast-store.ts";
 import type { RemoveCastMember } from "./remove-cast-member.ts";
@@ -10,6 +12,7 @@ export interface Removal {
   remove: RemoveCastMember;
   cast: CastStore;
   roles: RoleStore;
+  costumes: CostumeStore;
 }
 
 // Jo is member 12, at revision 4; Sam (1) shares an ensemble with them.
@@ -21,12 +24,23 @@ const rolesFor = (count: number): RoleList => ({
   ),
 });
 
+/** Gives everyone in each role a costume in it, as it's first saved. */
+async function costumeEveryone({ roles, costumes }: Removal) {
+  for (const role of (await roles.list("2027")).roles) {
+    for (const id of role.castMemberIds) {
+      await costumes.save("2027", aCostume(role.itemId, role.id, id), 0, role);
+    }
+  }
+}
+
 /** The rules deleting a cast member keeps, run against each pair of stores. `make` starts
  *  them holding the given cast list and roles. */
 export function behavesAsCastRemoval(make: (cast: CastList, roles: RoleList) => Promise<Removal>) {
   const castIds = async ({ cast }: Removal) => (await cast.list("2027"))?.members.map((m) => m.id);
   const castIn = async ({ roles }: Removal) =>
     (await roles.list("2027")).roles.flatMap((role) => role.castMemberIds);
+  const costumed = async ({ costumes }: Removal) =>
+    (await costumes.list("2027")).costumes.map((c) => c.castMemberId).sort((a, b) => a - b);
 
   it("removes them from the cast and from every role, keeping the roles", async () => {
     const stores = await make(cast(), rolesFor(3));
@@ -38,13 +52,24 @@ export function behavesAsCastRemoval(make: (cast: CastList, roles: RoleList) => 
     expect((await stores.roles.list("2027")).roles).toHaveLength(3);
   });
 
+  it("deletes their costumes in every item, keeping everyone else's", async () => {
+    const stores = await make(cast(), rolesFor(3));
+    await costumeEveryone(stores);
+
+    expect(await stores.remove("2027", 12, 4)).toBe("removed");
+
+    expect((await stores.costumes.list("2027")).costumes).toEqual([aCostume("item-0", 1, 1)]);
+  });
+
   it("changes nothing when the delete is stale", async () => {
     const stores = await make(cast(), rolesFor(3));
+    await costumeEveryone(stores);
 
     expect(await stores.remove("2027", 12, 3)).toBe("stale");
 
     expect(await castIds(stores)).toEqual([1, 12]);
     expect(await castIn(stores)).toEqual([12, 1, 12, 12]);
+    expect(await costumed(stores)).toEqual([1, 12, 12, 12]);
   });
 
   it("refuses an unknown member, changing nothing", async () => {
@@ -74,5 +99,15 @@ export function behavesAsCastRemoval(make: (cast: CastList, roles: RoleList) => 
 
     expect(await castIds(stores)).toEqual([1]);
     expect(await castIn(stores)).toEqual([1]);
+  });
+
+  it("deletes every costume of someone with more roles and costumes than one change can hold", async () => {
+    const stores = await make(cast(), rolesFor(60));
+    await costumeEveryone(stores);
+
+    expect(await stores.remove("2027", 12, 4)).toBe("removed");
+
+    expect(await castIn(stores)).toEqual([1]);
+    expect(await costumed(stores)).toEqual([1]);
   });
 }

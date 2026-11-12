@@ -2,6 +2,7 @@ import { type DynamoDBDocumentClient, TransactWriteCommand } from "@aws-sdk/lib-
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { dynamoRoleStore } from "#/casting/roles/dynamo-role-store.ts";
 import { aRole } from "#/casting/roles/role-store.contract.ts";
+import { dynamoCostumeStore } from "#/production/costumes/dynamo-costume-store.ts";
 import { aTestTable, seedCast, seedRoles, type TestTable } from "#/storage/dynamo.fixture.ts";
 import { aCastList, aCastMember } from "./cast.fixture.ts";
 import { dynamoCastStore } from "./dynamo-cast-store.ts";
@@ -20,6 +21,7 @@ describe("removing a cast member from the remote database", () => {
   const stores = () => ({
     cast: dynamoCastStore(table.db, table.tableName),
     roles: dynamoRoleStore(table.db, table.tableName),
+    costumes: dynamoCostumeStore(table.db, table.tableName),
   });
 
   behavesAsCastRemoval(async (castList, roleList) => {

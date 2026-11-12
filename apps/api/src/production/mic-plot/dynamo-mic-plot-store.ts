@@ -5,7 +5,13 @@ import {
   GetCommand,
   PutCommand,
 } from "@aws-sdk/lib-dynamodb";
-import { partitionFor, queryAll, written } from "#/storage/dynamo-table.ts";
+import {
+  deleteRowsOfItemsNotIn,
+  partitionFor,
+  queryAll,
+  unchangedSince,
+  written,
+} from "#/storage/dynamo-table.ts";
 import { castMics, type MicPlotStore, withAllocation } from "./mic-plot-store.ts";
 
 const MIC_PLOT = "MICPLOT#";
@@ -20,15 +26,6 @@ export const micPlotRow = (productionId: string, plot: ItemMicPlot, revision = 1
   ...plot,
   revision,
 });
-
-// Written only if the row is still at the revision it was read at (none yet for 0).
-const unchangedSince = (revision: number) =>
-  revision === 0
-    ? { ConditionExpression: "attribute_not_exists(pk)" }
-    : {
-        ConditionExpression: "revision = :revision",
-        ExpressionAttributeValues: { ":revision": revision },
-      };
 
 /**
  * Mic plots in the production data table: one row per item with channels given out (ADR
@@ -116,14 +113,7 @@ export function dynamoMicPlotStore(db: DynamoDBDocumentClient, tableName: string
       for (const { itemId } of rows) await freeUncastIn(productionId, String(itemId), roles);
     },
 
-    async keepOnlyItems(productionId, itemIds) {
-      const rows = await queryAll(db, tableName, productionId, MIC_PLOT);
-      for (const { sk, itemId } of rows) {
-        if (itemIds.includes(String(itemId))) continue;
-        await db.send(
-          new DeleteCommand({ TableName: tableName, Key: { pk: partitionFor(productionId), sk } }),
-        );
-      }
-    },
+    keepOnlyItems: (productionId, itemIds) =>
+      deleteRowsOfItemsNotIn(db, tableName, productionId, MIC_PLOT, itemIds),
   };
 }

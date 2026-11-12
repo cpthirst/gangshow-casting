@@ -1,6 +1,5 @@
 import {
   AllocateMicRequest,
-  type CastMember,
   type ItemMicPlot,
   type ItemNote,
   type Role,
@@ -12,6 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { json, openAppAt } from "@/app.fixture.ts";
 import {
   castPath,
+  costumesPath,
   departmentNotesPath,
   micPlotPath,
   propsPath,
@@ -20,6 +20,7 @@ import {
 } from "@/services/production.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
+import { aCastMember } from "@/utils/casting.fixture.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
 
 enableAutoUnmount(afterEach);
@@ -35,14 +36,8 @@ afterEach(() => {
 const show = aRunningOrder([anItem("Opening Number"), anItem("Pirate Sketch")], [anItem("Finale")]);
 
 // Made-up cast: Alex Morgan and Sam Patel are in Opening Number; Jo Reed only in the Finale.
-const aMember = (id: number, firstName: string, lastName: string): CastMember => ({
-  id,
-  firstName,
-  lastName,
-  section: "scouts",
-  group: "",
-  revision: 1,
-});
+const aMember = (id: number, firstName: string, lastName: string) =>
+  aCastMember(id, { firstName, lastName, section: "scouts" });
 const alex = aMember(1, "Alex", "Morgan");
 const sam = aMember(2, "Sam", "Patel");
 const jo = aMember(3, "Jo", "Reed");
@@ -116,6 +111,7 @@ function apiHolds(
       if (url === rolesPath()) return json({ productionId: "2027", roles });
       if (url === castPath()) return json({ productionId: "2027", members: [alex, sam, jo] });
       if (url === propsPath()) return json({ productionId: "2027", props: [] });
+      if (url === costumesPath()) return json({ productionId: "2027", costumes: [] });
       if (url === departmentNotesPath("props")) return json({ productionId: "2027", notes: [] });
       if (/\/(scenery|sfx|wardrobe)-files$/.test(url)) return json({ files: [] });
       if (url === "/api/usage") return new Response(null, { status: 204 });

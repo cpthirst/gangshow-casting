@@ -1,6 +1,12 @@
 import { ItemNote, ItemNoteList } from "@app/shared";
-import { DeleteCommand, type DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
-import { conditionFailed, partitionFor, queryAll } from "#/storage/dynamo-table.ts";
+import { type DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
+import {
+  conditionFailed,
+  deleteRowsOfItemsNotIn,
+  partitionFor,
+  queryAll,
+  unchangedSince,
+} from "#/storage/dynamo-table.ts";
 import type { ItemNoteStore } from "./item-note-store.ts";
 
 const NOTE = "NOTE#";
@@ -37,13 +43,7 @@ export function dynamoItemNoteStore(
           new PutCommand({
             TableName: tableName,
             Item: { pk: partitionFor(productionId), sk: `${prefix}${itemId}`, ...note },
-            // Saved only if still at the revision it was read at (none yet for revision 0).
-            ...(revision === 0
-              ? { ConditionExpression: "attribute_not_exists(pk)" }
-              : {
-                  ConditionExpression: "revision = :revision",
-                  ExpressionAttributeValues: { ":revision": revision },
-                }),
+            ...unchangedSince(revision),
           }),
         );
       } catch (error) {
@@ -53,14 +53,7 @@ export function dynamoItemNoteStore(
       return note;
     },
 
-    async keepOnlyItems(productionId, itemIds) {
-      const rows = await queryAll(db, tableName, productionId, prefix);
-      for (const { sk, itemId } of rows) {
-        if (itemIds.includes(String(itemId))) continue;
-        await db.send(
-          new DeleteCommand({ TableName: tableName, Key: { pk: partitionFor(productionId), sk } }),
-        );
-      }
-    },
+    keepOnlyItems: (productionId, itemIds) =>
+      deleteRowsOfItemsNotIn(db, tableName, productionId, prefix, itemIds),
   };
 }

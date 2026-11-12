@@ -2,7 +2,7 @@
 id: production-costume-sheets.E1.S2
 title: Record what each cast member wears in an item
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story
@@ -54,7 +54,7 @@ And the API refuses a save with a field over 500 characters with 400
 ### AC8: Wardrobe, Director and admins can change costumes; nobody else
 Given "kit" has Wardrobe, "dee" has Director, "ann" is an admin and "lee" has Tech only
 When each opens the Wardrobe page for "Opening Number"
-Then kit, dee and ann see a pencil on every cast row and lee sees none, with the page's existing line "You can view the wardrobe, but not change it: only Wardrobe, Director and admins can."
+Then kit, dee and ann see a pencil on every cast row and lee sees none, with the page's View only badge
 And the API refuses lee's save with 403 saying "You can view the wardrobe, but not change it."
 
 ### AC9: The API refuses a costume that doesn't fit the casting

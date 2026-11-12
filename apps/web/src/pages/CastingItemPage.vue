@@ -2,7 +2,6 @@
 import {
   AddRoleRefusal,
   type AddRoleRequest,
-  CastList,
   type CastMember,
   Role,
   RoleList,
@@ -12,18 +11,14 @@ import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, ref } from "vue";
 import RoleForm from "@/components/casting/RoleForm.vue";
 import ClashIcon from "@/components/common/ClashIcon.vue";
+import EditButton from "@/components/common/EditButton.vue";
 import ItemPageFrame from "@/components/common/ItemPageFrame.vue";
+import { useCasting } from "@/composables/useCasting.ts";
 import { controlOf, useConfirm } from "@/composables/useConfirm.ts";
 import { useItemPlace } from "@/composables/useItemPlace.ts";
 import { useListEditing } from "@/composables/useListEditing.ts";
 import { loadData } from "@/services/load-data.ts";
-import {
-  addRolePath,
-  castPath,
-  removeRolePath,
-  rolesPath,
-  updateRolePath,
-} from "@/services/production.ts";
+import { addRolePath, removeRolePath, rolesPath, updateRolePath } from "@/services/production.ts";
 import { canChange, deleteStatus, sendJson } from "@/services/sign-in.ts";
 import { clashesOf, describeEach, findClashes } from "@/utils/clashes.ts";
 import { icons } from "@/utils/icons.ts";
@@ -40,8 +35,7 @@ import {
 // Casting notes under them.
 
 const order = ref<RunningOrder>();
-const roles = ref<Role[]>([]);
-const cast = ref<CastMember[]>([]);
+const { roles, cast, load: loadRolesAndCast } = useCasting();
 
 const place = useItemPlace(order);
 const askToConfirm = useConfirm();
@@ -68,17 +62,12 @@ const takenNames = computed(() => ({
   names: itemRoles.value.filter((role) => role.id !== editing.value?.id).map((role) => role.name),
 }));
 
-// Every role and the cast, loaded with the running order the frame shows; no roles or cast
-// list yet just means there are none.
+// Every role and the cast, loaded with the running order the frame shows.
 async function loadCasting() {
-  const [loadedRoles, loadedCast] = await Promise.all([
-    loadData(rolesPath(), RoleList),
-    loadData(castPath(), CastList),
-  ]);
+  const showCasting = await loadRolesAndCast();
   return (loadedOrder: RunningOrder) => {
     order.value = loadedOrder;
-    roles.value = loadedRoles?.roles ?? [];
-    cast.value = loadedCast?.members ?? [];
+    showCasting();
   };
 }
 
@@ -266,17 +255,12 @@ async function postRole(itemId: string, details: AddRoleRequest) {
         <template v-else>
           <!-- Icons first, as on the Running order and Items pages; above the role on phones. -->
           <span v-if="canChange('casting')" class="card-icons row-icons">
-            <button
-              type="button"
-              class="icon-button"
-              data-test="edit"
-              :aria-label="`Edit ${role.name}`"
-              data-tooltip="Edit role"
+            <EditButton
+              :label="`Edit ${role.name}`"
+              tooltip="Edit role"
               :disabled="busy"
               @click="startEditing(role)"
-            >
-              <FontAwesomeIcon :icon="icons.edit" />
-            </button>
+            />
             <button
               type="button"
               class="icon-button"

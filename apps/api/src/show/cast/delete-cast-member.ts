@@ -7,8 +7,9 @@ import type { RemoveCastMember } from "./remove-cast-member.ts";
 
 // DELETE /api/productions/{productionId}/cast/{castId}?revision=N: remove a cast member
 // for good, unless someone else changed them since revision N, taking them out of every
-// role, every prop they carried and every mic they had too (casting-roles FR9,
-// production-props FR28, production-mics FR9, ADR 0010).
+// role, every prop they carried and every mic they had, and deleting their costumes, too
+// (casting-roles FR9, production-props FR28, production-mics FR9, production-costume-sheets
+// FR8, ADR 0010).
 export function createDeleteCastMember(
   removeCastMember: RemoveCastMember,
   roles: RoleStore,

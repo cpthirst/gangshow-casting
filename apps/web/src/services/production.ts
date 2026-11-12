@@ -88,6 +88,12 @@ export const addPropPath = (itemId: string) => `${itemPath(itemId)}/props`;
 /** Where one prop is edited (PUT) or removed (DELETE). */
 export const propPath = (propId: number) => `${propsPath()}/${propId}`;
 
+/** Every costume in the production (production-costume-sheets FR4). */
+export const costumesPath = () => `${productionPath()}/costumes`;
+
+/** Where one of the item's costume rows is saved. */
+export const saveCostumePath = (itemId: string) => `${itemPath(itemId)}/costumes`;
+
 /** Every item's channels given out. */
 export const micPlotPath = () => `${productionPath()}/mic-plot`;
 

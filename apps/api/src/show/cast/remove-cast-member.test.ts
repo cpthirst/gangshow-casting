@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe } from "vitest";
 import { fileRoleStore, inMemoryRoleStore } from "#/casting/roles/role-store.ts";
+import { fileCostumeStore, inMemoryCostumeStore } from "#/production/costumes/costume-store.ts";
 import { fileCastStore, inMemoryCastStore } from "./cast-store.ts";
 import { behavesAsCastRemoval } from "./remove-cast-member.contract.ts";
 import { uncastThenRemove } from "./remove-cast-member.ts";
@@ -11,7 +12,8 @@ describe("removing a cast member from in-memory stores", () => {
   behavesAsCastRemoval(async (castList, roleList) => {
     const cast = inMemoryCastStore([castList]);
     const roles = inMemoryRoleStore([roleList]);
-    return { cast, roles, remove: uncastThenRemove(cast, roles) };
+    const costumes = inMemoryCostumeStore();
+    return { cast, roles, costumes, remove: uncastThenRemove(cast, roles, costumes) };
   });
 });
 
@@ -28,6 +30,7 @@ describe("removing a cast member from the files", () => {
     await writeFile(join(dataDir, "2027", "roles.json"), JSON.stringify(roleList));
     const cast = fileCastStore(dataDir);
     const roles = fileRoleStore(dataDir);
-    return { cast, roles, remove: uncastThenRemove(cast, roles) };
+    const costumes = fileCostumeStore(dataDir);
+    return { cast, roles, costumes, remove: uncastThenRemove(cast, roles, costumes) };
   });
 });

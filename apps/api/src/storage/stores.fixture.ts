@@ -1,5 +1,6 @@
 import { inMemoryRoleStore } from "#/casting/roles/role-store.ts";
 import { inMemoryItemNoteStore } from "#/item-notes/item-note-store.ts";
+import { inMemoryCostumeStore } from "#/production/costumes/costume-store.ts";
 import type { ItemFileStore, ItemFileStores } from "#/production/item-files/item-file-store.ts";
 import { inMemoryMicPlotStore } from "#/production/mic-plot/mic-plot-store.ts";
 import { inMemoryPropStore } from "#/production/props/prop-store.ts";
@@ -13,6 +14,7 @@ import type { Stores } from "./data-stores.ts";
 export function inMemoryStores(given: Partial<Stores> = {}): Stores {
   const cast = given.cast ?? inMemoryCastStore();
   const roles = given.roles ?? inMemoryRoleStore();
+  const costumes = given.costumes ?? inMemoryCostumeStore();
   return {
     runningOrders: inMemoryRunningOrderStore(),
     itemNotes: inMemoryItemNoteStore(),
@@ -24,10 +26,11 @@ export function inMemoryStores(given: Partial<Stores> = {}): Stores {
     micPlots: inMemoryMicPlotStore(),
     micPlotNotes: inMemoryItemNoteStore(),
     productions: inMemoryProductionListStore(),
-    removeCastMember: uncastThenRemove(cast, roles),
+    removeCastMember: uncastThenRemove(cast, roles, costumes),
     ...given,
     cast,
     roles,
+    costumes,
   };
 }
 

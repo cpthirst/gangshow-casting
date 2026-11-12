@@ -1,7 +1,10 @@
 import type { Role, RoleList } from "@app/shared";
 import { describe, expect, it } from "vitest";
+import { aCostume } from "#/production/costumes/costume-store.contract.ts";
+import { inMemoryCostumeStore } from "#/production/costumes/costume-store.ts";
 import { inMemoryMicPlotStore } from "#/production/mic-plot/mic-plot-store.ts";
 import { inMemoryPropStore } from "#/production/props/prop-store.ts";
+import { inMemoryStores } from "#/storage/stores.fixture.ts";
 import { createRemoveRole } from "./remove-role.ts";
 import { inMemoryRoleStore } from "./role-store.ts";
 
@@ -25,10 +28,7 @@ function setUp() {
   return {
     roles,
     initial,
-    handler: createRemoveRole(roles, {
-      props: inMemoryPropStore(),
-      micPlots: inMemoryMicPlotStore(),
-    }),
+    handler: createRemoveRole(roles, inMemoryStores()),
   };
 }
 
@@ -90,7 +90,7 @@ describe("remove role handler with props", () => {
       carrierIds: [3, 1],
     };
     const props = inMemoryPropStore([{ productionId: "2027", props: [lantern] }]);
-    return { props, handler: createRemoveRole(roles, { props, micPlots: inMemoryMicPlotStore() }) };
+    return { props, handler: createRemoveRole(roles, inMemoryStores({ props })) };
   }
   const carriers = async (props: ReturnType<typeof setUpLantern>["props"]) =>
     (await props.list("2027")).props[0]?.carrierIds;
@@ -130,7 +130,7 @@ describe("remove role handler with mics", () => {
         items: [{ itemId: "space-sketch", mics: [{ channel: 3, castMemberId: 1 }] }],
       },
     ]);
-    return { micPlots, handler: createRemoveRole(roles, { props: inMemoryPropStore(), micPlots }) };
+    return { micPlots, handler: createRemoveRole(roles, inMemoryStores({ micPlots })) };
   }
   const mics = async (micPlots: ReturnType<typeof setUpSpaceSketch>["micPlots"]) =>
     (await micPlots.list("2027")).items[0]?.mics ?? [];
@@ -152,5 +152,42 @@ describe("remove role handler with mics", () => {
     expect((await handler(request("1", "1"))).statusCode).toBe(204);
 
     expect(await mics(micPlots)).toEqual([]);
+  });
+});
+
+describe("remove role handler with costumes", () => {
+  // Made-up: Alex Morgan (1) is Captain Hook (7), and Jo Brown (2) and Kim Lee (3) are
+  // Pirates (8), in Opening Number.
+  const hook = aCostume("opening-number", 7, 1);
+  const jo = aCostume("opening-number", 8, 2);
+  const kim = aCostume("opening-number", 8, 3);
+  function setUpOpening() {
+    const roles = inMemoryRoleStore([
+      {
+        productionId: "2027",
+        roles: [
+          { ...role(7, 1, [1]), itemId: "opening-number" },
+          { ...role(8, 1, [2, 3]), itemId: "opening-number", size: "ensemble" },
+        ],
+      },
+    ]);
+    const costumes = inMemoryCostumeStore([{ productionId: "2027", costumes: [hook, jo, kim] }]);
+    return { costumes, handler: createRemoveRole(roles, inMemoryStores({ costumes })) };
+  }
+
+  it("removes the role's costumes, keeping the item's others", async () => {
+    const { costumes, handler } = setUpOpening();
+
+    expect((await handler(request("8", "1"))).statusCode).toBe(204);
+
+    expect((await costumes.list("2027")).costumes).toEqual([hook]);
+  });
+
+  it("keeps the role's costumes when the removal is refused", async () => {
+    const { costumes, handler } = setUpOpening();
+
+    expect((await handler(request("8", "5"))).statusCode).toBe(409);
+
+    expect((await costumes.list("2027")).costumes).toEqual([hook, jo, kim]);
   });
 });

@@ -2,7 +2,7 @@
 id: production-costume-sheets.E1.S1
 title: Head the files, and list who wears what on the Wardrobe page
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story

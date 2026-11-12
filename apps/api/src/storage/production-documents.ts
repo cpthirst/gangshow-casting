@@ -101,3 +101,31 @@ export function documentsInFiles<Stored extends { productionId: string }, Empty 
       }),
   };
 }
+
+/**
+ * Saves a production's one document with only the rows `keep` picks, deleting the rest for
+ * good, and nothing if it keeps every row (or there's no document yet). rowsOf: the document's
+ * rows; withRows: the document with only the rows given.
+ */
+export const keepOnlyRows = <Stored, Held, Row>(
+  documents: ProductionDocuments<Stored, Held>,
+  productionId: string,
+  keep: (row: Row) => boolean,
+  rowsOf: (document: Held) => Row[],
+  withRows: (document: Held, rows: Row[]) => Stored,
+) =>
+  saveRevised(documents, productionId, (document) => {
+    const rows = rowsOf(document);
+    const kept = rows.filter(keep);
+    return kept.length === rows.length ? undefined : withRows(document, kept);
+  });
+
+/** A per-item store's keepOnlyItems for a production's one document: keepOnlyRows, keeping
+ *  the rows of the items in `itemIds`. */
+export const keepOnlyRowsOfItems = <Stored, Held, Row extends { itemId: string }>(
+  documents: ProductionDocuments<Stored, Held>,
+  productionId: string,
+  itemIds: string[],
+  rowsOf: (document: Held) => Row[],
+  withRows: (document: Held, rows: Row[]) => Stored,
+) => keepOnlyRows(documents, productionId, (row) => itemIds.includes(row.itemId), rowsOf, withRows);

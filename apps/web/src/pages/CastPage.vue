@@ -12,6 +12,7 @@ import {
 } from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, onMounted, ref, useId } from "vue";
+import EditButton from "@/components/common/EditButton.vue";
 import PageTitle from "@/components/common/PageTitle.vue";
 import RefusalNotice from "@/components/common/RefusalNotice.vue";
 import CastMemberForm from "@/components/show/CastMemberForm.vue";
@@ -376,17 +377,12 @@ onMounted(load);
           <tr v-for="member in shown" :key="member.id" :data-member-id="member.id">
             <!-- data-label names each cell when small screens show rows as cards. -->
             <td v-if="canChange('casting')" class="actions row-icons" data-label="Actions">
-              <button
-                type="button"
-                class="icon-button"
-                data-test="edit"
-                :aria-label="`Edit ${fullName(member)}`"
-                data-tooltip="Edit details"
+              <EditButton
+                :label="`Edit ${fullName(member)}`"
+                tooltip="Edit details"
                 :disabled="busy"
                 @click="startEditing(member)"
-              >
-                <FontAwesomeIcon :icon="icons.edit" />
-              </button>
+              />
               <button
                 v-if="canChange('admins')"
                 type="button"

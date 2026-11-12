@@ -4,7 +4,7 @@ import {
   type DynamoDBClient,
   TransactionCanceledException,
 } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import { DeleteCommand, DynamoDBDocumentClient, QueryCommand } from "@aws-sdk/lib-dynamodb";
 
 // The production data table (ADR 0015): partition key "pk" and sort key "sk", matching
 // infra/lib/app-stack.ts. Each production is one partition; each entity is one item.
@@ -51,6 +51,43 @@ export async function queryAll(
   return items;
 }
 
+/** Deletes, for good, every row in a production whose sort key starts with `prefix` and that
+ *  `drop` picks. */
+export async function deleteRowsWhere(
+  db: DynamoDBDocumentClient,
+  tableName: string,
+  productionId: string,
+  prefix: string,
+  drop: (row: Record<string, unknown>) => boolean,
+) {
+  const rows = await queryAll(db, tableName, productionId, prefix);
+  for (const row of rows.filter(drop)) {
+    await db.send(
+      new DeleteCommand({
+        TableName: tableName,
+        Key: { pk: partitionFor(productionId), sk: row.sk },
+      }),
+    );
+  }
+}
+
+/** Deletes, for good, every row in a production whose sort key starts with `prefix` and whose
+ *  item isn't in `itemIds`: keepOnlyItems for a store whose rows each name their item. */
+export const deleteRowsOfItemsNotIn = (
+  db: DynamoDBDocumentClient,
+  tableName: string,
+  productionId: string,
+  prefix: string,
+  itemIds: string[],
+) =>
+  deleteRowsWhere(
+    db,
+    tableName,
+    productionId,
+    prefix,
+    ({ itemId }) => !itemIds.includes(String(itemId)),
+  );
+
 /** Whether a write was refused by its condition, e.g. a stale revision. */
 export const conditionFailed = (error: unknown) => error instanceof ConditionalCheckFailedException;
 
@@ -59,6 +96,11 @@ export const atRevision = (revision: number) => ({
   ConditionExpression: "revision = :revision",
   ExpressionAttributeValues: { ":revision": revision },
 });
+
+/** The condition for writing a row only if it's still at the revision it was read at: none
+ *  yet for revision 0. */
+export const unchangedSince = (revision: number) =>
+  revision === 0 ? { ConditionExpression: "attribute_not_exists(pk)" } : atRevision(revision);
 
 /** Runs a conditional write: true if it was written, false if its condition failed. */
 export async function written(write: () => Promise<unknown>) {
