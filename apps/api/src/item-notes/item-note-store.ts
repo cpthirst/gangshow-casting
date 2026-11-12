@@ -3,8 +3,8 @@ import {
   type Change,
   documentsInFiles,
   documentsInMemory,
+  keepOnlyRowsOfItems,
   type ProductionDocuments,
-  saveRevised,
 } from "#/storage/production-documents.ts";
 
 /** Where each production's item notes live: one mutable document, no history
@@ -43,12 +43,6 @@ function withNote(
   return { answer: note, save: { ...list, notes } };
 }
 
-/** The list with only the notes of the given items. */
-const onlyItems = (list: ItemNoteList, itemIds: string[]): ItemNoteList => ({
-  ...list,
-  notes: list.notes.filter((note) => itemIds.includes(note.itemId)),
-});
-
 /** An item note store's rules, wherever its files are kept. */
 function itemNoteStoreOver(files: ProductionDocuments<ItemNoteList>): ItemNoteStore {
   return {
@@ -57,11 +51,13 @@ function itemNoteStoreOver(files: ProductionDocuments<ItemNoteList>): ItemNoteSt
     save: (productionId, itemId, revision, text) =>
       files.change(productionId, (list) => withNote(list, itemId, revision, text)),
     keepOnlyItems: (productionId, itemIds) =>
-      saveRevised(files, productionId, (list) => {
-        const kept = onlyItems(list, itemIds);
-        // Nothing to write if every item stays (or there's no file yet).
-        return kept.notes.length === list.notes.length ? undefined : kept;
-      }),
+      keepOnlyRowsOfItems(
+        files,
+        productionId,
+        itemIds,
+        (list) => list.notes,
+        (list, notes) => ({ ...list, notes }),
+      ),
   };
 }
 

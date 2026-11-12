@@ -8,6 +8,8 @@ import { createUpdateRole } from "#/casting/roles/update-role.ts";
 import type { Handler } from "#/http/handler.ts";
 import { createGetItemNotes } from "#/item-notes/get-item-notes.ts";
 import { createSaveItemNote } from "#/item-notes/save-item-note.ts";
+import { createGetCostumes } from "#/production/costumes/get-costumes.ts";
+import { createSaveCostume } from "#/production/costumes/save-costume.ts";
 import { createCountItemFiles } from "#/production/item-files/count-item-files.ts";
 import { createDeleteItemFile } from "#/production/item-files/delete-item-file.ts";
 import { createGetItemFileLink } from "#/production/item-files/get-item-file-link.ts";
@@ -60,6 +62,7 @@ export function createRoutes(
     sceneryNotes,
     sfxNotes,
     wardrobeNotes,
+    costumes,
     micPlots,
     micPlotNotes,
     productions,
@@ -153,6 +156,12 @@ export function createRoutes(
     "PUT /api/productions/{productionId}/items/{itemId}/wardrobe-notes": createSaveItemNote(
       wardrobeNotes,
       runningOrders,
+    ),
+    "GET /api/productions/{productionId}/costumes": createGetCostumes(costumes),
+    "PUT /api/productions/{productionId}/items/{itemId}/costumes": createSaveCostume(
+      costumes,
+      runningOrders,
+      roles,
     ),
     "GET /api/productions/{productionId}/mic-plot": createGetMicPlot(micPlots),
     "PUT /api/productions/{productionId}/items/{itemId}/mic-plot": createAllocateMic(

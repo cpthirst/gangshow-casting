@@ -2,6 +2,7 @@ export * from "./account.ts";
 export * from "./api-routes.ts";
 export * from "./cast.ts";
 export * from "./casting-grid-export.ts";
+export * from "./costume.ts";
 export * from "./health.ts";
 export * from "./item-file.ts";
 export * from "./item-note.ts";

@@ -1,16 +1,93 @@
 <script setup lang="ts">
-import type { CastMember, Role } from "@app/shared";
-import { computed } from "vue";
-import { costumeRowsOf } from "@/utils/costumes.ts";
+import {
+  type CastMember,
+  Costume,
+  type CostumeFields,
+  type Role,
+  type SaveCostumeRequest,
+} from "@app/shared";
+import { computed, ref } from "vue";
+import EditButton from "@/components/common/EditButton.vue";
+import { useListEditing } from "@/composables/useListEditing.ts";
+import { saveCostumePath } from "@/services/production.ts";
+import { sendJson } from "@/services/sign-in.ts";
+import {
+  type CostumeRow,
+  costumeFields,
+  costumeOf,
+  costumeRowsOf,
+  rowName,
+  withSaved,
+} from "@/utils/costumes.ts";
 import { fullName } from "@/utils/roles.ts";
+import CostumeForm from "./CostumeForm.vue";
 import RoleCast from "./RoleCast.vue";
 
-// Who wears what in one item, on its Wardrobe page (production-costume-sheets FR2, FR3): a
-// row per cast member per role, read from the casting as it is now.
-// roles and cast: the production's.
-const props = defineProps<{ itemId: string; roles: Role[]; cast: CastMember[] }>();
+// Who wears what in one item, on its Wardrobe page (production-costume-sheets FR2–FR6): a
+// row per cast member per role, read from the casting as it is now, each with its three
+// fields. Those who can change costumes edit one row at a time, in the row.
+// roles, cast and costumes: the production's. The page gives each item a fresh instance, so
+// an open form never carries over to the next.
+const props = defineProps<{
+  itemId: string;
+  roles: Role[];
+  cast: CastMember[];
+  canChange: boolean;
+}>();
+const costumes = defineModel<Costume[]>("costumes", { required: true });
 
 const rows = computed(() => costumeRowsOf(props.roles, props.cast, props.itemId));
+
+/** A cast row: someone in a role, never an uncast role's row. */
+type CastRow = CostumeRow & { member: CastMember };
+/** Each cast row's id, for putting focus back on its pencil when its form closes. */
+const rowId = ({ role, member }: CastRow) => `${role.id}-${member.id}`;
+
+const { editing, saving, formError, startEditing, stopEditing } =
+  useListEditing<CastRow>("data-costume");
+
+/** Whether the row is the one whose form is open. */
+const isEditing = (row: CastRow) => editing.value !== null && rowId(editing.value) === rowId(row);
+/** "Costume saved." once a save lands, for screen readers. */
+const announcement = ref("");
+
+/** The row's fields with any text, in order, with their labels: an empty one shows nothing. */
+function filledIn({ role, member }: CastRow) {
+  const costume = costumeOf(costumes.value, role, member);
+  return costumeFields.flatMap(({ key, label }) =>
+    costume[key] ? [{ key, label, text: costume[key] }] : [],
+  );
+}
+
+function edit(row: CastRow) {
+  announcement.value = "";
+  startEditing(row);
+}
+
+// Saves straight away. On failure the form stays open with what was typed.
+async function save(row: CastRow, fields: CostumeFields) {
+  if (saving.value) return;
+  saving.value = true;
+  formError.value = "";
+  const saved = await putCostume({ roleId: row.role.id, castMemberId: row.member.id, ...fields });
+  saving.value = false;
+  if (!saved) {
+    formError.value = "Couldn't save the costume. Try again.";
+    return;
+  }
+  costumes.value = withSaved(costumes.value, saved);
+  announcement.value = "Costume saved.";
+  await stopEditing(rowId(row));
+}
+
+async function putCostume(body: SaveCostumeRequest) {
+  try {
+    const res = await sendJson(saveCostumePath(props.itemId), "PUT", body);
+    return res.ok ? Costume.parse(await res.json()) : undefined;
+  } catch {
+    return undefined;
+  }
+}
 </script>
 
 <template>
@@ -19,15 +96,53 @@ const rows = computed(() => costumeRowsOf(props.roles, props.cast, props.itemId)
     <!-- One card per row, as the role and prop cards. An explicit list role: Safari drops list
          semantics once bullets are styled away. -->
     <ul v-if="rows.length > 0" class="card-list" role="list" aria-labelledby="costumes-heading">
-      <li
-        v-for="{ role, member } in rows"
-        :key="`${role.id}-${member?.id ?? 'uncast'}`"
-        class="card"
-        data-test="costume"
-      >
-        <RoleCast :name="role.name" :cast="member ? fullName(member) : ''" none="Uncast" />
-      </li>
+      <template v-for="{ role, member } in rows" :key="`${role.id}-${member?.id ?? 'uncast'}`">
+        <!-- While editing, the card holds the form instead. -->
+        <li
+          v-if="member && isEditing({ role, member })"
+          class="card editing"
+          data-test="costume"
+        >
+          <CostumeForm
+            :name="rowName(role, member)"
+            :costume="costumeOf(costumes, role, member)"
+            :saving="saving"
+            :error="formError"
+            @save="save({ role, member }, $event)"
+            @cancel="stopEditing(rowId({ role, member }))"
+          />
+        </li>
+        <li
+          v-else
+          class="card"
+          :data-costume="member ? rowId({ role, member }) : undefined"
+          data-test="costume"
+        >
+          <!-- The pencil first, as on the prop cards; above the row on phones. Usable while
+               another row's form is open, on purpose: it moves the edit here (FR5). -->
+          <span v-if="member && canChange" class="card-icons row-icons">
+            <EditButton
+              :label="`Edit ${rowName(role, member)}`"
+              tooltip="Edit costume"
+              :disabled="saving"
+              @click="edit({ role, member })"
+            />
+          </span>
+          <RoleCast :name="role.name" :cast="member ? fullName(member) : ''" none="Uncast" />
+          <dl v-if="member" class="costume-fields">
+            <div
+              v-for="{ key, label, text } in filledIn({ role, member })"
+              :key="key"
+              data-test="costume-field"
+            >
+              <dt>{{ label }}</dt>
+              <dd>{{ text }}</dd>
+            </div>
+          </dl>
+        </li>
+      </template>
     </ul>
     <p v-else data-test="no-costumes">Nobody is cast in this item yet.</p>
+    <p class="visually-hidden" role="status">{{ announcement }}</p>
   </section>
 </template>

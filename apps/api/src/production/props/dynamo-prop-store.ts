@@ -7,6 +7,7 @@ import {
 } from "@aws-sdk/lib-dynamodb";
 import {
   conditionFailed,
+  deleteRowsOfItemsNotIn,
   META,
   partitionFor,
   queryAll,
@@ -146,18 +147,8 @@ export function dynamoPropStore(db: DynamoDBDocumentClient, tableName: string): 
       throw new Error("Couldn't drop stray carriers: props kept changing");
     },
 
-    async keepOnlyItems(productionId, itemIds) {
-      // The META row's lastPropId is left alone, so the deleted ids are never reused.
-      const { props } = await list(productionId);
-      for (const prop of props) {
-        if (itemIds.includes(prop.itemId)) continue;
-        await db.send(
-          new DeleteCommand({
-            TableName: tableName,
-            Key: { pk: partitionFor(productionId), sk: propKey(prop.id) },
-          }),
-        );
-      }
-    },
+    // The META row's lastPropId is left alone, so the deleted ids are never reused.
+    keepOnlyItems: (productionId, itemIds) =>
+      deleteRowsOfItemsNotIn(db, tableName, productionId, PROP, itemIds),
   };
 }

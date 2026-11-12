@@ -3,6 +3,7 @@ import {
   type Change,
   documentsInFiles,
   documentsInMemory,
+  keepOnlyRowsOfItems,
   type ProductionDocuments,
   saveRevised,
 } from "#/storage/production-documents.ts";
@@ -76,10 +77,10 @@ const withCastCarriers = (file: PropFile, roles: Role[]): PropFile => ({
   props: file.props.map((prop) => ({ ...prop, carrierIds: castCarriers(prop, roles) })),
 });
 
-/** The file with only the props of the given items. Keeps nextId, so their ids stay taken. */
-const withOnlyItems = (file: PropFile, itemIds: string[]): PropFile => ({
+/** The file with only the props given. Keeps nextId, so the others' ids stay taken. */
+const withOnly = (file: PropFile, props: Prop[]): PropFile => ({
   ...file,
-  props: file.props.filter((prop) => itemIds.includes(prop.itemId)),
+  props,
   nextId: nextIdOf(file),
 });
 
@@ -100,11 +101,7 @@ function propStoreOver(files: ProductionDocuments<PropFile>): PropStore {
         file.props.length === 0 ? undefined : withCastCarriers(file, roles),
       ),
     keepOnlyItems: (productionId, itemIds) =>
-      saveRevised(files, productionId, (file) => {
-        const kept = withOnlyItems(file, itemIds);
-        // Nothing to write if every item stays (or there's no file yet).
-        return kept.props.length === file.props.length ? undefined : kept;
-      }),
+      keepOnlyRowsOfItems(files, productionId, itemIds, (file) => file.props, withOnly),
   };
 }
 

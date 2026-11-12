@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { alexMorgan, aRole, captainHook, pirateCast, pirates, smee } from "./casting.fixture.ts";
-import { costumeRowsOf } from "./costumes.ts";
+import {
+  alexMorgan,
+  aRole,
+  captainHook,
+  joBrown,
+  pirateCast,
+  pirates,
+  smee,
+} from "./casting.fixture.ts";
+import { alexAsHook } from "./costumes.fixture.ts";
+import { costumeErrors, costumeOf, costumeRowsOf, rowName, withSaved } from "./costumes.ts";
 
 const named = (rows: ReturnType<typeof costumeRowsOf>) =>
   rows.map(({ role, member }) => [
@@ -37,5 +46,57 @@ describe("costumeRowsOf", () => {
 
   it("gives no rows for an item with no roles", () => {
     expect(costumeRowsOf([captainHook()], pirateCast, "interval-music")).toEqual([]);
+  });
+});
+
+// Made-up: Jo Brown as a Pirate, beside Alex Morgan as Captain Hook.
+const joAsPirate = {
+  ...alexAsHook,
+  roleId: pirates.id,
+  castMemberId: joBrown.id,
+  fromWardrobe: "Striped top",
+};
+
+describe("costumeOf", () => {
+  it("gives the row's saved fields", () => {
+    expect(costumeOf([joAsPirate, alexAsHook], captainHook(), alexMorgan)).toEqual(alexAsHook);
+  });
+
+  it("gives empty fields for a row nobody has filled in", () => {
+    expect(costumeOf([joAsPirate], captainHook(), alexMorgan)).toEqual({
+      fromWardrobe: "",
+      fromCastMember: "",
+      notes: "",
+    });
+  });
+});
+
+describe("withSaved", () => {
+  it("replaces the row's costume, keeping the others", () => {
+    const saved = { ...alexAsHook, fromWardrobe: "Blue coat" };
+
+    expect(withSaved([alexAsHook, joAsPirate], saved)).toEqual([joAsPirate, saved]);
+  });
+});
+
+describe("costumeErrors", () => {
+  it("says which fields are over 500 characters, by their labels", () => {
+    const fields = { fromWardrobe: "x".repeat(501), fromCastMember: "x".repeat(500), notes: "" };
+
+    expect(costumeErrors(fields)).toEqual({
+      fromWardrobe: "From Wardrobe can be up to 500 characters.",
+    });
+  });
+
+  it("counts a field as it will be saved, without the spaces round it", () => {
+    expect(
+      costumeErrors({ fromWardrobe: ` ${"x".repeat(500)} `, fromCastMember: "", notes: "" }),
+    ).toEqual({});
+  });
+});
+
+describe("rowName", () => {
+  it("names the cast member, then the role", () => {
+    expect(rowName(captainHook(), alexMorgan)).toBe("Alex Morgan as Captain Hook");
   });
 });

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ItemGang, itemGangLabels, type RunningOrderItem } from "@app/shared";
-import { onMounted, ref, useId } from "vue";
+import { onMounted, ref } from "vue";
+import { useFieldIds } from "@/composables/useFieldIds.ts";
 import { formFor, type ItemForm, itemFrom, STAGE_CHOICES } from "@/utils/running-order.ts";
 
 // addingTo names the half (e.g. "second half") when the item is new rather than edited.
@@ -14,12 +15,7 @@ const stageChoices = STAGE_CHOICES.includes(form.value.stage)
   ? STAGE_CHOICES
   : [form.value.stage, ...STAGE_CHOICES];
 
-const uid = useId();
-const idFor = (field: keyof ItemForm) => `${uid}-${field}`;
-const errorFor = (field: keyof ItemForm) => `${uid}-${field}-error`;
-// Wires a field to its error message, if it has one.
-const invalid = (field: keyof ItemForm) =>
-  errors.value[field] ? { "aria-invalid": true, "aria-describedby": errorFor(field) } : {};
+const { idFor, errorFor, invalid } = useFieldIds(errors);
 
 const titleInput = ref<HTMLInputElement>();
 onMounted(() => titleInput.value?.focus());

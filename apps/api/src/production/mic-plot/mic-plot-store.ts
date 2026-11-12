@@ -3,6 +3,7 @@ import {
   type Change,
   documentsInFiles,
   documentsInMemory,
+  keepOnlyRowsOfItems,
   type ProductionDocuments,
   saveRevised,
 } from "#/storage/production-documents.ts";
@@ -75,11 +76,6 @@ function withItemAllocation(
   };
 }
 
-const onlyItems = (list: MicPlotList, itemIds: string[]): MicPlotList => ({
-  ...list,
-  items: list.items.filter((item) => itemIds.includes(item.itemId)),
-});
-
 /** The list with every uncast channel freed, dropping items left with none. */
 const withCastMics = (list: MicPlotList, roles: Role[]): MicPlotList => ({
   ...list,
@@ -94,11 +90,13 @@ function micPlotStoreOver(files: ProductionDocuments<MicPlotList>): MicPlotStore
     allocate: (productionId, itemId, channel, castMemberId) =>
       files.change(productionId, (list) => withItemAllocation(list, itemId, channel, castMemberId)),
     keepOnlyItems: (productionId, itemIds) =>
-      saveRevised(files, productionId, (list) => {
-        const kept = onlyItems(list, itemIds);
-        // Nothing to write if every item stays (or there's no file yet).
-        return kept.items.length === list.items.length ? undefined : kept;
-      }),
+      keepOnlyRowsOfItems(
+        files,
+        productionId,
+        itemIds,
+        (list) => list.items,
+        (list, items) => ({ ...list, items }),
+      ),
     freeUncastChannels: (productionId, roles) =>
       saveRevised(files, productionId, (list) => {
         const kept = withCastMics(list, roles);

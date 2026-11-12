@@ -12,6 +12,8 @@ import {
   CastList,
   CastMember,
   CastMemberDetails,
+  Costume,
+  CostumeList,
   CreatedAccount,
   type DepartmentId,
   departmentIds,
@@ -39,6 +41,7 @@ import {
   RoleList,
   type RouteKey,
   RunningOrder,
+  SaveCostumeRequest,
   SaveItemNoteRequest,
   SaveRunningOrderRequest,
   SetAccess,
@@ -447,6 +450,27 @@ export const routeDocs: Record<RouteKey, RouteDoc> = {
   [`GET ${PRODUCTION}/wardrobe-file-counts`]: countFiles("wardrobe"),
   [`GET ${PRODUCTION}/wardrobe-notes`]: listNotes("wardrobe"),
   [`PUT ${ITEM}/wardrobe-notes`]: saveNotes("wardrobe"),
+  [`GET ${PRODUCTION}/costumes`]: {
+    tag: "Costumes",
+    summary: "What everyone wears in every item",
+    success: ok(
+      "The costumes, in no particular order. A row nobody has filled in isn't listed.",
+      CostumeList,
+    ),
+  },
+  [`PUT ${ITEM}/costumes`]: {
+    tag: "Costumes",
+    summary: "Save what one cast member wears in one of the item's roles",
+    description: "All three fields are saved together; emptying all three removes the row.",
+    request: SaveCostumeRequest,
+    success: ok("The saved costume.", Costume),
+    refusals: {
+      "400": plain(
+        "The body doesn't fit the schema, the role isn't in the item, or the cast member isn't in the role.",
+      ),
+      "404": NOT_IN_ORDER,
+    },
+  },
   [`GET ${PRODUCTION}/mic-plot`]: {
     tag: "Mic plot",
     summary: "Every item's mic channels",

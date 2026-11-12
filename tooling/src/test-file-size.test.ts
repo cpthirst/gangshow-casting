@@ -10,7 +10,7 @@ const LIMIT = 800;
 const overBudget = new Map([
   ["apps/web/src/pages/CastingItemPage.test.ts", 2031],
   ["apps/web/src/pages/CastingOverviewPage.test.ts", 2018],
-  ["apps/api/src/lambda.test.ts", 1841],
+  ["apps/api/src/lambda.test.ts", 1825],
   ["apps/web/src/pages/PropsItemPage.test.ts", 1752],
   ["apps/web/src/pages/RunningOrderPage.test.ts", 1489],
   ["apps/web/src/pages/SceneryItemPage.test.ts", 1312],
@@ -19,7 +19,7 @@ const overBudget = new Map([
   ["apps/web/src/pages/AccountsPage.test.ts", 1021],
   ["apps/web/src/pages/ProductionOverviewPage.test.ts", 1036],
   ["apps/api/src/show/running-order/save-running-order.test.ts", 941],
-  ["apps/web/src/pages/MicPlotItemPage.test.ts", 901],
+  ["apps/web/src/pages/MicPlotItemPage.test.ts", 897],
   ["infra/lib/app-stack.test.ts", 891],
 ]);
 

@@ -79,6 +79,7 @@ const answer = (productionId: string, last: string): unknown => {
     roles: { productionId, roles: [role] },
     props: { productionId, props: [prop] },
     "mic-plot": { productionId, items: [] },
+    costumes: { productionId, costumes: [] },
   };
   return answers[last] ?? { status: "ok", version: "1.2.3" };
 };

@@ -21,6 +21,8 @@ import {
   SFX_NOTES_FILE,
   WARDROBE_NOTES_FILE,
 } from "#/item-notes/item-note-store.ts";
+import { fileCostumeStore } from "#/production/costumes/costume-store.ts";
+import { dynamoCostumeStore } from "#/production/costumes/dynamo-costume-store.ts";
 import {
   folderItemFileStore,
   type ItemFileStore,
@@ -85,6 +87,7 @@ export function fileStores(dataDir: string) {
     sceneryNotes: fileItemNoteStore(dataDir, SCENERY_NOTES_FILE),
     sfxNotes: fileItemNoteStore(dataDir, SFX_NOTES_FILE),
     wardrobeNotes: fileItemNoteStore(dataDir, WARDROBE_NOTES_FILE),
+    costumes: fileCostumeStore(dataDir),
     micPlotNotes: fileItemNoteStore(dataDir, MIC_PLOT_NOTES_FILE),
     micPlots: fileMicPlotStore(dataDir),
     productions: fileProductionListStore(dataDir),
@@ -107,6 +110,7 @@ export function remoteStores(db: DynamoDBDocumentClient, table: string): Stores 
     sceneryNotes: dynamoItemNoteStore(db, table, SCENERY_NOTE),
     sfxNotes: dynamoItemNoteStore(db, table, SFX_NOTE),
     wardrobeNotes: dynamoItemNoteStore(db, table, WARDROBE_NOTE),
+    costumes: dynamoCostumeStore(db, table),
     micPlotNotes: dynamoItemNoteStore(db, table, MIC_PLOT_NOTE),
     micPlots: dynamoMicPlotStore(db, table),
     productions: dynamoProductionListStore(db, table),

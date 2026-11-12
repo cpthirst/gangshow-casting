@@ -101,3 +101,22 @@ export function documentsInFiles<Stored extends { productionId: string }, Empty 
       }),
   };
 }
+
+/**
+ * A per-item store's keepOnlyItems for a production's one document: saves it with only the rows
+ * of the items in `itemIds`, deleting the rest for good, and nothing if every row's item stays
+ * (or there's no document yet). rowsOf: the document's rows; withRows: the document with only
+ * the rows given.
+ */
+export const keepOnlyRowsOfItems = <Stored, Held, Row extends { itemId: string }>(
+  documents: ProductionDocuments<Stored, Held>,
+  productionId: string,
+  itemIds: string[],
+  rowsOf: (document: Held) => Row[],
+  withRows: (document: Held, rows: Row[]) => Stored,
+) =>
+  saveRevised(documents, productionId, (document) => {
+    const rows = rowsOf(document);
+    const kept = rows.filter((row) => itemIds.includes(row.itemId));
+    return kept.length === rows.length ? undefined : withRows(document, kept);
+  });

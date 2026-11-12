@@ -11,6 +11,7 @@ import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, ref } from "vue";
 import RoleForm from "@/components/casting/RoleForm.vue";
 import ClashIcon from "@/components/common/ClashIcon.vue";
+import EditButton from "@/components/common/EditButton.vue";
 import ItemPageFrame from "@/components/common/ItemPageFrame.vue";
 import { useCasting } from "@/composables/useCasting.ts";
 import { controlOf, useConfirm } from "@/composables/useConfirm.ts";
@@ -254,17 +255,12 @@ async function postRole(itemId: string, details: AddRoleRequest) {
         <template v-else>
           <!-- Icons first, as on the Running order and Items pages; above the role on phones. -->
           <span v-if="canChange('casting')" class="card-icons row-icons">
-            <button
-              type="button"
-              class="icon-button"
-              data-test="edit"
-              :aria-label="`Edit ${role.name}`"
-              data-tooltip="Edit role"
+            <EditButton
+              :label="`Edit ${role.name}`"
+              tooltip="Edit role"
               :disabled="busy"
               @click="startEditing(role)"
-            >
-              <FontAwesomeIcon :icon="icons.edit" />
-            </button>
+            />
             <button
               type="button"
               class="icon-button"

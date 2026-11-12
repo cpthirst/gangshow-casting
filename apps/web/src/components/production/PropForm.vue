@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import type { CastMember, Prop, PropDetails, Role } from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-import { computed, nextTick, onMounted, ref, useId, watch } from "vue";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
 import CastMemberPicker from "@/components/casting/CastMemberPicker.vue";
+import FormActions from "@/components/common/FormActions.vue";
 import SearchPicker from "@/components/common/SearchPicker.vue";
+import { useFieldIds } from "@/composables/useFieldIds.ts";
 import { icons } from "@/utils/icons.ts";
 import {
   carriersHint,
@@ -39,12 +41,7 @@ const form = ref<PropFormFields>({
 });
 const errors = ref<Partial<Record<keyof PropFormFields, string>>>({});
 
-const uid = useId();
-const idFor = (field: keyof PropFormFields) => `${uid}-${field}`;
-const errorFor = (field: keyof PropFormFields) => `${uid}-${field}-error`;
-// Wires a field to its error message, if it has one.
-const invalid = (field: keyof PropFormFields) =>
-  errors.value[field] ? { "aria-invalid": true, "aria-describedby": errorFor(field) } : {};
+const { idFor, errorFor, invalid } = useFieldIds(errors);
 
 // The roles are picked as an ensemble's members are: search, choose, and each picked role
 // is listed with a button to drop it (production-props FR18).
@@ -272,12 +269,6 @@ function submit() {
       </p>
       <p class="visually-hidden" role="status">{{ carrierAnnouncement }}</p>
     </div>
-    <p v-if="error" class="field-error form-error" role="alert">{{ error }}</p>
-    <div class="editor-actions">
-      <button type="submit" class="primary" :disabled="saving">Save</button>
-      <button type="button" data-test="cancel" :disabled="saving" @click="emit('cancel')">
-        Cancel
-      </button>
-    </div>
+    <FormActions :saving="saving" :error="error" @cancel="emit('cancel')" />
   </form>
 </template>

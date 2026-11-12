@@ -2710,6 +2710,132 @@
         }
       }
     },
+    "/api/productions/{productionId}/costumes": {
+      "get": {
+        "tags": [
+          "Costumes"
+        ],
+        "summary": "What everyone wears in every item",
+        "description": "**Needs:** anyone signed in.",
+        "x-permission": {
+          "who": "anyone signed in"
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The costumes, in no particular order. A row nobody has filled in isn't listed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CostumeList"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "The production id isn't well formed."
+          }
+        }
+      }
+    },
+    "/api/productions/{productionId}/items/{itemId}/costumes": {
+      "put": {
+        "tags": [
+          "Costumes"
+        ],
+        "summary": "Save what one cast member wears in one of the item's roles",
+        "description": "**Needs:** admins, or any of these permissions: wardrobe, director. All three fields are saved together; emptying all three removes the row.",
+        "x-permission": {
+          "who": "admins, or any of these permissions",
+          "anyOf": [
+            "wardrobe",
+            "director"
+          ]
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveCostumeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The saved costume.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Costume"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The body doesn't fit the schema, the role isn't in the item, or the cast member isn't in the role."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "The production isn't the newest. Past productions are view only, for admins too. Or: The caller has no permission for this department.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/PastProductionRefusal"
+                    },
+                    {
+                      "$ref": "#/components/schemas/DepartmentRefusal"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The production id isn't well formed. Or: The item id isn't well formed. Or: The item isn't in the latest saved running order."
+          }
+        }
+      }
+    },
     "/api/productions/{productionId}/mic-plot": {
       "get": {
         "tags": [
@@ -3864,6 +3990,66 @@
         ],
         "additionalProperties": false
       },
+      "Costume": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "roleId": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "castMemberId": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "fromWardrobe": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "fromCastMember": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "itemId",
+          "roleId",
+          "castMemberId",
+          "fromWardrobe",
+          "fromCastMember",
+          "notes"
+        ],
+        "additionalProperties": false
+      },
+      "CostumeList": {
+        "type": "object",
+        "properties": {
+          "productionId": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]{1,40}$"
+          },
+          "costumes": {
+            "maxItems": 20000,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Costume"
+            }
+          }
+        },
+        "required": [
+          "productionId",
+          "costumes"
+        ],
+        "additionalProperties": false
+      },
       "CreatedAccount": {
         "type": "object",
         "properties": {
@@ -4875,6 +5061,39 @@
           "startTime",
           "intervalMinutes",
           "halves"
+        ],
+        "additionalProperties": false
+      },
+      "SaveCostumeRequest": {
+        "type": "object",
+        "properties": {
+          "roleId": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "castMemberId": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "fromWardrobe": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "fromCastMember": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "roleId",
+          "castMemberId",
+          "fromWardrobe",
+          "fromCastMember",
+          "notes"
         ],
         "additionalProperties": false
       },

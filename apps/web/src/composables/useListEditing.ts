@@ -2,7 +2,8 @@ import { computed, nextTick, ref, shallowRef } from "vue";
 import { useAddForm } from "./useAddForm.ts";
 
 /**
- * A list with one form open at a time, to add or to edit a row, as on Cast, Casting and Props.
+ * A list with one form open at a time, to add or to edit a row, as on Cast, Casting, Props and
+ * Costumes.
  * rowAttribute: the attribute carrying each row's id, so closing an edit puts focus back on
  * that row's Edit button.
  */
@@ -32,7 +33,7 @@ export function useListEditing<Item>(rowAttribute: string) {
     editing.value = item;
   }
 
-  async function stopEditing(id: number) {
+  async function stopEditing(id: number | string) {
     editing.value = null;
     await nextTick();
     // The row may be filtered out of view after a change; then focus simply stays put.

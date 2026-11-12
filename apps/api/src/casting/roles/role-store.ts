@@ -3,6 +3,7 @@ import {
   type Change,
   documentsInFiles,
   documentsInMemory,
+  keepOnlyRowsOfItems,
   type ProductionDocuments,
   saveRevised,
 } from "#/storage/production-documents.ts";
@@ -114,11 +115,10 @@ function withoutMember(file: RoleFile, castMemberId: number): RoleFile {
   return { ...file, roles };
 }
 
-/** The file without the roles of items outside `itemIds`. Keeps nextId, so their ids are
- *  never reused. */
-const withOnlyItems = (file: RoleFile, itemIds: string[]): RoleFile => ({
+/** The file with only the roles given. Keeps nextId, so the others' ids are never reused. */
+const withOnly = (file: RoleFile, roles: Role[]): RoleFile => ({
   ...file,
-  roles: file.roles.filter((role) => itemIds.includes(role.itemId)),
+  roles,
   nextId: nextIdOf(file),
 });
 
@@ -142,12 +142,7 @@ function roleStoreOver(files: ProductionDocuments<RoleFile>): RoleStore {
           : undefined,
       ),
     keepOnlyItems: (productionId, itemIds) =>
-      // Nothing to save if every role's item stays (e.g. no roles file yet).
-      saveRevised(files, productionId, (file) =>
-        file.roles.every((role) => itemIds.includes(role.itemId))
-          ? undefined
-          : withOnlyItems(file, itemIds),
-      ),
+      keepOnlyRowsOfItems(files, productionId, itemIds, (file) => file.roles, withOnly),
   };
 }
 

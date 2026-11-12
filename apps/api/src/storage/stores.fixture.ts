@@ -1,5 +1,6 @@
 import { inMemoryRoleStore } from "#/casting/roles/role-store.ts";
 import { inMemoryItemNoteStore } from "#/item-notes/item-note-store.ts";
+import { inMemoryCostumeStore } from "#/production/costumes/costume-store.ts";
 import type { ItemFileStore, ItemFileStores } from "#/production/item-files/item-file-store.ts";
 import { inMemoryMicPlotStore } from "#/production/mic-plot/mic-plot-store.ts";
 import { inMemoryPropStore } from "#/production/props/prop-store.ts";
@@ -21,6 +22,7 @@ export function inMemoryStores(given: Partial<Stores> = {}): Stores {
     sceneryNotes: inMemoryItemNoteStore(),
     sfxNotes: inMemoryItemNoteStore(),
     wardrobeNotes: inMemoryItemNoteStore(),
+    costumes: inMemoryCostumeStore(),
     micPlots: inMemoryMicPlotStore(),
     micPlotNotes: inMemoryItemNoteStore(),
     productions: inMemoryProductionListStore(),

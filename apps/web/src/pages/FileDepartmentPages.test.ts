@@ -1,10 +1,12 @@
 import {
   type CastMember,
+  type Costume,
   type FileDepartment,
   type ItemFile,
   ItemFileUploadRequest,
   type ItemNote,
   type Role,
+  SaveCostumeRequest,
   SaveItemNoteRequest,
 } from "@app/shared";
 import { enableAutoUnmount, flushPromises, type VueWrapper } from "@vue/test-utils";
@@ -13,7 +15,13 @@ import { json, openAppAt } from "@/app.fixture.ts";
 import * as confirmDialog from "@/components/common/ConfirmDialog.fixture.ts";
 import { downloadFrom, openFileTab } from "@/services/file-link.ts";
 import { StandInXhr } from "@/services/file-upload.fixture.ts";
-import { castPath, rolesPath, runningOrderPath } from "@/services/production.ts";
+import {
+  castPath,
+  costumesPath,
+  rolesPath,
+  runningOrderPath,
+  saveCostumePath,
+} from "@/services/production.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
 import {
@@ -24,6 +32,7 @@ import {
   pirateCast,
   pirates,
 } from "@/utils/casting.fixture.ts";
+import { alexAsHook, costumeFieldsOf, costumeFormField } from "@/utils/costumes.fixture.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
 
 // Every file department's page is the same component: SceneryItemPage.test.ts covers how it
@@ -61,8 +70,13 @@ interface Casting {
 const NOBODY_CAST: Casting = { roles: [], cast: [] };
 
 /** A stand-in API holding the running order, each department's files, changed by uploads
- *  and deletes, any notes, and the casting. */
-function apiHolds(held: Held = {}, notes: ItemNote[] = [], casting = NOBODY_CAST) {
+ *  and deletes, any notes, the casting, and the costumes, changed by saves. */
+function apiHolds(
+  held: Held = {},
+  notes: ItemNote[] = [],
+  casting = NOBODY_CAST,
+  costumes: Costume[] = [],
+) {
   const filesOf = (department: FileDepartment, itemId: string) => {
     const byItem = held[department] ?? {};
     held[department] = byItem;
@@ -77,6 +91,16 @@ function apiHolds(held: Held = {}, notes: ItemNote[] = [], casting = NOBODY_CAST
       if (url === runningOrderPath()) return json(show);
       if (url === rolesPath()) return json({ productionId: "2027", roles: casting.roles });
       if (url === castPath()) return json({ productionId: "2027", members: casting.cast });
+      if (url === costumesPath()) return json({ productionId: "2027", costumes });
+      if (url === saveCostumePath("opening-number") && init?.method === "PUT") {
+        const sent = SaveCostumeRequest.parse(JSON.parse(String(init.body)));
+        const saved = { itemId: "opening-number", ...sent };
+        const others = costumes.filter(
+          (c) => c.roleId !== sent.roleId || c.castMemberId !== sent.castMemberId,
+        );
+        costumes.splice(0, costumes.length, ...others, saved);
+        return json(saved);
+      }
       if (/^\/api\/productions\/2027\/(scenery|sfx|wardrobe)-notes$/.test(url)) {
         return json({ productionId: "2027", notes });
       }
@@ -404,5 +428,64 @@ describe("What's different about Wardrobe", () => {
     expect(nav.get("a").text()).toBe("All items");
     expect(nav.get("a[rel=prev]").attributes("href")).toBe(pageOf("wardrobe"));
     expect(nav.get("a[rel=next]").attributes("href")).toBe(pageOf("wardrobe", "finale"));
+  });
+
+  it("shows each row's saved costume to anyone signed in, with nothing to change it", async () => {
+    await signInAs([], "jo");
+    apiHolds({}, [], casting, [alexAsHook]);
+    const { wrapper } = await openAppAt(pageOf("wardrobe"));
+
+    expect(costumeFieldsOf(wrapper.get("main [data-test=costume]"))).toEqual([
+      ["From Wardrobe", "Red coat, hook"],
+      ["From Cast Member", "Black shoes"],
+      ["Notes", "Hem the coat"],
+    ]);
+    expect(wrapper.find("main [data-test=costume] button").exists()).toBe(false);
+  });
+
+  it("saves a costume, which anyone opening the page later sees", async () => {
+    const costumes: Costume[] = [];
+    apiHolds({}, [], casting, costumes);
+    const first = await openAppAt(pageOf("wardrobe"));
+    await first.wrapper
+      .get("main button[aria-label='Edit Alex Morgan as Captain Hook']")
+      .trigger("click");
+    const form = first.wrapper.get("main form[aria-label='Edit Alex Morgan as Captain Hook']");
+    await costumeFormField(form, "From Wardrobe").setValue("Red coat, hook");
+    await costumeFormField(form, "From Cast Member").setValue("Black shoes");
+    await costumeFormField(form, "Notes").setValue("Hem the coat");
+    await form.trigger("submit");
+    await flushPromises();
+    first.wrapper.unmount();
+
+    await signInAs([], "jo");
+    const { wrapper } = await openAppAt(pageOf("wardrobe"));
+
+    expect(costumes).toEqual([alexAsHook]);
+    expect(costumeFieldsOf(wrapper.get("main [data-test=costume]"))).toEqual([
+      ["From Wardrobe", "Red coat, hook"],
+      ["From Cast Member", "Black shoes"],
+      ["Notes", "Hem the coat"],
+    ]);
+  });
+
+  it.each([
+    ["kit, with Wardrobe", "wardrobe"],
+    ["dee, with Director", "director"],
+    ["ann, an admin", "admin"],
+  ])("gives %s a pencil on every cast row", async (_who, group) => {
+    await signInAs([group], "made-up");
+    apiHolds({}, [], casting);
+    const { wrapper } = await openAppAt(pageOf("wardrobe"));
+
+    expect(wrapper.findAll("main [data-test=costume] [data-test=edit]")).toHaveLength(4);
+  });
+
+  it("gives lee, with Tech only, no pencils", async () => {
+    await signInAs(["tech"], "lee");
+    apiHolds({}, [], casting);
+    const { wrapper } = await openAppAt(pageOf("wardrobe"));
+
+    expect(wrapper.find("main [data-test=costume] [data-test=edit]").exists()).toBe(false);
   });
 });

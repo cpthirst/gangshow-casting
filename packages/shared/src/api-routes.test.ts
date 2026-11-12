@@ -180,6 +180,7 @@ describe("routeNeeds", () => {
     "DELETE /api/productions/{productionId}/items/{itemId}/wardrobe-files",
     "POST /api/productions/{productionId}/items/{itemId}/wardrobe-uploads",
     "PUT /api/productions/{productionId}/items/{itemId}/wardrobe-notes",
+    "PUT /api/productions/{productionId}/items/{itemId}/costumes",
   ] as const)("has %s need Wardrobe or Director, and refuse others naming the wardrobe", (key) => {
     expect(needOf(key)).toBe("wardrobe");
   });
@@ -189,6 +190,7 @@ describe("routeNeeds", () => {
     "GET /api/productions/{productionId}/items/{itemId}/wardrobe-file-link",
     "GET /api/productions/{productionId}/wardrobe-notes",
     "GET /api/productions/{productionId}/wardrobe-file-counts",
+    "GET /api/productions/{productionId}/costumes",
   ] as const)("leaves %s open to everyone", (key) => {
     expect(routeKeys).toContain(key);
     expect(needOf(key)).toBeUndefined();

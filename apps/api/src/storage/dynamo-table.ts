@@ -4,7 +4,7 @@ import {
   type DynamoDBClient,
   TransactionCanceledException,
 } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import { DeleteCommand, DynamoDBDocumentClient, QueryCommand } from "@aws-sdk/lib-dynamodb";
 
 // The production data table (ADR 0015): partition key "pk" and sort key "sk", matching
 // infra/lib/app-stack.ts. Each production is one partition; each entity is one item.
@@ -49,6 +49,24 @@ export async function queryAll(
     startKey = page.LastEvaluatedKey;
   } while (startKey);
   return items;
+}
+
+/** Deletes, for good, every row in a production whose sort key starts with `prefix` and whose
+ *  item isn't in `itemIds`: keepOnlyItems for a store whose rows each name their item. */
+export async function deleteRowsOfItemsNotIn(
+  db: DynamoDBDocumentClient,
+  tableName: string,
+  productionId: string,
+  prefix: string,
+  itemIds: string[],
+) {
+  const rows = await queryAll(db, tableName, productionId, prefix);
+  for (const { sk, itemId } of rows) {
+    if (itemIds.includes(String(itemId))) continue;
+    await db.send(
+      new DeleteCommand({ TableName: tableName, Key: { pk: partitionFor(productionId), sk } }),
+    );
+  }
 }
 
 /** Whether a write was refused by its condition, e.g. a stale revision. */

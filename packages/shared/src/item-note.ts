@@ -4,13 +4,21 @@ import { ProductionId, RunningOrderItem } from "./running-order.ts";
 /** The most an item's notes can hold, in characters (casting-item-overview FR8). */
 export const MAX_NOTE_LENGTH = 500;
 
+/** Free text of up to the notes' limit, as stored: "" when empty. Costume fields
+ *  (production-costume-sheets FR4) hold the same. */
+export const NoteText = z.string().max(MAX_NOTE_LENGTH);
+
+/** The same, as a save sends it: trimmed before the length is checked, so spaces round the
+ *  text don't count against it. */
+export const SavedNoteText = z.string().trim().max(MAX_NOTE_LENGTH);
+
 /** Casting notes on one item (casting-item-overview FR8): kept by the item's id, apart from
  *  the running order's Comments, so they survive new running-order versions. Props notes
  *  (production-props FR20) take the same shapes, at their own routes, kept apart from these. */
 export const ItemNote = z.strictObject({
   itemId: RunningOrderItem.shape.id,
   /** Free text; "" once cleared. */
-  text: z.string().max(MAX_NOTE_LENGTH),
+  text: NoteText,
   /** Goes up on every save, so a stale save can be refused (FR10). */
   revision: z.number().int().min(1),
 });
@@ -29,7 +37,7 @@ export const ItemNoteList = z.strictObject({
  * 200 returns the saved ItemNote; 409 means someone else saved first.
  */
 export const SaveItemNoteRequest = z.strictObject({
-  text: z.string().trim().max(MAX_NOTE_LENGTH),
+  text: SavedNoteText,
   revision: z.number().int().min(0),
 });
 

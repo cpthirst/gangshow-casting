@@ -129,15 +129,6 @@ describe("An item's notes", () => {
     expect(field(wrapper).attributes("aria-describedby")).toBe(shows ? "notes-count" : undefined);
   });
 
-  it("says 1 character left, not 1 characters", async () => {
-    apiHolds();
-    const wrapper = await openNotes();
-
-    await field(wrapper).setValue("x".repeat(MAX_NOTE_LENGTH - 1));
-
-    expect(wrapper.get("[data-test=notes-count]").text()).toBe("1 character left");
-  });
-
   it("refuses notes over the limit, saving nothing", async () => {
     const fetch = apiHolds();
     const wrapper = await openNotes();

@@ -941,10 +941,7 @@ describe("Accounts page", () => {
       });
 
       it.each([
-        [
-          "Cancel",
-          (wrapper: Page) => editor(wrapper).get("[data-test=cancel-access]").trigger("click"),
-        ],
+        ["Cancel", (wrapper: Page) => editor(wrapper).get("[data-test=cancel]").trigger("click")],
         ["Escape", (wrapper: Page) => editor(wrapper).trigger("keydown", { key: "Escape" })],
       ])("closes the tick boxes on %s, changing nothing", async (_case, close) => {
         const fetchMock = serveChanges([account("kim", { access: ["stage"] })], {});
