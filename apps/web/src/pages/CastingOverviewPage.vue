@@ -260,7 +260,7 @@ async function loadCast() {
         v-if="canExport"
         ref="exportButton"
         type="button"
-        class="grid-export-button"
+        class="excel-export-button"
         :disabled="exporting"
         @click="exportGrid">
         <FontAwesomeIcon :icon="icons.exportFile" />

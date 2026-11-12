@@ -5,6 +5,7 @@ import { createMemoryHistory } from "vue-router";
 import App from "@/App.vue";
 import CastingGrid from "@/components/casting/CastingGrid.vue";
 import { createAppRouter } from "@/router/index.ts";
+import { catchDownloads, exportUses, type SavedFile } from "@/services/export-file.fixture.ts";
 import { castPath, rolesPath, runningOrderPath } from "@/services/production.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
@@ -1308,21 +1309,14 @@ describe("Excel export from the grid", () => {
 
   let exportStatus = 200;
   let exportRequests: { url: string; init?: RequestInit }[] = [];
-  let downloads: { name: string; href: string }[] = [];
+  let downloads: SavedFile[] = [];
 
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ["Date"], now: new Date(2027, 2, 12, 10, 0) });
     exportStatus = 200;
     exportRequests = [];
-    downloads = [];
     useLocalSignIn();
-    URL.createObjectURL = vi.fn(() => "blob:made-up");
-    URL.revokeObjectURL = vi.fn();
-    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
-      this: HTMLAnchorElement,
-    ) {
-      downloads.push({ name: this.download, href: this.href });
-    });
+    downloads = catchDownloads();
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: string, init?: RequestInit) => {
@@ -1369,7 +1363,7 @@ describe("Excel export from the grid", () => {
     const button = exportButton(wrapper);
     expect(button?.text()).toBe("Export to Excel");
     expect(button?.find("svg").exists()).toBe(true);
-    expect(button?.classes()).toContain("grid-export-button");
+    expect(button?.classes()).toContain("excel-export-button");
   });
 
   it("puts the button beside the By person / Grid switch, not beside the page title", async () => {
@@ -1377,10 +1371,10 @@ describe("Excel export from the grid", () => {
 
     const bar = wrapper.get(".view-bar");
     expect(bar.find(".view-switch").exists()).toBe(true);
-    expect(bar.find("button.grid-export-button").exists()).toBe(true);
+    expect(bar.find("button.excel-export-button").exists()).toBe(true);
     // Beside the switch, not one of its choices.
-    expect(wrapper.find(".view-switch button.grid-export-button").exists()).toBe(false);
-    expect(wrapper.get(".page-title-row").find("button.grid-export-button").exists()).toBe(false);
+    expect(wrapper.find(".view-switch button.excel-export-button").exists()).toBe(false);
+    expect(wrapper.get(".page-title-row").find("button.excel-export-button").exists()).toBe(false);
   });
 
   it.each([
@@ -1452,8 +1446,8 @@ describe("Excel export from the grid", () => {
     await exportButton(wrapper)?.trigger("click");
     await flushPromises();
 
-    expect(downloads).toEqual([
-      { name: "Gang Show 2027 casting grid 2027-03-12.xlsx", href: "blob:made-up" },
+    expect(downloads.map(({ name }) => name)).toEqual([
+      "Gang Show 2027 casting grid 2027-03-12.xlsx",
     ]);
     expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:made-up");
   });
@@ -1476,7 +1470,7 @@ describe("Excel export from the grid", () => {
   ])("puts keyboard focus back on the button when an export %s", async (_name, status) => {
     exportStatus = status;
     const wrapper = await openGrid();
-    const button = wrapper.get<HTMLButtonElement>(".grid-export-button");
+    const button = wrapper.get<HTMLButtonElement>(".excel-export-button");
     button.element.focus();
 
     await button.trigger("click");
@@ -1484,13 +1478,6 @@ describe("Excel export from the grid", () => {
 
     expect(document.activeElement).toBe(button.element);
   });
-
-  const exportUses = () =>
-    vi
-      .mocked(fetch)
-      .mock.calls.filter(([url, init]) => url === "/api/usage" && init?.method === "POST")
-      .map(([, init]) => JSON.parse(String(init?.body)))
-      .filter((body) => body.event === "export");
 
   it("records the export once the file is made (usage-tracking FR2)", async () => {
     const wrapper = await openGrid();
@@ -1608,7 +1595,7 @@ describe.each([
     const wrapper = await openOverview();
     await showGrid(wrapper);
 
-    expect(wrapper.get("button.grid-export-button").text()).toBe("Export to Excel");
+    expect(wrapper.get("button.excel-export-button").text()).toBe("Export to Excel");
   });
 
   it("says on the page that the access is read-only", async () => {

@@ -4,6 +4,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory } from "vue-router";
 import App from "@/App.vue";
 import { createAppRouter } from "@/router/index.ts";
+import {
+  bytesOf,
+  catchDownloads,
+  exportUses,
+  type SavedFile,
+} from "@/services/export-file.fixture.ts";
 import { castPath, rolesPath, runningOrderPath } from "@/services/production.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
@@ -46,24 +52,13 @@ let api: {
   holdRoles?: Promise<void>;
   usageFails?: boolean;
 };
-let saved: { name: string; file: Blob }[];
+let saved: SavedFile[];
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["Date"], now: new Date(2027, 2, 12, 10, 0) });
   useLocalSignIn();
   api = { cast: [ava, ben], roles: [fairy], rolesStatus: 200 };
-  saved = [];
-  let lastFile: Blob | undefined;
-  URL.createObjectURL = vi.fn((file: Blob) => {
-    lastFile = file;
-    return "blob:made-up";
-  });
-  URL.revokeObjectURL = vi.fn();
-  vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
-    this: HTMLAnchorElement,
-  ) {
-    if (lastFile) saved.push({ name: this.download, file: lastFile });
-  });
+  saved = catchDownloads();
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string) => {
@@ -116,9 +111,6 @@ async function exportFrom(wrapper: VueWrapper, label: string) {
   );
   await flushPromises();
 }
-
-const bytesOf = async (file: Blob | undefined) =>
-  new Uint8Array(file ? await file.arrayBuffer() : new ArrayBuffer(0));
 
 describe("Export to Word", () => {
   it("sits beside the view switch on the By item view, in blue, with a file icon", async () => {
@@ -382,17 +374,10 @@ describe("Export to Word on the By person view: the Casting Sheets", () => {
 });
 
 describe("Recording Word exports (usage-tracking FR2)", () => {
-  const exportUses = () =>
-    vi
-      .mocked(fetch)
-      .mock.calls.filter(([url, init]) => url === "/api/usage" && init?.method === "POST")
-      .map(([, init]) => JSON.parse(String(init?.body)))
-      .filter((body) => body.event === "export");
-
   it("records each Word export by name, from By person and then By item", async () => {
     const wrapper = await openView("By person");
     await exportFrom(wrapper, "Export to Word");
-    saved = [];
+    saved.length = 0;
     await wrapper
       .findAll(".view-switch button")
       .find((b) => b.text() === "By item")

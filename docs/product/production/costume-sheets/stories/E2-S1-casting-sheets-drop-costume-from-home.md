@@ -2,7 +2,7 @@
 id: production-costume-sheets.E2.S1
 title: Drop "Costume from home" from the casting sheets
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story

@@ -17,7 +17,7 @@ import DraftNumber from "@/components/common/DraftNumber.vue";
 import NoRunningOrder from "@/components/common/NoRunningOrder.vue";
 import PageTitle from "@/components/common/PageTitle.vue";
 import { downloadMicPlot } from "@/services/excel-export.ts";
-import { latestMicPlot, latestPropsList } from "@/services/latest-show.ts";
+import { latestCostumeSheets, latestMicPlot, latestPropsList } from "@/services/latest-show.ts";
 import { loadData, loadRequired } from "@/services/load-data.ts";
 import {
   departmentNotesPath,
@@ -28,7 +28,7 @@ import {
 } from "@/services/production.ts";
 import { canChange } from "@/services/sign-in.ts";
 import { recordExport } from "@/services/usage.ts";
-import { downloadPropsList } from "@/services/word-export.ts";
+import { downloadCostumeSheets, downloadPropsList } from "@/services/word-export.ts";
 import {
   type DepartmentCount,
   type DepartmentPage,
@@ -153,25 +153,45 @@ const shownCount = (
   itemId: string,
 ) => (typeof counts === "function" ? inWords(counts(itemId)) : undefined);
 
-// The props list in Word and the mic plot in Excel, for every role, built in the browser with
-// everything as saved at that moment (production-props FR22, FR23, production-mics FR14;
-// ADR 0022, ADR 0033).
+// The Overview's exports, each built in the browser for every role with everything as saved
+// at that moment, in button order: the props list and costume sheets in Word, then the mic
+// plot in Excel (production-props FR22, FR23, production-costume-sheets FR9,
+// production-mics FR14; ADR 0022, ADR 0033).
 const generators = {
   props: {
+    label: "Generate Props List",
+    format: "word",
     make: async () => {
       const { title, halves } = await latestPropsList();
       return downloadPropsList(title, halves);
     },
     generated: "Props list generated.",
+    failed: "Couldn't generate the props list. Try again.",
     use: "word-props-list",
   },
+  costumes: {
+    label: "Generate Costume Sheets",
+    format: "word",
+    make: async () => downloadCostumeSheets(await latestCostumeSheets()),
+    generated: "Costume sheets generated.",
+    failed: "Couldn't generate the costume sheets. Try again.",
+    use: "word-costume-sheets",
+  },
   mics: {
+    label: "Generate Mic Plot",
+    format: "excel",
     make: async () => downloadMicPlot(await latestMicPlot()),
     generated: "Mic plot generated.",
+    failed: "Couldn't generate the mic plot. Try again.",
     use: "excel-mic-plot",
   },
 } as const;
 type Generated = keyof typeof generators;
+/** Each format's button: Word's blue or Excel's green, with its file icon. */
+const formats = {
+  word: { buttonClass: "word-export-button", icon: icons.exportWord },
+  excel: { buttonClass: "excel-export-button", icon: icons.exportFile },
+};
 
 /** The file being made, if any: one at a time. */
 const generating = ref<Generated>();
@@ -179,8 +199,10 @@ const generateFailed = ref<Partial<Record<Generated, boolean>>>({});
 /** Screen-reader announcement of a finished file. */
 const announcement = ref("");
 // A disabled button drops keyboard focus, so it is put back once the file is made.
-const propsButton = ref<HTMLButtonElement>();
-const micsButton = ref<HTMLButtonElement>();
+const generateButtons: Partial<Record<Generated, HTMLButtonElement>> = {};
+function keepButton(file: Generated, button: unknown) {
+  if (button instanceof HTMLButtonElement) generateButtons[file] = button;
+}
 
 async function generate(file: Generated) {
   if (generating.value) return;
@@ -201,7 +223,7 @@ async function generate(file: Generated) {
   }
   generating.value = undefined;
   await nextTick();
-  (file === "props" ? propsButton : micsButton).value?.focus();
+  generateButtons[file]?.focus();
 }
 
 onMounted(() => {
@@ -277,30 +299,22 @@ async function loadRunningOrder() {
     <DraftNumber :version="state.order.version" />
     <div class="view-bar">
       <button
-        ref="propsButton"
+        v-for="(generator, file) in generators"
+        :key="file"
+        :ref="(button) => keepButton(file, button)"
         type="button"
-        class="word-export-button"
+        :class="formats[generator.format].buttonClass"
         :disabled="generating !== undefined"
-        @click="generate('props')">
-        <FontAwesomeIcon :icon="icons.exportWord" />
-        Generate Props List
-      </button>
-      <button
-        ref="micsButton"
-        type="button"
-        class="grid-export-button"
-        :disabled="generating !== undefined"
-        @click="generate('mics')">
-        <FontAwesomeIcon :icon="icons.exportFile" />
-        Generate Mic Plot
+        @click="generate(file)">
+        <FontAwesomeIcon :icon="formats[generator.format].icon" />
+        {{ generator.label }}
       </button>
     </div>
-    <p v-if="generateFailed.props" class="notice word-export-error" role="alert">
-      Couldn't generate the props list. Try again.
-    </p>
-    <p v-if="generateFailed.mics" class="notice mic-plot-export-error" role="alert">
-      Couldn't generate the mic plot. Try again.
-    </p>
+    <template v-for="(generator, file) in generators" :key="file">
+      <p v-if="generateFailed[file]" class="notice" role="alert" :data-test="`${file}-error`">
+        {{ generator.failed }}
+      </p>
+    </template>
     <p v-if="loadFailure" class="notice" role="alert">{{ loadFailure }}</p>
     <section v-for="{ half, rows } in halves" :key="half.id" class="half" :aria-labelledby="half.id">
       <h2 :id="half.id">{{ half.name }}</h2>

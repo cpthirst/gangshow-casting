@@ -2,7 +2,7 @@
 id: production-costume-sheets.E2.S2
 title: Generate a costume sheet for every cast member
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story
@@ -14,7 +14,7 @@ As someone on the Wardrobe team, I want one Word document with a costume sheet f
 ### AC1: Generate Costume Sheets sits with the other exports
 Given a production with a saved running order
 When anyone signed in, a Read-Only Team Member included, opens the Production Overview
-Then there is a "Generate Costume Sheets" button beside "Generate Props List" and "Generate Mic Plot", with the Word export icon
+Then there is a "Generate Costume Sheets" button between "Generate Props List" and "Generate Mic Plot", so the Word exports sit together, with the Word export icon
 
 ### AC2: One page per cast member, laid out as the casting sheets
 Given the cast is Alex Morgan (Scouts, 1st Anytown), Jo Brown (Explorers, Anytown Unit) and Sam Patel (no section), and Sam is cast in nothing
@@ -29,13 +29,13 @@ Then each page's table has the columns "#", "Item Name", "Role", "From Wardrobe"
 ### AC4: A row shows the cast member's role and costume for the item
 Given Alex Morgan as "Captain Hook" in "Opening Number" has From Wardrobe "Red coat, hook", From Cast Member "Black shoes" and Notes "Hem the coat", and Alex isn't in "Pirate Dance"
 When the costume sheets are generated
-Then Alex's "Opening Number" row shows "Captain Hook", "Red coat, hook" and "Black shoes", and never "Hem the coat"
+Then Alex's "Opening Number" row's Role shows a centred tick with "(Captain Hook)" in italics on the line below it, also centred, then "Red coat, hook" and "Black shoes", and never "Hem the coat"
 And Alex's "Pirate Dance" row has "Role", "From Wardrobe" and "From Cast Member" empty
 
 ### AC5: Two roles in one item are two rows
 Given Jo Brown is both "Smee" and in "Pirates" in "Opening Number"
 When the costume sheets are generated
-Then Jo's page has two "Opening Number" rows, one for "Smee" and one for "Pirates", each with its own costume text
+Then Jo's page has two "Opening Number" rows, one with a tick over "(Smee)" and one with a tick over "(Pirates)", each with its own costume text
 
 ### AC6: Busy, done and failed, as the other exports
 Given anyone is on the Production Overview
@@ -55,4 +55,6 @@ Then kit's account shows the costume sheets export, as it shows the other export
 - The costume sheets and the casting sheets are one document with two column sets, sharing the page order, headings, half breaks, row height, unprinted-item styling and margins (ADR 0022). Extend that document; don't copy it.
 - Built in the browser from the cast, roles, running order and every item's costumes, loading only when used, as the other Word exports.
 - The Help entry for the button is E3.S1's; this story adds nothing to Help.
+- The Role column's tick over the italic role name in parentheses was changed 2026-11-12 at the user's request (PRD FR11); it was the role's name alone.
+- The button order (Props List, Costume Sheets, Mic Plot: Word together, Excel apart) is the user's choice, 2026-11-12.
 - Out of scope: a by-item costume list (PRD non-goal).

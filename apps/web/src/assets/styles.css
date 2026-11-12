@@ -1926,10 +1926,13 @@ main a {
 
 /* Casting overview: the view switch (By person / By item / Grid), filled for the view showing, with Export to
    Excel at the end of the same row, wrapping beneath it on a narrow phone. */
+/* The switch keeps the row's start; the export buttons gather at its end, and wrap there
+   evenly however many there are. */
 .view-bar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-end;
   gap: 0.5rem;
   margin: 0 0 1rem;
 }
@@ -1937,10 +1940,11 @@ main a {
 .view-switch {
   display: flex;
   gap: 0.5rem;
+  margin-right: auto;
 }
 
 .view-switch button,
-.grid-export-button,
+.excel-export-button,
 .word-export-button {
   padding: 0.5rem 1rem;
   border: 2px solid var(--text);
@@ -1957,13 +1961,12 @@ main a {
   color: var(--white);
 }
 
-/* Both export buttons take the switch's shape. Excel's is in the green of a timeline's "in this item" dot. */
-.grid-export-button,
+/* The export buttons take the switch's shape. Excel's is in the green of a timeline's "in this item" dot. */
+.excel-export-button,
 .word-export-button {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  margin-left: auto;
   border-color: var(--in-item);
   color: var(--in-item);
 }
@@ -1979,18 +1982,13 @@ main a {
   color: #1d3d6b;
 }
 
-/* Side by side at the end of the row, as on the Overview. */
-.word-export-button + .grid-export-button {
-  margin-left: 0;
-}
-
-.grid-export-button:hover:not(:disabled) {
+.excel-export-button:hover:not(:disabled) {
   border-color: #1b5e20;
   color: #1b5e20;
 }
 
 /* Faded like the app's other disabled buttons while an export runs. */
-.grid-export-button:disabled,
+.excel-export-button:disabled,
 .word-export-button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
@@ -2502,9 +2500,12 @@ main a {
   }
 
   /* Under the switch, on the left like the other buttons on a phone. */
-  .grid-export-button,
-  .word-export-button {
-    margin-left: 0;
+  .view-bar {
+    justify-content: flex-start;
+  }
+
+  .view-switch {
+    margin-right: 0;
   }
 
   /* As easy to tap as Sign out, which it stands in for locally. */

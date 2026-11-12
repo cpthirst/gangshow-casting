@@ -49,6 +49,7 @@ const exportActivity: Record<UsageExport, string> = {
   "word-props-list": "exported the Word props list",
   // Said as its button and feature are.
   "excel-mic-plot": "generated the Mic Plot",
+  "word-costume-sheets": "exported the Word costume sheets",
 };
 
 type Titles = {
@@ -115,6 +116,7 @@ const otherNames: Record<OtherFeature, string> = {
   "export-word-props-list": "Export: Word props list",
   // Named for its button, at the maintainer's choice (production-mics E3.S2).
   "export-excel-mic-plot": "Generate Mic Plot",
+  "export-word-costume-sheets": "Export: Word costume sheets",
 };
 
 const isOtherFeature = (feature: UsageFeature): feature is OtherFeature =>

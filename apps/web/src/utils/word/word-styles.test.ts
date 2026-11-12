@@ -2,7 +2,7 @@ import type { CastMember } from "@app/shared";
 import { type Document, Packer } from "docx";
 import { describe, expect, it } from "vitest";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
-import { castingSheetsDocument } from "./casting-sheets-document.ts";
+import { castingSheetsDocument } from "./cast-member-sheets-document.ts";
 import { styleOf } from "./docx.fixture.ts";
 import { itemOverviewDocument } from "./item-overview-document.ts";
 

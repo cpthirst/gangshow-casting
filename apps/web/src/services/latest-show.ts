@@ -1,9 +1,18 @@
-import { CastList, ItemNoteList, MicPlotList, PropList, RoleList, RunningOrder } from "@app/shared";
+import {
+  CastList,
+  CostumeList,
+  ItemNoteList,
+  MicPlotList,
+  PropList,
+  RoleList,
+  RunningOrder,
+} from "@app/shared";
 import { micPlotListOf } from "@/utils/mic-plot.ts";
 import { propsListOf } from "@/utils/props.ts";
 import { loadRequired } from "./load-data.ts";
 import {
   castPath,
+  costumesPath,
   departmentNotesPath,
   micPlotPath,
   propsPath,
@@ -23,6 +32,18 @@ export async function latestShow() {
     loadRequired(runningOrderPath(), RunningOrder),
   ]);
   return { cast: cast.members, roles, order };
+}
+
+export type LatestCostumeSheets = Awaited<ReturnType<typeof latestCostumeSheets>>;
+
+/** The casting and every costume as saved right now (production-costume-sheets FR9). Throws
+ *  if anything it needs can't be loaded. */
+export async function latestCostumeSheets() {
+  const [show, { costumes }] = await Promise.all([
+    latestShow(),
+    loadRequired(costumesPath(), CostumeList),
+  ]);
+  return { ...show, costumes };
 }
 
 /** The production's title and its props list as saved right now, with the casting as it is
