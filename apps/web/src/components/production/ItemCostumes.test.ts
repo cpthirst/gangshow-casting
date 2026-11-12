@@ -1,4 +1,4 @@
-import { type Costume, SaveCostumeRequest } from "@app/shared";
+import type { Costume } from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { json } from "@/app.fixture.ts";
@@ -8,11 +8,18 @@ import {
   alexMorgan,
   aRole,
   captainHook,
+  chrisEvans,
+  joBrown,
   pirateCast,
   pirates,
   smee,
 } from "@/utils/casting.fixture.ts";
-import { alexAsHook, costumeFieldsOf, costumeFormField } from "@/utils/costumes.fixture.ts";
+import {
+  alexAsHook,
+  costumeFieldsOf,
+  costumeFormField,
+  costumeSavedFrom,
+} from "@/utils/costumes.fixture.ts";
 import ItemCostumes from "./ItemCostumes.vue";
 
 enableAutoUnmount(afterEach);
@@ -32,8 +39,7 @@ function apiSaves(answer?: () => Promise<Response>) {
         return new Response(null, { status: 404 });
       }
       saves.push(JSON.parse(String(init.body)));
-      const sent = SaveCostumeRequest.parse(JSON.parse(String(init.body)));
-      return answer ? answer() : json({ itemId: "opening-number", ...sent });
+      return answer ? answer() : json(costumeSavedFrom("opening-number", init.body));
     }),
   );
   return saves;
@@ -164,6 +170,39 @@ describe("An item's Costumes section", () => {
     });
   });
 
+  describe("following the casting", () => {
+    it("shows a recast role's new cast member with empty fields, and the old one's text nowhere", () => {
+      const wrapper = openCostumes({ roles: [captainHook(chrisEvans)], costumes: [alexAsHook] });
+
+      expect(rows(wrapper)).toEqual(["Captain Hook (Chris Evans)"]);
+      expect(wrapper.text()).not.toContain("Red coat, hook");
+    });
+
+    it("shows a cast member's text again when they're recast into the role", async () => {
+      const wrapper = openCostumes({ roles: [captainHook(chrisEvans)], costumes: [alexAsHook] });
+
+      await wrapper.setProps({ roles: [captainHook()] });
+
+      expect(costumeFieldsOf(rowOf(wrapper, "Alex Morgan as Captain Hook"))[0]).toEqual([
+        "From Wardrobe",
+        "Red coat, hook",
+      ]);
+    });
+
+    it("shows no rows for a role removed from the item", () => {
+      const joAsPirate = {
+        ...alexAsHook,
+        roleId: pirates.id,
+        castMemberId: joBrown.id,
+        fromWardrobe: "Sash",
+      };
+      const wrapper = openCostumes({ roles: [captainHook()], costumes: [alexAsHook, joAsPirate] });
+
+      expect(rows(wrapper)).toEqual([expect.stringMatching(/^Captain Hook \(Alex Morgan\)/)]);
+      expect(wrapper.text()).not.toContain("Sash");
+    });
+  });
+
   describe("changing a row", () => {
     it("gives every cast row a pencil, named for whose row it is, when the viewer can change costumes", () => {
       const wrapper = openCostumes({ roles: [captainHook(), pirates, smee] });
@@ -224,6 +263,7 @@ describe("An item's Costumes section", () => {
           fromWardrobe: "Red coat, hook",
           fromCastMember: "Black shoes",
           notes: "Hem the coat",
+          revision: 0,
         },
       ]);
       expect(wrapper.find("form").exists()).toBe(false);
@@ -234,6 +274,45 @@ describe("An item's Costumes section", () => {
       ]);
       expect(wrapper.get("[role=status]").text()).toBe("Costume saved.");
       expect(wrapper.emitted("update:costumes")?.at(-1)).toEqual([[alexAsHook]]);
+    });
+
+    it("sends the revision the row was saved at, so a stale save can be refused", async () => {
+      const saves = apiSaves();
+      const wrapper = openCostumes({ costumes: [{ ...alexAsHook, revision: 3 }] });
+      await editAlex(wrapper);
+
+      await formOf(wrapper).trigger("submit");
+      await flushPromises();
+
+      expect(saves).toEqual([expect.objectContaining({ revision: 3 })]);
+    });
+
+    it("refuses a save someone else saved first, showing their text in the form to edit again", async () => {
+      // Made-up: dee saved From Wardrobe "Blue coat" since kit opened the row.
+      const blueCoat = { ...alexAsHook, fromWardrobe: "Blue coat", revision: 2 };
+      apiSaves(async () => json(blueCoat, 409));
+      const wrapper = openCostumes({ costumes: [alexAsHook] });
+      await editAlex(wrapper);
+
+      await fieldLabelled(wrapper, "From Wardrobe").setValue("Red coat, hook");
+      await formOf(wrapper).trigger("submit");
+      await flushPromises();
+
+      expect(formOf(wrapper).get("[role=alert]").text()).toBe(
+        "Someone else saved this costume first. Here it is now; your changes weren't saved.",
+      );
+      expect(fieldLabelled(wrapper, "From Wardrobe").element.value).toBe("Blue coat");
+      expect(wrapper.emitted("update:costumes")?.at(-1)).toEqual([[blueCoat]]);
+
+      const saves = apiSaves();
+      await fieldLabelled(wrapper, "From Wardrobe").setValue("Blue coat, hook");
+      await formOf(wrapper).trigger("submit");
+      await flushPromises();
+
+      expect(saves).toEqual([
+        expect.objectContaining({ fromWardrobe: "Blue coat, hook", revision: 2 }),
+      ]);
+      expect(wrapper.find("form").exists()).toBe(false);
     });
 
     it("keeps the form, with what was typed, when a save fails", async () => {

@@ -42,12 +42,18 @@ export const rowName = (role: Role, member: CastMember) => `${fullName(member)} 
 const isRow = (costume: Costume, roleId: number, castMemberId: number) =>
   costume.roleId === roleId && costume.castMemberId === castMemberId;
 
-/** The fields saved for a cast member in a role, all empty if nobody has filled them in. */
-export const costumeOf = (costumes: Costume[], role: Role, member: CastMember): CostumeFields =>
+/** The fields saved for a cast member in a role and the revision they were saved at: all
+ *  empty, at 0, if nobody has saved them. */
+export const costumeOf = (
+  costumes: Costume[],
+  role: Role,
+  member: CastMember,
+): CostumeFields & Pick<Costume, "revision"> =>
   costumes.find((costume) => isRow(costume, role.id, member.id)) ?? {
     fromWardrobe: "",
     fromCastMember: "",
     notes: "",
+    revision: 0,
   };
 
 /** The costumes with one row's saved in place of what it was. */

@@ -1,12 +1,15 @@
 import type { Role } from "@app/shared";
 import { describe, expect, it } from "vitest";
 import { inMemoryRoleStore, type RoleStore } from "#/casting/roles/role-store.ts";
+import { aCostume } from "#/production/costumes/costume-store.contract.ts";
+import { inMemoryCostumeStore } from "#/production/costumes/costume-store.ts";
 import { inMemoryMicPlotStore } from "#/production/mic-plot/mic-plot-store.ts";
 import { inMemoryPropStore, type PropStore } from "#/production/props/prop-store.ts";
+import type { Stores } from "#/storage/data-stores.ts";
+import { inMemoryStores } from "#/storage/stores.fixture.ts";
 import { aCastList, aCastMember } from "./cast.fixture.ts";
 import { inMemoryCastStore } from "./cast-store.ts";
 import { createDeleteCastMember } from "./delete-cast-member.ts";
-import { uncastThenRemove } from "./remove-cast-member.ts";
 
 const request = (castId: string, revision: string | undefined, productionId = "2027") => ({
   pathParameters: { productionId, castId },
@@ -22,16 +25,13 @@ const aRole = (id: number, itemId: string, castMemberIds: number[]): Role => ({
   revision: 1,
 });
 
+/** The handler as routes.ts builds it, from the stores given. */
+const deleteWith = (stores: Stores) =>
+  createDeleteCastMember(stores.removeCastMember, stores.roles, stores);
+
 function setUp(roles: RoleStore = inMemoryRoleStore(), props: PropStore = inMemoryPropStore()) {
   const store = inMemoryCastStore([aCastList([aCastMember(1), aCastMember(12, { revision: 4 })])]);
-  return {
-    store,
-    roles,
-    handler: createDeleteCastMember(uncastThenRemove(store, roles), roles, {
-      props,
-      micPlots: inMemoryMicPlotStore(),
-    }),
-  };
+  return { store, roles, handler: deleteWith(inMemoryStores({ cast: store, roles, props })) };
 }
 
 const ids = async (store: ReturnType<typeof setUp>["store"]) =>
@@ -137,10 +137,7 @@ describe("delete cast member handler with roles", () => {
       },
     };
 
-    await createDeleteCastMember(uncastThenRemove(racingCast, roles), roles, {
-      props: inMemoryPropStore(),
-      micPlots: inMemoryMicPlotStore(),
-    })(request("12", "4"));
+    await deleteWith(inMemoryStores({ cast: racingCast, roles }))(request("12", "4"));
 
     expect(JSON.stringify(await roles.list("2027"))).not.toMatch(/"castMemberIds":\[[^\]]*\b12\b/);
   });
@@ -221,10 +218,7 @@ describe("delete cast member handler with mics", () => {
     const store = inMemoryCastStore([
       aCastList([aCastMember(1), aCastMember(12, { revision: 4 })]),
     ]);
-    const handler = createDeleteCastMember(uncastThenRemove(store, roles), roles, {
-      props: inMemoryPropStore(),
-      micPlots,
-    });
+    const handler = deleteWith(inMemoryStores({ cast: store, roles, micPlots }));
     return { micPlots, handler };
   };
 
@@ -244,5 +238,55 @@ describe("delete cast member handler with mics", () => {
     expect((await handler(request("12", "3"))).statusCode).toBe(409);
 
     expect((await micPlots.list("2027")).items).toHaveLength(2);
+  });
+});
+
+describe("delete cast member handler with costumes", () => {
+  // Made-up cast: Jo Brown (12) is a Pirate (8) in Opening Number and a Sailor (9) in the
+  // Finale, with Kim Lee (1) in both; Kim is Captain Hook (7) too.
+  const roleList = [
+    aRole(7, "opening-number", [1]),
+    aRole(8, "opening-number", [12, 1]),
+    aRole(9, "finale", [12, 1]),
+  ];
+  const kims = [aCostume("opening-number", 7, 1), aCostume("opening-number", 8, 1)];
+  const kimAsSailor = aCostume("finale", 9, 1);
+  const joAsPirate = aCostume("opening-number", 8, 12);
+  const joAsSailor = aCostume("finale", 9, 12);
+  function setUpWithCostumes() {
+    const stores = inMemoryStores({
+      cast: inMemoryCastStore([aCastList([aCastMember(1), aCastMember(12, { revision: 4 })])]),
+      roles: inMemoryRoleStore([{ productionId: "2027", roles: roleList }]),
+      costumes: inMemoryCostumeStore([
+        { productionId: "2027", costumes: [...kims, joAsPirate, kimAsSailor, joAsSailor] },
+      ]),
+    });
+    return { stores, handler: deleteWith(stores) };
+  }
+
+  it("deletes their costumes in every item, changing nothing else about those items", async () => {
+    const { stores, handler } = setUpWithCostumes();
+
+    expect((await handler(request("12", "4"))).statusCode).toBe(204);
+
+    expect((await stores.costumes.list("2027")).costumes).toEqual([...kims, kimAsSailor]);
+    expect((await stores.roles.list("2027")).roles.map((role) => role.castMemberIds)).toEqual([
+      [1],
+      [1],
+      [1],
+    ]);
+  });
+
+  it("keeps their costumes when the delete is refused", async () => {
+    const { stores, handler } = setUpWithCostumes();
+
+    expect((await handler(request("12", "3"))).statusCode).toBe(409);
+
+    expect((await stores.costumes.list("2027")).costumes).toEqual([
+      ...kims,
+      joAsPirate,
+      kimAsSailor,
+      joAsSailor,
+    ]);
   });
 });

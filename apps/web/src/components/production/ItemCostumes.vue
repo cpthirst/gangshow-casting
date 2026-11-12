@@ -64,26 +64,40 @@ function edit(row: CastRow) {
   startEditing(row);
 }
 
-// Saves straight away. On failure the form stays open with what was typed.
+// Saves straight away. On failure the form stays open with what was typed. If someone else
+// saved the row first, the form shows their text instead, to edit from there (FR7).
 async function save(row: CastRow, fields: CostumeFields) {
   if (saving.value) return;
   saving.value = true;
   formError.value = "";
-  const saved = await putCostume({ roleId: row.role.id, castMemberId: row.member.id, ...fields });
+  const { revision } = costumeOf(costumes.value, row.role, row.member);
+  const result = await putCostume({
+    roleId: row.role.id,
+    castMemberId: row.member.id,
+    ...fields,
+    revision,
+  });
   saving.value = false;
-  if (!saved) {
+  if (!result) {
     formError.value = "Couldn't save the costume. Try again.";
     return;
   }
-  costumes.value = withSaved(costumes.value, saved);
+  costumes.value = withSaved(costumes.value, result.costume);
+  if (result.stale) {
+    formError.value =
+      "Someone else saved this costume first. Here it is now; your changes weren't saved.";
+    return;
+  }
   announcement.value = "Costume saved.";
   await stopEditing(rowId(row));
 }
 
+/** The row as saved, or as someone else saved it first (stale); undefined if it failed. */
 async function putCostume(body: SaveCostumeRequest) {
   try {
     const res = await sendJson(saveCostumePath(props.itemId), "PUT", body);
-    return res.ok ? Costume.parse(await res.json()) : undefined;
+    if (!res.ok && res.status !== 409) return undefined;
+    return { costume: Costume.parse(await res.json()), stale: res.status === 409 };
   } catch {
     return undefined;
   }
@@ -103,7 +117,9 @@ async function putCostume(body: SaveCostumeRequest) {
           class="card editing"
           data-test="costume"
         >
+          <!-- Keyed by revision, so a refused save shows the row as someone else saved it. -->
           <CostumeForm
+            :key="costumeOf(costumes, role, member).revision"
             :name="rowName(role, member)"
             :costume="costumeOf(costumes, role, member)"
             :saving="saving"

@@ -1,11 +1,14 @@
 import { AddRoleRefusal, Role, type RoleList } from "@app/shared";
 import { describe, expect, it } from "vitest";
+import { aCostume } from "#/production/costumes/costume-store.contract.ts";
+import { inMemoryCostumeStore } from "#/production/costumes/costume-store.ts";
 import { inMemoryMicPlotStore } from "#/production/mic-plot/mic-plot-store.ts";
 import { inMemoryPropStore } from "#/production/props/prop-store.ts";
 import { aCastList, aCastMember } from "#/show/cast/cast.fixture.ts";
 import { inMemoryCastStore } from "#/show/cast/cast-store.ts";
 import { aRunningOrder, itemId } from "#/show/running-order/running-order.fixture.ts";
 import { inMemoryRunningOrderStore } from "#/show/running-order/running-order-store.ts";
+import { inMemoryStores } from "#/storage/stores.fixture.ts";
 import { inMemoryRoleStore } from "./role-store.ts";
 import { createUpdateRole } from "./update-role.ts";
 
@@ -33,11 +36,9 @@ function setUp() {
   return {
     roles,
     initial,
-    handler: createUpdateRole(roles, inMemoryRunningOrderStore(), cast, noFollowers()),
+    handler: createUpdateRole(roles, inMemoryRunningOrderStore(), cast, inMemoryStores()),
   };
 }
-
-const noFollowers = () => ({ props: inMemoryPropStore(), micPlots: inMemoryMicPlotStore() });
 
 const mrSmee = { name: "Mr Smee", size: "lead", castMemberIds: [12], revision: 2 };
 
@@ -110,7 +111,7 @@ describe("update role handler for ensembles", () => {
     const cast = inMemoryCastStore([aCastList([aCastMember(12), aCastMember(13)])]);
     return {
       roles,
-      handler: createUpdateRole(roles, inMemoryRunningOrderStore(), cast, noFollowers()),
+      handler: createUpdateRole(roles, inMemoryRunningOrderStore(), cast, inMemoryStores()),
     };
   };
 
@@ -148,10 +149,12 @@ describe("update role handler with props", () => {
     const props = inMemoryPropStore([{ productionId: "2027", props: [basket] }]);
     return {
       props,
-      handler: createUpdateRole(roles, inMemoryRunningOrderStore(), cast, {
-        props,
-        micPlots: inMemoryMicPlotStore(),
-      }),
+      handler: createUpdateRole(
+        roles,
+        inMemoryRunningOrderStore(),
+        cast,
+        inMemoryStores({ props }),
+      ),
     };
   }
   const recast = (castMemberIds: number[], revision: number) =>
@@ -213,10 +216,12 @@ describe("update role handler with mics", () => {
     ]);
     return {
       micPlots,
-      handler: createUpdateRole(roles, inMemoryRunningOrderStore(), cast, {
-        props: inMemoryPropStore(),
-        micPlots,
-      }),
+      handler: createUpdateRole(
+        roles,
+        inMemoryRunningOrderStore(),
+        cast,
+        inMemoryStores({ micPlots }),
+      ),
     };
   }
   const recast = (r: Role, castMemberIds: number[]) =>
@@ -274,7 +279,7 @@ describe("update role handler in a gang's item", () => {
       ]),
     ]);
     const runningOrders = inMemoryRunningOrderStore([order]);
-    return { roles, handler: createUpdateRole(roles, runningOrders, cast, noFollowers()) };
+    return { roles, handler: createUpdateRole(roles, runningOrders, cast, inMemoryStores()) };
   }
 
   it("refuses casting someone outside the item's gang, saying so and changing nothing", async () => {
@@ -293,5 +298,45 @@ describe("update role handler in a gang's item", () => {
     const body = { name: "Dam Builders", size: "ensemble", castMemberIds: [13, 12], revision: 1 };
 
     expect((await handler(request("9", body))).statusCode).toBe(200);
+  });
+});
+
+describe("update role handler with costumes", () => {
+  // Made-up cast: Alex Morgan (12) is Captain Hook (6) in Pirate Sketch, and Chris Evans (13)
+  // isn't in it.
+  const hook = aCostume("pirate-sketch", 6, 12);
+  function setUpHook() {
+    const roles = inMemoryRoleStore([
+      { productionId: "2027", roles: [{ ...role(6, "Captain Hook"), castMemberIds: [12] }] },
+    ]);
+    const cast = inMemoryCastStore([aCastList([aCastMember(12), aCastMember(13)])]);
+    const costumes = inMemoryCostumeStore([{ productionId: "2027", costumes: [hook] }]);
+    const handler = createUpdateRole(
+      roles,
+      inMemoryRunningOrderStore(),
+      cast,
+      inMemoryStores({ costumes }),
+    );
+    return { costumes, handler };
+  }
+  const update = (name: string, castMemberIds: number[], revision: number) =>
+    request("6", { name, size: "support", castMemberIds, revision });
+
+  it("keeps the costume of someone recast out of a role, so it's back if they're recast in", async () => {
+    const { costumes, handler } = setUpHook();
+
+    expect((await handler(update("Captain Hook", [13], 1))).statusCode).toBe(200);
+    expect((await costumes.list("2027")).costumes).toEqual([hook]);
+    expect((await handler(update("Captain Hook", [12], 2))).statusCode).toBe(200);
+
+    expect((await costumes.list("2027")).costumes).toEqual([hook]);
+  });
+
+  it("keeps a role's costumes when it's renamed", async () => {
+    const { costumes, handler } = setUpHook();
+
+    expect((await handler(update("Hook", [12], 1))).statusCode).toBe(200);
+
+    expect((await costumes.list("2027")).costumes).toEqual([hook]);
   });
 });

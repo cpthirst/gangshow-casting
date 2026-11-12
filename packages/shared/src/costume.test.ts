@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Costume, CostumeList, isEmptyCostume, SaveCostumeRequest } from "./costume.ts";
+import { Costume, CostumeList, SaveCostumeRequest } from "./costume.ts";
 
 // Made-up: Alex Morgan (1) as Captain Hook (7) in Opening Number.
 const hook = {
@@ -9,6 +9,7 @@ const hook = {
   fromWardrobe: "Red coat, hook",
   fromCastMember: "Black shoes",
   notes: "Hem the coat",
+  revision: 1,
 };
 
 describe("Costume", () => {
@@ -18,6 +19,10 @@ describe("Costume", () => {
 
   it("refuses fields it doesn't keep, so it can't carry anything else about a person", () => {
     expect(Costume.safeParse({ ...hook, size: "Age 10" }).success).toBe(false);
+  });
+
+  it("has a revision from 1, as a saved row has", () => {
+    expect(Costume.safeParse({ ...hook, revision: 0 }).success).toBe(false);
   });
 });
 
@@ -31,7 +36,9 @@ describe("CostumeList", () => {
 });
 
 describe("SaveCostumeRequest", () => {
-  const { itemId: _itemId, ...request } = hook;
+  const { itemId: _itemId, ...saved } = hook;
+  // Based on a row nobody has saved yet.
+  const request = { ...saved, revision: 0 };
 
   it("trims each field, and allows them empty", () => {
     expect(
@@ -58,14 +65,12 @@ describe("SaveCostumeRequest", () => {
   });
 
   it("refuses an item in the body: it comes from the path", () => {
-    expect(SaveCostumeRequest.safeParse(hook).success).toBe(false);
+    expect(SaveCostumeRequest.safeParse({ ...request, itemId: hook.itemId }).success).toBe(false);
   });
-});
 
-describe("isEmptyCostume", () => {
-  it("is true only when all three fields are empty", () => {
-    const blank = { fromWardrobe: "", fromCastMember: "", notes: "" };
-    expect(isEmptyCostume(blank)).toBe(true);
-    expect(isEmptyCostume({ ...blank, notes: "Hem" })).toBe(false);
+  it("needs the revision the save was based on, so a stale save can be refused", () => {
+    const { revision: _revision, ...unbased } = request;
+
+    expect(SaveCostumeRequest.safeParse(unbased).success).toBe(false);
   });
 });

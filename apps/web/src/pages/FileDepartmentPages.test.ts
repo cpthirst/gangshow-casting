@@ -6,7 +6,6 @@ import {
   ItemFileUploadRequest,
   type ItemNote,
   type Role,
-  SaveCostumeRequest,
   SaveItemNoteRequest,
 } from "@app/shared";
 import { enableAutoUnmount, flushPromises, type VueWrapper } from "@vue/test-utils";
@@ -32,7 +31,12 @@ import {
   pirateCast,
   pirates,
 } from "@/utils/casting.fixture.ts";
-import { alexAsHook, costumeFieldsOf, costumeFormField } from "@/utils/costumes.fixture.ts";
+import {
+  alexAsHook,
+  costumeFieldsOf,
+  costumeFormField,
+  costumeSavedFrom,
+} from "@/utils/costumes.fixture.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
 
 // Every file department's page is the same component: SceneryItemPage.test.ts covers how it
@@ -93,10 +97,9 @@ function apiHolds(
       if (url === castPath()) return json({ productionId: "2027", members: casting.cast });
       if (url === costumesPath()) return json({ productionId: "2027", costumes });
       if (url === saveCostumePath("opening-number") && init?.method === "PUT") {
-        const sent = SaveCostumeRequest.parse(JSON.parse(String(init.body)));
-        const saved = { itemId: "opening-number", ...sent };
+        const saved = costumeSavedFrom("opening-number", init.body);
         const others = costumes.filter(
-          (c) => c.roleId !== sent.roleId || c.castMemberId !== sent.castMemberId,
+          (c) => c.roleId !== saved.roleId || c.castMemberId !== saved.castMemberId,
         );
         costumes.splice(0, costumes.length, ...others, saved);
         return json(saved);

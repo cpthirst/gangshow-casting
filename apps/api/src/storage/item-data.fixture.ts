@@ -4,6 +4,7 @@ import { fileDepartments } from "@app/shared";
 import type { ItemNoteStore } from "#/item-notes/item-note-store.ts";
 import { aCostume } from "#/production/costumes/costume-store.contract.ts";
 import type { ItemFileStores } from "#/production/item-files/item-file-store.ts";
+import { jo } from "#/show/cast/cast.fixture.ts";
 import type { ItemCleanup } from "#/show/running-order/save-running-order.ts";
 import type { Stores } from "./data-stores.ts";
 
@@ -11,7 +12,7 @@ import type { Stores } from "./data-stores.ts";
 
 /** Gives the item some of every kind of data kept per item: casting and casting notes, props
  *  and props notes, scenery, SFX and Wardrobe files and notes, a costume, and a mic plot and
- *  its notes.
+ *  its notes, for someone on the cast list.
  *  The files go in `folder`, laid out as the folder file stores keep them. */
 export async function seedEveryKind(
   stores: Stores,
@@ -19,20 +20,25 @@ export async function seedEveryKind(
   productionId: string,
   itemId: string,
 ) {
+  // Someone on the cast list to be in it: the remote costume store saves only for them.
+  await stores.cast.start(productionId);
+  const member =
+    (await stores.cast.list(productionId))?.members[0] ?? (await stores.cast.add(productionId, jo));
+  if (!member) throw new Error("expected a cast member");
   const role = await stores.roles.add(productionId, itemId, {
     name: "Captain Hook",
     size: "lead",
-    castMemberIds: [1],
+    castMemberIds: [member.id],
   });
   if (role === "name-taken") throw new Error("expected a new role");
-  await stores.costumes.save(productionId, aCostume(itemId, role.id, 1));
+  await stores.costumes.save(productionId, aCostume(itemId, role.id, member.id), 0, role);
   await stores.props.add(productionId, itemId, {
     name: "Cutlass",
     quantity: 1,
     roleIds: [],
-    carrierIds: [1],
+    carrierIds: [member.id],
   });
-  await stores.micPlots.allocate(productionId, itemId, 1, 1);
+  await stores.micPlots.allocate(productionId, itemId, 1, member.id);
   for (const notes of notesOf(stores)) await notes.save(productionId, itemId, 0, "Made-up note");
   for (const department of fileDepartments) {
     const place = join(folder, productionId, itemId, department);

@@ -76,18 +76,19 @@ function remoteTableFrom(env: Env) {
 export function fileStores(dataDir: string) {
   const cast = fileCastStore(dataDir);
   const roles = fileRoleStore(dataDir);
+  const costumes = fileCostumeStore(dataDir);
   return {
     runningOrders: fileRunningOrderStore(dataDir),
     cast,
     roles,
-    removeCastMember: uncastThenRemove(cast, roles),
+    removeCastMember: uncastThenRemove(cast, roles, costumes),
     itemNotes: fileItemNoteStore(dataDir),
     props: filePropStore(dataDir),
     propsNotes: fileItemNoteStore(dataDir, PROPS_NOTES_FILE),
     sceneryNotes: fileItemNoteStore(dataDir, SCENERY_NOTES_FILE),
     sfxNotes: fileItemNoteStore(dataDir, SFX_NOTES_FILE),
     wardrobeNotes: fileItemNoteStore(dataDir, WARDROBE_NOTES_FILE),
-    costumes: fileCostumeStore(dataDir),
+    costumes,
     micPlotNotes: fileItemNoteStore(dataDir, MIC_PLOT_NOTES_FILE),
     micPlots: fileMicPlotStore(dataDir),
     productions: fileProductionListStore(dataDir),

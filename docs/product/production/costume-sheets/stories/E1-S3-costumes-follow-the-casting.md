@@ -2,7 +2,7 @@
 id: production-costume-sheets.E1.S3
 title: Costumes follow the casting
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story

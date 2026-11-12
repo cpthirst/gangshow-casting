@@ -89,7 +89,7 @@ export function createRoutes(
     "DELETE /api/productions/{productionId}/cast/{castId}": createDeleteCastMember(
       removeCastMember,
       roles,
-      { props, micPlots },
+      stores,
     ),
     "GET /api/productions/{productionId}/roles": createGetRoles(roles),
     "GET /api/productions/{productionId}/item-notes": createGetItemNotes(itemNotes),
@@ -184,15 +184,9 @@ export function createRoutes(
       roles,
       runningOrders,
       cast,
-      {
-        props,
-        micPlots,
-      },
+      stores,
     ),
-    "DELETE /api/productions/{productionId}/roles/{roleId}": createRemoveRole(roles, {
-      props,
-      micPlots,
-    }),
+    "DELETE /api/productions/{productionId}/roles/{roleId}": createRemoveRole(roles, stores),
     ...createUsageRoutes(usage),
   };
 }

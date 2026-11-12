@@ -16,8 +16,8 @@ import { inMemoryUsageStore } from "#/usage/usage-store.ts";
 
 const opening = itemId("Opening Number");
 // Made-up: Alex Morgan (1) is Captain Hook (1) in Opening Number.
-// The body of a save: the item comes from the path.
-const { itemId: _, ...alexAsHook } = aCostume(opening, 1, 1);
+// The body of a save of a row nobody has saved: the item comes from the path.
+const { itemId: _, ...alexAsHook } = aCostume(opening, 1, 1, { revision: 0 });
 
 const setUp = () =>
   lambdaEntry(
@@ -59,7 +59,7 @@ describe("the costume routes", () => {
     const api = setUp();
 
     expect((await api(save(groups))).statusCode).toBe(200);
-    expect(await costumesIn(api)).toEqual([{ itemId: opening, ...alexAsHook }]);
+    expect(await costumesIn(api)).toEqual([aCostume(opening, 1, 1)]);
   });
 
   it("refuse lee's save, with Tech only, saying the wardrobe is view-only and saving nothing", async () => {

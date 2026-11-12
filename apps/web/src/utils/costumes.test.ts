@@ -62,11 +62,12 @@ describe("costumeOf", () => {
     expect(costumeOf([joAsPirate, alexAsHook], captainHook(), alexMorgan)).toEqual(alexAsHook);
   });
 
-  it("gives empty fields for a row nobody has filled in", () => {
+  it("gives empty fields at revision 0 for a row nobody has saved", () => {
     expect(costumeOf([joAsPirate], captainHook(), alexMorgan)).toEqual({
       fromWardrobe: "",
       fromCastMember: "",
       notes: "",
+      revision: 0,
     });
   });
 });

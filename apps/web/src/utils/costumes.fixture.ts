@@ -1,4 +1,4 @@
-import type { Costume } from "@app/shared";
+import { type Costume, SaveCostumeRequest } from "@app/shared";
 import type { DOMWrapper } from "@vue/test-utils";
 import { alexMorgan, captainHook } from "./casting.fixture.ts";
 
@@ -12,7 +12,15 @@ export const alexAsHook: Costume = {
   fromWardrobe: "Red coat, hook",
   fromCastMember: "Black shoes",
   notes: "Hem the coat",
+  revision: 1,
 };
+
+/** What a stand-in API saves for a costume save's body: the row, in the item, at its next
+ *  revision. */
+export function costumeSavedFrom(itemId: string, body: RequestInit["body"]): Costume {
+  const { revision, ...sent } = SaveCostumeRequest.parse(JSON.parse(String(body)));
+  return { itemId, ...sent, revision: revision + 1 };
+}
 
 /** A costume row's fields as shown: each label with its text. */
 export const costumeFieldsOf = (row: Pick<DOMWrapper<Element>, "findAll">) =>

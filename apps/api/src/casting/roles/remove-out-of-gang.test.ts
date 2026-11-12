@@ -6,6 +6,7 @@ import { aCastList, aCastMember } from "#/show/cast/cast.fixture.ts";
 import { inMemoryCastStore } from "#/show/cast/cast-store.ts";
 import { anItem, aRunningOrder } from "#/show/running-order/running-order.fixture.ts";
 import { inMemoryRunningOrderStore } from "#/show/running-order/running-order-store.ts";
+import { inMemoryStores } from "#/storage/stores.fixture.ts";
 import { outOfGangRemoval } from "./remove-out-of-gang.ts";
 import { inMemoryRoleStore } from "./role-store.ts";
 
@@ -56,25 +57,27 @@ function setUp(gang: ItemGang = "junior", failingRole?: number) {
       items: [{ itemId: pirateSketch, mics: [{ channel: 4, castMemberId: SAM }] }],
     },
   ]);
-  const removeOutOfGang = outOfGangRemoval({
-    runningOrders: inMemoryRunningOrderStore([order]),
-    cast: inMemoryCastStore([
-      aCastList([
-        aCastMember(SAM, { firstName: "Sam", lastName: "Sample", section: "scouts" }),
-        aCastMember(ALEX, { firstName: "Alex", lastName: "Smith", section: null }),
-        aCastMember(POPPY, { firstName: "Poppy", lastName: "Example", section: "beavers" }),
+  const removeOutOfGang = outOfGangRemoval(
+    inMemoryStores({
+      runningOrders: inMemoryRunningOrderStore([order]),
+      cast: inMemoryCastStore([
+        aCastList([
+          aCastMember(SAM, { firstName: "Sam", lastName: "Sample", section: "scouts" }),
+          aCastMember(ALEX, { firstName: "Alex", lastName: "Smith", section: null }),
+          aCastMember(POPPY, { firstName: "Poppy", lastName: "Example", section: "beavers" }),
+        ]),
       ]),
-    ]),
-    roles: {
-      ...roles,
-      update: async (...args: Parameters<typeof roles.update>) => {
-        if (args[1] === failingRole) throw new Error("table unavailable");
-        return roles.update(...args);
+      roles: {
+        ...roles,
+        update: async (...args: Parameters<typeof roles.update>) => {
+          if (args[1] === failingRole) throw new Error("table unavailable");
+          return roles.update(...args);
+        },
       },
-    },
-    props,
-    micPlots,
-  });
+      props,
+      micPlots,
+    }),
+  );
   const castIn = async (role: Role) =>
     (await roles.list("2027")).roles.find(({ id }) => id === role.id)?.castMemberIds;
   return { removeOutOfGang, castIn, props, micPlots };

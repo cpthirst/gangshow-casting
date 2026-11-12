@@ -14,6 +14,7 @@ import type { Stores } from "./data-stores.ts";
 export function inMemoryStores(given: Partial<Stores> = {}): Stores {
   const cast = given.cast ?? inMemoryCastStore();
   const roles = given.roles ?? inMemoryRoleStore();
+  const costumes = given.costumes ?? inMemoryCostumeStore();
   return {
     runningOrders: inMemoryRunningOrderStore(),
     itemNotes: inMemoryItemNoteStore(),
@@ -22,14 +23,14 @@ export function inMemoryStores(given: Partial<Stores> = {}): Stores {
     sceneryNotes: inMemoryItemNoteStore(),
     sfxNotes: inMemoryItemNoteStore(),
     wardrobeNotes: inMemoryItemNoteStore(),
-    costumes: inMemoryCostumeStore(),
     micPlots: inMemoryMicPlotStore(),
     micPlotNotes: inMemoryItemNoteStore(),
     productions: inMemoryProductionListStore(),
-    removeCastMember: uncastThenRemove(cast, roles),
+    removeCastMember: uncastThenRemove(cast, roles, costumes),
     ...given,
     cast,
     roles,
+    costumes,
   };
 }
 

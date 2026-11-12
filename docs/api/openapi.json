@@ -4017,6 +4017,10 @@
           "notes": {
             "type": "string",
             "maxLength": 500
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1
           }
         },
         "required": [
@@ -4025,7 +4029,8 @@
           "castMemberId",
           "fromWardrobe",
           "fromCastMember",
-          "notes"
+          "notes",
+          "revision"
         ],
         "additionalProperties": false
       },
@@ -5086,6 +5091,10 @@
           "notes": {
             "type": "string",
             "maxLength": 500
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0
           }
         },
         "required": [
@@ -5093,7 +5102,8 @@
           "castMemberId",
           "fromWardrobe",
           "fromCastMember",
-          "notes"
+          "notes",
+          "revision"
         ],
         "additionalProperties": false
       },

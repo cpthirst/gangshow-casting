@@ -5,7 +5,13 @@ import {
   GetCommand,
   PutCommand,
 } from "@aws-sdk/lib-dynamodb";
-import { deleteRowsOfItemsNotIn, partitionFor, queryAll, written } from "#/storage/dynamo-table.ts";
+import {
+  deleteRowsOfItemsNotIn,
+  partitionFor,
+  queryAll,
+  unchangedSince,
+  written,
+} from "#/storage/dynamo-table.ts";
 import { castMics, type MicPlotStore, withAllocation } from "./mic-plot-store.ts";
 
 const MIC_PLOT = "MICPLOT#";
@@ -20,15 +26,6 @@ export const micPlotRow = (productionId: string, plot: ItemMicPlot, revision = 1
   ...plot,
   revision,
 });
-
-// Written only if the row is still at the revision it was read at (none yet for 0).
-const unchangedSince = (revision: number) =>
-  revision === 0
-    ? { ConditionExpression: "attribute_not_exists(pk)" }
-    : {
-        ConditionExpression: "revision = :revision",
-        ExpressionAttributeValues: { ":revision": revision },
-      };
 
 /**
  * Mic plots in the production data table: one row per item with channels given out (ADR

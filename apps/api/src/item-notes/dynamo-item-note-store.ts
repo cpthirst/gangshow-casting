@@ -5,6 +5,7 @@ import {
   deleteRowsOfItemsNotIn,
   partitionFor,
   queryAll,
+  unchangedSince,
 } from "#/storage/dynamo-table.ts";
 import type { ItemNoteStore } from "./item-note-store.ts";
 
@@ -42,13 +43,7 @@ export function dynamoItemNoteStore(
           new PutCommand({
             TableName: tableName,
             Item: { pk: partitionFor(productionId), sk: `${prefix}${itemId}`, ...note },
-            // Saved only if still at the revision it was read at (none yet for revision 0).
-            ...(revision === 0
-              ? { ConditionExpression: "attribute_not_exists(pk)" }
-              : {
-                  ConditionExpression: "revision = :revision",
-                  ExpressionAttributeValues: { ":revision": revision },
-                }),
+            ...unchangedSince(revision),
           }),
         );
       } catch (error) {
