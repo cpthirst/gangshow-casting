@@ -7,6 +7,7 @@ import App from "@/App.vue";
 import { json } from "@/app.fixture.ts";
 import * as confirmDialog from "@/components/common/ConfirmDialog.fixture.ts";
 import { createAppRouter } from "@/router/index.ts";
+import { catchDownloads, type SavedFile } from "@/services/export-file.fixture.ts";
 import { openProduction } from "@/services/production.ts";
 import { chooseLocalAccess, useLocalSignIn } from "@/services/sign-in.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
@@ -14,24 +15,13 @@ import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
 // Made-up names only: tests never use the real cast (CLAUDE.md safeguarding).
 
 enableAutoUnmount(afterEach);
-let saved: { name: string; file: Blob }[];
+let saved: SavedFile[];
 
 beforeEach(() => {
   useLocalSignIn();
   // As when the app has just started: no production chosen yet.
   openProduction(undefined);
-  saved = [];
-  let lastFile: Blob | undefined;
-  URL.createObjectURL = vi.fn((file: Blob) => {
-    lastFile = file;
-    return "blob:made-up";
-  });
-  URL.revokeObjectURL = vi.fn();
-  vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
-    this: HTMLAnchorElement,
-  ) {
-    if (lastFile) saved.push({ name: this.download, file: lastFile });
-  });
+  saved = catchDownloads();
 });
 afterEach(() => {
   vi.unstubAllGlobals();

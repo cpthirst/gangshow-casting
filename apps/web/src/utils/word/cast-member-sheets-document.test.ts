@@ -1,8 +1,18 @@
-import { type CastMember, type Role, unprintedHeadingColour } from "@app/shared";
+import { type CastMember, type Costume, type Role, unprintedHeadingColour } from "@app/shared";
 import { Packer } from "docx";
 import { describe, expect, it } from "vitest";
+import {
+  alexMorgan,
+  captainHook,
+  joBrown,
+  kimLee,
+  pirates,
+  samPatel,
+  smee,
+} from "@/utils/casting.fixture.ts";
+import { alexAsHook } from "@/utils/costumes.fixture.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
-import { castingSheetsDocument } from "./casting-sheets-document.ts";
+import { castingSheetsDocument, costumeSheetsDocument } from "./cast-member-sheets-document.ts";
 import {
   type Block,
   columnShares,
@@ -185,14 +195,6 @@ describe("each casting sheet's table of items", () => {
     expect(columnShares(file)).toEqual([[7, 83, 10]]);
   });
 
-  it("shows an item not in the printed programme in the grid's red italics", async () => {
-    const xml = documentXml(await sheetsOf([ava], { order: show, roles }));
-
-    const run = /<w:r>(?:(?!<w:r>).)*?Scene Change Music<\/w:t><\/w:r>/s.exec(xml)?.[0] ?? "";
-    expect(run).toMatch(/<w:i\/>/);
-    expect(run).toContain(`<w:color w:val="${unprintedHeadingColour.slice(1).toUpperCase()}"/>`);
-  });
-
   it("ticks the items the person is in, whatever their part, and leaves the rest empty", async () => {
     const [table] = await tablesOf([ava]);
 
@@ -205,14 +207,6 @@ describe("each casting sheet's table of items", () => {
 
     const ticks = itemRows(table).map((row) => row.cells[2]);
     expect(ticks).toEqual(["", "", "", ""]);
-  });
-
-  it("makes every item row two lines of text tall", async () => {
-    const file = await sheetsOf([ava], { order: show, roles });
-
-    // Two lines of 11 pt text (a line is 1.2 times the size), in twentieths of a point,
-    // for each of the four items, the unprinted one included.
-    expect(rowHeights(file).filter((height) => height !== undefined)).toEqual(Array(4).fill(528));
   });
 
   it("prints on A4, with the table's first row marked to repeat on any page it runs onto", async () => {
@@ -243,4 +237,191 @@ describe("each casting sheet's table of items", () => {
     // Half the other exports' logo (above), a quarter inch from the top of the page.
     expect(pageOf(file).header).toBe(360);
   });
+});
+
+describe("the Costume Sheets document", () => {
+  const alex: CastMember = { ...alexMorgan, section: "scouts", group: "1st Anytown" };
+  const jo: CastMember = { ...joBrown, section: "explorers", group: "Anytown Unit" };
+  const sam = samPatel;
+  const show = aRunningOrder(
+    [anItem("Opening Number"), anItem("Bonus Sketch", { printed: false }), anItem("Pirate Dance")],
+    [anItem("Finale")],
+  );
+  show.halves[0].name = "Act One";
+  show.halves[1].name = "Act Two";
+  const roles = [
+    captainHook(alex),
+    { ...pirates, castMemberIds: [jo.id] },
+    { ...smee, castMemberIds: [jo.id] },
+  ];
+  const joCostume = (role: Role, fromWardrobe: string, fromCastMember: string): Costume => ({
+    itemId: "opening-number",
+    roleId: role.id,
+    castMemberId: jo.id,
+    fromWardrobe,
+    fromCastMember,
+    notes: "",
+    revision: 1,
+  });
+  const costumes = [
+    alexAsHook,
+    joCostume(pirates, "Bandana", "Boots"),
+    joCostume(smee, "Striped shirt", "Red hat"),
+  ];
+
+  async function costumeSheetsOf(cast: CastMember[], extraRoles: Role[] = []) {
+    const doc = costumeSheetsDocument({
+      order: show,
+      roles: [...roles, ...extraRoles],
+      cast,
+      costumes,
+    });
+    return new Uint8Array(await Packer.toBuffer(doc));
+  }
+
+  const costumeTablesOf = (file: Uint8Array) =>
+    readDocx(file).flatMap((block) => (block.kind === "table" ? [block.rows] : []));
+
+  /** Each table's item rows' cells: not the header row, nor the rows naming a half. */
+  const itemRowsOf = (file: Uint8Array) =>
+    costumeTablesOf(file).map((rows) =>
+      rows.filter((row) => !row.header && row.cells.length === 5).map((row) => row.cells),
+    );
+
+  it("has a page for each person in section order, headed with the show, their name, section and group", async () => {
+    const sheets = pages(readDocx(await costumeSheetsOf([sam, jo, alex])));
+
+    expect(sheets).toEqual([
+      ["Heading1: Gang Show 2027", "Heading2: Alex Morgan", "-: Scouts · 1st Anytown"],
+      ["Heading1: Gang Show 2027", "Heading2: Jo Brown", "-: Explorers · Anytown Unit"],
+      ["Heading1: Gang Show 2027", "Heading2: Sam Patel"],
+    ]);
+  });
+
+  it("names nobody on a sheet but the person it's for", async () => {
+    const xml = documentXml(await costumeSheetsOf([alex, jo, sam, kimLee]));
+
+    for (const name of ["Alex Morgan", "Jo Brown", "Sam Patel", "Kim Lee"]) {
+      expect(xml.split(name)).toHaveLength(2);
+    }
+  });
+
+  it("has a #, Item Name, Role, From Wardrobe and From Cast Member header row", async () => {
+    const [table] = costumeTablesOf(await costumeSheetsOf([alex]));
+
+    expect(table?.[0]).toEqual({
+      header: true,
+      cells: ["#", "Item Name", "Role", "From Wardrobe", "From Cast Member"],
+    });
+  });
+
+  it("lists every item in show order, each number in its own column, a row naming each half", async () => {
+    const [table] = costumeTablesOf(await costumeSheetsOf([alex]));
+
+    expect(table?.slice(1).map((row) => row.cells.slice(0, 2))).toEqual([
+      ["Act One"],
+      ["1", "Opening Number"],
+      ["", "Bonus Sketch"],
+      ["2", "Pirate Dance"],
+      ["Act Two"],
+      ["1", "Finale"],
+    ]);
+  });
+
+  it("shows the person's role and costume in each item they're in, never its notes, and nothing in the rest", async () => {
+    const file = await costumeSheetsOf([alex]);
+
+    expect(itemRowsOf(file)).toEqual([
+      [
+        ["1", "Opening Number", "✓(Captain Hook)", "Red coat, hook", "Black shoes"],
+        ["", "Bonus Sketch", "", "", ""],
+        ["2", "Pirate Dance", "", "", ""],
+        ["1", "Finale", "", "", ""],
+      ],
+    ]);
+    expect(documentXml(file)).not.toContain("Hem the coat");
+  });
+
+  it("shows a role as a centred tick with its name in italic parentheses on the line below", async () => {
+    const xml = documentXml(await costumeSheetsOf([alex]));
+
+    const roleCell = /<w:tc>(?:(?!<w:tc>).)*?\(Captain Hook\).*?<\/w:tc>/s.exec(xml)?.[0] ?? "";
+    const lines = [...roleCell.matchAll(/<w:p>.*?<\/w:p>/gs)].map(([line]) => ({
+      text: [...line.matchAll(/<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g)].map(([, t]) => t).join(""),
+      centred: line.includes('<w:jc w:val="center"/>'),
+      italic: /<w:i\/>/.test(line),
+    }));
+    expect(lines).toEqual([
+      { text: "✓", centred: true, italic: false },
+      { text: "(Captain Hook)", centred: true, italic: true },
+    ]);
+  });
+
+  it("gives each of the person's roles in an item its own row, with its own costume", async () => {
+    const [rows] = itemRowsOf(await costumeSheetsOf([jo]));
+
+    expect(rows?.filter(([, title]) => title === "Opening Number")).toEqual([
+      ["1", "Opening Number", "✓(Smee)", "Striped shirt", "Red hat"],
+      ["1", "Opening Number", "✓(Pirates)", "Bandana", "Boots"],
+    ]);
+  });
+
+  it("gives each person in a shared role only their own costume, on their own sheet", async () => {
+    const sharedPirates = { ...pirates, castMemberIds: [jo.id, sam.id] };
+    const doc = costumeSheetsDocument({
+      order: show,
+      roles: [sharedPirates],
+      cast: [jo, sam],
+      costumes: [
+        joCostume(pirates, "Bandana", "Boots"),
+        { ...joCostume(pirates, "Eyepatch", "Sandals"), castMemberId: sam.id },
+      ],
+    });
+
+    const [joRows, samRows] = itemRowsOf(new Uint8Array(await Packer.toBuffer(doc)));
+
+    expect(joRows?.[0]).toEqual(["1", "Opening Number", "✓(Pirates)", "Bandana", "Boots"]);
+    expect(samRows?.[0]).toEqual(["1", "Opening Number", "✓(Pirates)", "Eyepatch", "Sandals"]);
+    expect(joRows?.flat()).not.toContain("Eyepatch");
+    expect(samRows?.flat()).not.toContain("Bandana");
+  });
+
+  it("shows a role nobody has given a costume yet, with the costume columns empty", async () => {
+    const dancer: Role = { ...pirates, id: 9, itemId: "pirate-dance", castMemberIds: [alex.id] };
+
+    const [rows] = itemRowsOf(await costumeSheetsOf([alex], [dancer]));
+
+    expect(rows?.[2]).toEqual(["2", "Pirate Dance", "✓(Pirates)", "", ""]);
+  });
+});
+
+describe("what the casting and costume sheets share", () => {
+  const ava = member("Ava", "Example", "scouts");
+  const show = aRunningOrder([anItem("Opening"), anItem("Bonus Sketch", { printed: false })]);
+  const sheets = {
+    casting: castingSheetsDocument({ order: show, roles: [], cast: [ava] }),
+    costume: costumeSheetsDocument({ order: show, roles: [], cast: [ava], costumes: [] }),
+  };
+
+  it.each(Object.entries(sheets))(
+    "the %s sheets show an item not in the printed programme in the grid's red italics",
+    async (_kind, doc) => {
+      const xml = documentXml(new Uint8Array(await Packer.toBuffer(doc)));
+
+      const run = /<w:r>(?:(?!<w:r>).)*?Bonus Sketch<\/w:t><\/w:r>/s.exec(xml)?.[0] ?? "";
+      expect(run).toMatch(/<w:i\/>/);
+      expect(run).toContain(`<w:color w:val="${unprintedHeadingColour.slice(1).toUpperCase()}"/>`);
+    },
+  );
+
+  it.each(Object.entries(sheets))(
+    "the %s sheets make every item row two lines of text tall",
+    async (_kind, doc) => {
+      const file = new Uint8Array(await Packer.toBuffer(doc));
+
+      // Two lines of 11 pt text (a line is 1.2 times the size), in twentieths of a point,
+      // for each item, the unprinted one included.
+      expect(rowHeights(file).filter((height) => height !== undefined)).toEqual([528, 528]);
+    },
+  );
 });

@@ -379,6 +379,7 @@ describe("reading usage", () => {
       "export-word-item-overview",
       "export-word-props-list",
       "export-excel-mic-plot",
+      "export-word-costume-sheets",
     ]);
     expect(features).toContainEqual({ feature: "export-word-item-overview", uses: 0, people: 0 });
     expect(features).toContainEqual({ feature: "export-word-casting-sheets", uses: 0, people: 0 });

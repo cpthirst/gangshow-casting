@@ -32,7 +32,7 @@ We will move every file (with `git mv`, so history follows) into these folders. 
 | `components/casting/` | Parts of the CASTING pages | `CastingGrid`, `ShowByItem`, `ShowTimeline`, `ItemNotes`, `RoleForm`, `CastMemberPicker` |
 | `services/` | Code that calls the API or the browser | `sign-in`, `cognito-sign-in`, `latest-show`, `usage` (recording), `casting-grid-export`, `word-export`, `export-file` |
 | `utils/` | Plain show logic, with no calls out | `cast`, `roles`, `running-order`, `clashes`, `overview`, `accounts`, `item-notes`, `help`, `icons`, `usage-report` |
-| `utils/word/` | The Word documents' builders | `casting-sheets-document`, `item-overview-document`, `word-styles`, `docx.fixture` |
+| `utils/word/` | The Word documents' builders | `cast-member-sheets-document`, `item-overview-document`, `word-styles`, `docx.fixture` |
 | `composables/` | Reusable `use…` functions | `useMediaQuery` |
 | `directives/` | Vue directives | `sortable-rows` (`vSortableRows`) |
 

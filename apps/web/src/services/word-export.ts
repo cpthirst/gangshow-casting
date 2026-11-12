@@ -1,7 +1,7 @@
 import type { ShowHalf } from "@/utils/overview.ts";
 import type { PropsListHalf } from "@/utils/props.ts";
 import { exportFileName, saveFile } from "./export-file.ts";
-import type { LatestShow } from "./latest-show.ts";
+import type { LatestCostumeSheets, LatestShow } from "./latest-show.ts";
 
 // The Word exports are built in the browser, and their library is loaded only when one is
 // used, so it never weighs on the page's first load (ADR 0022). Each returns false if the
@@ -27,8 +27,17 @@ export const downloadItemOverview = (title: string, halves: ShowHalf[], day = ne
 /** A casting sheet for every cast member. */
 export const downloadCastingSheets = (show: LatestShow, day = new Date()) =>
   save(
-    async () => (await import("@/utils/word/casting-sheets-document.ts")).castingSheetsFile(show),
+    async () =>
+      (await import("@/utils/word/cast-member-sheets-document.ts")).castingSheetsFile(show),
     exportFileName(show.order.title, day, "casting sheets", "docx"),
+  );
+
+/** A costume sheet for every cast member. */
+export const downloadCostumeSheets = (show: LatestCostumeSheets, day = new Date()) =>
+  save(
+    async () =>
+      (await import("@/utils/word/cast-member-sheets-document.ts")).costumeSheetsFile(show),
+    exportFileName(show.order.title, day, "costume sheets", "docx"),
   );
 
 /** The whole show's props list. */

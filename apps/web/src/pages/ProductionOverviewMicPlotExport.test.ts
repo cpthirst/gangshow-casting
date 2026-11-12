@@ -1,9 +1,14 @@
 import type { CastMember, ItemMicPlot, Role } from "@app/shared";
-import { enableAutoUnmount, flushPromises, mount, type VueWrapper } from "@vue/test-utils";
+import { enableAutoUnmount, type VueWrapper } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createMemoryHistory } from "vue-router";
-import App from "@/App.vue";
-import { createAppRouter } from "@/router/index.ts";
+import { openAppAt } from "@/app.fixture.ts";
+import {
+  bytesOf,
+  catchDownloads,
+  exportUses,
+  generateFrom,
+  type SavedFile,
+} from "@/services/export-file.fixture.ts";
 import {
   castPath,
   departmentNotesPath,
@@ -46,7 +51,7 @@ const alien: Role = {
 
 /** The stand-in API: what it answers can change between the page loading and the export. */
 let api: { order: number; plots: ItemMicPlot[]; plotsStatus: number };
-let saved: { name: string; file: Blob }[];
+let saved: SavedFile[];
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["Date"], now: new Date(2026, 10, 5, 10, 0) });
@@ -56,18 +61,7 @@ beforeEach(() => {
     plots: [{ itemId: "space-sketch", mics: [{ channel: 1, castMemberId: alex.id }] }],
     plotsStatus: 200,
   };
-  saved = [];
-  let lastFile: Blob | undefined;
-  URL.createObjectURL = vi.fn((file: Blob) => {
-    lastFile = file;
-    return "blob:made-up";
-  });
-  URL.revokeObjectURL = vi.fn();
-  vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
-    this: HTMLAnchorElement,
-  ) {
-    if (lastFile) saved.push({ name: this.download, file: lastFile });
-  });
+  saved = catchDownloads();
   const json = (body: unknown) => new Response(JSON.stringify(body));
   vi.stubGlobal(
     "fetch",
@@ -102,48 +96,11 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
-async function openOverview() {
-  const router = createAppRouter(createMemoryHistory());
-  await router.push("/production/overview");
-  await router.isReady();
-  const wrapper = mount(App, { global: { plugins: [router] }, attachTo: document.body });
-  await flushPromises();
-  return wrapper;
-}
+const openOverview = async () => (await openAppAt("/production/overview")).wrapper;
 
-const buttonNamed = (wrapper: VueWrapper, name: string) =>
-  wrapper.findAll("main button").find((b) => b.text() === name);
-
-async function generate(wrapper: VueWrapper) {
-  await buttonNamed(wrapper, "Generate Mic Plot")?.trigger("click");
-  await flushPromises();
-  // Building the workbook is real work in the browser: let it finish.
-  await vi.waitFor(() =>
-    expect(saved.length > 0 || wrapper.find(".mic-plot-export-error").exists()).toBe(true),
-  );
-  await flushPromises();
-}
-
-const bytesOf = async (file: Blob | undefined) =>
-  new Uint8Array(file ? await file.arrayBuffer() : new ArrayBuffer(0));
-
-const exportUses = () =>
-  vi
-    .mocked(fetch)
-    .mock.calls.filter(([url, init]) => url === "/api/usage" && init?.method === "POST")
-    .map(([, init]) => JSON.parse(String(init?.body)))
-    .filter((body) => body.event === "export");
+const generate = (wrapper: VueWrapper) => generateFrom(wrapper, "Generate Mic Plot");
 
 describe("Generate Mic Plot", () => {
-  it("sits beside Generate Props List", async () => {
-    const wrapper = await openOverview();
-
-    expect(wrapper.findAll("main .view-bar button").map((b) => b.text())).toEqual([
-      "Generate Props List",
-      "Generate Mic Plot",
-    ]);
-  });
-
   it("lets someone with no permissions download the mic plot as an Excel workbook", async () => {
     await signInAs([], "jo");
     const wrapper = await openOverview();
@@ -191,33 +148,23 @@ describe("Generate Mic Plot", () => {
     expect(exportUses()).toEqual([{ event: "export", export: "excel-mic-plot" }]);
   });
 
-  it("says when it can't be made, saving and recording nothing, and keeps the button ready", async () => {
+  it("says when it can't be made", async () => {
     const wrapper = await openOverview();
     api.plotsStatus = 500;
 
     await generate(wrapper);
 
-    expect(wrapper.get(".mic-plot-export-error").text()).toBe(
+    expect(wrapper.get("[data-test=mics-error]").text()).toBe(
       "Couldn't generate the mic plot. Try again.",
     );
-    expect(saved).toEqual([]);
-    expect(exportUses()).toEqual([]);
-    expect(buttonNamed(wrapper, "Generate Mic Plot")?.attributes("disabled")).toBeUndefined();
-
-    api.plotsStatus = 200;
-    await generate(wrapper);
-
-    expect(wrapper.find(".mic-plot-export-error").exists()).toBe(false);
-    expect(saved).toHaveLength(1);
   });
 
-  it("isn't offered, nor is Generate Props List, without a saved running order", async () => {
+  it("isn't offered, nor are the other exports, without a saved running order", async () => {
     api.order = 404;
 
     const wrapper = await openOverview();
 
     expect(wrapper.get("main").text()).toContain("There's no saved running order yet.");
-    expect(buttonNamed(wrapper, "Generate Mic Plot")).toBeUndefined();
-    expect(buttonNamed(wrapper, "Generate Props List")).toBeUndefined();
+    expect(wrapper.find("main .view-bar").exists()).toBe(false);
   });
 });

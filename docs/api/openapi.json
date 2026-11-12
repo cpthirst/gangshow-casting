@@ -4749,7 +4749,8 @@
                   "word-casting-sheets",
                   "word-item-overview",
                   "word-props-list",
-                  "excel-mic-plot"
+                  "excel-mic-plot",
+                  "word-costume-sheets"
                 ]
               }
             },
@@ -5716,7 +5717,8 @@
                       "export-word-casting-sheets",
                       "export-word-item-overview",
                       "export-word-props-list",
-                      "export-excel-mic-plot"
+                      "export-excel-mic-plot",
+                      "export-word-costume-sheets"
                     ]
                   },
                   "additionalProperties": {
@@ -5735,7 +5737,7 @@
             }
           },
           "features": {
-            "maxItems": 25,
+            "maxItems": 26,
             "type": "array",
             "items": {
               "type": "object",
@@ -5767,7 +5769,8 @@
                     "export-word-casting-sheets",
                     "export-word-item-overview",
                     "export-word-props-list",
-                    "export-excel-mic-plot"
+                    "export-excel-mic-plot",
+                    "export-word-costume-sheets"
                   ]
                 },
                 "uses": {

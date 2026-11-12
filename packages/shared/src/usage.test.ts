@@ -70,6 +70,7 @@ describe("RecordUsageRequest", () => {
     "word-item-overview",
     "word-props-list",
     "excel-mic-plot",
+    "word-costume-sheets",
   ])("accepts the export %s", (exported) => {
     const use = { event: "export", export: exported };
     expect(RecordUsageRequest.parse(use)).toEqual(use);

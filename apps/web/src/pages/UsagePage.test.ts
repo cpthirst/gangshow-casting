@@ -296,7 +296,12 @@ describe("Usage page", () => {
           username: "alex",
           sessions: 1,
           lastSession: "2026-10-22T18:00:00.000Z",
-          uses: { "export-word-casting-sheets": 1, "export-excel-grid": 2, "item-page": 1 },
+          uses: {
+            "export-word-costume-sheets": 1,
+            "export-word-casting-sheets": 1,
+            "export-excel-grid": 2,
+            "item-page": 1,
+          },
         },
       ],
     });
@@ -307,7 +312,12 @@ describe("Usage page", () => {
       "alex",
       "1",
       "22 October 2026",
-      ["Item pages 1", "Export: Excel grid 2", "Export: Word casting sheets 1"],
+      [
+        "Item pages 1",
+        "Export: Excel grid 2",
+        "Export: Word casting sheets 1",
+        "Export: Word costume sheets 1",
+      ],
     ]);
   });
 
@@ -460,6 +470,7 @@ describe("Usage page", () => {
           { username: "robin", at, event: "page", page: "production-overview" },
           { username: "robin", at, event: "export", export: "word-casting-sheets" },
           { username: "robin", at, event: "export", export: "excel-mic-plot" },
+          { username: "kit", at, event: "export", export: "word-costume-sheets" },
         ],
       });
 
@@ -470,6 +481,7 @@ describe("Usage page", () => {
         "opened Production overview",
         "exported the Word casting sheets",
         "generated the Mic Plot",
+        "exported the Word costume sheets",
       ]);
     });
 

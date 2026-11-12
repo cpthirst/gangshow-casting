@@ -27,7 +27,7 @@ prd: ./prd.md
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
 | [production-costume-sheets.E2.S1](stories/E2-S1-casting-sheets-drop-costume-from-home.md) | The casting sheets lose their **Costume from home** column: #, Item Name and Cast, Item Name taking the width, otherwise unchanged | FR12 | (none) | done |
-| [production-costume-sheets.E2.S2](stories/E2-S2-generate-costume-sheets.md) | **Generate Costume Sheets** on the Production Overview, beside Generate Props List and Generate Mic Plot: one page per cast member laid out as the casting sheets are, sharing their document, with #, Item Name, Role, From Wardrobe and From Cast Member, a row per role held in an item and empty costume columns where they're not in it. Busy, announced and retried as the other exports, and recorded on the Usage page | FR9, FR10, FR11, FR14 | E1.S2, E2.S1 | ready |
+| [production-costume-sheets.E2.S2](stories/E2-S2-generate-costume-sheets.md) | **Generate Costume Sheets** on the Production Overview, beside Generate Props List and Generate Mic Plot: one page per cast member laid out as the casting sheets are, sharing their document, with #, Item Name, Role, From Wardrobe and From Cast Member, a row per role held in an item and empty costume columns where they're not in it. Busy, announced and retried as the other exports, and recorded on the Usage page | FR9, FR10, FR11, FR14 | E1.S2, E2.S1 | done |
 
 ## E3: Help
 

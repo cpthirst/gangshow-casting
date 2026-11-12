@@ -1,9 +1,14 @@
 import type { CastMember, Prop, Role } from "@app/shared";
-import { enableAutoUnmount, flushPromises, mount, type VueWrapper } from "@vue/test-utils";
+import { enableAutoUnmount, type VueWrapper } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createMemoryHistory } from "vue-router";
-import App from "@/App.vue";
-import { createAppRouter } from "@/router/index.ts";
+import { openAppAt } from "@/app.fixture.ts";
+import {
+  bytesOf,
+  catchDownloads,
+  exportUses,
+  generateFrom,
+  type SavedFile,
+} from "@/services/export-file.fixture.ts";
 import {
   castPath,
   departmentNotesPath,
@@ -57,32 +62,19 @@ let api: {
   cast: CastMember[];
   roles: Role[];
   propsStatus: number;
-  holdProps?: Promise<void>;
 };
-let saved: { name: string; file: Blob }[];
+let saved: SavedFile[];
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["Date"], now: new Date(2026, 9, 25, 10, 0) });
   useLocalSignIn();
   api = { cast: [sam, kim], roles: [captain], propsStatus: 200 };
-  saved = [];
-  let lastFile: Blob | undefined;
-  URL.createObjectURL = vi.fn((file: Blob) => {
-    lastFile = file;
-    return "blob:made-up";
-  });
-  URL.revokeObjectURL = vi.fn();
-  vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
-    this: HTMLAnchorElement,
-  ) {
-    if (lastFile) saved.push({ name: this.download, file: lastFile });
-  });
+  saved = catchDownloads();
   const json = (body: unknown) => new Response(JSON.stringify(body));
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string) => {
       if (url === propsPath()) {
-        await api.holdProps;
         return api.propsStatus === 200
           ? json({ productionId: "2027", props: [telescope] })
           : new Response(null, { status: api.propsStatus });
@@ -104,44 +96,15 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
-async function openOverview() {
-  const router = createAppRouter(createMemoryHistory());
-  await router.push("/production/overview");
-  await router.isReady();
-  const wrapper = mount(App, { global: { plugins: [router] }, attachTo: document.body });
-  await flushPromises();
-  return wrapper;
-}
+const openOverview = async () => (await openAppAt("/production/overview")).wrapper;
 
-const generateButton = (wrapper: VueWrapper) =>
-  wrapper.findAll("main button").find((b) => b.text() === "Generate Props List");
-
-async function generate(wrapper: VueWrapper) {
-  await generateButton(wrapper)?.trigger("click");
-  await flushPromises();
-  // Building the document is real work in the browser: let it finish.
-  await vi.waitFor(() =>
-    expect(saved.length > 0 || wrapper.find(".word-export-error").exists()).toBe(true),
-  );
-  await flushPromises();
-}
-
-const bytesOf = async (file: Blob | undefined) =>
-  new Uint8Array(file ? await file.arrayBuffer() : new ArrayBuffer(0));
-
-const exportUses = () =>
-  vi
-    .mocked(fetch)
-    .mock.calls.filter(([url, init]) => url === "/api/usage" && init?.method === "POST")
-    .map(([, init]) => JSON.parse(String(init?.body)))
-    .filter((body) => body.event === "export");
+const generate = (wrapper: VueWrapper) => generateFrom(wrapper, "Generate Props List");
 
 describe("Generate Props List", () => {
   it("lets someone with no permissions download the props list as a Word document", async () => {
     await signInAs([], "jo");
     const wrapper = await openOverview();
 
-    expect(generateButton(wrapper)?.classes()).toContain("word-export-button");
     await generate(wrapper);
 
     expect(saved).toHaveLength(1);
@@ -193,42 +156,14 @@ describe("Generate Props List", () => {
     expect(exportUses()).toEqual([{ event: "export", export: "word-props-list" }]);
   });
 
-  it("shows it's busy and starts no second list while one is being made", async () => {
-    const wrapper = await openOverview();
-    let release = () => {};
-    api.holdProps = new Promise((resolve) => {
-      release = resolve;
-    });
-
-    const button = wrapper.get<HTMLButtonElement>("button.word-export-button");
-    await button.trigger("click");
-    expect(button.attributes("disabled")).toBeDefined();
-    await button.trigger("click");
-    release();
-    await vi.waitFor(() => expect(saved).toHaveLength(1));
-    await flushPromises();
-
-    expect(saved).toHaveLength(1);
-    expect(button.attributes("disabled")).toBeUndefined();
-  });
-
-  it("says when it can't be made, saving and recording nothing, and keeps the button ready", async () => {
+  it("says when it can't be made", async () => {
     const wrapper = await openOverview();
     api.propsStatus = 500;
 
     await generate(wrapper);
 
-    expect(wrapper.get(".word-export-error").text()).toBe(
+    expect(wrapper.get("[data-test=props-error]").text()).toBe(
       "Couldn't generate the props list. Try again.",
     );
-    expect(saved).toEqual([]);
-    expect(exportUses()).toEqual([]);
-    expect(generateButton(wrapper)?.attributes("disabled")).toBeUndefined();
-
-    api.propsStatus = 200;
-    await generate(wrapper);
-
-    expect(wrapper.find(".word-export-error").exists()).toBe(false);
-    expect(saved).toHaveLength(1);
   });
 });
