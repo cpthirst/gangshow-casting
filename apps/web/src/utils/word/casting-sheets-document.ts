@@ -28,22 +28,21 @@ import {
 } from "./word-styles.ts";
 
 // A casting sheet for every cast member, to print and hand out (casting-overview-by-item
-// FR9–FR13): one each, starting on a new page, headed with the show and who it's for, then
-// every item, with a tick where they're in it and room to note costume from home. Only
-// their name, section and group: a sheet handed to a young person shows nobody else's
-// details (ADR 0022).
+// FR9–FR13, as amended by production-costume-sheets FR12): one each, starting on a new
+// page, headed with the show and who it's for, then every item, with a tick where they're
+// in it. Only their name, section and group: a sheet handed to a young person shows nobody
+// else's details (ADR 0022).
 
-// In twentieths of a point. A4 with narrow margins, and item rows two lines of text tall,
-// room to write in by hand. A long show carries on over the page, header row repeated. The
-// logo is small and a quarter inch from the top, so it takes little room from the items.
+// In twentieths of a point. A4 with narrow margins, and item rows two lines of text tall.
+// A long show carries on over the page, header row repeated. The logo is small and a
+// quarter inch from the top, so it takes little room from the items.
 const MARGIN = { top: 720, bottom: 720, left: 1080, right: 1080, header: 360 };
 const ITEM_ROW_HEIGHT = 2 * LINE_HEIGHT;
 
 const COLUMNS = [
   { name: "#", share: 7 },
-  { name: "Item Name", share: 40 },
+  { name: "Item Name", share: 83 },
   { name: "Cast", share: 10 },
-  { name: "Costume from home", share: 43 },
 ];
 
 /** "Scouts · 1st Anytown", leaving out whatever isn't set: never the screen's "Not set" on
@@ -119,8 +118,6 @@ const itemsTable = (halves: SheetHalf[], roles: Role[], member: CastMember) =>
                 cell(item.number === null ? "" : String(item.number), { centred: true }),
                 cell(item.title, { unprinted: item.number === null }),
                 cell(isIn(roles, member.id, item.id) ? "✓" : "", { centred: true }),
-                // Left blank, to be filled in by hand (FR13).
-                cell(""),
               ],
             }),
         ),

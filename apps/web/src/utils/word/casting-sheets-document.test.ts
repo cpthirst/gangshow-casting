@@ -152,20 +152,18 @@ describe("each casting sheet's table of items", () => {
 
   /** The rows for items: not the header row, nor the rows naming a half. */
   const itemRows = (table: { header: boolean; cells: string[] }[] | undefined) =>
-    (table ?? []).filter((row) => !row.header && row.cells.length === 4);
+    (table ?? []).filter((row) => !row.header && row.cells.length === 3);
 
   async function tablesOf(cast: CastMember[]) {
     const file = await sheetsOf(cast, { order: show, roles });
     return readDocx(file).flatMap((block) => (block.kind === "table" ? [block.rows] : []));
   }
 
-  it("has a #, Item Name, Cast and Costume from home header row", async () => {
+  it("has a #, Item Name and Cast header row, and no Costume from home", async () => {
     const [table] = await tablesOf([ava]);
 
-    expect(table?.[0]).toEqual({
-      header: true,
-      cells: ["#", "Item Name", "Cast", "Costume from home"],
-    });
+    expect(table?.[0]).toEqual({ header: true, cells: ["#", "Item Name", "Cast"] });
+    expect(itemRows(table)).toHaveLength(4);
   });
 
   it("lists every item in show order, each number in its own column, a row naming each half", async () => {
@@ -181,13 +179,13 @@ describe("each casting sheet's table of items", () => {
     ]);
   });
 
-  it("sets the columns at 7%, 40%, 10% and 43% of the page", async () => {
+  it("sets the columns at 7%, 83% and 10% of the page, Item Name taking the width", async () => {
     const file = await sheetsOf([ava], { order: show, roles });
 
-    expect(columnShares(file)).toEqual([[7, 40, 10, 43]]);
+    expect(columnShares(file)).toEqual([[7, 83, 10]]);
   });
 
-  it("shows an item not in the printed programme in the grid's red italics, with no number", async () => {
+  it("shows an item not in the printed programme in the grid's red italics", async () => {
     const xml = documentXml(await sheetsOf([ava], { order: show, roles }));
 
     const run = /<w:r>(?:(?!<w:r>).)*?Scene Change Music<\/w:t><\/w:r>/s.exec(xml)?.[0] ?? "";
@@ -209,14 +207,7 @@ describe("each casting sheet's table of items", () => {
     expect(ticks).toEqual(["", "", "", ""]);
   });
 
-  it("leaves Costume from home empty on every item", async () => {
-    const [table] = await tablesOf([ava]);
-
-    const costumes = itemRows(table).map((row) => row.cells[3]);
-    expect(costumes).toEqual(["", "", "", ""]);
-  });
-
-  it("makes every item row two lines of text tall, room to write in", async () => {
+  it("makes every item row two lines of text tall", async () => {
     const file = await sheetsOf([ava], { order: show, roles });
 
     // Two lines of 11 pt text (a line is 1.2 times the size), in twentieths of a point,

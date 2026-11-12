@@ -17,7 +17,7 @@ The Overview shows the cast by person and as a grid. Nothing shows the whole sho
 |---|---|
 | Production team (every role) | See every item's parts and cast in show order on one screen |
 | Item leaders and creative team | A Word document of the show's casting, laid out like the screen, to read or print |
-| Cast members (Scouts, Explorers, Network), through the team | A printed sheet of their own items, with space to note costume from home |
+| Cast members (Scouts, Explorers, Network), through the team | A printed sheet of their own items (its space to note costume from home dropped on 2026-11-12 by production-costume-sheets FR12) |
 
 ## Goals and success metrics
 
@@ -31,7 +31,7 @@ The Overview shows the cast by person and as a grid. Nothing shows the whole sho
 ## Non-goals
 
 - Editing roles or casting from the By item view. That stays on each item's page.
-- Filling in "Costume from home". It's left blank for the cast member or leader to write in.
+- Filling in "Costume from home". It was left blank for the cast member or leader to write in. (The column was dropped on 2026-11-12 by production-costume-sheets FR12.)
 - Showing role names, clash warnings, timings or stage on the casting sheets.
 - Emailing, sharing or storing the documents anywhere. The app only downloads them.
 - Other formats (PDF, Excel) for these two documents.
@@ -55,8 +55,8 @@ The Overview shows the cast by person and as a grid. Nothing shows the whole sho
 - **FR9**: On the By person view, **Export to Word** must download one Word document with **one page per cast member**, for every member of the production's cast, including anyone not yet cast in anything.
 - **FR10**: Pages must be ordered by section (Scouts, Explorers, Network, then anyone with no section set), then by surname, then first name.
 - **FR11**: Each page must have a heading of the production's title, then the cast member's first name, surname, section and Scout group or Explorer unit.
-- **FR12**: Each page must have a four-column table: **#** (7% of the width), **Item Name** (40%), **Cast** (10%) and **Costume from home** (43%). It has one row per item, in show order, with its programme number in the # column, and a break between the halves. An item left out of the printed programme has no number and its name is in the grid's red italics. Each item row is two lines of text tall, room to write in. (Columns, widths, row height and unprinted items changed on 2026-10-19 at the user's request; "Am I cast" renamed "Cast".)
-- **FR13**: "Cast" must show a tick when the cast member holds any role in that item, and be empty otherwise. "Costume from home" is always empty, with room to write in by hand.
+- **FR12**: Each page must have a three-column table: **#** (7% of the width), **Item Name** (83%) and **Cast** (10%). It has one row per item, in show order, with its programme number in the # column, and a break between the halves. An item left out of the printed programme has no number and its name is in the grid's red italics. Each item row is two lines of text tall. (Columns, widths, row height and unprinted items changed on 2026-10-19 at the user's request; "Am I cast" renamed "Cast". "Costume from home" dropped on 2026-11-12 by production-costume-sheets FR12, Item Name taking its width.)
+- **FR13**: "Cast" must show a tick when the cast member holds any role in that item, and be empty otherwise. (Its "Costume from home" sentence was dropped on 2026-11-12 by production-costume-sheets FR12.)
 - **FR14**: While an export is being made, its button must show it's busy and can't be pressed twice. When it finishes, screen readers are told. If it fails, the user is told and can try again, as with the Excel export.
 - **FR15**: Both documents must reflect the latest saved running order, roles and cast at the moment of export, and have file names that say what they are and which production they're for.
 
