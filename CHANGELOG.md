@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.61.0](https://github.com/cpthirst/gangshow-casting/compare/v1.60.0...v1.61.0) (2026-11-12)
+
+
+### Features
+
+* **web,shared:** costume sheets and slimmer casting sheets (production-costume-sheets.E2) ([#236](https://github.com/cpthirst/gangshow-casting/issues/236)) ([46381b0](https://github.com/cpthirst/gangshow-casting/commit/46381b0a7a640c930ce5dd0149cb6e3e90c301c8))
+
 ## [1.60.0](https://github.com/cpthirst/gangshow-casting/compare/v1.59.0...v1.60.0) (2026-11-12)
 
 
