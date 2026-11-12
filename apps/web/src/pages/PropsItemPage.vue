@@ -1,24 +1,16 @@
 <script setup lang="ts">
-import {
-  CastList,
-  type CastMember,
-  Prop,
-  type PropDetails,
-  PropList,
-  type Role,
-  RoleList,
-  type RunningOrder,
-} from "@app/shared";
+import { Prop, type PropDetails, PropList, type RunningOrder } from "@app/shared";
 import { computed, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import ItemPageFrame from "@/components/common/ItemPageFrame.vue";
 import PropCard from "@/components/production/PropCard.vue";
 import PropForm from "@/components/production/PropForm.vue";
+import { useCasting } from "@/composables/useCasting.ts";
 import { controlOf, useConfirm } from "@/composables/useConfirm.ts";
 import { useItemPlace } from "@/composables/useItemPlace.ts";
 import { useListEditing } from "@/composables/useListEditing.ts";
 import { loadData } from "@/services/load-data.ts";
-import { addPropPath, castPath, propPath, propsPath, rolesPath } from "@/services/production.ts";
+import { addPropPath, propPath, propsPath } from "@/services/production.ts";
 import { canChange, deleteStatus, sendJson } from "@/services/sign-in.ts";
 import { sortProps } from "@/utils/props.ts";
 import { sortRoles } from "@/utils/roles.ts";
@@ -30,8 +22,7 @@ const route = useRoute();
 const order = ref<RunningOrder>();
 const props = ref<Prop[]>([]);
 // The casting, for each prop's roles and who plays them (production-props FR18).
-const roles = ref<Role[]>([]);
-const cast = ref<CastMember[]>([]);
+const { roles, cast, load: loadCasting } = useCasting();
 
 const place = useItemPlace(order);
 const askToConfirm = useConfirm();
@@ -44,19 +35,17 @@ const itemRoles = computed(() =>
   sortRoles(roles.value.filter((role) => role.itemId === place.value?.item.id)),
 );
 
-// Every prop and the casting, loaded with the running order the frame shows; no props,
-// casting or cast list yet just means there are none.
+// Every prop and the casting, loaded with the running order the frame shows; no props yet
+// just means there are none.
 async function loadProps() {
-  const [loadedProps, loadedRoles, loadedCast] = await Promise.all([
+  const [loadedProps, showCasting] = await Promise.all([
     loadData(propsPath(), PropList),
-    loadData(rolesPath(), RoleList),
-    loadData(castPath(), CastList),
+    loadCasting(),
   ]);
   return (loadedOrder: RunningOrder) => {
     order.value = loadedOrder;
     props.value = loadedProps?.props ?? [];
-    roles.value = loadedRoles?.roles ?? [];
-    cast.value = loadedCast?.members ?? [];
+    showCasting();
   };
 }
 

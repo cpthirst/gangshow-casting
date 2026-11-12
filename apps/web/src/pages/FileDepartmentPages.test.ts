@@ -1,8 +1,10 @@
 import {
+  type CastMember,
   type FileDepartment,
   type ItemFile,
   ItemFileUploadRequest,
   type ItemNote,
+  type Role,
   SaveItemNoteRequest,
 } from "@app/shared";
 import { enableAutoUnmount, flushPromises, type VueWrapper } from "@vue/test-utils";
@@ -11,9 +13,17 @@ import { json, openAppAt } from "@/app.fixture.ts";
 import * as confirmDialog from "@/components/common/ConfirmDialog.fixture.ts";
 import { downloadFrom, openFileTab } from "@/services/file-link.ts";
 import { StandInXhr } from "@/services/file-upload.fixture.ts";
-import { runningOrderPath } from "@/services/production.ts";
+import { castPath, rolesPath, runningOrderPath } from "@/services/production.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
+import {
+  aRole,
+  captainHook,
+  chrisEvans,
+  kimLee,
+  pirateCast,
+  pirates,
+} from "@/utils/casting.fixture.ts";
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
 
 // Every file department's page is the same component: SceneryItemPage.test.ts covers how it
@@ -42,9 +52,17 @@ const STORAGE = "https://files.example/";
 /** Each department's files, by item id, as file storage holds them now. */
 type Held = Partial<Record<FileDepartment, Record<string, ItemFile[]>>>;
 
+/** The casting the Wardrobe page reads its costume rows from: every role, and the cast list. */
+interface Casting {
+  roles: Role[];
+  cast: CastMember[];
+}
+
+const NOBODY_CAST: Casting = { roles: [], cast: [] };
+
 /** A stand-in API holding the running order, each department's files, changed by uploads
- *  and deletes, and any notes. */
-function apiHolds(held: Held = {}, notes: ItemNote[] = []) {
+ *  and deletes, any notes, and the casting. */
+function apiHolds(held: Held = {}, notes: ItemNote[] = [], casting = NOBODY_CAST) {
   const filesOf = (department: FileDepartment, itemId: string) => {
     const byItem = held[department] ?? {};
     held[department] = byItem;
@@ -57,6 +75,8 @@ function apiHolds(held: Held = {}, notes: ItemNote[] = []) {
     "fetch",
     vi.fn(async (url: string, init?: RequestInit) => {
       if (url === runningOrderPath()) return json(show);
+      if (url === rolesPath()) return json({ productionId: "2027", roles: casting.roles });
+      if (url === castPath()) return json({ productionId: "2027", members: casting.cast });
       if (/^\/api\/productions\/2027\/(scenery|sfx|wardrobe)-notes$/.test(url)) {
         return json({ productionId: "2027", notes });
       }
@@ -271,6 +291,27 @@ describe.each([
   },
 );
 
+// Each file page's sections, in order: only Wardrobe has Costumes between its files and notes.
+describe.each([
+  ["Scenery", "scenery", "set-plan.pdf", ["Files", "Scenery notes"]],
+  ["SFX", "sfx", "thunder.mp3", ["Files", "SFX notes"]],
+  ["Wardrobe", "wardrobe", "jacket-pattern.pdf", ["Files", "Costumes", "Wardrobe notes"]],
+] as const)("The %s page", (_name, key, file, sections) => {
+  it("heads its files and upload area Files, and has only its own sections after", async () => {
+    apiHolds({ [key]: { "opening-number": [{ name: file, size: 10 }] } });
+    const { wrapper } = await openAppAt(pageOf(key));
+
+    const files = wrapper.get("main section[aria-labelledby=files-heading]");
+    expect(files.get("h2").text()).toBe("Files");
+    expect(files.find("[data-test=upload-area]").exists()).toBe(true);
+    expect(
+      files.findAll("[data-test=file]").map((row) => row.get("[data-test=name]").text()),
+    ).toEqual([file]);
+    // The page's sections; the help dialog's own title isn't one.
+    expect(wrapper.findAll("main section > h2").map((heading) => heading.text())).toEqual(sections);
+  });
+});
+
 describe("What's different about SFX", () => {
   it("opens an MP3 in a new tab to play, with no download", async () => {
     const tab = { show: vi.fn(), close: vi.fn() };
@@ -315,5 +356,53 @@ describe("What's different about Wardrobe", () => {
 
     expect(downloadFrom).toHaveBeenCalledWith(linkTo("thunder.mp3"));
     expect(openFileTab).not.toHaveBeenCalled();
+  });
+
+  const singer = aRole(9, "campfire-song", [kimLee.id], { name: "Singer", size: "lead" });
+  const casting = { roles: [pirates, captainHook(), singer], cast: pirateCast };
+
+  const costumeRows = (wrapper: VueWrapper) =>
+    wrapper.findAll("main [data-test=costume]").map((row) => row.text().replace(/\s+/g, " "));
+
+  it("lists who wears what from the item's casting, a row per cast member per role", async () => {
+    apiHolds({}, [], casting);
+    const { wrapper } = await openAppAt(pageOf("wardrobe"));
+
+    expect(costumeRows(wrapper)).toEqual([
+      "Captain Hook (Alex Morgan)",
+      "Pirates (Jo Brown)",
+      "Pirates (Kim Lee)",
+      "Pirates (Sam Patel)",
+    ]);
+  });
+
+  it("shows the casting as it is now, so a recast role shows its new cast member", async () => {
+    apiHolds({}, [], { roles: [captainHook()], cast: pirateCast });
+    const first = await openAppAt(pageOf("wardrobe"));
+    first.wrapper.unmount();
+
+    // Recast on the casting page meanwhile.
+    apiHolds({}, [], { roles: [captainHook(chrisEvans)], cast: pirateCast });
+    const { wrapper } = await openAppAt(pageOf("wardrobe"));
+
+    expect(costumeRows(wrapper)).toEqual(["Captain Hook (Chris Evans)"]);
+    expect(wrapper.get("main section[aria-labelledby=costumes-heading]").text()).not.toContain(
+      "Alex Morgan",
+    );
+  });
+
+  it("shows the next item's own rows after Next, keeping All items, Previous and Next", async () => {
+    apiHolds({}, [], casting);
+    const { wrapper } = await openAppAt(pageOf("wardrobe"));
+
+    await wrapper.get("main a[rel=next]").trigger("click");
+    await flushPromises();
+
+    expect(wrapper.get("main h1").text()).toBe("Wardrobe: Campfire Song");
+    expect(costumeRows(wrapper)).toEqual(["Singer (Kim Lee)"]);
+    const nav = wrapper.get("main nav[aria-label='Item navigation']");
+    expect(nav.get("a").text()).toBe("All items");
+    expect(nav.get("a[rel=prev]").attributes("href")).toBe(pageOf("wardrobe"));
+    expect(nav.get("a[rel=next]").attributes("href")).toBe(pageOf("wardrobe", "finale"));
   });
 });

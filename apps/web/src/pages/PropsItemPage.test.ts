@@ -591,7 +591,7 @@ const rolesOn = (wrapper: VueWrapper, propName: string) =>
     .find((card) => card.get("[data-test=prop-name]").text() === propName)
     ?.findAll("[data-test=prop-role]")
     .map((role) => ({
-      role: role.get("[data-test=prop-role-name]").text(),
+      role: role.get("[data-test=role-name]").text(),
       cast: (role.find("[data-test=cast]").exists()
         ? role.get("[data-test=cast]")
         : role.get("[data-test=uncast]")

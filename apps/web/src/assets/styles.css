@@ -1450,6 +1450,11 @@ main a {
   text-decoration: underline;
 }
 
+/* An item page's headed sections, Files and Costumes, spaced apart as its notes are below. */
+.item-section + .item-section {
+  margin-top: 2rem;
+}
+
 /* An item's notes, below its roles: the item editor's text field, full width. */
 .item-notes {
   margin-top: 2rem;
@@ -2214,10 +2219,9 @@ main a {
   font-weight: 700;
 }
 
-/* Who carries a prop, in brackets after each of its roles on its card and in its form
-   (production-props FR26). */
-.role-carriers,
-.prop-carriers {
+/* Who plays a role, in brackets after it: a prop's carriers on its card and in its form
+   (production-props FR26), and a costume row's cast member (production-costume-sheets FR3). */
+.role-carriers {
   font-style: italic;
   overflow-wrap: anywhere;
 }
