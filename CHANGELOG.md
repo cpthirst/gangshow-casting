@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.62.0](https://github.com/cpthirst/gangshow-casting/compare/v1.61.0...v1.62.0) (2026-11-24)
+
+
+### Features
+
+* **web:** hatch blank sheet cells and copy costumes (production-costume-sheets.E2.S3, E1.S4) ([#240](https://github.com/cpthirst/gangshow-casting/issues/240)) ([643ed63](https://github.com/cpthirst/gangshow-casting/commit/643ed63c7eae4cd67bd3bb32fa2d6742d92c8ac0))
+
 ## [1.61.0](https://github.com/cpthirst/gangshow-casting/compare/v1.60.0...v1.61.0) (2026-11-12)
 
 
