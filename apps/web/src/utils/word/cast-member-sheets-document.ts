@@ -6,6 +6,7 @@ import {
   HeightRule,
   Packer,
   Paragraph,
+  ShadingType,
   Table,
   TableCell,
   TableLayoutType,
@@ -33,8 +34,9 @@ import {
 // one each, starting on a new page, headed with the show and who it's for, then every item.
 // The casting sheets tick the items they're in (casting-overview-by-item FR9–FR13, as amended
 // by production-costume-sheets FR12); the costume sheets give their role and costume in each
-// (production-costume-sheets FR10, FR11). Only their name, section and group: a sheet handed
-// to a young person shows nobody else's details (ADR 0022).
+// (production-costume-sheets FR10, FR11), cross-hatching the blank ones (FR15). Only their
+// name, section and group: a sheet handed to a young person shows nobody else's details
+// (ADR 0022).
 
 // In twentieths of a point. A4 with narrow margins, and item rows two lines of text tall.
 // A long show carries on over the page, header row repeated. The logo is small and a
@@ -57,6 +59,9 @@ interface SheetKind<Show extends LatestShow> {
   columns: Column[];
   /** The cells after # and Item Name for the person in the item: a row each, at least one. */
   rowsFor: (show: Show, member: CastMember, itemId: string) => CellText[][];
+  /** Whether those cells are cross-hatched where they're blank, so the cast see they were
+   *  left blank on purpose rather than missed. */
+  hatchesBlanks: boolean;
 }
 
 /** A line of a cell's text. */
@@ -84,6 +89,7 @@ const castingSheets: SheetKind<LatestShow> = {
   rowsFor: (show, member, itemId) => [
     [rolesHeld(show.roles, member, itemId).length > 0 ? TICK : ""],
   ],
+  hatchesBlanks: false,
 };
 
 /** A row for each role the person holds in the item, in its role order: a tick over the
@@ -107,6 +113,7 @@ const costumeSheets: SheetKind<LatestCostumeSheets> = {
       return [tickedRole, fromWardrobe, fromCastMember];
     });
   },
+  hatchesBlanks: true,
 };
 
 /** "Scouts · 1st Anytown", leaving out whatever isn't set: never the screen's "Not set" on
@@ -120,11 +127,17 @@ interface CellOptions {
   span?: number;
   /** An item not in the printed programme: the grid's red italics. */
   unprinted?: boolean;
+  /** Left blank on purpose: Word's cross-hatch. */
+  hatched?: boolean;
 }
+
+/** A thin pale-grey cross-hatch on white, which prints in black and white. */
+const HATCHING = { type: ShadingType.THIN_DIAGONAL_CROSS, color: "BFBFBF", fill: "FFFFFF" };
 
 const cell = (content: CellText, options: CellOptions = {}) =>
   new TableCell({
     columnSpan: options.span ?? 1,
+    ...(options.hatched ? { shading: HATCHING } : {}),
     children: (typeof content === "string" ? [{ text: content }] : content).map(
       ({ text, italic }) =>
         new Paragraph({
@@ -192,6 +205,7 @@ function itemsTable<Show extends LatestShow>(
                   cell(content, {
                     centred: columns[i]?.centred ?? false,
                     unprinted: i === ITEM_NAME_COLUMN && item.number === null,
+                    hatched: kind.hatchesBlanks && i > ITEM_NAME_COLUMN && content === "",
                   }),
                 ),
               }),

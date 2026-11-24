@@ -34,6 +34,14 @@ const runsOf = (xml: string): Run[] =>
     color: /<w:color w:val="([0-9A-Fa-f]{6})"\/>/.exec(run)?.[1]?.toUpperCase(),
   }));
 
+/** Each table row's XML in a part of the document, top to bottom, across every table. */
+const rowsOf = (xml: string) =>
+  [...xml.matchAll(/<w:tr(?:\s[^>]*)?>(.*?)<\/w:tr>/gs)].map(([, row = ""]) => row);
+
+/** Each cell's XML in a table row. */
+const cellsOf = (row: string) =>
+  [...row.matchAll(/<w:tc>(.*?)<\/w:tc>/gs)].map(([, cell = ""]) => cell);
+
 /** The body of a .docx, top to bottom, as paragraphs and tables: enough to check what a
  *  document says, and how, without opening Word. Empty paragraphs are left out. */
 export function readDocx(file: Uint8Array): Block[] {
@@ -41,12 +49,10 @@ export function readDocx(file: Uint8Array): Block[] {
   const blocks: Block[] = [];
   for (const [element] of xml.matchAll(/<w:tbl>.*?<\/w:tbl>|<w:p(?:\s[^>]*)?>.*?<\/w:p>/gs)) {
     if (element.startsWith("<w:tbl>")) {
-      const rows = [...element.matchAll(/<w:tr(?:\s[^>]*)?>(.*?)<\/w:tr>/gs)].map(
-        ([, row = ""]) => ({
-          header: row.includes("<w:tblHeader"),
-          cells: [...row.matchAll(/<w:tc>(.*?)<\/w:tc>/gs)].map(([, cell = ""]) => textOf(cell)),
-        }),
-      );
+      const rows = rowsOf(element).map((row) => ({
+        header: row.includes("<w:tblHeader"),
+        cells: cellsOf(row).map(textOf),
+      }));
       blocks.push({ kind: "table", rows });
       continue;
     }
@@ -86,10 +92,23 @@ const unescapeXml = (text: string) =>
 /** Each table row's set height in twentieths of a point (undefined where Word sizes it to
  *  fit), across every table in the document, top to bottom. */
 export const rowHeights = (file: Uint8Array) =>
-  [...documentXml(file).matchAll(/<w:tr(?:\s[^>]*)?>(.*?)<\/w:tr>/gs)].map(([, row = ""]) => {
+  rowsOf(documentXml(file)).map((row) => {
     const height = /<w:trHeight [^>]*w:val="(\d+)"/.exec(row)?.[1];
     return height === undefined ? undefined : Number(height);
   });
+
+/** Each table cell's shading, as its pattern, pattern colour and fill ("thinDiagCross
+ *  BFBFBF on FFFFFF"), or "" where it has none: a row each, across every table in the
+ *  document, top to bottom, as readDocx lists them. */
+export const cellShadings = (file: Uint8Array) =>
+  rowsOf(documentXml(file)).map((row) =>
+    cellsOf(row).map((cell) => {
+      const shading = /<w:shd [^>]*\/>/.exec(cell)?.[0];
+      if (shading === undefined) return "";
+      const attribute = (name: string) => new RegExp(`w:${name}="([^"]+)"`).exec(shading)?.[1];
+      return `${attribute("val")} ${attribute("color")} on ${attribute("fill")}`;
+    }),
+  );
 
 /** The page's size, the height left for content once the top and bottom margins are
  *  taken off, and the header's distance from the top, in twentieths of a point, as the document's last section sets them. */

@@ -11,7 +11,7 @@ prd: ./prd.md
 | Epic | Capability | FRs |
 |---|---|---|
 | E1 | Each item's Wardrobe page lists who wears what, a row per cast member per role, which Wardrobe, Director and Admins fill in and which follows the casting | FR1, FR2, FR3, FR4, FR5, FR6, FR7, FR8, FR16 |
-| E2 | The Word sheets: the casting sheets lose their write-in column, and the Production Overview generates a costume sheet per cast member | FR9, FR10, FR11, FR12, FR14 |
+| E2 | The Word sheets: the casting sheets lose their write-in column, and the Production Overview generates a costume sheet per cast member | FR9, FR10, FR11, FR12, FR14, FR15 |
 | E3 | Welcome and Help describe it | FR13 |
 
 ## E1: Costumes on the Wardrobe page
@@ -29,6 +29,7 @@ prd: ./prd.md
 |---|---|---|---|---|
 | [production-costume-sheets.E2.S1](stories/E2-S1-casting-sheets-drop-costume-from-home.md) | The casting sheets lose their **Costume from home** column: #, Item Name and Cast, Item Name taking the width, otherwise unchanged | FR12 | (none) | done |
 | [production-costume-sheets.E2.S2](stories/E2-S2-generate-costume-sheets.md) | **Generate Costume Sheets** on the Production Overview, beside Generate Props List and Generate Mic Plot: one page per cast member laid out as the casting sheets are, sharing their document, with #, Item Name, Role, From Wardrobe and From Cast Member, a row per role held in an item and empty costume columns where they're not in it. Busy, announced and retried as the other exports, and recorded on the Usage page | FR9, FR10, FR11, FR14 | E1.S2, E2.S1 | done |
+| [production-costume-sheets.E2.S3](stories/E2-S3-hatch-blank-cells.md) | On a costume sheet, every blank Role, From Wardrobe or From Cast Member cell is cross-hatched, so the cast can see it was left blank on purpose: Role and both costume cells where they aren't in the item, and an empty costume field where they are. # and Item Name, and the casting sheets, are unchanged | FR15 | E2.S2 | done |
 
 ## E3: Help
 
@@ -38,11 +39,13 @@ prd: ./prd.md
 
 ## Order
 
-E1.S1 → E1.S2 → E1.S3 → E2.S1 → E2.S2 → E3.S1 → E1.S4
+E1.S1 → E1.S2 → E1.S3 → E2.S1 → E2.S2 → E3.S1 → E2.S3 → E1.S4
 
 - E1.S2 is the biggest: a shared schema, a store contract with file and Dynamo stores, two routes, the clean-up and the row form. It may pass the ~400-line guideline; it stays whole because a store without a page, or a form without a route, would deliver nothing a user can see, and a new kind of per-item data joins the clean-up in the story that adds it (CLAUDE.md). The form should share what the prop card's pencil-to-form flow has rather than copy it.
 - E2.S1 has no dependencies and can go first or at any point before E2.S2; it comes before E2.S2 so that the shared sheet document is changed once, then extended.
-- E3.S1 goes last, once everything it describes exists. It changes the Help and Welcome pages' code, so it is test-first.
+- E3.S1 goes last of the first plan, once everything it describes exists. It changes the Help and Welcome pages' code, so it is test-first.
+- E2.S3 was added 2026-11-24, after the sheets were in use. It needs only E2.S2 and can go before or after E3.S1; Help doesn't describe the hatching, which explains itself.
+- E1.S4 was added the same day. It needs only E1.S3; Help can mention copying when E3.S1 is written.
 
 ## FR coverage
 
@@ -62,3 +65,5 @@ E1.S1 → E1.S2 → E1.S3 → E2.S1 → E2.S2 → E3.S1 → E1.S4
 | FR12 | E2.S1 |
 | FR13 | E3.S1 |
 | FR14 | E2.S2 |
+| FR15 | E2.S3 |
+| FR16 | E1.S4 |
