@@ -52,3 +52,6 @@ export const pirates = aRole(2, "opening-number", [samPatel.id, joBrown.id, kimL
 
 /** Opening Number's Smee, with nobody cast in it. */
 export const smee = aRole(3, "opening-number", [], { name: "Smee", size: "support" });
+
+/** Opening Number's second ensemble, Sailors: Chris Evans. */
+export const sailors = aRole(4, "opening-number", [chrisEvans.id], { name: "Sailors" });

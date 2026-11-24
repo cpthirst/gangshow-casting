@@ -36,4 +36,17 @@ describe("FormActions", () => {
         .exists(),
     ).toBe(false);
   });
+
+  it("puts a form's other buttons between Save and Cancel", () => {
+    const actions = mount(FormActions, {
+      props: { saving: false, error: "" },
+      slots: { default: '<button type="button">Copy to all</button>' },
+    });
+
+    expect(actions.findAll("button").map((button) => button.text())).toEqual([
+      "Save",
+      "Copy to all",
+      "Cancel",
+    ]);
+  });
 });

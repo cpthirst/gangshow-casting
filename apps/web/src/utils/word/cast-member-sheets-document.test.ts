@@ -15,6 +15,7 @@ import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
 import { castingSheetsDocument, costumeSheetsDocument } from "./cast-member-sheets-document.ts";
 import {
   type Block,
+  cellShadings,
   columnShares,
   defaultHeaders,
   documentXml,
@@ -209,6 +210,16 @@ describe("each casting sheet's table of items", () => {
     expect(ticks).toEqual(["", "", "", ""]);
   });
 
+  it("leaves the empty Cast cells unhatched", async () => {
+    const file = await sheetsOf([ava, member("Bea", "Zed", "scouts")], { order: show, roles });
+
+    expect(
+      cellShadings(file)
+        .flat()
+        .filter((shading) => shading !== ""),
+    ).toEqual([]);
+  });
+
   it("prints on A4, with the table's first row marked to repeat on any page it runs onto", async () => {
     const file = await sheetsOf([ava], { order: show, roles });
 
@@ -287,6 +298,20 @@ describe("the Costume Sheets document", () => {
     costumeTablesOf(file).map((rows) =>
       rows.filter((row) => !row.header && row.cells.length === 5).map((row) => row.cells),
     );
+
+  const HATCHED = "thinDiagCross BFBFBF on FFFFFF";
+  /** Each item row's cells, a cross-hatched one marked "▨" before its text. */
+  const hatchingOf = (file: Uint8Array) => {
+    const shadings = cellShadings(file);
+    return costumeTablesOf(file)
+      .flat()
+      .map((row, r) => ({
+        ...row,
+        cells: row.cells.map((text, c) => (shadings[r]?.[c] === HATCHED ? `▨${text}` : text)),
+      }))
+      .filter((row) => !row.header && row.cells.length === 5)
+      .map((row) => row.cells);
+  };
 
   it("has a page for each person in section order, headed with the show, their name, section and group", async () => {
     const sheets = pages(readDocx(await costumeSheetsOf([sam, jo, alex])));
@@ -392,6 +417,33 @@ describe("the Costume Sheets document", () => {
     const [rows] = itemRowsOf(await costumeSheetsOf([alex], [dancer]));
 
     expect(rows?.[2]).toEqual(["2", "Pirate Dance", "✓(Pirates)", "", ""]);
+  });
+
+  it("cross-hatches every blank Role and costume cell, in pale grey on white, never # or Item Name", async () => {
+    const doc = costumeSheetsDocument({
+      order: show,
+      roles,
+      cast: [alex],
+      costumes: [{ ...alexAsHook, fromCastMember: "" }],
+    });
+
+    const rows = hatchingOf(new Uint8Array(await Packer.toBuffer(doc)));
+
+    expect(rows).toEqual([
+      ["1", "Opening Number", "✓(Captain Hook)", "Red coat, hook", "▨"],
+      ["", "Bonus Sketch", "▨", "▨", "▨"],
+      ["2", "Pirate Dance", "▨", "▨", "▨"],
+      ["1", "Finale", "▨", "▨", "▨"],
+    ]);
+  });
+
+  it("hatches nothing in a row that's filled in", async () => {
+    const rows = hatchingOf(await costumeSheetsOf([jo]));
+
+    expect(rows.filter(([, title]) => title === "Opening Number")).toEqual([
+      ["1", "Opening Number", "✓(Smee)", "Striped shirt", "Red hat"],
+      ["1", "Opening Number", "✓(Pirates)", "Bandana", "Boots"],
+    ]);
   });
 });
 
