@@ -10,7 +10,7 @@ prd: ./prd.md
 
 | Epic | Capability | FRs |
 |---|---|---|
-| E1 | Each item's Wardrobe page lists who wears what, a row per cast member per role, which Wardrobe, Director and Admins fill in and which follows the casting | FR1, FR2, FR3, FR4, FR5, FR6, FR7, FR8 |
+| E1 | Each item's Wardrobe page lists who wears what, a row per cast member per role, which Wardrobe, Director and Admins fill in and which follows the casting | FR1, FR2, FR3, FR4, FR5, FR6, FR7, FR8, FR16 |
 | E2 | The Word sheets: the casting sheets lose their write-in column, and the Production Overview generates a costume sheet per cast member | FR9, FR10, FR11, FR12, FR14 |
 | E3 | Welcome and Help describe it | FR13 |
 
@@ -21,6 +21,7 @@ prd: ./prd.md
 | [production-costume-sheets.E1.S1](stories/E1-S1-files-heading-and-costume-rows.md) | The Scenery, SFX and Wardrobe pages head their files **Files**. The Wardrobe page gains a **Costumes** section between Files and its notes, with a row per cast member per role in the item's role order, a row saying so for an uncast role, and a line when the item has no roles. Nothing to edit yet | FR2, FR3 | (none) | done |
 | [production-costume-sheets.E1.S2](stories/E1-S2-edit-a-costume-row.md) | Each row shows From Wardrobe, From Cast Member and Notes. Wardrobe, Director and Admins get a pencil that turns the row into a form with all three fields, Save and Cancel, Escape cancelling, one row in edit at a time, a save announced, and the line that sizes and measurements don't go here. The API stores costumes per item, role and cast member in the current production, refuses changes outside those permissions, a field over 500 characters, a role not in the item or a cast member not in it, and removes an item's costumes in the shared clean-up when the item is cut | FR1, FR4, FR5, FR6, FR7, FR8 | E1.S1 | done |
 | [production-costume-sheets.E1.S3](stories/E1-S3-costumes-follow-the-casting.md) | A save is refused, showing the row's current text, when someone else saved it first. A recast shows the new cast member's empty row and hides the old one's text; removing a role from an item, or deleting a cast member, removes their costumes | FR7, FR8 | E1.S2 | done |
+| [production-costume-sheets.E1.S4](stories/E1-S4-copy-a-costume.md) | A costume row's form gains **Copy to <type>** and **Copy to all**, each shown only when it reaches someone, asking first that anything there will be overwritten, then saving the row and giving the item's other rows of that type, or all of them, its From Wardrobe and From Cast Member, each keeping its own Notes | FR16 | E1.S3 | done |
 
 ## E2: The sheets
 
@@ -37,7 +38,7 @@ prd: ./prd.md
 
 ## Order
 
-E1.S1 → E1.S2 → E1.S3 → E2.S1 → E2.S2 → E3.S1
+E1.S1 → E1.S2 → E1.S3 → E2.S1 → E2.S2 → E3.S1 → E1.S4
 
 - E1.S2 is the biggest: a shared schema, a store contract with file and Dynamo stores, two routes, the clean-up and the row form. It may pass the ~400-line guideline; it stays whole because a store without a page, or a form without a route, would deliver nothing a user can see, and a new kind of per-item data joins the clean-up in the story that adds it (CLAUDE.md). The form should share what the prop card's pencil-to-form flow has rather than copy it.
 - E2.S1 has no dependencies and can go first or at any point before E2.S2; it comes before E2.S2 so that the shared sheet document is changed once, then extended.

@@ -1,7 +1,13 @@
-import type { Costume } from "@app/shared";
+import { type Costume, SaveCostumeRequest } from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { json } from "@/app.fixture.ts";
+import {
+  cancelConfirmation,
+  confirmation,
+  goAhead,
+} from "@/components/common/ConfirmDialog.fixture.ts";
+import ConfirmDialog from "@/components/common/ConfirmDialog.vue";
 import { saveCostumePath } from "@/services/production.ts";
 import {
   aCastMember,
@@ -10,8 +16,11 @@ import {
   captainHook,
   chrisEvans,
   joBrown,
+  kimLee,
   pirateCast,
   pirates,
+  sailors,
+  samPatel,
   smee,
 } from "@/utils/casting.fixture.ts";
 import {
@@ -20,6 +29,7 @@ import {
   costumeFormField,
   costumeSavedFrom,
 } from "@/utils/costumes.fixture.ts";
+import { costumeCopiesOf, costumeRowsOf } from "@/utils/costumes.ts";
 import ItemCostumes from "./ItemCostumes.vue";
 
 enableAutoUnmount(afterEach);
@@ -28,18 +38,19 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
-/** A stand-in API that saves each costume sent, or answers with the response given. Every
- *  save's body is recorded as sent, before it is read. */
-function apiSaves(answer?: () => Promise<Response>) {
-  const saves: unknown[] = [];
+/** A stand-in API that saves each costume sent, or answers with the response given for its
+ *  body. Every save's body is recorded as sent, before it is read. */
+function apiSaves(answer?: (body: SaveCostumeRequest) => Promise<Response>) {
+  const saves: SaveCostumeRequest[] = [];
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init?: RequestInit) => {
       if (url !== saveCostumePath("opening-number") || init?.method !== "PUT") {
         return new Response(null, { status: 404 });
       }
-      saves.push(JSON.parse(String(init.body)));
-      return answer ? answer() : json(costumeSavedFrom("opening-number", init.body));
+      const body = SaveCostumeRequest.parse(JSON.parse(String(init.body)));
+      saves.push(body);
+      return answer ? answer(body) : json(costumeSavedFrom("opening-number", init.body));
     }),
   );
   return saves;
@@ -227,7 +238,9 @@ describe("An item's Costumes section", () => {
       expect(fieldLabelled(wrapper, "From Wardrobe").element.value).toBe("Red coat, hook");
       expect(fieldLabelled(wrapper, "From Cast Member").element.value).toBe("Black shoes");
       expect(fieldLabelled(wrapper, "Notes").element.value).toBe("Hem the coat");
-      expect(form.findAll("button").map((button) => button.text())).toEqual(["Save", "Cancel"]);
+      // Save first and Cancel last; any copy buttons between are the copy tests'.
+      const buttons = form.findAll("button").map((button) => button.text());
+      expect([buttons[0], buttons.at(-1)]).toEqual(["Save", "Cancel"]);
       expect(document.activeElement).toBe(fieldLabelled(wrapper, "From Wardrobe").element);
     });
 
@@ -413,6 +426,194 @@ describe("An item's Costumes section", () => {
         "From Wardrobe can be up to 500 characters.",
       ]);
       expect(saves).toEqual([]);
+    });
+  });
+
+  describe("copying a row's costume", () => {
+    const roles = [captainHook(), pirates, sailors];
+    /** What kit types into Jo Brown's row before copying it. */
+    const joTyped = { fromWardrobe: "Striped top", fromCastMember: "Black boots", notes: "Hem it" };
+    // Made-up: Kim's row was filled in before.
+    const kimsOld: Costume = {
+      itemId: "opening-number",
+      roleId: pirates.id,
+      castMemberId: kimLee.id,
+      fromWardrobe: "Old shirt",
+      fromCastMember: "",
+      notes: "Needs a belt",
+      revision: 1,
+    };
+
+    async function editJo(wrapper: VueWrapper) {
+      mount(ConfirmDialog, { attachTo: document.body });
+      await pencil(wrapper, "Jo Brown as Pirates").trigger("click");
+      await fieldLabelled(wrapper, "From Wardrobe").setValue(joTyped.fromWardrobe);
+      await fieldLabelled(wrapper, "From Cast Member").setValue(joTyped.fromCastMember);
+      await fieldLabelled(wrapper, "Notes").setValue(joTyped.notes);
+    }
+
+    const buttonsOf = (wrapper: VueWrapper) =>
+      formOf(wrapper)
+        .findAll("button")
+        .map((button) => button.text());
+
+    async function choose(wrapper: VueWrapper, label: string) {
+      const button = formOf(wrapper)
+        .findAll("button")
+        .find((found) => found.text() === label);
+      if (!button) throw new Error(`no ${label} button`);
+      await button.trigger("click");
+      await flushPromises();
+    }
+
+    const copied = (saves: SaveCostumeRequest[]) =>
+      saves.map(({ castMemberId, fromWardrobe, fromCastMember, notes, revision }) => [
+        castMemberId,
+        fromWardrobe,
+        fromCastMember,
+        notes,
+        revision,
+      ]);
+
+    it("offers Copy to the role's type and Copy to all between Save and Cancel", async () => {
+      const wrapper = openCostumes({ roles });
+      await editJo(wrapper);
+
+      expect(buttonsOf(wrapper)).toEqual(["Save", "Copy to Ensemble", "Copy to all", "Cancel"]);
+    });
+
+    it("asks first, saying it overwrites, and copies nothing when cancelled", async () => {
+      const saves = apiSaves();
+      const wrapper = openCostumes({ roles });
+      await editJo(wrapper);
+
+      await choose(wrapper, "Copy to Ensemble");
+
+      const [toEnsemble] = costumeCopiesOf(costumeRowsOf(roles, pirateCast, "opening-number"), {
+        role: pirates,
+        member: joBrown,
+      });
+      expect(confirmation()).toEqual({
+        question: toEnsemble?.question,
+        buttons: ["Copy", "Cancel"],
+      });
+      await cancelConfirmation();
+      expect(saves).toEqual([]);
+      expect(fieldLabelled(wrapper, "From Wardrobe").element.value).toBe("Striped top");
+    });
+
+    it("saves the row, then overwrites the others of its type, each keeping its notes", async () => {
+      const saves = apiSaves();
+      const wrapper = openCostumes({ roles, costumes: [kimsOld] });
+      await editJo(wrapper);
+
+      await choose(wrapper, "Copy to Ensemble");
+      await goAhead();
+
+      expect(copied(saves)).toEqual([
+        [joBrown.id, "Striped top", "Black boots", "Hem it", 0],
+        [kimLee.id, "Striped top", "Black boots", "Needs a belt", 1],
+        [samPatel.id, "Striped top", "Black boots", "", 0],
+        [chrisEvans.id, "Striped top", "Black boots", "", 0],
+      ]);
+      expect(wrapper.find("form").exists()).toBe(false);
+      expect(costumeFieldsOf(rowOf(wrapper, "Kim Lee as Pirates"))).toEqual([
+        ["From Wardrobe", "Striped top"],
+        ["From Cast Member", "Black boots"],
+        ["Notes", "Needs a belt"],
+      ]);
+      expect(costumeFieldsOf(rowOf(wrapper, "Alex Morgan as Captain Hook"))).toEqual([]);
+      expect(wrapper.get("[role=status]").text()).toBe("Costume copied to 3 others.");
+    });
+
+    it("copies to every other cast row with Copy to all", async () => {
+      const saves = apiSaves();
+      const wrapper = openCostumes({ roles });
+      await editJo(wrapper);
+
+      await choose(wrapper, "Copy to all");
+      await goAhead();
+
+      expect(
+        copied(saves).map(([castMemberId, fromWardrobe]) => [castMemberId, fromWardrobe]),
+      ).toEqual([
+        [joBrown.id, "Striped top"],
+        [alexMorgan.id, "Striped top"],
+        [kimLee.id, "Striped top"],
+        [samPatel.id, "Striped top"],
+        [chrisEvans.id, "Striped top"],
+      ]);
+    });
+
+    it("keeps the form open while copying, Escape included, so a row it misses is said", async () => {
+      let answer: (res: Response) => void = () => {};
+      apiSaves(() => new Promise((resolve) => (answer = resolve)));
+      const wrapper = openCostumes({ roles });
+      await editJo(wrapper);
+
+      await choose(wrapper, "Copy to Ensemble");
+      await goAhead();
+      await formOf(wrapper).trigger("keydown", { key: "Escape" });
+
+      expect(wrapper.find("form").exists()).toBe(true);
+      answer(new Response(null, { status: 500 }));
+    });
+
+    it("refuses a field over the limit before asking", async () => {
+      const saves = apiSaves();
+      const wrapper = openCostumes({ roles });
+      await editJo(wrapper);
+      await fieldLabelled(wrapper, "From Wardrobe").setValue("x".repeat(501));
+
+      await choose(wrapper, "Copy to Ensemble");
+
+      expect(confirmation()).toBeUndefined();
+      expect(formOf(wrapper).text()).toContain("From Wardrobe can be up to 500 characters.");
+      expect(saves).toEqual([]);
+    });
+
+    it("copies nothing when someone else saved the row first", async () => {
+      const theirs = { ...kimsOld, castMemberId: joBrown.id, fromWardrobe: "Blue coat" };
+      const saves = apiSaves(async () => json(theirs, 409));
+      const wrapper = openCostumes({ roles });
+      await editJo(wrapper);
+
+      await choose(wrapper, "Copy to Ensemble");
+      await goAhead();
+
+      expect(saves).toHaveLength(1);
+      expect(formOf(wrapper).get("[role=alert]").text()).toBe(
+        "Someone else saved this costume first. Here it is now; your changes weren't saved.",
+      );
+    });
+
+    it("leaves a row someone else saved first as they saved it, and says it wasn't copied", async () => {
+      // Made-up: dee saved Sam's row since kit opened the page.
+      const samsNew = { ...kimsOld, castMemberId: samPatel.id, fromWardrobe: "Sam's own shirt" };
+      apiSaves(async (body) =>
+        body.castMemberId === samPatel.id
+          ? json(samsNew, 409)
+          : json(costumeSavedFrom("opening-number", JSON.stringify(body))),
+      );
+      const wrapper = openCostumes({ roles });
+      await editJo(wrapper);
+
+      await choose(wrapper, "Copy to Ensemble");
+      await goAhead();
+
+      expect(formOf(wrapper).get("[role=alert]").text()).toBe(
+        "Couldn't copy to 1 costume. Try again.",
+      );
+      expect(costumeFieldsOf(rowOf(wrapper, "Sam Patel as Pirates"))).toContainEqual([
+        "From Wardrobe",
+        "Sam's own shirt",
+      ]);
+      for (const copiedTo of ["Kim Lee as Pirates", "Chris Evans as Sailors"]) {
+        expect(costumeFieldsOf(rowOf(wrapper, copiedTo))).toContainEqual([
+          "From Wardrobe",
+          "Striped top",
+        ]);
+      }
     });
   });
 });

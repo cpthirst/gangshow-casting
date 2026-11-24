@@ -4,12 +4,21 @@ import {
   aRole,
   captainHook,
   joBrown,
+  kimLee,
   pirateCast,
   pirates,
+  sailors,
   smee,
 } from "./casting.fixture.ts";
 import { alexAsHook } from "./costumes.fixture.ts";
-import { costumeErrors, costumeOf, costumeRowsOf, rowName, withSaved } from "./costumes.ts";
+import {
+  costumeCopiesOf,
+  costumeErrors,
+  costumeOf,
+  costumeRowsOf,
+  rowName,
+  withSaved,
+} from "./costumes.ts";
 
 const named = (rows: ReturnType<typeof costumeRowsOf>) =>
   rows.map(({ role, member }) => [
@@ -99,5 +108,81 @@ describe("costumeErrors", () => {
 describe("rowName", () => {
   it("names the cast member, then the role", () => {
     expect(rowName(captainHook(), alexMorgan)).toBe("Alex Morgan as Captain Hook");
+  });
+});
+
+describe("costumeCopiesOf", () => {
+  const rows = costumeRowsOf([captainHook(), pirates, sailors, smee], pirateCast, "opening-number");
+  /** The cast row of the member in the role. */
+  const rowOf = (roleId: number, memberId: number) => {
+    const row = rows.find(({ role, member }) => role.id === roleId && member?.id === memberId);
+    if (!row?.member) throw new Error("no such row");
+    return { role: row.role, member: row.member };
+  };
+  /** Each copy's label, question and whose rows it reaches. */
+  const described = (copies: ReturnType<typeof costumeCopiesOf>) =>
+    copies.map(({ label, question, to }) => ({
+      label,
+      question,
+      to: to.map(({ role, member }) => rowName(role, member)),
+    }));
+
+  it("copies to every other cast row of the role's type, and to every other cast row", () => {
+    expect(described(costumeCopiesOf(rows, rowOf(pirates.id, joBrown.id)))).toEqual([
+      {
+        label: "Copy to Ensemble",
+        question:
+          "Copy From Wardrobe and From Cast Member to the 3 other Ensemble costumes in this item? Anything already in them will be overwritten.",
+        to: ["Kim Lee as Pirates", "Sam Patel as Pirates", "Chris Evans as Sailors"],
+      },
+      {
+        label: "Copy to all",
+        question:
+          "Copy From Wardrobe and From Cast Member to all 4 other costumes in this item? Anything already in them will be overwritten.",
+        to: [
+          "Alex Morgan as Captain Hook",
+          "Kim Lee as Pirates",
+          "Sam Patel as Pirates",
+          "Chris Evans as Sailors",
+        ],
+      },
+    ]);
+  });
+
+  it("offers no copy to the role's type when nobody else is that type", () => {
+    const copies = costumeCopiesOf(rows, rowOf(1, alexMorgan.id));
+
+    expect(copies.map(({ label }) => label)).toEqual(["Copy to all"]);
+  });
+
+  it("offers no copy to the role's type when it reaches the same rows as Copy to all", () => {
+    const ensembleOnly = costumeRowsOf([pirates], [joBrown, kimLee], "opening-number");
+    const jo = { role: pirates, member: joBrown };
+
+    expect(costumeCopiesOf(ensembleOnly, jo).map(({ label }) => label)).toEqual(["Copy to all"]);
+  });
+
+  it("offers no copies when nobody else is cast in the item", () => {
+    const aloneRows = costumeRowsOf([captainHook(), smee], pirateCast, "opening-number");
+
+    expect(costumeCopiesOf(aloneRows, { role: captainHook(), member: alexMorgan })).toEqual([]);
+  });
+
+  it("asks about one other costume in the singular", () => {
+    const pair = costumeRowsOf(
+      [
+        captainHook(),
+        aRole(5, "opening-number", [kimLee.id], { name: "Mermaid", size: "lead" }),
+        pirates,
+      ],
+      pirateCast,
+      "opening-number",
+    );
+
+    const [toLeads] = costumeCopiesOf(pair, { role: captainHook(), member: alexMorgan });
+
+    expect(toLeads?.question).toBe(
+      "Copy From Wardrobe and From Cast Member to the other Lead costume in this item? Anything already in them will be overwritten.",
+    );
   });
 });

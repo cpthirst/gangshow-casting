@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // An add or edit form's last lines: why the last save failed, if it did, then Save and Cancel,
-// both waiting while a save is on its way.
+// both waiting while a save is on its way. A form's own other buttons go between them.
 defineProps<{ saving: boolean; error: string }>();
 const emit = defineEmits<{ cancel: [] }>();
 </script>
@@ -9,6 +9,7 @@ const emit = defineEmits<{ cancel: [] }>();
   <p v-if="error" class="field-error form-error" role="alert">{{ error }}</p>
   <div class="editor-actions">
     <button type="submit" class="primary" :disabled="saving">Save</button>
+    <slot />
     <button type="button" data-test="cancel" :disabled="saving" @click="emit('cancel')">
       Cancel
     </button>

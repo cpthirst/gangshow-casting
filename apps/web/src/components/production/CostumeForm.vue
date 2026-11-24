@@ -2,20 +2,27 @@
 import type { CostumeFields } from "@app/shared";
 import { onMounted, ref } from "vue";
 import FormActions from "@/components/common/FormActions.vue";
+import { controlOf } from "@/composables/useConfirm.ts";
 import { useFieldIds } from "@/composables/useFieldIds.ts";
 import { charactersLeft } from "@/utils/characters-left.ts";
-import { COSTUME_RULE, costumeErrors, costumeFields } from "@/utils/costumes.ts";
+import { COSTUME_RULE, type CostumeCopy, costumeErrors, costumeFields } from "@/utils/costumes.ts";
 
 // One costume row's three fields, edited together in the row, as a prop card holds its form
 // (production-costume-sheets FR5, FR6). name: whose row it is, "Alex Morgan as Captain Hook";
-// error: why the last save failed, if it did.
+// error: why the last save failed, if it did; copies: the ways it can be copied to the item's
+// other rows (FR16). While a save or copy is on its way, Escape waits, as Cancel does.
 const props = defineProps<{
   name: string;
   costume: CostumeFields;
   saving: boolean;
   error: string;
+  copies: CostumeCopy[];
 }>();
-const emit = defineEmits<{ save: [fields: CostumeFields]; cancel: [] }>();
+const emit = defineEmits<{
+  save: [fields: CostumeFields];
+  copy: [copy: CostumeCopy, fields: CostumeFields, from: HTMLElement | undefined];
+  cancel: [];
+}>();
 
 const form = ref<CostumeFields>({
   fromWardrobe: props.costume.fromWardrobe,
@@ -35,9 +42,19 @@ const describedBy = (field: keyof CostumeFields) =>
 // the id its label points to.
 onMounted(() => document.getElementById(idFor(costumeFields[0].key))?.focus());
 
-function submit() {
+/** Whether the fields can be saved, saying under each one that can't why not. */
+function valid() {
   errors.value = costumeErrors(form.value);
-  if (Object.keys(errors.value).length === 0) emit("save", form.value);
+  return Object.keys(errors.value).length === 0;
+}
+
+function submit() {
+  if (valid()) emit("save", form.value);
+}
+
+function copy(chosen: CostumeCopy, event: Event) {
+  const from = controlOf(event);
+  if (valid()) emit("copy", chosen, form.value, from);
 }
 </script>
 
@@ -48,7 +65,7 @@ function submit() {
     :aria-busy="saving"
     novalidate
     @submit.prevent="submit"
-    @keydown.esc="emit('cancel')"
+    @keydown.esc="saving || emit('cancel')"
   >
     <div v-for="{ key, label } in costumeFields" :key="key" class="field">
       <label :for="idFor(key)">{{ label }}</label>
@@ -66,6 +83,16 @@ function submit() {
       <p v-if="errors[key]" :id="errorFor(key)" class="field-error">{{ errors[key] }}</p>
     </div>
     <p class="form-rule" data-test="costume-rule">{{ COSTUME_RULE }}</p>
-    <FormActions :saving="saving" :error="error" @cancel="emit('cancel')" />
+    <FormActions :saving="saving" :error="error" @cancel="emit('cancel')">
+      <button
+        v-for="chosen in copies"
+        :key="chosen.label"
+        type="button"
+        :disabled="saving"
+        @click="copy(chosen, $event)"
+      >
+        {{ chosen.label }}
+      </button>
+    </FormActions>
   </form>
 </template>
