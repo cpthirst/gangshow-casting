@@ -32,7 +32,7 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [production-image-gallery.E3.S1](stories/E3-S1-help.md) | Help's entries for the Scenery, SFX and Wardrobe pages say that images show as thumbnails and open in a viewer that swipes between them, opens and downloads, and they repeat the upload rules. The Welcome page is unchanged | FR11 | E2.S2 | ready |
+| [production-image-gallery.E3.S1](stories/E3-S1-help.md) | Help's entries for the Scenery, SFX and Wardrobe pages say that images show as thumbnails and open in a viewer that swipes between them, opens and downloads, and they repeat the upload rules. The Welcome page is unchanged | FR11 | E2.S2 | done |
 
 ## Order
 

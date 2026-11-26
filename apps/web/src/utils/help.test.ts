@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { CAST_FLOW_PLACES, UNTIMED_ITEM_MINUTES } from "./cast-flow.ts";
 import { departmentPages } from "./departments.ts";
 import { accessLabel, helpFor, pageHelp, whoCanChange } from "./help.ts";
+import { icons } from "./icons.ts";
 
 // A shared list in which Tech, not Stage, shares the props with the Director.
 vi.mock("@app/shared", async (importOriginal) => {
@@ -129,5 +130,27 @@ describe("Cast flow's Help", () => {
     expect(
       lines.map(({ does }) => does).some((line) => /hover/i.test(line) && /table/i.test(line)),
     ).toBe(true);
+  });
+});
+
+describe("The file departments' Help", () => {
+  const linesOf = (page: string) => helpFor(page).lines;
+
+  it.each(["scenery-item", "sfx-item", "wardrobe-item"])(
+    "describes the %s page's images, with its viewer's Open and Download, for everyone, after Files",
+    (page) => {
+      const names = linesOf(page).map(({ name }) => name);
+      expect(names[names.indexOf("Files") + 1]).toBe("Images");
+      const images = linesOf(page).find(({ name }) => name === "Images");
+      expect(images?.access).toBe("everyone");
+      expect(images?.icons).toEqual([icons.openInTab, icons.download]);
+    },
+  );
+
+  it("says Remove takes a thumbnail's image as well as a row's file, for good", () => {
+    const remove = linesOf("scenery-item").find(({ name }) => name === "Remove")?.does;
+
+    expect(remove).toMatch(/thumbnail/);
+    expect(remove).toMatch(/can't be brought back/);
   });
 });

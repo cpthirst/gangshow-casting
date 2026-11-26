@@ -100,7 +100,7 @@ const DOCUMENT_ICONS = [
 ];
 
 const OPENS_DOCUMENTS =
-  "Opens a PDF, image or text file in a new tab. Any other file downloads. Each file's icon shows its type: PDF, Word, Excel, PowerPoint, image, or any other file.";
+  "Opens a PDF or text file in a new tab. Any other file downloads. Each file's icon shows its type: PDF, Word, Excel, PowerPoint, image, or any other file.";
 
 /** The help for a department whose item page keeps files and notes, all laid out alike. */
 function fileDepartmentHelp(
@@ -132,9 +132,15 @@ function fileDepartmentHelp(
       ...productionItemNavigationLines,
       { icons: filesIcons, name: "Files", does: filesDo, access: "everyone" },
       {
+        icons: [icons.openInTab, icons.download],
+        name: "Images",
+        does: "A JPG, PNG, GIF or WebP shows as a thumbnail under Images, above the other files. Choosing one opens it large, to swipe or step between the item's images and zoom in. From there, Open shows it on its own in a new tab, and Download saves it under its name.",
+        access: "everyone",
+      },
+      {
         icons: [icons.remove],
         name: "Remove",
-        does: "Takes a file off the item, once you confirm. It can't be brought back.",
+        does: "Takes a file off the item, from its row or its thumbnail, once you confirm. It can't be brought back.",
         access: key,
       },
       {
@@ -451,7 +457,7 @@ export const pageHelp: PageHelp[] = [
     summaryName: "SFX",
     filesIcons: [icons.audioFile, ...DOCUMENT_ICONS],
     filesDo:
-      "Plays an MP3, WAV, M4A, AAC or OGG file in a new tab, and opens a PDF, image or text file there too. Any other file downloads. Each file's icon shows its type: audio, PDF, Word, Excel, PowerPoint, image, or any other file.",
+      "Plays an MP3, WAV, M4A, AAC or OGG file in a new tab, and opens a PDF or text file there too. Any other file downloads. Each file's icon shows its type: audio, PDF, Word, Excel, PowerPoint, image, or any other file.",
     notesAreFor: "the tech team needs to know about the item's sound effects",
   }),
   {
