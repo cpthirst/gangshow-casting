@@ -380,6 +380,7 @@ These cover humans and agents alike, and `pnpm install` installs them.
 | [0039](docs/adr/0039-chart-js-for-graphs.md) | Graphs are drawn with Chart.js and vue-chartjs, registering only the parts used; each line's colour sits beside its place in code, and tests check the data and options passed to the chart |
 | [0040](docs/adr/0040-interface-review-ideas-from-the-interfaces-skills.md) | Ideas adapted from the interfaces skills: `ux-reviewer` reads removed lines and checks siblings and states, and two user-only skills, `states` and `variant`, build throwaway pages in a worktree |
 | [0041](docs/adr/0041-branded-managed-login.md) | Cognito's sign-in pages use its newer managed login, branded for iCUE in the CDK app (the app's small logo, and colours read from its stylesheet, light only) on the Essentials plan; the branding is never edited in the console |
+| [0042](docs/adr/0042-image-gallery-on-production-file-pages.md) | Images on the Production file pages show in a plain CSS thumbnail grid above Other Files, opening in PhotoSwipe 5 (v-viewer the runner-up); signed links in one request and `img-src` for the files bucket come with it |
 
 ---
 
