@@ -50,6 +50,8 @@ export function useImageViewer(label: () => string, actions: ViewerActions) {
     // A button named for the image shown, kept up as it changes.
     const button = (verb: string, order: number, glyph: IconDefinition, act: () => void) => ({
       name: verb.toLowerCase(),
+      // Its tooltip, as PhotoSwipe's own buttons have.
+      title: verb,
       order,
       isButton: true,
       html: icon(glyph).html.join(""),
@@ -58,25 +60,30 @@ export function useImageViewer(label: () => string, actions: ViewerActions) {
         pswp.on("change", () => element.setAttribute("aria-label", `${verb} ${shown()}`)),
     });
     pswp.on("uiRegister", () => {
+      // On a line of its own under the bar: between the counter and the buttons, a phone
+      // leaves it no room.
       pswp.ui?.registerElement({
         name: "name",
-        order: 6,
+        appendTo: "root",
         onInit: (element) => {
+          element.classList.add("pswp__hide-on-close");
           pswp.on("change", () => {
             element.textContent = shown();
           });
         },
       });
       // Beside the zoom control and Close, sharing their keyboard handling.
-      pswp.ui?.registerElement(button("Open", 7, icons.openInTab, () => actions.open(shown())));
+      pswp.ui?.registerElement(button("Open", 8, icons.openInTab, () => actions.open(shown())));
       pswp.ui?.registerElement(
-        button("Download", 8, icons.download, () => actions.download(shown())),
+        button("Download", 9, icons.download, () => actions.download(shown())),
       );
       pswp.ui?.registerElement({
         name: "problem",
         appendTo: "root",
         onInit: (element) => {
           element.setAttribute("role", "alert");
+          // Marked as the page's own problems are.
+          element.classList.add("notice");
           problem = element;
           pswp.on("change", () => {
             element.textContent = "";

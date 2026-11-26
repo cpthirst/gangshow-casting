@@ -1684,18 +1684,20 @@ main a {
   text-decoration: underline;
 }
 
-/* The image's name in the viewer's bar, after PhotoSwipe's counter and before its buttons, in
-   their colour and on their line; cut short with an ellipsis on a phone. */
+/* The image's name in the viewer, on its own line under the bar so a phone has room for it,
+   in the bar's colour; cut short with an ellipsis only if it's longer than the screen. */
 .pswp__name {
-  flex: 1;
-  min-width: 0;
-  height: 30px;
-  margin-top: 15px;
-  margin-inline-start: 20px;
+  position: absolute;
+  top: 60px;
+  right: 0;
+  left: 0;
+  z-index: 10;
+  padding: 0 20px;
   overflow: hidden;
   color: var(--pswp-icon-color);
   font-size: 14px;
   line-height: 30px;
+  text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1708,17 +1710,18 @@ main a {
   color: var(--pswp-icon-color);
 }
 
-/* A problem the page has, such as a download that failed, over the foot of the image. */
-.pswp__problem:not(:empty) {
+/* A problem the page has, such as a download that failed, over the foot of the image: a
+   .notice, as on the page. */
+.pswp__problem {
   position: absolute;
   right: 1rem;
   bottom: 1rem;
   left: 1rem;
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.5rem;
-  background: var(--white);
-  color: var(--text);
-  text-align: center;
+  margin: 0;
+}
+
+.pswp__problem:empty {
+  display: none;
 }
 
 /* An item's 24 mics, one card per channel: one column on a phone, more as the page widens,

@@ -117,6 +117,8 @@ describe("The image viewer", () => {
     expect(viewer()?.getAttribute("aria-label")).toBe("Scenery images");
     expect(shownImage()?.getAttribute("src")).toBe("https://files.example/set-plan.jpg");
     expect(shownName()).toBe("set-plan.jpg");
+    // On a line of its own, not squeezed between the counter and the buttons on a phone.
+    expect(document.querySelector(".pswp__top-bar .pswp__name")).toBeNull();
   });
 
   it("keeps keyboard focus inside it while it's open", async () => {
@@ -135,6 +137,9 @@ describe("The image viewer", () => {
     for (const name of ["Close", "Zoom", "Previous", "Next"]) {
       expect(button(name)).toBeDefined();
     }
+    // A tooltip on hover, as PhotoSwipe's own buttons have.
+    expect(button("Open set-plan.jpg").title).toBe("Open");
+    expect(button("Download set-plan.jpg").title).toBe("Download");
   });
 
   it("shows the image as large as the screen allows, sized from its thumbnail", async () => {
@@ -238,6 +243,8 @@ describe("The image viewer", () => {
 
     const problem = document.querySelector(".pswp [role=alert]");
     expect(problem?.textContent).toBe("Couldn't download set-plan.jpg. Try again.");
+    // Marked as the page's own problems are.
+    expect(problem?.classList).toContain("notice");
     expect(viewer()).not.toBeNull();
     button("Next").click();
     expect(problem?.textContent).toBe("");
