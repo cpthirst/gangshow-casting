@@ -1627,8 +1627,17 @@ main a {
   list-style: none;
 }
 
+/* The trash icon sits over the square's top-left corner, as a row's comes first. */
 .thumb-grid > li {
+  position: relative;
   min-width: 0;
+}
+
+.thumb-remove {
+  position: absolute;
+  top: 0.25rem;
+  left: 0.25rem;
+  margin: 0;
 }
 
 /* Choosing the image opens it, as choosing a file's row does. */

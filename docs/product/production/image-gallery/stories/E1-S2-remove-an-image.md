@@ -2,7 +2,7 @@
 id: production-image-gallery.E1.S2
 title: Remove an image from the grid
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story

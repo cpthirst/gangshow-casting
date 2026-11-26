@@ -452,10 +452,123 @@ describe("An item's images, on any file page", () => {
     const setPlan = wrapper
       .findAll("main [data-test=image]")
       .find((thumbnail) => thumbnail.text() === "set-plan.jpg");
-    await setPlan?.get("button").trigger("click");
+    await setPlan?.get(".thumb-open").trigger("click");
     await flushPromises();
 
     expect(tab.show).toHaveBeenCalledWith(linkTo("set-plan.jpg"));
+  });
+});
+
+describe("Removing an image, on any file page", () => {
+  // As the story has it: two images and a PDF.
+  const openingNumberMix = () => ({
+    "opening-number": [
+      { name: "backdrop.png", size: 10 },
+      { name: "build-list.pdf", size: 10 },
+      { name: "set-plan.jpg", size: 10 },
+    ],
+  });
+
+  const thumbnails = (wrapper: VueWrapper) =>
+    wrapper.findAll("main [data-test=image] [data-test=name]").map((name) => name.text());
+  const trashFor = (wrapper: VueWrapper, name: string) => {
+    const found = wrapper.findAll("main [data-test=image]").find((each) => each.text() === name);
+    if (!found) throw new Error(`No thumbnail for ${name}`);
+    return found.get("[data-test=delete]");
+  };
+  const deletes = () => requests((_, init) => init?.method === "DELETE");
+
+  it("gives someone with Stage a trash icon on each thumbnail", async () => {
+    await signInAs(["stage"], "pat");
+    apiHolds({ scenery: openingNumberMix() });
+    const { wrapper } = await openAppAt(pageOf("scenery"));
+
+    expect(wrapper.findAll("main [data-test=image] [data-test=delete]")).toHaveLength(2);
+    expect(trashFor(wrapper, "set-plan.jpg").attributes("aria-label")).toBe("Remove set-plan.jpg");
+  });
+
+  it("gives someone with only Casting no trash icon on any thumbnail", async () => {
+    await signInAs(["casting"], "jo");
+    apiHolds({ scenery: openingNumberMix() });
+    const { wrapper } = await openAppAt(pageOf("scenery"));
+
+    expect(thumbnails(wrapper)).toEqual(["backdrop.png", "set-plan.jpg"]);
+    expect(wrapper.find("main [data-test=image] [data-test=delete]").exists()).toBe(false);
+  });
+
+  it("asks first, as a file's row does, and keeps the image when cancelled", async () => {
+    await signInAs(["stage"], "pat");
+    apiHolds({ scenery: openingNumberMix() });
+    const { wrapper } = await openAppAt(pageOf("scenery"));
+
+    await trashFor(wrapper, "set-plan.jpg").trigger("click");
+    await flushPromises();
+    expect(confirmDialog.confirmation()).toEqual({
+      question: "Remove set-plan.jpg? This can't be undone.",
+      buttons: ["Remove file", "Cancel"],
+    });
+    await confirmDialog.cancelConfirmation();
+
+    expect(thumbnails(wrapper)).toEqual(["backdrop.png", "set-plan.jpg"]);
+    expect(deletes()).toEqual([]);
+  });
+
+  it("deletes the image once confirmed, keeping the others", async () => {
+    await signInAs(["stage"], "pat");
+    const held: Held = { scenery: openingNumberMix() };
+    apiHolds(held);
+    const { wrapper } = await openAppAt(pageOf("scenery"));
+
+    await trashFor(wrapper, "set-plan.jpg").trigger("click");
+    await flushPromises();
+    await confirmDialog.goAhead();
+
+    expect(deletes()).toEqual([
+      `/api/productions/2027/items/opening-number/scenery-files?${new URLSearchParams({ name: "set-plan.jpg" })}`,
+    ]);
+    expect(held.scenery?.["opening-number"]?.map((file) => file.name)).toEqual([
+      "backdrop.png",
+      "build-list.pdf",
+    ]);
+    expect(thumbnails(wrapper)).toEqual(["backdrop.png"]);
+  });
+
+  it("returns the page to one list of rows once its last image goes", async () => {
+    await signInAs(["stage"], "pat");
+    apiHolds({
+      scenery: {
+        "campfire-song": [
+          { name: "backdrop.png", size: 10 },
+          { name: "cue-sheet.pdf", size: 10 },
+        ],
+      },
+    });
+    const { wrapper } = await openAppAt(pageOf("scenery", "campfire-song"));
+
+    await trashFor(wrapper, "backdrop.png").trigger("click");
+    await flushPromises();
+    await confirmDialog.goAhead();
+
+    expect(wrapper.findAll("main [aria-labelledby=files-heading] h3")).toEqual([]);
+    expect(names(wrapper)).toEqual(["cue-sheet.pdf"]);
+  });
+
+  it("says an image removed elsewhere since the page loaded isn't there any more, and catches up", async () => {
+    await signInAs(["stage"], "pat");
+    const held: Held = { scenery: openingNumberMix() };
+    apiHolds(held);
+    const { wrapper } = await openAppAt(pageOf("scenery"));
+    // Removed in another browser.
+    held.scenery?.["opening-number"]?.splice(2, 1);
+
+    await trashFor(wrapper, "set-plan.jpg").trigger("click");
+    await flushPromises();
+    await confirmDialog.goAhead();
+
+    expect(wrapper.get("main [data-test=file-problem]").text()).toBe(
+      "set-plan.jpg isn't there any more.",
+    );
+    expect(thumbnails(wrapper)).toEqual(["backdrop.png"]);
   });
 });
 

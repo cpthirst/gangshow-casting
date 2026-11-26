@@ -12,13 +12,26 @@ import { loadData } from "@/services/load-data.ts";
 import { itemImageLinksPath } from "@/services/production.ts";
 import { fileLabel } from "@/utils/file-display.ts";
 import { icons } from "@/utils/icons.ts";
+import RemoveFileButton from "./RemoveFileButton.vue";
 
 // One item's images as square thumbnails, named beneath, each loading only as it nears the
 // screen (production-image-gallery FR4, FR6). Every image's link comes from one request, asked
-// again once they've lapsed. Choosing one is the page's to handle, as choosing a row is.
+// again once they've lapsed. Choosing or removing one is the page's to handle, as a row's is
+// (FR7).
 
-const props = defineProps<{ department: FileDepartment; itemId: string; images: ItemFile[] }>();
-const emit = defineEmits<{ choose: [image: ItemFile] }>();
+const props = defineProps<{
+  department: FileDepartment;
+  itemId: string;
+  images: ItemFile[];
+  /** Whoever may change the page gets a trash icon on each thumbnail. */
+  mayRemove: boolean;
+  /** A delete is on its way, so the trash icons wait for it. */
+  deleting: boolean;
+}>();
+const emit = defineEmits<{
+  choose: [image: ItemFile];
+  remove: [image: ItemFile, event: MouseEvent];
+}>();
 
 // An image asked for a moment before its link lapsed can reach storage after it has.
 const LAPSED_MS = (FILE_LINK_SECONDS - 60) * 1000;
@@ -98,6 +111,15 @@ watch(
   <!-- An explicit list role: Safari drops list semantics once bullets are styled away. -->
   <ul class="thumb-grid" role="list" :aria-label="`${named.name} images`">
     <li v-for="image in images" :key="image.name" data-test="image">
+      <!-- First, as a row's is, though it sits in the square's corner: beside what opens the
+           image rather than in it, so choosing one never does the other. -->
+      <RemoveFileButton
+        v-if="mayRemove"
+        class="thumb-remove"
+        :name="image.name"
+        :disabled="deleting"
+        @remove="emit('remove', image, $event)"
+      />
       <button
         type="button"
         class="thumb-open"

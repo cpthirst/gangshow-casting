@@ -36,9 +36,9 @@ const linkRequests = (fetch: ReturnType<typeof apiLinks>) =>
 
 const filesNamed = (...names: string[]): ItemFile[] => names.map((name) => ({ name, size: 10 }));
 
-async function openGrid(images: ItemFile[]) {
+async function openGrid(images: ItemFile[], { mayRemove = false, deleting = false } = {}) {
   const wrapper = mount(ImageGrid, {
-    props: { department: "scenery", itemId: "opening-number", images },
+    props: { department: "scenery", itemId: "opening-number", images, mayRemove, deleting },
   });
   await flushPromises();
   return wrapper;
@@ -178,5 +178,38 @@ describe("The image grid", () => {
 
     expect(thumbnail(wrapper, "backdrop.png").find("img").exists()).toBe(false);
     expect(thumbnail(wrapper, "backdrop.png").find(".file-icon").exists()).toBe(true);
+  });
+
+  it("gives each thumbnail a trash icon named for its image, outside what opens it, for someone who may remove it", async () => {
+    apiLinks(["backdrop.png", "set-plan.jpg"]);
+    const wrapper = await openGrid(filesNamed("backdrop.png", "set-plan.jpg"), { mayRemove: true });
+
+    const trash = thumbnail(wrapper, "set-plan.jpg").get("[data-test=delete]");
+    expect(trash.attributes("aria-label")).toBe("Remove set-plan.jpg");
+    expect(trash.element.closest(".thumb-open")).toBeNull();
+    // Reached first, as a row's trash icon is.
+    expect(thumbnail(wrapper, "set-plan.jpg").findAll("button")[0]?.element).toBe(trash.element);
+    expect(wrapper.findAll("[data-test=delete]")).toHaveLength(2);
+
+    await trash.trigger("click");
+
+    expect(wrapper.emitted("remove")?.map(([image]) => image)).toEqual([
+      { name: "set-plan.jpg", size: 10 },
+    ]);
+    expect(wrapper.emitted("choose")).toBeUndefined();
+  });
+
+  it("gives no thumbnail a trash icon for someone who may not remove it", async () => {
+    apiLinks(["backdrop.png"]);
+    const wrapper = await openGrid(filesNamed("backdrop.png"));
+
+    expect(wrapper.find("[data-test=delete]").exists()).toBe(false);
+  });
+
+  it("holds the trash icons while a delete is on its way", async () => {
+    apiLinks(["backdrop.png"]);
+    const wrapper = await openGrid(filesNamed("backdrop.png"), { mayRemove: true, deleting: true });
+
+    expect(wrapper.get("[data-test=delete]").attributes("disabled")).toBeDefined();
   });
 });

@@ -24,10 +24,10 @@ import {
   opensInBrowser,
   sortFiles,
 } from "@/utils/file-display.ts";
-import { icons } from "@/utils/icons.ts";
 import type { FilesDepartment } from "@/utils/item-files.ts";
 import FileUpload from "./FileUpload.vue";
 import ImageGrid from "./ImageGrid.vue";
+import RemoveFileButton from "./RemoveFileButton.vue";
 
 // One item's files for a department, Scenery's, SFX's or Wardrobe's (production-scenery FR6,
 // FR7, production-sfx-wardrobe FR2), headed Files in the frame every item page shares. Images
@@ -96,7 +96,8 @@ async function choose({ name }: ItemFile, id: string) {
   }
 }
 
-// For everyone, for good (FR11): there's no history to bring it back, so confirm first.
+// For everyone, for good (FR11), from a row or a thumbnail: there's no history to bring it
+// back, so confirm first.
 async function remove({ name }: ItemFile, id: string, event: MouseEvent) {
   if (deleting.value) return;
   const question = `Remove ${name}? This can't be undone.`;
@@ -156,7 +157,10 @@ watch(
           :department="department.key"
           :item-id="item.id"
           :images="images"
+          :may-remove="mayChange"
+          :deleting="deleting"
           @choose="choose($event, item.id)"
+          @remove="(image, event) => remove(image, item.id, event)"
         />
         <h3 v-if="otherFiles.length > 0">Other Files</h3>
       </template>
@@ -170,17 +174,11 @@ watch(
       >
         <li v-for="file in otherFiles" :key="file.name" class="card" data-test="file">
           <span v-if="mayChange" class="row-icons">
-            <button
-              type="button"
-              class="icon-button"
-              data-test="delete"
-              :aria-label="`Remove ${file.name}`"
-              data-tooltip="Remove file"
+            <RemoveFileButton
+              :name="file.name"
               :disabled="deleting"
-              @click="remove(file, item.id, $event)"
-            >
-              <FontAwesomeIcon :icon="icons.remove" />
-            </button>
+              @remove="remove(file, item.id, $event)"
+            />
           </span>
           <button
             type="button"
