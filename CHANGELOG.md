@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.63.0](https://github.com/cpthirst/gangshow-casting/compare/v1.62.0...v1.63.0) (2026-11-26)
+
+
+### Features
+
+* **web,api,shared,infra:** image thumbnails and trash icons (production-image-gallery.E1.S1, E1.S2) ([#244](https://github.com/cpthirst/gangshow-casting/issues/244)) ([44f7620](https://github.com/cpthirst/gangshow-casting/commit/44f76201d6e1cb1a91d2cd88f20a8d3f71803e54))
+
 ## [1.62.0](https://github.com/cpthirst/gangshow-casting/compare/v1.61.0...v1.62.0) (2026-11-24)
 
 
