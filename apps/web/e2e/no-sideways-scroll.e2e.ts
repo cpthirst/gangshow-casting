@@ -176,6 +176,34 @@ test("an item's image grid fits the screen, at least two square thumbnails acros
   await expectNoSidewaysScroll(page);
 });
 
+test("the image viewer, its name line, buttons and problem notice fit the screen", async ({
+  page,
+}) => {
+  const longest = "act-one-forest-backdrop-final-version-2.png";
+  await page.goto("/production/items/itm-2/scenery");
+  await page.getByRole("button", { name: `View ${longest}` }).click();
+  const viewer = page.getByRole("dialog", { name: "Scenery images" });
+  await expect(viewer.locator(".pswp__name")).toHaveText(longest);
+
+  // Every button in the bar is on the screen, Open and Download among them. PhotoSwipe hides
+  // Zoom for the made-up images, which are too small to zoom into.
+  const screen = page.viewportSize()?.width ?? 0;
+  for (const name of ["Open", "Download", "Close"]) {
+    const box = await viewer.getByRole("button", { name: new RegExp(`^${name}`) }).boundingBox();
+    expect(box?.x ?? -1, `${name} is on the screen`).toBeGreaterThanOrEqual(0);
+    expect((box?.x ?? 0) + (box?.width ?? 0), `${name} is on the screen`).toBeLessThanOrEqual(
+      screen,
+    );
+  }
+  await expectNoSidewaysScroll(page);
+
+  // A download whose link won't come says so inside the viewer.
+  await page.route("**/scenery-file-link?*", (route) => route.fulfill({ status: 500 }));
+  await viewer.getByRole("button", { name: `Download ${longest}` }).click();
+  await expect(viewer.getByRole("alert")).toHaveText(`Couldn't download ${longest}. Try again.`);
+  await expectNoSidewaysScroll(page);
+});
+
 /** Each department in an item page's switch: its accessible name and where it sits. */
 async function departmentsOf(page: Page) {
   const entries = page

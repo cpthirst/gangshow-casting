@@ -22,6 +22,7 @@ import {
   HealthResponse,
   ItemFileCounts,
   ItemFileLink,
+  ItemFileLinkQuery,
   ItemFileList,
   ItemFileName,
   ItemFileUpload,
@@ -135,7 +136,14 @@ const fileLink = (department: DepartmentId): RouteDoc => ({
   tag: "Item files",
   summary: `A short-lived link to one ${nounOf(department)} file`,
   description: "The link lasts 5 minutes and needs no token, so never share or store it.",
-  query: fileName("The file to link to."),
+  query: {
+    ...fileName("The file to link to."),
+    download: {
+      schema: ItemFileLinkQuery.shape.download.unwrap(),
+      required: false,
+      description: "Saves the file rather than opening it, even one the browser can show.",
+    },
+  },
   itemId: FolderId,
   success: ok("The link.", ItemFileLink),
   refusals: {

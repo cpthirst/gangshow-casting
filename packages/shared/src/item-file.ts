@@ -53,6 +53,13 @@ export const ItemFileLink = z.strictObject({
     .refine((url) => url.startsWith("https://") || url.startsWith("/api/local-files/")),
 });
 
+/** The file-link route's query: the file, and `download=true` for a link that always saves it
+ *  under its stored name, even one the browser would show (production-image-gallery FR10). */
+export const ItemFileLinkQuery = z.object({
+  name: ItemFileName,
+  download: z.literal("true").optional(),
+});
+
 /** How long a file's link works, in seconds: long enough to start a download or upload on a
  *  slow phone, short enough to be useless if shared (production-scenery security NFR). */
 export const FILE_LINK_SECONDS = 5 * 60;
@@ -133,6 +140,7 @@ export const isGalleryImage = (name: string) =>
 export type ItemFile = z.infer<typeof ItemFile>;
 export type ItemFileList = z.infer<typeof ItemFileList>;
 export type ItemFileLink = z.infer<typeof ItemFileLink>;
+export type ItemFileLinkQuery = z.infer<typeof ItemFileLinkQuery>;
 export type ItemFileUploadRequest = z.infer<typeof ItemFileUploadRequest>;
 export type ItemFileUpload = z.infer<typeof ItemFileUpload>;
 export type ItemImageLinks = z.infer<typeof ItemImageLinks>;

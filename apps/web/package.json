@@ -29,6 +29,7 @@
     "chart.js": "^4.5.1",
     "docx": "9.8.1",
     "oidc-client-ts": "^3.5.0",
+    "photoswipe": "5.4.4",
     "sortablejs": "^1.15.7",
     "vue": "^3.5.43",
     "vue-chartjs": "^5.3.3",

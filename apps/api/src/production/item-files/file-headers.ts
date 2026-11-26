@@ -10,15 +10,25 @@ const encodedName = (name: string) =>
     (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
   );
 
+/** How a link to a file is to be followed: by default, to open it if the browser can. */
+export interface LinkOptions {
+  /** Saved rather than opened, as the image viewer's Download (production-image-gallery FR10). */
+  download?: boolean;
+}
+
 /**
  * How a department's file is sent (production-scenery FR10): a PDF, image or text file, or an
- * audio file on SFX (production-sfx-wardrobe FR6), opens in the browser as its type, and
- * anything else, HTML and SVG among them, downloads as bytes the browser won't show. Either way
- * under its stored name. The type comes from the name alone.
+ * audio file on SFX (production-sfx-wardrobe FR6), opens in the browser as its type, unless
+ * asked for as a download, and anything else, HTML and SVG among them, downloads as bytes the
+ * browser won't show. Either way under its stored name. The type comes from the name alone.
  */
-export function fileHeadersOf(name: string, department: FileDepartment) {
+export function fileHeadersOf(
+  name: string,
+  department: FileDepartment,
+  { download = false }: LinkOptions = {},
+) {
   const browserType = browserTypeOf(name, department);
-  const how = browserType ? "inline" : "attachment";
+  const how = browserType && !download ? "inline" : "attachment";
   return {
     contentType: browserType ?? "application/octet-stream",
     contentDisposition: `${how}; filename="${plainName(name)}"; filename*=UTF-8''${encodedName(name)}`,

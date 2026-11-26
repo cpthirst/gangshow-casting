@@ -6,6 +6,7 @@ import {
   fileTypeOf,
   ItemFileCounts,
   ItemFileLink,
+  ItemFileLinkQuery,
   ItemFileList,
   ItemFileName,
   ItemFileUpload,
@@ -94,6 +95,19 @@ describe("ItemFileLink", () => {
     "//files.example/set-plan.pdf",
   ])("refuses %s, which isn't file storage", (url) => {
     expect(ItemFileLink.safeParse({ url }).success).toBe(false);
+  });
+});
+
+describe("ItemFileLinkQuery", () => {
+  it("names the file, and may ask for a link that downloads it", () => {
+    expect(ItemFileLinkQuery.parse({ name: "set-plan.jpg" })).toEqual({ name: "set-plan.jpg" });
+    expect(ItemFileLinkQuery.parse({ name: "set-plan.jpg", download: "true" }).download).toBe(
+      "true",
+    );
+  });
+
+  it.each(["yes", "false", ""])("refuses download=%s", (download) => {
+    expect(ItemFileLinkQuery.safeParse({ name: "set-plan.jpg", download }).success).toBe(false);
   });
 });
 

@@ -36,8 +36,10 @@ export function createDevServer(
     }
     // Stands in for the bucket's links and upload forms, which need no sign-in either (ADR 0030).
     if (localFiles !== undefined && path.startsWith(LOCAL_FILES_PATH)) {
-      if (req.method === "GET") await sendLocalFile(res, localFiles, path);
-      else if (req.method === "POST") await receiveLocalFile(req, res, localFiles, path);
+      if (req.method === "GET") {
+        const download = url.searchParams.get("download") === "true";
+        await sendLocalFile(res, localFiles, path, download);
+      } else if (req.method === "POST") await receiveLocalFile(req, res, localFiles, path);
       else res.writeHead(405).end();
       return;
     }
@@ -83,8 +85,8 @@ export function createDevServer(
   });
 }
 
-async function sendLocalFile(res: ServerResponse, folder: string, path: string) {
-  const found = await localFileAt(folder, path);
+async function sendLocalFile(res: ServerResponse, folder: string, path: string, download: boolean) {
+  const found = await localFileAt(folder, path, { download });
   if (!found) {
     res.writeHead(404).end();
     return;

@@ -101,6 +101,18 @@ describe("links to scenery files in a bucket", () => {
     );
   });
 
+  it("has an image download, as its own type, under its stored name, when asked to", async () => {
+    s3.on(HeadObjectCommand).resolves({});
+
+    const link = await store().linkTo("2027", "opening-number", "set-plan.jpg", { download: true });
+
+    const params = new URL(link ?? "").searchParams;
+    expect(params.get("response-content-type")).toBe("image/jpeg");
+    expect(params.get("response-content-disposition")).toMatch(
+      /^attachment; filename="set-plan.jpg"/,
+    );
+  });
+
   it("has an HTML file download as bytes, whatever type it was stored with", async () => {
     s3.on(HeadObjectCommand).resolves({ ContentType: "text/html" });
 

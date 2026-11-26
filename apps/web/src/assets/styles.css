@@ -1684,6 +1684,46 @@ main a {
   text-decoration: underline;
 }
 
+/* The image's name in the viewer, on its own line under the bar so a phone has room for it,
+   in the bar's colour; cut short with an ellipsis only if it's longer than the screen. */
+.pswp__name {
+  position: absolute;
+  top: 60px;
+  right: 0;
+  left: 0;
+  z-index: 10;
+  padding: 0 20px;
+  overflow: hidden;
+  color: var(--pswp-icon-color);
+  font-size: 14px;
+  line-height: 30px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The viewer's Open and Download, Font Awesome icons sized and coloured as PhotoSwipe's own. */
+.pswp__button--open svg,
+.pswp__button--download svg {
+  width: 20px;
+  height: 20px;
+  color: var(--pswp-icon-color);
+}
+
+/* A problem the page has, such as a download that failed, over the foot of the image: a
+   .notice, as on the page. */
+.pswp__problem {
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  left: 1rem;
+  margin: 0;
+}
+
+.pswp__problem:empty {
+  display: none;
+}
+
 /* An item's 24 mics, one card per channel: one column on a phone, more as the page widens,
    so all 24 fit without scrolling sideways (production-mics PRD accessibility). */
 .mic-channels {

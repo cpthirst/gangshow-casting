@@ -11,6 +11,7 @@ import {
   faCircleDot,
   faCircleInfo,
   faCircleQuestion,
+  faDownload,
   faFile,
   faFileAudio,
   faFileExcel,
@@ -29,6 +30,7 @@ import {
   faSquareXmark,
   faTrashCan,
   faTriangleExclamation,
+  faUpRightFromSquare,
   faUserCheck,
   faUserSlash,
   faUsers,
@@ -53,6 +55,9 @@ export const icons = {
   imageFile: faFileImage,
   // Audio only on an item's SFX page, where it plays in the browser.
   audioFile: faFileAudio,
+  // The image viewer's: show the image alone in a new tab, or save it.
+  openInTab: faUpRightFromSquare,
+  download: faDownload,
   // An account's actions on the Accounts page.
   resetPassword: faKey,
   disable: faUserSlash,
