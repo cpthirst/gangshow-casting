@@ -7,7 +7,8 @@ import {
   ItemImageLinks,
 } from "@app/shared";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-import { computed, ref, watch } from "vue";
+import { computed, ref, useTemplateRef, watch } from "vue";
+import { useImageViewer, type ViewerImage } from "@/composables/useImageViewer.ts";
 import { loadData } from "@/services/load-data.ts";
 import { itemImageLinksPath } from "@/services/production.ts";
 import { fileLabel } from "@/utils/file-display.ts";
@@ -16,8 +17,9 @@ import RemoveFileButton from "./RemoveFileButton.vue";
 
 // One item's images as square thumbnails, named beneath, each loading only as it nears the
 // screen (production-image-gallery FR4, FR6). Every image's link comes from one request, asked
-// again once they've lapsed. Choosing or removing one is the page's to handle, as a row's is
-// (FR7).
+// again once they've lapsed. Choosing one opens the viewer, to swipe through the rest (FR8,
+// FR9); one with no link to show it by is the page's to open, as a row is. Removing one is the
+// page's to handle too (FR7).
 
 const props = defineProps<{
   department: FileDepartment;
@@ -37,6 +39,8 @@ const emit = defineEmits<{
 const LAPSED_MS = (FILE_LINK_SECONDS - 60) * 1000;
 
 const named = computed(() => departments[props.department]);
+const grid = useTemplateRef("grid");
+const viewer = useImageViewer(() => `${named.value.name} images`);
 const links = ref(new Map<string, string>());
 // Whether the links have been answered, so a square with none shows the icon, not a gap.
 const answered = ref(false);
@@ -76,8 +80,15 @@ function askAfresh() {
   asking = ask;
 }
 
-// An image that won't load with a lapsed link gets a fresh one, shared by every image that
-// fails meanwhile; one that won't load with a fresh link shows the icon.
+// Links that haven't lapsed: fresh ones if they have, shared with whatever else asks meanwhile.
+async function freshLinks() {
+  if (!asking && Date.now() - askedAt < LAPSED_MS) return;
+  if (!asking) askAfresh();
+  while (asking) await asking;
+}
+
+// An image that won't load with a lapsed link gets a fresh one; one that won't load with a
+// fresh link shows the icon.
 async function failed(name: string, event: Event) {
   const tried =
     event.currentTarget instanceof HTMLImageElement
@@ -85,15 +96,33 @@ async function failed(name: string, event: Event) {
       : null;
   // A fresher link is already on the image, which the browser is trying instead.
   if (tried !== links.value.get(name)) return;
-  if (asking || Date.now() - askedAt >= LAPSED_MS) {
-    if (!asking) askAfresh();
-    while (asking) await asking;
-    if (links.value.get(name) !== tried) return;
-  }
-  broken.value.add(name);
+  await freshLinks();
+  if (links.value.get(name) === tried) broken.value.add(name);
 }
 
 const urlOf = (name: string) => (broken.value.has(name) ? undefined : links.value.get(name));
+
+async function view(image: ItemFile) {
+  if (urlOf(image.name)) await freshLinks();
+  const shown = viewable();
+  const index = shown.findIndex(({ name }) => name === image.name);
+  if (index < 0) emit("choose", image);
+  else await viewer.open(shown, index);
+}
+
+// The images with a link to show them by, each sized from its thumbnail if that has loaded.
+function viewable(): ViewerImage[] {
+  const thumbnails = grid.value?.querySelectorAll<HTMLElement>(".thumb-open") ?? [];
+  return props.images.flatMap(({ name }, at) => {
+    const src = urlOf(name);
+    const thumbnail = thumbnails[at];
+    if (!src || !thumbnail) return [];
+    const img = thumbnail.querySelector("img");
+    return [
+      { name, src, width: img?.naturalWidth ?? 0, height: img?.naturalHeight ?? 0, thumbnail },
+    ];
+  });
+}
 
 // A new image, after an upload, needs a link of its own, which a request already on its way
 // for a lapse won't have.
@@ -109,7 +138,7 @@ watch(
 
 <template>
   <!-- An explicit list role: Safari drops list semantics once bullets are styled away. -->
-  <ul class="thumb-grid" role="list" :aria-label="`${named.name} images`">
+  <ul ref="grid" class="thumb-grid" role="list" :aria-label="`${named.name} images`">
     <li v-for="image in images" :key="image.name" data-test="image">
       <!-- First, as a row's is, though it sits in the square's corner: beside what opens the
            image rather than in it, so choosing one never does the other. -->
@@ -123,8 +152,8 @@ watch(
       <button
         type="button"
         class="thumb-open"
-        :aria-label="fileLabel(image.name, department)"
-        @click="emit('choose', image)"
+        :aria-label="urlOf(image.name) ? `View ${image.name}` : fileLabel(image.name, department)"
+        @click="view(image)"
       >
         <span class="thumb-square">
           <img

@@ -2,7 +2,7 @@
 id: production-image-gallery.E2.S1
 title: View an item's images large and swipe between them
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story

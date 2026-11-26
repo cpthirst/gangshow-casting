@@ -443,9 +443,8 @@ describe("An item's images, on any file page", () => {
     expect(asked.filter((url) => url.includes("/scenery-file-link?"))).toEqual([]);
   });
 
-  it("opens an image in a new tab when its thumbnail is chosen, as its row did", async () => {
-    const tab = { show: vi.fn(), close: vi.fn() };
-    vi.mocked(openFileTab).mockReset().mockReturnValue(tab);
+  it("opens a chosen thumbnail in the viewer, which moves through the item's images and nothing else", async () => {
+    vi.mocked(openFileTab).mockReset();
     apiHolds({ scenery: openingNumberMix() });
     const { wrapper } = await openAppAt(pageOf("scenery"));
 
@@ -455,7 +454,13 @@ describe("An item's images, on any file page", () => {
     await setPlan?.get(".thumb-open").trigger("click");
     await flushPromises();
 
-    expect(tab.show).toHaveBeenCalledWith(linkTo("set-plan.jpg"));
+    const shownName = () => document.querySelector(".pswp__name")?.textContent;
+    // Its code arrives on the first open.
+    await vi.waitFor(() => expect(shownName()).toBe("set-plan.jpg"));
+    expect(document.querySelector(".pswp__counter")?.textContent).toBe("2 / 2");
+    document.querySelector<HTMLButtonElement>(".pswp__button[aria-label=Previous]")?.click();
+    expect(shownName()).toBe("backdrop.png");
+    expect(openFileTab).not.toHaveBeenCalled();
   });
 });
 

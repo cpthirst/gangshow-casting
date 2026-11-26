@@ -1684,6 +1684,22 @@ main a {
   text-decoration: underline;
 }
 
+/* The image's name in the viewer's bar, after PhotoSwipe's counter and before its buttons, in
+   their colour and on their line; cut short with an ellipsis on a phone. */
+.pswp__name {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  margin-top: 15px;
+  margin-inline-start: 20px;
+  overflow: hidden;
+  color: var(--pswp-icon-color);
+  font-size: 14px;
+  line-height: 30px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* An item's 24 mics, one card per channel: one column on a phone, more as the page widens,
    so all 24 fit without scrolling sideways (production-mics PRD accessibility). */
 .mic-channels {

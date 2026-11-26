@@ -2,8 +2,21 @@ import { FILE_LINK_SECONDS, type ItemFile } from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { json } from "@/app.fixture.ts";
+import type { ViewerImage } from "@/composables/useImageViewer.ts";
 import { itemImageLinksPath } from "@/services/production.ts";
 import ImageGrid from "./ImageGrid.vue";
+
+// The viewer is tested on its own: these check what the grid hands it.
+const viewer = vi.hoisted(() => ({
+  label: "",
+  open: vi.fn<(images: ViewerImage[], index: number) => Promise<void>>(),
+}));
+vi.mock("@/composables/useImageViewer.ts", () => ({
+  useImageViewer: (label: () => string) => {
+    viewer.label = label();
+    return { open: viewer.open };
+  },
+}));
 
 enableAutoUnmount(afterEach);
 beforeEach(() => {
@@ -12,6 +25,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
+  viewer.open.mockReset();
 });
 
 const LINKS = itemImageLinksPath("scenery", "opening-number");
@@ -66,15 +80,68 @@ describe("The image grid", () => {
     ]);
   });
 
-  it("names each thumbnail for what choosing it does, and the file's type, as its row would be", async () => {
-    const name = "act-one-forest-backdrop-final-version-2.jpg";
-    apiLinks([name]);
-    const wrapper = await openGrid(filesNamed(name));
+  it("names each thumbnail for viewing its image", async () => {
+    apiLinks(["set-plan.jpg"]);
+    const wrapper = await openGrid(filesNamed("set-plan.jpg"));
 
-    expect(thumbnail(wrapper, name).get("button").attributes("aria-label")).toBe(
-      `Open ${name}, JPG file`,
+    expect(thumbnail(wrapper, "set-plan.jpg").get("button").attributes("aria-label")).toBe(
+      "View set-plan.jpg",
     );
-    expect(thumbnail(wrapper, name).get("img").attributes("alt")).toBe("");
+    expect(thumbnail(wrapper, "set-plan.jpg").get("img").attributes("alt")).toBe("");
+  });
+
+  it("opens the viewer on the image chosen, among the item's images in order, rather than a tab", async () => {
+    apiLinks(["backdrop.png", "set-plan.jpg", "wings.webp"]);
+    const wrapper = await openGrid(filesNamed("backdrop.png", "set-plan.jpg", "wings.webp"));
+    await thumbnail(wrapper, "set-plan.jpg").get("img").trigger("load");
+
+    await thumbnail(wrapper, "set-plan.jpg").get("button").trigger("click");
+    await flushPromises();
+
+    expect(viewer.label).toBe("Scenery images");
+    expect(viewer.open).toHaveBeenCalledOnce();
+    const [images, index] = viewer.open.mock.calls[0] ?? [];
+    expect(index).toBe(1);
+    expect(images?.map(({ name, src }) => [name, src])).toEqual([
+      ["backdrop.png", "https://files.example/backdrop.png?v=1"],
+      ["set-plan.jpg", "https://files.example/set-plan.jpg?v=1"],
+      ["wings.webp", "https://files.example/wings.webp?v=1"],
+    ]);
+    expect(images?.[1]?.thumbnail).toBe(thumbnail(wrapper, "set-plan.jpg").get("button").element);
+    expect(wrapper.emitted("choose")).toBeUndefined();
+  });
+
+  it("asks for fresh links before opening the viewer once they've lapsed, keeping those of images shown", async () => {
+    const fetch = apiLinks(["backdrop.png", "set-plan.jpg"]);
+    const wrapper = await openGrid(filesNamed("backdrop.png", "set-plan.jpg"));
+    await thumbnail(wrapper, "backdrop.png").get("img").trigger("load");
+
+    vi.advanceTimersByTime(FILE_LINK_SECONDS * 1000);
+    await thumbnail(wrapper, "backdrop.png").get("button").trigger("click");
+    await flushPromises();
+
+    expect(linkRequests(fetch)).toBe(2);
+    const [images] = viewer.open.mock.calls[0] ?? [];
+    expect(images?.map(({ src }) => src)).toEqual([
+      "https://files.example/backdrop.png?v=1",
+      "https://files.example/set-plan.jpg?v=2",
+    ]);
+  });
+
+  it("leaves out of the viewer an image that won't load, which opens as its row would", async () => {
+    apiLinks(["backdrop.png", "set-plan.jpg"]);
+    const wrapper = await openGrid(filesNamed("backdrop.png", "set-plan.jpg"));
+    await thumbnail(wrapper, "set-plan.jpg").get("img").trigger("error");
+
+    await thumbnail(wrapper, "backdrop.png").get("button").trigger("click");
+    await flushPromises();
+    const [images] = viewer.open.mock.calls[0] ?? [];
+    expect(images?.map(({ name }) => name)).toEqual(["backdrop.png"]);
+
+    const broken = thumbnail(wrapper, "set-plan.jpg").get("button");
+    expect(broken.attributes("aria-label")).toBe("Open set-plan.jpg, JPG file");
+    await broken.trigger("click");
+    expect(wrapper.emitted("choose")).toEqual([[{ name: "set-plan.jpg", size: 10 }]]);
   });
 
   it("leaves each image for the browser to load as it scrolls near the screen", async () => {
@@ -98,16 +165,6 @@ describe("The image grid", () => {
     expect(damaged.get(".file-icon").classes()).toContain("fa-file-image");
     expect(damaged.get("[data-test=name]").text()).toBe("set-plan.jpg");
     expect(thumbnail(wrapper, "backdrop.png").find("img").exists()).toBe(true);
-  });
-
-  it("still lets someone choose an image that won't load", async () => {
-    apiLinks(["set-plan.jpg"]);
-    const wrapper = await openGrid(filesNamed("set-plan.jpg"));
-    await thumbnail(wrapper, "set-plan.jpg").get("img").trigger("error");
-
-    await thumbnail(wrapper, "set-plan.jpg").get("button").trigger("click");
-
-    expect(wrapper.emitted("choose")).toEqual([[{ name: "set-plan.jpg", size: 10 }]]);
   });
 
   it("asks again for the links once they've lapsed, when an image that hadn't loaded fails", async () => {
