@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.64.0](https://github.com/cpthirst/gangshow-casting/compare/v1.63.0...v1.64.0) (2026-11-26)
+
+
+### Features
+
+* **web,api,shared:** image viewer with Open and Download (production-image-gallery.E2, E3.S1) ([#246](https://github.com/cpthirst/gangshow-casting/issues/246)) ([8599f31](https://github.com/cpthirst/gangshow-casting/commit/8599f3195edd4971e0c86035e2e9e1d691593f39))
+
 ## [1.63.0](https://github.com/cpthirst/gangshow-casting/compare/v1.62.0...v1.63.0) (2026-11-26)
 
 
