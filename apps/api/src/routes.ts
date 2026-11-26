@@ -13,6 +13,7 @@ import { createSaveCostume } from "#/production/costumes/save-costume.ts";
 import { createCountItemFiles } from "#/production/item-files/count-item-files.ts";
 import { createDeleteItemFile } from "#/production/item-files/delete-item-file.ts";
 import { createGetItemFileLink } from "#/production/item-files/get-item-file-link.ts";
+import { createGetItemImageLinks } from "#/production/item-files/get-item-image-links.ts";
 import type { ItemFileStores } from "#/production/item-files/item-file-store.ts";
 import { createListItemFiles } from "#/production/item-files/list-item-files.ts";
 import { createUploadItemFile } from "#/production/item-files/upload-item-file.ts";
@@ -114,6 +115,8 @@ export function createRoutes(
       createListItemFiles(sceneryFiles),
     "GET /api/productions/{productionId}/items/{itemId}/scenery-file-link":
       createGetItemFileLink(sceneryFiles),
+    "GET /api/productions/{productionId}/items/{itemId}/scenery-image-links":
+      createGetItemImageLinks(sceneryFiles, runningOrders),
     "GET /api/productions/{productionId}/scenery-file-counts": createCountItemFiles(sceneryFiles),
     "DELETE /api/productions/{productionId}/items/{itemId}/scenery-files":
       createDeleteItemFile(sceneryFiles),
@@ -129,6 +132,10 @@ export function createRoutes(
     "GET /api/productions/{productionId}/items/{itemId}/sfx-files": createListItemFiles(sfxFiles),
     "GET /api/productions/{productionId}/items/{itemId}/sfx-file-link":
       createGetItemFileLink(sfxFiles),
+    "GET /api/productions/{productionId}/items/{itemId}/sfx-image-links": createGetItemImageLinks(
+      sfxFiles,
+      runningOrders,
+    ),
     "DELETE /api/productions/{productionId}/items/{itemId}/sfx-files":
       createDeleteItemFile(sfxFiles),
     "POST /api/productions/{productionId}/items/{itemId}/sfx-uploads": createUploadItemFile(
@@ -145,6 +152,8 @@ export function createRoutes(
       createListItemFiles(wardrobeFiles),
     "GET /api/productions/{productionId}/items/{itemId}/wardrobe-file-link":
       createGetItemFileLink(wardrobeFiles),
+    "GET /api/productions/{productionId}/items/{itemId}/wardrobe-image-links":
+      createGetItemImageLinks(wardrobeFiles, runningOrders),
     "DELETE /api/productions/{productionId}/items/{itemId}/wardrobe-files":
       createDeleteItemFile(wardrobeFiles),
     "POST /api/productions/{productionId}/items/{itemId}/wardrobe-uploads": createUploadItemFile(

@@ -5,6 +5,7 @@ import {
   type ItemFile,
   ItemFileUploadRequest,
   type ItemNote,
+  isGalleryImage,
   type Role,
   SaveItemNoteRequest,
 } from "@app/shared";
@@ -17,6 +18,7 @@ import { StandInXhr } from "@/services/file-upload.fixture.ts";
 import {
   castPath,
   costumesPath,
+  itemImageLinksPath,
   rolesPath,
   runningOrderPath,
   saveCostumePath,
@@ -40,8 +42,9 @@ import {
 import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
 
 // Every file department's page is the same component: SceneryItemPage.test.ts covers how it
-// behaves, and this file that each department is wired to its own files, notes and
-// permissions, and what's different about SFX and Wardrobe.
+// behaves, and this file how an item's images show beside its other files, that each
+// department is wired to its own files, notes and permissions, and what's different about SFX
+// and Wardrobe.
 
 // The browser's own new tabs and downloads, which happy-dom can't follow.
 vi.mock("@/services/file-link.ts", () => ({ openFileTab: vi.fn(), downloadFrom: vi.fn() }));
@@ -142,6 +145,10 @@ function apiHolds(
       }
       if (what === "files") return json({ files });
       if (what === "file-link" && name !== null && at >= 0) return json({ url: linkTo(name) });
+      if (what === "image-links") {
+        const images = files.filter((each) => isGalleryImage(each.name));
+        return json({ links: images.map((each) => ({ name: each.name, url: linkTo(each.name) })) });
+      }
       return new Response(null, { status: 404 });
     }),
   );
@@ -184,6 +191,7 @@ describe.each([
     noun: "SFX",
     other: "scenery",
     file: "thunder.mp3",
+    image: "storm.jpg",
     mayChange: ["tech", "director", "admin"],
     viewsOnly: "stage",
   },
@@ -193,12 +201,13 @@ describe.each([
     noun: "wardrobe",
     other: "sfx",
     file: "jacket-pattern.pdf",
+    image: "dress-design.png",
     mayChange: ["wardrobe", "director", "admin"],
     viewsOnly: "tech",
   },
 ] as const)(
   "The $name page for an item",
-  ({ key, name, noun, other, file, mayChange, viewsOnly }) => {
+  ({ key, name, noun, other, file, image, mayChange, viewsOnly }) => {
     const itemFiles = () => ({ "opening-number": [{ name: file, size: 10 }] });
     const route = `/api/productions/2027/items/opening-number/${key}`;
 
@@ -211,6 +220,27 @@ describe.each([
 
       expect(wrapper.get("main h1").text()).toBe(`${name}: Opening Number`);
       expect(wrapper.find(`main ul[aria-label='${name} files']`).exists()).toBe(true);
+      expect(names(wrapper)).toEqual([file]);
+    });
+
+    it("shows its own images under Images, from its own links, and its other files under Other Files", async () => {
+      apiHolds({
+        [key]: {
+          "opening-number": [
+            { name: file, size: 10 },
+            { name: image, size: 10 },
+          ],
+        },
+      });
+      const { wrapper } = await openAppAt(pageOf(key));
+
+      const section = wrapper.get("main [aria-labelledby=files-heading]");
+      expect(section.findAll("h3").map((heading) => heading.text())).toEqual([
+        "Images",
+        "Other Files",
+      ]);
+      expect(section.get("[data-test=image] img").attributes("src")).toBe(linkTo(image));
+      expect(requests((url) => url.endsWith("-image-links"))).toEqual([`${route}-image-links`]);
       expect(names(wrapper)).toEqual([file]);
     });
 
@@ -317,6 +347,117 @@ describe.each([
     );
   },
 );
+
+describe("An item's images, on any file page", () => {
+  // As the story has it: two images and a PDF.
+  const openingNumberMix = () => ({
+    "opening-number": [
+      { name: "set-plan.jpg", size: 10 },
+      { name: "build-list.pdf", size: 10 },
+      { name: "backdrop.png", size: 10 },
+    ],
+  });
+
+  const headings = (wrapper: VueWrapper) =>
+    wrapper.findAll("main [aria-labelledby=files-heading] h3").map((h) => h.text());
+  const thumbnails = (wrapper: VueWrapper) =>
+    wrapper.findAll("main [data-test=image] [data-test=name]").map((name) => name.text());
+
+  it("shows the item's images as thumbnails under Images, sorted by name, then its other files' rows under Other Files", async () => {
+    apiHolds({ scenery: openingNumberMix() });
+    const { wrapper } = await openAppAt(pageOf("scenery"));
+
+    expect(headings(wrapper)).toEqual(["Images", "Other Files"]);
+    expect(thumbnails(wrapper)).toEqual(["backdrop.png", "set-plan.jpg"]);
+    expect(names(wrapper)).toEqual(["build-list.pdf"]);
+    const section = wrapper.get("main [aria-labelledby=files-heading]").html();
+    expect(section.indexOf("Images")).toBeLessThan(section.indexOf("set-plan.jpg"));
+    expect(section.indexOf("set-plan.jpg")).toBeLessThan(section.indexOf("Other Files"));
+    expect(section.indexOf("Other Files")).toBeLessThan(section.indexOf("build-list.pdf"));
+  });
+
+  it("shows only images the browser can show as thumbnails, leaving SVG and HEIC as rows with the image icon", async () => {
+    apiHolds({
+      scenery: {
+        "opening-number": [
+          ...openingNumberMix()["opening-number"],
+          { name: "logo.svg", size: 10 },
+          { name: "fitting.heic", size: 10 },
+          { name: "poster.webp", size: 10 },
+        ],
+      },
+    });
+    const { wrapper } = await openAppAt(pageOf("scenery"));
+
+    expect(thumbnails(wrapper)).toEqual(["backdrop.png", "poster.webp", "set-plan.jpg"]);
+    expect(names(wrapper)).toEqual(["build-list.pdf", "fitting.heic", "logo.svg"]);
+    const iconOf = (name: string) =>
+      wrapper
+        .findAll("main [data-test=file]")
+        .find((row) => row.get("[data-test=name]").text() === name)
+        ?.get(".file-icon")
+        .classes();
+    expect(iconOf("logo.svg")).toContain("fa-file-image");
+    expect(iconOf("fitting.heic")).toContain("fa-file-image");
+  });
+
+  it("lists an item with no images as rows, with no Images or Other Files heading", async () => {
+    apiHolds({
+      scenery: {
+        finale: [
+          { name: "cue-sheet.pdf", size: 10 },
+          { name: "notes.txt", size: 10 },
+        ],
+      },
+    });
+    const { wrapper } = await openAppAt(pageOf("scenery", "finale"));
+
+    expect(headings(wrapper)).toEqual([]);
+    expect(names(wrapper)).toEqual(["cue-sheet.pdf", "notes.txt"]);
+    expect(wrapper.find("main [data-test=image]").exists()).toBe(false);
+  });
+
+  it("shows an item with only images under Images, with no Other Files heading and no empty message", async () => {
+    apiHolds({ scenery: { "campfire-song": [{ name: "backdrop.png", size: 10 }] } });
+    const { wrapper } = await openAppAt(pageOf("scenery", "campfire-song"));
+
+    expect(headings(wrapper)).toEqual(["Images"]);
+    expect(thumbnails(wrapper)).toEqual(["backdrop.png"]);
+    expect(wrapper.find("main [data-test=file]").exists()).toBe(false);
+    expect(wrapper.find("[data-test=no-files]").exists()).toBe(false);
+  });
+
+  it("asks once for the item's image links, not once per image", async () => {
+    const twelve = Array.from({ length: 12 }, (_, at) => ({
+      name: `sketch-${at + 1}.png`,
+      size: 10,
+    }));
+    apiHolds({ scenery: { "opening-number": twelve } });
+    const { wrapper } = await openAppAt(pageOf("scenery"));
+
+    expect(wrapper.findAll("main [data-test=image] img")).toHaveLength(12);
+    const asked = vi.mocked(fetch).mock.calls.map(([url]) => String(url));
+    expect(
+      asked.filter((url) => url === itemImageLinksPath("scenery", "opening-number")),
+    ).toHaveLength(1);
+    expect(asked.filter((url) => url.includes("/scenery-file-link?"))).toEqual([]);
+  });
+
+  it("opens an image in a new tab when its thumbnail is chosen, as its row did", async () => {
+    const tab = { show: vi.fn(), close: vi.fn() };
+    vi.mocked(openFileTab).mockReset().mockReturnValue(tab);
+    apiHolds({ scenery: openingNumberMix() });
+    const { wrapper } = await openAppAt(pageOf("scenery"));
+
+    const setPlan = wrapper
+      .findAll("main [data-test=image]")
+      .find((thumbnail) => thumbnail.text() === "set-plan.jpg");
+    await setPlan?.get("button").trigger("click");
+    await flushPromises();
+
+    expect(tab.show).toHaveBeenCalledWith(linkTo("set-plan.jpg"));
+  });
+});
 
 // Each file page's sections, in order: only Wardrobe has Costumes between its files and notes.
 describe.each([

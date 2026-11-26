@@ -33,13 +33,14 @@ const webApp = fileURLToPath(new URL("../../apps/web", import.meta.url));
 
 // The built app is one script and one stylesheet from its own address, with no inline code.
 // Signing in leaves for the login pages by navigation, which the policy doesn't limit; the
-// app itself only asks the login domain for tokens, and sends uploads to the files bucket.
+// app itself only asks the login domain for tokens, sends uploads to the files bucket, and
+// shows the bucket's images as thumbnails (production-image-gallery FR1).
 const contentSecurityPolicy = (loginUrl: string, filesUrl: string) =>
   [
     "default-src 'self'",
     "script-src 'self'",
     "style-src 'self'",
-    "img-src 'self'",
+    `img-src 'self' ${filesUrl}`,
     "font-src 'self'",
     `connect-src 'self' ${loginUrl} ${filesUrl}`,
     "object-src 'none'",

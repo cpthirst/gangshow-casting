@@ -53,6 +53,16 @@ export const ItemFileLink = z.strictObject({
     .refine((url) => url.startsWith("https://") || url.startsWith("/api/local-files/")),
 });
 
+/** How long a file's link works, in seconds: long enough to start a download or upload on a
+ *  slow phone, short enough to be useless if shared (production-scenery security NFR). */
+export const FILE_LINK_SECONDS = 5 * 60;
+
+/** GET /api/productions/{productionId}/items/{itemId}/scenery-image-links: a short-lived link
+ *  to each of the item's images (production-image-gallery FR1), from one request. */
+export const ItemImageLinks = z.strictObject({
+  links: z.array(z.strictObject({ name: ItemFileName, url: ItemFileLink.shape.url })),
+});
+
 /** The largest file storage keeps: 100 MB, in the decimal units the page shows sizes in
  *  (production-scenery FR8). */
 export const MAX_ITEM_FILE_BYTES = 100_000_000;
@@ -114,8 +124,15 @@ export function browserTypeOf(name: string, department: FileDepartment) {
   return browserTypes.get(type) ?? (department === "sfx" ? audioTypes.get(type) : undefined);
 }
 
+/** Whether a file is an image the browser shows (JPG, PNG, GIF or WebP), in every department,
+ *  from its name alone, so it's a thumbnail in the item's Images rather than a row
+ *  (production-image-gallery FR1). */
+export const isGalleryImage = (name: string) =>
+  browserTypes.get(fileTypeOf(name) ?? "")?.startsWith("image/") ?? false;
+
 export type ItemFile = z.infer<typeof ItemFile>;
 export type ItemFileList = z.infer<typeof ItemFileList>;
 export type ItemFileLink = z.infer<typeof ItemFileLink>;
 export type ItemFileUploadRequest = z.infer<typeof ItemFileUploadRequest>;
 export type ItemFileUpload = z.infer<typeof ItemFileUpload>;
+export type ItemImageLinks = z.infer<typeof ItemImageLinks>;

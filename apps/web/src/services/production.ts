@@ -146,6 +146,10 @@ export const itemUploadsPath = (department: FileDepartment, itemId: string) =>
 export const itemFileLinkPath = (department: FileDepartment, itemId: string, name: string) =>
   `${itemPath(itemId)}/${department}-file-link?${new URLSearchParams({ name })}`;
 
+/** A short-lived link to each of the item's images, from one request. */
+export const itemImageLinksPath = (department: FileDepartment, itemId: string) =>
+  `${itemPath(itemId)}/${department}-image-links`;
+
 /** How many files each item has, for the department's column on the Overview
  *  (production-overview FR14, production-sfx-wardrobe FR10). */
 export const fileCountsPath = (department: FileDepartment) =>

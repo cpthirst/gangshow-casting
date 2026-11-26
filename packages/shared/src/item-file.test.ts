@@ -10,6 +10,8 @@ import {
   ItemFileName,
   ItemFileUpload,
   ItemFileUploadRequest,
+  ItemImageLinks,
+  isGalleryImage,
   MAX_ITEM_FILE_BYTES,
 } from "./item-file.ts";
 
@@ -92,6 +94,23 @@ describe("ItemFileLink", () => {
     "//files.example/set-plan.pdf",
   ])("refuses %s, which isn't file storage", (url) => {
     expect(ItemFileLink.safeParse({ url }).success).toBe(false);
+  });
+});
+
+describe("ItemImageLinks", () => {
+  it("is a link for each of the item's images, by name", () => {
+    const links = {
+      links: [
+        { name: "backdrop.png", url: "https://files.example/backdrop.png?x=1" },
+        { name: "set-plan.jpg", url: "/api/local-files/2027/opening-number/scenery/set-plan.jpg" },
+      ],
+    };
+    expect(ItemImageLinks.parse(links)).toEqual(links);
+  });
+
+  it("refuses a link that isn't file storage", () => {
+    const links = { links: [{ name: "backdrop.png", url: "javascript:alert(1)" }] };
+    expect(ItemImageLinks.safeParse(links).success).toBe(false);
   });
 });
 
@@ -181,6 +200,22 @@ describe("browserTypeOf", () => {
   it("goes by a name's last extension, so notes.mp3.html downloads on SFX", () => {
     expect(browserTypeOf("notes.mp3.html", "sfx")).toBeUndefined();
   });
+});
+
+describe("isGalleryImage", () => {
+  it.each(["backdrop.png", "SET-PLAN.JPG", "photo.jpeg", "sketch.gif", "poster.webp"])(
+    "counts %s as an image the browser shows",
+    (name) => {
+      expect(isGalleryImage(name)).toBe(true);
+    },
+  );
+
+  it.each(["logo.svg", "fitting.heic", "scan.tiff", "set-plan.pdf", "cues.txt", "thunder.mp3"])(
+    "doesn't count %s, which the browser won't show as an image",
+    (name) => {
+      expect(isGalleryImage(name)).toBe(false);
+    },
+  );
 });
 
 describe("fileTypeOf", () => {

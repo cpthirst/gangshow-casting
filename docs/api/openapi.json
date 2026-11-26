@@ -1557,6 +1557,56 @@
         }
       }
     },
+    "/api/productions/{productionId}/items/{itemId}/scenery-image-links": {
+      "get": {
+        "tags": [
+          "Item files"
+        ],
+        "summary": "Short-lived links to each of an item's scenery images",
+        "description": "**Needs:** anyone signed in. One link for each JPG, PNG, GIF or WebP file, in no particular order. The links last 5 minutes and need no token, so never share or store them.",
+        "x-permission": {
+          "who": "anyone signed in"
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[\\w-]{1,40}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The links.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemImageLinks"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "The production id isn't well formed. Or: The item id isn't well formed. Or: The item isn't in the latest saved running order."
+          }
+        }
+      }
+    },
     "/api/productions/{productionId}/items/{itemId}/scenery-uploads": {
       "post": {
         "tags": [
@@ -2006,6 +2056,56 @@
         }
       }
     },
+    "/api/productions/{productionId}/items/{itemId}/sfx-image-links": {
+      "get": {
+        "tags": [
+          "Item files"
+        ],
+        "summary": "Short-lived links to each of an item's SFX images",
+        "description": "**Needs:** anyone signed in. One link for each JPG, PNG, GIF or WebP file, in no particular order. The links last 5 minutes and need no token, so never share or store them.",
+        "x-permission": {
+          "who": "anyone signed in"
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[\\w-]{1,40}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The links.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemImageLinks"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "The production id isn't well formed. Or: The item id isn't well formed. Or: The item isn't in the latest saved running order."
+          }
+        }
+      }
+    },
     "/api/productions/{productionId}/items/{itemId}/sfx-uploads": {
       "post": {
         "tags": [
@@ -2449,6 +2549,56 @@
           },
           "404": {
             "description": "The production id isn't well formed. Or: The item id isn't well formed. Or: The file isn't there."
+          }
+        }
+      }
+    },
+    "/api/productions/{productionId}/items/{itemId}/wardrobe-image-links": {
+      "get": {
+        "tags": [
+          "Item files"
+        ],
+        "summary": "Short-lived links to each of an item's wardrobe images",
+        "description": "**Needs:** anyone signed in. One link for each JPG, PNG, GIF or WebP file, in no particular order. The links last 5 minutes and need no token, so never share or store them.",
+        "x-permission": {
+          "who": "anyone signed in"
+        },
+        "parameters": [
+          {
+            "name": "productionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,40}$"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[\\w-]{1,40}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The links.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemImageLinks"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "The production id isn't well formed. Or: The item id isn't well formed. Or: The item isn't in the latest saved running order."
           }
         }
       }
@@ -4217,6 +4367,36 @@
         "required": [
           "name",
           "size"
+        ],
+        "additionalProperties": false
+      },
+      "ItemImageLinks": {
+        "type": "object",
+        "properties": {
+          "links": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 255
+                },
+                "url": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name",
+                "url"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "links"
         ],
         "additionalProperties": false
       },

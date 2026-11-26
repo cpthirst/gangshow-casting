@@ -1,4 +1,9 @@
-import { type FileDepartment, type ItemFile, MAX_ITEM_FILE_BYTES } from "@app/shared";
+import {
+  FILE_LINK_SECONDS,
+  type FileDepartment,
+  type ItemFile,
+  MAX_ITEM_FILE_BYTES,
+} from "@app/shared";
 import {
   DeleteObjectCommand,
   DeleteObjectsCommand,
@@ -19,9 +24,6 @@ import {
   itemFolderOf,
 } from "./item-file-store.ts";
 
-// Long enough to start a download or upload on a slow phone, short enough to be useless if
-// shared (production-scenery security NFR).
-const LINK_SECONDS = 5 * 60;
 // The most keys S3 deletes in one request.
 const DELETE_BATCH = 1_000;
 
@@ -69,7 +71,7 @@ export function s3ItemFileStore(
         ResponseContentType: contentType,
         ResponseContentDisposition: contentDisposition,
       });
-      return getSignedUrl(s3, get, { expiresIn: LINK_SECONDS });
+      return getSignedUrl(s3, get, { expiresIn: FILE_LINK_SECONDS });
     },
     async remove(productionId, itemId, name) {
       const Key = `${folderOf(productionId, itemId)}${name}`;
@@ -87,7 +89,7 @@ export function s3ItemFileStore(
         Bucket: bucket,
         Key,
         Conditions: [["content-length-range", 0, MAX_ITEM_FILE_BYTES]],
-        Expires: LINK_SECONDS,
+        Expires: FILE_LINK_SECONDS,
       });
       return { url, fields };
     },

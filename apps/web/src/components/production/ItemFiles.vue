@@ -4,6 +4,7 @@ import {
   type ItemFile,
   ItemFileLink,
   ItemFileList,
+  isGalleryImage,
   type RunningOrder,
   type RunningOrderItem,
 } from "@app/shared";
@@ -26,11 +27,14 @@ import {
 import { icons } from "@/utils/icons.ts";
 import type { FilesDepartment } from "@/utils/item-files.ts";
 import FileUpload from "./FileUpload.vue";
+import ImageGrid from "./ImageGrid.vue";
 
 // One item's files for a department, Scenery's, SFX's or Wardrobe's (production-scenery FR6,
-// FR7, production-sfx-wardrobe FR2), headed Files in the frame every item page shares. The
-// slot under them, before the department's notes, holds what sets a department apart:
-// Wardrobe's costumes (production-costume-sheets FR2).
+// FR7, production-sfx-wardrobe FR2), headed Files in the frame every item page shares. Images
+// the browser shows are thumbnails under Images, above the rest under Other Files; with no
+// images, the files are one list (production-image-gallery FR1, FR2). The slot under them,
+// before the department's notes, holds what sets a department apart: Wardrobe's costumes
+// (production-costume-sheets FR2).
 
 const props = defineProps<{
   department: FilesDepartment;
@@ -47,6 +51,8 @@ const named = computed(() => departments[props.department.key]);
 const mayChange = computed(() => canChange(props.department.key));
 const askToConfirm = useConfirm();
 const files = ref<ItemFile[]>([]);
+const images = computed(() => files.value.filter((file) => isGalleryImage(file.name)));
+const otherFiles = computed(() => files.value.filter((file) => !isGalleryImage(file.name)));
 // Why the last file chosen didn't open, download, delete or upload, if it didn't.
 const fileProblem = ref<string>();
 // A delete is on its way, so the trash icons wait for it.
@@ -143,15 +149,26 @@ watch(
         @problem="fileProblem = $event"
       />
       <p v-if="fileProblem" class="notice" role="alert" data-test="file-problem">{{ fileProblem }}</p>
+      <template v-if="images.length > 0">
+        <h3>Images</h3>
+        <ImageGrid
+          :key="item.id"
+          :department="department.key"
+          :item-id="item.id"
+          :images="images"
+          @choose="choose($event, item.id)"
+        />
+        <h3 v-if="otherFiles.length > 0">Other Files</h3>
+      </template>
       <!-- One row per file, as the role and prop cards: the trash icon first, as theirs. An
            explicit list role: Safari drops list semantics once bullets are styled away. -->
       <ul
-        v-if="files.length > 0"
+        v-if="otherFiles.length > 0"
         class="card-list"
         role="list"
         :aria-label="`${named.name} files`"
       >
-        <li v-for="file in files" :key="file.name" class="card" data-test="file">
+        <li v-for="file in otherFiles" :key="file.name" class="card" data-test="file">
           <span v-if="mayChange" class="row-icons">
             <button
               type="button"
@@ -177,7 +194,7 @@ watch(
           </button>
         </li>
       </ul>
-      <template v-else>
+      <template v-else-if="images.length === 0">
         <p data-test="no-files">No {{ named.noun }} files for this item yet.</p>
         <!-- The drag clause hides on a phone or tablet, which can't drag a file in. -->
         <p v-if="mayChange" data-test="how-to-add">

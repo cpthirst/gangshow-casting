@@ -130,7 +130,7 @@ const OPENING_NUMBER = "/production/items/opening-number/scenery";
 const openingNumberFiles = {
   "opening-number": [
     { name: "set-plan.pdf", size: 2_400_000 },
-    { name: "Backdrop.png", size: 800_000 },
+    { name: "Backdrop.svg", size: 800_000 },
     { name: "build-list.xlsx", size: 40_000 },
   ],
 };
@@ -142,7 +142,7 @@ describe("An item's Scenery page", () => {
 
     expect(wrapper.get("main h1").text()).toBe("Scenery: Opening Number");
     expect(rows(wrapper)).toEqual([
-      { name: "Backdrop.png", size: "800 KB" },
+      { name: "Backdrop.svg", size: "800 KB" },
       { name: "build-list.xlsx", size: "40 KB" },
       { name: "set-plan.pdf", size: "2.4 MB" },
     ]);
@@ -155,7 +155,7 @@ describe("An item's Scenery page", () => {
         { name: "notes.docx", size: 10 },
         { name: "build.xlsx", size: 10 },
         { name: "pitch.pptx", size: 10 },
-        { name: "PHOTO.JPEG", size: 10 },
+        { name: "PHOTO.HEIC", size: 10 },
         { name: "model.skp", size: 10 },
         { name: "readme", size: 10 },
       ],
@@ -200,11 +200,11 @@ describe("An item's Scenery page", () => {
   it("shows only the item's own files, and follows Next to the next item's", async () => {
     apiHolds(show, {
       "opening-number": [{ name: "set-plan.pdf", size: 10 }],
-      "pirate-sketch": [{ name: "ship.png", size: 10 }],
+      "pirate-sketch": [{ name: "ship.svg", size: 10 }],
       finale: [{ name: "curtain.pdf", size: 10 }],
     });
     const { wrapper } = await openAppAt("/production/items/pirate-sketch/scenery");
-    expect(rows(wrapper).map((row) => row.name)).toEqual(["ship.png"]);
+    expect(rows(wrapper).map((row) => row.name)).toEqual(["ship.svg"]);
 
     await wrapper.get("main a[rel=next]").trigger("click");
     await flushPromises();
@@ -227,7 +227,7 @@ describe("An item's Scenery page", () => {
     const { wrapper } = await openAppAt(OPENING_NUMBER);
 
     expect(rows(wrapper).map((row) => row.name)).toEqual([
-      "Backdrop.png",
+      "Backdrop.svg",
       "build-list.xlsx",
       "set-plan.pdf",
     ]);
@@ -444,7 +444,7 @@ describe("Opening and downloading a scenery file", () => {
     );
     expect(wrapper.get("main [data-test=file-problem]").attributes("role")).toBe("alert");
     expect(wrapper.get("main [data-test=file-problem]").classes()).toContain("notice");
-    expect(rows(wrapper).map((row) => row.name)).toEqual(["Backdrop.png", "build-list.xlsx"]);
+    expect(rows(wrapper).map((row) => row.name)).toEqual(["Backdrop.svg", "build-list.xlsx"]);
     expect(tab.close).toHaveBeenCalled();
     expect(tab.show).not.toHaveBeenCalled();
   });
@@ -557,7 +557,7 @@ describe("Deleting a scenery file", () => {
 
     expect(asked).toEqual({ question: QUESTION, buttons: ["Remove file", "Cancel"] });
     expect(deletes()).toEqual([itemFilePath("scenery", "opening-number", "set-plan.pdf")]);
-    expect(rows(wrapper).map((row) => row.name)).toEqual(["Backdrop.png", "build-list.xlsx"]);
+    expect(rows(wrapper).map((row) => row.name)).toEqual(["Backdrop.svg", "build-list.xlsx"]);
     expect(held["opening-number"].map((file) => file.name)).not.toContain("set-plan.pdf");
   });
 
@@ -596,7 +596,7 @@ describe("Deleting a scenery file", () => {
     expect(wrapper.get("main [data-test=file-problem]").text()).toBe(
       "set-plan.pdf isn't there any more.",
     );
-    expect(rows(wrapper).map((row) => row.name)).toEqual(["Backdrop.png", "build-list.xlsx"]);
+    expect(rows(wrapper).map((row) => row.name)).toEqual(["Backdrop.svg", "build-list.xlsx"]);
   });
 
   it("says a delete that failed didn't happen, keeping the row", async () => {
@@ -689,11 +689,11 @@ describe("Uploading a scenery file", () => {
     apiHolds(show, held);
     const { wrapper } = await openAppAt(OPENING_NUMBER);
 
-    await choose(wrapper, aFile("Backdrop.png", 800_000));
+    await choose(wrapper, aFile("Backdrop.svg", 800_000));
 
-    expect(held["opening-number"]).toContainEqual({ name: "Backdrop.png", size: 800_000 });
+    expect(held["opening-number"]).toContainEqual({ name: "Backdrop.svg", size: 800_000 });
     expect(rows(wrapper)).toEqual([
-      { name: "Backdrop.png", size: "800 KB" },
+      { name: "Backdrop.svg", size: "800 KB" },
       { name: "set-plan.pdf", size: "2.4 MB" },
     ]);
   });
@@ -1089,7 +1089,7 @@ const highlighted = (wrapper: VueWrapper) =>
 describe("Dragging a file to upload", () => {
   it("uploads a dropped file as a chosen one, and shows its row", async () => {
     await signInAs(["stage"], "pat");
-    const held = { "opening-number": [{ name: "Backdrop.png", size: 800_000 }] };
+    const held = { "opening-number": [{ name: "Backdrop.svg", size: 800_000 }] };
     apiHolds(show, held);
     const { wrapper } = await openAppAt(OPENING_NUMBER);
 
@@ -1099,7 +1099,7 @@ describe("Dragging a file to upload", () => {
     expect(dropped.defaultPrevented).toBe(true);
     expect(held["opening-number"]).toContainEqual({ name: "set-plan.pdf", size: 2_400_000 });
     expect(rows(wrapper)).toEqual([
-      { name: "Backdrop.png", size: "800 KB" },
+      { name: "Backdrop.svg", size: "800 KB" },
       { name: "set-plan.pdf", size: "2.4 MB" },
     ]);
   });
@@ -1281,7 +1281,7 @@ describe("Loading the Scenery page's data", () => {
       {
         "opening-number": [
           { name: "set-plan.pdf", size: 2_400_000 },
-          { name: "Backdrop.png", size: 800_000 },
+          { name: "Backdrop.svg", size: 800_000 },
         ],
       },
       [{ itemId: "opening-number", text: "Cloud flies in", revision: 1 }],
@@ -1289,7 +1289,7 @@ describe("Loading the Scenery page's data", () => {
     const { wrapper } = await openAppAt(OPENING_NUMBER);
 
     expect(rows(wrapper)).toEqual([
-      { name: "Backdrop.png", size: "800 KB" },
+      { name: "Backdrop.svg", size: "800 KB" },
       { name: "set-plan.pdf", size: "2.4 MB" },
     ]);
     expect(wrapper.get<HTMLTextAreaElement>("main textarea").element.value).toBe("Cloud flies in");
