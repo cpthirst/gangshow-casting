@@ -32,9 +32,12 @@ export function useImageViewer(label: () => string, actions: ViewerActions) {
   let viewer: PhotoSwipe | undefined;
   // Where the viewer says a problem the page has, such as a download that failed.
   let problem: HTMLElement | undefined;
+  let left = false;
 
   async function open(images: ViewerImage[], index: number) {
     const { default: PhotoSwipe } = await import("photoswipe");
+    // The page went while its code was on its way.
+    if (left) return;
     viewer?.destroy();
     const pswp = new PhotoSwipe({
       dataSource: images.map(({ name, src, width, height }) => ({ src, alt: name, width, height })),
@@ -95,7 +98,10 @@ export function useImageViewer(label: () => string, actions: ViewerActions) {
     viewer = pswp;
   }
 
-  onUnmounted(() => viewer?.destroy());
+  onUnmounted(() => {
+    left = true;
+    viewer?.destroy();
+  });
   return {
     open,
     /** Closes it, as when the page catches up with storage. */

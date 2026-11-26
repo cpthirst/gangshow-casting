@@ -22,6 +22,7 @@ import {
   HealthResponse,
   ItemFileCounts,
   ItemFileLink,
+  ItemFileLinkQuery,
   ItemFileList,
   ItemFileName,
   ItemFileUpload,
@@ -138,7 +139,7 @@ const fileLink = (department: DepartmentId): RouteDoc => ({
   query: {
     ...fileName("The file to link to."),
     download: {
-      schema: z.literal("true"),
+      schema: ItemFileLinkQuery.shape.download.unwrap(),
       required: false,
       description: "Saves the file rather than opening it, even one the browser can show.",
     },

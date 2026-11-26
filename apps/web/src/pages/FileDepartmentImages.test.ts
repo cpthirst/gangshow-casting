@@ -261,6 +261,8 @@ describe("Opening and downloading from the image viewer, on any file page", () =
     viewerButton("Download set-plan.jpg").click();
     await flushPromises();
 
+    await settle();
+    expect(document.querySelector(".pswp")).not.toBeNull();
     expect(document.querySelector(".pswp [role=alert]")?.textContent).toBe(
       "Couldn't download set-plan.jpg. Try again.",
     );

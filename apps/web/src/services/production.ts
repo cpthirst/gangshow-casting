@@ -1,6 +1,7 @@
 import {
   type DepartmentId,
   type FileDepartment,
+  type ItemFileLinkQuery,
   mayChangeProduction,
   newestFirst,
   newestProduction,
@@ -149,7 +150,13 @@ export const itemFileLinkPath = (
   name: string,
   { download = false } = {},
 ) =>
-  `${itemPath(itemId)}/${department}-file-link?${new URLSearchParams({ name, ...(download ? { download: "true" } : {}) })}`;
+  `${itemPath(itemId)}/${department}-file-link?${new URLSearchParams(fileLinkQuery(name, download))}`;
+
+// As the route's query schema has it, in the strings a URL holds.
+const fileLinkQuery = (name: string, download: boolean): Record<string, string> =>
+  download
+    ? ({ name, download: "true" } satisfies ItemFileLinkQuery)
+    : ({ name } satisfies ItemFileLinkQuery);
 
 /** A short-lived link to each of the item's images, from one request. */
 export const itemImageLinksPath = (department: FileDepartment, itemId: string) =>

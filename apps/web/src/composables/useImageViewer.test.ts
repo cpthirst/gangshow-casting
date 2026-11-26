@@ -119,6 +119,15 @@ describe("The image viewer", () => {
     expect(shownName()).toBe("set-plan.jpg");
   });
 
+  it("keeps keyboard focus inside it while it's open", async () => {
+    reduceMotion(true);
+    await mountThumbnails(SCENERY).view("set-plan.jpg");
+
+    document.querySelector<HTMLElement>("[data-name='backdrop.png']")?.focus();
+
+    expect(viewer()?.contains(document.activeElement)).toBe(true);
+  });
+
   it("names each of its buttons", async () => {
     reduceMotion(true);
     await mountThumbnails(SCENERY).view("set-plan.jpg");
@@ -241,6 +250,17 @@ describe("The image viewer", () => {
 
     page.close();
     await settle();
+
+    expect(viewer()).toBeNull();
+  });
+
+  it("doesn't open over a page left while its code was loading", async () => {
+    reduceMotion(true);
+    const page = mountThumbnails(SCENERY);
+
+    const opening = page.view("set-plan.jpg");
+    page.wrapper.unmount();
+    await opening;
 
     expect(viewer()).toBeNull();
   });

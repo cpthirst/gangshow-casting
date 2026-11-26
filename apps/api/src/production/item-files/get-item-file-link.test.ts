@@ -62,6 +62,17 @@ describe("scenery file link handler", () => {
     });
   });
 
+  it("answers 400 for a download asked for any other way", async () => {
+    await putFile(openingNumber, "set-plan.jpg");
+
+    const res = await getLink({
+      pathParameters: { productionId: "2027", itemId: openingNumber },
+      queryStringParameters: { name: "set-plan.jpg", download: "yes" },
+    });
+
+    expect(res.statusCode).toBe(400);
+  });
+
   it("answers 404 for a download of a name not on the item", async () => {
     await putFile(openingNumber, "set-plan.jpg");
 
