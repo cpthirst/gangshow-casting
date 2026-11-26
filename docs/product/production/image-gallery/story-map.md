@@ -26,7 +26,7 @@ prd: ./prd.md
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
 | [production-image-gallery.E2.S1](stories/E2-S1-view-an-image-large.md) | Choosing a thumbnail opens the viewer (PhotoSwipe 5, ADR 0042) over the page: the image as large as the screen allows, with its name. You move to the item's previous or next image by swipe, button or arrow key, and zoom by pinch, double-tap or the controls. Escape, the close button or a swipe down closes it, and focus returns to the thumbnail of the image last shown. It is a labelled dialog, it follows the setting to reduce motion, and its code loads only on the first open | FR8, FR9 | E1.S1 | done |
-| [production-image-gallery.E2.S2](stories/E2-S2-open-and-download-from-the-viewer.md) | The viewer gains **Open**, which shows the image alone in a new tab, and **Download**, which saves it under its stored name. Each gets a fresh link, so they work however long the page has been open. An image deleted since the page loaded says it isn't there any more, and the page catches up with storage. A download link for an image that otherwise opens in the browser amends ADR 0030 | FR8, FR10 | E2.S1 | ready |
+| [production-image-gallery.E2.S2](stories/E2-S2-open-and-download-from-the-viewer.md) | The viewer gains **Open**, which shows the image alone in a new tab, and **Download**, which saves it under its stored name. Each gets a fresh link, so they work however long the page has been open. An image deleted since the page loaded says it isn't there any more, and the page catches up with storage. A download link for an image that otherwise opens in the browser amends ADR 0030 | FR8, FR10 | E2.S1 | done |
 
 ## E3: Help
 

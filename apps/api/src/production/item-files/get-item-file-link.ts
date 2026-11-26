@@ -6,7 +6,8 @@ import type { ItemFileStore } from "./item-file-store.ts";
 
 // GET /api/productions/{productionId}/items/{itemId}/scenery-file-link?name=…, or
 // /sfx-file-link or /wardrobe-file-link: a short-lived link that opens or downloads one of the item's files
-// (production-scenery FR10). Open to every signed-in role. 404 if the file isn't there any
+// (production-scenery FR10), or with &download=true always downloads it (production-image-gallery
+// FR10). Open to every signed-in role. 404 if the file isn't there any
 // more, so the page can say so.
 export function createGetItemFileLink(store: ItemFileStore): Handler {
   return inProduction(async (productionId, event) => {
@@ -14,7 +15,8 @@ export function createGetItemFileLink(store: ItemFileStore): Handler {
     if (itemId === undefined) return { statusCode: 404 };
     const name = ItemFileName.safeParse(event.queryStringParameters?.name);
     if (!name.success) return { statusCode: 400 };
-    const url = await store.linkTo(productionId, itemId, name.data);
+    const download = event.queryStringParameters?.download === "true";
+    const url = await store.linkTo(productionId, itemId, name.data, { download });
     if (url === undefined) return { statusCode: 404 };
     // Anyone holding the link can use it for a while, so nothing on the way may keep it.
     const res = jsonResponse(200, { url });

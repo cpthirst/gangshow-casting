@@ -1,28 +1,17 @@
-import {
-  type CastMember,
-  type Costume,
-  type FileDepartment,
-  type ItemFile,
-  ItemFileUploadRequest,
-  type ItemNote,
-  isGalleryImage,
-  type Role,
-  SaveItemNoteRequest,
-} from "@app/shared";
+import type { Costume, ItemNote } from "@app/shared";
 import { enableAutoUnmount, flushPromises, type VueWrapper } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { json, openAppAt } from "@/app.fixture.ts";
+import { openAppAt } from "@/app.fixture.ts";
 import * as confirmDialog from "@/components/common/ConfirmDialog.fixture.ts";
 import { downloadFrom, openFileTab } from "@/services/file-link.ts";
-import { StandInXhr } from "@/services/file-upload.fixture.ts";
 import {
-  castPath,
-  costumesPath,
-  itemImageLinksPath,
-  rolesPath,
-  runningOrderPath,
-  saveCostumePath,
-} from "@/services/production.ts";
+  apiHolds,
+  type Held,
+  linkTo,
+  names,
+  pageOf,
+  requests,
+} from "@/services/item-files-api.fixture.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
 import {
@@ -33,18 +22,12 @@ import {
   pirateCast,
   pirates,
 } from "@/utils/casting.fixture.ts";
-import {
-  alexAsHook,
-  costumeFieldsOf,
-  costumeFormField,
-  costumeSavedFrom,
-} from "@/utils/costumes.fixture.ts";
-import { anItem, aRunningOrder } from "@/utils/running-order.fixture.ts";
+import { alexAsHook, costumeFieldsOf, costumeFormField } from "@/utils/costumes.fixture.ts";
 
 // Every file department's page is the same component: SceneryItemPage.test.ts covers how it
-// behaves, and this file how an item's images show beside its other files, that each
-// department is wired to its own files, notes and permissions, and what's different about SFX
-// and Wardrobe.
+// behaves, FileDepartmentImages.test.ts how an item's images show, open and go, and this file
+// that each department is wired to its own files, notes and permissions, and what's different
+// about SFX and Wardrobe.
 
 // The browser's own new tabs and downloads, which happy-dom can't follow.
 vi.mock("@/services/file-link.ts", () => ({ openFileTab: vi.fn(), downloadFrom: vi.fn() }));
@@ -59,106 +42,6 @@ afterEach(() => {
 });
 
 // Made-up items, in show order: Opening Number, Campfire Song | Finale.
-const show = aRunningOrder([anItem("Opening Number"), anItem("Campfire Song")], [anItem("Finale")]);
-
-const linkTo = (name: string) => `https://files.example/${encodeURIComponent(name)}?signed`;
-/** Where the stand-in file storage takes uploads, apart from the API, as the bucket is. */
-const STORAGE = "https://files.example/";
-
-/** Each department's files, by item id, as file storage holds them now. */
-type Held = Partial<Record<FileDepartment, Record<string, ItemFile[]>>>;
-
-/** The casting the Wardrobe page reads its costume rows from: every role, and the cast list. */
-interface Casting {
-  roles: Role[];
-  cast: CastMember[];
-}
-
-const NOBODY_CAST: Casting = { roles: [], cast: [] };
-
-/** A stand-in API holding the running order, each department's files, changed by uploads
- *  and deletes, any notes, the casting, and the costumes, changed by saves. */
-function apiHolds(
-  held: Held = {},
-  notes: ItemNote[] = [],
-  casting = NOBODY_CAST,
-  costumes: Costume[] = [],
-) {
-  const filesOf = (department: FileDepartment, itemId: string) => {
-    const byItem = held[department] ?? {};
-    held[department] = byItem;
-    const files = byItem[itemId] ?? [];
-    byItem[itemId] = files;
-    return files;
-  };
-  vi.stubGlobal("XMLHttpRequest", StandInXhr);
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(async (url: string, init?: RequestInit) => {
-      if (url === runningOrderPath()) return json(show);
-      if (url === rolesPath()) return json({ productionId: "2027", roles: casting.roles });
-      if (url === castPath()) return json({ productionId: "2027", members: casting.cast });
-      if (url === costumesPath()) return json({ productionId: "2027", costumes });
-      if (url === saveCostumePath("opening-number") && init?.method === "PUT") {
-        const saved = costumeSavedFrom("opening-number", init.body);
-        const others = costumes.filter(
-          (c) => c.roleId !== saved.roleId || c.castMemberId !== saved.castMemberId,
-        );
-        costumes.splice(0, costumes.length, ...others, saved);
-        return json(saved);
-      }
-      if (/^\/api\/productions\/2027\/(scenery|sfx|wardrobe)-notes$/.test(url)) {
-        return json({ productionId: "2027", notes });
-      }
-      if (url === "/api/usage") return new Response(null, { status: 204 });
-      if (url === STORAGE && init?.body instanceof FormData) {
-        const { department, itemId, name, size } = JSON.parse(String(init.body.get("key")));
-        const files = filesOf(department, itemId);
-        files.splice(0, files.length, ...files.filter((f) => f.name !== name), { name, size });
-        return new Response(null, { status: 204 });
-      }
-      const [, itemId = "", department, what, query = ""] =
-        /^\/api\/productions\/2027\/items\/([^/]+)\/(scenery|sfx|wardrobe)-([a-z-]+)\??(.*)$/.exec(
-          url,
-        ) ?? [];
-      if (department !== "scenery" && department !== "sfx" && department !== "wardrobe") {
-        return json({ status: "ok", version: "dev" });
-      }
-      const files = filesOf(department, itemId);
-      const name = new URLSearchParams(query).get("name");
-      if (what === "notes" && init?.method === "PUT") {
-        const { text, revision } = SaveItemNoteRequest.parse(JSON.parse(String(init.body)));
-        const saved = { itemId, text, revision: revision + 1 };
-        notes.splice(0, notes.length, ...notes.filter((n) => n.itemId !== itemId), saved);
-        return json(saved);
-      }
-      if (what === "uploads") {
-        const request = ItemFileUploadRequest.parse(JSON.parse(String(init?.body)));
-        const key = { department, itemId, name: request.name, size: request.size };
-        return json({ url: STORAGE, fields: { key: JSON.stringify(key) } });
-      }
-      const at = files.findIndex((file) => file.name === name);
-      if (what === "files" && init?.method === "DELETE") {
-        if (at < 0) return new Response(null, { status: 404 });
-        files.splice(at, 1);
-        return new Response(null, { status: 204 });
-      }
-      if (what === "files") return json({ files });
-      if (what === "file-link" && name !== null && at >= 0) return json({ url: linkTo(name) });
-      if (what === "image-links") {
-        const images = files.filter((each) => isGalleryImage(each.name));
-        return json({ links: images.map((each) => ({ name: each.name, url: linkTo(each.name) })) });
-      }
-      return new Response(null, { status: 404 });
-    }),
-  );
-}
-
-const pageOf = (department: FileDepartment, item = "opening-number") =>
-  `/production/items/${item}/${department}`;
-
-const names = (wrapper: VueWrapper) =>
-  wrapper.findAll("main [data-test=file]").map((row) => row.get("[data-test=name]").text());
 
 const rowFor = (wrapper: VueWrapper, name: string) => {
   const row = wrapper
@@ -177,12 +60,6 @@ async function chooseToUpload(wrapper: VueWrapper, name: string) {
   await input.trigger("change");
   await flushPromises();
 }
-
-const requests = (match: (url: string, init?: RequestInit) => boolean) =>
-  vi
-    .mocked(fetch)
-    .mock.calls.filter(([url, init]) => match(String(url), init))
-    .map(([url]) => String(url));
 
 describe.each([
   {
@@ -347,235 +224,6 @@ describe.each([
     );
   },
 );
-
-describe("An item's images, on any file page", () => {
-  // As the story has it: two images and a PDF.
-  const openingNumberMix = () => ({
-    "opening-number": [
-      { name: "set-plan.jpg", size: 10 },
-      { name: "build-list.pdf", size: 10 },
-      { name: "backdrop.png", size: 10 },
-    ],
-  });
-
-  const headings = (wrapper: VueWrapper) =>
-    wrapper.findAll("main [aria-labelledby=files-heading] h3").map((h) => h.text());
-  const thumbnails = (wrapper: VueWrapper) =>
-    wrapper.findAll("main [data-test=image] [data-test=name]").map((name) => name.text());
-
-  it("shows the item's images as thumbnails under Images, sorted by name, then its other files' rows under Other Files", async () => {
-    apiHolds({ scenery: openingNumberMix() });
-    const { wrapper } = await openAppAt(pageOf("scenery"));
-
-    expect(headings(wrapper)).toEqual(["Images", "Other Files"]);
-    expect(thumbnails(wrapper)).toEqual(["backdrop.png", "set-plan.jpg"]);
-    expect(names(wrapper)).toEqual(["build-list.pdf"]);
-    const section = wrapper.get("main [aria-labelledby=files-heading]").html();
-    expect(section.indexOf("Images")).toBeLessThan(section.indexOf("set-plan.jpg"));
-    expect(section.indexOf("set-plan.jpg")).toBeLessThan(section.indexOf("Other Files"));
-    expect(section.indexOf("Other Files")).toBeLessThan(section.indexOf("build-list.pdf"));
-  });
-
-  it("shows only images the browser can show as thumbnails, leaving SVG and HEIC as rows with the image icon", async () => {
-    apiHolds({
-      scenery: {
-        "opening-number": [
-          ...openingNumberMix()["opening-number"],
-          { name: "logo.svg", size: 10 },
-          { name: "fitting.heic", size: 10 },
-          { name: "poster.webp", size: 10 },
-        ],
-      },
-    });
-    const { wrapper } = await openAppAt(pageOf("scenery"));
-
-    expect(thumbnails(wrapper)).toEqual(["backdrop.png", "poster.webp", "set-plan.jpg"]);
-    expect(names(wrapper)).toEqual(["build-list.pdf", "fitting.heic", "logo.svg"]);
-    const iconOf = (name: string) =>
-      wrapper
-        .findAll("main [data-test=file]")
-        .find((row) => row.get("[data-test=name]").text() === name)
-        ?.get(".file-icon")
-        .classes();
-    expect(iconOf("logo.svg")).toContain("fa-file-image");
-    expect(iconOf("fitting.heic")).toContain("fa-file-image");
-  });
-
-  it("lists an item with no images as rows, with no Images or Other Files heading", async () => {
-    apiHolds({
-      scenery: {
-        finale: [
-          { name: "cue-sheet.pdf", size: 10 },
-          { name: "notes.txt", size: 10 },
-        ],
-      },
-    });
-    const { wrapper } = await openAppAt(pageOf("scenery", "finale"));
-
-    expect(headings(wrapper)).toEqual([]);
-    expect(names(wrapper)).toEqual(["cue-sheet.pdf", "notes.txt"]);
-    expect(wrapper.find("main [data-test=image]").exists()).toBe(false);
-  });
-
-  it("shows an item with only images under Images, with no Other Files heading and no empty message", async () => {
-    apiHolds({ scenery: { "campfire-song": [{ name: "backdrop.png", size: 10 }] } });
-    const { wrapper } = await openAppAt(pageOf("scenery", "campfire-song"));
-
-    expect(headings(wrapper)).toEqual(["Images"]);
-    expect(thumbnails(wrapper)).toEqual(["backdrop.png"]);
-    expect(wrapper.find("main [data-test=file]").exists()).toBe(false);
-    expect(wrapper.find("[data-test=no-files]").exists()).toBe(false);
-  });
-
-  it("asks once for the item's image links, not once per image", async () => {
-    const twelve = Array.from({ length: 12 }, (_, at) => ({
-      name: `sketch-${at + 1}.png`,
-      size: 10,
-    }));
-    apiHolds({ scenery: { "opening-number": twelve } });
-    const { wrapper } = await openAppAt(pageOf("scenery"));
-
-    expect(wrapper.findAll("main [data-test=image] img")).toHaveLength(12);
-    const asked = vi.mocked(fetch).mock.calls.map(([url]) => String(url));
-    expect(
-      asked.filter((url) => url === itemImageLinksPath("scenery", "opening-number")),
-    ).toHaveLength(1);
-    expect(asked.filter((url) => url.includes("/scenery-file-link?"))).toEqual([]);
-  });
-
-  it("opens a chosen thumbnail in the viewer, which moves through the item's images and nothing else", async () => {
-    vi.mocked(openFileTab).mockReset();
-    apiHolds({ scenery: openingNumberMix() });
-    const { wrapper } = await openAppAt(pageOf("scenery"));
-
-    const setPlan = wrapper
-      .findAll("main [data-test=image]")
-      .find((thumbnail) => thumbnail.text() === "set-plan.jpg");
-    await setPlan?.get(".thumb-open").trigger("click");
-    await flushPromises();
-
-    const shownName = () => document.querySelector(".pswp__name")?.textContent;
-    // Its code arrives on the first open.
-    await vi.waitFor(() => expect(shownName()).toBe("set-plan.jpg"));
-    expect(document.querySelector(".pswp__counter")?.textContent).toBe("2 / 2");
-    document.querySelector<HTMLButtonElement>(".pswp__button[aria-label=Previous]")?.click();
-    expect(shownName()).toBe("backdrop.png");
-    expect(openFileTab).not.toHaveBeenCalled();
-  });
-});
-
-describe("Removing an image, on any file page", () => {
-  // As the story has it: two images and a PDF.
-  const openingNumberMix = () => ({
-    "opening-number": [
-      { name: "backdrop.png", size: 10 },
-      { name: "build-list.pdf", size: 10 },
-      { name: "set-plan.jpg", size: 10 },
-    ],
-  });
-
-  const thumbnails = (wrapper: VueWrapper) =>
-    wrapper.findAll("main [data-test=image] [data-test=name]").map((name) => name.text());
-  const trashFor = (wrapper: VueWrapper, name: string) => {
-    const found = wrapper.findAll("main [data-test=image]").find((each) => each.text() === name);
-    if (!found) throw new Error(`No thumbnail for ${name}`);
-    return found.get("[data-test=delete]");
-  };
-  const deletes = () => requests((_, init) => init?.method === "DELETE");
-
-  it("gives someone with Stage a trash icon on each thumbnail", async () => {
-    await signInAs(["stage"], "pat");
-    apiHolds({ scenery: openingNumberMix() });
-    const { wrapper } = await openAppAt(pageOf("scenery"));
-
-    expect(wrapper.findAll("main [data-test=image] [data-test=delete]")).toHaveLength(2);
-    expect(trashFor(wrapper, "set-plan.jpg").attributes("aria-label")).toBe("Remove set-plan.jpg");
-  });
-
-  it("gives someone with only Casting no trash icon on any thumbnail", async () => {
-    await signInAs(["casting"], "jo");
-    apiHolds({ scenery: openingNumberMix() });
-    const { wrapper } = await openAppAt(pageOf("scenery"));
-
-    expect(thumbnails(wrapper)).toEqual(["backdrop.png", "set-plan.jpg"]);
-    expect(wrapper.find("main [data-test=image] [data-test=delete]").exists()).toBe(false);
-  });
-
-  it("asks first, as a file's row does, and keeps the image when cancelled", async () => {
-    await signInAs(["stage"], "pat");
-    apiHolds({ scenery: openingNumberMix() });
-    const { wrapper } = await openAppAt(pageOf("scenery"));
-
-    await trashFor(wrapper, "set-plan.jpg").trigger("click");
-    await flushPromises();
-    expect(confirmDialog.confirmation()).toEqual({
-      question: "Remove set-plan.jpg? This can't be undone.",
-      buttons: ["Remove file", "Cancel"],
-    });
-    await confirmDialog.cancelConfirmation();
-
-    expect(thumbnails(wrapper)).toEqual(["backdrop.png", "set-plan.jpg"]);
-    expect(deletes()).toEqual([]);
-  });
-
-  it("deletes the image once confirmed, keeping the others", async () => {
-    await signInAs(["stage"], "pat");
-    const held: Held = { scenery: openingNumberMix() };
-    apiHolds(held);
-    const { wrapper } = await openAppAt(pageOf("scenery"));
-
-    await trashFor(wrapper, "set-plan.jpg").trigger("click");
-    await flushPromises();
-    await confirmDialog.goAhead();
-
-    expect(deletes()).toEqual([
-      `/api/productions/2027/items/opening-number/scenery-files?${new URLSearchParams({ name: "set-plan.jpg" })}`,
-    ]);
-    expect(held.scenery?.["opening-number"]?.map((file) => file.name)).toEqual([
-      "backdrop.png",
-      "build-list.pdf",
-    ]);
-    expect(thumbnails(wrapper)).toEqual(["backdrop.png"]);
-  });
-
-  it("returns the page to one list of rows once its last image goes", async () => {
-    await signInAs(["stage"], "pat");
-    apiHolds({
-      scenery: {
-        "campfire-song": [
-          { name: "backdrop.png", size: 10 },
-          { name: "cue-sheet.pdf", size: 10 },
-        ],
-      },
-    });
-    const { wrapper } = await openAppAt(pageOf("scenery", "campfire-song"));
-
-    await trashFor(wrapper, "backdrop.png").trigger("click");
-    await flushPromises();
-    await confirmDialog.goAhead();
-
-    expect(wrapper.findAll("main [aria-labelledby=files-heading] h3")).toEqual([]);
-    expect(names(wrapper)).toEqual(["cue-sheet.pdf"]);
-  });
-
-  it("says an image removed elsewhere since the page loaded isn't there any more, and catches up", async () => {
-    await signInAs(["stage"], "pat");
-    const held: Held = { scenery: openingNumberMix() };
-    apiHolds(held);
-    const { wrapper } = await openAppAt(pageOf("scenery"));
-    // Removed in another browser.
-    held.scenery?.["opening-number"]?.splice(2, 1);
-
-    await trashFor(wrapper, "set-plan.jpg").trigger("click");
-    await flushPromises();
-    await confirmDialog.goAhead();
-
-    expect(wrapper.get("main [data-test=file-problem]").text()).toBe(
-      "set-plan.jpg isn't there any more.",
-    );
-    expect(thumbnails(wrapper)).toEqual(["backdrop.png"]);
-  });
-});
 
 // Each file page's sections, in order: only Wardrobe has Costumes between its files and notes.
 describe.each([

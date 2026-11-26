@@ -1700,6 +1700,27 @@ main a {
   white-space: nowrap;
 }
 
+/* The viewer's Open and Download, Font Awesome icons sized and coloured as PhotoSwipe's own. */
+.pswp__button--open svg,
+.pswp__button--download svg {
+  width: 20px;
+  height: 20px;
+  color: var(--pswp-icon-color);
+}
+
+/* A problem the page has, such as a download that failed, over the foot of the image. */
+.pswp__problem:not(:empty) {
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  left: 1rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--white);
+  color: var(--text);
+  text-align: center;
+}
+
 /* An item's 24 mics, one card per channel: one column on a phone, more as the page widens,
    so all 24 fit without scrolling sideways (production-mics PRD accessibility). */
 .mic-channels {

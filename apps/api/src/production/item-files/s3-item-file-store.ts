@@ -60,11 +60,11 @@ export function s3ItemFileStore(
     async countByItem(productionId) {
       return countsByItem(await keysIn(productionId), department);
     },
-    async linkTo(productionId, itemId, name) {
+    async linkTo(productionId, itemId, name, options) {
       const Key = `${folderOf(productionId, itemId)}${name}`;
       if (!(await exists(Key))) return undefined;
       // The link names its type and name itself, so what storage holds can't make it open.
-      const { contentType, contentDisposition } = fileHeadersOf(name, department);
+      const { contentType, contentDisposition } = fileHeadersOf(name, department, options);
       const get = new GetObjectCommand({
         Bucket: bucket,
         Key,

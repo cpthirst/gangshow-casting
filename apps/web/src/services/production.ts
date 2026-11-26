@@ -142,9 +142,14 @@ export const itemFilePath = (department: FileDepartment, itemId: string, name: s
 export const itemUploadsPath = (department: FileDepartment, itemId: string) =>
   `${itemPath(itemId)}/${department}-uploads`;
 
-/** A short-lived link that opens or downloads one of the item's files. */
-export const itemFileLinkPath = (department: FileDepartment, itemId: string, name: string) =>
-  `${itemPath(itemId)}/${department}-file-link?${new URLSearchParams({ name })}`;
+/** A short-lived link that opens or downloads one of the item's files, or always downloads it. */
+export const itemFileLinkPath = (
+  department: FileDepartment,
+  itemId: string,
+  name: string,
+  { download = false } = {},
+) =>
+  `${itemPath(itemId)}/${department}-file-link?${new URLSearchParams({ name, ...(download ? { download: "true" } : {}) })}`;
 
 /** A short-lived link to each of the item's images, from one request. */
 export const itemImageLinksPath = (department: FileDepartment, itemId: string) =>

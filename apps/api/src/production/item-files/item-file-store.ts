@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { type FileDepartment, type ItemFile, ItemFileName, type ItemFileUpload } from "@app/shared";
 import { folderIdOf } from "#/http/params.ts";
 import { ifExists } from "#/storage/files.ts";
+import type { LinkOptions } from "./file-headers.ts";
 import { localFileLink } from "./local-files.ts";
 
 /**
@@ -18,7 +19,12 @@ export interface ItemFileStore {
   countByItem(productionId: string): Promise<Record<string, number>>;
   /** A short-lived link that opens or downloads one of the item's files (FR10); undefined if
    *  it isn't there. The name is a valid ItemFileName. */
-  linkTo(productionId: string, itemId: string, name: string): Promise<string | undefined>;
+  linkTo(
+    productionId: string,
+    itemId: string,
+    name: string,
+    options?: LinkOptions,
+  ): Promise<string | undefined>;
   /** Deletes one of the item's files for good (FR11), or says it was already gone. The name is
    *  a valid ItemFileName. */
   remove(productionId: string, itemId: string, name: string): Promise<"removed" | "gone">;
@@ -110,10 +116,10 @@ export function folderItemFileStore(folder: string, department: FileDepartment):
       );
       return countsByItem(listed.flat(), department);
     },
-    async linkTo(productionId, itemId, name) {
+    async linkTo(productionId, itemId, name, options) {
       const folderOfItem = folderOf(productionId, itemId);
       const found = await ifExists(() => stat(join(folder, folderOfItem, name)));
-      return found?.isFile() ? localFileLink(folderOfItem, name) : undefined;
+      return found?.isFile() ? localFileLink(folderOfItem, name, options) : undefined;
     },
     async remove(productionId, itemId, name) {
       const file = join(folder, folderOf(productionId, itemId), name);

@@ -74,13 +74,14 @@ async function loadFiles(id: string) {
 // purpose: it's as likely to have moved on meanwhile.
 const reload = async () => frame.value?.reload();
 
-// A file opens in a new tab or downloads through a short-lived link (FR10). A file deleted
-// since the page loaded says so, and the grid catches up with storage.
-async function choose({ name }: ItemFile, id: string) {
+// A file opens in a new tab or downloads through a short-lived link (FR10), or downloads
+// whatever it is from the image viewer (production-image-gallery FR10). A file deleted since
+// the page loaded says so, and the grid catches up with storage.
+async function choose({ name }: ItemFile, id: string, download = false) {
   fileProblem.value = undefined;
-  const tab = opensInBrowser(name, key.value) ? openFileTab() : undefined;
+  const tab = !download && opensInBrowser(name, key.value) ? openFileTab() : undefined;
   try {
-    const link = await loadData(itemFileLinkPath(key.value, id, name), ItemFileLink);
+    const link = await loadData(itemFileLinkPath(key.value, id, name, { download }), ItemFileLink);
     if (!link) {
       tab?.close();
       fileProblem.value = `${name} isn't there any more.`;
@@ -159,7 +160,9 @@ watch(
           :images="images"
           :may-remove="mayChange"
           :deleting="deleting"
+          :problem="fileProblem"
           @choose="choose($event, item.id)"
+          @download="choose($event, item.id, true)"
           @remove="(image, event) => remove(image, item.id, event)"
         />
         <h3 v-if="otherFiles.length > 0">Other Files</h3>

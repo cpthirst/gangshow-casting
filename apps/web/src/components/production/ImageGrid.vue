@@ -18,8 +18,8 @@ import RemoveFileButton from "./RemoveFileButton.vue";
 // One item's images as square thumbnails, named beneath, each loading only as it nears the
 // screen (production-image-gallery FR4, FR6). Every image's link comes from one request, asked
 // again once they've lapsed. Choosing one opens the viewer, to swipe through the rest (FR8,
-// FR9); one with no link to show it by is the page's to open, as a row is. Removing one is the
-// page's to handle too (FR7).
+// FR9); one with no link to show it by is the page's to open, as a row is. Opening or
+// downloading from the viewer (FR10), and removing one (FR7), are the page's to handle too.
 
 const props = defineProps<{
   department: FileDepartment;
@@ -29,9 +29,12 @@ const props = defineProps<{
   mayRemove: boolean;
   /** A delete is on its way, so the trash icons wait for it. */
   deleting: boolean;
+  /** Why the last file chosen didn't open or download, which the viewer says while it's open. */
+  problem: string | undefined;
 }>();
 const emit = defineEmits<{
   choose: [image: ItemFile];
+  download: [image: ItemFile];
   remove: [image: ItemFile, event: MouseEvent];
 }>();
 
@@ -40,7 +43,22 @@ const LAPSED_MS = (FILE_LINK_SECONDS - 60) * 1000;
 
 const named = computed(() => departments[props.department]);
 const grid = useTemplateRef("grid");
-const viewer = useImageViewer(() => `${named.value.name} images`);
+const imageNamed = (name: string) => props.images.find((image) => image.name === name);
+// The viewer's Open and Download are a row's, for the image shown.
+const viewer = useImageViewer(() => `${named.value.name} images`, {
+  open(name) {
+    const image = imageNamed(name);
+    if (image) emit("choose", image);
+  },
+  download(name) {
+    const image = imageNamed(name);
+    if (image) emit("download", image);
+  },
+});
+watch(
+  () => props.problem,
+  (problem) => viewer.say(problem),
+);
 const links = ref(new Map<string, string>());
 // Whether the links have been answered, so a square with none shows the icon, not a gap.
 const answered = ref(false);
@@ -106,8 +124,16 @@ async function view(image: ItemFile) {
   if (urlOf(image.name)) await freshLinks();
   const shown = viewable();
   const index = shown.findIndex(({ name }) => name === image.name);
-  if (index < 0) emit("choose", image);
-  else await viewer.open(shown, index);
+  if (index < 0) {
+    emit("choose", image);
+    return;
+  }
+  try {
+    await viewer.open(shown, index);
+  } catch {
+    // Its code wouldn't load, as when a release replaces it while the page is open.
+    emit("choose", image);
+  }
 }
 
 // The images with a link to show them by, each sized from its thumbnail if that has loaded.
@@ -125,10 +151,11 @@ function viewable(): ViewerImage[] {
 }
 
 // A new image, after an upload, needs a link of its own, which a request already on its way
-// for a lapse won't have.
+// for a lapse won't have. The viewer closes, as what it shows may have gone.
 watch(
   () => props.images.map((image) => image.name).join("/"),
   () => {
+    viewer.close();
     broken.value.clear();
     askAfresh();
   },

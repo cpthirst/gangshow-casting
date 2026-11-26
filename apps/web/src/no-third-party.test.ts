@@ -2,10 +2,11 @@ import { describe, expect, it } from "vitest";
 import indexHtml from "../index.html?raw";
 
 // Most of the cast are under 18: the app must not send visitors' IP addresses
-// to outside providers (fonts, CDNs), so everything is served from our origin.
+// to outside providers (fonts, CDNs), so everything is served from our origin. Tests and their
+// fixtures never reach a visitor, and stand in for outside addresses such as file storage's.
 const sources: Record<string, string> = {
   "index.html": indexHtml,
-  ...import.meta.glob<string>(["./**/*.{vue,css,ts}", "!./**/*.test.ts"], {
+  ...import.meta.glob<string>(["./**/*.{vue,css,ts}", "!./**/*.test.ts", "!./**/*.fixture.ts"], {
     query: "?raw",
     import: "default",
     eager: true,

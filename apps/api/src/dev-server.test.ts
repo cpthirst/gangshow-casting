@@ -306,6 +306,21 @@ describe("dev server local scenery files (production-scenery FR10)", () => {
     );
   });
 
+  it("serves a PDF asked for as a download as one, under its name, that can't run anything", async () => {
+    const res = await get(
+      "/api/local-files/2027/opening-number/scenery/set-plan.pdf?download=true",
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.headers).toEqual(
+      expect.objectContaining({
+        "content-type": "application/pdf",
+        "content-disposition": expect.stringMatching(/^attachment; filename="set-plan.pdf"/),
+        "content-security-policy": "sandbox",
+      }),
+    );
+  });
+
   it("serves an HTML file only as a download that can't run anything", async () => {
     const res = await get("/api/local-files/2027/opening-number/scenery/notes.html");
 

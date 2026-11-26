@@ -2,19 +2,23 @@ import { FILE_LINK_SECONDS, type ItemFile } from "@app/shared";
 import { enableAutoUnmount, flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { json } from "@/app.fixture.ts";
-import type { ViewerImage } from "@/composables/useImageViewer.ts";
+import type { ViewerActions, ViewerImage } from "@/composables/useImageViewer.ts";
 import { itemImageLinksPath } from "@/services/production.ts";
 import ImageGrid from "./ImageGrid.vue";
 
 // The viewer is tested on its own: these check what the grid hands it.
 const viewer = vi.hoisted(() => ({
   label: "",
+  actions: { open: (_name: string) => {}, download: (_name: string) => {} },
   open: vi.fn<(images: ViewerImage[], index: number) => Promise<void>>(),
+  close: vi.fn(),
+  say: vi.fn(),
 }));
 vi.mock("@/composables/useImageViewer.ts", () => ({
-  useImageViewer: (label: () => string) => {
+  useImageViewer: (label: () => string, actions: ViewerActions) => {
     viewer.label = label();
-    return { open: viewer.open };
+    viewer.actions = actions;
+    return { open: viewer.open, close: viewer.close, say: viewer.say };
   },
 }));
 
@@ -26,6 +30,8 @@ afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
   viewer.open.mockReset();
+  viewer.close.mockReset();
+  viewer.say.mockReset();
 });
 
 const LINKS = itemImageLinksPath("scenery", "opening-number");
@@ -52,7 +58,14 @@ const filesNamed = (...names: string[]): ItemFile[] => names.map((name) => ({ na
 
 async function openGrid(images: ItemFile[], { mayRemove = false, deleting = false } = {}) {
   const wrapper = mount(ImageGrid, {
-    props: { department: "scenery", itemId: "opening-number", images, mayRemove, deleting },
+    props: {
+      department: "scenery",
+      itemId: "opening-number",
+      images,
+      mayRemove,
+      deleting,
+      problem: undefined,
+    },
   });
   await flushPromises();
   return wrapper;
@@ -109,6 +122,47 @@ describe("The image grid", () => {
     ]);
     expect(images?.[1]?.thumbnail).toBe(thumbnail(wrapper, "set-plan.jpg").get("button").element);
     expect(wrapper.emitted("choose")).toBeUndefined();
+  });
+
+  it("opens the image as its row would when the viewer's code won't load, as after a release", async () => {
+    apiLinks(["set-plan.jpg"]);
+    viewer.open.mockRejectedValue(new TypeError("Failed to fetch dynamically imported module"));
+    const wrapper = await openGrid(filesNamed("set-plan.jpg"));
+
+    await thumbnail(wrapper, "set-plan.jpg").get("button").trigger("click");
+    await flushPromises();
+
+    expect(wrapper.emitted("choose")).toEqual([[{ name: "set-plan.jpg", size: 10 }]]);
+  });
+
+  it("hands the viewer's Open and Download to the page, as a row's open and download", async () => {
+    apiLinks(["set-plan.jpg"]);
+    const wrapper = await openGrid(filesNamed("set-plan.jpg"));
+
+    viewer.actions.open("set-plan.jpg");
+    viewer.actions.download("set-plan.jpg");
+
+    expect(wrapper.emitted("choose")).toEqual([[{ name: "set-plan.jpg", size: 10 }]]);
+    expect(wrapper.emitted("download")).toEqual([[{ name: "set-plan.jpg", size: 10 }]]);
+  });
+
+  it("has the viewer say the page's problem while it's open", async () => {
+    apiLinks(["set-plan.jpg"]);
+    const wrapper = await openGrid(filesNamed("set-plan.jpg"));
+
+    await wrapper.setProps({ problem: "Couldn't download set-plan.jpg. Try again." });
+
+    expect(viewer.say).toHaveBeenLastCalledWith("Couldn't download set-plan.jpg. Try again.");
+  });
+
+  it("closes the viewer when the images change, as when the page catches up with storage", async () => {
+    apiLinks(["backdrop.png", "set-plan.jpg"]);
+    const wrapper = await openGrid(filesNamed("backdrop.png", "set-plan.jpg"));
+    viewer.close.mockClear();
+
+    await wrapper.setProps({ images: filesNamed("backdrop.png") });
+
+    expect(viewer.close).toHaveBeenCalledOnce();
   });
 
   it("asks for fresh links before opening the viewer once they've lapsed, keeping those of images shown", async () => {

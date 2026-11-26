@@ -2,7 +2,7 @@
 id: production-image-gallery.E2.S2
 title: Open or download an image from the viewer
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story

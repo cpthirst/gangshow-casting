@@ -3,14 +3,15 @@ import { join } from "node:path";
 import { fileDepartments, ItemFileName, ProductionId } from "@app/shared";
 import { folderIdOf } from "#/http/params.ts";
 import { ifExists } from "#/storage/files.ts";
-import { fileHeadersOf } from "./file-headers.ts";
+import { fileHeadersOf, type LinkOptions } from "./file-headers.ts";
 
 /** Where the dev server serves the local item files, standing in for the bucket's links. */
 export const LOCAL_FILES_PATH = "/api/local-files/";
 
-/** The dev server's link to a local item file: its key, under LOCAL_FILES_PATH. */
-export const localFileLink = (folder: string, name: string) =>
-  `${LOCAL_FILES_PATH}${folder}${encodeURIComponent(name)}`;
+/** The dev server's link to a local item file: its key, under LOCAL_FILES_PATH, asking for a
+ *  download as the bucket's link would. */
+export const localFileLink = (folder: string, name: string, { download }: LinkOptions = {}) =>
+  `${LOCAL_FILES_PATH}${folder}${encodeURIComponent(name)}${download ? "?download=true" : ""}`;
 
 const decoded = (part: string) => {
   try {
@@ -53,13 +54,13 @@ export function localFilePlace(folder: string, path: string) {
 
 /** The local item file a LOCAL_FILES_PATH path names, with the headers to send it with;
  *  undefined unless it names one that's there. */
-export async function localFileAt(folder: string, path: string) {
+export async function localFileAt(folder: string, path: string, options?: LinkOptions) {
   const place = localFilePlace(folder, path);
   if (!place) return undefined;
   const { file, name, department } = place;
   const found = await ifExists(() => stat(file));
   if (!found?.isFile()) return undefined;
-  const { contentType, contentDisposition } = fileHeadersOf(name, department);
+  const { contentType, contentDisposition } = fileHeadersOf(name, department, options);
   return {
     file,
     headers: {

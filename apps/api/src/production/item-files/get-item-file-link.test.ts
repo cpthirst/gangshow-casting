@@ -33,6 +33,11 @@ describe("scenery file link handler", () => {
     ...(name === undefined ? {} : { queryStringParameters: { name } }),
   });
 
+  const downloadRequest = (name: string) => ({
+    pathParameters: { productionId: "2027", itemId: openingNumber },
+    queryStringParameters: { name, download: "true" },
+  });
+
   it("answers with a link to the item's file", async () => {
     await putFile(openingNumber, "set-plan.pdf");
 
@@ -44,6 +49,23 @@ describe("scenery file link handler", () => {
     });
     // Anyone holding the link can use it for a while, so nothing on the way may keep it.
     expect(res.headers?.["cache-control"]).toBe("no-store");
+  });
+
+  it("answers with a link that downloads the item's file, when asked for one", async () => {
+    await putFile(openingNumber, "set-plan.jpg");
+
+    const res = await getLink(downloadRequest("set-plan.jpg"));
+
+    expect(res.statusCode).toBe(200);
+    expect(ItemFileLink.parse(JSON.parse(res.body ?? ""))).toEqual({
+      url: `/api/local-files/2027/${openingNumber}/scenery/set-plan.jpg?download=true`,
+    });
+  });
+
+  it("answers 404 for a download of a name not on the item", async () => {
+    await putFile(openingNumber, "set-plan.jpg");
+
+    expect((await getLink(downloadRequest("wings.webp"))).statusCode).toBe(404);
   });
 
   it("links a file renamed in storage by its new name, and the old name to nothing", async () => {

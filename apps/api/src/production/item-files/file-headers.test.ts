@@ -16,6 +16,13 @@ describe("the headers an item file is sent with", () => {
     });
   });
 
+  it("downloads an image asked for as a download, as its own type, under its stored name", () => {
+    expect(fileHeadersOf("set-plan.jpg", "scenery", { download: true })).toEqual({
+      contentType: "image/jpeg",
+      contentDisposition: `attachment; filename="set-plan.jpg"; filename*=UTF-8''set-plan.jpg`,
+    });
+  });
+
   it.each(["notes.html", "plan.svg"])("downloads %s, which could run script", (name) => {
     expect(fileHeadersOf(name, "scenery")).toEqual(
       expect.objectContaining({

@@ -1,7 +1,7 @@
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { defineComponent, h } from "vue";
-import { useImageViewer, type ViewerImage } from "./useImageViewer.ts";
+import { useImageViewer } from "./useImageViewer.ts";
 
 // The viewer is PhotoSwipe's own, run as it is: these check what iCUE hands it and asks of it.
 // happy-dom can't swipe, pinch or animate, so those are checked by hand on a phone.
@@ -39,11 +39,12 @@ function reduceMotion(reduce: boolean) {
 
 /** A page of thumbnails, one per name, that opens the viewer on the one chosen. */
 function mountThumbnails(names: string[], sizes: Partial<Record<string, [number, number]>> = {}) {
-  let open: (images: ViewerImage[], index: number) => Promise<void> = async () => {};
+  const actions = { open: vi.fn(), download: vi.fn() };
+  let viewer: ReturnType<typeof useImageViewer> | undefined;
   const wrapper = mount(
     defineComponent({
       setup() {
-        ({ open } = useImageViewer(() => "Scenery images"));
+        viewer = useImageViewer(() => "Scenery images", actions);
         return () =>
           h(
             "ul",
@@ -62,8 +63,11 @@ function mountThumbnails(names: string[], sizes: Partial<Record<string, [number,
   });
   return {
     wrapper,
+    actions,
+    say: (problem: string | undefined) => viewer?.say(problem),
+    close: () => viewer?.close(),
     async view(name: string) {
-      await open(
+      await viewer?.open(
         images,
         images.findIndex((image) => image.name === name),
       );
@@ -201,6 +205,44 @@ describe("The image viewer", () => {
     await mountThumbnails(SCENERY).view("set-plan.jpg");
 
     expect(transitionTime()).not.toBe("0ms");
+  });
+
+  it("has Open and Download buttons named for the image shown, which hand it to the page", async () => {
+    reduceMotion(true);
+    const page = mountThumbnails(SCENERY);
+    await page.view("set-plan.jpg");
+
+    button("Open set-plan.jpg").click();
+    button("Next").click();
+    button("Download wings.webp").click();
+
+    expect(page.actions.open.mock.calls).toEqual([["set-plan.jpg"]]);
+    expect(page.actions.download.mock.calls).toEqual([["wings.webp"]]);
+  });
+
+  it("says a problem the page has, until another image is shown", async () => {
+    reduceMotion(true);
+    const page = mountThumbnails(SCENERY);
+    await page.view("set-plan.jpg");
+
+    page.say("Couldn't download set-plan.jpg. Try again.");
+
+    const problem = document.querySelector(".pswp [role=alert]");
+    expect(problem?.textContent).toBe("Couldn't download set-plan.jpg. Try again.");
+    expect(viewer()).not.toBeNull();
+    button("Next").click();
+    expect(problem?.textContent).toBe("");
+  });
+
+  it("closes when the page asks", async () => {
+    reduceMotion(true);
+    const page = mountThumbnails(SCENERY);
+    await page.view("set-plan.jpg");
+
+    page.close();
+    await settle();
+
+    expect(viewer()).toBeNull();
   });
 
   it("closes when the page that opened it goes", async () => {
