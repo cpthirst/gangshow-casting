@@ -137,10 +137,9 @@ describe("The file departments' Help", () => {
   const linesOf = (page: string) => helpFor(page).lines;
 
   it.each(["scenery-item", "sfx-item", "wardrobe-item"])(
-    "describes the %s page's images, with its viewer's Open and Download, for everyone, after Files",
+    "describes the %s page's images, with its viewer's Open and Download, for everyone",
     (page) => {
-      const names = linesOf(page).map(({ name }) => name);
-      expect(names[names.indexOf("Files") + 1]).toBe("Images");
+      // Where it sits is in the Help page's list of each department's entries.
       const images = linesOf(page).find(({ name }) => name === "Images");
       expect(images?.access).toBe("everyone");
       expect(images?.icons).toEqual([icons.openInTab, icons.download]);

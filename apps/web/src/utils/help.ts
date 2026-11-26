@@ -134,7 +134,7 @@ function fileDepartmentHelp(
       {
         icons: [icons.openInTab, icons.download],
         name: "Images",
-        does: "A JPG, PNG, GIF or WebP shows as a thumbnail under Images, above the other files. Choosing one opens it large, to swipe or step between the item's images and zoom in. From there, Open shows it on its own in a new tab, and Download saves it under its name.",
+        does: "A JPG, PNG, GIF or WebP shows as a thumbnail under Images, above the other files. Choosing one opens it in a larger view, where you can swipe or step between the item's images and zoom in. From there, Open shows it on its own in a new tab, and Download saves it under its name.",
         access: "everyone",
       },
       {
