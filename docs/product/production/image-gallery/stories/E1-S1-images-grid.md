@@ -2,7 +2,7 @@
 id: production-image-gallery.E1.S1
 title: Show an item's images as a thumbnail grid
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story

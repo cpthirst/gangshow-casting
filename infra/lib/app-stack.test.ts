@@ -742,11 +742,11 @@ describe("AppStack", () => {
       }
     });
 
-    it("lets the pages ask the team's login domain for sign-in tokens, and send uploads to the files bucket, and nowhere else", () => {
+    it("lets the pages ask the team's login domain for sign-in tokens, send uploads to the files bucket and show its images, and nowhere else", () => {
       const security = responseHeadersFor(synth().template, undefined).SecurityHeadersConfig;
 
       expect(JSON.stringify(security.ContentSecurityPolicy.ContentSecurityPolicy)).toMatch(
-        /connect-src 'self' https:\/\/",\{"Ref":"UserPoolLoginDomain\w+"\},"\.auth\.eu-west-2\.amazoncognito\.com https:\/\/",\{"Fn::GetAtt":\["FilesBucket\w+","RegionalDomainName"\]\},";/,
+        /img-src 'self' https:\/\/",\{"Fn::GetAtt":\["FilesBucket\w+","RegionalDomainName"\]\},"; font-src 'self'; connect-src 'self' https:\/\/",\{"Ref":"UserPoolLoginDomain\w+"\},"\.auth\.eu-west-2\.amazoncognito\.com https:\/\/",\{"Fn::GetAtt":\["FilesBucket\w+","RegionalDomainName"\]\},";/,
       );
     });
 

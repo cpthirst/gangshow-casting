@@ -143,6 +143,39 @@ test("a department's page for a long-titled item fits the screen", async ({ page
   await expectNoSidewaysScroll(page);
 });
 
+/** How many thumbnails sit in the image grid's first row, once each image has loaded. */
+async function thumbnailsAcross(page: Page) {
+  const thumbnails = page.locator("[data-test=image]");
+  await expect(thumbnails).toHaveCount(6);
+  await expect(thumbnails.locator("img").first()).toHaveJSProperty("complete", true);
+  const tops = await Promise.all(
+    (await thumbnails.all()).map(async (each) => (await each.boundingBox())?.y),
+  );
+  return tops.filter((top) => top === tops[0]).length;
+}
+
+test("an item's image grid fits the screen, at least two square thumbnails across", async ({
+  page,
+}) => {
+  await page.goto("/production/items/itm-2/scenery");
+  await expect(page.getByRole("heading", { name: "Other Files" })).toBeVisible();
+
+  expect(await thumbnailsAcross(page)).toBeGreaterThanOrEqual(2);
+  const square = await page.locator(".thumb-square").first().boundingBox();
+  expect(square?.width).toBeCloseTo(square?.height ?? 0, 0);
+  // The longest name stays on one line, cut short rather than wrapping.
+  const name = page.locator("[data-test=image] [data-test=name]").first();
+  const { scrollWidth, clientWidth, lineHeight, height } = await name.evaluate((el) => ({
+    scrollWidth: el.scrollWidth,
+    clientWidth: el.clientWidth,
+    lineHeight: Number.parseFloat(getComputedStyle(el).lineHeight),
+    height: el.getBoundingClientRect().height,
+  }));
+  expect(scrollWidth, "the name is cut short").toBeGreaterThan(clientWidth);
+  expect(height).toBeLessThanOrEqual(lineHeight + 1);
+  await expectNoSidewaysScroll(page);
+});
+
 /** Each department in an item page's switch: its accessible name and where it sits. */
 async function departmentsOf(page: Page) {
   const entries = page
@@ -177,6 +210,12 @@ test("an item page's department switch fits on one row, as icons named for scree
 
 test.describe("on a wide screen", () => {
   test.use({ viewport: { width: 1024, height: 768 }, isMobile: false });
+
+  test("an item's image grid fits more thumbnails across than a phone", async ({ page }) => {
+    await page.goto("/production/items/itm-2/scenery");
+
+    expect(await thumbnailsAcross(page)).toBeGreaterThan(2);
+  });
 
   test("an item page's department switch shows each department's name", async ({ page }) => {
     await page.goto("/production/items/itm-2/sfx");

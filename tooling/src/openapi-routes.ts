@@ -26,6 +26,7 @@ import {
   ItemFileName,
   ItemFileUpload,
   ItemFileUploadRequest,
+  ItemImageLinks,
   ItemMicPlot,
   ItemNote,
   ItemNoteList,
@@ -141,6 +142,16 @@ const fileLink = (department: DepartmentId): RouteDoc => ({
     "400": plain("The name isn't one a file can have."),
     "404": plain("The file isn't there."),
   },
+});
+
+const imageLinks = (department: DepartmentId): RouteDoc => ({
+  tag: "Item files",
+  summary: `Short-lived links to each of an item's ${nounOf(department)} images`,
+  description:
+    "One link for each JPG, PNG, GIF or WebP file, in no particular order. The links last 5 minutes and need no token, so never share or store them.",
+  itemId: FolderId,
+  success: ok("The links.", ItemImageLinks),
+  refusals: { "404": NOT_IN_ORDER },
 });
 
 const removeFile = (department: DepartmentId): RouteDoc => ({
@@ -431,6 +442,7 @@ export const routeDocs: Record<RouteKey, RouteDoc> = {
   [`PUT ${ITEM}/props-notes`]: saveNotes("props"),
   [`GET ${ITEM}/scenery-files`]: listFiles("scenery"),
   [`GET ${ITEM}/scenery-file-link`]: fileLink("scenery"),
+  [`GET ${ITEM}/scenery-image-links`]: imageLinks("scenery"),
   [`DELETE ${ITEM}/scenery-files`]: removeFile("scenery"),
   [`POST ${ITEM}/scenery-uploads`]: uploadFile("scenery"),
   [`GET ${PRODUCTION}/scenery-file-counts`]: countFiles("scenery"),
@@ -438,6 +450,7 @@ export const routeDocs: Record<RouteKey, RouteDoc> = {
   [`PUT ${ITEM}/scenery-notes`]: saveNotes("scenery"),
   [`GET ${ITEM}/sfx-files`]: listFiles("sfx"),
   [`GET ${ITEM}/sfx-file-link`]: fileLink("sfx"),
+  [`GET ${ITEM}/sfx-image-links`]: imageLinks("sfx"),
   [`DELETE ${ITEM}/sfx-files`]: removeFile("sfx"),
   [`POST ${ITEM}/sfx-uploads`]: uploadFile("sfx"),
   [`GET ${PRODUCTION}/sfx-file-counts`]: countFiles("sfx"),
@@ -445,6 +458,7 @@ export const routeDocs: Record<RouteKey, RouteDoc> = {
   [`PUT ${ITEM}/sfx-notes`]: saveNotes("sfx"),
   [`GET ${ITEM}/wardrobe-files`]: listFiles("wardrobe"),
   [`GET ${ITEM}/wardrobe-file-link`]: fileLink("wardrobe"),
+  [`GET ${ITEM}/wardrobe-image-links`]: imageLinks("wardrobe"),
   [`DELETE ${ITEM}/wardrobe-files`]: removeFile("wardrobe"),
   [`POST ${ITEM}/wardrobe-uploads`]: uploadFile("wardrobe"),
   [`GET ${PRODUCTION}/wardrobe-file-counts`]: countFiles("wardrobe"),

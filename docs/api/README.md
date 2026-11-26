@@ -80,7 +80,7 @@ curl -X PUT "$APP/api/productions/2027/items/itm-01/props-notes" \
 
 ### Upload a file
 
-Files don't pass through the API. `POST …/scenery-uploads` with the file's name and size answers with a `url` and `fields`. Send those, then the file, as `multipart/form-data` to that `url`, within 5 minutes and up to 100 MB. `…/scenery-file-link?name=…` gives a link that opens or downloads a file for 5 minutes. Anyone holding that link can use it, so it's never kept or shared.
+Files don't pass through the API. `POST …/scenery-uploads` with the file's name and size answers with a `url` and `fields`. Send those, then the file, as `multipart/form-data` to that `url`, within 5 minutes and up to 100 MB. `…/scenery-file-link?name=…` gives a link that opens or downloads a file for 5 minutes, and `…/scenery-image-links` gives one for each of the item's JPG, PNG, GIF and WebP files at once, for its thumbnails. Anyone holding those links can use them, so they're never kept or shared.
 
 ## When something is refused
 
