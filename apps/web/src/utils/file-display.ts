@@ -1,5 +1,6 @@
 import {
   browserTypeOf,
+  type DepartmentId,
   type FileDepartment,
   fileTypeOf,
   type ItemFile,
@@ -20,11 +21,11 @@ export function uploadRefusal({ name, size }: { name: string; size: number }) {
 }
 
 /** Whether choosing the department's file opens it in a new tab, rather than downloading it. */
-export const opensInBrowser = (name: string, department: FileDepartment) =>
+export const opensInBrowser = (name: string, department: DepartmentId) =>
   browserTypeOf(name, department) !== undefined;
 
 /** A file's name for screen readers: what choosing it does, and the file's type (FR10). */
-export function fileLabel(name: string, department: FileDepartment) {
+export function fileLabel(name: string, department: DepartmentId) {
   const action = `${opensInBrowser(name, department) ? "Open" : "Download"} ${name}`;
   const type = fileTypeOf(name);
   return type ? `${action}, ${type} file` : action;
@@ -55,7 +56,7 @@ export function fileIconOf(name: string, department: FileDepartment) {
 const byName = new Intl.Collator("en-GB", { sensitivity: "base", numeric: true });
 
 /** The files sorted by name, as people read them: ignoring case, numbers in order (FR7). */
-export const sortFiles = (files: ItemFile[]) =>
+export const sortFiles = <File extends Pick<ItemFile, "name">>(files: readonly File[]) =>
   [...files].sort((a, b) => byName.compare(a.name, b.name));
 
 // Decimal units, as phones and most computers show file sizes.

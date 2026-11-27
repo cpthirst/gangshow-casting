@@ -2,7 +2,6 @@
 import {
   departments,
   type ItemFile,
-  ItemFileLink,
   ItemFileList,
   isGalleryImage,
   type RunningOrder,
@@ -13,9 +12,14 @@ import { computed, ref, useTemplateRef, watch } from "vue";
 import { useRoute } from "vue-router";
 import ItemPageFrame from "@/components/common/ItemPageFrame.vue";
 import { controlOf, useConfirm } from "@/composables/useConfirm.ts";
-import { downloadFrom, openFileTab } from "@/services/file-link.ts";
+import { openOrDownload } from "@/services/file-open.ts";
 import { loadData } from "@/services/load-data.ts";
-import { itemFileLinkPath, itemFilePath, itemFilesPath } from "@/services/production.ts";
+import {
+  itemFileLinkPath,
+  itemFilePath,
+  itemFilesPath,
+  itemImageLinksPath,
+} from "@/services/production.ts";
 import { apiFetch, canChange } from "@/services/sign-in.ts";
 import {
   fileIconOf,
@@ -77,29 +81,18 @@ const reload = async () => frame.value?.reload();
 // A file opens in a new tab or downloads through a short-lived link (FR10), or downloads
 // whatever it is from the image viewer (production-image-gallery FR10). A file deleted since
 // the page loaded says so, and the grid catches up with storage.
-async function choose({ name }: ItemFile, id: string, download = false) {
+async function choose({ name }: Pick<ItemFile, "name">, id: string, download = false) {
   fileProblem.value = undefined;
-  const tab = !download && opensInBrowser(name, key.value) ? openFileTab() : undefined;
-  try {
-    const link = await loadData(itemFileLinkPath(key.value, id, name, { download }), ItemFileLink);
-    if (!link) {
-      tab?.close();
-      fileProblem.value = `${name} isn't there any more.`;
-      await reload();
-      return;
-    }
-    const { url } = link;
-    if (tab) tab.show(url);
-    else downloadFrom(url);
-  } catch {
-    tab?.close();
-    fileProblem.value = `Couldn't ${tab ? "open" : "download"} ${name}. Try again.`;
-  }
+  const opens = !download && opensInBrowser(name, key.value);
+  const path = itemFileLinkPath(key.value, id, name, { download });
+  const { problem, gone } = await openOrDownload(name, path, opens);
+  fileProblem.value = problem;
+  if (gone) await reload();
 }
 
 // For everyone, for good (FR11), from a row or a thumbnail: there's no history to bring it
 // back, so confirm first.
-async function remove({ name }: ItemFile, id: string, event: MouseEvent) {
+async function remove({ name }: Pick<ItemFile, "name">, id: string, event: MouseEvent) {
   if (deleting.value) return;
   const question = `Remove ${name}? This can't be undone.`;
   if (!(await askToConfirm(question, "Remove file", controlOf(event)))) return;
@@ -156,7 +149,7 @@ watch(
         <ImageGrid
           :key="item.id"
           :department="department.key"
-          :item-id="item.id"
+          :links-path="itemImageLinksPath(department.key, item.id)"
           :images="images"
           :may-remove="mayChange"
           :deleting="deleting"

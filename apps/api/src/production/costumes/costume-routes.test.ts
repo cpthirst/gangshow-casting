@@ -9,7 +9,7 @@ import { inMemoryProductionListStore } from "#/production-list/production-list-s
 import { createRoutes } from "#/routes.ts";
 import { aRunningOrder, itemId } from "#/show/running-order/running-order.fixture.ts";
 import { inMemoryRunningOrderStore } from "#/show/running-order/running-order-store.ts";
-import { inMemoryStores, noItemFiles } from "#/storage/stores.fixture.ts";
+import { inMemoryStores, noItemFiles, noStoreImages } from "#/storage/stores.fixture.ts";
 import { inMemoryUsageStore } from "#/usage/usage-store.ts";
 
 // The costume routes as hosted, behind the entry point's permission check (routeNeeds).
@@ -33,6 +33,7 @@ const setUp = () =>
       }),
       inMemoryUsageStore(),
       noItemFiles,
+      noStoreImages,
     ),
     inMemoryProductionListStore(),
   );

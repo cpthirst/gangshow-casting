@@ -7,6 +7,7 @@ import {
   newestProduction,
   type ProductionList,
   type Role,
+  type StoreId,
 } from "@app/shared";
 import { shallowRef } from "vue";
 
@@ -157,6 +158,14 @@ const fileLinkQuery = (name: string, download: boolean): Record<string, string> 
   download
     ? ({ name, download: "true" } satisfies ItemFileLinkQuery)
     : ({ name } satisfies ItemFileLinkQuery);
+
+/** A short-lived link to each of a store's images, from one request; no production's
+ *  (ADR 0043). */
+export const storeImageLinksPath = (store: StoreId) => `/api/stores/${store}/image-links`;
+
+/** A short-lived link that opens one of a store's images, or always downloads it. */
+export const storeImageLinkPath = (store: StoreId, name: string, { download = false } = {}) =>
+  `/api/stores/${store}/image-link?${new URLSearchParams(fileLinkQuery(name, download))}`;
 
 /** A short-lived link to each of the item's images, from one request. */
 export const itemImageLinksPath = (department: FileDepartment, itemId: string) =>

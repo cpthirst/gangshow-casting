@@ -1,3 +1,4 @@
+import { departments, storeIds, storePageName, storeTitle } from "@app/shared";
 import type { Component } from "vue";
 import { createRouter, createWebHistory, type RouterHistory } from "vue-router";
 import { cancelQuestion } from "@/composables/useConfirm.ts";
@@ -16,6 +17,7 @@ import PropsItemPage from "@/pages/PropsItemPage.vue";
 import RunningOrderPage from "@/pages/RunningOrderPage.vue";
 import SceneryItemPage from "@/pages/SceneryItemPage.vue";
 import SfxItemPage from "@/pages/SfxItemPage.vue";
+import StorePage from "@/pages/StorePage.vue";
 import UsagePage from "@/pages/UsagePage.vue";
 import WardrobeItemPage from "@/pages/WardrobeItemPage.vue";
 import WelcomePage from "@/pages/WelcomePage.vue";
@@ -27,6 +29,8 @@ declare module "vue-router" {
     menuPage?: string;
     /** What the Usage page calls a menu page whose title alone is ambiguous there. */
     usageTitle?: string;
+    /** The page belongs to no production, so switching production stays on it. */
+    acrossProductions?: true;
   }
 }
 
@@ -41,7 +45,9 @@ interface MenuPage {
   path: string;
   name: string;
   component: Component;
-  meta: { title: string; usageTitle?: string };
+  meta: { title: string; usageTitle?: string; acrossProductions?: true };
+  /** What the route gives its component, as one page shared by several entries is told which. */
+  props?: Record<string, string>;
   /** Left out of non-admins' menus. The API refuses them anyway: this only tidies the menu. */
   adminOnly?: boolean;
 }
@@ -128,6 +134,22 @@ export const menuPages: (MenuPage | MenuGroup)[] = [
         meta: { title: "Cast flow" },
       },
     ],
+  },
+  // Apart from the production's pages, as stores belong to none (stores FR1, ADR 0043).
+  {
+    name: "stores",
+    title: "Stores",
+    pages: storeIds.map((store) => ({
+      path: `/stores/${store}`,
+      name: storePageName(store),
+      component: StorePage,
+      props: { store },
+      meta: {
+        title: departments[store].name,
+        usageTitle: storeTitle(store),
+        acrossProductions: true,
+      },
+    })),
   },
   {
     name: "admin",

@@ -4,11 +4,13 @@ import { join } from "node:path";
 import { fileDepartments, ProductionList } from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { ItemFileStores } from "#/production/item-files/item-file-store.ts";
+import { putStoreImages } from "#/production/stores/store-image.fixture.ts";
 import { createRoutes } from "#/routes.ts";
 import { jo } from "#/show/cast/cast.fixture.ts";
 import { aRunningOrder, itemId } from "#/show/running-order/running-order.fixture.ts";
 import { fileStores, itemCleanupOf, itemFileStores } from "#/storage/data-stores.ts";
 import { eachKindOf, keptFor, seedEveryKind } from "#/storage/item-data.fixture.ts";
+import { noStoreImages } from "#/storage/stores.fixture.ts";
 import { inMemoryUsageStore } from "#/usage/usage-store.ts";
 import { createDeleteProduction } from "./delete-production.ts";
 import type { ProductionListStore } from "./production-list-store.ts";
@@ -179,13 +181,26 @@ describe("DELETE /api/productions/{productionId}, on the local stores", () => {
     await seedShow("2027");
     const at = "2026-11-02T09:00:00.000Z";
     await usage.record({ username: "jo", event: "page", page: "cast", at });
-    const routes = createRoutes(stores, usage, files.stores);
+    const routes = createRoutes(stores, usage, files.stores, noStoreImages);
 
     await routes["DELETE /api/productions/{productionId}"]({
       pathParameters: { productionId: "2027" },
     });
 
     expect((await usage.since("2026-11-01T00:00:00.000Z")).map((r) => r.username)).toEqual(["jo"]);
+  });
+
+  it("leaves the stores' images as they were, deleting the production's own data", async () => {
+    await holding("2026", "2027");
+    await seedShow("2026");
+    await putStoreImages(folder, "scenery", "castle-backdrop.png", "throne.jpg");
+
+    expect((await deleting("2026")).statusCode).toBe(200);
+
+    const cleanup = itemCleanupOf(stores, files.stores);
+    expect(await keptFor(stores, files.stores, "2026", pirate)).toEqual(eachKindOf(cleanup, 0));
+    const names = (await files.storeImages.list("scenery")).map(({ name }) => name).sort();
+    expect(names).toEqual(["castle-backdrop.png", "throne.jpg"]);
   });
 
   it("leaves the other productions as they were", async () => {

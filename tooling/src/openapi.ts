@@ -16,6 +16,7 @@ import {
   RunningOrderItem,
   routeKeys,
   SignInConfig,
+  storeIds,
   Username,
 } from "@app/shared";
 import { z } from "zod";
@@ -145,6 +146,7 @@ const pathSchemas: Record<string, z.ZodType> = {
   roleId: Role.shape.id,
   propId: Prop.shape.id,
   username: Username,
+  storeId: z.enum(storeIds),
 };
 
 function pathParameters(path: string, doc: RouteDoc): Parameter[] {

@@ -353,8 +353,26 @@ describe("dev server local scenery files (production-scenery FR10)", () => {
     expect(res.headers["content-security-policy"]).toBeUndefined();
   });
 
+  it("serves a store's image from the store's folder, outside every production's", async () => {
+    const store = join(folder, "stores", "props");
+    await mkdir(store, { recursive: true });
+    await writeFile(join(store, "crown.png"), "made-up");
+
+    const res = await get("/api/local-files/stores/props/crown.png");
+
+    expect(res.status).toBe(200);
+    expect(res.body.toString()).toBe("made-up");
+    expect(res.headers).toEqual(
+      expect.objectContaining({
+        "content-type": "image/png",
+        "content-disposition": expect.stringMatching(/^inline; filename="crown.png"/),
+      }),
+    );
+  });
+
   it.each([
     ["a file that isn't there", "/api/local-files/2027/opening-number/scenery/gone.pdf"],
+    ["a folder no store keeps", "/api/local-files/stores/sfx/thunder.mp3"],
     ["a folder no department keeps", "/api/local-files/2027/opening-number/secrets/secret.txt"],
     [
       "a path reaching outside the item's folder",

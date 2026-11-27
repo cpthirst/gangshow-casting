@@ -5,6 +5,7 @@ import { accessFrom } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import { accessRefusal, groupsFrom, type Productions } from "./access.ts";
 import type { ApiEvent, Handler } from "./handler.ts";
+import { uncached } from "./json.ts";
 import { matchRoute } from "./match-route.ts";
 
 /** The parts of an HTTP API (payload v2) event the entry point reads; payload v2 always has them. */
@@ -18,14 +19,9 @@ export type LambdaEvent = ApiEvent & {
   isBase64Encoded?: boolean;
 };
 
-// Responses hold cast data, so browsers mustn't keep them, even after sign-out (ADR 0017).
-const noStore = (res: APIGatewayProxyStructuredResultV2): APIGatewayProxyStructuredResultV2 => ({
-  ...res,
-  headers: { ...res.headers, "cache-control": "no-store" },
-});
-
 export function lambdaEntry(table: Record<string, Handler>, productions: Productions) {
-  return async (event: LambdaEvent) => noStore(await respond(table, event, productions));
+  // Responses hold cast data, so browsers mustn't keep them, even after sign-out (ADR 0017).
+  return async (event: LambdaEvent) => uncached(await respond(table, event, productions));
 }
 
 async function respond(

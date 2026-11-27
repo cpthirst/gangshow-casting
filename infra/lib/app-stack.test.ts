@@ -139,15 +139,14 @@ describe("AppStack", () => {
       );
     });
 
-    it("lets the API function only list it, and read, upload and delete scenery, SFX and Wardrobe files, and the accounts function not at all", () => {
+    it("lets the API function only list it, read, upload and delete scenery, SFX and Wardrobe files, and read the stores' images, and the accounts function not at all", () => {
       const { template } = synth();
       const [logicalId] = filesBucket(template) ?? [];
       // Only the keys under an item's scenery, SFX or Wardrobe folder (ADR 0030, ADR 0032).
-      const departmentFolders = ["/*/*/scenery/*", "/*/*/sfx/*", "/*/*/wardrobe/*"].map(
-        (folder) => ({
-          "Fn::Join": ["", [{ "Fn::GetAtt": [logicalId, "Arn"] }, folder]],
-        }),
-      );
+      const keys = (folder: string) => ({
+        "Fn::Join": ["", [{ "Fn::GetAtt": [logicalId, "Arn"] }, folder]],
+      });
+      const departmentFolders = ["/*/*/scenery/*", "/*/*/sfx/*", "/*/*/wardrobe/*"].map(keys);
 
       template.hasResourceProperties("AWS::Lambda::Function", {
         Environment: { Variables: { FILES_BUCKET: { Ref: logicalId } } },
@@ -167,11 +166,11 @@ describe("AppStack", () => {
           Action: "s3:ListBucket",
           Resource: { "Fn::GetAtt": [logicalId, "Arn"] },
         }),
-        // Signed links to files reach only the keys under an item's department folders.
+        // Signed links reach only the keys under an item's department folders, and the stores'.
         expect.objectContaining({
           Effect: "Allow",
           Action: "s3:GetObject",
-          Resource: departmentFolders,
+          Resource: [...departmentFolders, keys("/stores/*")],
         }),
         // Deleting one, too (production-scenery FR11): nothing outside those folders.
         expect.objectContaining({

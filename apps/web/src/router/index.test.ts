@@ -64,6 +64,9 @@ describe("the menu's pages", () => {
       "casting-items",
       "production-overview",
       "cast-flow",
+      "scenery-stores",
+      "props-stores",
+      "wardrobe-stores",
       "help",
     ]);
   });

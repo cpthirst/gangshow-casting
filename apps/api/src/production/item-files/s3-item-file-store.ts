@@ -1,4 +1,5 @@
 import {
+  type DepartmentId,
   FILE_LINK_SECONDS,
   type FileDepartment,
   type ItemFile,
@@ -15,7 +16,7 @@ import {
 } from "@aws-sdk/client-s3";
 import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { fileHeadersOf } from "./file-headers.ts";
+import { fileHeadersOf, type LinkOptions } from "./file-headers.ts";
 import {
   asItemFiles,
   countsByItem,
@@ -36,54 +37,23 @@ export function s3ItemFileStore(
   const folderOf = (productionId: string, itemId: string) =>
     itemFolderOf(productionId, itemId, department);
   return {
-    async list(productionId, itemId) {
-      const prefix = folderOf(productionId, itemId);
-      const files: ItemFile[] = [];
-      let token: string | undefined;
-      // Up to 1,000 keys a page. The delimiter keeps anything in a folder below out of them.
-      do {
-        const page = await s3.send(
-          new ListObjectsV2Command({
-            Bucket: bucket,
-            Prefix: prefix,
-            Delimiter: "/",
-            ContinuationToken: token,
-          }),
-        );
-        for (const { Key = "", Size = 0 } of page.Contents ?? []) {
-          files.push(...asItemFiles(Key.slice(prefix.length), Size));
-        }
-        token = page.IsTruncated ? page.NextContinuationToken : undefined;
-      } while (token !== undefined);
-      return files;
-    },
+    list: (productionId, itemId) => s3FilesIn(s3, bucket, folderOf(productionId, itemId)),
     async countByItem(productionId) {
       return countsByItem(await keysIn(productionId), department);
     },
-    async linkTo(productionId, itemId, name, options) {
-      const Key = `${folderOf(productionId, itemId)}${name}`;
-      if (!(await exists(Key))) return undefined;
-      // The link names its type and name itself, so what storage holds can't make it open.
-      const { contentType, contentDisposition } = fileHeadersOf(name, department, options);
-      const get = new GetObjectCommand({
-        Bucket: bucket,
-        Key,
-        ResponseContentType: contentType,
-        ResponseContentDisposition: contentDisposition,
-      });
-      return getSignedUrl(s3, get, { expiresIn: FILE_LINK_SECONDS });
-    },
+    linkTo: (productionId, itemId, name, options) =>
+      s3LinkTo(s3, bucket, folderOf(productionId, itemId), name, department, options),
     async remove(productionId, itemId, name) {
       const Key = `${folderOf(productionId, itemId)}${name}`;
       // S3 answers a delete of a missing key as if it worked, so look first (AC6's "gone").
-      if (!(await exists(Key))) return "gone";
+      if (!(await keyExists(s3, bucket, Key))) return "gone";
       await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key }));
       return "removed";
     },
     async uploadTo(productionId, itemId, name, { replace }) {
       const Key = `${folderOf(productionId, itemId)}${name}`;
       // The bucket overwrites a key without asking, so look first (FR9).
-      if (!replace && (await exists(Key))) return "taken";
+      if (!replace && (await keyExists(s3, bucket, Key))) return "taken";
       // A form only for this key, which the bucket itself refuses over 100 MB (FR8).
       const { url, fields } = await createPresignedPost(s3, {
         Bucket: bucket,
@@ -127,14 +97,59 @@ export function s3ItemFileStore(
     } while (token !== undefined);
     return keys;
   }
+}
 
-  async function exists(Key: string) {
-    try {
-      await s3.send(new HeadObjectCommand({ Bucket: bucket, Key }));
-      return true;
-    } catch (error) {
-      if (error instanceof NotFound) return false;
-      throw error;
+/** The files directly under a prefix in the bucket, such as an item's department folder. */
+export async function s3FilesIn(s3: S3Client, bucket: string, prefix: string) {
+  const files: ItemFile[] = [];
+  let token: string | undefined;
+  // Up to 1,000 keys a page. The delimiter keeps anything in a folder below out of them.
+  do {
+    const page = await s3.send(
+      new ListObjectsV2Command({
+        Bucket: bucket,
+        Prefix: prefix,
+        Delimiter: "/",
+        ContinuationToken: token,
+      }),
+    );
+    for (const { Key = "", Size = 0 } of page.Contents ?? []) {
+      files.push(...asItemFiles(Key.slice(prefix.length), Size));
     }
+    token = page.IsTruncated ? page.NextContinuationToken : undefined;
+  } while (token !== undefined);
+  return files;
+}
+
+/** A short-lived link to the file of that name under the prefix, sent as the department's
+ *  files are; undefined if it isn't there. The name is a valid ItemFileName. */
+export async function s3LinkTo(
+  s3: S3Client,
+  bucket: string,
+  prefix: string,
+  name: string,
+  department: DepartmentId,
+  options?: LinkOptions,
+) {
+  const Key = `${prefix}${name}`;
+  if (!(await keyExists(s3, bucket, Key))) return undefined;
+  // The link names its type and name itself, so what storage holds can't make it open.
+  const { contentType, contentDisposition } = fileHeadersOf(name, department, options);
+  const get = new GetObjectCommand({
+    Bucket: bucket,
+    Key,
+    ResponseContentType: contentType,
+    ResponseContentDisposition: contentDisposition,
+  });
+  return getSignedUrl(s3, get, { expiresIn: FILE_LINK_SECONDS });
+}
+
+async function keyExists(s3: S3Client, bucket: string, Key: string) {
+  try {
+    await s3.send(new HeadObjectCommand({ Bucket: bucket, Key }));
+    return true;
+  } catch (error) {
+    if (error instanceof NotFound) return false;
+    throw error;
   }
 }

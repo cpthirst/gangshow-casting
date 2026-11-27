@@ -4,9 +4,11 @@ import { join } from "node:path";
 import { fileDepartments, ItemImageLinks, isAccountRoute, routeKeys } from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { folderItemFileStore } from "#/production/item-files/item-file-store.ts";
+import { putStoreImages } from "#/production/stores/store-image.fixture.ts";
+import { folderStoreImageStore } from "#/production/stores/store-image-store.ts";
 import { aRunningOrder, itemId } from "#/show/running-order/running-order.fixture.ts";
 import { inMemoryRunningOrderStore } from "#/show/running-order/running-order-store.ts";
-import { inMemoryStores } from "#/storage/stores.fixture.ts";
+import { inMemoryStores, noItemFiles, noStoreImages } from "#/storage/stores.fixture.ts";
 import { inMemoryUsageStore } from "#/usage/usage-store.ts";
 import { createRoutes, routes } from "./routes.ts";
 
@@ -46,6 +48,7 @@ describe("the routes table", () => {
           sfx: folderItemFileStore(folder, "sfx"),
           wardrobe: folderItemFileStore(folder, "wardrobe"),
         },
+        noStoreImages,
       );
 
       const res = await table[
@@ -56,5 +59,25 @@ describe("the routes table", () => {
         ItemImageLinks.parse(JSON.parse(res.body ?? "")).links.map(({ name }) => name),
       ).toEqual([`${department}.png`]);
     });
+  });
+
+  it("links a store's images through its route, on the stores' own image store", async () => {
+    const folder = await mkdtemp(join(tmpdir(), "routes-stores-"));
+    await putStoreImages(folder, "scenery", "throne.jpg");
+    const table = createRoutes(
+      inMemoryStores(),
+      inMemoryUsageStore(),
+      noItemFiles,
+      folderStoreImageStore(folder),
+    );
+
+    const res = await table["GET /api/stores/{storeId}/image-links"]({
+      pathParameters: { storeId: "scenery" },
+    });
+    await rm(folder, { recursive: true, force: true });
+
+    expect(ItemImageLinks.parse(JSON.parse(res.body ?? "")).links.map(({ name }) => name)).toEqual([
+      "throne.jpg",
+    ]);
   });
 });

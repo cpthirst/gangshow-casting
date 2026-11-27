@@ -132,18 +132,24 @@ const listFiles = (department: DepartmentId): RouteDoc => ({
   success: ok("The files, as file storage holds them now.", ItemFileList),
 });
 
+// A file's link, an item's or a store's.
+const LINK_DESCRIPTION = "The link lasts 5 minutes and needs no token, so never share or store it.";
+const linkQuery = {
+  ...fileName("The file to link to."),
+  download: {
+    schema: ItemFileLinkQuery.shape.download.unwrap(),
+    required: false,
+    description: "Saves the file rather than opening it, even one the browser can show.",
+  },
+};
+const IMAGE_LINKS_DESCRIPTION =
+  "One link for each JPG, PNG, GIF or WebP file, in no particular order. The links last 5 minutes and need no token, so never share or store them.";
+
 const fileLink = (department: DepartmentId): RouteDoc => ({
   tag: "Item files",
   summary: `A short-lived link to one ${nounOf(department)} file`,
-  description: "The link lasts 5 minutes and needs no token, so never share or store it.",
-  query: {
-    ...fileName("The file to link to."),
-    download: {
-      schema: ItemFileLinkQuery.shape.download.unwrap(),
-      required: false,
-      description: "Saves the file rather than opening it, even one the browser can show.",
-    },
-  },
+  description: LINK_DESCRIPTION,
+  query: linkQuery,
   itemId: FolderId,
   success: ok("The link.", ItemFileLink),
   refusals: {
@@ -155,8 +161,7 @@ const fileLink = (department: DepartmentId): RouteDoc => ({
 const imageLinks = (department: DepartmentId): RouteDoc => ({
   tag: "Item files",
   summary: `Short-lived links to each of an item's ${nounOf(department)} images`,
-  description:
-    "One link for each JPG, PNG, GIF or WebP file, in no particular order. The links last 5 minutes and need no token, so never share or store them.",
+  description: IMAGE_LINKS_DESCRIPTION,
   itemId: FolderId,
   success: ok("The links.", ItemImageLinks),
   refusals: { "404": NOT_IN_ORDER },
@@ -517,6 +522,24 @@ export const routeDocs: Record<RouteKey, RouteDoc> = {
   },
   [`GET ${PRODUCTION}/mic-plot-notes`]: listNotes("mic-plot"),
   [`PUT ${ITEM}/mic-plot-notes`]: saveNotes("mic-plot"),
+  "GET /api/stores/{storeId}/image-links": {
+    tag: "Stores",
+    summary: "Short-lived links to each of a store's images",
+    description: IMAGE_LINKS_DESCRIPTION,
+    success: ok("The links.", ItemImageLinks),
+    refusals: { "404": plain("The department has no store.") },
+  },
+  "GET /api/stores/{storeId}/image-link": {
+    tag: "Stores",
+    summary: "A short-lived link to one of a store's images",
+    description: LINK_DESCRIPTION,
+    query: linkQuery,
+    success: ok("The link.", ItemFileLink),
+    refusals: {
+      "400": plain("The name isn't one a file can have."),
+      "404": plain("The department has no store, or the image isn't there."),
+    },
+  },
   "POST /api/usage": {
     tag: "Usage",
     summary: "Record one thing the caller did",

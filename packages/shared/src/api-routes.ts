@@ -62,6 +62,8 @@ export const routeKeys = [
   "POST /api/productions/{productionId}/items/{itemId}/roles",
   "PUT /api/productions/{productionId}/roles/{roleId}",
   "DELETE /api/productions/{productionId}/roles/{roleId}",
+  "GET /api/stores/{storeId}/image-links",
+  "GET /api/stores/{storeId}/image-link",
   "POST /api/usage",
   "GET /api/usage",
 ] as const;

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import {
+  type DepartmentId,
   departments,
   FILE_LINK_SECONDS,
-  type FileDepartment,
   type ItemFile,
   ItemImageLinks,
 } from "@app/shared";
@@ -10,21 +10,27 @@ import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, ref, useTemplateRef, watch } from "vue";
 import { useImageViewer, type ViewerImage } from "@/composables/useImageViewer.ts";
 import { loadData } from "@/services/load-data.ts";
-import { itemImageLinksPath } from "@/services/production.ts";
 import { fileLabel } from "@/utils/file-display.ts";
 import { icons } from "@/utils/icons.ts";
 import RemoveFileButton from "./RemoveFileButton.vue";
 
-// One item's images as square thumbnails, named beneath, each loading only as it nears the
-// screen (production-image-gallery FR4, FR6). Every image's link comes from one request, asked
-// again once they've lapsed. Choosing one opens the viewer, to swipe through the rest (FR8,
-// FR9); one with no link to show it by is the page's to open, as a row is. Opening or
-// downloading from the viewer (FR10), and removing one (FR7), are the page's to handle too.
+// An item's or a store's images as square thumbnails, named beneath, each loading only as it
+// nears the screen (production-image-gallery FR4, FR6, stores FR6). Every image's link comes
+// from one request, asked again once they've lapsed. Choosing one opens the viewer, to swipe
+// through the rest (FR8, FR9); one with no link to show it by is the page's to open, as a row
+// is. Opening or downloading from the viewer (FR10), and removing one (FR7), are the page's to
+// handle too.
+
+type Image = Pick<ItemFile, "name">;
 
 const props = defineProps<{
-  department: FileDepartment;
-  itemId: string;
-  images: ItemFile[];
+  department: DepartmentId;
+  /** Where to ask for a link to each image, from one request. */
+  linksPath: string;
+  images: readonly Image[];
+  /** Links already in hand, from the request that listed the images, so the grid asks for
+   *  fresh ones only once these lapse. */
+  givenLinks?: ItemImageLinks["links"];
   /** Whoever may change the page gets a trash icon on each thumbnail. */
   mayRemove: boolean;
   /** A delete is on its way, so the trash icons wait for it. */
@@ -33,9 +39,9 @@ const props = defineProps<{
   problem: string | undefined;
 }>();
 const emit = defineEmits<{
-  choose: [image: ItemFile];
-  download: [image: ItemFile];
-  remove: [image: ItemFile, event: MouseEvent];
+  choose: [image: Image];
+  download: [image: Image];
+  remove: [image: Image, event: MouseEvent];
 }>();
 
 // An image asked for a moment before its link lapsed can reach storage after it has.
@@ -71,24 +77,31 @@ let askedAt = 0;
 let asks = 0;
 let asking: Promise<void> | undefined;
 
-async function askForLinks() {
-  const ask = ++asks;
+// Starts an ask for links, which are fresh from now.
+function beginAsk() {
   askedAt = Date.now();
+  return ++asks;
+}
+
+// Takes the links an ask got, unless a later ask has begun since: an earlier ask answering
+// late mustn't undo a later one. Images already shown keep their links.
+function answerWith(ask: number, given: ItemImageLinks["links"] = []) {
+  answered.value = true;
+  if (ask !== asks) return;
+  const linkOf = (name: string, url: string) =>
+    loaded.has(name) ? (links.value.get(name) ?? url) : url;
+  links.value = new Map(given.map(({ name, url }) => [name, linkOf(name, url)]));
+}
+
+async function askForLinks() {
+  const ask = beginAsk();
   try {
-    const answer = await loadData(
-      itemImageLinksPath(props.department, props.itemId),
-      ItemImageLinks,
-    );
-    // An earlier ask answering late mustn't undo a later one.
-    if (ask !== asks) return;
-    const linkOf = (name: string, url: string) =>
-      loaded.has(name) ? (links.value.get(name) ?? url) : url;
-    links.value = new Map(answer?.links.map(({ name, url }) => [name, linkOf(name, url)]));
+    answerWith(ask, (await loadData(props.linksPath, ItemImageLinks))?.links);
   } catch {
     // The links already given stay. With none, every square shows the icon, and each image
     // still opens as a row's would.
+    answered.value = true;
   }
-  answered.value = true;
 }
 
 function askAfresh() {
@@ -120,7 +133,7 @@ async function failed(name: string, event: Event) {
 
 const urlOf = (name: string) => (broken.value.has(name) ? undefined : links.value.get(name));
 
-async function view(image: ItemFile) {
+async function view(image: Image) {
   if (urlOf(image.name)) await freshLinks();
   const shown = viewable();
   const index = shown.findIndex(({ name }) => name === image.name);
@@ -150,14 +163,17 @@ function viewable(): ViewerImage[] {
   });
 }
 
-// A new image, after an upload, needs a link of its own, which a request already on its way
-// for a lapse won't have. The viewer closes, as what it shows may have gone.
+// A new image, after an upload, needs a link of its own: one given with it, or a fresh ask,
+// as a request already on its way for a lapse won't have it. The viewer closes, as what it
+// shows may have gone.
 watch(
   () => props.images.map((image) => image.name).join("/"),
   () => {
     viewer.close();
     broken.value.clear();
-    askAfresh();
+    // Links given with the images are as good as an answer just now.
+    if (props.givenLinks) answerWith(beginAsk(), props.givenLinks);
+    else askAfresh();
   },
   { immediate: true },
 );

@@ -81,25 +81,41 @@ export function isDroppedFile(key: string, kept: ReadonlySet<string>, department
 export const asItemFiles = (name: string, size: number): ItemFile[] =>
   ItemFileName.safeParse(name).success ? [{ name, size }] : [];
 
+/** The files directly in a place in the local folder, such as an item's department folder,
+ *  laid out as the bucket is: none if it has no folder yet. */
+export async function localFilesIn(folder: string, place: string): Promise<ItemFile[]> {
+  const at = join(folder, place);
+  const entries = (await ifExists(() => readdir(at, { withFileTypes: true }))) ?? [];
+  const files = entries.filter((entry) => entry.isFile());
+  const sized = await Promise.all(
+    files.map(async ({ name }) => {
+      // Gone since the folder was read, if removed or renamed outside the app meanwhile.
+      const found = await ifExists(() => stat(join(at, name)));
+      return found ? asItemFiles(name, found.size) : [];
+    }),
+  );
+  return sized.flat();
+}
+
+/** The dev server's link to a file in a place in the local folder; undefined if it isn't
+ *  there. The name is a valid ItemFileName. */
+export async function localLinkTo(
+  folder: string,
+  place: string,
+  name: string,
+  options?: LinkOptions,
+) {
+  const found = await ifExists(() => stat(join(folder, place, name)));
+  return found?.isFile() ? localFileLink(place, name, options) : undefined;
+}
+
 /** The department's files in a local folder laid out as the bucket is, for pnpm dev, the demo
  *  and tests. */
 export function folderItemFileStore(folder: string, department: FileDepartment): ItemFileStore {
   const folderOf = (productionId: string, itemId: string) =>
     itemFolderOf(productionId, itemId, department);
   const store: ItemFileStore = {
-    async list(productionId, itemId) {
-      const place = join(folder, folderOf(productionId, itemId));
-      const entries = (await ifExists(() => readdir(place, { withFileTypes: true }))) ?? [];
-      const files = entries.filter((entry) => entry.isFile());
-      const sized = await Promise.all(
-        files.map(async ({ name }) => {
-          // Gone since the folder was read, if removed or renamed outside the app meanwhile.
-          const found = await ifExists(() => stat(join(place, name)));
-          return found ? asItemFiles(name, found.size) : [];
-        }),
-      );
-      return sized.flat();
-    },
+    list: (productionId, itemId) => localFilesIn(folder, folderOf(productionId, itemId)),
     async countByItem(productionId) {
       const items =
         (await ifExists(() => readdir(join(folder, productionId), { withFileTypes: true }))) ?? [];
@@ -116,11 +132,8 @@ export function folderItemFileStore(folder: string, department: FileDepartment):
       );
       return countsByItem(listed.flat(), department);
     },
-    async linkTo(productionId, itemId, name, options) {
-      const folderOfItem = folderOf(productionId, itemId);
-      const found = await ifExists(() => stat(join(folder, folderOfItem, name)));
-      return found?.isFile() ? localFileLink(folderOfItem, name, options) : undefined;
-    },
+    linkTo: (productionId, itemId, name, options) =>
+      localLinkTo(folder, folderOf(productionId, itemId), name, options),
     async remove(productionId, itemId, name) {
       const file = join(folder, folderOf(productionId, itemId), name);
       const found = await ifExists(() => stat(file));

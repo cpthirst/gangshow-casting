@@ -2,7 +2,7 @@
 id: stores.E1.S1
 title: Show each store's images on its own page
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story
@@ -78,4 +78,7 @@ Then the page shows the app's not-found state, and the API answers 404
 - **ADR first.** Where stores images live, outside every production and item, and where each image's description will be kept (E3.S1), is an ADR (amending ADR 0030 or new) written in this story, before code. It also says why the running-order clean-up and production delete leave stores alone (AC7, AC8). No new AWS resource is expected; if one is needed, stop and ask.
 - The private bucket, short-lived links and content security policy are those of item files (ADR 0030), so stores add no new public path.
 - Size: likely near or past ~400 lines. If it passes, split the ADR and API listing into a story of their own and update the map.
+- Kept whole rather than splitting the ADR and API listing out: the batch ships as one PR either way, and the API listing alone would have no page to show it.
+- ADR: [0043](../../../adr/0043-stores-images-outside-every-production.md), Proposed.
+- Follow-up for E5.S1: the page's title is a plain heading until Help has an entry for it, as the shared title row (`PageTitle.vue`) needs one; E5.S1 moves it onto that row.
 - Out of scope: adding (E1.S2) and removing (E1.S3) images; descriptions (E3); export (E4); Help (E5.S1).

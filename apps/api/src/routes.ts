@@ -23,6 +23,9 @@ import { createAddProp } from "#/production/props/add-prop.ts";
 import { createGetProps } from "#/production/props/get-props.ts";
 import { createRemoveProp } from "#/production/props/remove-prop.ts";
 import { createUpdateProp } from "#/production/props/update-prop.ts";
+import { createGetStoreImageLink } from "#/production/stores/get-store-image-link.ts";
+import { createGetStoreImageLinks } from "#/production/stores/get-store-image-links.ts";
+import type { StoreImageStore } from "#/production/stores/store-image-store.ts";
 import { createDeleteProduction } from "#/production-list/delete-production.ts";
 import { createGetProductions } from "#/production-list/get-productions.ts";
 import { createStartProduction } from "#/production-list/start-production.ts";
@@ -51,6 +54,7 @@ export function createRoutes(
   stores: Stores,
   usage: UsageStore,
   files: ItemFileStores,
+  storeImages: StoreImageStore,
 ): Record<Exclude<RouteKey, AccountRouteKey>, Handler> {
   const {
     runningOrders,
@@ -196,6 +200,8 @@ export function createRoutes(
       stores,
     ),
     "DELETE /api/productions/{productionId}/roles/{roleId}": createRemoveRole(roles, stores),
+    "GET /api/stores/{storeId}/image-links": createGetStoreImageLinks(storeImages),
+    "GET /api/stores/{storeId}/image-link": createGetStoreImageLink(storeImages),
     ...createUsageRoutes(usage),
   };
 }
@@ -212,4 +218,4 @@ export const localFilesFolder = files.folder;
 export const productions = stores.productions;
 
 /** The routes on the data the environment names (data-stores.ts). */
-export const routes = createRoutes(stores, usageStore(), files.stores);
+export const routes = createRoutes(stores, usageStore(), files.stores, files.storeImages);

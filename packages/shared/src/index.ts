@@ -12,4 +12,5 @@ export * from "./prop.ts";
 export * from "./role.ts";
 export * from "./running-order.ts";
 export * from "./sign-in-config.ts";
+export * from "./stores.ts";
 export * from "./usage.ts";
