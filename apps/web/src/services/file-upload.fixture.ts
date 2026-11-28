@@ -1,3 +1,5 @@
+import { flushPromises, type VueWrapper } from "@vue/test-utils";
+
 // Stand-ins for the browser's uploads, for tests of the pages that upload files.
 
 /** The browser's XMLHttpRequest, which uploads use for their progress. happy-dom's can't
@@ -39,4 +41,19 @@ export class StandInXhr extends EventTarget {
       new ProgressEvent("progress", { lengthComputable: true, loaded, total }),
     );
   }
+}
+
+/** A made-up file, of the size given, as the browser's file picker hands it over. */
+export function aFile(name: string, size = 1_000) {
+  const file = new File(["made-up"], name);
+  Object.defineProperty(file, "size", { value: size });
+  return file;
+}
+
+/** As the file picker does once someone chooses a file in the page's upload area. */
+export async function chooseFile(wrapper: VueWrapper, file: File) {
+  const input = wrapper.get("main [data-test=upload-input]");
+  Object.defineProperty(input.element, "files", { value: [file], configurable: true });
+  await input.trigger("change");
+  await flushPromises();
 }

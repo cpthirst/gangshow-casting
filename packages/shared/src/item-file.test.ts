@@ -4,6 +4,7 @@ import {
   FolderId,
   fileDepartments,
   fileTypeOf,
+  galleryImageExtensions,
   ItemFileCounts,
   ItemFileLink,
   ItemFileLinkQuery,
@@ -230,6 +231,13 @@ describe("isGalleryImage", () => {
       expect(isGalleryImage(name)).toBe(false);
     },
   );
+});
+
+describe("galleryImageExtensions", () => {
+  it("names every extension the gallery counts as an image, for a file picker", () => {
+    expect(galleryImageExtensions).toEqual([".jpg", ".jpeg", ".png", ".gif", ".webp"]);
+    expect(galleryImageExtensions.every((extension) => isGalleryImage(`a${extension}`))).toBe(true);
+  });
 });
 
 describe("fileTypeOf", () => {

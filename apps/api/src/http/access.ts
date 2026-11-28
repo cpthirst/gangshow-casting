@@ -3,9 +3,11 @@ import {
   isChangeWithinProduction,
   mayChangeDepartment,
   mayChangeProduction,
+  mayChangeStore,
   needOf,
   pastProductionRefusal,
   readOnlyRefusal,
+  storeOf,
 } from "@app/shared";
 import type { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import type { ProductionListStore } from "#/production-list/production-list-store.ts";
@@ -45,15 +47,16 @@ interface AskedRoute {
  * A 403 if the route can't go ahead for this caller; undefined to go ahead. A production that
  * isn't the newest comes first, as it's closed to everyone, admins included (simplify FR21).
  * Then the caller's access (ADR 0026): each change route names its department, any one of
- * whose permissions allows it, and a refusal says which department (ADR 0035). A route
- * missing from the table needs an admin, and the reads and recording usage nothing.
+ * whose permissions allows it, or a store and its own permissions (ADR 0043), and a refusal
+ * says which department (ADR 0035). A route missing from the table needs an admin, and the
+ * reads and recording usage nothing.
  */
 export async function accessRefusal(
   route: AskedRoute,
   access: Access,
   productions: Productions,
 ): Promise<APIGatewayProxyStructuredResultV2 | undefined> {
-  return (await pastProductionRefused(route, productions)) ?? departmentRefusal(route.key, access);
+  return (await pastProductionRefused(route, productions)) ?? departmentRefusal(route, access);
 }
 
 async function pastProductionRefused({ key, event }: AskedRoute, productions: Productions) {
@@ -64,10 +67,21 @@ async function pastProductionRefused({ key, event }: AskedRoute, productions: Pr
     : jsonResponse(403, pastProductionRefusal(held));
 }
 
-function departmentRefusal(routeKey: string, access: Access) {
+const onlyAdmins = () => messageResponse(403, "Only admins can do this.");
+
+function departmentRefusal({ key, event }: AskedRoute, access: Access) {
   if (access === "admin") return undefined;
-  const need = needOf(routeKey);
+  const need = needOf(key);
   if (need === undefined) return undefined;
-  if (need === "admin") return messageResponse(403, "Only admins can do this.");
+  if (need === "admin") return onlyAdmins();
+  if (need === "store") return storeRefusal(event.pathParameters.storeId, access);
   return mayChangeDepartment(access, need) ? undefined : jsonResponse(403, readOnlyRefusal(need));
+}
+
+// A store's change needs that store's own permissions, refused in its department's words
+// (stores FR4, FR5). One the list doesn't hold is left to admins, so a gap fails safe.
+function storeRefusal(storeId: string | undefined, access: Access) {
+  const store = storeOf(storeId);
+  if (store === undefined) return onlyAdmins();
+  return mayChangeStore(access, store) ? undefined : jsonResponse(403, readOnlyRefusal(store));
 }

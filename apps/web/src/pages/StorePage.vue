@@ -1,16 +1,23 @@
 <script setup lang="ts">
-import { departments, ItemImageLinks, type StoreId, storeTitle } from "@app/shared";
+import { departments, ItemImageLinks, type StoreId, stores, storeTitle } from "@app/shared";
 import { computed, ref, watch } from "vue";
+import FileUpload from "@/components/production/FileUpload.vue";
 import ImageGrid from "@/components/production/ImageGrid.vue";
 import { showPageTitle } from "@/router/index.ts";
 import { openOrDownload } from "@/services/file-open.ts";
 import { loadData } from "@/services/load-data.ts";
-import { storeImageLinkPath, storeImageLinksPath } from "@/services/production.ts";
+import {
+  storeImageLinkPath,
+  storeImageLinksPath,
+  storeUploadsPath,
+} from "@/services/production.ts";
+import { canChangeStore } from "@/services/sign-in.ts";
 import { opensInBrowser, sortFiles } from "@/utils/file-display.ts";
 
 // One of the show's stores, from the shared list (stores FR3): its images in the gallery's
 // grid and viewer, from one request for their links (FR6), whichever production is open, as
-// stores belong to none (FR2, ADR 0043).
+// stores belong to none (FR2, ADR 0043). Those who may change the store add images through the
+// shared upload area, which takes only images here (FR4, FR12).
 
 const props = defineProps<{ store: StoreId }>();
 
@@ -19,7 +26,7 @@ type State = { status: "loading" } | { status: "error" } | { status: "loaded"; l
 
 const state = ref<State>({ status: "loading" });
 const title = computed(() => storeTitle(props.store));
-// Why the last image chosen in the viewer didn't open or download, if it didn't.
+// Why the last image chosen in the viewer didn't open or download, or the last upload failed.
 const problem = ref<string>();
 
 let loads = 0;
@@ -64,6 +71,17 @@ async function choose({ name }: { name: string }, download = false) {
   <p v-if="state.status === 'loading'">Loading…</p>
   <p v-else-if="state.status === 'error'" role="alert">Couldn't load the store's images.</p>
   <template v-else>
+    <!-- A fresh instance per store, so a failed upload's Try again never reaches another. -->
+    <FileUpload
+      v-if="canChangeStore(store)"
+      :key="store"
+      :path="storeUploadsPath(store)"
+      :names="state.links.map((link) => link.name)"
+      :rule="stores[store].uploadRule"
+      images-only
+      @changed="load"
+      @problem="problem = $event"
+    />
     <p v-if="problem" class="notice" role="alert" data-test="file-problem">{{ problem }}</p>
     <ImageGrid
       v-if="state.links.length > 0"

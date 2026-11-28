@@ -26,6 +26,7 @@ import { createUpdateProp } from "#/production/props/update-prop.ts";
 import { createGetStoreImageLink } from "#/production/stores/get-store-image-link.ts";
 import { createGetStoreImageLinks } from "#/production/stores/get-store-image-links.ts";
 import type { StoreImageStore } from "#/production/stores/store-image-store.ts";
+import { createUploadStoreImage } from "#/production/stores/upload-store-image.ts";
 import { createDeleteProduction } from "#/production-list/delete-production.ts";
 import { createGetProductions } from "#/production-list/get-productions.ts";
 import { createStartProduction } from "#/production-list/start-production.ts";
@@ -202,6 +203,7 @@ export function createRoutes(
     "DELETE /api/productions/{productionId}/roles/{roleId}": createRemoveRole(roles, stores),
     "GET /api/stores/{storeId}/image-links": createGetStoreImageLinks(storeImages),
     "GET /api/stores/{storeId}/image-link": createGetStoreImageLink(storeImages),
+    "POST /api/stores/{storeId}/uploads": createUploadStoreImage(storeImages),
     ...createUsageRoutes(usage),
   };
 }

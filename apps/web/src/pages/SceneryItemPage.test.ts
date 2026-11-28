@@ -11,7 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { json, openAppAt } from "@/app.fixture.ts";
 import * as confirmDialog from "@/components/common/ConfirmDialog.fixture.ts";
 import { downloadFrom, openFileTab } from "@/services/file-link.ts";
-import { StandInXhr } from "@/services/file-upload.fixture.ts";
+import { aFile, chooseFile as choose, StandInXhr } from "@/services/file-upload.fixture.ts";
 import {
   departmentNotesPath,
   itemFileLinkPath,
@@ -627,21 +627,6 @@ describe("Deleting a scenery file", () => {
     expect(trashFor(wrapper, "set-plan.pdf").attributes("type")).toBe("button");
   });
 });
-
-/** A made-up file, of the size given, as the browser's file picker hands it over. */
-function aFile(name: string, size = 1_000) {
-  const file = new File(["made-up"], name);
-  Object.defineProperty(file, "size", { value: size });
-  return file;
-}
-
-// As the file picker does once someone chooses a file.
-async function choose(wrapper: VueWrapper, file: File) {
-  const input = wrapper.get("main [data-test=upload-input]");
-  Object.defineProperty(input.element, "files", { value: [file], configurable: true });
-  await input.trigger("change");
-  await flushPromises();
-}
 
 const calls = (match: (url: string, init?: RequestInit) => boolean) =>
   vi.mocked(fetch).mock.calls.filter(([url, init]) => match(String(url), init));

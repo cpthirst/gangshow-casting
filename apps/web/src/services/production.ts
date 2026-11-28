@@ -163,6 +163,9 @@ const fileLinkQuery = (name: string, download: boolean): Record<string, string> 
  *  (ADR 0043). */
 export const storeImageLinksPath = (store: StoreId) => `/api/stores/${store}/image-links`;
 
+/** Where to ask for an upload of one of a store's images. */
+export const storeUploadsPath = (store: StoreId) => `/api/stores/${store}/uploads`;
+
 /** A short-lived link that opens one of a store's images, or always downloads it. */
 export const storeImageLinkPath = (store: StoreId, name: string, { download = false } = {}) =>
   `/api/stores/${store}/image-link?${new URLSearchParams(fileLinkQuery(name, download))}`;

@@ -3,6 +3,7 @@ import {
   FILE_LINK_SECONDS,
   type FileDepartment,
   type ItemFile,
+  type ItemFileUpload,
   MAX_ITEM_FILE_BYTES,
 } from "@app/shared";
 import {
@@ -50,19 +51,8 @@ export function s3ItemFileStore(
       await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key }));
       return "removed";
     },
-    async uploadTo(productionId, itemId, name, { replace }) {
-      const Key = `${folderOf(productionId, itemId)}${name}`;
-      // The bucket overwrites a key without asking, so look first (FR9).
-      if (!replace && (await keyExists(s3, bucket, Key))) return "taken";
-      // A form only for this key, which the bucket itself refuses over 100 MB (FR8).
-      const { url, fields } = await createPresignedPost(s3, {
-        Bucket: bucket,
-        Key,
-        Conditions: [["content-length-range", 0, MAX_ITEM_FILE_BYTES]],
-        Expires: FILE_LINK_SECONDS,
-      });
-      return { url, fields };
-    },
+    uploadTo: (productionId, itemId, name, options) =>
+      s3UploadTo(s3, bucket, folderOf(productionId, itemId), name, options),
     async keepOnlyItems(productionId, itemIds) {
       const kept = new Set(itemIds);
       const dropped = (await keysIn(productionId))
@@ -142,6 +132,28 @@ export async function s3LinkTo(
     ResponseContentDisposition: contentDisposition,
   });
   return getSignedUrl(s3, get, { expiresIn: FILE_LINK_SECONDS });
+}
+
+/** A signed form that puts one file at the key of that name under the prefix, or "taken" if
+ *  there's one there and it isn't to be replaced (FR9). The name is a valid ItemFileName. */
+export async function s3UploadTo(
+  s3: S3Client,
+  bucket: string,
+  prefix: string,
+  name: string,
+  { replace }: { replace: boolean },
+): Promise<ItemFileUpload | "taken"> {
+  const Key = `${prefix}${name}`;
+  // The bucket overwrites a key without asking, so look first (FR9).
+  if (!replace && (await keyExists(s3, bucket, Key))) return "taken";
+  // A form only for this key, which the bucket itself refuses over 100 MB (FR8).
+  const { url, fields } = await createPresignedPost(s3, {
+    Bucket: bucket,
+    Key,
+    Conditions: [["content-length-range", 0, MAX_ITEM_FILE_BYTES]],
+    Expires: FILE_LINK_SECONDS,
+  });
+  return { url, fields };
 }
 
 async function keyExists(s3: S3Client, bucket: string, Key: string) {

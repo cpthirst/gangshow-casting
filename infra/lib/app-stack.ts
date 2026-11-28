@@ -243,18 +243,20 @@ export class AppStack extends Stack {
     table.grantReadWriteData(dataFunction);
     // Lists the files, and reads only scenery, SFX and Wardrobe files and the stores' images,
     // to sign the short-lived links that open or download them (ADR 0030, ADR 0032, ADR 0043),
-    // deletes item files (production-scenery FR11), and signs the forms that upload them (FR8).
+    // deletes item files (production-scenery FR11), and signs the forms that upload them and
+    // the stores' images (FR8, stores FR12).
     // Nothing outside those folders.
     const departmentFiles = ["scenery", "sfx", "wardrobe"].map((department) =>
       filesBucket.arnForObjects(`*/*/${department}/*`),
     );
+    const storesImages = filesBucket.arnForObjects(`${STORES_FOLDER}/*`);
     dataFunction.addToRolePolicy(
       new PolicyStatement({ actions: ["s3:ListBucket"], resources: [filesBucket.bucketArn] }),
     );
     dataFunction.addToRolePolicy(
       new PolicyStatement({
         actions: ["s3:GetObject"],
-        resources: [...departmentFiles, filesBucket.arnForObjects(`${STORES_FOLDER}/*`)],
+        resources: [...departmentFiles, storesImages],
       }),
     );
     dataFunction.addToRolePolicy(
@@ -266,7 +268,7 @@ export class AppStack extends Stack {
     dataFunction.addToRolePolicy(
       new PolicyStatement({
         actions: ["s3:PutObject"],
-        resources: departmentFiles,
+        resources: [...departmentFiles, storesImages],
       }),
     );
     // One invoke permission for the whole API, not one per route: a statement per route outgrew

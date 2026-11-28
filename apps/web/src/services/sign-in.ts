@@ -6,8 +6,10 @@ import {
   LOCAL_ACCESS_HEADER,
   localAccessHeader,
   mayChangeDepartment,
+  mayChangeStore,
   PastProductionRefusal,
   type SignInConfig,
+  type StoreId,
 } from "@app/shared";
 import { computed, ref, shallowRef } from "vue";
 import { isOpenProductionChangeable, listProductions } from "./production.ts";
@@ -115,6 +117,9 @@ export const canChange = (changedBy: DepartmentId | "admins") =>
 /** Access alone, ignoring whether the open production is the newest. For pages about every production (Productions). */
 export const hasAccessToChange = (changedBy: DepartmentId | "admins") =>
   changedBy === "admins" ? isAdmin.value : mayChangeDepartment(access.value, changedBy);
+/** Whether a store's page shows its change controls: stores belong to no production, so only
+ *  access counts (stores FR4, ADR 0043). */
+export const canChangeStore = (store: StoreId) => mayChangeStore(access.value, store);
 /** A change was refused because the person may only read: pages say it wasn't saved. */
 export const changeRefusedAsReadOnly = computed(() => refusedAsReadOnly.value);
 

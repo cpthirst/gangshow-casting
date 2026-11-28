@@ -579,7 +579,7 @@ describe("Help page", () => {
 
       const director = permissionLines(wrapper).find((line) => line.startsWith("Director:"));
       expect(director).toBe(
-        "Director: Changes every production department's pages, now and as they come: Scenery, Props, SFX, Mic plot and Wardrobe today. Not the cast, roles, casting or running order, and nothing only admins can do.",
+        "Director: Changes every production department's pages, now and as they come: Scenery, Props, SFX, Mic plot and Wardrobe today, but none of the stores. Not the cast, roles, casting or running order, and nothing only admins can do.",
       );
     });
   });

@@ -1,4 +1,4 @@
-import { HeadObjectCommand, ListObjectsV2Command, S3Client } from "@aws-sdk/client-s3";
+import { HeadObjectCommand, ListObjectsV2Command, NotFound, S3Client } from "@aws-sdk/client-s3";
 import { mockClient } from "aws-sdk-client-mock";
 import { beforeEach, describe, expect, it } from "vitest";
 import { s3StoreImageStore } from "./s3-store-image-store.ts";
@@ -33,5 +33,14 @@ describe("stores images in a bucket", () => {
     expect(link.pathname).toBe("/stores/props/crown.png");
     expect(link.searchParams.get("response-content-type")).toBe("image/png");
     expect(link.searchParams.get("response-content-disposition")).toMatch(/^attachment;/);
+  });
+
+  it("signs a form that puts the image in the store's folder, and only there", async () => {
+    s3.on(HeadObjectCommand).rejects(new NotFound({ message: "", $metadata: {} }));
+
+    const upload = await store().uploadTo("scenery", "castle-backdrop.png", { replace: false });
+
+    expect(upload).not.toBe("taken");
+    expect(upload !== "taken" && upload.fields.key).toBe("stores/scenery/castle-backdrop.png");
   });
 });

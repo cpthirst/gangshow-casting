@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { departments, FolderId, needOf, routeKeys } from "@app/shared";
+import { departments, FolderId, needOf, routeKeys, stores } from "@app/shared";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { openApiSpec, renderedSpec, SPEC_FILE } from "./openapi.ts";
@@ -70,10 +70,16 @@ describe("the API's OpenAPI description", () => {
     const wrong = routeKeys.filter((key) => {
       const { who, anyOf } = route(key)["x-permission"];
       const need = needOf(key);
-      const expected = need && need !== "admin" ? departments[need].permissions : undefined;
+      const expected =
+        need && need !== "admin" && need !== "store" ? departments[need].permissions : undefined;
       return !who || JSON.stringify(anyOf) !== JSON.stringify(expected);
     });
     expect(wrong).toEqual([]);
+    expect(route("POST /api/stores/{storeId}/uploads")["x-permission"].byStore).toEqual({
+      scenery: stores.scenery.changedBy,
+      props: stores.props.changedBy,
+      wardrobe: stores.wardrobe.changedBy,
+    });
     expect(route("GET /config.json")["x-permission"].anyOf).toBeUndefined();
   });
 

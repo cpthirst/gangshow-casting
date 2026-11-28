@@ -19,6 +19,7 @@ import {
   itemFilePath,
   itemFilesPath,
   itemImageLinksPath,
+  itemUploadsPath,
 } from "@/services/production.ts";
 import { apiFetch, canChange } from "@/services/sign-in.ts";
 import {
@@ -137,8 +138,8 @@ watch(
       <FileUpload
         v-if="mayChange"
         :key="item.id"
-        :department="department"
-        :item-id="item.id"
+        :path="itemUploadsPath(department.key, item.id)"
+        :rule="department.uploadRule"
         :names="files.map((file) => file.name)"
         @changed="reload"
         @problem="fileProblem = $event"

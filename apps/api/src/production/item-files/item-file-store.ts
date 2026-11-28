@@ -109,6 +109,21 @@ export async function localLinkTo(
   return found?.isFile() ? localFileLink(place, name, options) : undefined;
 }
 
+/** Where the dev server takes a file for a place in the local folder, or "taken" if the place
+ *  has a file of that name and it isn't to be replaced (FR9). The name is a valid ItemFileName. */
+export async function localUploadTo(
+  folder: string,
+  place: string,
+  name: string,
+  { replace }: { replace: boolean },
+): Promise<ItemFileUpload | "taken"> {
+  // Exactly, as the bucket compares keys, though a Mac's or Windows' folder ignores case.
+  const taken = (await localFilesIn(folder, place)).some((file) => file.name === name);
+  if (taken && !replace) return "taken";
+  // The dev server takes the file here, as the bucket would (dev-server.ts).
+  return { url: localFileLink(place, name), fields: {} };
+}
+
 /** The department's files in a local folder laid out as the bucket is, for pnpm dev, the demo
  *  and tests. */
 export function folderItemFileStore(folder: string, department: FileDepartment): ItemFileStore {
@@ -142,13 +157,8 @@ export function folderItemFileStore(folder: string, department: FileDepartment):
       await rm(file, { force: true });
       return "removed";
     },
-    async uploadTo(productionId, itemId, name, { replace }) {
-      // Exactly, as the bucket compares keys, though a Mac's or Windows' folder ignores case.
-      const taken = (await store.list(productionId, itemId)).some((file) => file.name === name);
-      if (taken && !replace) return "taken";
-      // The dev server takes the file here, as the bucket would (dev-server.ts).
-      return { url: localFileLink(folderOf(productionId, itemId), name), fields: {} };
-    },
+    uploadTo: (productionId, itemId, name, options) =>
+      localUploadTo(folder, folderOf(productionId, itemId), name, options),
     async keepOnlyItems(productionId, itemIds) {
       const kept = new Set(itemIds);
       const items =

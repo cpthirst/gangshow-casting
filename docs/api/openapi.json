@@ -3798,6 +3798,88 @@
         }
       }
     },
+    "/api/stores/{storeId}/uploads": {
+      "post": {
+        "tags": [
+          "Stores"
+        ],
+        "summary": "Get a form for uploading one image to a store",
+        "description": "**Needs:** admins, or any of the store's own permissions: stage for scenery; stage for props; wardrobe for wardrobe. Answers with where to POST the image: send the fields, then the image, as multipart/form-data. The image goes straight to file storage, up to 100 MB, within 5 minutes. It keeps its file's name.",
+        "x-permission": {
+          "who": "admins, or any of the store's own permissions",
+          "byStore": {
+            "scenery": [
+              "stage"
+            ],
+            "props": [
+              "stage"
+            ],
+            "wardrobe": [
+              "wardrobe"
+            ]
+          }
+        },
+        "parameters": [
+          {
+            "name": "storeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "scenery",
+                "props",
+                "wardrobe"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ItemFileUploadRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Where to send the image.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemFileUpload"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request isn't valid, or the name isn't a JPG, PNG, GIF or WebP image."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "The caller has no permission for this department.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepartmentRefusal"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The department has no store."
+          },
+          "409": {
+            "description": "The store has an image of that name, and replace wasn't true."
+          }
+        }
+      }
+    },
     "/api/usage": {
       "post": {
         "tags": [

@@ -1,16 +1,25 @@
 <script setup lang="ts">
+import { galleryImageExtensions } from "@app/shared";
 import { nextTick, ref, shallowRef } from "vue";
 import { useConfirm } from "@/composables/useConfirm.ts";
-import { uploadItemFile } from "@/services/file-upload.ts";
+import { uploadFile } from "@/services/file-upload.ts";
 import { fileSize, replaceQuestion, uploadRefusal } from "@/utils/file-display.ts";
-import type { FilesDepartment } from "@/utils/item-files.ts";
 
-// Uploading one file at a time to an item's scenery, SFX or Wardrobe, chosen with the button or
-// dropped on the area, showing how much has gone (production-scenery FR8). A name the item has
-// replaces its file once confirmed (FR9). The page shows any problem, and lists the files again
-// when storage has changed.
+// Uploading one file at a time to an item's scenery, SFX or Wardrobe, or to a store, chosen with
+// the button or dropped on the area, showing how much has gone (production-scenery FR8, stores
+// FR12). A name already there replaces its file once confirmed (FR9). The page shows any
+// problem, and lists the files again when storage has changed.
 
-const props = defineProps<{ department: FilesDepartment; itemId: string; names: string[] }>();
+const props = defineProps<{
+  /** Where to ask the API for each upload. */
+  path: string;
+  /** The names already there. */
+  names: string[];
+  /** What the area says the files must be, if anything. */
+  rule?: string | undefined;
+  /** Takes only images the gallery shows, as a store does. */
+  imagesOnly?: boolean;
+}>();
 const emit = defineEmits<{ changed: []; problem: [message: string | undefined] }>();
 const askToConfirm = useConfirm();
 
@@ -66,7 +75,7 @@ async function dropped(event: DragEvent) {
 }
 
 async function take(file: File) {
-  const refused = uploadRefusal(file);
+  const refused = uploadRefusal(file, props.imagesOnly);
   emit("problem", refused);
   if (refused) return;
   // Compared exactly, as file storage compares names.
@@ -84,7 +93,7 @@ async function upload(file: File, replace: boolean) {
   failed.value = undefined;
   sending.value = { file, fraction: 0 };
   announced.value = `Uploading ${file.name}`;
-  const result = await uploadItemFile(props.department.key, props.itemId, file, {
+  const result = await uploadFile(props.path, file, {
     replace,
     onProgress: (fraction) => {
       if (sending.value) sending.value = { ...sending.value, fraction };
@@ -148,6 +157,7 @@ async function upload(file: File, replace: boolean) {
       class="visually-hidden"
       tabindex="-1"
       aria-hidden="true"
+      :accept="imagesOnly ? galleryImageExtensions.join(',') : undefined"
       data-test="upload-input"
       @change="chosen"
     />
@@ -161,6 +171,6 @@ async function upload(file: File, replace: boolean) {
     </div>
     <!-- There before anything is said in it, so screen readers hear each change. -->
     <p class="visually-hidden" role="status" data-test="upload-status">{{ announced }}</p>
-    <p v-if="department.uploadRule" class="upload-rule">{{ department.uploadRule }}</p>
+    <p v-if="rule" class="upload-rule">{{ rule }}</p>
   </div>
 </template>

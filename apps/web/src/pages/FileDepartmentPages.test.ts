@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { openAppAt } from "@/app.fixture.ts";
 import * as confirmDialog from "@/components/common/ConfirmDialog.fixture.ts";
 import { downloadFrom, openFileTab } from "@/services/file-link.ts";
+import { aFile, chooseFile } from "@/services/file-upload.fixture.ts";
 import {
   apiHolds,
   type Held,
@@ -52,14 +53,6 @@ const rowFor = (wrapper: VueWrapper, name: string) => {
 };
 
 const notesSection = (wrapper: VueWrapper) => wrapper.get("section[aria-labelledby=notes-heading]");
-
-async function chooseToUpload(wrapper: VueWrapper, name: string) {
-  const file = new File(["made-up"], name);
-  const input = wrapper.get("main [data-test=upload-input]");
-  Object.defineProperty(input.element, "files", { value: [file], configurable: true });
-  await input.trigger("change");
-  await flushPromises();
-}
 
 describe.each([
   {
@@ -136,7 +129,7 @@ describe.each([
       apiHolds(held);
       const { wrapper } = await openAppAt(pageOf(key));
 
-      await chooseToUpload(wrapper, file);
+      await chooseFile(wrapper, aFile(file));
 
       expect(requests((url) => url.endsWith("-uploads"))).toEqual([`${route}-uploads`]);
       expect(held[key]?.["opening-number"]?.map((each) => each.name)).toEqual([file]);

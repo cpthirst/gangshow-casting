@@ -1,14 +1,38 @@
 import { describe, expect, it, vi } from "vitest";
 import { CAST_FLOW_PLACES, UNTIMED_ITEM_MINUTES } from "./cast-flow.ts";
 import { departmentPages } from "./departments.ts";
-import { accessLabel, helpFor, pageHelp, whoCanChange } from "./help.ts";
+import { accessLabel, helpFor, pageHelp, permissionHelp, whoCanChange } from "./help.ts";
 import { icons } from "./icons.ts";
 
-// A shared list in which Tech, not Stage, shares the props with the Director.
+// A shared list in which Tech, not Stage, shares the props with the Director, and changes the
+// Props store.
 vi.mock("@app/shared", async (importOriginal) => {
   const shared = await importOriginal<typeof import("@app/shared")>();
   const props = { ...shared.departments.props, permissions: ["tech", "director"] };
-  return { ...shared, departments: { ...shared.departments, props } };
+  const propsStore = { ...shared.stores.props, changedBy: ["tech"] };
+  return {
+    ...shared,
+    departments: { ...shared.departments, props },
+    stores: { ...shared.stores, props: propsStore },
+  };
+});
+
+describe("Help's Permissions lines", () => {
+  const storesIn = (name: string) => {
+    const does = permissionHelp.find((line) => line.name === name)?.does ?? "";
+    // The stores named in the line's stores clause, which follows the pages it changes.
+    const clause = /, (?:and the (.+?) stores?|but none of the stores)\./.exec(does);
+    return clause?.[1]?.split(/, | and /) ?? (clause ? [] : undefined);
+  };
+
+  it("name the stores each permission changes, as the shared list of stores says", () => {
+    expect(["Stage", "Tech", "Wardrobe", "Director"].map(storesIn)).toEqual([
+      ["Scenery"],
+      ["Props"],
+      ["Wardrobe"],
+      [],
+    ]);
+  });
 });
 
 describe("Help's access labels", () => {

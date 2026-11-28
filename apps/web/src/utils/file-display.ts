@@ -4,6 +4,7 @@ import {
   type FileDepartment,
   fileTypeOf,
   type ItemFile,
+  isGalleryImage,
   MAX_ITEM_FILE_BYTES,
 } from "@app/shared";
 import { icons } from "./icons.ts";
@@ -13,9 +14,12 @@ import { icons } from "./icons.ts";
 export const replaceQuestion = (name: string) =>
   `Replace ${name}? The old copy can't be brought back.`;
 
-/** Why the page won't upload a file, before asking the API: it's too big (FR8); undefined if
- *  it may. */
-export function uploadRefusal({ name, size }: { name: string; size: number }) {
+/** Why the page won't upload a file, before asking the API: it's too big (FR8), or a store's
+ *  upload, which takes only images, isn't one (stores FR11); undefined if it may. */
+export function uploadRefusal({ name, size }: { name: string; size: number }, forStore = false) {
+  if (forStore && !isGalleryImage(name)) {
+    return `${name} isn't an image the store keeps, so it wasn't uploaded.`;
+  }
   if (size > MAX_ITEM_FILE_BYTES) return `${name} is over 100 MB, so it wasn't uploaded.`;
   return undefined;
 }

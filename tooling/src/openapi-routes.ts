@@ -540,6 +540,19 @@ export const routeDocs: Record<RouteKey, RouteDoc> = {
       "404": plain("The department has no store, or the image isn't there."),
     },
   },
+  "POST /api/stores/{storeId}/uploads": {
+    tag: "Stores",
+    summary: "Get a form for uploading one image to a store",
+    description:
+      "Answers with where to POST the image: send the fields, then the image, as multipart/form-data. The image goes straight to file storage, up to 100 MB, within 5 minutes. It keeps its file's name.",
+    request: ItemFileUploadRequest,
+    success: ok("Where to send the image.", ItemFileUpload),
+    refusals: {
+      "400": plain("The request isn't valid, or the name isn't a JPG, PNG, GIF or WebP image."),
+      "404": plain("The department has no store."),
+      "409": plain("The store has an image of that name, and replace wasn't true."),
+    },
+  },
   "POST /api/usage": {
     tag: "Usage",
     summary: "Record one thing the caller did",

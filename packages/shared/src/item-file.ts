@@ -138,6 +138,11 @@ export function browserTypeOf(name: string, department: DepartmentId) {
 export const isGalleryImage = (name: string) =>
   browserTypes.get(fileTypeOf(name) ?? "")?.startsWith("image/") ?? false;
 
+/** The extensions isGalleryImage counts, as a file picker's accept list names them. */
+export const galleryImageExtensions = [...browserTypes]
+  .filter(([, type]) => type.startsWith("image/"))
+  .map(([type]) => `.${type.toLowerCase()}`);
+
 export type ItemFile = z.infer<typeof ItemFile>;
 export type ItemFileList = z.infer<typeof ItemFileList>;
 export type ItemFileLink = z.infer<typeof ItemFileLink>;

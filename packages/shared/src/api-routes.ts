@@ -64,6 +64,7 @@ export const routeKeys = [
   "DELETE /api/productions/{productionId}/roles/{roleId}",
   "GET /api/stores/{storeId}/image-links",
   "GET /api/stores/{storeId}/image-link",
+  "POST /api/stores/{storeId}/uploads",
   "POST /api/usage",
   "GET /api/usage",
 ] as const;
@@ -263,8 +264,12 @@ type OpenRouteKey =
   | (typeof readsSentAsPost)[number]
   | (typeof recordsAboutTheCaller)[number];
 
-/** What a route needs: a permission that may change its department, or an admin (ADR 0035). */
-export type Need = DepartmentId | "admin";
+/**
+ * What a route needs: a permission that may change its department, or an admin (ADR 0035).
+ * "store" is a change to the store its path's {storeId} names, which that store's own
+ * permissions allow (stores.ts, ADR 0043).
+ */
+export type Need = DepartmentId | "store" | "admin";
 
 /**
  * Every route that isn't open to everyone names what it needs, so a new change route missing
@@ -312,6 +317,7 @@ export const routeNeeds: RouteNeeds = {
   "PUT /api/productions/{productionId}/items/{itemId}/costumes": "wardrobe",
   "PUT /api/productions/{productionId}/items/{itemId}/mic-plot": "mic-plot",
   "PUT /api/productions/{productionId}/items/{itemId}/mic-plot-notes": "mic-plot",
+  "POST /api/stores/{storeId}/uploads": "store",
   // Usage is about the team, so only admins read it (usage-tracking FR4).
   "GET /api/usage": "admin",
 };

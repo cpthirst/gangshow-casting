@@ -54,6 +54,9 @@ export const noItemFiles: ItemFileStores = { scenery: noFiles, sfx: noFiles, war
 export const noStoreImages: StoreImageStore = {
   list: async () => [],
   linkTo: async () => undefined,
+  uploadTo: async () => {
+    throw new Error("not used here");
+  },
 };
 
 /** The routes on the stores given, recording usage in memory and holding no files. */

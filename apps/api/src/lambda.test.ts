@@ -812,8 +812,11 @@ describe("Lambda entry point", () => {
 
           expect(res.statusCode, key).toBe(403);
           const need = needOf(key);
+          // The store "x" isn't one, so only admins get past (http/access.test.ts has the stores).
           expect(JSON.parse(res.body ?? ""), key).toEqual(
-            need === undefined || need === "admin" ? ONLY_ADMINS : readOnlyRefusal(need),
+            need === undefined || need === "admin" || need === "store"
+              ? ONLY_ADMINS
+              : readOnlyRefusal(need),
           );
           expect(ran, key).toBe(false);
         }
