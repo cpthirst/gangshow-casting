@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { openAppAt } from "@/app.fixture.ts";
 import * as confirmDialog from "@/components/common/ConfirmDialog.fixture.ts";
 import { downloadFrom, openFileTab } from "@/services/file-link.ts";
-import { aFile, chooseFile } from "@/services/file-upload.fixture.ts";
+import { aFile, chooseFiles } from "@/services/file-upload.fixture.ts";
 import {
   apiHolds,
   type Held,
@@ -129,7 +129,7 @@ describe.each([
       apiHolds(held);
       const { wrapper } = await openAppAt(pageOf(key));
 
-      await chooseFile(wrapper, aFile(file));
+      await chooseFiles(wrapper, aFile(file));
 
       expect(requests((url) => url.endsWith("-uploads"))).toEqual([`${route}-uploads`]);
       expect(held[key]?.["opening-number"]?.map((each) => each.name)).toEqual([file]);

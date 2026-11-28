@@ -50,10 +50,32 @@ export function aFile(name: string, size = 1_000) {
   return file;
 }
 
-/** As the file picker does once someone chooses a file in the page's upload area. */
-export async function chooseFile(wrapper: VueWrapper, file: File) {
-  const input = wrapper.get("main [data-test=upload-input]");
-  Object.defineProperty(input.element, "files", { value: [file], configurable: true });
+/** As the file picker does once someone chooses one file or more in the page's upload area. */
+export async function chooseFiles(wrapper: VueWrapper, ...files: File[]) {
+  const input = wrapper.get("[data-test=upload-input]");
+  Object.defineProperty(input.element, "files", { value: files, configurable: true });
   await input.trigger("change");
   await flushPromises();
 }
+
+/** A drag onto the upload area, as the browser sends it: from the computer's files unless
+ *  other types are given, such as text selected on the page. */
+export async function drag(
+  wrapper: VueWrapper,
+  type: string,
+  {
+    files = [],
+    types = ["Files"],
+    from,
+  }: { files?: File[]; types?: string[]; from?: Element } = {},
+) {
+  const event = new Event(type, { bubbles: true, cancelable: true });
+  Object.defineProperty(event, "dataTransfer", { value: { files, types } });
+  Object.defineProperty(event, "relatedTarget", { value: from ?? null });
+  wrapper.get("[data-test=upload-area]").element.dispatchEvent(event);
+  await flushPromises();
+  return event;
+}
+
+/** Drops the files on the upload area, as from the computer's file manager. */
+export const dropOnto = (wrapper: VueWrapper, ...files: File[]) => drag(wrapper, "drop", { files });

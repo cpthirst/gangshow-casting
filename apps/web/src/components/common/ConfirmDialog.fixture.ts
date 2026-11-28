@@ -9,9 +9,10 @@ import ConfirmDialog from "./ConfirmDialog.vue";
 // The question lives outside any component, so one a test left open mustn't reach the next.
 afterEach(() => useConfirmation().answer(false));
 
-/** A page with the dialog App mounts beside it, for a test that mounts the page alone. */
-export const withConfirmDialog = (page: Component) => ({
-  render: () => [h(page), h(ConfirmDialog)],
+/** A page with the dialog App mounts beside it, for a test that mounts the page alone, with
+ *  any props it takes. */
+export const withConfirmDialog = (page: Component, props: Record<string, unknown> = {}) => ({
+  render: () => [h(page, props), h(ConfirmDialog)],
 });
 
 const openDialog = () =>

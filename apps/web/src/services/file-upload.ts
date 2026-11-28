@@ -5,6 +5,10 @@ import { sendJson } from "./sign-in.ts";
 // a store's images (stores FR12): the API says where, then the file goes straight to file
 // storage, never through the API (ADR 0030, ADR 0043).
 
+/** How many of a batch upload at once: enough to keep a slow connection busy, few enough
+ *  that each file goes at a steady pace (stores FR13). */
+export const uploadsAtOnce = 3;
+
 /** How an upload ended: kept, refused for a name already there, or not kept at all. */
 export type UploadResult = "uploaded" | "taken" | "failed";
 

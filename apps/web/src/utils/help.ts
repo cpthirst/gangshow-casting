@@ -124,7 +124,7 @@ function fileDepartmentHelp(
 ): PageHelp {
   const { name, noun } = departments[key];
   const addAFile =
-    "Adds one file of up to 100 MB to the item, chosen with the button or dragged onto it, showing how much has uploaded. A file with the same name as one already there replaces it, once you confirm. The old copy can't be brought back.";
+    "Adds files of up to 100 MB each to the item, one or many at once, chosen with the button or dragged onto it, showing how much has uploaded. A single file with the same name as one already there replaces it, once you confirm. The old copy can't be brought back.";
   return {
     page: `${key}-item`,
     changedBy: key,

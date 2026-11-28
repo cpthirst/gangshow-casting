@@ -84,24 +84,31 @@ watchEffect(() => {
 
 // The item whose page is showing, so reloading it to catch up keeps it on show.
 let shownId: string | undefined;
+// Counts loads, so only the latest one asked for shows: a reload to catch up can answer after
+// a later one, as several uploads finishing together each ask for one.
+let loads = 0;
 
 async function open(id: string) {
-  if (id !== shownId) status.value = "loading";
+  const asked = ++loads;
+  const reloading = id === shownId && status.value === "loaded";
+  if (!reloading) status.value = "loading";
   try {
     // No saved running order at all: no item can be in it.
     const [loadedOrder, showData] = await Promise.all([
       loadData(runningOrderPath(), RunningOrder),
       props.load(id),
     ]);
-    // Stepped on to another item while this one loaded: that load shows instead.
-    if (id !== itemId.value) return;
+    // Stepped on to another item, or reloaded again, while this one loaded: that load shows.
+    if (asked !== loads) return;
     order.value = loadedOrder;
     if (loadedOrder) showData(loadedOrder);
     shownId = id;
     status.value = "loaded";
   } catch {
+    if (asked !== loads) return;
+    // A failed catch-up keeps the page showing, and what's under way on it, such as uploads.
+    if (reloading) return;
     // A failed load must never look like "not found" or an empty page.
-    if (id !== itemId.value) return;
     shownId = undefined;
     status.value = "error";
   }

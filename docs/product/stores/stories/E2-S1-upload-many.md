@@ -2,7 +2,7 @@
 id: stores.E2.S1
 title: Upload many images at once
 epic: E2
-status: ready
+status: done
 ---
 
 ## Story

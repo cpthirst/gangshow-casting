@@ -302,6 +302,61 @@ describe("The item page frame while it loads", () => {
     await reload;
   });
 
+  it("shows the latest of two reloads, even when the earlier one answers last", async () => {
+    apiHolds(show);
+    // Each reload's answer arrives only when the test lets it, showing which reload it was.
+    const answers: ((shows: () => void) => void)[] = [];
+    let reloads = 0;
+    const { wrapper } = await openFrame("props", "pirate-sketch", (id) => {
+      if (reloads === 0) return loadsAt(id)();
+      return new Promise<() => void>((resolve) => answers.push(resolve));
+    });
+    reloads = 1;
+    const first = wrapper.vm.reload();
+    const second = wrapper.vm.reload();
+    await flushPromises();
+
+    answers[1]?.(() => shown.push("second"));
+    await flushPromises();
+    answers[0]?.(() => shown.push("first"));
+    await Promise.all([first, second]);
+
+    expect(shown).toEqual(["pirate-sketch", "second"]);
+  });
+
+  it("keeps the item's page when a reload to catch up fails", async () => {
+    apiHolds(show);
+    let failing = false;
+    const { wrapper } = await openFrame("props", "pirate-sketch", (id) =>
+      failing ? Promise.reject(new Error("unreachable")) : loadsAt(id)(),
+    );
+
+    failing = true;
+    await wrapper.vm.reload();
+    await flushPromises();
+
+    expect(wrapper.get("[data-test=page]").text()).toBe("Pirate Sketch's props");
+    expect(wrapper.text()).not.toContain("Couldn't load the item.");
+  });
+
+  it("says it couldn't load an item stepped back to before the next one answered, when its load fails", async () => {
+    apiHolds(show);
+    let failing = false;
+    const { load } = holdsBack("finale");
+    const { wrapper, router } = await openFrame("props", "pirate-sketch", (id) =>
+      failing && id === "pirate-sketch" ? Promise.reject(new Error("unreachable")) : load(id),
+    );
+
+    await wrapper.get("a[rel=next]").trigger("click");
+    await flushPromises();
+    failing = true;
+    await router.back();
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("Couldn't load the item.");
+    expect(wrapper.get("[data-test=loading]").text()).toBe("");
+  });
+
   it("announces Loading… politely, in one status region kept on the page", async () => {
     apiHolds(show);
     const { held, load } = holdsBack("pirate-sketch");

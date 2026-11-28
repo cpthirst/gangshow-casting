@@ -11,7 +11,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { json, openAppAt } from "@/app.fixture.ts";
 import * as confirmDialog from "@/components/common/ConfirmDialog.fixture.ts";
 import { downloadFrom, openFileTab } from "@/services/file-link.ts";
-import { aFile, chooseFile as choose, StandInXhr } from "@/services/file-upload.fixture.ts";
+import {
+  aFile,
+  chooseFiles as choose,
+  drag,
+  dropOnto,
+  StandInXhr,
+} from "@/services/file-upload.fixture.ts";
 import {
   departmentNotesPath,
   itemFileLinkPath,
@@ -1001,25 +1007,6 @@ describe("Replacing a scenery file", () => {
   });
 });
 
-/** A drag onto the upload area, as the browser sends it: from the computer's files unless
- *  other types are given, such as text selected on the page. */
-async function drag(
-  wrapper: VueWrapper,
-  type: string,
-  {
-    files = [],
-    types = ["Files"],
-    from,
-  }: { files?: File[]; types?: string[]; from?: Element } = {},
-) {
-  const event = new Event(type, { bubbles: true, cancelable: true });
-  Object.defineProperty(event, "dataTransfer", { value: { files, types } });
-  Object.defineProperty(event, "relatedTarget", { value: from ?? null });
-  wrapper.get("main [data-test=upload-area]").element.dispatchEvent(event);
-  await flushPromises();
-  return event;
-}
-const dropOnto = (wrapper: VueWrapper, ...files: File[]) => drag(wrapper, "drop", { files });
 const highlighted = (wrapper: VueWrapper) =>
   wrapper.get("main [data-test=upload-area]").classes("dropping");
 
@@ -1119,18 +1106,6 @@ describe("Dragging a file to upload", () => {
     expect(highlighted(wrapper)).toBe(false);
     release();
     await flushPromises();
-  });
-
-  it("uploads neither of two files dropped at once, saying so", async () => {
-    await signInAs(["stage"], "pat");
-    apiHolds(show);
-    const { wrapper } = await openAppAt(OPENING_NUMBER);
-
-    await dropOnto(wrapper, aFile("set-plan.pdf"), aFile("backdrop.png"));
-
-    expect(problem(wrapper)).toBe("Drop one file at a time.");
-    expect(uploadRequests()).toEqual([]);
-    expect(rows(wrapper)).toEqual([]);
   });
 
   it("says beside the button that a file can be dragged there", async () => {

@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { openAppAt } from "@/app.fixture.ts";
 import * as confirmDialog from "@/components/common/ConfirmDialog.fixture.ts";
 import { downloadFrom, openFileTab } from "@/services/file-link.ts";
+import { aFile, chooseFiles } from "@/services/file-upload.fixture.ts";
 import {
   apiHolds,
   downloadLinkTo,
@@ -57,6 +58,23 @@ describe("An item's images, on any file page", () => {
     expect(section.indexOf("Images")).toBeLessThan(section.indexOf("set-plan.jpg"));
     expect(section.indexOf("set-plan.jpg")).toBeLessThan(section.indexOf("Other Files"));
     expect(section.indexOf("Other Files")).toBeLessThan(section.indexOf("build-list.pdf"));
+  });
+
+  it("uploads an image and another file chosen at once, showing each under its own heading", async () => {
+    await signInAs(["stage"], "pat");
+    const held: Held = {};
+    apiHolds(held);
+    const { wrapper } = await openAppAt(pageOf("scenery"));
+
+    await chooseFiles(wrapper, aFile("set-plan.jpg"), aFile("build-list.pdf"));
+
+    expect(held.scenery?.["opening-number"]?.map((file) => file.name).toSorted()).toEqual([
+      "build-list.pdf",
+      "set-plan.jpg",
+    ]);
+    expect(headings(wrapper)).toEqual(["Images", "Other Files"]);
+    expect(thumbnails(wrapper)).toEqual(["set-plan.jpg"]);
+    expect(names(wrapper)).toEqual(["build-list.pdf"]);
   });
 
   it("shows only images the browser can show as thumbnails, leaving SVG and HEIC as rows with the image icon", async () => {

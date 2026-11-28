@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { json, openAppAt } from "@/app.fixture.ts";
 import * as confirmDialog from "@/components/common/ConfirmDialog.fixture.ts";
 import { downloadFrom } from "@/services/file-link.ts";
-import { aFile, chooseFile, StandInXhr } from "@/services/file-upload.fixture.ts";
+import { aFile, chooseFiles, StandInXhr } from "@/services/file-upload.fixture.ts";
 import { openProduction, openProductionYear } from "@/services/production.ts";
 import { signInAs } from "@/services/sign-in.fixture.ts";
 import { useLocalSignIn } from "@/services/sign-in.ts";
@@ -265,7 +265,7 @@ describe("Adding an image to a store", () => {
     const fetch = serveStores({ held });
     const { wrapper } = await openAppAt("/stores/scenery");
 
-    await chooseFile(wrapper, aFile("castle-backdrop.png", 2_400_000));
+    await chooseFiles(wrapper, aFile("castle-backdrop.png", 2_400_000));
 
     const [[url, init] = []] = uploadsAsked(fetch);
     expect(url).toBe("/api/stores/scenery/uploads");
@@ -278,11 +278,48 @@ describe("Adding an image to a store", () => {
     expect(thumbnails(wrapper)).toEqual(["castle-backdrop.png", "throne.jpg"]);
   });
 
+  it("uploads every image someone with Wardrobe chooses at once, which join the grid in name order", async () => {
+    await signInAs(["wardrobe"], "pat");
+    const held = { scenery: [], props: [], wardrobe: [] };
+    serveStores({ held });
+    const { wrapper } = await openAppAt("/stores/wardrobe");
+
+    await chooseFiles(wrapper, aFile("tunic.jpg"), aFile("cloak.jpg"), aFile("crown.jpg"));
+
+    expect(held.wardrobe.toSorted()).toEqual(["cloak.jpg", "crown.jpg", "tunic.jpg"]);
+    expect(thumbnails(wrapper)).toEqual(["cloak.jpg", "crown.jpg", "tunic.jpg"]);
+  });
+
+  it("shows each image of a batch in the grid as it finishes, before the rest", async () => {
+    await signInAs(["wardrobe"], "pat");
+    const fetch = serveStores({ held: { scenery: [], props: [], wardrobe: [] } });
+    // File storage holds crown.jpg back until the test lets it go.
+    let releaseCrown = () => {};
+    const serve = fetch.getMockImplementation();
+    fetch.mockImplementation(async (url, init) => {
+      const body = init?.body;
+      if (url === STORAGE && body instanceof FormData && body.get("key") === "wardrobe/crown.jpg") {
+        await new Promise<void>((resolve) => {
+          releaseCrown = resolve;
+        });
+      }
+      return serve?.(url, init) ?? new Response(null, { status: 500 });
+    });
+    const { wrapper } = await openAppAt("/stores/wardrobe");
+
+    await chooseFiles(wrapper, aFile("cloak.jpg"), aFile("crown.jpg"));
+
+    expect(thumbnails(wrapper)).toEqual(["cloak.jpg"]);
+    releaseCrown();
+    await flushPromises();
+    expect(thumbnails(wrapper)).toEqual(["cloak.jpg", "crown.jpg"]);
+  });
+
   it("shows an image just added in the viewer under its name", async () => {
     await signInAs(["stage"], "pat");
     serveStores({ held: throneOnly() });
     const { wrapper } = await openAppAt("/stores/scenery");
-    await chooseFile(wrapper, aFile("castle-backdrop.png"));
+    await chooseFiles(wrapper, aFile("castle-backdrop.png"));
 
     const added = wrapper
       .findAll("main [data-test=image]")
@@ -351,7 +388,7 @@ describe("Adding an image to a store", () => {
     const fetch = serveStores({ held: throneOnly() });
     const { wrapper } = await openAppAt("/stores/scenery");
 
-    await chooseFile(wrapper, aFile("build-list.pdf"));
+    await chooseFiles(wrapper, aFile("build-list.pdf"));
 
     expect(uploadsAsked(fetch)).toEqual([]);
     expect(wrapper.get("main [data-test=file-problem]").text()).toBe(
@@ -364,7 +401,7 @@ describe("Adding an image to a store", () => {
     const fetch = serveStores({ held: throneOnly() });
     const { wrapper } = await openAppAt("/stores/scenery");
 
-    await chooseFile(wrapper, aFile("castle.jpg", 120_000_000));
+    await chooseFiles(wrapper, aFile("castle.jpg", 120_000_000));
 
     expect(uploadsAsked(fetch)).toEqual([]);
     expect(wrapper.get("main [data-test=file-problem]").text()).toBe(
@@ -377,7 +414,7 @@ describe("Adding an image to a store", () => {
     const fetch = serveStores({ held: throneOnly() });
     const { wrapper } = await openAppAt("/stores/scenery");
 
-    await chooseFile(wrapper, aFile("throne.jpg"));
+    await chooseFiles(wrapper, aFile("throne.jpg"));
     const question = confirmDialog.confirmation()?.question;
     await confirmDialog.goAhead();
 

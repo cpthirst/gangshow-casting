@@ -28,7 +28,7 @@ prd: ./prd.md
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [stores.E2.S1](stories/E2-S1-upload-many.md) | The shared upload takes one image or many, chosen or dropped, with no limit and no prompt during the batch. It sends a few at a time, shows how many have gone and how much of the whole, announces only the start and end, and each image joins the grid as it finishes. The production Scenery, SFX and Wardrobe pages take many too, through the same upload | FR9, FR10, FR13 | E1.S2 | ready |
+| [stores.E2.S1](stories/E2-S1-upload-many.md) | The shared upload takes one image or many, chosen or dropped, with no limit and no prompt during the batch. It sends a few at a time, shows how many have gone and how much of the whole, announces only the start and end, and each image joins the grid as it finishes. The production Scenery, SFX and Wardrobe pages take many too, through the same upload | FR9, FR10, FR13 | E1.S2 | done |
 | [stores.E2.S2](stories/E2-S2-files-that-didnt-upload.md) | When a batch ends, one list says which files didn't upload and why: refused before starting (not an image the page keeps, or over 100 MB), a name already used (kept back, with one step to replace them all), or failed (with one step to try them all again). The list is announced once. The same list shows on the production file pages | FR11, FR13 | E2.S1 | ready |
 | [stores.E2.S3](stories/E2-S3-stores-overview.md) | The Stores section opens with an **Overview** listing each store from the shared list, with its image count and a link to its page, from one request. It's the same in every production and records a visit. What Stores is for goes in Help, not on the page | FR27, FR28 | E1.S1 | ready |
 
