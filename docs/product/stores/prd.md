@@ -38,12 +38,12 @@ The Chester Gang Show keeps scenery, props and costumes in stores from one year 
 
 - **Files other than images.** Stores keeps only images a browser can show (JPG, PNG, GIF, WebP, as production-image-gallery FR1). There is no Other Files list.
 - **Stores for other departments** (SFX, Mic plot, Casting). They join later through the shared list of stores, as a feature of their own.
-- **An inventory**: quantities, locations or shelves, condition fields, sizes as fields, tags, categories, search, or checking items in and out. The description is free text.
+- **An inventory**: quantities, locations or shelves, condition fields, sizes as fields, tags, categories, or checking items in and out. The description is free text. Search is by name and description only (FR33), within one store.
 - **Linking a stores item to a production's item**, or copying a stores photo into an item's files, or the other way round.
 - **Editing images**: cropping, rotating, reordering. Images sort by name.
 - **Keeping old names or descriptions**: an edit replaces them.
 - **Other export formats** (PDF, Excel) or choosing which images go in the catalogue: the catalogue is the whole store.
-- **Stores on the Production overview**, or counts of stores images anywhere.
+- **Stores on the Production overview.** Stores have their own overview (FR27).
 
 ## Functional requirements
 
@@ -81,15 +81,29 @@ The Chester Gang Show keeps scenery, props and costumes in stores from one year 
 ### Deleting
 - **FR19**: The trash icon on a thumbnail deletes the image and its description, with the same confirm as a file (production-scenery FR11).
 
+### The Stores overview
+- **FR27**: The Stores section opens with an **Overview** listing every store in the shared list (FR3), each with how many images it holds and a link to its page. It is the same in every production, and records a visit for Usage.
+- **FR28**: What Stores is for, and that it outlasts every production year, is said in Help and on the Welcome page (FR25), not on the overview (CLAUDE.md, "Let the layout explain itself").
+
+### Destroyed items
+- **FR29**: Someone who can change a store (FR4) can mark an image **destroyed** with a Destroy button, with its own icon, on its thumbnail and in the viewer. A labelled dialog asks for the **Date destroyed** (today by default) and a **Reason** (required, up to 300 characters, the count shown only near the limit). The image stays in file storage; nothing is deleted.
+- **FR30**: A destroyed image shows greyed out, after the images still in store, in name order. It can still be opened, viewed, downloaded, edited and deleted. The overview's counts (FR27) cover only images still in store.
+- **FR31**: The viewer shows an info button beside download on a destroyed image, for anyone signed in, giving the date, the reason and the username of who recorded it (ADR 0018).
+- **FR32**: Someone who can change the store can **Restore** a destroyed image from its info, after a confirm, which clears its date and reason. The API refuses destroy and restore from anyone else with the department's refusal (ADR 0035).
+
+### Search
+- **FR33**: A store with images has a search above its grid, following the Cast page's filters: it matches the image's name or description, ignoring case, with a live count ("1 of 4 images") and a Clear button, and destroyed images can be found and opened. The viewer moves only through the matches.
+
 ### The Word catalogue
 - **FR20**: Each store's page has an export button that downloads a Word document of the whole store, for anyone who can view it. It joins the app's other Word exports and their shared styles.
 - **FR21**: The catalogue's pages are A4 portrait, each holding up to four images in a two-by-two grid, in name order. Each image keeps its shape, scaled down to fit its quarter, with its name in bold and its description beneath. An image with no description shows only its name.
 - **FR22**: Each page's header names the show and the store ("Chester Gang Show: Wardrobe stores"), and its footer has the page number and the date the catalogue was made.
 - **FR23**: Images are shrunk to print size in the document, so a 200-image catalogue stays under 25 MB. An image that can't be fetched leaves its name and description with a blank space, and the page says how many were missed when the download finishes.
 - **FR24**: A store with no images offers no export.
+- **FR34**: Destroyed images close the catalogue, after the rest and starting a new page, each marked with its date destroyed and reason.
 
 ### Help, Welcome and Usage
-- **FR25**: Help has one entry for the store page, saying what Stores is for, that it outlasts each show, who can change each store (from FR5), that many images can go up at once, and what the catalogue holds. The Welcome page mentions Stores.
+- **FR25**: Help has one entry for the store page, saying what Stores is for, that it outlasts each show, who can change each store (from FR5), that many images can go up at once, how destroying and search work, and what the catalogue holds, and one for the Stores overview. The Welcome page mentions Stores.
 - **FR26**: Opening a store's page records a visit for the Usage page, named by its store, as the other pages do (ADR 0023, ADR 0024).
 
 ## Non-functional requirements
@@ -97,7 +111,7 @@ The Chester Gang Show keeps scenery, props and costumes in stores from one year 
 - **Security and safeguarding**:
   - Stores images are private, as item files are (ADR 0030): never publicly reachable, reached only through short-lived links, and every request needs a sign-in.
   - Whether a file is an image comes from its name alone, as in the gallery; SVG stays out.
-  - Stores hold items, not people. The no-photos-of-cast-members rule shows on every store's upload area, and Help repeats it. Descriptions are about the item; Help says not to name cast members in them.
+  - Stores hold items, not people. The no-photos-of-cast-members rule shows on every store's upload area, and Help repeats it. Descriptions and destroy reasons are about the item; Help says not to name cast members in them.
   - Names and descriptions are shown as text, never as HTML, on the page and in the catalogue.
   - The API checks FR4's permission on every change, whatever the page shows.
 - **Accessibility**: WCAG 2.2 AA, with everything production-image-gallery requires of the grid and viewer, plus:
@@ -117,6 +131,7 @@ The Chester Gang Show keeps scenery, props and costumes in stores from one year 
 - **Renaming is new.** Item files can't be renamed in the app today; renaming a stores image is.
 - **The Word catalogue is built in the browser**, as the app's other Word exports are.
 - **Decided 2026-11-26**: Director doesn't change stores, and Tech doesn't change the Scenery store (unlike production Scenery); the production file pages take many files too; no limit on a batch; descriptions up to 300 characters; the catalogue shrinks images and prints each one's name and description; Stores pages record visits and appear on the Welcome page.
+- **Decided 2026-11-28**: Stores has an overview with counts, its explanation in Help and Welcome rather than on the page; destroying keeps the photo, asks for a date and reason, and can be restored; search is per store, by name and description, and finds destroyed images; destroyed images close the catalogue, marked.
 - **Assumption**: "Costume managers" are the Wardrobe permission (ADR 0027).
 - **More than one production**: nothing in Stores reads the chosen production.
 

@@ -11,9 +11,9 @@ prd: ./prd.md
 | Epic | Capability | FRs |
 |---|---|---|
 | E1 | A Stores section in the sidebar, with a gallery page for each of Scenery, Props and Wardrobe that outlasts every production, where each department adds and removes its images | FR1, FR2, FR3, FR4, FR5, FR6, FR8, FR12, FR14, FR19, FR26 |
-| E2 | The shared upload takes many images at once, with no prompts, on the stores and the production file pages | FR9, FR10, FR11, FR13 |
-| E3 | The pencil edits an image's name and description, and the viewer shows the description | FR7, FR15, FR16, FR17, FR18 |
-| E4 | Each store exports a Word catalogue, four images to an A4 page | FR20, FR21, FR22, FR23, FR24 |
+| E2 | The shared upload takes many images at once, with no prompts, on the stores and the production file pages; a Stores overview counts each store | FR9, FR10, FR11, FR13, FR27, FR28 |
+| E3 | The pencil edits an image's name and description, and the viewer shows the description; images can be marked destroyed, and a store searched | FR7, FR15, FR16, FR17, FR18, FR29, FR30, FR31, FR32, FR33 |
+| E4 | Each store exports a Word catalogue, four images to an A4 page, destroyed ones last | FR20, FR21, FR22, FR23, FR24, FR34 |
 | E5 | Help and Welcome describe Stores | FR25 |
 
 ## E1: The stores
@@ -29,7 +29,8 @@ prd: ./prd.md
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
 | [stores.E2.S1](stories/E2-S1-upload-many.md) | The shared upload takes one image or many, chosen or dropped, with no limit and no prompt during the batch. It sends a few at a time, shows how many have gone and how much of the whole, announces only the start and end, and each image joins the grid as it finishes. The production Scenery, SFX and Wardrobe pages take many too, through the same upload | FR9, FR10, FR13 | E1.S2 | ready |
-| [stores.E2.S2](stories/E2-S2-files-that-didnt-upload.md) | When a batch ends, one list says which files didn't upload and why: refused before starting (not an image the page keeps, or over 100 MB), a name already used (kept back, with one step to replace them all), or failed (with one step to try them all again). The list is announced once. The same list shows on the production file pages | FR11, FR13 | E2.S1 | draft |
+| [stores.E2.S2](stories/E2-S2-files-that-didnt-upload.md) | When a batch ends, one list says which files didn't upload and why: refused before starting (not an image the page keeps, or over 100 MB), a name already used (kept back, with one step to replace them all), or failed (with one step to try them all again). The list is announced once. The same list shows on the production file pages | FR11, FR13 | E2.S1 | ready |
+| [stores.E2.S3](stories/E2-S3-stores-overview.md) | The Stores section opens with an **Overview** listing each store from the shared list, with its image count and a link to its page, from one request. It's the same in every production and records a visit. What Stores is for goes in Help, not on the page | FR27, FR28 | E1.S1 | ready |
 
 ## E3: Name and description
 
@@ -37,28 +38,32 @@ prd: ./prd.md
 |---|---|---|---|---|
 | [stores.E3.S1](stories/E3-S1-describe-an-image.md) | Someone who can change the store sees a pencil on each thumbnail and in the viewer. It opens a labelled dialog with the image's **Description**, up to 300 characters with the count shown only near the limit. Saving stores it; cancelling doesn't. The viewer shows the description under the image's name. An image deleted elsewhere since the page loaded says so, and the page catches up. The API refuses anyone without the store's permission | FR7, FR15, FR17, FR18 | E1.S3 | ready |
 | [stores.E3.S2](stories/E3-S2-rename-an-image.md) | The pencil's dialog also has the image's **Name**. A new name keeps the file's extension and must be unique in the store: one already used is refused with a message saying so, and the dialog stays open. The image keeps its description under its new name, and the grid re-sorts | FR15, FR16, FR18 | E3.S1 | ready |
+| [stores.E3.S3](stories/E3-S3-destroy-an-image.md) | Someone who can change the store sees a Destroy button, with its own icon, on each thumbnail and in the viewer. Its dialog asks for the date destroyed and a reason; the image stays stored, greyed out at the bottom of the grid, with an info button in the viewer saying when, why and who recorded it. Restore undoes it. The overview counts only what's in store. The API refuses anyone else | FR29, FR30, FR31, FR32 | E3.S1, E2.S3 | ready |
+| [stores.E3.S4](stories/E3-S4-search-a-store.md) | A store's page has a search above its grid, like the Cast page's filters, matching names and descriptions with a live count and Clear. Destroyed images can be found and opened; the viewer moves only through the matches | FR33 | E3.S3 | ready |
 
 ## E4: The Word catalogue
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
 | [stores.E4.S1](stories/E4-S1-word-catalogue.md) | Each store with images has an export button for anyone who can view it, which downloads a Word catalogue of the whole store, built in the browser with the app's shared Word styles. A4 portrait pages hold up to four images in a two-by-two grid in name order, each keeping its shape within its quarter, with its name in bold and its description beneath. Each page's header names the show and the store, and its footer has the page number and the date made. A store with no images offers no export | FR20, FR21, FR22, FR24 | E3.S2 | ready |
-| [stores.E4.S2](stories/E4-S2-catalogue-print-size.md) | The catalogue shrinks each image to print size, one at a time, so 200 phone photos stay under 25 MB and build in under a minute on a laptop, with the button showing that it's working. An image that can't be fetched leaves its name and description beside a blank space, and the page says how many were missed | FR23 | E4.S1 | ready |
+| [stores.E4.S2](stories/E4-S2-catalogue-print-size.md) | The catalogue shrinks each image to print size, one at a time, so 200 phone photos stay under 25 MB and build in under a minute on a laptop, with the button showing that it's working. An image that can't be fetched leaves its name and description beside a blank space, and the page says how many were missed | FR23 | E4.S2 | ready |
+| [stores.E4.S3](stories/E4-S3-destroyed-in-catalogue.md) | Destroyed images close the catalogue, on a new page after the rest, each marked with its date destroyed and reason | FR34 | E4.S1, E3.S3 | ready |
 
 ## E5: Help
 
 | ID | Story | FRs | Depends on | Status |
 |---|---|---|---|---|
-| [stores.E5.S1](stories/E5-S1-help.md) | Help has one entry for the store page: what Stores is for, that it outlasts each show, who can change each store (read from the shared list), that many images go up at once, what the catalogue holds, and not to photograph cast members or name them in descriptions. The production file pages' Help says they take many files. The Welcome page mentions Stores | FR25 | E4.S2 | ready |
+| [stores.E5.S1](stories/E5-S1-help.md) | Help has one entry for the store page: what Stores is for, that it outlasts each show, who can change each store (read from the shared list), that many images go up at once, what the catalogue holds, and not to photograph cast members or name them in descriptions. The production file pages' Help says they take many files. The Welcome page mentions Stores | FR25 | E4.S3, E3.S4 | ready |
 
 ## Order
 
-E1.S1 → E1.S2 → E1.S3 → E2.S1 → E2.S2 → E3.S1 → E3.S2 → E4.S1 → E4.S2 → E5.S1
+E1.S1 → E1.S2 → E1.S3 → E2.S1 → E2.S2 → E2.S3 → E3.S1 → E3.S2 → E3.S3 → E3.S4 → E4.S1 → E4.S2 → E4.S3 → E5.S1
 
 - E1.S1 is the biggest: a new sidebar section, the shared list of stores, API routes for listing and links outside any production, and the ADR. It may pass the ~400-line guideline; if so, the ADR and storage can go first as their own story. Deployed alone, every store shows its empty message.
 - E1.S2 adds the first change to a store, so it brings the permission rule and the security review with it.
 - E2 changes the production pages' upload too, so its stories rerun those pages' upload tests and the browser layout walks.
 - E3 needs only E1, so it can go before E2 if descriptions matter more than batches. E4 follows E3, so the catalogue prints descriptions from its first story.
+- E2.S3 is built in the E2 batch; it needs only E1.S1. E3.S3 follows E2.S3 so its counts can leave destroyed images out.
 - E5.S1 goes last, once everything it describes exists. It changes the Help page's code, so it is test-first.
 
 ## FR coverage
@@ -91,3 +96,11 @@ E1.S1 → E1.S2 → E1.S3 → E2.S1 → E2.S2 → E3.S1 → E3.S2 → E4.S1 → 
 | FR24 | E4.S1 |
 | FR25 | E5.S1 |
 | FR26 | E1.S1 |
+| FR27 | E2.S3 |
+| FR28 | E2.S3, E5.S1 |
+| FR29 | E3.S3 |
+| FR30 | E3.S3 |
+| FR31 | E3.S3 |
+| FR32 | E3.S3 |
+| FR33 | E3.S4 |
+| FR34 | E4.S3 |

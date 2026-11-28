@@ -2,7 +2,7 @@
 id: stores.E2.S2
 title: List the files a batch didn't upload
 epic: E2
-status: draft
+status: ready
 ---
 
 ## Story
@@ -24,7 +24,8 @@ Then cloak.jpg uploads, the stored crown.jpg is unchanged, and the page lists cr
 ### AC3: Kept-back files can be replaced in one step
 Given the list from AC2
 When they choose "Replace them"
-Then the page asks once whether to replace the 1 file, and confirming replaces crown.jpg
+Then the page asks once, "Replace 1 file? The old copy can't be brought back.", and confirming replaces crown.jpg
+And with 2 kept back it asks "Replace 2 files? The old copies can't be brought back."
 
 ### AC4: Failed files can be tried again in one step
 Given cloak.jpg and tunic.jpg failed to upload because the connection dropped
@@ -44,16 +45,28 @@ Given the list from AC1 shows
 When they start another batch
 Then the list goes
 
-### AC8: The production file pages show the same list
+### AC8: A batch of one still asks before replacing
+When they choose crown.jpg alone
+Then the page asks "Replace crown.jpg? The old copy can't be brought back.", as before, and no list shows
+
+### AC9: The production file pages show the same list
 Given someone with Stage is on "Opening Number"'s Scenery page, which has set-plan.jpg
 When they choose set-plan.jpg and backdrop.png at once
 Then backdrop.png uploads and the page lists set-plan.jpg as a name the item already has
+
+### AC10: A batch where nothing uploads still lists every file
+When they choose notes.pdf and crown.jpg at once
+Then nothing uploads, and the page lists notes.pdf as not an image the store keeps and crown.jpg as a name the store already has
+
+### AC11: A batch where every file fails doesn't say they uploaded
+Given cloak.jpg and tunic.jpg both fail to upload
+Then the page doesn't announce "0 files uploaded", and lists both as failed
 
 ## Notes
 
 - FRs: FR11, FR13
 - Depends on: stores.E2.S1
-- The list belongs to the shared upload, so its tests live there; AC8 checks a production page is wired to it.
-- **Open question**: when a *single* file's name is already used, does it keep today's "Replace …? The old copy can't be brought back." confirm (E1.S2 AC12), or go into this list like a batch's? Owner: Nick Hirst. Ready once answered.
+- The list belongs to the shared upload, so its tests live there; AC9 checks a production page is wired to it.
+- A batch of one keeps E1.S2's single-file messages and replace question (AC8); only a batch of two or more uses the list. Decided by Nick Hirst, 2026-11-28.
 - A name used by the batch twice (two crown.jpg from different folders) keeps the first and lists the second.
 - Out of scope: renaming a kept-back file before uploading it.

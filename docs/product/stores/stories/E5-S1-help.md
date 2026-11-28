@@ -25,11 +25,11 @@ Then it says who can change the Scenery, Props and Wardrobe stores, read from th
 
 ### AC4: It says what can be done there
 Given the Help entry for the store page
-Then it mentions adding many photos at once, the pencil for a name and description, and the Word catalogue of four photos to a page
+Then it mentions adding many photos at once, the pencil for a name and description, destroying and restoring an item, searching the store, and the Word catalogue of four photos to a page with destroyed items last
 
 ### AC5: It repeats the safeguarding rule
 Given the Help entry for the store page
-Then it says not to photograph cast members, and not to name them in descriptions
+Then it says not to photograph cast members, and not to name them in descriptions or destroy reasons
 
 ### AC6: The production file pages' Help says they take many files
 Given the Help entries for the Scenery, SFX and Wardrobe pages
@@ -44,10 +44,19 @@ Given anyone is on the Props stores page
 When they choose its help button
 Then Help opens at the store page's entry
 
+### AC9: The Stores overview has its own entry
+Given anyone opens Help
+Then it has an entry for the Stores overview, saying Stores belongs to the show rather than to any production year
+
+### AC10: The overview's help button opens its entry
+Given anyone is on the Stores overview
+When they choose its help button
+Then Help opens at the overview's entry
+
 ## Notes
 
 - FRs: FR25
-- Depends on: stores.E4.S2
+- Depends on: stores.E4.S3, stores.E3.S4
 - Help lives in `apps/web/src/utils/help.ts`; the who-can-change line comes from the shared list of stores, as departments' lines come from `whoCanChangeLine` (CLAUDE.md, "Say a thing once").
 - Check structure, not wording (CLAUDE.md, "Don't pin content"), except AC5, which is safeguarding.
 - It changes the Help page's code, so it is test-first, not a documentation story.
