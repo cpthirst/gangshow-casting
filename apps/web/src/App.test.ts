@@ -54,6 +54,7 @@ describe("App shell", () => {
       expect.stringMatching(/^Show/),
       expect.stringMatching(/^Casting/),
       expect.stringMatching(/^Production/),
+      expect.stringMatching(/^Stores/),
       expect.stringMatching(/^Admin/),
       "Help",
     ]);
@@ -65,6 +66,9 @@ describe("App shell", () => {
       "Items",
       "Overview",
       "Cast flow",
+      "Scenery",
+      "Props",
+      "Wardrobe",
       "Accounts",
       "Productions",
       "Usage",
@@ -471,7 +475,9 @@ describe("App shell", () => {
       ["Overview", "/production/overview"],
       ["Cast flow", "/production/cast-flow"],
     ]);
-    expect(wrapper.get("nav[aria-label=Main]").text()).not.toMatch(/Stage|Tech|Wardrobe/);
+    expect(wrapper.get("nav[aria-label=Main]").text()).not.toMatch(/Stage|Tech/);
+    // Wardrobe and Scenery are stores, apart from the production's pages.
+    expect(production.text()).not.toMatch(/Wardrobe|Scenery/);
     expect(production.findAll("button, ul")).toEqual([]);
   });
 
@@ -697,16 +703,19 @@ describe("App shell", () => {
     expect(router.currentRoute.value.fullPath).toBe("/casting/overview");
   });
 
-  it("returns to the previous page on back", async () => {
-    const { wrapper, router } = await openAppAt("/running-order");
-    await router.push("/cast");
+  it.each([
+    ["/running-order", "/cast", "Running order"],
+    ["/casting/overview", "/casting/items", "Overview"],
+  ])("returns from one page to the one before on back: %s", async (first, next, title) => {
+    const { wrapper, router } = await openAppAt(first);
+    await router.push(next);
 
     const navigated = nextNavigation(router);
     router.back();
     await navigated;
     await flushPromises();
 
-    expect(wrapper.get("main h1").text()).toBe("Running order");
+    expect(wrapper.get("main h1").text()).toBe(title);
   });
 
   it("sends the old Casting grid URL to Overview", async () => {
@@ -728,18 +737,6 @@ describe("App shell", () => {
     await flushPromises();
 
     expect(wrapper.get("main h1").text()).toBe("Cast");
-  });
-
-  it("returns from Items to Overview on back", async () => {
-    const { wrapper, router } = await openAppAt("/casting/overview");
-    await router.push("/casting/items");
-
-    const navigated = nextNavigation(router);
-    router.back();
-    await navigated;
-    await flushPromises();
-
-    expect(wrapper.get("main h1").text()).toBe("Overview");
   });
 
   it("marks only the current casting sub-page in the menu", async () => {

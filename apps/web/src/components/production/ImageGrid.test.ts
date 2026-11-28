@@ -56,12 +56,20 @@ const linkRequests = (fetch: ReturnType<typeof apiLinks>) =>
 
 const filesNamed = (...names: string[]): ItemFile[] => names.map((name) => ({ name, size: 10 }));
 
-async function openGrid(images: ItemFile[], { mayRemove = false, deleting = false } = {}) {
+async function openGrid(
+  images: ItemFile[],
+  {
+    mayRemove = false,
+    deleting = false,
+    links,
+  }: { mayRemove?: boolean; deleting?: boolean; links?: { name: string; url: string }[] } = {},
+) {
   const wrapper = mount(ImageGrid, {
     props: {
       department: "scenery",
-      itemId: "opening-number",
+      linksPath: LINKS,
       images,
+      ...(links && { givenLinks: links }),
       mayRemove,
       deleting,
       problem: undefined,
@@ -91,6 +99,21 @@ describe("The image grid", () => {
       "https://files.example/backdrop.png?v=1",
       "https://files.example/set-plan.jpg?v=1",
     ]);
+  });
+
+  it("shows the links it's given, asking for fresh ones only once they've lapsed", async () => {
+    const fetch = apiLinks(["backdrop.png"]);
+    const given = [{ name: "backdrop.png", url: "https://files.example/backdrop.png?given" }];
+    const wrapper = await openGrid(filesNamed("backdrop.png"), { links: given });
+
+    expect(wrapper.get("img").attributes("src")).toBe(given[0]?.url);
+    expect(linkRequests(fetch)).toBe(0);
+
+    vi.setSystemTime(Date.now() + FILE_LINK_SECONDS * 1000);
+    await wrapper.get(".thumb-open").trigger("click");
+    await flushPromises();
+
+    expect(linkRequests(fetch)).toBe(1);
   });
 
   it("names each thumbnail for viewing its image", async () => {

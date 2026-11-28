@@ -1,11 +1,11 @@
-import { type FileDepartment, ItemFileUpload } from "@app/shared";
-import { itemUploadsPath } from "./production.ts";
+import { ItemFileUpload } from "@app/shared";
 import { sendJson } from "./sign-in.ts";
 
-// Uploading one of an item's scenery, SFX or Wardrobe files (production-scenery FR8): the API
-// says where, then the file goes straight to file storage, never through the API (ADR 0030).
+// Uploading one of an item's scenery, SFX or Wardrobe files (production-scenery FR8), or one of
+// a store's images (stores FR12): the API says where, then the file goes straight to file
+// storage, never through the API (ADR 0030, ADR 0043).
 
-/** How an upload ended: kept, refused for a name the item already has, or not kept at all. */
+/** How an upload ended: kept, refused for a name already there, or not kept at all. */
 export type UploadResult = "uploaded" | "taken" | "failed";
 
 export interface UploadOptions {
@@ -15,14 +15,14 @@ export interface UploadOptions {
   onProgress: (fraction: number) => void;
 }
 
-export async function uploadItemFile(
-  department: FileDepartment,
-  itemId: string,
+/** Uploads the file, asking the API at `path` where to send it. */
+export async function uploadFile(
+  path: string,
   file: File,
   { replace, onProgress }: UploadOptions,
 ): Promise<UploadResult> {
   try {
-    const asked = await sendJson(itemUploadsPath(department, itemId), "POST", {
+    const asked = await sendJson(path, "POST", {
       name: file.name,
       size: file.size,
       ...(replace ? { replace } : {}),

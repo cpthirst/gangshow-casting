@@ -1,4 +1,4 @@
-import { browserTypeOf, type FileDepartment } from "@app/shared";
+import { browserTypeOf, type DepartmentId } from "@app/shared";
 
 // A plain-ASCII name for browsers that don't read filename*: anything else becomes "_".
 const plainName = (name: string) => name.replace(/[^\x20-\x7e]|["\\%]/g, "_");
@@ -24,7 +24,7 @@ export interface LinkOptions {
  */
 export function fileHeadersOf(
   name: string,
-  department: FileDepartment,
+  department: DepartmentId,
   { download = false }: LinkOptions = {},
 ) {
   const browserType = browserTypeOf(name, department);

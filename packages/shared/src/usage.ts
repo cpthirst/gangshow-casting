@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ProductionId } from "./running-order.ts";
+import { storeIds, storePageName } from "./stores.ts";
 
 /** The menu pages whose opening is recorded (usage-tracking FR2), by their page name. */
 export const MenuPageName = z.enum([
@@ -10,6 +11,7 @@ export const MenuPageName = z.enum([
   "casting-items",
   "production-overview",
   "cast-flow",
+  ...storeIds.map(storePageName),
   "help",
   "accounts",
   "productions",

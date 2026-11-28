@@ -23,13 +23,16 @@ watch(open, (year) => {
 // production's own page: an item open now mightn't be in the other production.
 async function switchProduction() {
   if (chosen.value === open.value) return;
+  const from = router.currentRoute.value;
   const stayed = await router.push({ name: "leaving" });
   if (stayed) {
     chosen.value = open.value;
     return;
   }
   openProduction(chosen.value);
-  await router.replace({ name: "running-order" });
+  // A page that belongs to no production, such as a store, is the same in this one too
+  // (stores FR2); any other may not be, so the Running order, in every production.
+  await router.replace(from.meta.acrossProductions ? from.fullPath : { name: "running-order" });
 }
 </script>
 

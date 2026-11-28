@@ -81,25 +81,67 @@ export function isDroppedFile(key: string, kept: ReadonlySet<string>, department
 export const asItemFiles = (name: string, size: number): ItemFile[] =>
   ItemFileName.safeParse(name).success ? [{ name, size }] : [];
 
+/** The files directly in a place in the local folder, such as an item's department folder,
+ *  laid out as the bucket is: none if it has no folder yet. */
+export async function localFilesIn(folder: string, place: string): Promise<ItemFile[]> {
+  const at = join(folder, place);
+  const entries = (await ifExists(() => readdir(at, { withFileTypes: true }))) ?? [];
+  const files = entries.filter((entry) => entry.isFile());
+  const sized = await Promise.all(
+    files.map(async ({ name }) => {
+      // Gone since the folder was read, if removed or renamed outside the app meanwhile.
+      const found = await ifExists(() => stat(join(at, name)));
+      return found ? asItemFiles(name, found.size) : [];
+    }),
+  );
+  return sized.flat();
+}
+
+/** The dev server's link to a file in a place in the local folder; undefined if it isn't
+ *  there. The name is a valid ItemFileName. */
+export async function localLinkTo(
+  folder: string,
+  place: string,
+  name: string,
+  options?: LinkOptions,
+) {
+  const found = await ifExists(() => stat(join(folder, place, name)));
+  return found?.isFile() ? localFileLink(place, name, options) : undefined;
+}
+
+/** Where the dev server takes a file for a place in the local folder, or "taken" if the place
+ *  has a file of that name and it isn't to be replaced (FR9). The name is a valid ItemFileName. */
+export async function localUploadTo(
+  folder: string,
+  place: string,
+  name: string,
+  { replace }: { replace: boolean },
+): Promise<ItemFileUpload | "taken"> {
+  // Exactly, as the bucket compares keys, though a Mac's or Windows' folder ignores case.
+  const taken = (await localFilesIn(folder, place)).some((file) => file.name === name);
+  if (taken && !replace) return "taken";
+  // The dev server takes the file here, as the bucket would (dev-server.ts).
+  return { url: localFileLink(place, name), fields: {} };
+}
+
+/** Deletes the file of that name from a place in the local folder, or says it's "gone" if it
+ *  isn't there. The name is a valid ItemFileName. */
+export async function localRemove(folder: string, place: string, name: string) {
+  const file = join(folder, place, name);
+  const found = await ifExists(() => stat(file));
+  if (!found?.isFile()) return "gone";
+  // Gone meanwhile, if deleted in another browser at the same moment: removed all the same.
+  await rm(file, { force: true });
+  return "removed";
+}
+
 /** The department's files in a local folder laid out as the bucket is, for pnpm dev, the demo
  *  and tests. */
 export function folderItemFileStore(folder: string, department: FileDepartment): ItemFileStore {
   const folderOf = (productionId: string, itemId: string) =>
     itemFolderOf(productionId, itemId, department);
   const store: ItemFileStore = {
-    async list(productionId, itemId) {
-      const place = join(folder, folderOf(productionId, itemId));
-      const entries = (await ifExists(() => readdir(place, { withFileTypes: true }))) ?? [];
-      const files = entries.filter((entry) => entry.isFile());
-      const sized = await Promise.all(
-        files.map(async ({ name }) => {
-          // Gone since the folder was read, if removed or renamed outside the app meanwhile.
-          const found = await ifExists(() => stat(join(place, name)));
-          return found ? asItemFiles(name, found.size) : [];
-        }),
-      );
-      return sized.flat();
-    },
+    list: (productionId, itemId) => localFilesIn(folder, folderOf(productionId, itemId)),
     async countByItem(productionId) {
       const items =
         (await ifExists(() => readdir(join(folder, productionId), { withFileTypes: true }))) ?? [];
@@ -116,26 +158,12 @@ export function folderItemFileStore(folder: string, department: FileDepartment):
       );
       return countsByItem(listed.flat(), department);
     },
-    async linkTo(productionId, itemId, name, options) {
-      const folderOfItem = folderOf(productionId, itemId);
-      const found = await ifExists(() => stat(join(folder, folderOfItem, name)));
-      return found?.isFile() ? localFileLink(folderOfItem, name, options) : undefined;
-    },
-    async remove(productionId, itemId, name) {
-      const file = join(folder, folderOf(productionId, itemId), name);
-      const found = await ifExists(() => stat(file));
-      if (!found?.isFile()) return "gone";
-      // Gone meanwhile, if deleted in another browser at the same moment: removed all the same.
-      await rm(file, { force: true });
-      return "removed";
-    },
-    async uploadTo(productionId, itemId, name, { replace }) {
-      // Exactly, as the bucket compares keys, though a Mac's or Windows' folder ignores case.
-      const taken = (await store.list(productionId, itemId)).some((file) => file.name === name);
-      if (taken && !replace) return "taken";
-      // The dev server takes the file here, as the bucket would (dev-server.ts).
-      return { url: localFileLink(folderOf(productionId, itemId), name), fields: {} };
-    },
+    linkTo: (productionId, itemId, name, options) =>
+      localLinkTo(folder, folderOf(productionId, itemId), name, options),
+    remove: (productionId, itemId, name) =>
+      localRemove(folder, folderOf(productionId, itemId), name),
+    uploadTo: (productionId, itemId, name, options) =>
+      localUploadTo(folder, folderOf(productionId, itemId), name, options),
     async keepOnlyItems(productionId, itemIds) {
       const kept = new Set(itemIds);
       const items =

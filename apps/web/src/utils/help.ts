@@ -4,8 +4,11 @@ import {
   departments,
   type Gang,
   gangOf,
+  type Permission,
   Section,
   sectionLabels,
+  storeIds,
+  stores,
 } from "@app/shared";
 import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import { CAST_FLOW_PLACES, UNTIMED_ITEM_MINUTES } from "./cast-flow.ts";
@@ -558,21 +561,33 @@ export const pageHelp: PageHelp[] = [
   },
 ];
 
+/** The stores a permission changes, from the shared list, to end its Permissions line
+ *  (stores FR5): none, for a permission that changes none. */
+function storesClause(permission: Permission) {
+  const own = storeIds.filter((store) => stores[store].changedBy.includes(permission));
+  if (own.length === 0) return ", but none of the stores";
+  const names = listed(own.map((store) => departments[store].name));
+  return `, and the ${names} ${own.length > 1 ? "stores" : "store"}`;
+}
+
 /** What each permission lets someone change, for the Help page's Permissions section. */
 export const permissionHelp = [
   {
     name: "Casting",
     does: "Changes the cast, and the roles and who plays them.",
   },
-  { name: "Stage", does: "Changes the Scenery and Props pages." },
+  { name: "Stage", does: `Changes the Scenery and Props pages${storesClause("stage")}.` },
   {
     name: "Tech",
-    does: "Changes the Scenery, SFX and Mic plot pages.",
+    does: `Changes the Scenery, SFX and Mic plot pages${storesClause("tech")}.`,
   },
-  { name: "Wardrobe", does: "Changes what the cast wear in each item: its files and notes." },
+  {
+    name: "Wardrobe",
+    does: `Changes what the cast wear in each item, its files and notes${storesClause("wardrobe")}.`,
+  },
   {
     name: "Director",
-    does: "Changes every production department's pages, now and as they come: Scenery, Props, SFX, Mic plot and Wardrobe today. Not the cast, roles, casting or running order, and nothing only admins can do.",
+    does: `Changes every production department's pages, now and as they come: Scenery, Props, SFX, Mic plot and Wardrobe today${storesClause("director")}. Not the cast, roles, casting or running order, and nothing only admins can do.`,
   },
   {
     name: "Admins",

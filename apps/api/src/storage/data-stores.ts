@@ -33,6 +33,8 @@ import { dynamoMicPlotStore } from "#/production/mic-plot/dynamo-mic-plot-store.
 import { fileMicPlotStore } from "#/production/mic-plot/mic-plot-store.ts";
 import { dynamoPropStore } from "#/production/props/dynamo-prop-store.ts";
 import { filePropStore } from "#/production/props/prop-store.ts";
+import { s3StoreImageStore } from "#/production/stores/s3-store-image-store.ts";
+import { folderStoreImageStore } from "#/production/stores/store-image-store.ts";
 import { dynamoProductionListStore } from "#/production-list/dynamo-production-list-store.ts";
 import { fileProductionListStore } from "#/production-list/production-list-store.ts";
 import { fileCastStore } from "#/show/cast/cast-store.ts";
@@ -171,8 +173,9 @@ const storesFor = (storeOf: (department: FileDepartment) => ItemFileStore): Item
 });
 
 /**
- * Where scenery, SFX and Wardrobe files are kept: the bucket FILES_BUCKET names, otherwise a folder
- * beside the local files, laid out the same way (ADR 0030, ADR 0032). Apart from the table, so
+ * Where scenery, SFX and Wardrobe files and the stores' images are kept: the bucket FILES_BUCKET
+ * names, otherwise a folder beside the local files, laid out the same way (ADR 0030, ADR 0032,
+ * ADR 0043). Apart from the table, so
  * pnpm dev can use the remote table before the bucket exists.
  */
 export function itemFileStores(env: Env = process.env) {
@@ -182,6 +185,7 @@ export function itemFileStores(env: Env = process.env) {
     const s3 = new S3Client({ region });
     return {
       stores: storesFor((department) => s3ItemFileStore(s3, bucket, department)),
+      storeImages: s3StoreImageStore(s3, bucket),
       where: `scenery, SFX and Wardrobe files in bucket ${bucket} (${region})`,
       folder: undefined,
     };
@@ -189,6 +193,7 @@ export function itemFileStores(env: Env = process.env) {
   const folder = filesFolderIn(dataDirFrom(env));
   return {
     stores: storesFor((department) => folderItemFileStore(folder, department)),
+    storeImages: folderStoreImageStore(folder),
     where: `scenery, SFX and Wardrobe files in ${folder}`,
     folder,
   };

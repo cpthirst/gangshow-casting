@@ -16,6 +16,8 @@ import {
   RunningOrderItem,
   routeKeys,
   SignInConfig,
+  storeIds,
+  stores,
   Username,
 } from "@app/shared";
 import { z } from "zod";
@@ -47,6 +49,8 @@ interface Parameter {
 interface Permission {
   who: string;
   anyOf?: string[];
+  /** For a change to a store: the permissions, any one of which changes each store. */
+  byStore?: Record<string, string[]>;
 }
 
 interface Operation {
@@ -145,6 +149,7 @@ const pathSchemas: Record<string, z.ZodType> = {
   roleId: Role.shape.id,
   propId: Prop.shape.id,
   username: Username,
+  storeId: z.enum(storeIds),
 };
 
 function pathParameters(path: string, doc: RouteDoc): Parameter[] {
@@ -169,14 +174,32 @@ function permissionOf(key: string): Permission {
   const need = needOf(key);
   if (need === undefined) return { who: "anyone signed in" };
   if (need === "admin") return { who: "admins" };
+  if (need === "store") {
+    return {
+      who: "admins, or any of the store's own permissions",
+      byStore: Object.fromEntries(storeIds.map((store) => [store, [...stores[store].changedBy]])),
+    };
+  }
   return {
     who: "admins, or any of these permissions",
     anyOf: [...departments[need].permissions],
   };
 }
 
-const needsLine = ({ who, anyOf }: Permission) =>
-  `**Needs:** ${who}${anyOf ? `: ${anyOf.join(", ")}` : ""}.`;
+// Who may use a route, after its who: "stage, director", or per store "stage for scenery; …".
+function whoList({ anyOf, byStore }: Permission) {
+  if (byStore) {
+    return Object.entries(byStore)
+      .map(([store, changers]) => `${changers.join(" or ")} for ${store}`)
+      .join("; ");
+  }
+  return anyOf?.join(", ");
+}
+
+const needsLine = (permission: Permission) => {
+  const list = whoList(permission);
+  return `**Needs:** ${permission.who}${list ? `: ${list}` : ""}.`;
+};
 
 /** A response standing for several refusals of one status. */
 function responseOf(refusals: Refusal[]): Response {

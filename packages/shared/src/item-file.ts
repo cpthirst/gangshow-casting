@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { DepartmentId } from "./api-routes.ts";
 
 // A slash or backslash would reach into another folder; control characters can hide that.
 const isUnsafe = (char: string) =>
@@ -126,7 +127,7 @@ const audioTypes = new Map([
  * storage nor whoever uploaded it can make a file open; undefined for a file that only
  * downloads.
  */
-export function browserTypeOf(name: string, department: FileDepartment) {
+export function browserTypeOf(name: string, department: DepartmentId) {
   const type = fileTypeOf(name) ?? "";
   return browserTypes.get(type) ?? (department === "sfx" ? audioTypes.get(type) : undefined);
 }
@@ -136,6 +137,11 @@ export function browserTypeOf(name: string, department: FileDepartment) {
  *  (production-image-gallery FR1). */
 export const isGalleryImage = (name: string) =>
   browserTypes.get(fileTypeOf(name) ?? "")?.startsWith("image/") ?? false;
+
+/** The extensions isGalleryImage counts, as a file picker's accept list names them. */
+export const galleryImageExtensions = [...browserTypes]
+  .filter(([, type]) => type.startsWith("image/"))
+  .map(([type]) => `.${type.toLowerCase()}`);
 
 export type ItemFile = z.infer<typeof ItemFile>;
 export type ItemFileList = z.infer<typeof ItemFileList>;

@@ -10,6 +10,7 @@ import {
   type RouteKey,
   routeKeys,
   STAGE_GROUP,
+  STORES_FOLDER,
   TECH_GROUP,
   WARDROBE_GROUP,
 } from "@app/shared";
@@ -240,32 +241,34 @@ export class AppStack extends Stack {
     });
     // Reads and writes the table's items, and nothing else in DynamoDB (hosting E2.S1).
     table.grantReadWriteData(dataFunction);
-    // Lists the files, and reads only scenery, SFX and Wardrobe files, to sign the short-lived
-    // links that open or download them (ADR 0030, ADR 0032), deletes them (production-scenery
-    // FR11), and signs the forms that upload them (FR8). Nothing outside those departments'
-    // folders.
+    // Lists the files, and reads only scenery, SFX and Wardrobe files and the stores' images,
+    // to sign the short-lived links that open or download them (ADR 0030, ADR 0032, ADR 0043),
+    // deletes item files and the stores' images (production-scenery FR11, stores FR19), and
+    // signs the forms that upload them (FR8, stores FR12).
+    // Nothing outside those folders.
     const departmentFiles = ["scenery", "sfx", "wardrobe"].map((department) =>
       filesBucket.arnForObjects(`*/*/${department}/*`),
     );
+    const storesImages = filesBucket.arnForObjects(`${STORES_FOLDER}/*`);
     dataFunction.addToRolePolicy(
       new PolicyStatement({ actions: ["s3:ListBucket"], resources: [filesBucket.bucketArn] }),
     );
     dataFunction.addToRolePolicy(
       new PolicyStatement({
         actions: ["s3:GetObject"],
-        resources: departmentFiles,
+        resources: [...departmentFiles, storesImages],
       }),
     );
     dataFunction.addToRolePolicy(
       new PolicyStatement({
         actions: ["s3:DeleteObject"],
-        resources: departmentFiles,
+        resources: [...departmentFiles, storesImages],
       }),
     );
     dataFunction.addToRolePolicy(
       new PolicyStatement({
         actions: ["s3:PutObject"],
-        resources: departmentFiles,
+        resources: [...departmentFiles, storesImages],
       }),
     );
     // One invoke permission for the whole API, not one per route: a statement per route outgrew

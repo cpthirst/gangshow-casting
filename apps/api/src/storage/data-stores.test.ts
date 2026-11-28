@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { putStoreImages } from "#/production/stores/store-image.fixture.ts";
 import {
   anItem,
   aRunningOrder,
@@ -190,6 +191,35 @@ describe("data stores", () => {
     expect(res.statusCode).toBe(201);
     expect(await keptFor(stores, files, "2027", pirate)).toEqual(eachKindOf(cleanup, 0));
     expect(await keptFor(stores, files, "2027", opening)).toEqual(eachKindOf(cleanup, 1));
+  });
+
+  it("leaves the stores' images when an item is cut, removing the item's own data", async () => {
+    const stores = fileStores(dataDir);
+    const { stores: files, storeImages, folder } = itemFileStores({ DATA_DIR: dataDir });
+    if (folder === undefined) throw new Error("expected local files");
+    const opening = itemId("Opening Number");
+    await stores.runningOrders.save({
+      ...aRunningOrder(1, { first: ["Opening Number"] }),
+      productionId: "2026",
+    });
+    await seedEveryKind(stores, folder, "2026", opening);
+    await putStoreImages(folder, "scenery", "castle-backdrop.png", "throne.jpg");
+    const cleanup = itemCleanupOf(stores, files);
+    const save = createSaveRunningOrder(stores.runningOrders, cleanup, noGangRemoval);
+    const halves = [
+      { id: "first-half", items: [] },
+      { id: "second-half", items: [] },
+    ];
+
+    const res = await save({
+      pathParameters: { productionId: "2026" },
+      body: JSON.stringify({ baseVersion: 1, change: { type: "update", halves } }),
+    });
+
+    expect(res.statusCode).toBe(201);
+    expect(await keptFor(stores, files, "2026", opening)).toEqual(eachKindOf(cleanup, 0));
+    const names = (await storeImages.list("scenery")).map(({ name }) => name).sort();
+    expect(names).toEqual(["castle-backdrop.png", "throne.jpg"]);
   });
 
   it("removes, when an item is cut, from every store but the show-wide ones, locally and in the remote table", () => {

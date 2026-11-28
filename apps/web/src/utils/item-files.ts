@@ -1,4 +1,4 @@
-import type { FileDepartment } from "@app/shared";
+import { type FileDepartment, stores } from "@app/shared";
 
 // Each item's files for a Production department, Scenery's, SFX's or Wardrobe's,
 // which share one page layout (production-sfx-wardrobe FR2) and the API's routes, each named
@@ -13,9 +13,10 @@ export interface FilesDepartment {
   uploadRule?: string;
 }
 
+// The same rule as its store's, which says it once (stores FR14).
 export const sceneryDepartment: FilesDepartment = {
   key: "scenery",
-  uploadRule: "Scenery and set images only: no photos of cast members.",
+  uploadRule: stores.scenery.uploadRule,
 };
 
 export const sfxDepartment: FilesDepartment = { key: "sfx" };
@@ -24,5 +25,5 @@ export const sfxDepartment: FilesDepartment = { key: "sfx" };
 // ADR 0010).
 export const wardrobeDepartment: FilesDepartment = {
   key: "wardrobe",
-  uploadRule: "Costume designs and images only: no photos of cast members.",
+  uploadRule: stores.wardrobe.uploadRule,
 };

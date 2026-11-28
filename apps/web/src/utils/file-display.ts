@@ -1,8 +1,10 @@
 import {
   browserTypeOf,
+  type DepartmentId,
   type FileDepartment,
   fileTypeOf,
   type ItemFile,
+  isGalleryImage,
   MAX_ITEM_FILE_BYTES,
 } from "@app/shared";
 import { icons } from "./icons.ts";
@@ -12,19 +14,22 @@ import { icons } from "./icons.ts";
 export const replaceQuestion = (name: string) =>
   `Replace ${name}? The old copy can't be brought back.`;
 
-/** Why the page won't upload a file, before asking the API: it's too big (FR8); undefined if
- *  it may. */
-export function uploadRefusal({ name, size }: { name: string; size: number }) {
+/** Why the page won't upload a file, before asking the API: it's too big (FR8), or a store's
+ *  upload, which takes only images, isn't one (stores FR11); undefined if it may. */
+export function uploadRefusal({ name, size }: { name: string; size: number }, forStore = false) {
+  if (forStore && !isGalleryImage(name)) {
+    return `${name} isn't an image the store keeps, so it wasn't uploaded.`;
+  }
   if (size > MAX_ITEM_FILE_BYTES) return `${name} is over 100 MB, so it wasn't uploaded.`;
   return undefined;
 }
 
 /** Whether choosing the department's file opens it in a new tab, rather than downloading it. */
-export const opensInBrowser = (name: string, department: FileDepartment) =>
+export const opensInBrowser = (name: string, department: DepartmentId) =>
   browserTypeOf(name, department) !== undefined;
 
 /** A file's name for screen readers: what choosing it does, and the file's type (FR10). */
-export function fileLabel(name: string, department: FileDepartment) {
+export function fileLabel(name: string, department: DepartmentId) {
   const action = `${opensInBrowser(name, department) ? "Open" : "Download"} ${name}`;
   const type = fileTypeOf(name);
   return type ? `${action}, ${type} file` : action;
@@ -55,7 +60,7 @@ export function fileIconOf(name: string, department: FileDepartment) {
 const byName = new Intl.Collator("en-GB", { sensitivity: "base", numeric: true });
 
 /** The files sorted by name, as people read them: ignoring case, numbers in order (FR7). */
-export const sortFiles = (files: ItemFile[]) =>
+export const sortFiles = <File extends Pick<ItemFile, "name">>(files: readonly File[]) =>
   [...files].sort((a, b) => byName.compare(a.name, b.name));
 
 // Decimal units, as phones and most computers show file sizes.

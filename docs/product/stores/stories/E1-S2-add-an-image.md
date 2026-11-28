@@ -2,7 +2,7 @@
 id: stores.E1.S2
 title: Add an image to a store
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story

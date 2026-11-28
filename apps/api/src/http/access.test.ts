@@ -119,3 +119,74 @@ describe("a past production", () => {
     expect(await res.json()).toMatchObject({ message: REFUSAL.message });
   });
 });
+
+describe("a change to a store", () => {
+  const send = async (store: string, groups: string) => {
+    const reached = vi.fn(async () => ({ statusCode: 200 }));
+    const api = lambdaEntry(
+      { "POST /api/stores/{storeId}/uploads": reached },
+      inMemoryProductionListStore(["2027", "2028"]),
+    );
+    const res = await api(request("POST", `/api/stores/${store}/uploads`, {}, groups));
+    return { res, ran: reached.mock.calls.length > 0 };
+  };
+
+  it.each([
+    ["scenery", "[stage]"],
+    ["props", "[stage]"],
+    ["wardrobe", "[wardrobe]"],
+    ["scenery", "[admin]"],
+    ["wardrobe", "[admin]"],
+  ])("lets the %s store be changed with %s", async (store, groups) => {
+    expect((await send(store, groups)).ran).toBe(true);
+  });
+
+  it.each([
+    ["scenery", "[director]", "You can view the scenery, but not change it."],
+    ["scenery", "[tech]", "You can view the scenery, but not change it."],
+    ["props", "[wardrobe director]", "You can view the props, but not change them."],
+    ["wardrobe", "[stage tech director]", "You can view the wardrobe, but not change it."],
+    ["scenery", "[]", "You can view the scenery, but not change it."],
+  ])(
+    "refuses a change to the %s store from %s with the department's refusal",
+    async (store, groups, message) => {
+      const { res, ran } = await send(store, groups);
+
+      expect(res.statusCode).toBe(403);
+      expect(JSON.parse(res.body ?? "")).toEqual({ message, department: store });
+      expect(ran).toBe(false);
+    },
+  );
+
+  it("refuses a Director's removal of a Scenery store image with the Scenery department's refusal", async () => {
+    const reached = vi.fn(async () => ({ statusCode: 204 }));
+    const api = lambdaEntry(
+      { "DELETE /api/stores/{storeId}/images": reached },
+      inMemoryProductionListStore(["2027", "2028"]),
+    );
+
+    const res = await api(
+      request(
+        "DELETE",
+        "/api/stores/scenery/images",
+        { queryStringParameters: { name: "throne.jpg" } },
+        "[director]",
+      ),
+    );
+
+    expect(res.statusCode).toBe(403);
+    expect(JSON.parse(res.body ?? "")).toEqual({
+      message: "You can view the scenery, but not change it.",
+      department: "scenery",
+    });
+    expect(reached).not.toHaveBeenCalled();
+  });
+
+  it("lets nobody but an admin past for a store the list doesn't hold, so a gap fails safe", async () => {
+    const refused = await send("sfx", "[stage tech wardrobe director]");
+
+    expect(refused.res.statusCode).toBe(403);
+    expect(refused.ran).toBe(false);
+    expect((await send("sfx", "[admin]")).ran).toBe(true);
+  });
+});

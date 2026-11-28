@@ -22,3 +22,12 @@ export const jsonResponse = (
 /** A refusal the app shows as it is, such as "That username is already taken." */
 export const messageResponse = (statusCode: number, message: string) =>
   jsonResponse(statusCode, { message });
+
+/** The response, marked for nothing on the way to keep: answers hold cast data (ADR 0017),
+ *  or links that anyone holding them can use for a while. */
+export const uncached = (
+  res: APIGatewayProxyStructuredResultV2,
+): APIGatewayProxyStructuredResultV2 => ({
+  ...res,
+  headers: { ...res.headers, "cache-control": "no-store" },
+});

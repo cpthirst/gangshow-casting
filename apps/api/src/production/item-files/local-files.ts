@@ -1,6 +1,13 @@
 import { stat } from "node:fs/promises";
 import { join } from "node:path";
-import { fileDepartments, ItemFileName, ProductionId } from "@app/shared";
+import {
+  fileDepartments,
+  ItemFileName,
+  ProductionId,
+  STORES_FOLDER,
+  storeFolderOf,
+  storeOf,
+} from "@app/shared";
 import { folderIdOf } from "#/http/params.ts";
 import { ifExists } from "#/storage/files.ts";
 import { fileHeadersOf, type LinkOptions } from "./file-headers.ts";
@@ -24,14 +31,31 @@ const decoded = (part: string) => {
 /**
  * Where in the folder a LOCAL_FILES_PATH path's item file is, as the folder store lays it out,
  * and its name; undefined unless it names one. Each part is checked as a key's would be, so no
- * path can reach outside an item's scenery, SFX or Wardrobe folder (ADR 0030, ADR 0032).
+ * path can reach outside an item's scenery, SFX or Wardrobe folder, or a store's (ADR 0030,
+ * ADR 0032, ADR 0043).
  */
 export function localFilePlace(folder: string, path: string) {
   if (!path.startsWith(LOCAL_FILES_PATH)) return undefined;
-  const [productionId, itemId, department, name, ...rest] = path
-    .slice(LOCAL_FILES_PATH.length)
-    .split("/")
-    .map(decoded);
+  const parts = path.slice(LOCAL_FILES_PATH.length).split("/").map(decoded);
+  return parts[0] === STORES_FOLDER ? storeFilePlace(folder, parts) : itemFilePlace(folder, parts);
+}
+
+// A store's image, at stores/<store>/<name>, outside every production's folder (ADR 0043).
+function storeFilePlace(folder: string, [, storeId, name, ...rest]: (string | undefined)[]) {
+  const store = storeOf(storeId);
+  const fileName = ItemFileName.safeParse(name);
+  if (rest.length > 0 || store === undefined || !fileName.success) return undefined;
+  return {
+    file: join(folder, storeFolderOf(store), fileName.data),
+    name: fileName.data,
+    department: store,
+  };
+}
+
+function itemFilePlace(
+  folder: string,
+  [productionId, itemId, department, name, ...rest]: (string | undefined)[],
+) {
   const production = ProductionId.safeParse(productionId);
   const item = folderIdOf(itemId);
   const fileName = ItemFileName.safeParse(name);

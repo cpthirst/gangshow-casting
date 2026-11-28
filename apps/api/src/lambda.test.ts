@@ -32,7 +32,13 @@ import { aCastList, aCastMember } from "#/show/cast/cast.fixture.ts";
 import { inMemoryCastStore } from "#/show/cast/cast-store.ts";
 import { aRunningOrder, itemId } from "#/show/running-order/running-order.fixture.ts";
 import { inMemoryRunningOrderStore } from "#/show/running-order/running-order-store.ts";
-import { inMemoryStores, noFiles, noItemFiles } from "#/storage/stores.fixture.ts";
+import {
+  inMemoryStores,
+  noFiles,
+  noItemFiles,
+  noStoreImages,
+  routesOn,
+} from "#/storage/stores.fixture.ts";
 import { inMemoryUsageStore } from "#/usage/usage-store.ts";
 import { handler } from "./lambda.ts";
 import { createRoutes } from "./routes.ts";
@@ -116,6 +122,7 @@ describe("Lambda entry point", () => {
           }),
           inMemoryUsageStore(),
           { ...noItemFiles, scenery: sceneryFiles },
+          noStoreImages,
         ),
         inMemoryProductionListStore(),
       );
@@ -206,14 +213,12 @@ describe("Lambda entry point", () => {
       const roles = inMemoryRoleStore();
       const runningOrders = inMemoryRunningOrderStore([aRunningOrder(4)]);
       const api = lambdaEntry(
-        createRoutes(
+        routesOn(
           inMemoryStores({
             cast,
             roles,
             runningOrders,
           }),
-          inMemoryUsageStore(),
-          noItemFiles,
         ),
         inMemoryProductionListStore(),
       );
@@ -357,15 +362,13 @@ describe("Lambda entry point", () => {
         aRunningOrder(4, { first: ["Pirate Sketch"] }),
       ]);
       const api = lambdaEntry(
-        createRoutes(
+        routesOn(
           inMemoryStores({
             cast,
             roles,
             runningOrders,
             itemNotes,
           }),
-          inMemoryUsageStore(),
-          noItemFiles,
         ),
         inMemoryProductionListStore(),
       );
@@ -576,15 +579,13 @@ describe("Lambda entry point", () => {
         aRunningOrder(4, { first: ["Pirate Sketch"] }),
       ]);
       const api = lambdaEntry(
-        createRoutes(
+        routesOn(
           inMemoryStores({
             cast,
             roles,
             runningOrders,
             itemNotes,
           }),
-          inMemoryUsageStore(),
-          noItemFiles,
         ),
         inMemoryProductionListStore(),
       );
@@ -811,8 +812,11 @@ describe("Lambda entry point", () => {
 
           expect(res.statusCode, key).toBe(403);
           const need = needOf(key);
+          // The store "x" isn't one, so only admins get past (http/access.test.ts has the stores).
           expect(JSON.parse(res.body ?? ""), key).toEqual(
-            need === undefined || need === "admin" ? ONLY_ADMINS : readOnlyRefusal(need),
+            need === undefined || need === "admin" || need === "store"
+              ? ONLY_ADMINS
+              : readOnlyRefusal(need),
           );
           expect(ran, key).toBe(false);
         }
@@ -941,7 +945,7 @@ describe("Lambda entry point", () => {
         const roles = inMemoryRoleStore();
         const props = inMemoryPropStore();
         const api = lambdaEntry(
-          createRoutes(
+          routesOn(
             inMemoryStores({
               cast,
               roles,
@@ -952,8 +956,6 @@ describe("Lambda entry point", () => {
               props,
               productions,
             }),
-            inMemoryUsageStore(),
-            noItemFiles,
           ),
           productions,
         );
@@ -1152,7 +1154,7 @@ describe("Lambda entry point", () => {
         const itemNotes = inMemoryItemNoteStore();
         const propsNotes = inMemoryItemNoteStore();
         const api = lambdaEntry(
-          createRoutes(
+          routesOn(
             inMemoryStores({
               cast,
               roles,
@@ -1162,8 +1164,6 @@ describe("Lambda entry point", () => {
               itemNotes,
               propsNotes,
             }),
-            inMemoryUsageStore(),
-            noItemFiles,
           ),
           inMemoryProductionListStore(),
         );
@@ -1245,6 +1245,7 @@ describe("Lambda entry point", () => {
               sfx: noFiles,
               wardrobe: noFiles,
             },
+            noStoreImages,
           ),
           inMemoryProductionListStore(),
         );
@@ -1320,7 +1321,7 @@ describe("Lambda entry point", () => {
         const roles = inMemoryRoleStore();
         const itemNotes = inMemoryItemNoteStore();
         const api = lambdaEntry(
-          createRoutes(
+          routesOn(
             inMemoryStores({
               cast,
               roles,
@@ -1329,8 +1330,6 @@ describe("Lambda entry point", () => {
               ]),
               itemNotes,
             }),
-            inMemoryUsageStore(),
-            noItemFiles,
           ),
           inMemoryProductionListStore(),
         );
@@ -1426,6 +1425,7 @@ describe("Lambda entry point", () => {
             sfx: folderItemFileStore(folder, "sfx"),
             wardrobe: folderItemFileStore(folder, "wardrobe"),
           },
+          noStoreImages,
         ),
         inMemoryProductionListStore(),
       );
@@ -1618,7 +1618,7 @@ describe("Lambda entry point", () => {
         },
       ]);
       return lambdaEntry(
-        createRoutes(
+        routesOn(
           inMemoryStores({
             cast,
             roles,
@@ -1626,8 +1626,6 @@ describe("Lambda entry point", () => {
               aRunningOrder(4, { first: ["Opening Number", "Finale"] }),
             ]),
           }),
-          inMemoryUsageStore(),
-          noItemFiles,
         ),
         inMemoryProductionListStore(),
       );
@@ -1767,14 +1765,12 @@ describe("Lambda entry point", () => {
       const cast = inMemoryCastStore([aCastList([aCastMember(1)])]);
       const roles = inMemoryRoleStore();
       return lambdaEntry(
-        createRoutes(
+        routesOn(
           inMemoryStores({
             cast,
             roles,
             runningOrders: inMemoryRunningOrderStore([aRunningOrder(3)]),
           }),
-          inMemoryUsageStore(),
-          noItemFiles,
         ),
         inMemoryProductionListStore(),
       );

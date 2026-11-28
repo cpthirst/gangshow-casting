@@ -2,7 +2,6 @@
 import {
   departments,
   type ItemFile,
-  ItemFileLink,
   ItemFileList,
   isGalleryImage,
   type RunningOrder,
@@ -12,11 +11,17 @@ import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed, ref, useTemplateRef, watch } from "vue";
 import { useRoute } from "vue-router";
 import ItemPageFrame from "@/components/common/ItemPageFrame.vue";
-import { controlOf, useConfirm } from "@/composables/useConfirm.ts";
-import { downloadFrom, openFileTab } from "@/services/file-link.ts";
+import { useFileRemoval } from "@/composables/useFileRemoval.ts";
+import { openOrDownload } from "@/services/file-open.ts";
 import { loadData } from "@/services/load-data.ts";
-import { itemFileLinkPath, itemFilePath, itemFilesPath } from "@/services/production.ts";
-import { apiFetch, canChange } from "@/services/sign-in.ts";
+import {
+  itemFileLinkPath,
+  itemFilePath,
+  itemFilesPath,
+  itemImageLinksPath,
+  itemUploadsPath,
+} from "@/services/production.ts";
+import { canChange } from "@/services/sign-in.ts";
 import {
   fileIconOf,
   fileLabel,
@@ -49,14 +54,12 @@ const key = computed(() => props.department.key);
 // Named as the shared list says (ADR 0035).
 const named = computed(() => departments[props.department.key]);
 const mayChange = computed(() => canChange(props.department.key));
-const askToConfirm = useConfirm();
+const { deleting, remove: removeFile } = useFileRemoval();
 const files = ref<ItemFile[]>([]);
 const images = computed(() => files.value.filter((file) => isGalleryImage(file.name)));
 const otherFiles = computed(() => files.value.filter((file) => !isGalleryImage(file.name)));
 // Why the last file chosen didn't open, download, delete or upload, if it didn't.
 const fileProblem = ref<string>();
-// A delete is on its way, so the trash icons wait for it.
-const deleting = ref(false);
 
 // Files come from storage on every visit, so one renamed or added there shows (FR6).
 async function loadFiles(id: string) {
@@ -77,54 +80,23 @@ const reload = async () => frame.value?.reload();
 // A file opens in a new tab or downloads through a short-lived link (FR10), or downloads
 // whatever it is from the image viewer (production-image-gallery FR10). A file deleted since
 // the page loaded says so, and the grid catches up with storage.
-async function choose({ name }: ItemFile, id: string, download = false) {
+async function choose({ name }: Pick<ItemFile, "name">, id: string, download = false) {
   fileProblem.value = undefined;
-  const tab = !download && opensInBrowser(name, key.value) ? openFileTab() : undefined;
-  try {
-    const link = await loadData(itemFileLinkPath(key.value, id, name, { download }), ItemFileLink);
-    if (!link) {
-      tab?.close();
-      fileProblem.value = `${name} isn't there any more.`;
-      await reload();
-      return;
-    }
-    const { url } = link;
-    if (tab) tab.show(url);
-    else downloadFrom(url);
-  } catch {
-    tab?.close();
-    fileProblem.value = `Couldn't ${tab ? "open" : "download"} ${name}. Try again.`;
-  }
+  const opens = !download && opensInBrowser(name, key.value);
+  const path = itemFileLinkPath(key.value, id, name, { download });
+  const { problem, gone } = await openOrDownload(name, path, opens);
+  fileProblem.value = problem;
+  if (gone) await reload();
 }
 
-// For everyone, for good (FR11), from a row or a thumbnail: there's no history to bring it
-// back, so confirm first.
-async function remove({ name }: ItemFile, id: string, event: MouseEvent) {
-  if (deleting.value) return;
-  const question = `Remove ${name}? This can't be undone.`;
-  if (!(await askToConfirm(question, "Remove file", controlOf(event)))) return;
-  fileProblem.value = undefined;
-  deleting.value = true;
-  const code = await sendDelete(id, name);
-  deleting.value = false;
-  if (code === 204) {
+// From a row or a thumbnail.
+async function remove({ name }: Pick<ItemFile, "name">, id: string, event: MouseEvent) {
+  const removal = await removeFile(name, itemFilePath(key.value, id, name), event, () => {
     files.value = files.value.filter((file) => file.name !== name);
-  } else if (code === 404) {
-    // Deleted in another browser meanwhile: say so, and catch up with storage.
-    fileProblem.value = `${name} isn't there any more.`;
-    await reload();
-  } else {
-    fileProblem.value = `Couldn't remove ${name}. Try again.`;
-  }
-}
-
-// The status code, or undefined if the request didn't get an answer.
-async function sendDelete(id: string, name: string) {
-  try {
-    return (await apiFetch(itemFilePath(key.value, id, name), { method: "DELETE" })).status;
-  } catch {
-    return undefined;
-  }
+  });
+  if (!removal) return;
+  fileProblem.value = removal.problem;
+  if (removal.gone) await reload();
 }
 
 // A problem with one item's file isn't another's.
@@ -144,8 +116,8 @@ watch(
       <FileUpload
         v-if="mayChange"
         :key="item.id"
-        :department="department"
-        :item-id="item.id"
+        :path="itemUploadsPath(department.key, item.id)"
+        :rule="department.uploadRule"
         :names="files.map((file) => file.name)"
         @changed="reload"
         @problem="fileProblem = $event"
@@ -156,7 +128,7 @@ watch(
         <ImageGrid
           :key="item.id"
           :department="department.key"
-          :item-id="item.id"
+          :links-path="itemImageLinksPath(department.key, item.id)"
           :images="images"
           :may-remove="mayChange"
           :deleting="deleting"
@@ -196,7 +168,7 @@ watch(
         </li>
       </ul>
       <template v-else-if="images.length === 0">
-        <p data-test="no-files">No {{ named.noun }} files for this item yet.</p>
+        <p data-test="no-files" tabindex="-1">No {{ named.noun }} files for this item yet.</p>
         <!-- The drag clause hides on a phone or tablet, which can't drag a file in. -->
         <p v-if="mayChange" data-test="how-to-add">
           Add one with Add a file above<span class="upload-drop-hint">, or drag one there</span>.

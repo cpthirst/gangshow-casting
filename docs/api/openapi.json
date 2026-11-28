@@ -3684,6 +3684,275 @@
         }
       }
     },
+    "/api/stores/{storeId}/image-links": {
+      "get": {
+        "tags": [
+          "Stores"
+        ],
+        "summary": "Short-lived links to each of a store's images",
+        "description": "**Needs:** anyone signed in. One link for each JPG, PNG, GIF or WebP file, in no particular order. The links last 5 minutes and need no token, so never share or store them.",
+        "x-permission": {
+          "who": "anyone signed in"
+        },
+        "parameters": [
+          {
+            "name": "storeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "scenery",
+                "props",
+                "wardrobe"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The links.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemImageLinks"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "The department has no store."
+          }
+        }
+      }
+    },
+    "/api/stores/{storeId}/image-link": {
+      "get": {
+        "tags": [
+          "Stores"
+        ],
+        "summary": "A short-lived link to one of a store's images",
+        "description": "**Needs:** anyone signed in. The link lasts 5 minutes and needs no token, so never share or store it.",
+        "x-permission": {
+          "who": "anyone signed in"
+        },
+        "parameters": [
+          {
+            "name": "storeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "scenery",
+                "props",
+                "wardrobe"
+              ]
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "description": "The file to link to.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            }
+          },
+          {
+            "name": "download",
+            "in": "query",
+            "required": false,
+            "description": "Saves the file rather than opening it, even one the browser can show.",
+            "schema": {
+              "type": "string",
+              "const": "true"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The link.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemFileLink"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The name isn't one a file can have."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "The department has no store, or the image isn't there."
+          }
+        }
+      }
+    },
+    "/api/stores/{storeId}/uploads": {
+      "post": {
+        "tags": [
+          "Stores"
+        ],
+        "summary": "Get a form for uploading one image to a store",
+        "description": "**Needs:** admins, or any of the store's own permissions: stage for scenery; stage for props; wardrobe for wardrobe. Answers with where to POST the image: send the fields, then the image, as multipart/form-data. The image goes straight to file storage, up to 100 MB, within 5 minutes. It keeps its file's name.",
+        "x-permission": {
+          "who": "admins, or any of the store's own permissions",
+          "byStore": {
+            "scenery": [
+              "stage"
+            ],
+            "props": [
+              "stage"
+            ],
+            "wardrobe": [
+              "wardrobe"
+            ]
+          }
+        },
+        "parameters": [
+          {
+            "name": "storeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "scenery",
+                "props",
+                "wardrobe"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ItemFileUploadRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Where to send the image.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemFileUpload"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request isn't valid, or the name isn't a JPG, PNG, GIF or WebP image."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "The caller has no permission for this department.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepartmentRefusal"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The department has no store."
+          },
+          "409": {
+            "description": "The store has an image of that name, and replace wasn't true."
+          }
+        }
+      }
+    },
+    "/api/stores/{storeId}/images": {
+      "delete": {
+        "tags": [
+          "Stores"
+        ],
+        "summary": "Delete one of a store's images for good",
+        "description": "**Needs:** admins, or any of the store's own permissions: stage for scenery; stage for props; wardrobe for wardrobe.",
+        "x-permission": {
+          "who": "admins, or any of the store's own permissions",
+          "byStore": {
+            "scenery": [
+              "stage"
+            ],
+            "props": [
+              "stage"
+            ],
+            "wardrobe": [
+              "wardrobe"
+            ]
+          }
+        },
+        "parameters": [
+          {
+            "name": "storeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "scenery",
+                "props",
+                "wardrobe"
+              ]
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "description": "The image to delete.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted."
+          },
+          "400": {
+            "description": "The name isn't one a file can have."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "The caller has no permission for this department.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepartmentRefusal"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The department has no store, or the image is already gone."
+          }
+        }
+      }
+    },
     "/api/usage": {
       "post": {
         "tags": [
@@ -4780,6 +5049,9 @@
                   "casting-items",
                   "production-overview",
                   "cast-flow",
+                  "scenery-stores",
+                  "props-stores",
+                  "wardrobe-stores",
                   "help",
                   "accounts",
                   "productions",
@@ -5910,6 +6182,9 @@
                       "casting-items",
                       "production-overview",
                       "cast-flow",
+                      "scenery-stores",
+                      "props-stores",
+                      "wardrobe-stores",
                       "help",
                       "accounts",
                       "productions",
@@ -5947,7 +6222,7 @@
             }
           },
           "features": {
-            "maxItems": 26,
+            "maxItems": 29,
             "type": "array",
             "items": {
               "type": "object",
@@ -5962,6 +6237,9 @@
                     "casting-items",
                     "production-overview",
                     "cast-flow",
+                    "scenery-stores",
+                    "props-stores",
+                    "wardrobe-stores",
                     "help",
                     "accounts",
                     "productions",

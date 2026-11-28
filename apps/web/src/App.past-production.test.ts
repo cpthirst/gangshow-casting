@@ -142,6 +142,16 @@ describe("switching production", () => {
     expect(router.currentRoute.value.name).toBe("running-order");
   });
 
+  it("stays on a page that belongs to no production, such as a store", async () => {
+    serveProductions();
+    const { wrapper, router } = await open("/stores/scenery");
+
+    await switchTo(wrapper, "2027");
+
+    expect(router.currentRoute.value.path).toBe("/stores/scenery");
+    expect(yearShown(wrapper)).toBe("Gang Show 2027");
+  });
+
   it("shows the newest again on choosing it", async () => {
     const { requests } = serveProductions();
     const { wrapper, router } = await open("/cast");

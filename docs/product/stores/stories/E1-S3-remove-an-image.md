@@ -2,7 +2,7 @@
 id: stores.E1.S3
 title: Remove an image from a store
 epic: E1
-status: ready
+status: done
 ---
 
 ## Story

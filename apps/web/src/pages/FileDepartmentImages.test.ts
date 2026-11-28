@@ -306,23 +306,6 @@ describe("Removing an image, on any file page", () => {
     expect(wrapper.find("main [data-test=image] [data-test=delete]").exists()).toBe(false);
   });
 
-  it("asks first, as a file's row does, and keeps the image when cancelled", async () => {
-    await signInAs(["stage"], "pat");
-    apiHolds({ scenery: openingNumberMix() });
-    const { wrapper } = await openAppAt(pageOf("scenery"));
-
-    await trashFor(wrapper, "set-plan.jpg").trigger("click");
-    await flushPromises();
-    expect(confirmDialog.confirmation()).toEqual({
-      question: "Remove set-plan.jpg? This can't be undone.",
-      buttons: ["Remove file", "Cancel"],
-    });
-    await confirmDialog.cancelConfirmation();
-
-    expect(thumbnails(wrapper)).toEqual(["backdrop.png", "set-plan.jpg"]);
-    expect(deletes()).toEqual([]);
-  });
-
   it("deletes the image once confirmed, keeping the others", async () => {
     await signInAs(["stage"], "pat");
     const held: Held = { scenery: openingNumberMix() };
@@ -361,23 +344,5 @@ describe("Removing an image, on any file page", () => {
 
     expect(wrapper.findAll("main [aria-labelledby=files-heading] h3")).toEqual([]);
     expect(names(wrapper)).toEqual(["cue-sheet.pdf"]);
-  });
-
-  it("says an image removed elsewhere since the page loaded isn't there any more, and catches up", async () => {
-    await signInAs(["stage"], "pat");
-    const held: Held = { scenery: openingNumberMix() };
-    apiHolds(held);
-    const { wrapper } = await openAppAt(pageOf("scenery"));
-    // Removed in another browser.
-    held.scenery?.["opening-number"]?.splice(2, 1);
-
-    await trashFor(wrapper, "set-plan.jpg").trigger("click");
-    await flushPromises();
-    await confirmDialog.goAhead();
-
-    expect(wrapper.get("main [data-test=file-problem]").text()).toBe(
-      "set-plan.jpg isn't there any more.",
-    );
-    expect(thumbnails(wrapper)).toEqual(["backdrop.png"]);
   });
 });

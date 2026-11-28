@@ -10,6 +10,7 @@ import { inMemoryCastStore } from "#/show/cast/cast-store.ts";
 import { aRunningOrder } from "#/show/running-order/running-order.fixture.ts";
 import { inMemoryRunningOrderStore } from "#/show/running-order/running-order-store.ts";
 import { fileStores, itemFileStores } from "#/storage/data-stores.ts";
+import { noStoreImages } from "#/storage/stores.fixture.ts";
 import { inMemoryUsageStore } from "#/usage/usage-store.ts";
 import { inMemoryProductionListStore, type ProductionListStore } from "./production-list-store.ts";
 import { createStartProduction } from "./start-production.ts";
@@ -136,6 +137,7 @@ describe("a production just started, on the real stores", () => {
       stores,
       inMemoryUsageStore(),
       itemFileStores({ DATA_DIR: dataDir }).stores,
+      noStoreImages,
     );
   });
   afterEach(async () => {

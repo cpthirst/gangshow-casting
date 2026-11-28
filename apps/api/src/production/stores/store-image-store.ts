@@ -1,0 +1,40 @@
+import { type ItemFile, type ItemFileUpload, type StoreId, storeFolderOf } from "@app/shared";
+import type { LinkOptions } from "#/production/item-files/file-headers.ts";
+import {
+  localFilesIn,
+  localLinkTo,
+  localRemove,
+  localUploadTo,
+} from "#/production/item-files/item-file-store.ts";
+
+/**
+ * Where the show's stores keep their images, outside every production (ADR 0043). Names come
+ * from storage each time, as item files' do, so one added or removed there shows on the next
+ * list. A store never reaches another's images, nor any production's files.
+ */
+export interface StoreImageStore {
+  /** The store's files, in no particular order; none if it has no folder yet. */
+  list(store: StoreId): Promise<ItemFile[]>;
+  /** A short-lived link that opens or downloads one of the store's files; undefined if it
+   *  isn't there. The name is a valid ItemFileName. */
+  linkTo(store: StoreId, name: string, options?: LinkOptions): Promise<string | undefined>;
+  /** Where the browser may send one image, of up to 100 MB, for a few minutes; "taken" if the
+   *  store has one of that name and it isn't to be replaced. The name is a valid ItemFileName. */
+  uploadTo(
+    store: StoreId,
+    name: string,
+    options: { replace: boolean },
+  ): Promise<ItemFileUpload | "taken">;
+  /** Deletes one of the store's files for good, or says it's "gone" if it isn't there. The
+   *  name is a valid ItemFileName. */
+  remove(store: StoreId, name: string): Promise<"removed" | "gone">;
+}
+
+/** The stores' images in a local folder laid out as the bucket is, for pnpm dev, the demo and
+ *  tests. */
+export const folderStoreImageStore = (folder: string): StoreImageStore => ({
+  list: (store) => localFilesIn(folder, storeFolderOf(store)),
+  linkTo: (store, name, options) => localLinkTo(folder, storeFolderOf(store), name, options),
+  uploadTo: (store, name, options) => localUploadTo(folder, storeFolderOf(store), name, options),
+  remove: (store, name) => localRemove(folder, storeFolderOf(store), name),
+});

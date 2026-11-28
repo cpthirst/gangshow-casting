@@ -100,17 +100,24 @@ describe("accessFrom", () => {
 });
 
 describe("routeNeeds", () => {
-  it("names a department, or admin, for every route that isn't open to everyone", () => {
+  it("names a department, a store, or admin, for every route that isn't open to everyone", () => {
     for (const key of routeKeys.filter((key) => !readOnlyMayUse(key))) {
       const need = routeNeeds[key];
-      expect([...departmentIds, "admin"], key).toContain(need);
+      expect([...departmentIds, "store", "admin"], key).toContain(need);
     }
+  });
+
+  it("has a change to a store need that store's own permission, which its path names (stores FR4)", () => {
+    expect(needOf("POST /api/stores/{storeId}/uploads")).toBe("store");
+    expect(needOf("DELETE /api/stores/{storeId}/images")).toBe("store");
   });
 
   it("lets a Director use every department's change route, but none of Casting's (production-scenery FR2)", () => {
     for (const key of routeKeys) {
       const need = needOf(key);
-      if (need === undefined || need === "admin" || need === "casting") continue;
+      // A store is its own department's alone, never a Director's (stores FR5).
+      if (need === undefined || need === "admin" || need === "casting" || need === "store")
+        continue;
       expect(departments[need].permissions, key).toContain("director");
     }
     expect(mayChangeDepartment(["director"], "casting")).toBe(false);
@@ -215,7 +222,7 @@ describe("routeNeeds", () => {
     const changes = routeKeys.filter(
       (key) =>
         !readOnlyMayUse(key) &&
-        !["props", "scenery", "sfx", "mic-plot", "wardrobe"].includes(needOf(key) ?? ""),
+        !["props", "scenery", "sfx", "mic-plot", "wardrobe", "store"].includes(needOf(key) ?? ""),
     );
     const needsCasting = (key: string) => needOf(key) === "casting";
     expect(changes.filter(needsCasting).sort()).toEqual([
