@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.65.0](https://github.com/cpthirst/gangshow-casting/compare/v1.64.0...v1.65.0) (2026-11-28)
+
+
+### Features
+
+* **web,api,shared,infra:** view, add and remove images in the Stores pages (stores.E1) ([#249](https://github.com/cpthirst/gangshow-casting/issues/249)) ([4e47719](https://github.com/cpthirst/gangshow-casting/commit/4e47719fe6262d71514ae2b9f181008b77257e02))
+
 ## [1.64.0](https://github.com/cpthirst/gangshow-casting/compare/v1.63.0...v1.64.0) (2026-11-26)
 
 
