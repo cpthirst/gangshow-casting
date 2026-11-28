@@ -166,6 +166,10 @@ export const storeImageLinksPath = (store: StoreId) => `/api/stores/${store}/ima
 /** Where to ask for an upload of one of a store's images. */
 export const storeUploadsPath = (store: StoreId) => `/api/stores/${store}/uploads`;
 
+/** One of a store's images, to delete it. */
+export const storeImagePath = (store: StoreId, name: string) =>
+  `/api/stores/${store}/images?${new URLSearchParams({ name })}`;
+
 /** A short-lived link that opens one of a store's images, or always downloads it. */
 export const storeImageLinkPath = (store: StoreId, name: string, { download = false } = {}) =>
   `/api/stores/${store}/image-link?${new URLSearchParams(fileLinkQuery(name, download))}`;

@@ -1,4 +1,10 @@
-import { HeadObjectCommand, ListObjectsV2Command, NotFound, S3Client } from "@aws-sdk/client-s3";
+import {
+  DeleteObjectCommand,
+  HeadObjectCommand,
+  ListObjectsV2Command,
+  NotFound,
+  S3Client,
+} from "@aws-sdk/client-s3";
 import { mockClient } from "aws-sdk-client-mock";
 import { beforeEach, describe, expect, it } from "vitest";
 import { s3StoreImageStore } from "./s3-store-image-store.ts";
@@ -42,5 +48,22 @@ describe("stores images in a bucket", () => {
 
     expect(upload).not.toBe("taken");
     expect(upload !== "taken" && upload.fields.key).toBe("stores/scenery/castle-backdrop.png");
+  });
+
+  it("deletes the image from the store's folder, and only there", async () => {
+    s3.on(HeadObjectCommand).resolves({});
+
+    expect(await store().remove("wardrobe", "tunic.jpg")).toBe("removed");
+    expect(s3.commandCalls(DeleteObjectCommand)[0]?.args[0].input).toEqual({
+      Bucket: BUCKET,
+      Key: "stores/wardrobe/tunic.jpg",
+    });
+  });
+
+  it("says an image already removed is gone, deleting nothing", async () => {
+    s3.on(HeadObjectCommand).rejects(new NotFound({ message: "", $metadata: {} }));
+
+    expect(await store().remove("wardrobe", "tunic.jpg")).toBe("gone");
+    expect(s3.commandCalls(DeleteObjectCommand)).toEqual([]);
   });
 });

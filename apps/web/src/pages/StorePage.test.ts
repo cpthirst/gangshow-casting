@@ -36,9 +36,9 @@ const linkTo = (name: string) => `https://files.example/stores/${name}?signed`;
 /** Where the stand-in file storage takes uploads, apart from the API, as the bucket is. */
 const STORAGE = "https://files.example/";
 
-/** A stand-in API holding the stores' images, changed by uploads, and the productions "2026"
- *  and "2027": a failing store's images won't load, and a gone image has been deleted since
- *  the list. */
+/** A stand-in API holding the stores' images, changed by uploads and removals, and the
+ *  productions "2026" and "2027": a failing store's images won't load, and a gone image has
+ *  been deleted since the list. */
 function serveStores({
   failing,
   gone,
@@ -52,13 +52,19 @@ function serveStores({
   const fetch = vi.fn(async (url: string, init?: RequestInit) => {
     if (url === STORAGE) return stored(held, init?.body);
     const [, store = "", ask] =
-      /^\/api\/stores\/([\w-]+)\/(image-links|image-link\?.*|uploads)$/.exec(url) ?? [];
+      /^\/api\/stores\/([\w-]+)\/(image-links|image-link\?.*|images\?.*|uploads)$/.exec(url) ?? [];
     const names = held[store];
     if (store === failing) return new Response(null, { status: 500 });
     if (ask === "uploads" && names) {
       const { name, replace } = JSON.parse(String(init?.body));
       if (names.includes(name) && !replace) return new Response(null, { status: 409 });
       return json({ url: STORAGE, fields: { key: `${store}/${name}` } });
+    }
+    if (ask?.startsWith("images?") && names && init?.method === "DELETE") {
+      const name = new URLSearchParams(ask.slice("images?".length)).get("name") ?? "";
+      if (!names.includes(name)) return new Response(null, { status: 404 });
+      held[store] = names.filter((each) => each !== name);
+      return new Response(null, { status: 204 });
     }
     if (ask === "image-links" && names) {
       return json({ links: names.map((name) => ({ name, url: linkTo(name) })) });
@@ -378,5 +384,102 @@ describe("Adding an image to a store", () => {
     expect(question).toBe("Replace throne.jpg? The old copy can't be brought back.");
     const [[, init] = []] = uploadsAsked(fetch);
     expect(JSON.parse(String(init?.body))).toMatchObject({ name: "throne.jpg", replace: true });
+  });
+});
+
+describe("Removing an image from a store", () => {
+  const trashFor = (wrapper: VueWrapper, name: string) => {
+    const found = wrapper.findAll("main [data-test=image]").find((each) => each.text() === name);
+    if (!found) throw new Error(`No thumbnail for ${name}`);
+    return found.get("[data-test=delete]");
+  };
+  const removals = (fetch: ReturnType<typeof serveStores>) =>
+    fetch.mock.calls.filter(([, init]) => init?.method === "DELETE").map(([url]) => url);
+
+  async function chooseTrash(wrapper: VueWrapper, name: string) {
+    await trashFor(wrapper, name).trigger("click");
+    await flushPromises();
+  }
+
+  it("gives someone with Stage a trash icon on each thumbnail of the Scenery store", async () => {
+    await signInAs(["stage"], "pat");
+    serveStores();
+    const { wrapper } = await openAppAt("/stores/scenery");
+
+    expect(wrapper.findAll("main [data-test=image] [data-test=delete]")).toHaveLength(2);
+    expect(trashFor(wrapper, "throne.jpg").attributes("aria-label")).toBe("Remove throne.jpg");
+  });
+
+  it.each([["wardrobe"], ["director"]])(
+    "gives someone with only %s no trash icon on the Scenery store",
+    async (permission) => {
+      await signInAs([permission], "dee");
+      serveStores();
+      const { wrapper } = await openAppAt("/stores/scenery");
+
+      expect(thumbnails(wrapper)).toEqual(["castle-backdrop.png", "throne.jpg"]);
+      expect(wrapper.find("main [data-test=image] [data-test=delete]").exists()).toBe(false);
+    },
+  );
+
+  it("asks first, and keeps the image when cancelled", async () => {
+    await signInAs(["stage"], "pat");
+    const fetch = serveStores();
+    const { wrapper } = await openAppAt("/stores/scenery");
+
+    await chooseTrash(wrapper, "throne.jpg");
+    expect(confirmDialog.confirmation()).toEqual({
+      question: "Remove throne.jpg? This can't be undone.",
+      buttons: ["Remove file", "Cancel"],
+    });
+    await confirmDialog.cancelConfirmation();
+
+    expect(thumbnails(wrapper)).toEqual(["castle-backdrop.png", "throne.jpg"]);
+    expect(removals(fetch)).toEqual([]);
+  });
+
+  it("deletes the image once confirmed, keeping the others", async () => {
+    await signInAs(["stage"], "pat");
+    const held = twoInScenery();
+    const fetch = serveStores({ held });
+    const { wrapper } = await openAppAt("/stores/scenery");
+
+    await chooseTrash(wrapper, "throne.jpg");
+    await confirmDialog.goAhead();
+
+    expect(removals(fetch)).toEqual(["/api/stores/scenery/images?name=throne.jpg"]);
+    expect(held.scenery).toEqual(["castle-backdrop.png"]);
+    expect(thumbnails(wrapper)).toEqual(["castle-backdrop.png"]);
+  });
+
+  it("says the store has no images yet once its last one goes", async () => {
+    await signInAs(["stage"], "pat");
+    serveStores({ held: { scenery: ["throne.jpg"], props: [], wardrobe: [] } });
+    const { wrapper } = await openAppAt("/stores/scenery");
+
+    await chooseTrash(wrapper, "throne.jpg");
+    await confirmDialog.goAhead();
+
+    expect(wrapper.find("main .thumb-grid").exists()).toBe(false);
+    expect(wrapper.get("main [data-test=no-images]").text()).toBe(
+      "The Scenery store has no images yet.",
+    );
+  });
+
+  it("says an image removed elsewhere since the page loaded isn't there any more, and catches up", async () => {
+    await signInAs(["stage"], "pat");
+    const held = twoInScenery();
+    serveStores({ held });
+    const { wrapper } = await openAppAt("/stores/scenery");
+    // Removed in another browser.
+    held.scenery = ["castle-backdrop.png"];
+
+    await chooseTrash(wrapper, "throne.jpg");
+    await confirmDialog.goAhead();
+
+    expect(wrapper.get("main [data-test=file-problem]").text()).toBe(
+      "throne.jpg isn't there any more.",
+    );
+    expect(thumbnails(wrapper)).toEqual(["castle-backdrop.png"]);
   });
 });

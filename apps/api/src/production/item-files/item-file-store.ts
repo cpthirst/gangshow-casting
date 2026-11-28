@@ -124,6 +124,17 @@ export async function localUploadTo(
   return { url: localFileLink(place, name), fields: {} };
 }
 
+/** Deletes the file of that name from a place in the local folder, or says it's "gone" if it
+ *  isn't there. The name is a valid ItemFileName. */
+export async function localRemove(folder: string, place: string, name: string) {
+  const file = join(folder, place, name);
+  const found = await ifExists(() => stat(file));
+  if (!found?.isFile()) return "gone";
+  // Gone meanwhile, if deleted in another browser at the same moment: removed all the same.
+  await rm(file, { force: true });
+  return "removed";
+}
+
 /** The department's files in a local folder laid out as the bucket is, for pnpm dev, the demo
  *  and tests. */
 export function folderItemFileStore(folder: string, department: FileDepartment): ItemFileStore {
@@ -149,14 +160,8 @@ export function folderItemFileStore(folder: string, department: FileDepartment):
     },
     linkTo: (productionId, itemId, name, options) =>
       localLinkTo(folder, folderOf(productionId, itemId), name, options),
-    async remove(productionId, itemId, name) {
-      const file = join(folder, folderOf(productionId, itemId), name);
-      const found = await ifExists(() => stat(file));
-      if (!found?.isFile()) return "gone";
-      // Gone meanwhile, if deleted in another browser at the same moment: removed all the same.
-      await rm(file, { force: true });
-      return "removed";
-    },
+    remove: (productionId, itemId, name) =>
+      localRemove(folder, folderOf(productionId, itemId), name),
     uploadTo: (productionId, itemId, name, options) =>
       localUploadTo(folder, folderOf(productionId, itemId), name, options),
     async keepOnlyItems(productionId, itemIds) {

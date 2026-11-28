@@ -553,6 +553,16 @@ export const routeDocs: Record<RouteKey, RouteDoc> = {
       "409": plain("The store has an image of that name, and replace wasn't true."),
     },
   },
+  "DELETE /api/stores/{storeId}/images": {
+    tag: "Stores",
+    summary: "Delete one of a store's images for good",
+    query: fileName("The image to delete."),
+    success: noContent("Deleted."),
+    refusals: {
+      "400": plain("The name isn't one a file can have."),
+      "404": plain("The department has no store, or the image is already gone."),
+    },
+  },
   "POST /api/usage": {
     tag: "Usage",
     summary: "Record one thing the caller did",

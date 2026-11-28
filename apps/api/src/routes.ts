@@ -23,6 +23,7 @@ import { createAddProp } from "#/production/props/add-prop.ts";
 import { createGetProps } from "#/production/props/get-props.ts";
 import { createRemoveProp } from "#/production/props/remove-prop.ts";
 import { createUpdateProp } from "#/production/props/update-prop.ts";
+import { createDeleteStoreImage } from "#/production/stores/delete-store-image.ts";
 import { createGetStoreImageLink } from "#/production/stores/get-store-image-link.ts";
 import { createGetStoreImageLinks } from "#/production/stores/get-store-image-links.ts";
 import type { StoreImageStore } from "#/production/stores/store-image-store.ts";
@@ -204,6 +205,7 @@ export function createRoutes(
     "GET /api/stores/{storeId}/image-links": createGetStoreImageLinks(storeImages),
     "GET /api/stores/{storeId}/image-link": createGetStoreImageLink(storeImages),
     "POST /api/stores/{storeId}/uploads": createUploadStoreImage(storeImages),
+    "DELETE /api/stores/{storeId}/images": createDeleteStoreImage(storeImages),
     ...createUsageRoutes(usage),
   };
 }

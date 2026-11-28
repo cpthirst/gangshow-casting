@@ -109,6 +109,7 @@ describe("routeNeeds", () => {
 
   it("has a change to a store need that store's own permission, which its path names (stores FR4)", () => {
     expect(needOf("POST /api/stores/{storeId}/uploads")).toBe("store");
+    expect(needOf("DELETE /api/stores/{storeId}/images")).toBe("store");
   });
 
   it("lets a Director use every department's change route, but none of Casting's (production-scenery FR2)", () => {

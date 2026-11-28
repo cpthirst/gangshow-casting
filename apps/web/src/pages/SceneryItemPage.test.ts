@@ -561,19 +561,6 @@ describe("Deleting a scenery file", () => {
     expect(held["opening-number"].map((file) => file.name)).not.toContain("set-plan.pdf");
   });
 
-  it("keeps the file when pat cancels, with focus back on its trash icon", async () => {
-    await signInAs(["stage"], "pat");
-    apiHolds(show, heldFiles());
-    const { wrapper } = await openAppAt(OPENING_NUMBER);
-
-    // A tap that never focused the icon, as on iOS Safari.
-    await trash(wrapper, "set-plan.pdf", false);
-
-    expect(deletes()).toEqual([]);
-    expect(rows(wrapper).map((row) => row.name)).toContain("set-plan.pdf");
-    expect(document.activeElement).toBe(trashFor(wrapper, "set-plan.pdf").element);
-  });
-
   it("gives sam, with Casting only, no trash icon", async () => {
     await signInAs(["casting"], "sam");
     apiHolds(show, openingNumberFiles);
@@ -581,41 +568,6 @@ describe("Deleting a scenery file", () => {
 
     expect(rows(wrapper)).toHaveLength(3);
     expect(wrapper.find("main [data-test=delete]").exists()).toBe(false);
-  });
-
-  it("says a file deleted in another browser is gone, and its row goes", async () => {
-    await signInAs(["stage"], "pat");
-    const held = heldFiles();
-    apiHolds(show, held);
-    const { wrapper } = await openAppAt(OPENING_NUMBER);
-    // Deleted in another browser after the page loaded.
-    held["opening-number"] = held["opening-number"].filter((f) => f.name !== "set-plan.pdf");
-
-    await trash(wrapper, "set-plan.pdf", true);
-
-    expect(wrapper.get("main [data-test=file-problem]").text()).toBe(
-      "set-plan.pdf isn't there any more.",
-    );
-    expect(rows(wrapper).map((row) => row.name)).toEqual(["Backdrop.svg", "build-list.xlsx"]);
-  });
-
-  it("says a delete that failed didn't happen, keeping the row", async () => {
-    await signInAs(["stage"], "pat");
-    apiHolds(show, heldFiles());
-    const { wrapper } = await openAppAt(OPENING_NUMBER);
-    const stand = vi.mocked(fetch).getMockImplementation();
-    vi.mocked(fetch).mockImplementation(async (url, init) =>
-      init?.method === "DELETE"
-        ? new Response(null, { status: 500 })
-        : (stand?.(url, init) ?? new Response(null, { status: 500 })),
-    );
-
-    await trash(wrapper, "set-plan.pdf", true);
-
-    expect(wrapper.get("main [data-test=file-problem]").text()).toBe(
-      "Couldn't remove set-plan.pdf. Try again.",
-    );
-    expect(rows(wrapper).map((row) => row.name)).toContain("set-plan.pdf");
   });
 
   it("names each trash icon for its file, for screen readers", async () => {

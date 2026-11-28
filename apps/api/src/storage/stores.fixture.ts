@@ -57,6 +57,7 @@ export const noStoreImages: StoreImageStore = {
   uploadTo: async () => {
     throw new Error("not used here");
   },
+  remove: async () => "gone",
 };
 
 /** The routes on the stores given, recording usage in memory and holding no files. */

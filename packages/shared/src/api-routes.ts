@@ -65,6 +65,7 @@ export const routeKeys = [
   "GET /api/stores/{storeId}/image-links",
   "GET /api/stores/{storeId}/image-link",
   "POST /api/stores/{storeId}/uploads",
+  "DELETE /api/stores/{storeId}/images",
   "POST /api/usage",
   "GET /api/usage",
 ] as const;
@@ -318,6 +319,7 @@ export const routeNeeds: RouteNeeds = {
   "PUT /api/productions/{productionId}/items/{itemId}/mic-plot": "mic-plot",
   "PUT /api/productions/{productionId}/items/{itemId}/mic-plot-notes": "mic-plot",
   "POST /api/stores/{storeId}/uploads": "store",
+  "DELETE /api/stores/{storeId}/images": "store",
   // Usage is about the team, so only admins read it (usage-tracking FR4).
   "GET /api/usage": "admin",
 };

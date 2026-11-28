@@ -3,6 +3,7 @@ import type { LinkOptions } from "#/production/item-files/file-headers.ts";
 import {
   localFilesIn,
   localLinkTo,
+  localRemove,
   localUploadTo,
 } from "#/production/item-files/item-file-store.ts";
 
@@ -24,6 +25,9 @@ export interface StoreImageStore {
     name: string,
     options: { replace: boolean },
   ): Promise<ItemFileUpload | "taken">;
+  /** Deletes one of the store's files for good, or says it's "gone" if it isn't there. The
+   *  name is a valid ItemFileName. */
+  remove(store: StoreId, name: string): Promise<"removed" | "gone">;
 }
 
 /** The stores' images in a local folder laid out as the bucket is, for pnpm dev, the demo and
@@ -32,4 +36,5 @@ export const folderStoreImageStore = (folder: string): StoreImageStore => ({
   list: (store) => localFilesIn(folder, storeFolderOf(store)),
   linkTo: (store, name, options) => localLinkTo(folder, storeFolderOf(store), name, options),
   uploadTo: (store, name, options) => localUploadTo(folder, storeFolderOf(store), name, options),
+  remove: (store, name) => localRemove(folder, storeFolderOf(store), name),
 });

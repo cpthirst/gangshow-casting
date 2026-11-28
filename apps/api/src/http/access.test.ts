@@ -158,6 +158,30 @@ describe("a change to a store", () => {
     },
   );
 
+  it("refuses a Director's removal of a Scenery store image with the Scenery department's refusal", async () => {
+    const reached = vi.fn(async () => ({ statusCode: 204 }));
+    const api = lambdaEntry(
+      { "DELETE /api/stores/{storeId}/images": reached },
+      inMemoryProductionListStore(["2027", "2028"]),
+    );
+
+    const res = await api(
+      request(
+        "DELETE",
+        "/api/stores/scenery/images",
+        { queryStringParameters: { name: "throne.jpg" } },
+        "[director]",
+      ),
+    );
+
+    expect(res.statusCode).toBe(403);
+    expect(JSON.parse(res.body ?? "")).toEqual({
+      message: "You can view the scenery, but not change it.",
+      department: "scenery",
+    });
+    expect(reached).not.toHaveBeenCalled();
+  });
+
   it("lets nobody but an admin past for a store the list doesn't hold, so a gap fails safe", async () => {
     const refused = await send("sfx", "[stage tech wardrobe director]");
 

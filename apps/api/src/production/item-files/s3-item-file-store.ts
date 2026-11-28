@@ -44,13 +44,8 @@ export function s3ItemFileStore(
     },
     linkTo: (productionId, itemId, name, options) =>
       s3LinkTo(s3, bucket, folderOf(productionId, itemId), name, department, options),
-    async remove(productionId, itemId, name) {
-      const Key = `${folderOf(productionId, itemId)}${name}`;
-      // S3 answers a delete of a missing key as if it worked, so look first (AC6's "gone").
-      if (!(await keyExists(s3, bucket, Key))) return "gone";
-      await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key }));
-      return "removed";
-    },
+    remove: (productionId, itemId, name) =>
+      s3Remove(s3, bucket, folderOf(productionId, itemId), name),
     uploadTo: (productionId, itemId, name, options) =>
       s3UploadTo(s3, bucket, folderOf(productionId, itemId), name, options),
     async keepOnlyItems(productionId, itemIds) {
@@ -154,6 +149,16 @@ export async function s3UploadTo(
     Expires: FILE_LINK_SECONDS,
   });
   return { url, fields };
+}
+
+/** Deletes the file of that name under the prefix, or says it's "gone" if it isn't there. The
+ *  name is a valid ItemFileName. */
+export async function s3Remove(s3: S3Client, bucket: string, prefix: string, name: string) {
+  const Key = `${prefix}${name}`;
+  // S3 answers a delete of a missing key as if it worked, so look first, to say it's gone.
+  if (!(await keyExists(s3, bucket, Key))) return "gone";
+  await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key }));
+  return "removed";
 }
 
 async function keyExists(s3: S3Client, bucket: string, Key: string) {

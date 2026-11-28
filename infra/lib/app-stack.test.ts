@@ -139,7 +139,7 @@ describe("AppStack", () => {
       );
     });
 
-    it("lets the API function only list it, read, upload and delete scenery, SFX and Wardrobe files, and read and upload the stores' images, and the accounts function not at all", () => {
+    it("lets the API function only list it, read, upload and delete scenery, SFX and Wardrobe files, and read, upload and delete the stores' images, and the accounts function not at all", () => {
       const { template } = synth();
       const [logicalId] = filesBucket(template) ?? [];
       // Only the keys under an item's scenery, SFX or Wardrobe folder (ADR 0030, ADR 0032).
@@ -172,11 +172,11 @@ describe("AppStack", () => {
           Action: "s3:GetObject",
           Resource: [...departmentFolders, keys("/stores/*")],
         }),
-        // Deleting one, too (production-scenery FR11): nothing outside those folders.
+        // Deleting one, too (production-scenery FR11, stores FR19): only in those folders.
         expect.objectContaining({
           Effect: "Allow",
           Action: "s3:DeleteObject",
-          Resource: departmentFolders,
+          Resource: [...departmentFolders, keys("/stores/*")],
         }),
         // Signed upload forms, too (production-scenery FR8, stores FR12): only into those
         // folders and the stores'.
